@@ -293,6 +293,9 @@ def _section_points_3d(
     le_skew: float = 0.0,
     tip_notch_count: int = 0,
     tip_notch_depth_mm: float = 0.0,
+    le_thick_scale: float = 1.0,
+    te_thick_scale: float = 1.0,
+    section_family: str = SECTION_NACA,
 ) -> list[cq.Vector]:
     """Build the closed 3D loop of one airfoil section wrapped onto the cylinder at radius ``r``.
 
@@ -304,7 +307,8 @@ def _section_points_3d(
     overlap the neighbouring blade — the shape real fans have, which a straight radial stack
     (lean=0) cannot make.
     """
-    loop = naca4(max_camber, camber_pos, thickness, n_chord)
+    loop = section_loop_2d(section_family, max_camber=max_camber, camber_pos=camber_pos,
+                          thickness=thickness, n_points=n_chord)
     # Drop the explicit closing duplicate; the wire is closed by makePolygon(close=True).
     if np.allclose(loop[0], loop[-1]):
         loop = loop[:-1]
@@ -315,6 +319,7 @@ def _section_points_3d(
     x = loop[:, 0]  # chord fraction, 0=LE .. 1=TE
     a = (x - 0.5) * chord  # chordwise distance from mid-chord
     b = loop[:, 1] * chord  # thickness-wise distance
+    b = apply_le_te_thickness(x, b, chord, le_thick_scale, te_thick_scale)
     if features.active:
         a, b = apply_features(x, a, b, r_frac, chord, features)
     # Leading-edge weight: 1 at the LE (x=0), 0 by mid-chord (x>=0.5).
@@ -791,3 +796,69 @@ def apply_le_te_thickness(x, b, chord, le_scale=1.0, te_scale=1.0):
     """Scale the thickness-wise coordinate array `b` toward the LE/TE. No-op when both scales are 1.0."""
     import numpy as np
     return np.asarray(b, dtype=float) * le_te_thick_factors(x, le_scale, te_scale)
+
+
+# --- _thick_scale_kw (transcript, recovery) ---
+def _thick_scale_kw(params: BladeParams) -> dict[str, float]:
+    return dict(
+        le_thick_scale=_clamp_thick_scale(getattr(params, "le_thick_scale", 1.0) or 1.0),
+        te_thick_scale=_clamp_thick_scale(getattr(params, "te_thick_scale", 1.0) or 1.0),
+        section_family=_section_family(params),
+    )
+
+
+# --- _clamp_points_to_cylinder (transcript, recovery) ---
+def _clamp_points_to_cylinder(pts: list[cq.Vector], radius: float) -> list[cq.Vector]:
+    """Measurement helper: pull XY onto the cylinder (Z unchanged). Not used for loft wires."""
+    R = float(radius)
+    if R <= 0.0:
+        return pts
+    out: list[cq.Vector] = []
+    for v in pts:
+        rho = math.hypot(v.x, v.y)
+        if rho > R and rho > 0.0:
+            s = R / rho
+            out.append(cq.Vector(v.x * s, v.y * s, v.z))
+        else:
+            out.append(v)
+    return out
+
+
+# --- _trim_blade_to_tip_cylinder (transcript, recovery) ---
+def _trim_blade_to_tip_cylinder(blade: cq.Solid, tip_radius: float) -> cq.Solid:
+    """Intersect the lofted blade with a cylinder of radius ``tip_radius`` (true cylindrical tip)."""
+    R = float(tip_radius)
+    if R <= 0.0:
+        return blade
+    bb = blade.BoundingBox()
+    pad = 5.0
+    z0 = float(bb.zmin) - pad
+    h = float(bb.zmax - bb.zmin) + 2.0 * pad
+    if h <= 0.0:
+        return blade
+    cyl = cq.Solid.makeCylinder(R, h, cq.Vector(0, 0, z0), cq.Vector(0, 0, 1))
+    cut = blade.intersect(cyl)
+    solids = list(cut.Solids()) if hasattr(cut, "Solids") else []
+    if not solids:
+        # Some CadQuery builds return a single Solid from intersect.
+        if isinstance(cut, cq.Solid) or cut.ShapeType() == "Solid":
+            return cut
+        return blade
+    return max(solids, key=lambda s: abs(float(s.Volume())))
+
+
+# --- _clamp_thick_scale (recovery) ---
+def _clamp_thick_scale(v: float) -> float:
+    return float(min(max(float(v), THICK_SCALE_LO), THICK_SCALE_HI))
+
+
+# --- _section_family (recovery) ---
+def _section_family(params: BladeParams) -> str:
+    fam = str(getattr(params, "section_family", SECTION_NACA) or SECTION_NACA).lower().strip()
+    return fam if fam in SECTION_FAMILIES else SECTION_NACA
+
+# --- THICK_SCALE_LO (recovery cascade) ---
+THICK_SCALE_LO = 0.5
+
+# --- THICK_SCALE_HI (recovery cascade) ---
+THICK_SCALE_HI = 1.5
