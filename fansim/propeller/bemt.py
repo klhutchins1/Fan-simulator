@@ -122,3 +122,35 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
                     v_forward=v_forward, thrust_g=round(T / G * 1000.0, 0),
                     efficiency_g_per_w=round(T / G * 1000.0 / P, 2) if P > 0 else 0.0,
                     figure_of_merit=round(min(fm, 1.0), 3), prop_efficiency=prop_eff)
+
+
+# --- spliced from transcript edit-history (recovery 2026-09-12) ---
+def _compressibility_cl_cd(cl: float, cd: float, mach: float) -> tuple[float, float]:
+    """Stage-1 compressibility: Prandtl–Glauert on Cl; soft wave-drag rise past M≈0.7."""
+    m = max(0.0, min(float(mach), 0.95))
+    beta = math.sqrt(max(1e-6, 1.0 - m * m))
+    cl_c = float(cl) / beta
+    cd_c = float(cd)
+    if m > 0.70:
+        cd_c = cd_c + 0.02 * ((m - 0.70) / 0.25) ** 2
+    return cl_c, cd_c
+
+
+def _cl_cd_analytic(alpha_rad: float, camber: float, re: float | None = None):
+    """Analytic cambered-airfoil polar (high-Re or Re-aware trends)."""
+    a_deg = math.degrees(alpha_rad)
+    cl_max, cd0, stall_deg, slope = 1.4, 0.012, 14.0, 2.0 * math.pi
+    if re is not None:
+        r = max(float(re), 5000.0)
+        f = math.log10(r / 20000.0)               # 0 at Re 20k, 1 at 200k, 2 at 2M
+        cl_max = max(0.80, min(1.5, 0.95 + 0.30 * f))     # low Re -> lower max lift
+        stall_deg = max(8.0, min(15.0, 10.0 + 3.0 * f))   # low Re -> earlier stall
+        cd0 = max(0.010, 0.008 + 5.0 / math.sqrt(r))      # low Re -> much higher profile drag
+        slope = 2.0 * math.pi * max(0.75, min(1.0, 0.88 + 0.12 * f))
+    cl0 = slope * camber                          # zero-alpha lift from camber (thin-airfoil approx)
+    cl = cl0 + slope * alpha_rad
+    cl = max(-cl_max, min(cl_max, cl))            # clamp near max lift
+    if a_deg > stall_deg:                         # post-stall soft drop
+        cl *= max(0.55, 1.0 - (a_deg - stall_deg) * 0.03)
+    cd = cd0 + 0.020 * cl * cl                    # profile + induced-ish drag polar
+    return cl, cd

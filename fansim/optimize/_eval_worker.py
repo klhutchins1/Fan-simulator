@@ -49,3 +49,19 @@ if __name__ == "__main__":
         traceback.print_exc()
         sys.stderr.write(f"{type(exc).__name__}: {exc}\n")
         os._exit(3)
+
+
+# --- spliced from transcript edit-history (recovery 2026-09-12) ---
+def eval_kwargs_from_job(job: dict) -> dict:
+    """Kwargs for ``evaluate_candidate`` besides params, workdir, and spec."""
+    kw = {
+        "procs": int(job.get("procs", 8)),
+        "base_cell": float(job.get("base_cell", 0.006)),
+        "iters": int(job.get("iters", 500)),
+        "load_pa": float(job.get("load_pa", 1.0)),
+        "refine_op": bool(job.get("refine_op", False)),
+        "material": str(job.get("material") or "PETG"),
+    }
+    if job.get("wall_ks_mm") is not None and float(job["wall_ks_mm"]) > 0:
+        kw["wall_ks_mm"] = float(job["wall_ks_mm"])
+    return kw

@@ -28,3 +28,7 @@ def apply_print_penalty(
         float(efficiency) * PRINT_K_ETA,
         stamps,
     )
+
+
+# --- spliced from transcript edit-history (recovery 2026-09-12) ---
+PRINT_K_ETA_THICK = 0.96  # thick-tip milder η knockdown (robustness lever)

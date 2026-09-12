@@ -361,7 +361,10 @@ def test_fit_envelope_preserves_sickle_and_notch_keys():
     # apply_notched_tips stamps the fixed recipe (count/depth), sickle stamps le_skew
     assert bp.tip_notch_count == NOTCH_COUNT
     assert bp.tip_notch_depth_mm == NOTCH_DEPTH_MM
-    assert any(abs(float(st.le_skew)) > 0 for st in bp.stations)def test_features_from_flat_roundtrips_bio_keys():
+    assert any(abs(float(st.le_skew)) > 0 for st in bp.stations)
+
+
+def test_features_from_flat_roundtrips_bio_keys():
     from fansim.geometry.features import Features, features_from_flat
 
     f = features_from_flat({

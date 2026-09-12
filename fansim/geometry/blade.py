@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import cadquery as cq
 import numpy as np
@@ -331,6 +332,26 @@ def _section_points_3d(
     ys = r * st + t * ct
     return [cq.Vector(float(px), float(py), float(z))
             for px, py, z in zip(xs, ys, axial)]
+
+
+
+def _section_loop(r, r_frac, chord, stagger_deg, thickness, max_camber, camber_pos,
+                  sweep, skew, le_sweep, lean_deg, n_chord, features,
+                  le_skew=0.0, tip_notch_count=0, tip_notch_depth_mm=0.0):
+    """RECOVERY BRIDGE (2026-09-12): (chord-fraction x array, 3D section pts).
+    The original _section_loop was never captured whole in any transcript; this mirrors
+    _section_points_3d and additionally returns the chord-fraction array used to find LE/TE.
+    x[i] corresponds to pts[i] (same naca4 loop order). Verify against a real copy."""
+    loop = naca4(max_camber, camber_pos, thickness, n_chord)
+    if np.allclose(loop[0], loop[-1]):
+        loop = loop[:-1]
+    x = loop[:, 0]
+    pts = _section_points_3d(
+        r=r, r_frac=r_frac, chord=chord, stagger_deg=stagger_deg, thickness=thickness,
+        max_camber=max_camber, camber_pos=camber_pos, sweep=sweep, skew=skew,
+        le_sweep=le_sweep, lean_deg=lean_deg, n_chord=n_chord, features=features,
+        le_skew=le_skew, tip_notch_count=tip_notch_count, tip_notch_depth_mm=tip_notch_depth_mm)
+    return x, pts
 
 
 def apply_winglet(params: BladeParams, span_frac: float = 0.85,
@@ -749,3 +770,7 @@ def tip_le_te_z(params: BladeParams) -> tuple[float, float]:
    i_le = int(x.argmin())
    i_te = int(x.argmax())
    return float(pts[i_le].z), float(pts[i_te].z)
+
+
+# --- spliced (recovery 2026-09-12) ---
+TE_BLUNT_FRAC = 0.18

@@ -143,3 +143,29 @@ def bem_screen_cfm(params, rpm: float, load_pa: float, tip_gap_mm: float) -> tup
 def bem_load_cfm(params, rpm: float, load_pa: float, tip_gap_mm: float) -> float:
     """BEM 2-point fan line ∩ ΔP = k Q² — same operating point CFD uses for cfm_load."""
     return bem_screen_cfm(params, rpm, load_pa, tip_gap_mm)[1]
+
+
+# --- spliced from transcript edit-history (recovery 2026-09-12) ---
+def refine_operating_metrics(op, derate: float, load_pa: float, m_load, solve_at) -> RefinedOp:
+    """Optional third CFD at the rated-RPM equivalent of the algebraic hose pressure."""
+    alg_q = float(op.q_op_cfm)
+    alg_eta = float(op.eta)
+    lam = float(derate)
+    p_rated = rated_op_back_pressure(op.p_op_pa, lam)
+    if abs(p_rated - float(load_pa)) < OP_REUSE_PA:
+        return RefinedOp(
+            q_op_cfm=max(float(m_load.cfm), 0.0) * lam,
+            eta=float(m_load.efficiency),
+            op_cfd="reused-probe",
+            cfm_op_alg=alg_q,
+        )
+    try:
+        m_op = solve_at(p_rated)
+        return RefinedOp(
+            q_op_cfm=max(float(m_op.cfm), 0.0) * lam,
+            eta=float(m_op.efficiency),
+            op_cfd="solved",
+            cfm_op_alg=alg_q,
+        )
+    except Exception:  # noqa: BLE001 - refinement miss must not fail the trial
+        return RefinedOp(alg_q, alg_eta, "failed", alg_q)

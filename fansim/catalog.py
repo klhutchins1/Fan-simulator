@@ -221,3 +221,21 @@ def catalog_stats(db: str | Path = CATALOG_DB) -> dict:
         "measured": sum(x.has_measurement for x in e),
         "runs": len({x.run for x in e if x.run}),
     }
+
+
+# --- spliced from transcript edit-history (recovery 2026-09-12) ---
+def results_for_hub(entries: list[CatalogEntry], hub_key: str) -> list[CatalogEntry]:
+    return [e for e in entries if hub_key in (e.hub_models or []) or e.placed_on == hub_key]
+
+
+def curve_provenance(src: dict | None) -> dict:
+    """k / dp_op_pa / q_ref_cfm from a pareto row, extra dict, or ObjectiveResult.raw.
+
+    Absent or None stays None so historical wall-scored rows are not backfilled.
+    """
+    src = src or {}
+    out = {}
+    for key in ("k", "dp_op_pa", "q_ref_cfm"):
+        val = src.get(key)
+        out[key] = float(val) if val is not None else None
+    return out

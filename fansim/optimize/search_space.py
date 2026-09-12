@@ -237,3 +237,52 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
 
 OBJECTIVE_NAMES = ("cfm_free", "cfm_load", "efficiency")
 OBJECTIVE_DIRECTIONS = ("maximize", "maximize", "maximize")
+
+
+# --- spliced from transcript edit-history (recovery 2026-09-12) ---
+def blade_to_flat(params: BladeParams) -> dict:
+    """Flatten a 3-station ``BladeParams`` into the cockpit / ``blade_from_flat`` dict.
+
+    Bio-features and post-loft stamps (winglet / tip-round / sickle / notches) are not
+    reverse-engineered — start clean so the stock reference is editable from the yaml
+    stations. Mid-span camber is used for the single editor camber slider.
+    """
+    st = sorted(params.stations, key=lambda s: s.r_frac)
+    if len(st) < 3:
+        raise ValueError(f"blade_to_flat needs ≥3 stations, got {len(st)}")
+
+    def nearest(frac: float):
+        return min(st, key=lambda s: abs(float(s.r_frac) - frac))
+
+    root, mid, tip = nearest(0.0), nearest(0.5), nearest(1.0)
+    flat = dict(
+        n_blades=int(params.n_blades),
+        hub_radius=float(params.hub_radius),
+        tip_radius=float(params.tip_radius),
+        chord_root=float(root.chord), chord_mid=float(mid.chord), chord_tip=float(tip.chord),
+        stagger_root=float(root.stagger_deg), stagger_mid=float(mid.stagger_deg),
+        stagger_tip=float(tip.stagger_deg),
+        max_camber=float(mid.max_camber),
+        camber_pos=float(mid.camber_pos),
+        thickness_root=float(root.thickness), thickness_mid=float(mid.thickness),
+        thickness_tip=float(tip.thickness),
+        sweep_mid=float(mid.sweep), sweep_tip=float(tip.sweep),
+        skew_mid=float(mid.skew), skew_tip=float(tip.skew),
+        lean_mid=float(mid.lean_deg), lean_tip=float(tip.lean_deg),
+        le_sweep_mid=float(mid.le_sweep), le_sweep_tip=float(tip.le_sweep),
+        le_skew_mid=float(getattr(mid, "le_skew", 0.0) or 0.0),
+        le_skew_tip=float(getattr(tip, "le_skew", 0.0) or 0.0),
+        hub_height=float(params.hub_height_mm or 0.0),
+        hub_profile=str(params.hub_profile or "cylinder"),
+        hub_nose=float(params.hub_nose_mm or 0.0),
+        shroud_thick_mm=float(params.shroud_thick_mm or 0.0),
+        shroud_height_frac=float(params.shroud_height_frac or 1.0),
+        span_interp=str(getattr(params, "span_interp", "linear") or "linear"),
+        spacing_spread=0.0, spacing_seed=0,
+        tip_round=0.0, tip_round_start=0.80,
+        winglet_span=0.85, winglet_sweep=0.0, winglet_lean=0.0,
+    )
+    return flat
+
+
+SICKLE_BOUNDS = (4.0, 12.0)   # tip le_skew mm
