@@ -1,0 +1,104 @@
+# UIUC/Selig polar tables for BEM (stage 1)
+
+**Date:** 2026-09-04  
+**Status:** accepted  
+**Approach:** Vendor a **small** set of UIUC/Selig low-Re polar CSVs under `fansim/data/polars/`. At runtime, `_cl_cd` (fan BEM + prop BEMT) looks up / interpolates `(α, Re)` from the nearest table family; falls back to today’s analytic low-Re curve outside coverage. Opt-in default **on** once tables exist (or keep analytic unless `use_table_polars=True` — pick **tables on by default** when a matching family exists). Not a UIUC web scrape, not CNN polars, not changing tip-loss.  
+**Roadmap:** §1.6 / §7.2 remaining (optional UIUC tables).
+
+## Plain language
+
+The analytic `_cl_cd` already bends with Re “like” UIUC data, but it is not real measured polars. Stage 1 ships a few transcribed CSV tables (attribution in bibliography) and uses them when the blade camber/thickness is close enough. That is the honest next step without depending on the network or the whole Selig archive.
+
+## Approaches considered
+
+| | Approach | Trade-off |
+|---|---|---|
+| **1 (chosen)** | Vendored CSV + interp; analytic fallback | Offline, testable, citable |
+| **2** | Download UIUC at runtime | Brittle; needs network in CI |
+| **3** | Re-fit analytic coeffs only | No table lookup; less transparent |
+
+## Goal
+
+### 1. Data (`fansim/data/polars/`)
+
+Ship **three airfoil families**, each with **three Re** files (or one file with a `re` column):
+
+```text
+naca4412_re4e4.csv   # ~4% camber, 12% thick — closest to our fan stations
+naca4412_re8e4.csv
+naca4412_re1.6e5.csv
+naca2412_re*.csv     # milder camber
+naca0012_re*.csv     # symmetric (camber≈0)
+```
+
+CSV columns (header required):
+
+```text
+alpha_deg,cl,cd
+```
+
+- α range at least about **−5° … +18°** (enough for BEM; post-stall may be sparse — extrapolate softly or clamp).
+- Transcribe from **UIUC Low-Speed Airfoil Data** (Selig et al.); cite in `docs/bibliography.md`. Do **not** dump the entire archive. If a published polar is missing an α, skip that row; do not invent points except linear interp between neighbors.
+- `README.md` in that folder: source, license/attribution note, how to add a family.
+
+Approximate camber map used by the loader:
+
+```text
+|camber − 0.04| smallest → naca4412
+|camber − 0.02| …       → naca2412
+else                     → naca0012
+```
+
+(Thickness fixed to the 12% family for stage 1; we do not yet have thickness as a separate polar key.)
+
+### 2. Code (`fansim/aero/polars.py` or `fansim/propeller/polars.py`)
+
+```text
+load_polar_family(name) -> dict[re -> (alpha, cl, cd)]
+cl_cd_table(alpha_rad, camber, re) -> (cl, cd) | None
+_cl_cd(...)  # in bemt.py: try table; if None, analytic (unchanged)
+```
+
+- Interpolate **α** linearly inside a polar; interpolate **Re** in log10 between the two nearest tables of that family.
+- Outside α range: clamp to edge Cl/Cd (document) — do not NaN the BEM.
+- `re is None`: keep analytic high-Re path (back-compat).
+- Fan BEM already imports `_cl_cd` from `bemt` — no second polar.
+
+### 3. Wiring
+
+- No new CLI flag this cycle (tables used whenever present + Re given).
+- Optional escape: env or kwarg `table_polars=False` only if tests need pure analytic; prefer monkeypatch / analytic fallback when files missing rather than a user flag.
+- Existing `--bem-prescreen` unchanged.
+
+### 4. Docs
+
+- Spec accepted; roadmap §1.6 / §7.2: UIUC table stage 1 done.
+- Bibliography: Selig UIUC low-Re → `fansim/data/polars/`.
+
+## Honesty
+
+- A few families ≠ a full database. Camber/thickness matching is coarse.
+- Ranking gain may still be small (tip clearance was the bottleneck before) — ship anyway for physics honesty.
+- Do not claim CFD-grade airfoil fidelity.
+- Attribution required; do not claim ownership of UIUC data.
+
+## Tests (no network)
+
+- Load one vendored CSV; `cl_cd_table` at a tabulated α returns within 0.02 of the row.
+- Re log-interp between two tables is between the two Cl values at fixed α.
+- `_cl_cd` with camber≈0.04 and Re=8e4 uses the table path (spy or Cl differs from forcing analytic).
+- Missing family / empty dir → analytic fallback, finite Cl/Cd.
+- Fan BEM / prop BEMT smoke still finite. No `★`.
+
+## Non-goals
+
+- Scraping UIUC at runtime
+- Full Selig archive in-repo
+- Thickness-keyed families beyond *12
+- XFOIL generation pipeline
+- Changing tip-loss or BEM structure
+- NSGA / cockpit changes
+
+## Success
+
+With vendored CSVs present, BEM elements at Re~4e4–1.6e5 and camber near 0/0.02/0.04 use table Cl/Cd; otherwise behavior matches today’s analytic `_cl_cd`.

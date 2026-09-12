@@ -1,10 +1,8 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
 
-from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
 from fansim.fan_spec import FanSpec, check_build, mount_min_hub_radius
 
 
@@ -48,6 +46,13 @@ def blade_z_extent(params) -> float:
             lean_deg=float(it["lean_deg"][i]),
             n_chord=params.n_chord,
             features=params.features,
+            le_skew=float(it["le_skew"][i]),
+            le_skew=float(it["le_skew"][i]),
+            tip_notch_count=params.tip_notch_count,
+            tip_notch_depth_mm=params.tip_notch_depth_mm,
+            le_thick_scale=float(getattr(params, "le_thick_scale", 1.0) or 1.0),
+            te_thick_scale=float(getattr(params, "te_thick_scale", 1.0) or 1.0),
+            section_family=str(getattr(params, "section_family", "naca") or "naca"),
         )
         zs += [v.z for v in pts]
     return max(zs) - min(zs)
@@ -56,8 +61,9 @@ def blade_z_extent(params) -> float:
 def blade_max_dia(params) -> float:
     """Max impeller DIAMETER (mm) from section points + optional tip ring.
 
-    Open tips bulge past 2*tip_radius. A shroud sits on that built envelope and
-    adds 2 * shroud_thick_mm to the diameter.
+    With ``cylindrical_tip`` (default), OD is capped at ``2*tip_radius``. With trim off,
+    open tips can bulge past ``2*tip_radius``. A shroud sits on that built envelope and
+    adds ``2 * shroud_thick_mm`` to the diameter.
     """
     from fansim.geometry.blade import open_tip_rmax_mm
 
@@ -68,27 +74,6 @@ def blade_max_dia(params) -> float:
     return dia
 
 
-def frame_gap_mm(built_tip_dia_mm: float, spec: FanSpec) -> float:
-    """Radial leftover from the built tip to the frame ID -- the SAME quantity the CFD
-    ``evaluate_candidate`` gap gate checks (``casing/2 - built_r``). ``built_tip_dia_mm`` from
-    ``blade_max_dia`` already includes any tip ring."""
-    return float(spec.tip_dia_mm[1]) / 2.0 - float(built_tip_dia_mm) / 2.0
-
-
-def frame_gap_ok(built_tip_dia_mm: float, spec: FanSpec) -> bool:
-    """True when the built tip clears the frame by at least the CFD gate's radial floor."""
-    return frame_gap_mm(built_tip_dia_mm, spec) >= OPTIMIZER_TIP_GAP_MM
-
-
-def frame_gap_note(built_tip_dia_mm: float, spec: FanSpec) -> str:
-    """Preview/warning text when the tip is too close to the frame for CFD (else '')."""
-    gap = frame_gap_mm(built_tip_dia_mm, spec)
-    if gap >= OPTIMIZER_TIP_GAP_MM:
-        return ""
-    return (f"frame gap {gap:.2f} mm < {OPTIMIZER_TIP_GAP_MM:.2f} mm clearance to the "
-            f"{float(spec.tip_dia_mm[1]):.0f} mm frame")
-
-
 def preview_changes(changes: list[PlaceChange]) -> str:
     if not changes:
         return "No geometry changes. CFD will be stale."
@@ -97,16 +82,22 @@ def preview_changes(changes: list[PlaceChange]) -> str:
     return "\n".join(lines)
 
 
-def measure_flat(flat: dict) -> tuple[float, float, float] | None:
+def measure_flat(
+    flat: dict, features=None,
+) -> tuple[float, float, float] | None:
     """Measure (built_tip_dia_mm, built_depth_mm, hub_radius_mm) from the built geometry.
+
+    Uses the same bio-feature layer as Preview/Assess: pass ``features`` explicitly, or
+    omit it to pull tubercle/serration/dimple keys from ``flat``.
 
     Returns None on failure (missing params, invalid types, geometry rebuild errors, etc).
     """
-    from fansim.geometry.features import Features
+    from fansim.geometry.features import features_from_flat
     from fansim.optimize.search_space import blade_from_flat
 
     try:
-        p = blade_from_flat(flat, Features())
+        feat = features if features is not None else features_from_flat(flat)
+        p = blade_from_flat(flat, feat)
         built_tip_dia = float(blade_max_dia(p))
         built_depth = float(blade_z_extent(p))
         hub_radius = float(getattr(p, "hub_radius", flat.get("hub_radius")))
@@ -159,11 +150,8 @@ def fit_envelope(flat: dict, spec: FanSpec) -> PlaceResult:
     if need is not None and cur_hub < need:
         set_mm("hub_radius", float(need))
 
-    # 2) tip: shrink until the built tip diameter leaves the CFD frame-gap clearance. The gate rejects
-    #    (before any CFD) anything closer than OPTIMIZER_TIP_GAP_MM radially, so target that same
-    #    clearance (diametral = 2x) plus a hair -- else a "fitted" design is rejected instantly at Assess.
+    # 2) tip: shrink until built tip diameter fits the frame
     max_dia = float(spec.tip_dia_mm[1])
-    target_dia = max_dia - 2.0 * OPTIMIZER_TIP_GAP_MM - 0.1
     tr0 = float(work.get("tip_radius", 0.0))
     tr = tr0
     for _ in range(12):
@@ -172,9 +160,9 @@ def fit_envelope(flat: dict, spec: FanSpec) -> PlaceResult:
             dia = blade_max_dia(blade_from_flat(work, Features()))
         except Exception:  # noqa: BLE001
             break
-        if dia <= target_dia:
+        if dia <= max_dia - 0.15:
             break
-        tr -= (dia - target_dia) / 2.0 + 0.05
+        tr -= (dia - max_dia) / 2.0 + 0.15
         if tr < 20.0:
             break
     work["tip_radius"] = round(tr, 2)
@@ -243,10 +231,6 @@ def fit_envelope(flat: dict, spec: FanSpec) -> PlaceResult:
 
     hub_dia = 2.0 * float(work.get("hub_radius", 0.0))
     ok, reason = check_build(spec, built_tip_dia, hub_dia, z_depth)
-    if ok:  # check_build allows the full frame; the CFD gate also needs the radial tip clearance
-        gap = frame_gap_note(built_tip_dia, spec)
-        if gap:
-            ok, reason = False, gap
     return PlaceResult(
         flat=work,
         changes=changes,
@@ -255,7 +239,21 @@ def fit_envelope(flat: dict, spec: FanSpec) -> PlaceResult:
     )
 
 
-def scale_to_hub(flat: dict, spec: FanSpec) -> PlaceResult:
+def prepare_export_flat(
+    flat: dict, spec: FanSpec, fit_frame: bool, features=None,
+) -> tuple[dict, list[PlaceChange]]:
+    """Return the flat that Export should build from.
+
+    ``fit_frame=False`` copies the editor (no geometry change). ``True`` runs
+    ``fit_envelope`` so the STL fits the selected frame before hub-grow.
+    """
+    if not fit_frame:
+        return deepcopy(flat), []
+    res = fit_envelope(flat, spec, features=features)
+    return res.flat, res.changes
+
+
+def scale_to_hub(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
     import math
 
     src = deepcopy(flat)
@@ -307,7 +305,7 @@ def scale_to_hub(flat: dict, spec: FanSpec) -> PlaceResult:
             src[k] = after
             changes.append(PlaceChange(k, before=before, after=after))
 
-    fitted = fit_envelope(src, spec)
+    fitted = fit_envelope(src, spec, features=features)
     return PlaceResult(
         flat=fitted.flat,
         changes=changes + fitted.changes,
@@ -316,12 +314,13 @@ def scale_to_hub(flat: dict, spec: FanSpec) -> PlaceResult:
     )
 
 
-def placed_child_record(flat: dict, spec: FanSpec, op: str, parent_id: str, hub_key: str) -> dict:
+def placed_child_record(flat: dict, spec: FanSpec, op: str, parent_id: str, hub_key: str,
+                        features=None) -> dict:
     """Create a new derived record from a catalog/library parent without mutating the parent."""
     if op == "scale_to_hub":
-        result = scale_to_hub(flat, spec)
+        result = scale_to_hub(flat, spec, features=features)
     elif op == "fit_envelope":
-        result = fit_envelope(flat, spec)
+        result = fit_envelope(flat, spec, features=features)
     else:
         raise ValueError(f"unknown place op {op!r}")
     return {
@@ -334,4 +333,3 @@ def placed_child_record(flat: dict, spec: FanSpec, op: str, parent_id: str, hub_
         "cfd_stale": True,
         "placed_on": hub_key,
     }
-

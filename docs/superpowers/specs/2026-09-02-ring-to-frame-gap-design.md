@@ -1,9 +1,7 @@
-<!-- RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md. -->
-
 # Ring-to-frame gap in optimizer CFD
 
 **Date:** 2026-09-02  
-**Status:** accepted  
+**Status:** draft  
 **Approach:** A — pin the existing square duct to `spec.tip_dia_mm[1]`; leftover gap = frame/2 − built r; refuse leftover < `--tip-gap`  
 **Roadmap:** §7.5 remainder (CFD clearance). Not winglet×shroud policy, not circular AMCA.  
 **Amends:** `docs/superpowers/specs/2026-09-01-honest-cfd-design.md` (optimizer no longer grows a 0.5 mm custom duct)

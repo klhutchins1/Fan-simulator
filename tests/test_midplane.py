@@ -1,0 +1,160 @@
+"""Unit tests for fansim.cfd.midplane (no Docker / no real OpenFOAM case)."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from fansim.cfd.midplane import (
+    MidplaneArtifacts,
+    artifact_paths,
+    case_has_flow_fields,
+    ensure_midplane_artifacts,
+    ensure_reconstructed,
+    find_cached_midplane,
+    has_decomposed_fields,
+    has_reconstructed_fields,
+    render_midplane_pngs,
+)
+
+
+def _touch_u(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("U\n", encoding="utf-8")
+
+
+def test_has_reconstructed_and_decomposed(tmp_path: Path):
+    case = tmp_path / "case"
+    case.mkdir()
+    assert not has_reconstructed_fields(case)
+    assert not has_decomposed_fields(case)
+    assert not case_has_flow_fields(case)
+
+    _touch_u(case / "0" / "U")
+    assert not has_reconstructed_fields(case)  # t=0 ignored
+
+    _touch_u(case / "1000" / "U")
+    (case / "1000" / "p").write_text("p\n", encoding="utf-8")
+    assert has_reconstructed_fields(case)
+    assert case_has_flow_fields(case)
+
+    case2 = tmp_path / "decomp"
+    case2.mkdir()
+    _touch_u(case2 / "processor3" / "500" / "U")
+    assert has_decomposed_fields(case2)
+    assert not has_reconstructed_fields(case2)
+    assert case_has_flow_fields(case2)
+
+
+def test_find_cached_midplane(tmp_path: Path):
+    case = tmp_path / "case"
+    case.mkdir()
+    assert find_cached_midplane(case) is None
+    u_png, p_png = artifact_paths(case)
+    u_png.parent.mkdir(parents=True)
+    u_png.write_bytes(b"fake")
+    cached = find_cached_midplane(case)
+    assert cached is not None
+    assert cached.available
+    assert "Umag" in cached.caption
+    assert cached.p_png is None
+    assert "FRONT" in cached.caption
+
+
+def test_ensure_reconstructed_skips_when_already_done(tmp_path: Path):
+    case = tmp_path / "case"
+    _touch_u(case / "1000" / "U")
+    calls: list[str] = []
+
+    class FakeRunner:
+        def __init__(self, _case):
+            pass
+
+        def run(self, cmd, check=False):
+            calls.append(cmd)
+            raise AssertionError("should not reconstruct")
+
+    assert ensure_reconstructed(case, runner_factory=FakeRunner, image_ok=lambda: True)
+    assert calls == []
+
+
+def test_ensure_reconstructed_runs_when_decomposed(tmp_path: Path):
+    case = tmp_path / "case"
+    _touch_u(case / "processor0" / "1000" / "U")
+    calls: list[str] = []
+
+    class FakeResult:
+        ok = True
+
+    class FakeRunner:
+        def __init__(self, _case):
+            pass
+
+        def run(self, cmd, check=False):
+            calls.append(cmd)
+            # Simulate reconstruct writing root time dir
+            _touch_u(case / "1000" / "U")
+            return FakeResult()
+
+    assert ensure_reconstructed(case, runner_factory=FakeRunner, image_ok=lambda: True)
+    assert calls == ["reconstructPar -latestTime"]
+    assert has_reconstructed_fields(case)
+
+
+def test_ensure_reconstructed_false_when_docker_down(tmp_path: Path):
+    case = tmp_path / "case"
+    _touch_u(case / "processor0" / "1000" / "U")
+    assert not ensure_reconstructed(case, image_ok=lambda: False)
+
+
+def test_ensure_midplane_unavailable_without_fields(tmp_path: Path):
+    case = tmp_path / "empty"
+    case.mkdir()
+    (case / "impeller.stl").write_text("solid", encoding="utf-8")
+    art = ensure_midplane_artifacts(case)
+    assert not art.available
+    assert art.caption == "Airflow not available for this design"
+
+
+def test_ensure_midplane_none_case():
+    art = ensure_midplane_artifacts(None)
+    assert not art.available
+    assert "not available" in art.caption.lower()
+
+
+@pytest.mark.slow
+def test_render_midplane_pngs_synthetic_mesh(tmp_path: Path):
+    pv = pytest.importorskip("pyvista")
+    case = tmp_path / "case"
+    case.mkdir()
+    # Unit cube with a uniform +Z velocity and linear pressure
+    grid = pv.ImageData(dimensions=(6, 6, 6), spacing=(0.02, 0.02, 0.02), origin=(-0.05, -0.05, -0.05))
+    n = grid.n_cells
+    u = np.zeros((n, 3), dtype=float)
+    u[:, 2] = 1.5
+    grid.cell_data["U"] = u
+    grid.cell_data["p"] = np.linspace(0.0, 10.0, n)
+
+    art = render_midplane_pngs(case, mesh=grid)
+    assert art.available
+    assert art.u_png is not None and art.u_png.is_file()
+    assert art.p_png is not None and art.p_png.is_file()
+    assert art.u_png.stat().st_size > 100
+    assert "Umag" in art.caption
+    assert "FRONT" in art.caption
+    assert "LEFT" in art.caption
+    assert art.u_png.name == "U_midplane_v7.png"
+
+
+def test_ensure_midplane_uses_cache(tmp_path: Path):
+    case = tmp_path / "case"
+    case.mkdir()
+    u_png, _ = artifact_paths(case)
+    u_png.parent.mkdir(parents=True)
+    u_png.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 20)
+    art = ensure_midplane_artifacts(case, force=False)
+    assert isinstance(art, MidplaneArtifacts)
+    assert art.available
+    assert art.u_png == u_png

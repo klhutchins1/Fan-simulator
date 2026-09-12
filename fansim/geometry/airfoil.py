@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """2D airfoil section generators.
 
 Sections are returned as a closed, ordered loop of (x_chord, y_thickness) points in
@@ -10,6 +9,10 @@ surface to the trailing edge (standard airfoil ordering), and is explicitly clos
 from __future__ import annotations
 
 import numpy as np
+
+SECTION_NACA = "naca"
+SECTION_PLATE = "plate"
+SECTION_FAMILIES = (SECTION_NACA, SECTION_PLATE)
 
 
 def naca4(
@@ -76,3 +79,58 @@ def naca4(
     if not np.allclose(loop[0], loop[-1]):
         loop = np.vstack([loop, loop[0]])
     return loop
+
+
+def rounded_plate(thickness: float, n_points: int = 60) -> np.ndarray:
+    """Constant-thickness stadium section: flat faces + semicircle LE and TE (bullnose).
+
+    Radius of each end = ``thickness / 2`` (full round). Chord normalized to 1. Same loop
+    ordering as ``naca4`` (start at TE, upper to LE, lower back to TE). Symmetric — no camber.
+    """
+    t = max(float(thickness), 1e-6)
+    R = min(0.5 * t, 0.49)
+
+    n_arc = max(int(n_points) // 2, 8)
+    n_flat = max(int(n_points) // 2, 4)
+
+    # Upper TE→LE: TE tip → TE quarter-circle → flat → LE quarter-circle → LE tip
+    th_te_u = np.linspace(0.0, 0.5 * np.pi, n_arc, endpoint=False)
+    te_u = np.column_stack([(1.0 - R) + R * np.cos(th_te_u), R * np.sin(th_te_u)])
+
+    x_flat_u = np.linspace(1.0 - R, R, n_flat, endpoint=False)
+    flat_u = np.column_stack([x_flat_u, np.full_like(x_flat_u, R)])
+
+    th_le_u = np.linspace(0.5 * np.pi, np.pi, n_arc, endpoint=True)
+    le_u = np.column_stack([R + R * np.cos(th_le_u), R * np.sin(th_le_u)])
+    upper = np.vstack([te_u, flat_u, le_u])
+
+    # Lower LE→TE (skip LE tip duplicate)
+    th_le_l = np.linspace(np.pi, 1.5 * np.pi, n_arc, endpoint=False)[1:]
+    le_l = np.column_stack([R + R * np.cos(th_le_l), R * np.sin(th_le_l)])
+
+    x_flat_l = np.linspace(R, 1.0 - R, n_flat, endpoint=False)
+    flat_l = np.column_stack([x_flat_l, np.full_like(x_flat_l, -R)])
+
+    th_te_l = np.linspace(-0.5 * np.pi, 0.0, n_arc, endpoint=True)
+    te_l = np.column_stack([(1.0 - R) + R * np.cos(th_te_l), R * np.sin(th_te_l)])
+    lower = np.vstack([le_l, flat_l, te_l])
+
+    loop = np.vstack([upper, lower])
+    if not np.allclose(loop[0], loop[-1]):
+        loop = np.vstack([loop, loop[0]])
+    return loop
+
+
+def section_loop_2d(
+    family: str,
+    *,
+    max_camber: float,
+    camber_pos: float,
+    thickness: float,
+    n_points: int = 60,
+) -> np.ndarray:
+    """Dispatch to NACA or rounded-plate generator."""
+    fam = str(family or SECTION_NACA).lower().strip()
+    if fam == SECTION_PLATE:
+        return rounded_plate(thickness, n_points)
+    return naca4(max_camber, camber_pos, thickness, n_points)

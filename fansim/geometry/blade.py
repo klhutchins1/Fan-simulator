@@ -1,4 +1,4 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
+# RECONSTRUCTED 2026-09-12: my 420-line base + Cursor blade.py edits replayed + shroud_is_full/SHROUD_FULL_EPS/shroud_axial_range/tip_le_te_z spliced. 752 lines vs ~745 target; VERIFY against any real copy.
 """Parametric axial-fan impeller builder.
 
 Coordinate convention (millimeters):
@@ -14,13 +14,49 @@ through a few radial control stations, patterned into N blades on a cylindrical 
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 import cadquery as cq
 import numpy as np
 
-from fansim.geometry.airfoil import naca4
+from fansim.geometry.airfoil import (
+    SECTION_FAMILIES,
+    SECTION_NACA,
+    SECTION_PLATE,
+    naca4,
+    section_loop_2d,
+)
 from fansim.geometry.features import Features, apply_features
+
+if TYPE_CHECKING:  # pragma: no cover
+    import cadquery as cq
+
+_CQ = None
+
+
+def _cq():
+    """Lazy CadQuery import (avoids importing OCCT on pure-math paths)."""
+    global _CQ  # noqa: PLW0603
+    if _CQ is None:
+        import cadquery as cq  # noqa: PLC0415
+
+        _CQ = cq
+    return _CQ
+
+
+@dataclass(frozen=True)
+class Vec:
+    """Lightweight 3D vector (CadQuery-free).
+
+    Many geometry helpers only need x/y/z floats for envelope checks, shrouds, etc. Keep those
+    paths independent from CadQuery/OCCT so unit tests and non-CAD tooling don't pay the import
+    cost (or hit platform brittleness).
+    """
+
+    x: float
+    y: float
+    z: float
 
 
 @dataclass
@@ -41,8 +77,21 @@ class RadialStation:
     # straight radial paddle.
     le_sweep: float = 0.0  # axial (Z) offset of the LEADING-EDGE region only, mm. Blends smoothly
     # to zero by mid-chord, so it rakes/curves the leading edge without moving the trailing edge;
-    # varying it hub->tip curves the leading-edge LINE (a swept LE, unlike the flat default). Kept
-    # LAST so existing positional RadialStation(...) callers are unaffected.
+    # varying it hub->tip curves the leading-edge LINE (a swept LE, unlike the flat default).
+    le_skew: float = 0.0  # circumferential (θ) offset of the LEADING-EDGE region only, mm.
+    # Same blend as le_sweep. Positive = +t (same sign as skew). Kept last so positional callers
+    # of RadialStation(...) are unaffected.
+
+
+SICKLE_DEFAULT_MM = 8.0
+NOTCH_COUNT = 3
+NOTCH_DEPTH_MM = 1.5
+NOTCH_START_FRAC = 0.88  # outer-span TE bites; hub is untouched
+NOTCH_SPAN_SECTIONS = 48
+NOTCH_COUNT = 3
+NOTCH_DEPTH_MM = 1.5
+NOTCH_START_FRAC = 0.88  # outer-span TE bites; hub is untouched
+NOTCH_SPAN_SECTIONS = 48
 
 
 @dataclass
@@ -64,10 +113,26 @@ class BladeParams:
     n_span: int = 18  # loft sections across the span (wide wrapped blades need resolution)
     n_chord: int = 60  # points per airfoil surface
     features: Features = field(default_factory=Features)  # bio-inspired feature layer
+    shroud_thick_mm: float = 0.0  # 0 = no tip ring; else radial wall outside the built tip
     # Optional per-blade circumferential angles [deg]. None => equal spacing (360/N). Set to an
     # UNEVEN, statically balanced pattern (fansim.structural.balance.balanced_uneven_spacing) to
     # spread the blade-pass tone. Must have length n_blades. See [[fan-sim-uneven-spacing]].
     blade_angles_deg: list[float] | None = None
+    tip_notch_count: int = 0  # 0 = off; stamped 3 by apply_notched_tips
+    tip_notch_depth_mm: float = 0.0  # TE bite, mm; 0 = off
+    # When True, intersect each lofted blade with a cylinder of radius tip_radius so the tip
+    # face is cylindrical (matches the cover circle). False = legacy bulging LE/TE corners.
+    cylindrical_tip: bool = True
+    # Chordwise thickness bias (global): scale local NACA thickness near LE / TE.
+    # 1.0 = unchanged; typical range 0.5–1.5. Thickness root/mid/tip still set max thickness.
+    # Ignored when section_family == "plate".
+    le_thick_scale: float = 1.0
+    te_thick_scale: float = 1.0
+    # Airfoil family: "naca" (default) or "plate" (constant-t stadium / bullnose both ends).
+    section_family: str = SECTION_NACA
+    # Span loft between control stations: "linear" (default, can kink at mid) or "pchip"
+    # (shape-preserving cubic — smooth through hub/mid/tip). Stage 1 optional smooth curves.
+    span_interp: str = "linear"
     stations: list[RadialStation] = field(
         default_factory=lambda: [
             # High solidity: blades overlap (solidity > 1) at hub/mid like a real fan.
@@ -79,6 +144,82 @@ class BladeParams:
                           max_camber=0.06, sweep=5.0, lean_deg=26.0),
         ]
     )
+
+
+SHROUD_EMBED_MM = 0.8
+SHROUD_DEFAULT_MM = 1.6
+SHROUD_MIN_WALL_MM = 0.8
+SHROUD_FULL_EPS = 1e-9
+
+
+def normalize_shroud_thick_mm(thick: float) -> float:
+    """0 stays off. A nudge in (0, min wall) snaps up to a printable two-wall ring.
+
+    The cockpit slider used to step 0.2 mm, so 'turning the shroud on' landed on 0.20 mm —
+    a hair-thin hoop that still draws but fails the FDM gate.
+    """
+    t = float(thick or 0.0)
+    if t <= 0.0:
+        return 0.0
+    if t < SHROUD_MIN_WALL_MM:
+        return SHROUD_MIN_WALL_MM
+    return t
+
+
+
+
+def shroud_is_full(params: "BladeParams") -> bool:
+    t = float(getattr(params, "shroud_thick_mm", 0.0) or 0.0)
+    f = min(max(float(getattr(params, "shroud_height_frac", 1.0) or 0.0), 0.0), 1.0)
+    return t > 0.0 and f >= 1.0 - SHROUD_FULL_EPS
+
+def normalize_shroud_thick_mm(thick: float) -> float:
+    """0 stays off. A nudge in (0, min wall) snaps up to a printable two-wall ring.
+
+    The cockpit slider used to step 0.2 mm, so 'turning the shroud on' landed on 0.20 mm —
+    a hair-thin hoop that still draws but fails the FDM gate.
+    """
+    t = float(thick or 0.0)
+    if t <= 0.0:
+        return 0.0
+    if t < SHROUD_MIN_WALL_MM:
+        return SHROUD_MIN_WALL_MM
+    return t
+
+
+def open_tip_rmax_mm(params: BladeParams) -> float:
+    """Max radial extent (mm) of blade section points — no ring.
+
+    Uses ``params.features`` so tip round / winglets / etc. count toward the CFD tip-gap
+    floor (empty Features under-read OD and let Assess launch Docker on an OOS design).
+    With ``cylindrical_tip``, the solid is cut to ``tip_radius``, so the reported OD is capped.
+    """
+    it = _interp_stations(params, params.n_span)
+    r0 = params.hub_radius - params.root_embed
+    rmax = 0.0
+    for i in range(params.n_span):
+        rf = float(it["r_frac"][i])
+        r = r0 + (params.tip_radius - r0) * rf
+        pts = _section_points_3d(
+            r=r, r_frac=rf,
+            chord=float(it["chord"][i]), stagger_deg=float(it["stagger_deg"][i]),
+            thickness=float(it["thickness"][i]), max_camber=float(it["max_camber"][i]),
+            camber_pos=float(it["camber_pos"][i]), sweep=float(it["sweep"][i]),
+            skew=float(it["skew"][i]), le_sweep=float(it["le_sweep"][i]),
+            lean_deg=float(it["lean_deg"][i]), n_chord=params.n_chord,
+            features=params.features,
+            le_skew=float(it["le_skew"][i]),
+            tip_notch_count=params.tip_notch_count,
+            tip_notch_depth_mm=params.tip_notch_depth_mm,
+            **_thick_scale_kw(params),
+        )
+        for v in pts:
+            rr = math.hypot(v.x, v.y)
+            if rr > rmax:
+                rmax = rr
+    if bool(getattr(params, "cylindrical_tip", True)):
+        rmax = min(rmax, float(params.tip_radius))
+    return rmax
 
 
 def blade_solidity(params: BladeParams) -> dict[str, float]:
@@ -101,16 +242,36 @@ def blade_solidity(params: BladeParams) -> dict[str, float]:
     return out
 
 
+SPAN_INTERP_LINEAR = "linear"
+SPAN_INTERP_PCHIP = "pchip"
+SPAN_INTERP_MODES = (SPAN_INTERP_LINEAR, SPAN_INTERP_PCHIP)
+
+
 def _interp_stations(params: BladeParams, n_span: int) -> dict[str, np.ndarray]:
-    """Linearly interpolate the control stations onto ``n_span`` spanwise samples."""
+    """Interpolate control stations onto ``n_span`` spanwise samples.
+
+    Default ``span_interp="linear"`` matches historical behavior (can kink at mid).
+    ``span_interp="pchip"`` uses a shape-preserving cubic through the same stations
+    so mid can move without a sharp elbow.
+    """
     ctrl = sorted(params.stations, key=lambda s: s.r_frac)
-    rf = np.array([s.r_frac for s in ctrl])
+    rf = np.array([s.r_frac for s in ctrl], dtype=float)
     q = np.linspace(0.0, 1.0, n_span)
     fields = ["chord", "stagger_deg", "thickness", "max_camber", "camber_pos",
-              "sweep", "skew", "le_sweep", "lean_deg"]
+              "sweep", "skew", "le_sweep", "le_skew", "lean_deg"]
     out = {"r_frac": q}
+    mode = str(getattr(params, "span_interp", SPAN_INTERP_LINEAR) or SPAN_INTERP_LINEAR).lower()
+    use_pchip = mode == SPAN_INTERP_PCHIP and len(rf) >= 3
     for name in fields:
-        out[name] = np.interp(q, rf, np.array([getattr(s, name) for s in ctrl]))
+        y = np.array([getattr(s, name) for s in ctrl], dtype=float)
+        if use_pchip:
+            try:
+                from scipy.interpolate import PchipInterpolator
+                out[name] = PchipInterpolator(rf, y)(q)
+                continue
+            except Exception:  # noqa: BLE001 — fall back to linear
+                pass
+        out[name] = np.interp(q, rf, y)
     return out
 
 
@@ -128,6 +289,9 @@ def _section_points_3d(
     lean_deg: float,
     n_chord: int,
     features: Features,
+    le_skew: float = 0.0,
+    tip_notch_count: int = 0,
+    tip_notch_depth_mm: float = 0.0,
 ) -> list[cq.Vector]:
     """Build the closed 3D loop of one airfoil section wrapped onto the cylinder at radius ``r``.
 
@@ -152,10 +316,9 @@ def _section_points_3d(
     b = loop[:, 1] * chord  # thickness-wise distance
     if features.active:
         a, b = apply_features(x, a, b, r_frac, chord, features)
-    t = a * cb - b * sb + skew  # circumferential (tangential) distance, mm
-    # Leading-edge curve: an axial offset that is full at the LE (x=0) and blends smoothly to zero
-    # by mid-chord (x>=0.5), so it rakes the leading edge without disturbing the trailing edge.
+    # Leading-edge weight: 1 at the LE (x=0), 0 by mid-chord (x>=0.5).
     w_le = np.where(x < 0.5, 0.5 * (1.0 + np.cos(2.0 * np.pi * x)), 0.0)
+    t = a * cb - b * sb + skew + le_skew * w_le  # circumferential (tangential) distance, mm
     axial = a * sb + b * cb + sweep + le_sweep * w_le
 
     # Place the (planar) section in the tangent plane at angular position theta = lean_deg and
@@ -187,11 +350,11 @@ def apply_winglet(params: BladeParams, span_frac: float = 0.85,
 
     shoulder = RadialStation(span_frac, interp("chord"), interp("stagger_deg"), interp("thickness"),
                              interp("max_camber"), interp("camber_pos"), interp("sweep"), interp("skew"),
-                             interp("lean_deg"), le_sweep=interp("le_sweep"))
+                             interp("lean_deg"), le_sweep=interp("le_sweep"), le_skew=interp("le_skew"))
     tip = st[-1]
     tip_wl = RadialStation(tip.r_frac, tip.chord, tip.stagger_deg, tip.thickness, tip.max_camber,
                            tip.camber_pos, tip.sweep + sweep_add, tip.skew, tip.lean_deg + lean_add,
-                           le_sweep=tip.le_sweep)
+                           le_sweep=tip.le_sweep, le_skew=tip.le_skew)
     params.stations = [s for s in st if s.r_frac < span_frac] + [shoulder, tip_wl]
     return params
 
@@ -228,18 +391,72 @@ def apply_tip_shape(params: BladeParams, tip_round: float = 0.0,
         tip_stations.append(RadialStation(
             rf, interp("chord", rf) * scale, interp("stagger_deg", rf), interp("thickness", rf),
             interp("max_camber", rf), interp("camber_pos", rf), interp("sweep", rf),
-            interp("skew", rf), interp("lean_deg", rf), le_sweep=interp("le_sweep", rf)))
+            interp("skew", rf), interp("lean_deg", rf), le_sweep=interp("le_sweep", rf),
+            le_skew=interp("le_skew", rf)))
     params.stations = kept + tip_stations
+    return params
+
+
+def apply_sickle(params: BladeParams, tip_mm: float) -> BladeParams:
+    """Forward-sweep the leading edge in the rotation plane (LE-only ``le_skew``).
+
+    Hub stays 0, mid is 40% of ``tip_mm``, tip is ``tip_mm``. Extra stations (winglet / tip-round)
+    interpolate that recipe on ``r_frac``. ``tip_mm <= 0`` is a no-op. Mutates and returns ``params``.
+    """
+    tip_mm = float(tip_mm)
+    if tip_mm <= 0.0:
+        return params
+    for s in params.stations:
+        s.le_skew = float(np.interp(s.r_frac, [0.0, 0.5, 1.0], [0.0, 0.40 * tip_mm, tip_mm]))
+    return params
+
+
+def apply_notched_tips(params: BladeParams) -> BladeParams:
+    """Stamp three cut-only TE bites in the outer 12% of span.
+
+    Sets ``tip_notch_count`` / ``tip_notch_depth_mm`` to the fixed recipe. Idempotent.
+    Mutates and returns ``params``.
+    """
+    params.tip_notch_count = NOTCH_COUNT
+    params.tip_notch_depth_mm = NOTCH_DEPTH_MM
+    return params
+
+
+def apply_sickle(params: BladeParams, tip_mm: float) -> BladeParams:
+    """Forward-sweep the leading edge in the rotation plane (LE-only ``le_skew``).
+
+    Hub stays 0, mid is 40% of ``tip_mm``, tip is ``tip_mm``. Extra stations (winglet / tip-round)
+    interpolate that recipe on ``r_frac``. ``tip_mm <= 0`` is a no-op. Mutates and returns ``params``.
+    """
+    tip_mm = float(tip_mm)
+    if tip_mm <= 0.0:
+        return params
+    for s in params.stations:
+        s.le_skew = float(np.interp(s.r_frac, [0.0, 0.5, 1.0], [0.0, 0.40 * tip_mm, tip_mm]))
+    return params
+
+
+def apply_notched_tips(params: BladeParams) -> BladeParams:
+    """Stamp three cut-only TE bites in the outer 12% of span.
+
+    Sets ``tip_notch_count`` / ``tip_notch_depth_mm`` to the fixed recipe. Idempotent.
+    Mutates and returns ``params``.
+    """
+    params.tip_notch_count = NOTCH_COUNT
+    params.tip_notch_depth_mm = NOTCH_DEPTH_MM
     return params
 
 
 def build_blade_solid(params: BladeParams) -> cq.Solid:
     """Loft one blade solid from hub to tip (raising loft resolution for active features)."""
+    cq = _cq()
     n_span = params.features.required_span_sections(params.n_span)
     # Extra inserted stations (winglet shoulder / tip rounding) live in the outer span; raise the
     # spanwise loft resolution so that curved tip reads smoothly instead of as a few facets.
     if len(params.stations) > 3:
         n_span = max(n_span, 30)
+    if int(params.tip_notch_count or 0) > 0:
+        n_span = max(n_span, NOTCH_SPAN_SECTIONS)
     n_chord = params.features.required_chord_points(params.n_chord)
     interp = _interp_stations(params, n_span)
     r_root = params.hub_radius - params.root_embed
@@ -263,10 +480,17 @@ def build_blade_solid(params: BladeParams) -> cq.Solid:
             lean_deg=float(interp["lean_deg"][i]),
             n_chord=n_chord,
             features=params.features,
+            le_skew=float(interp["le_skew"][i]),
+            tip_notch_count=params.tip_notch_count,
+            tip_notch_depth_mm=params.tip_notch_depth_mm,
+            **_thick_scale_kw(params),
         )
         wires.append(cq.Wire.makePolygon(pts, close=True))
 
-    return cq.Solid.makeLoft(wires, True)
+    blade = cq.Solid.makeLoft(wires, True)
+    if bool(getattr(params, "cylindrical_tip", True)):
+        blade = _trim_blade_to_tip_cylinder(blade, float(params.tip_radius))
+    return blade
 
 
 def set_uneven_spacing(params: BladeParams, spread: float = 0.3, rng=None,
@@ -305,9 +529,60 @@ def _root_axial_span(params: BladeParams) -> tuple[float, float]:
     pts = _section_points_3d(
         r=r, r_frac=st.r_frac, chord=st.chord, stagger_deg=st.stagger_deg, thickness=st.thickness,
         max_camber=st.max_camber, camber_pos=st.camber_pos, sweep=st.sweep, skew=st.skew,
-        le_sweep=st.le_sweep, lean_deg=st.lean_deg, n_chord=params.n_chord, features=Features())
+        le_sweep=st.le_sweep, lean_deg=st.lean_deg, n_chord=params.n_chord, features=Features(),
+        le_skew=st.le_skew,
+        tip_notch_count=params.tip_notch_count,
+        tip_notch_depth_mm=params.tip_notch_depth_mm)
     zs = [p.z for p in pts]
     return min(zs), max(zs)
+
+
+def tip_section_points(params: BladeParams) -> list[Vec]:
+    """The outermost control station's section loop — the chord the tip ring must swallow."""
+    st = max(params.stations, key=lambda s: s.r_frac)
+    r = params.hub_radius - params.root_embed
+    r = r + (params.tip_radius - r) * st.r_frac
+    return _section_points_3d(
+        r=r, r_frac=st.r_frac, chord=st.chord, stagger_deg=st.stagger_deg,
+        thickness=st.thickness, max_camber=st.max_camber, camber_pos=st.camber_pos,
+        sweep=st.sweep, skew=st.skew, le_sweep=st.le_sweep, lean_deg=st.lean_deg,
+        n_chord=params.n_chord, features=Features(), le_skew=st.le_skew,
+    )
+
+
+def tip_section_rmin_mm(params: BladeParams) -> float:
+    """MIN radial extent (mm) of the tip section — the mid-chord, which sits near ``tip_radius``.
+
+    The max hypot occurs at the LE/TE corners (a staggered chord swings its ends outboard), so
+    sizing the ring bore off ``open_tip_rmax_mm`` would only fuse the corners and leave the rest
+    of the chord open to the outside. The bore must go under this minimum instead."""
+    import math
+
+    return min(math.hypot(v.x, v.y) for v in tip_section_points(params))
+
+
+def _tip_z_span(params: BladeParams) -> tuple[float, float]:
+    zs = [p.z for p in tip_section_points(params)]
+    return min(zs), max(zs)
+
+
+def _shroud_solid(params: BladeParams) -> cq.Solid | None:
+    cq = _cq()
+    t = float(params.shroud_thick_mm or 0.0)
+    if t <= 0.0:
+        return None
+    # Outer wall clears the widest point of the blade (LE/TE corners); the bore dives under the
+    # NARROWEST point of the tip chord so the whole section is buried in the ring, not just its
+    # corners. Anything else leaves a radial channel straight past the tip.
+    r_out = open_tip_rmax_mm(params) + t
+    r_in = tip_section_rmin_mm(params) - SHROUD_EMBED_MM
+    if r_in <= 0.0 or r_out <= r_in:
+        return None
+    z0, z1 = _tip_z_span(params)
+    h = max(z1 - z0, 1.0)
+    outer = cq.Solid.makeCylinder(r_out, h, cq.Vector(0, 0, z0), cq.Vector(0, 0, 1))
+    inner = cq.Solid.makeCylinder(r_in, h + 0.4, cq.Vector(0, 0, z0 - 0.2), cq.Vector(0, 0, 1))
+    return outer.cut(inner)
 
 
 def _hub_axial_range(params: BladeParams, blade: cq.Solid) -> tuple[float, float]:
@@ -327,6 +602,7 @@ def _hub_axial_range(params: BladeParams, blade: cq.Solid) -> tuple[float, float
 
 
 def _cylinder_hub(params: BladeParams, z_bottom: float, z_top: float) -> cq.Solid:
+    cq = _cq()
     return cq.Solid.makeCylinder(params.hub_radius, z_top - z_bottom,
                                  cq.Vector(0, 0, z_bottom), cq.Vector(0, 0, 1))
 
@@ -335,6 +611,7 @@ def build_hub(params: BladeParams, z_bottom: float, z_top: float) -> cq.Solid:
     """The hub solid between z_bottom..z_top: a cylinder, optionally capped with a pointy cone or a
     rounded dome nose of height ``hub_nose_mm`` on the +Z (intake) end. Falls back to a plain
     cylinder if a nose op fails, so the impeller always builds."""
+    cq = _cq()
     R = params.hub_radius
     profile = (params.hub_profile or "cylinder").lower()
     nose = float(params.hub_nose_mm or 0.0)
@@ -364,6 +641,7 @@ def build_impeller(params: BladeParams | None = None) -> cq.Workplane:
 
     Returns a CadQuery ``Workplane`` wrapping the fused solid.
     """
+    cq = _cq()
     params = params or BladeParams()
     blade = build_blade_solid(params)
 
@@ -381,6 +659,9 @@ def build_impeller(params: BladeParams | None = None) -> cq.Workplane:
     blades = [blade.rotate(cq.Vector(0, 0, 0), cq.Vector(0, 0, 1), a) for a in angles]
 
     fused = hub.fuse(*blades).clean()
+    ring = _shroud_solid(params)
+    if ring is not None:
+        fused = fused.fuse(ring).clean()
     return cq.Workplane(obj=fused)
 
 
@@ -418,4 +699,53 @@ def build_impeller_preview(params: BladeParams | None = None, tol: float = 0.15)
         parts.append(m)
     mesh = trimesh.util.concatenate(parts)
     volume_mm3 = float(blade.Volume()) * len(angles) + float(hub.Volume())
+    ring = _shroud_solid(params)
+    if ring is not None:
+        parts.append(_tm(ring))
+        volume_mm3 += float(ring.Volume())
+        mesh = trimesh.util.concatenate(parts)
     return mesh, volume_mm3
+
+
+def shroud_axial_range(params: BladeParams) -> tuple[float, float] | None:
+    t = float(params.shroud_thick_mm or 0.0)
+    if t <= 0.0:
+        return None
+    z0, z1 = _tip_z_span(params)
+    span = z1 - z0
+    frac = min(max(float(params.shroud_height_frac or 0.0), 0.0), 1.0)
+    if frac >= 1.0 - SHROUD_FULL_EPS:
+        return z0, z1
+    h = frac * span
+    if span >= SHROUD_MIN_WALL_MM:
+        h = min(max(h, SHROUD_MIN_WALL_MM), span)
+    else:
+        h = span
+    z_le, z_te = tip_le_te_z(params)
+    if z_te >= z_le:
+        z_hi = z_te
+        z_lo = z_te - h
+    else:
+        z_lo = z_te
+        z_hi = z_te + h
+    return (z_lo, z_hi) if z_hi >= z_lo else (z_hi, z_lo)
+
+
+def tip_le_te_z(params: BladeParams) -> tuple[float, float]:
+   """Axial Z of LE (`x` min) and TE (`x` max) on the tip section."""
+   st = max(params.stations, key=lambda s: s.r_frac)
+   r = params.hub_radius - params.root_embed
+   r = r + (params.tip_radius - r) * st.r_frac
+   x, pts = _section_loop(
+       r=r, r_frac=st.r_frac, chord=st.chord, stagger_deg=st.stagger_deg,
+       thickness=st.thickness, max_camber=st.max_camber, camber_pos=st.camber_pos,
+       sweep=st.sweep, skew=st.skew, le_sweep=st.le_sweep, lean_deg=st.lean_deg,
+       n_chord=params.n_chord, features=Features(), le_skew=st.le_skew,
+       tip_notch_count=params.tip_notch_count,
+       tip_notch_depth_mm=params.tip_notch_depth_mm,
+   )
+   if bool(getattr(params, "cylindrical_tip", True)):
+       pts = _clamp_points_to_cylinder(pts, float(params.tip_radius))
+   i_le = int(x.argmin())
+   i_te = int(x.argmax())
+   return float(pts[i_le].z), float(pts[i_te].z)

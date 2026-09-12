@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """Isolated (subprocess) impeller build — a crash/hang in OCP can't kill the caller.
 
 The cockpit's live preview builds featured geometry, which is heavy (high-resolution lofts) and can
@@ -8,12 +7,10 @@ subprocess with a timeout turns those into a caught error instead of a dead serv
 
 from __future__ import annotations
 
-import json
-import subprocess
-import sys
-import tempfile
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
+
+from fansim.isolated_job import run_worker_module
 
 
 def build_stl_isolated(flat: dict, features, out_path: str | Path, timeout: float = 300.0,
@@ -29,19 +26,11 @@ def build_stl_isolated(flat: dict, features, out_path: str | Path, timeout: floa
     """
     out_path = Path(out_path)
     feat = asdict(features) if is_dataclass(features) else dict(features or {})
-    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as jf:
-        json.dump({"flat": flat, "features": feat, "out": str(out_path), "preview": preview}, jf)
-        job = jf.name
-    try:
-        proc = subprocess.run(
-            [sys.executable, "-m", "fansim.geometry._build_worker", job],
-            capture_output=True, text=True, timeout=timeout,
-        )
-    except subprocess.TimeoutExpired as exc:
-        raise TimeoutError(f"geometry build exceeded {timeout:.0f}s (features are heavy)") from exc
-    finally:
-        Path(job).unlink(missing_ok=True)
-    if proc.returncode != 0 or not out_path.exists():
-        raise RuntimeError(f"geometry build failed (exit {proc.returncode}): "
-                           f"{(proc.stderr or '').strip()[-160:] or 'native crash'}")
+    run_worker_module(
+        "fansim.geometry._build_worker",
+        {"flat": flat, "features": feat, "out": str(out_path), "preview": preview},
+        timeout=timeout,
+        label="geometry build",
+        require_paths=[out_path],
+    )
     return out_path

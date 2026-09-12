@@ -1,0 +1,44 @@
+"""Prop spin/sign + datasheet calibration helpers."""
+
+from __future__ import annotations
+
+from fansim.prop_spec import get_prop_spec
+from fansim.propeller.calibrate import (
+    affinity_thrust_g,
+    bemt_datasheet_report,
+    datasheet_compare,
+    normalize_metrics_sign,
+    preferred_spin_for_positive_thrust,
+)
+
+
+def test_affinity_thrust_scales_n2():
+    assert affinity_thrust_g(1600.0, 20000.0, 10000.0) == 400.0
+
+
+def test_preferred_spin_flips_on_negative_fz():
+    assert preferred_spin_for_positive_thrust(-1.2, -1) == (1, True)
+    assert preferred_spin_for_positive_thrust(1.2, -1) == (-1, False)
+
+
+def test_normalize_metrics_sign():
+    out = normalize_metrics_sign({"thrust_n": -2.0, "thrust_g": -200.0}, spin=-1)
+    assert out["thrust_n_raw"] == -2.0
+    assert out["thrust_n"] == 2.0
+    assert out["spin_flipped"] is True
+    assert out["spin_recommended"] == 1
+
+
+def test_datasheet_compare_fpv():
+    spec = get_prop_spec("fpv_5inch")
+    d = datasheet_compare(thrust_g=400.0, rpm=15000.0, spec=spec)
+    # ref 1850 @ 30k → scale (0.5)^2 → 462.5; ratio ~0.86
+    assert d["thrust_ref_scaled_g"] == affinity_thrust_g(1850.0, 30000.0, 15000.0)
+    assert d["within_2x"] is True
+
+
+def test_bemt_datasheet_report_runs():
+    rep = bemt_datasheet_report(get_prop_spec("fpv_5inch"))
+    assert rep["source"] == "bemt"
+    assert rep["thrust_g"] > 0
+    assert "thrust_ratio" in rep["datasheet"]

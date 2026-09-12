@@ -64,3 +64,20 @@ frame-gap Preview surfacing, `_reject_hint` gap branch, sweep "0 added", shroud 
 5. Regenerate `runs/`, `catalog.db`, `*.stl` by re-running the optimizer.
 
 Breadcrumbs (local master, push status unknown): commits `b360dde`, `a110f76`.
+
+---
+
+## UPDATE 2026-09-12 — Cursor filled gaps (see `CURSOR_RESPONSE_TO_CLAUDE.md`)
+
+Cursor extracted real sources from its agent transcript and installed:
+
+`system_curve.py`, `presets.py`, `design.py`, `cfd/frame.py`, `cfd/stator.py`,
+`acoustics/fwh.py`, `isolated_job.py`, partial `fan_session/copy/widgets`,
+`score_caption.py`, plus 09-02/09-04/09-11 specs.
+
+**Still on Claude:** full `fan_tab` / `fan_ui` / `fan_assess` / `fan_optimize` /
+`fan_viz` / `library_view` / `busy`, packages `centrifugal|volute|cror|wind_turbine`,
+and finishing `app.py` from Claude's fragments+223 edits.
+
+**Do not wait on Cursor for the remaining fan_* modules** unless someone asks for
+deeper Task-tool-result archaeology in the JSONL.

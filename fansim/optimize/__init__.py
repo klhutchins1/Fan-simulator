@@ -1,6 +1,17 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
-"""Multi-objective optimization of the blade design vector."""
+# RECOVERED-FROM-CHAT 2026-09-12 + CURSOR overlay
+"""Multi-objective optimization of the blade design vector.
 
-from fansim.optimize.objectives import ObjectiveResult, evaluate_candidate
+Lazy exports so importing ``fansim.optimize.presets`` / ``system_curve`` does not
+pull CadQuery/OpenFOAM via ``objectives`` during unit tests.
+"""
+
+from __future__ import annotations
 
 __all__ = ["ObjectiveResult", "evaluate_candidate"]
+
+
+def __getattr__(name: str):
+    if name in ("ObjectiveResult", "evaluate_candidate"):
+        from fansim.optimize.objectives import ObjectiveResult, evaluate_candidate
+        return ObjectiveResult if name == "ObjectiveResult" else evaluate_candidate
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

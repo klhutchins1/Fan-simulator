@@ -3,30 +3,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from pathlib import Path
 
 import optuna
 
+# Canonical Design lives in optimize/ (Cursor 09-11 move). Re-export for cockpit callers.
+from fansim.optimize.design import Design
 from fansim.optimize.search_space import OBJECTIVE_NAMES
-
-
-@dataclass
-class Design:
-    """One evaluated design: its parameters, objectives, and geometry file."""
-
-    trial: int
-    params: dict
-    objectives: dict  # cfm_free, cfm_load, efficiency
-    feasible: bool
-    is_pareto: bool
-    stl_path: Path | None
-    reason: str = ""
-    extra: dict = field(default_factory=dict)
-
-    @property
-    def has_model(self) -> bool:
-        return self.stl_path is not None and self.stl_path.exists()
 
 
 def _study_storage(out_dir: Path) -> str:

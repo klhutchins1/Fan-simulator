@@ -18,9 +18,24 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from fansim.geometry.blade import BladeParams
+from fansim.geometry.blade import BladeParams, open_tip_rmax_mm
 
 MM_TO_M = 1.0e-3
+
+# Minimum radial leftover (mm) between the BUILT impeller tip and the frame ID. Below this the CFD
+# gate refuses the design (ring-to-frame-gap spec 2026-09-02). Ported here on 2026-09-12 recovery.
+OPTIMIZER_TIP_GAP_MM = 0.5
+
+
+def _built_tip_radius_mm(params: BladeParams) -> float:
+    """Built outer radius (mm): the tip bulges past nominal tip_radius, plus any shroud ring."""
+    return open_tip_rmax_mm(params) + float(getattr(params, "shroud_thick_mm", 0.0) or 0.0)
+
+
+def remaining_tip_gap_mm(params: BladeParams, casing_id_mm: float) -> float:
+    """Radial leftover (mm) from the built tip to the frame ID -- the quantity the optimizer/cockpit
+    CFD gap gate checks: ``casing_id/2 - built_r``. Negative/overlap means the impeller is too big."""
+    return float(casing_id_mm) / 2.0 - _built_tip_radius_mm(params)
 
 
 @dataclass
@@ -91,6 +106,7 @@ def rig_for_impeller(
     axial_margin_mm: float = 1.5,
     mrf_margin_mm: float = 2.0,
     inlet_velocity: float = 2.0,
+    casing_id_mm: float | None = None,
 ) -> TestRig:
     """Build a TestRig sized to an impeller.
 
@@ -104,9 +120,14 @@ def rig_for_impeller(
         mrf_margin_mm: Axial padding of the MRF zone beyond the impeller extent.
         inlet_velocity: Uniform inlet axial velocity (m/s) defining the operating point.
     """
-    tip_r_m = params.tip_radius * MM_TO_M
     tip_gap_m = tip_gap_mm * MM_TO_M
-    duct_r = tip_r_m + tip_gap_m
+    if casing_id_mm is not None:
+        # Pin the duct to the spec frame ID (ring-to-frame-gap): duct = frame/2, and the caller
+        # passes the leftover (remaining_tip_gap_mm) as tip_gap_mm so tip_speed uses the built radius.
+        duct_r = (float(casing_id_mm) / 2.0) * MM_TO_M
+    else:
+        # No spec: grow the duct around the BUILT tip envelope (bulge + shroud) plus the gap.
+        duct_r = _built_tip_radius_mm(params) * MM_TO_M + tip_gap_m
 
     # Approximate impeller axial extent about z=0 from the station sweep spread + margin.
     sweeps = [s.sweep for s in params.stations]
