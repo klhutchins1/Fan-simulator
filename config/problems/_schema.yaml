@@ -1,0 +1,31 @@
+# Problem schema (documentation) — see fansim/problem/definition.py.
+# A Problem decouples WHAT machine from HOW we simulate/optimize it. Copy this shape into a concrete
+# problem file (e.g. axial_fan_a12x25.yaml) and load with fansim.problem.load_problem(path).
+
+name: <string>                 # human-readable problem name
+archetype: <string>            # registry key: axial_fan (implemented) | centrifugal | propeller | wind_turbine (stubs)
+regime: <string|null>          # optional physics-regime hint; defaults to the archetype's
+
+search_space: open             # open | guided | guided_lc  (see fansim/optimize/search_space.py)
+
+operating_points:              # duty points to evaluate each candidate at
+  - name: free                 # free delivery (zero external static rise)
+    back_pressure_pa: 0.0
+  - name: load
+    back_pressure_pa: 1.0      # a fixed back-pressure load point
+
+objectives:                    # what to optimize; direction = maximize | minimize
+  - {name: cfm_free,   direction: maximize}
+  - {name: cfm_load,   direction: maximize}
+  - {name: efficiency, direction: maximize}
+  # future: {name: noise_proxy, direction: minimize}  # Proudman/Curle screening (fansim/acoustics)
+
+constraints:                   # gates applied before/around CFD (archetype-interpreted)
+  envelope_dia_mm: 119.0       # must fit a 120 mm frame
+  envelope_depth_mm: 25.0
+  material: PETG               # structural gate material
+  min_sol_mid: null            # per-blade-loading cap (solidity floor); null = off
+  min_sol_tip: null
+
+notes: >
+  Free text: provenance, validation targets, caveats.

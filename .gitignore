@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Regenerable pipeline outputs (large; not source)
+runs/
+exports/
+catalog/*.db
+*.stl
+*.stl.meta.json
+docs/control_images/*.png
+
+# OpenFOAM case artifacts
+processor*/
+*.foam
+
+# OS
+Thumbs.db
+.DS_Store

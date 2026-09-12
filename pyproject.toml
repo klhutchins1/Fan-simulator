@@ -1,0 +1,48 @@
+[project]
+name = "fansim"
+version = "0.0.1"
+description = "Physics-based parametric fan-blade simulator and multi-objective optimizer"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "trimesh>=4.0",
+    "networkx>=3.0",
+    "pyyaml>=6.0",
+    "cadquery>=2.4",
+]
+
+[project.optional-dependencies]
+optim = ["optuna>=3.6"]
+viz = [
+    "pyvista>=0.44",
+    "trame>=3.6",
+    "trame-vtk>=2.8",
+    "trame-vuetify>=2.7",
+    "trame-plotly>=3.1",
+    "plotly>=5.20",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+]
+surrogate = ["scikit-learn>=1.4"]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["fansim"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "docker: requires the OpenFOAM Docker image / trimesh STL round-trip",
+    "slow: slow geometry build (featured impellers)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

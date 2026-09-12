@@ -1,0 +1,11 @@
+# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
+"""Drone-propeller archetype: prop-appropriate geometry + (later) thrust-based evaluation.
+
+Reuses the shared blade/loft/impeller core — a prop is a few-blade, high-pitch, thin-airfoil variant
+with propeller twist (blade angle set by geometric pitch: high at the root, low at the tip) and a small
+shaft-mount hub instead of a big motor cup. See fansim/prop_spec.py for the sizes/mounts.
+"""
+
+from fansim.propeller.geometry import build_prop, prop_blade_params
+
+__all__ = ["prop_blade_params", "build_prop"]

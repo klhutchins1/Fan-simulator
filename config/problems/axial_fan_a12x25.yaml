@@ -1,0 +1,26 @@
+# Problem definition: optimize an A12x25-envelope axial PC fan. See config/problems/_schema.yaml.
+name: A12x25 axial fan
+archetype: axial_fan
+regime: incompressible-RANS-MRF
+search_space: open
+
+operating_points:
+  - {name: free, back_pressure_pa: 0.0}   # free delivery (validated ~60 CFM vs Noctua 60.1)
+  - {name: load, back_pressure_pa: 1.0}   # stable load point (2 Pa is near-stall; 1 Pa converges)
+
+objectives:
+  - {name: cfm_free,   direction: maximize}
+  - {name: cfm_load,   direction: maximize}
+  - {name: efficiency, direction: maximize}
+
+constraints:
+  envelope_dia_mm: 119.0
+  envelope_depth_mm: 25.0
+  material: PETG
+  min_sol_mid: null      # set (e.g. 0.85) to impose a per-blade-loading cap; see opt_loadcap finding
+  min_sol_tip: null
+
+notes: >
+  Validation targets: 60.1 CFM free delivery, 22.9 Pa shut-off, 22.6 dB(A) @1 m (Noctua NF-A12x25).
+  Noise is finalist-only today (LBM CV-dipole); a Proudman/Curle proxy (fansim/acoustics) can make
+  it a per-candidate objective. Absolute CFMs from the idealized parametric geometry run optimistic.

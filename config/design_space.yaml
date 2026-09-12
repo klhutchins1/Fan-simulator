@@ -1,0 +1,16 @@
+# Baseline impeller design vector (approximates the Noctua NF-A12x25 envelope).
+# Distances in millimeters, angles in degrees. Loaded by fansim.geometry.config.
+n_blades: 7
+hub_radius: 21.5        # ~43 mm hub diameter
+tip_radius: 56.5        # ~113 mm impeller diameter inside a 120 mm frame
+root_embed: 2.0         # blade root sinks this far into the hub for a clean fuse
+hub_axial_margin: 1.5
+rpm: 2000.0
+n_span: 12              # loft sections across the span
+n_chord: 60             # points per airfoil surface
+
+# Spanwise control stations (r_frac 0 = hub, 1 = tip). Interpolated across n_span.
+stations:
+  - {r_frac: 0.0, chord: 22.0, stagger_deg: 58.0, thickness: 0.09, max_camber: 0.03, camber_pos: 0.4, sweep: 0.0, skew: 0.0}
+  - {r_frac: 0.5, chord: 24.0, stagger_deg: 42.0, thickness: 0.07, max_camber: 0.025, camber_pos: 0.4, sweep: 3.0, skew: 0.0}
+  - {r_frac: 1.0, chord: 20.0, stagger_deg: 30.0, thickness: 0.05, max_camber: 0.02, camber_pos: 0.4, sweep: 7.0, skew: 0.0}

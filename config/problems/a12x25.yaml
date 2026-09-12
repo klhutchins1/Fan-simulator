@@ -1,0 +1,21 @@
+# Approximate Noctua NF-A12x25 geometry for CFD VALIDATION (not the exact Noctua profile).
+# 7 swept blades, ~113 mm impeller / ~43 mm hub, high-solidity pressure-oriented design.
+# Target published specs (docs/a12x25-reference.md): free-air 60.1 CFM, shut-off 22.9 Pa,
+# 22.6 dB(A), 2000 RPM, 0.5 mm tip clearance.
+# NOTE: this is a parametric approximation; a validation gap vs published numbers mixes
+# geometry-approximation error with CFD-idealization error. For a cleaner test, replace with
+# the real A12x25 STL (Thingiverse thing:4553248) once available.
+n_blades: 7
+hub_radius: 21.5
+tip_radius: 56.5
+root_embed: 2.0
+hub_axial_margin: 1.5
+rpm: 2000.0
+n_span: 18
+n_chord: 60
+# Wide, circumferentially-wrapped (lean_deg increasing to tip) blades so they sweep and
+# approach the A12x25's high-solidity overlapping look.
+stations:
+  - {r_frac: 0.0, chord: 34.0, stagger_deg: 26.0, thickness: 0.08, max_camber: 0.05, camber_pos: 0.4, sweep: 0.0, skew: 0.0, lean_deg: 0.0}
+  - {r_frac: 0.5, chord: 44.0, stagger_deg: 26.0, thickness: 0.05, max_camber: 0.06, camber_pos: 0.4, sweep: 3.0, skew: 0.0, lean_deg: 14.0}
+  - {r_frac: 1.0, chord: 38.0, stagger_deg: 22.0, thickness: 0.03, max_camber: 0.06, camber_pos: 0.4, sweep: 5.0, skew: 0.0, lean_deg: 26.0}
