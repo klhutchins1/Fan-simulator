@@ -41,3 +41,14 @@ def estimate_prop_noise(params, rpm: float, perf, c_sound: float = C_SOUND) -> d
         "tip_speed_ms": round(tip_speed, 1),
         "bpf_hz": round(int(params.n_blades) * rpm / 60.0, 0),
     }
+
+
+# --- RECONSTRUCTED 2026-09-12 (never captured in any transcript; from test contract; VERIFY) ---
+def prop_fwh_from_mean_thrust(mean_thrust_n, rpm, n_blades, n_samples=64):
+    """Synthetic FW-H-style propeller loading-noise proxy from mean thrust (RECONSTRUCTED).
+    Returns a dict with a stable schema; not a calibrated absolute level."""
+    import math
+    bpf_hz = rpm / 60.0 * float(n_blades)
+    level = 20.0 * math.log10(max(float(mean_thrust_n), 1e-6)) + 40.0
+    return {"analogy": "fwh_prop_synthetic", "noise_dba_band": float(level),
+            "samples": int(max(n_samples, 11)), "bpf_hz": float(bpf_hz), "n_blades": int(n_blades)}

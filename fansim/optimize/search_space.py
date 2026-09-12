@@ -286,3 +286,61 @@ def blade_to_flat(params: BladeParams) -> dict:
 
 
 SICKLE_BOUNDS = (4.0, 12.0)   # tip le_skew mm
+
+
+# --- spliced STATOR_BOUNDS (recovery) ---
+STATOR_BOUNDS = {
+    "stator_stagger_deg": (35.0, 65.0),
+    "stator_n_extra": (1, 4),
+}
+
+
+# --- RECONSTRUCTED 2026-09-12 (never captured in any transcript; from test contract; VERIFY) ---
+TIP_CAP_CLEARANCE_MM = 4.0  # frame/2 margin for the built tip bulge (RECONSTRUCTED constant)
+
+
+# --- spliced suggest_sickle (recovery) ---
+def suggest_sickle(trial) -> float:
+    """Sample tip sickle ``le_skew`` (mm) for a ``--sickle`` study."""
+    lo, hi = SICKLE_BOUNDS
+    return float(trial.suggest_float("sickle_mm", lo, hi))
+
+
+# --- spliced suggest_stator (recovery) ---
+def suggest_stator(trial) -> dict:
+    """Sample stator stagger and vane-count offset for a ``--stator`` study."""
+    lo_s, hi_s = STATOR_BOUNDS["stator_stagger_deg"]
+    lo_e, hi_e = STATOR_BOUNDS["stator_n_extra"]
+    stagger = trial.suggest_float("stator_stagger_deg", lo_s, hi_s)
+    n_extra = trial.suggest_int("stator_n_extra", lo_e, hi_e)
+    return {"stagger_deg": float(stagger), "n_extra": int(n_extra)}
+
+
+# --- spliced tip_radius_cap_mm (recovery) ---
+def tip_radius_cap_mm(stations, hub_radius: float, frame_half_mm: float,
+                      shroud_mm: float = 0.0, n_blades: int = 7,
+                      cylindrical_tip: bool | None = None) -> float:
+    """Largest tip_radius whose built envelope still leaves CLEARANCE to the frame.
+
+    Same shrink as cockpit Fit (iterate open_tip_rmax_mm). No CadQuery.
+    ``cylindrical_tip`` defaults to BladeParams (True); pass False to measure legacy bulge.
+    """
+    shroud = float(shroud_mm or 0.0)
+    allowed = float(frame_half_mm) - shroud - TIP_CAP_CLEARANCE_MM
+    tr = allowed
+    tip_kw = {}
+    if cylindrical_tip is not None:
+        tip_kw["cylindrical_tip"] = bool(cylindrical_tip)
+    for _ in range(12):
+        probe = BladeParams(
+            n_blades=int(n_blades), hub_radius=float(hub_radius),
+            tip_radius=tr, stations=list(stations),
+            **tip_kw,
+        )
+        built = open_tip_rmax_mm(probe) + shroud
+        if built <= allowed:
+            return tr
+        tr -= (built - allowed) + 0.15
+        if tr < 20.0:
+            return 20.0
+    return tr

@@ -774,3 +774,20 @@ def tip_le_te_z(params: BladeParams) -> tuple[float, float]:
 
 # --- spliced (recovery 2026-09-12) ---
 TE_BLUNT_FRAC = 0.18
+
+
+# --- RECONSTRUCTED 2026-09-12 (never captured in any transcript; from test contract; VERIFY) ---
+def le_te_thick_factors(x, le_scale=1.0, te_scale=1.0):
+    """Per-point thickness scale: `le_scale` weighted toward the LE (x->0), `te_scale` toward the
+    TE (x->1), unity by mid-chord. Returns 1.0 everywhere when both scales are 1.0."""
+    import numpy as np
+    x = np.asarray(x, dtype=float)
+    w_le = np.clip(1.0 - 2.0 * x, 0.0, 1.0)
+    w_te = np.clip(2.0 * x - 1.0, 0.0, 1.0)
+    return 1.0 + w_le * (float(le_scale) - 1.0) + w_te * (float(te_scale) - 1.0)
+
+
+def apply_le_te_thickness(x, b, chord, le_scale=1.0, te_scale=1.0):
+    """Scale the thickness-wise coordinate array `b` toward the LE/TE. No-op when both scales are 1.0."""
+    import numpy as np
+    return np.asarray(b, dtype=float) * le_te_thick_factors(x, le_scale, te_scale)

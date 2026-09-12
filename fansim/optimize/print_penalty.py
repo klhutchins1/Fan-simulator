@@ -32,3 +32,24 @@ def apply_print_penalty(
 
 # --- spliced from transcript edit-history (recovery 2026-09-12) ---
 PRINT_K_ETA_THICK = 0.96  # thick-tip milder η knockdown (robustness lever)
+
+
+# --- spliced print_k_eta_for_thickness (recovery) ---
+def print_k_eta_for_thickness(tip_thickness: float | None) -> float:
+    """Lerp η knockdown: thin tips keep 0.92; thick tips ease toward 0.96."""
+    if tip_thickness is None:
+        return PRINT_K_ETA
+    t = float(tip_thickness)
+    if t <= PRINT_T_THIN:
+        return PRINT_K_ETA
+    if t >= PRINT_T_THICK:
+        return PRINT_K_ETA_THICK
+    frac = (t - PRINT_T_THIN) / (PRINT_T_THICK - PRINT_T_THIN)
+    return PRINT_K_ETA + frac * (PRINT_K_ETA_THICK - PRINT_K_ETA)
+
+
+# --- spliced tip_section_thickness (recovery) ---
+def tip_section_thickness(params) -> float:
+    """Tip-station thickness fraction (chord units) from ``BladeParams.stations``."""
+    st = max(params.stations, key=lambda s: float(s.r_frac))
+    return float(st.thickness)
