@@ -61,6 +61,8 @@ class CatalogEntry:
     params: dict = field(default_factory=dict)
     measured: list = field(default_factory=list)
     date_indexed: str = ""
+    cfd_stale: bool = False               # recovery: placed/derived design awaiting a fresh CFD
+    k: float | None = None                # recovery: system-curve k (Pa at 50 CFM) when scored on load
 
 
 _COLS = ("design_id", "run", "trial", "source", "is_pareto", "n_blades", "cfm_free", "cfm_load",
