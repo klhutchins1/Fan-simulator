@@ -227,6 +227,27 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
         kw["hub_nose_mm"] = float(p["hub_nose"])
     bp = BladeParams(n_blades=int(p["n_blades"]), stations=stations,
                      features=features or Features(), **kw)
+    # thread the later geometry knobs (recovery): shroud, section family, span interp, thickness bias
+    if float(p.get("shroud_thick_mm", 0.0)) > 0.0:
+        bp.shroud_thick_mm = normalize_shroud_thick_mm(float(p["shroud_thick_mm"]))
+    if "shroud_height_frac" in p:
+        bp.shroud_height_frac = min(max(float(p["shroud_height_frac"]), 0.0), 1.0)
+    if p.get("section_family"):
+        bp.section_family = str(p["section_family"])
+    if p.get("span_interp") in ("linear", "pchip"):
+        bp.span_interp = str(p["span_interp"])
+    if "le_thick_scale" in p:
+        bp.le_thick_scale = float(p["le_thick_scale"])
+    if "te_thick_scale" in p:
+        bp.te_thick_scale = float(p["te_thick_scale"])
+    if "cylindrical_tip" in p:
+        bp.cylindrical_tip = bool(p["cylindrical_tip"])
+    if p.get("notched_tips"):
+        from fansim.geometry.blade import apply_notched_tips
+        apply_notched_tips(bp)
+    if float(p.get("sickle_mm", 0.0)) > 0.0:
+        from fansim.geometry.blade import apply_sickle
+        apply_sickle(bp, float(p["sickle_mm"]))
     if (not shroud_is_full(bp)) and (
             float(p.get("winglet_sweep", 0.0)) or float(p.get("winglet_lean", 0.0))):
         from fansim.geometry.blade import apply_winglet   # §7.5: no winglet under a full ring

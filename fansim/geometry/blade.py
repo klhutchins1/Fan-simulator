@@ -424,56 +424,6 @@ def apply_tip_shape(params: BladeParams, tip_round: float = 0.0,
     return params
 
 
-def apply_sickle(params: BladeParams, tip_mm: float) -> BladeParams:
-    """Forward-sweep the leading edge in the rotation plane (LE-only ``le_skew``).
-
-    Hub stays 0, mid is 40% of ``tip_mm``, tip is ``tip_mm``. Extra stations (winglet / tip-round)
-    interpolate that recipe on ``r_frac``. ``tip_mm <= 0`` is a no-op. Mutates and returns ``params``.
-    """
-    tip_mm = float(tip_mm)
-    if tip_mm <= 0.0:
-        return params
-    for s in params.stations:
-        s.le_skew = float(np.interp(s.r_frac, [0.0, 0.5, 1.0], [0.0, 0.40 * tip_mm, tip_mm]))
-    return params
-
-
-def apply_notched_tips(params: BladeParams) -> BladeParams:
-    """Stamp three cut-only TE bites in the outer 12% of span.
-
-    Sets ``tip_notch_count`` / ``tip_notch_depth_mm`` to the fixed recipe. Idempotent.
-    Mutates and returns ``params``.
-    """
-    params.tip_notch_count = NOTCH_COUNT
-    params.tip_notch_depth_mm = NOTCH_DEPTH_MM
-    return params
-
-
-def apply_sickle(params: BladeParams, tip_mm: float) -> BladeParams:
-    """Forward-sweep the leading edge in the rotation plane (LE-only ``le_skew``).
-
-    Hub stays 0, mid is 40% of ``tip_mm``, tip is ``tip_mm``. Extra stations (winglet / tip-round)
-    interpolate that recipe on ``r_frac``. ``tip_mm <= 0`` is a no-op. Mutates and returns ``params``.
-    """
-    tip_mm = float(tip_mm)
-    if tip_mm <= 0.0:
-        return params
-    for s in params.stations:
-        s.le_skew = float(np.interp(s.r_frac, [0.0, 0.5, 1.0], [0.0, 0.40 * tip_mm, tip_mm]))
-    return params
-
-
-def apply_notched_tips(params: BladeParams) -> BladeParams:
-    """Stamp three cut-only TE bites in the outer 12% of span.
-
-    Sets ``tip_notch_count`` / ``tip_notch_depth_mm`` to the fixed recipe. Idempotent.
-    Mutates and returns ``params``.
-    """
-    params.tip_notch_count = NOTCH_COUNT
-    params.tip_notch_depth_mm = NOTCH_DEPTH_MM
-    return params
-
-
 def build_blade_solid(params: BladeParams) -> cq.Solid:
     """Loft one blade solid from hub to tip (raising loft resolution for active features)."""
     cq = _cq()
@@ -826,6 +776,48 @@ def _clamp_points_to_cylinder(pts: list[cq.Vector], radius: float) -> list[cq.Ve
 
 
 # --- _trim_blade_to_tip_cylinder (transcript, recovery) ---
+def _clamp_thick_scale(v: float) -> float:
+    return float(min(max(float(v), THICK_SCALE_LO), THICK_SCALE_HI))
+
+
+# --- _section_family (recovery) ---
+def _section_family(params: BladeParams) -> str:
+    fam = str(getattr(params, "section_family", SECTION_NACA) or SECTION_NACA).lower().strip()
+    return fam if fam in SECTION_FAMILIES else SECTION_NACA
+
+# --- THICK_SCALE_LO (recovery cascade) ---
+THICK_SCALE_LO = 0.5
+
+# --- THICK_SCALE_HI (recovery cascade) ---
+THICK_SCALE_HI = 1.5
+
+
+# --- real feature fns (deduped, from transcript, recovery) ---
+def apply_sickle(params: BladeParams, tip_mm: float) -> BladeParams:
+    """Forward-sweep the leading edge in the rotation plane (LE-only ``le_skew``).
+
+    Hub stays 0, mid is 40% of ``tip_mm``, tip is ``tip_mm``. Extra stations (winglet / tip-round)
+    interpolate that recipe on ``r_frac``. ``tip_mm <= 0`` is a no-op. Mutates and returns ``params``.
+    """
+    tip_mm = float(tip_mm)
+    if tip_mm <= 0.0:
+        return params
+    for s in params.stations:
+        s.le_skew = float(np.interp(s.r_frac, [0.0, 0.5, 1.0], [0.0, 0.40 * tip_mm, tip_mm]))
+    return params
+
+
+def apply_notched_tips(params: BladeParams) -> BladeParams:
+    """Stamp three cut-only TE bites in the outer 12% of span.
+
+    Sets ``tip_notch_count`` / ``tip_notch_depth_mm`` to the fixed recipe. Idempotent.
+    Mutates and returns ``params``.
+    """
+    params.tip_notch_count = NOTCH_COUNT
+    params.tip_notch_depth_mm = NOTCH_DEPTH_MM
+    return params
+
+
 def _trim_blade_to_tip_cylinder(blade: cq.Solid, tip_radius: float) -> cq.Solid:
     """Intersect the lofted blade with a cylinder of radius ``tip_radius`` (true cylindrical tip)."""
     R = float(tip_radius)
@@ -846,20 +838,3 @@ def _trim_blade_to_tip_cylinder(blade: cq.Solid, tip_radius: float) -> cq.Solid:
             return cut
         return blade
     return max(solids, key=lambda s: abs(float(s.Volume())))
-
-
-# --- _clamp_thick_scale (recovery) ---
-def _clamp_thick_scale(v: float) -> float:
-    return float(min(max(float(v), THICK_SCALE_LO), THICK_SCALE_HI))
-
-
-# --- _section_family (recovery) ---
-def _section_family(params: BladeParams) -> str:
-    fam = str(getattr(params, "section_family", SECTION_NACA) or SECTION_NACA).lower().strip()
-    return fam if fam in SECTION_FAMILIES else SECTION_NACA
-
-# --- THICK_SCALE_LO (recovery cascade) ---
-THICK_SCALE_LO = 0.5
-
-# --- THICK_SCALE_HI (recovery cascade) ---
-THICK_SCALE_HI = 1.5

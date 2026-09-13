@@ -76,6 +76,10 @@ def main() -> int:
                     help="search a tip winglet too (CFD: mild winglet ~+4%% airflow; adds tip depth). "
                          "Coupled to --shroud (roadmap 7.5): a full-span ring disables the winglet - "
                          "a full ring already kills the tip leak, so a winglet there is pure blockage.")
+    ap.add_argument("--sickle", action="store_true",
+                    help="stamp a forward-swept LE (sickle, le_skew) on every trial for tone control.")
+    ap.add_argument("--notched-tips", action="store_true",
+                    help="stamp tip-only trailing-edge notches on every trial (blade-pass tone trick).")
     ap.add_argument("--mountable", action="store_true",
                     help="only search designs whose hub can house the fan model's motor (real-mount "
                          "constraint: hub radius >= motor cavity/2 + wall). Needs a model with a motor_mount.")
