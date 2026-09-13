@@ -123,8 +123,9 @@ def nominal_fits_spec(flat: dict, spec: FanSpec, measured: tuple[float, float, f
     return tip_dia <= spec.tip_dia_mm[1] and depth <= spec.depth_mm[1]
 
 
-def fit_envelope(flat: dict, spec: FanSpec) -> PlaceResult:
+def fit_envelope(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
     from fansim.geometry.features import Features
+    feat = features if features is not None else Features()
     from fansim.optimize.search_space import blade_from_flat
 
     work = deepcopy(flat)
@@ -156,7 +157,7 @@ def fit_envelope(flat: dict, spec: FanSpec) -> PlaceResult:
     for _ in range(12):
         work["tip_radius"] = tr
         try:
-            dia = blade_max_dia(blade_from_flat(work, Features()))
+            dia = blade_max_dia(blade_from_flat(work, feat))
         except Exception:  # noqa: BLE001
             break
         if dia <= max_dia - 0.15:
@@ -172,7 +173,7 @@ def fit_envelope(flat: dict, spec: FanSpec) -> PlaceResult:
     max_d = float(spec.depth_mm[1])
 
     def depth() -> float:
-        return blade_z_extent(blade_from_flat(work, Features()))
+        return blade_z_extent(blade_from_flat(work, feat))
 
     rake = ("sweep_mid", "sweep_tip", "le_sweep_mid", "le_sweep_tip")
     base_rake = {k: float(work.get(k, 0.0)) for k in rake}
@@ -217,7 +218,7 @@ def fit_envelope(flat: dict, spec: FanSpec) -> PlaceResult:
 
     # final fit status via check_build
     try:
-        p = blade_from_flat(work, Features())
+        p = blade_from_flat(work, feat)
         built_tip_dia = float(blade_max_dia(p))
         z_depth = float(blade_z_extent(p))
     except Exception as exc:  # noqa: BLE001

@@ -8,7 +8,8 @@ parameters (tubercles, serrations, dimples) are added here once the feature libr
 
 from __future__ import annotations
 
-from fansim.geometry.blade import BladeParams, RadialStation
+from fansim.geometry.blade import (BladeParams, RadialStation, shroud_is_full,
+    open_tip_rmax_mm, SHROUD_DEFAULT_MM, normalize_shroud_thick_mm)
 from fansim.geometry.features import Features
 
 # Fixed printable thickness profile (fraction of chord), root -> tip. Chosen with the chord
@@ -111,7 +112,8 @@ def _apply_spacing(bp: BladeParams, spread: float, seed) -> None:
 def suggest_params(trial, with_features: bool = False, space: str = "open",
                    with_spacing: bool = False, with_extended: bool = False,
                    hub_radius_range: tuple[float, float] | None = None,
-                   with_winglet: bool = False, max_tip_radius: float | None = None) -> BladeParams:
+                   with_winglet: bool = False, max_tip_radius: float | None = None,
+                   with_shroud: bool = False) -> BladeParams:
     """Sample a BladeParams from an Optuna trial's search space.
 
     space: 'open' (full), 'guided' (data-driven recipe, docs/design-rules.md), or 'guided_lc'
@@ -177,10 +179,15 @@ def suggest_params(trial, with_features: bool = False, space: str = "open",
     if tip is not None:
         kw["tip_radius"] = tip
     bp = BladeParams(n_blades=n_blades, stations=stations, features=features, **kw)
-    if with_winglet:                      # curl the tip (CFD: mild winglet ~+4% airflow, flat eff)
-        from fansim.geometry.blade import apply_winglet
-        apply_winglet(bp, sweep_add=trial.suggest_float("winglet_sweep", *WINGLET["winglet_sweep"]),
-                      lean_add=trial.suggest_float("winglet_lean", *WINGLET["winglet_lean"]))
+    if with_shroud:                       # tip ring; search its TE-anchored height (recovery: 7.5)
+        bp.shroud_thick_mm = SHROUD_DEFAULT_MM
+        bp.shroud_height_frac = trial.suggest_float("shroud_height_frac", 0.30, 1.0)
+    if with_winglet:                      # curl the tip; §7.5: no winglet under a FULL ring
+        wl_sweep = trial.suggest_float("winglet_sweep", *WINGLET["winglet_sweep"])
+        wl_lean = trial.suggest_float("winglet_lean", *WINGLET["winglet_lean"])
+        if not shroud_is_full(bp):
+            from fansim.geometry.blade import apply_winglet
+            apply_winglet(bp, sweep_add=wl_sweep, lean_add=wl_lean)
     if with_spacing:
         _apply_spacing(bp, trial.suggest_float("spacing_spread", 0.0, 0.6),
                        trial.suggest_int("spacing_seed", 0, 99999))

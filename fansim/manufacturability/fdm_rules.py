@@ -65,3 +65,14 @@ def check_printability(
                                   f"tip edge {tip_t:.2f} mm < one extrusion width {tip_wall:.2f} mm "
                                   f"(round the tip less, or thicken the tip)")
     return PrintabilityReport(True, overall, body_wall)
+
+
+# --- spliced preview_unprintable_note (recovery) ---
+def preview_unprintable_note(reason: str) -> str:
+    """Cockpit preview caption when the shape draws but would fail Assess/Export."""
+    if "shroud" in reason.lower():
+        return (f"⚠ Not printable as-is: {reason}. Preview shown anyway — raise Shroud "
+                f"thickness to at least 0.8 mm (1.6 mm is four walls); it'll be gated at "
+                f"Assess/Export.")
+    return (f"⚠ Not printable as-is: {reason}. Preview shown anyway — thicken the "
+            f"tip (Airfoil → Thickness tip) or lower Tip round; it'll be gated at Assess/Export.")

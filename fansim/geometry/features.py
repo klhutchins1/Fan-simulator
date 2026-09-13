@@ -97,3 +97,24 @@ def apply_features(
         b = b * np.clip(factor, 0.2, 1.0)  # keep thickness safely positive
 
     return a, b
+
+
+# --- spliced features_from_flat (recovery) ---
+def features_from_flat(flat: dict | None) -> Features:
+    """Rebuild ``Features`` from a merged flat/params dict (missing keys → defaults).
+
+    Catalog rows, assess JSON, and cockpit save dicts often stash tubercle/serration/dimple
+    fields alongside geometry. Fit/measure must use the same layer Preview/Assess build with.
+    """
+    if not flat:
+        return Features()
+    kw: dict = {}
+    for name in FEATURE_FLAT_KEYS:
+        if name not in flat or flat[name] is None:
+            continue
+        raw = flat[name]
+        try:
+            kw[name] = int(raw) if name.endswith(("_waves", "_rows", "_cols")) else float(raw)
+        except (TypeError, ValueError):
+            continue
+    return Features(**kw)

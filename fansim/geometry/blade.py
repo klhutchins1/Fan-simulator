@@ -115,6 +115,7 @@ class BladeParams:
     n_chord: int = 60  # points per airfoil surface
     features: Features = field(default_factory=Features)  # bio-inspired feature layer
     shroud_thick_mm: float = 0.0  # 0 = no tip ring; else radial wall outside the built tip
+    shroud_height_frac: float = 1.0  # 1 = full tip Z-span; <1 = TE-anchored partial ring (recovery)
     # Optional per-blade circumferential angles [deg]. None => equal spacing (360/N). Set to an
     # UNEVEN, statically balanced pattern (fansim.structural.balance.balanced_uneven_spacing) to
     # spread the blade-pass tone. Must have length n_blades. See [[fan-sim-uneven-spacing]].
