@@ -47,7 +47,6 @@ def blade_z_extent(params) -> float:
             n_chord=params.n_chord,
             features=params.features,
             le_skew=float(it["le_skew"][i]),
-            le_skew=float(it["le_skew"][i]),
             tip_notch_count=params.tip_notch_count,
             tip_notch_depth_mm=params.tip_notch_depth_mm,
             le_thick_scale=float(getattr(params, "le_thick_scale", 1.0) or 1.0),

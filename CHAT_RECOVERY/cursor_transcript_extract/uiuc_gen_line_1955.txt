@@ -1,0 +1,107 @@
+"""Vendored UIUC-style polar tables for BEM Cl/Cd. Offline only."""
+
+from __future__ import annotations
+
+import math
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from fansim.propeller.bemt import _cl_cd, _cl_cd_analytic
+from fansim.propeller.polars import (
+    POLAR_DIR,
+    clear_polar_cache,
+    cl_cd_table,
+    family_for_camber,
+    load_polar_family,
+)
+
+
+def test_polar_csvs_exist():
+    assert (POLAR_DIR / "naca4412_re8e4.csv").is_file()
+    assert (POLAR_DIR / "e387_re8e4.csv").is_file()
+    assert (POLAR_DIR / "sd7032_re8e4.csv").is_file()
+    assert (POLAR_DIR / "s1223_re8e4.csv").is_file()
+    assert (POLAR_DIR / "README.md").is_file()
+
+
+def test_family_for_camber_nearest():
+    assert family_for_camber(0.0) == "naca0012"
+    assert family_for_camber(0.02) == "naca2412"
+    assert family_for_camber(0.04) == "naca4412"
+    assert family_for_camber(0.035) == "naca4412"
+
+
+def test_family_for_thickness_selects_selig():
+    # Same camber as NACA 4412, thinner section → e387 (~9% thick)
+    assert family_for_camber(0.04, thickness=0.09) == "e387"
+    # Mid camber + 10% thick → sd7032
+    assert family_for_camber(0.025, thickness=0.10) == "sd7032"
+    # High camber at 12% → s1223
+    assert family_for_camber(0.08, thickness=0.12) == "s1223"
+    # Default thickness keeps NACA *12 for classic cambers
+    assert family_for_camber(0.04, thickness=0.12) == "naca4412"
+
+
+def test_cl_cd_table_matches_csv_row():
+    clear_polar_cache()
+    tables = load_polar_family("naca4412")
+    assert 80000.0 in tables
+    a, cl, cd = tables[80000.0]
+    # pick α = 4°
+    i = int(np.argmin(np.abs(a - 4.0)))
+    out = cl_cd_table(math.radians(float(a[i])), 0.04, 80000.0)
+    assert out is not None
+    assert out[0] == pytest.approx(float(cl[i]), abs=0.02)
+    assert out[1] == pytest.approx(float(cd[i]), abs=0.02)
+
+
+def test_e387_table_hit_via_thickness():
+    clear_polar_cache()
+    tables = load_polar_family("e387")
+    assert 80000.0 in tables
+    a, cl, cd = tables[80000.0]
+    i = int(np.argmin(np.abs(a - 4.0)))
+    out = cl_cd_table(math.radians(float(a[i])), 0.04, 80000.0, thickness=0.09)
+    assert out is not None
+    assert out[0] == pytest.approx(float(cl[i]), abs=0.02)
+
+
+def test_re_log_interp_between_tables():
+    clear_polar_cache()
+    a_deg = 4.0
+    lo = cl_cd_table(math.radians(a_deg), 0.04, 40000.0)
+    hi = cl_cd_table(math.radians(a_deg), 0.04, 80000.0)
+    mid = cl_cd_table(math.radians(a_deg), 0.04, 60000.0)
+    assert lo and hi and mid
+    assert min(lo[0], hi[0]) - 1e-9 <= mid[0] <= max(lo[0], hi[0]) + 1e-9
+
+
+def test_cl_cd_uses_table_when_re_set():
+    clear_polar_cache()
+    tab = _cl_cd(math.radians(4.0), 0.04, re=80000.0)
+    ana = _cl_cd_analytic(math.radians(4.0), 0.04, re=80000.0)
+    # Tables are shifted vs analytic — must differ
+    assert abs(tab[0] - ana[0]) > 1e-4 or abs(tab[1] - ana[1]) > 1e-4
+    assert math.isfinite(tab[0]) and math.isfinite(tab[1])
+
+
+def test_cl_cd_analytic_when_re_none():
+    cl, cd = _cl_cd(0.1, 0.04, re=None)
+    assert math.isfinite(cl) and math.isfinite(cd)
+
+
+def test_fallback_when_polar_dir_missing(monkeypatch, tmp_path):
+    clear_polar_cache()
+    import fansim.propeller.polars as pol
+    monkeypatch.setattr(pol, "POLAR_DIR", tmp_path / "empty")
+    clear_polar_cache()
+    assert cl_cd_table(0.1, 0.04, 80000.0) is None
+    cl, cd = _cl_cd(0.1, 0.04, re=80000.0)
+    assert math.isfinite(cl) and math.isfinite(cd)
+
+
+def test_no_star_in_polars_module():
+    text = Path("fansim/propeller/polars.py").read_text(encoding="utf-8")
+    assert "★" not in text
