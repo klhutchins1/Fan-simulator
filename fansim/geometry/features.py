@@ -100,6 +100,10 @@ def apply_features(
 
 
 # --- spliced features_from_flat (recovery) ---
+FEATURE_FLAT_KEYS = ("tubercle_amp", "tubercle_waves", "serration_amp",
+                     "serration_waves", "dimple_amp", "dimple_rows", "dimple_cols")
+
+
 def features_from_flat(flat: dict | None) -> Features:
     """Rebuild ``Features`` from a merged flat/params dict (missing keys → defaults).
 

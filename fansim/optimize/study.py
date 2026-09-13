@@ -122,10 +122,14 @@ def pareto_summary(study: optuna.Study) -> list[dict]:
         if not t.user_attrs.get("feasible", False):
             continue
         names = OBJECTIVE_NAMES + (("noise_swl",) if len(t.values) == 4 else ())
+        shroud = float(t.user_attrs.get("shroud_thick_mm", 0.0) or 0.0)
+        params = dict(t.params)
+        params.setdefault("shroud_thick_mm", shroud)  # --shroud stamps after sampling; carry it in params
         rows.append({
             "trial": t.number,
             "n_blades": t.user_attrs.get("n_blades"),
             **{name: round(val, 2) for name, val in zip(names, t.values)},
-            "params": t.params,
+            "shroud_thick_mm": shroud,
+            "params": params,
         })
     return rows
