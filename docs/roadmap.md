@@ -49,7 +49,7 @@ session.**
   mic would give absolute numbers. Tonal (BPF) is validated via uneven spacing; broadband is
   coarse-grid-limited (~0.5 mm cells needed, >12 GB VRAM).
 - [ ] **1.5 Full P–Q curve + shut-off pressure + grid convergence** for the buildable a12x25 designs.
-  **[impact: med]** **[effort: med]** **Partial (2026-09-14):** free-air mesh ladder + GCI asymptotic at tip_gap 0.5 mm (~44.7 CFM, −26% vs published 60.1); tip/frame/wall_ks/stagger A/Bs in `docs/validation/a12x25_pq_report.md`. Historical P–Q at ~1.0 mm tip had shut-off **proxy ~20.1 Pa** (20 Pa unconverged). **Remaining:** Stock multi-back P–Q at **published 0.5 mm** tip with finer near-stall backs; do not claim absolute shut-off until converged near Q→0. See `docs/high-accuracy-plan.md`.
+  **[impact: med]** **[effort: med]** **Partial (2026-09-14):** free-air mesh ladder + GCI asymptotic at tip_gap 0.5 mm (~44.7 CFM, −26% vs 60.1); tip/frame/wall_ks/stagger A/Bs documented. Stock multi-back P–Q at **0.5 mm** tip: shut-off **proxy ~24.0 Pa** (interim ±5 Pa **pass**; 18 Pa mildly unconverged). Free-air interim ±10% **still fail**. Absolute shut-off still needs a converged Q→0 (or agreed) solve before datasheet claims. See `docs/validation/a12x25_pq_report.md` §9.
 - [x] **1.6 Low-Reynolds-number airfoils (stage 1). DONE 2026-09-13**
   UIUC/Selig CSVs in `fansim/data/polars/` + `cl_cd_table` wired into `_cl_cd`
   (`tests/test_uiuc_polars.py`). Remaining: broader family coverage / cockpit airfoil picker.
