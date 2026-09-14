@@ -16,10 +16,10 @@ Raw ripgrep output is kept locally as `docs/validation/_provenance_rg.txt` (not 
 | Trust | Meaning for absolute CFM |
 |-------|---------------------------|
 | **None** | Reconstructed or transcript-spliced; treat as wrong until gate test is green and code is reconciled to a real copy. |
-| **Conditional** | Verbatim chat recovery; may lag post–drive-death Cursor edits. Ranking/shape tests OK; absolute CFM still needs CFD tier or measurement. |
-| **Conditional+splice** | Recovered file with spliced blocks (same as **None** for the spliced API surface). |
+| **Conditional** | Verbatim chat recovery; may lag post–drive-death Cursor edits. Shape/regression gates OK; absolute CFM still needs CFD tier or measurement. |
+| **Conditional+splice** | Verbatim recovery plus transcript-spliced blocks; treat the spliced API surface as **None** until reconciled; unspliced paths share **Conditional** limits above. |
 
-**Ranking:** Highest risk = closest to free-delivery CFM, shut-off ΔP, tip gap, and watertight geometry fed into BEM/CFD.
+**Ranking:** Highest risk = closest to free-delivery CFM, shut-off ΔP, tip gap, and watertight geometry fed into BEM/CFD. The **top 15** table is curated by that physics impact, not a raw sort of the ripgrep inventory.
 
 ---
 
@@ -29,7 +29,7 @@ Raw ripgrep output is kept locally as `docs/validation/_provenance_rg.txt` (not 
 |------|------|------------|-------|---------------------|--------------------------------------------------|
 | 1 | `fansim/geometry/blade.py` | `# RECONSTRUCTED` + LE/TE/shroud/tip_z **spliced** | **None** | Swept area, shroud ring, tip LE/TE, all BEM/CFD geometry | `tests/test_shroud.py::test_ring_wall_contains_every_tip_section_point` |
 | 2 | `fansim/fan_bem.py` | `# RECOVERED-FROM-CHAT` | **Conditional** | Direct free-delivery & shut-off from `pq_curve` | `tests/test_fan_bem.py::test_reference_free_delivery_in_band` |
-| 3 | `fansim/optimize/objectives.py` | `# RECOVERED-FROM-CHAT` | **Conditional** | `evaluate_candidate` → stamped `cfm_free` / `cfm_load` | `tests/test_optimize.py::test_evaluate_candidate_gate_is_cheap_and_infeasible` |
+| 3 | `fansim/optimize/objectives.py` | `# RECOVERED-FROM-CHAT` | **Conditional** | `evaluate_candidate` cheap feasibility gates before geometry/CFD (feasible path stamps CFM via BEM stack) | `tests/test_optimize.py::test_evaluate_candidate_gate_is_cheap_and_infeasible` *(no direct CFM assertion in fast suite — see gap note)* |
 | 4 | `fansim/optimize/search_space.py` | Recovered + **multiple splices** + `# RECONSTRUCTED` (test-contract) block | **None** / splice | Tip cap, shroud, guided camber/blade count → geometry → CFM | `tests/test_search_space.py::test_shroud_drops_cap_by_ring_thickness` |
 | 5 | `fansim/optimize/system_curve.py` | `# RECONSTRUCTED-FROM-CURSOR-TRANSCRIPT` + **spliced** | **None** | Loaded operating point & hose scoring (`k`, probe Pa) | `tests/test_system_curve.py::test_probe_on_hose_is_exact_op` |
 | 6 | `fansim/cfd/metrics.py` | `# RECOVERED-FROM-CHAT` | **Conditional** | Parses OpenFOAM logs → reported CFM | `tests/test_cfd.py::test_parse_fan_metrics` |
@@ -41,7 +41,14 @@ Raw ripgrep output is kept locally as `docs/validation/_provenance_rg.txt` (not 
 | 12 | `fansim/cfd/templates.py` | `# RECOVERED-FROM-CHAT` | **Conditional** | Case topology → inlet/outlet areas affecting parsed Q | `tests/test_cfd.py::test_case_build_files` |
 | 13 | `fansim/catalog.py` | Recovered + **spliced** `results_for_hub` / `curve_provenance` | **Conditional+splice** | UI/catalog CFM and wall-curve metadata | `tests/test_catalog.py::test_build_indexes_finalists_across_runs` |
 | 14 | `fansim/geometry/features.py` | Recovered + **spliced** `features_from_flat` | **Conditional+splice** | Bio features change sections → BEM input | `tests/test_features.py::test_featured_impeller_is_watertight` |
-| 15 | `fansim/optimize/study.py` | `# RECOVERED-FROM-CHAT` | **Conditional** | Pareto rows aggregate objective CFM fields | `tests/test_shroud.py::test_pareto_summary_carries_shroud_thick` |
+| 15 | `fansim/optimize/study.py` | `# RECOVERED-FROM-CHAT` | **Conditional** | `pareto_summary` rows carry shroud attrs for downstream `blade_from_flat` rebuild | `tests/test_shroud.py::test_pareto_summary_carries_shroud_thick` *(no direct CFM gate in fast suite — see gap note)* |
+
+### Fast-suite gate gaps (ranks 3 & 15)
+
+No pytest in the default fast suite asserts numeric `cfm_free` / `cfm_load` through these modules alone:
+
+- **Rank 3 — `objectives.py`:** `test_evaluate_candidate_gate_is_cheap_and_infeasible` only checks that an unprintable candidate is rejected (`feasible=False`, `unprintable` reason, `INFEASIBLE` objective tuple) before heavy work. For BEM-level CFM trust, use rank 2 (`test_reference_free_delivery_in_band`) and rank 5 (loaded probe) until a dedicated objectives CFM regression exists.
+- **Rank 15 — `study.py`:** `test_pareto_summary_carries_shroud_thick` only checks `shroud_thick_mm` propagation into Pareto row dicts (fake Optuna trial values `[10, 5, 1]` — not CFM fields). For optimizer-published CFM, use rank 2 plus rank 13 (`test_build_indexes_finalists_across_runs`).
 
 ---
 
