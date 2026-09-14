@@ -21,11 +21,13 @@ import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+from fansim.cfd.casing import export_casing_stl
 from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM, remaining_tip_gap_mm, rig_for_impeller
-from fansim.cfd.frame import export_frame_stl
+from fansim.cfd.frame import export_frame_stl, stack_frame_z_start_mm
 from fansim.cfd.metrics import parse_fan_metrics
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve
 from fansim.cfd.runner import OpenFOAMRunner
+from fansim.cfd.stator import export_stator_stl
 from fansim.geometry import build_impeller, export_stl, watertight_report
 from fansim.fan_spec import (
     A12X25,
@@ -37,7 +39,12 @@ from fansim.fan_spec import (
 )
 from fansim.geometry.blade import BladeParams, blade_solidity
 from fansim.manufacturability.fdm_rules import check_printability
-from fansim.optimize.system_curve import REF_CFM, SystemCurveError, score_operating_point
+from fansim.optimize.system_curve import (
+    REF_CFM,
+    SystemCurveError,
+    refine_operating_metrics,
+    score_operating_point,
+)
 from fansim.structural.stress import centrifugal_root_stress
 
 INFEASIBLE = -1.0e6      # rejected value for MAXIMIZED objectives (optimizer avoids them)
@@ -97,6 +104,14 @@ def evaluate_candidate(
     surrogate_prescreen_cfm: float = 0.0,
     surrogate=None,
     surrogate_load=None,
+    refine_op: bool = False,
+    wall_ks_mm: float | None = None,
+    stator: bool = False,
+    stator_stack: bool = False,
+    stator_stagger_deg: float | None = None,
+    stator_n_extra: int | None = None,
+    stepped_inlet: bool = False,
+    rpm: float | None = None,
 ) -> ObjectiveResult:
     """Gate, mesh once, solve at free-delivery and at ``load_pa``, return objectives.
 
@@ -105,9 +120,12 @@ def evaluate_candidate(
     forces the search to spread load over enough blade area rather than overloading a few blades.
     ``require_mountable`` gates (pre-CFD) designs whose hub is too small to house the fan model's
     motor — so the search only produces impellers that can actually be mounted."""
+    if stator and stator_stack:
+        raise ValueError("cannot combine stator and stator_stack")
     workdir = Path(workdir)
     workdir.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
+    target_rpm = float(rpm) if rpm is not None else float(spec.rpm)
 
     # --- Cheap gates first (no CFD) ---
     if require_mountable:
@@ -147,7 +165,7 @@ def evaluate_candidate(
     if bem_prescreen_cfm > 0.0:
         try:
             from fansim.fan_bem import pq_curve
-            bem_cfm = pq_curve(params, spec.rpm, tip_gap_mm=remaining).free_delivery_cfm
+            bem_cfm = pq_curve(params, target_rpm, tip_gap_mm=remaining).free_delivery_cfm
             if bem_cfm < bem_prescreen_cfm:
                 return _infeasible(f"bem-prescreen: {bem_cfm:.0f} CFM free < {bem_prescreen_cfm:.0f} "
                                    "floor (skipped CFD)", t0, raw=gap_raw)
@@ -216,7 +234,12 @@ def evaluate_candidate(
     # under-predict flow ~15% + hurt convergence (2.0/4.0 diameters converge cleanly to ~77/81
     # for trial 2; the earlier 1.0/1.5 gave ~65/71 unconverged — see adversarial-review §3.4).
     # Reusing one meshed dir across back-pressures was verified to NOT contaminate results.
-    params.rpm = spec.rpm  # spin the CFD at the selected fan model's operating speed
+    params.rpm = target_rpm  # model RPM or an Optuna --search-rpm sample
+    gap_raw["stator"] = (
+        "stack" if stator_stack else ("stator" if stator else "frame"))
+    gap_raw["inlet"] = "stepped" if stepped_inlet else "plain"
+    if wall_ks_mm is not None and float(wall_ks_mm) > 0:
+        gap_raw["wall_ks_mm"] = float(wall_ks_mm)
     rig0 = rig_for_impeller(
         params,
         tip_gap_mm=remaining,
@@ -224,17 +247,36 @@ def evaluate_candidate(
         inlet_diameters=2.0,
         outlet_diameters=4.0,
     )
-    frame_path = workdir / "frame.stl"
+    frame_path = None
+    stator_path = None
     try:
-        export_frame_stl(params, rig0, frame_path)
+        if stator or stator_stack:
+            stator_path = workdir / "stator.stl"
+            export_stator_stl(
+                params, rig0, stator_path,
+                stagger_deg=stator_stagger_deg, n_extra=stator_n_extra)
+        if not stator or stator_stack:
+            frame_path = workdir / "frame.stl"
+            z_start = stack_frame_z_start_mm(rig0) if stator_stack else None
+            export_frame_stl(params, rig0, frame_path, z_start_mm=z_start)
     except Exception as exc:
-        return _infeasible(f"frame failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
+        which = "stator" if (stator or stator_stack) and frame_path is None else "frame"
+        return _infeasible(f"{which} failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
+
+    casing_path = None
+    if stepped_inlet:
+        casing_path = workdir / "casing.stl"
+        try:
+            export_casing_stl(rig0, casing_path, stepped=True)
+        except Exception as exc:
+            return _infeasible(f"casing failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
     runner = OpenFOAMRunner(workdir)
     try:
         build_case(workdir, stl, rig0, mesh=MeshResolution(base_cell=base_cell),
                    n_iters=iters, n_subdomains=procs, back_pressure_pa=0.0,
-                   frame_stl_mm=frame_path)
+                   frame_stl_mm=frame_path, casing_stl_mm=casing_path,
+                   stator_stl_mm=stator_path, wall_ks_mm=wall_ks_mm)
         run_mesh(runner)
     except Exception as exc:
         return _infeasible(f"mesh failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
@@ -242,7 +284,8 @@ def evaluate_candidate(
     def solve_at(back_pa: float):
         build_case(workdir, stl, rig0, mesh=MeshResolution(base_cell=base_cell),
                    n_iters=iters, n_subdomains=procs, back_pressure_pa=back_pa,
-                   frame_stl_mm=frame_path)
+                   frame_stl_mm=frame_path, casing_stl_mm=casing_path,
+                   stator_stl_mm=stator_path, wall_ks_mm=wall_ks_mm)
         run_solve(runner, n_procs=procs)
         return parse_fan_metrics(workdir, omega_rad_s=rig0.omega_rad_s)
 
@@ -272,7 +315,7 @@ def evaluate_candidate(
     # Flag under-converged solves: near the stall operating point the steady RANS may not
     # settle within the iteration budget, making the number untrustworthy (see the
     # adversarial review). We surface it rather than silently trusting it.
-    # RPM is NOT fixed. The motor targets spec.rpm but under a load it can't power (heavy/high-
+    # RPM is NOT fixed. The motor targets target_rpm but under a load it can't power (heavy/high-
     # solidity blades, static pressure) it settles at a LOWER RPM. Fan affinity laws: power ∝ RPM³,
     # flow ∝ RPM, pressure ∝ RPM², efficiency ~invariant. So a design that would draw more shaft
     # power than the motor's budget at rated RPM doesn't fail -- it spins slower and delivers
@@ -281,7 +324,7 @@ def evaluate_candidate(
     budget = spec.max_shaft_power_w_leeway
     shaft_rated = max(m_free.shaft_power_w, m_load.shaft_power_w, 1e-9)
     derate = min(1.0, (budget / shaft_rated) ** (1.0 / 3.0))
-    actual_rpm = spec.rpm * derate
+    actual_rpm = target_rpm * derate
     cfm_free = m_free.cfm * derate                       # flow ∝ RPM
     cfm_load = max(m_load.cfm, 0.0) * derate
     over = over_spec_flags(spec, dia, depth, weight_g)   # geometry over-spec; power now derates RPM
@@ -300,10 +343,18 @@ def evaluate_candidate(
         return _infeasible(f"system-curve: {exc}", t0, raw=gap_raw)
     cfm_load = op.q_op_cfm
     efficiency = max(op.eta * 100.0, 0.0)
+    if refine_op:
+        refined = refine_operating_metrics(op, derate, load_pa, m_load, solve_at)
+        cfm_load = refined.q_op_cfm
+        efficiency = max(refined.eta * 100.0, 0.0)
+        gap_raw["cfm_op_alg"] = refined.cfm_op_alg
+        gap_raw["op_cfd"] = refined.op_cfd
 
     conv_note = ""
     if derate < 0.995:
-        conv_note = f"motor-limited: {actual_rpm:.0f} RPM ({derate * 100:.0f}% of {spec.rpm:.0f})"
+        conv_note = (
+            f"motor-limited: {actual_rpm:.0f} RPM "
+            f"({derate * 100:.0f}% of {target_rpm:.0f})")
     if not (m_free.converged and m_load.converged):
         conv_note += ("  " if conv_note else "") + (
             f"UNCONVERGED (free drift {m_free.flow_drift_pct:.1f}%, "

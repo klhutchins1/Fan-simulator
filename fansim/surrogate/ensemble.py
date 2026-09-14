@@ -1,4 +1,4 @@
-"""Boost mean + GP sigma ensemble for catalog pre-screen (§7.4)."""
+"""Boost/NN mean + GP sigma ensembles for catalog pre-screen (§7.4)."""
 
 from __future__ import annotations
 
@@ -6,6 +6,8 @@ import numpy as np
 
 from fansim.surrogate.boost import BoostRegressor, available
 from fansim.surrogate.gp import GaussianProcess
+from fansim.surrogate.nn import NnRegressor
+from fansim.surrogate.nn import available as nn_available
 
 
 class BoostGpEnsemble:
@@ -31,6 +33,35 @@ class BoostGpEnsemble:
             raise RuntimeError("call fit() before predict()")
         Xstar = np.atleast_2d(np.asarray(Xstar, float))
         mu = self.boost.predict(Xstar)
+        if not return_std:
+            return mu
+        _mu_gp, sigma = self.gp.predict(Xstar, return_std=True)
+        return mu, sigma
+
+
+class NnGpEnsemble:
+    """``predict(..., return_std=True)`` → (μ_nn, σ_gp), same shape as the GP API."""
+
+    def __init__(self):
+        self.gp = GaussianProcess()
+        self.nn = NnRegressor() if nn_available() else None
+        self._fitted = False
+
+    def fit(self, X, y) -> "NnGpEnsemble":
+        if not nn_available():
+            raise ImportError("torch required for NnGpEnsemble")
+        X = np.atleast_2d(np.asarray(X, float))
+        y = np.asarray(y, float).ravel()
+        self.gp = GaussianProcess().fit(X, y)
+        self.nn = NnRegressor().fit(X, y)
+        self._fitted = True
+        return self
+
+    def predict(self, Xstar, return_std: bool = False):
+        if not self._fitted or self.nn is None:
+            raise RuntimeError("call fit() before predict()")
+        Xstar = np.atleast_2d(np.asarray(Xstar, float))
+        mu = self.nn.predict(Xstar)
         if not return_std:
             return mu
         _mu_gp, sigma = self.gp.predict(Xstar, return_std=True)

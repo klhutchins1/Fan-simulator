@@ -55,7 +55,21 @@ def test_gp_boost_only_with_gp_floor():
     assert "--surrogate-boost" in _argv(gp_floor=40, gp_boost=True)
 
 
-def test_study_name_optional():
+def test_gp_nn_only_with_gp_floor():
+    assert "--surrogate-nn" not in _argv(gp_floor=0, gp_nn=True)
+    assert "--surrogate-nn" not in _argv(gp_floor=40, gp_nn=False)
+    assert "--surrogate-nn" in _argv(gp_floor=40, gp_nn=True)
+
+
+def test_search_rpm_and_material_flags():
+    assert "--search-rpm" not in _argv()
+    argv = _argv(search_rpm=True, rpm_min=500, rpm_max=1800, material="PLA", wall_ks_mm=0.1)
+    assert "--search-rpm" in argv
+    assert argv[argv.index("--rpm-min") + 1] == "500"
+    assert argv[argv.index("--rpm-max") + 1] == "1800"
+    assert argv[argv.index("--material") + 1] == "PLA"
+    assert argv[argv.index("--wall-ks-mm") + 1] == "0.1"
+
     assert "--study-name" not in _argv()
     from fansim.optimize.cli_argv import optimization_argv
     argv = optimization_argv(

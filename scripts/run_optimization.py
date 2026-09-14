@@ -51,7 +51,8 @@ def main() -> int:
     ap.add_argument("--procs", type=int, default=8)
     ap.add_argument("--base-cell", type=float, default=0.005)
     ap.add_argument("--iters", type=int, default=1000)
-    ap.add_argument("--load-pa", type=float, default=1.0)
+    ap.add_argument("--load-pa", type=float, default=None,
+                    help="system-curve Pa at 50 CFM (not a fixed wall). Default 1.0 or the --preset value.")
     ap.add_argument("--features", action="store_true",
                     help="also search the bio-inspired feature layer (tubercles/serrations/dimples)")
     ap.add_argument("--guided", action="store_true",
@@ -99,6 +100,32 @@ def main() -> int:
                     help="with --surrogate-prescreen: use HistGradientBoosting for the CFM mean and "
                          "the catalog GP for std (roadmap 7.4). Needs scikit-learn; else falls back "
                          "to GP-only. Off by default.")
+    ap.add_argument("--surrogate-nn", action="store_true",
+                    help="with --surrogate-prescreen: use a small MLP for the CFM mean and the "
+                         "catalog GP for std (roadmap 7.4). Needs torch; else falls back to GP-only. "
+                         "Wins over --surrogate-boost when both are set. Off by default.")
+    ap.add_argument("--preset", choices=["legacy", "case", "heatsink", "radiator"], default=None,
+                    help="application hose preset (sets --load-pa unless --load-pa is also given).")
+    ap.add_argument("--refine-op", action="store_true",
+                    help="third RANS at the system-curve operating pressure (replaces algebraic "
+                         "cfm_load / efficiency). Off by default.")
+    ap.add_argument("--shroud", action="store_true",
+                    help="stamp a tip ring on every trial and shrink tip_radius so the OD still fits "
+                         "the frame. Coupled to --winglet: a full-span ring disables the winglet.")
+    ap.add_argument("--stator-stack", action="store_true",
+                    help="stator row then four-bar frame (cannot combine with --stator).")
+    ap.add_argument("--stepped-inlet", action="store_true",
+                    help="stepped circular casing inlet lip (Noctua-style SID on casing.stl).")
+    ap.add_argument("--search-rpm", action="store_true",
+                    help="sample RPM inside the PWM band each trial instead of the fan-model rating.")
+    ap.add_argument("--rpm-min", type=float, default=None,
+                    help="with --search-rpm: PWM band low RPM (default from pwm_table).")
+    ap.add_argument("--rpm-max", type=float, default=None,
+                    help="with --search-rpm: PWM band high RPM (default from pwm_table).")
+    ap.add_argument("--wall-ks-mm", type=float, default=None,
+                    help="opt-in sand-grain roughness on printed impeller/frame/stator walls (mm).")
+    ap.add_argument("--material", default="PETG",
+                    help="print material for stress / weight gates (default PETG).")
     args = ap.parse_args()
 
     if not image_available():
@@ -107,6 +134,11 @@ def main() -> int:
 
     out = Path(args.out)
     space = args.space or ("guided" if args.guided else "open")
+    from fansim.optimize.presets import resolve_load
+    preset = None if args.preset in (None, "legacy") else args.preset
+    load_pa, preset_name = resolve_load(preset=preset, load_pa=args.load_pa)
+    if preset_name:
+        print(f"PRESET {preset_name}: load_pa={load_pa:g}")
     min_sol_mid = args.min_sol_mid if args.min_sol_mid is not None else (0.9 if args.loadcap else None)
     min_sol_tip = args.min_sol_tip if args.min_sol_tip is not None else (0.6 if args.loadcap else None)
     if space != "open":
@@ -114,15 +146,26 @@ def main() -> int:
               + (f", per-blade-loading cap: sol_mid>={min_sol_mid}, sol_tip>={min_sol_tip}"
                  if min_sol_mid or min_sol_tip else ""))
     study = run_study(args.trials, out, study_name=args.study_name, procs=args.procs,
-                      base_cell=args.base_cell, iters=args.iters, load_pa=args.load_pa,
+                      base_cell=args.base_cell, iters=args.iters, load_pa=load_pa,
                       with_features=args.features, space=space, with_spacing=args.spacing,
                       with_extended=args.extended,
                       with_noise=args.noise, noise_model=args.noise_model, fan_model=args.fan_model,
                       mountable=args.mountable, with_winglet=args.winglet,
+                      with_shroud=args.shroud,
+                      with_sickle=args.sickle, with_notched_tips=args.notched_tips,
+                      refine_op=args.refine_op,
+                      stator=args.stator, stator_stack=args.stator_stack,
+                      stepped_inlet=args.stepped_inlet,
                       bem_prescreen_cfm=args.bem_prescreen,
                       surrogate_prescreen_cfm=args.surrogate_prescreen,
                       surrogate_db=args.surrogate_db,
                       surrogate_boost=args.surrogate_boost,
+                      surrogate_nn=args.surrogate_nn,
+                      search_rpm=args.search_rpm,
+                      rpm_min=args.rpm_min,
+                      rpm_max=args.rpm_max,
+                      wall_ks_mm=args.wall_ks_mm,
+                      material=args.material,
                       min_sol_mid=min_sol_mid, min_sol_tip=min_sol_tip, on_trial=_progress)
 
     pareto = pareto_summary(study)

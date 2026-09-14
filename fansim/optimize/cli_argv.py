@@ -83,11 +83,17 @@ def optimization_argv(
     mountable: bool = True,
     study_name: str | None = None,
     gp_boost: bool = False,
+    gp_nn: bool = False,
     stator: bool = False,
     stator_stack: bool = False,
     sickle: bool = False,
     stepped_inlet: bool = False,
     notched_tips: bool = False,
+    search_rpm: bool = False,
+    rpm_min: float | None = None,
+    rpm_max: float | None = None,
+    wall_ks_mm: float | None = None,
+    material: str | None = None,
 ) -> list[str]:
     """CLI vector for a fan NSGA-II study. No Docker; the caller spawns this."""
     if stator and stator_stack:
@@ -114,6 +120,8 @@ def optimization_argv(
         argv.extend(["--surrogate-prescreen", f"{float(gp_floor):g}"])
         if gp_boost:
             argv.append("--surrogate-boost")
+        if gp_nn:
+            argv.append("--surrogate-nn")
     if study_name:
         argv.extend(["--study-name", str(study_name)])
     if stator_stack:
@@ -126,4 +134,14 @@ def optimization_argv(
         argv.append("--stepped-inlet")
     if notched_tips:
         argv.append("--notched-tips")
+    if search_rpm:
+        argv.append("--search-rpm")
+        if rpm_min is not None:
+            argv.extend(["--rpm-min", f"{float(rpm_min):g}"])
+        if rpm_max is not None:
+            argv.extend(["--rpm-max", f"{float(rpm_max):g}"])
+    if wall_ks_mm is not None and float(wall_ks_mm) > 0:
+        argv.extend(["--wall-ks-mm", f"{float(wall_ks_mm):g}"])
+    if material:
+        argv.extend(["--material", str(material)])
     return argv

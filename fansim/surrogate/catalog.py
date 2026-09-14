@@ -52,9 +52,9 @@ def training_xy(
 def append_and_refit(model, X, y, x_new, y_new):
     """Append one training row and return a freshly fitted screen model + matrices.
 
-    Refits a ``BoostGpEnsemble`` when ``model`` is one; otherwise a bare GP.
+    Refits a ``BoostGpEnsemble`` / ``NnGpEnsemble`` when ``model`` is one; otherwise a bare GP.
     """
-    from fansim.surrogate.ensemble import BoostGpEnsemble
+    from fansim.surrogate.ensemble import BoostGpEnsemble, NnGpEnsemble
 
     x_row = np.atleast_2d(np.asarray(x_new, float).reshape(1, -1))
     y_arr = np.asarray(y, float).ravel()
@@ -64,6 +64,8 @@ def append_and_refit(model, X, y, x_new, y_new):
     else:
         X2 = np.vstack([np.atleast_2d(np.asarray(X, float)), x_row])
         y2 = np.append(y_arr, float(y_new))
+    if isinstance(model, NnGpEnsemble):
+        return NnGpEnsemble().fit(X2, y2), X2, y2
     if isinstance(model, BoostGpEnsemble):
         return BoostGpEnsemble().fit(X2, y2), X2, y2
     return GaussianProcess().fit(X2, y2), X2, y2
@@ -75,8 +77,9 @@ def prescreen_fit(
     y_attr: str = "cfm_free",
     require_k: bool = False,
     boost: bool = False,
+    nn: bool = False,
 ) -> tuple[object | None, np.ndarray | None, np.ndarray | None, str]:
-    """Fitted GP (or boost+GP ensemble) + training matrices, or (None, None, None, reason)."""
+    """Fitted GP (or boost/NN+GP ensemble) + training matrices, or (None, None, None, reason)."""
     db = Path(db)
     if not db.exists():
         return None, None, None, f"no catalog at {db}"
@@ -85,6 +88,15 @@ def prescreen_fit(
     if len(y) < MIN_TRAIN:
         return None, None, None, f"{len(y)} {kind} rows with a geometry vector (need {MIN_TRAIN})"
     try:
+        if nn:
+            from fansim.surrogate.ensemble import NnGpEnsemble
+            from fansim.surrogate.nn import available as nn_available
+            from fansim.surrogate.nn import unavailable_reason as nn_unavailable_reason
+            note = "boost ignored; " if boost else ""
+            if nn_available():
+                return NnGpEnsemble().fit(X, y), X, y, note.rstrip("; ")
+            gp = GaussianProcess().fit(X, y)
+            return gp, X, y, f"{note}nn unavailable ({nn_unavailable_reason()}); using GP"
         if boost:
             from fansim.surrogate.boost import available, unavailable_reason
             from fansim.surrogate.ensemble import BoostGpEnsemble
@@ -103,10 +115,11 @@ def prescreen_model(
     y_attr: str = "cfm_free",
     require_k: bool = False,
     boost: bool = False,
+    nn: bool = False,
 ) -> tuple[object | None, str]:
     """Fitted screen model, or (None, reason) when the screen must stay off."""
     model, _X, _y, reason = prescreen_fit(
-        db, y_attr=y_attr, require_k=require_k, boost=boost)
+        db, y_attr=y_attr, require_k=require_k, boost=boost, nn=nn)
     return model, reason
 
 
