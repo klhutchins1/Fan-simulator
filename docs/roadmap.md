@@ -18,8 +18,8 @@ session.**
 
 1. ~~Math audit (Phase 1)~~ — done on recovered tree.
 2. ~~Noctua reference geometry (Phase 2)~~ — envelope + `a12x25_reference.yaml` Stock (not OEM STL).
-3. **Validation P–Q (Phase 3 remainder)** — free-air mesh/tip/physics/recipe checks recorded (~−26% vs 60.1); **near–shut-off P–Q at tip_gap 0.5 mm** still open (§1.5). See `docs/validation/a12x25_pq_report.md`.
-4. **Print + measure (Phase 5)** — staged runbook `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists.
+3. **Validation P–Q (Phase 3 remainder)** — free-air still **~−26%** vs 60.1; shut-off **proxy ~24 Pa** at tip_gap 0.5 mm (interim ±5 Pa pass). Absolute free-air still open. See `docs/validation/a12x25_pq_report.md`.
+4. **Print + measure (Phase 5)** — staged runbook `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Trusted STL under `validation/reference/` also unblocks geometry fidelity.
 5. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), and archetype CFD depth (§4.x).
 
 §8 cockpit scoring, §9 recovery hardening, §10 math fixes, and §11 re-review are **closed in code** (2026-09-11–13).

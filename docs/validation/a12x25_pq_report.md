@@ -1,14 +1,15 @@
 # NF-A12x25 reference P–Q validation report
 
-**Status:** Task 3.2 screening + mesh/tip + frame/wall_ks + recipe-fidelity candidate campaigns recorded. **CFD interim gate: fail** on free-air (still outside ±10% of 60.1 CFM). Shut-off remains an extrapolated proxy from the Phase 3.2 P–Q only.
+**Status:** Task 3.2 screening + mesh/tip + frame/wall_ks + recipe + **tip_gap 0.5 mm P–Q** campaigns recorded. **CFD interim:** free-air **fail** (−26%); shut-off **proxy pass** (~24 Pa vs 22.9, tip 0.5 mm).
 
 **Published reference:** [a12x25-reference.md](../a12x25-reference.md) — 60.1 CFM free-air @ 0 Pa, 22.9 Pa shut-off @ 2000 RPM.
 
 **Campaign artifacts (local, not in git):**
-- Phase 3.2 P–Q: `runs/validate_a12x25_phase3/` → [a12x25_phase3_validation_summary.json](a12x25_phase3_validation_summary.json)
+- Phase 3.2 P–Q (~1.0 mm tip): `runs/validate_a12x25_phase3/` → [a12x25_phase3_validation_summary.json](a12x25_phase3_validation_summary.json)
 - Mesh ladder + tip A/B: `runs/validate_a12x25_mesh_tip/` → [a12x25_mesh_tip_validation_summary.json](a12x25_mesh_tip_validation_summary.json)
 - Frame / wall_ks A/B: `runs/validate_a12x25_physics/` → [a12x25_physics_validation_summary.json](a12x25_physics_validation_summary.json)
 - Flow candidate free-air: `runs/validate_a12x25_flow_candidate/` → [a12x25_flow_candidate_summary.json](a12x25_flow_candidate_summary.json)
+- Stock P–Q @ tip 0.5 mm: `runs/validate_a12x25_shutoff_05/` → [a12x25_shutoff_05_validation_summary.json](a12x25_shutoff_05_validation_summary.json)
 
 **Runner:** `scripts/run_a12x25_validation.py` with `--params config/problems/a12x25_reference.yaml` (cockpit Stock / Phase 2 reference recipe). Defaults tip clearance to **0.5 mm** (`--tip-gap-mm`); supports `--mesh-ladder`, `--ladder-only`, `--tip-gap-study`, `--physics-study`, `--with-frame`, `--wall-ks-mm`.
 
@@ -122,8 +123,8 @@ Not re-run at tip_gap 0.5 mm in the mesh/tip campaign (`--ladder-only`).
 2. ~~Tip-gap 1.0 vs 0.5 mm~~ — **done**; +3.6 CFM.  
 3. ~~Frame / wall_ks free-air A/B~~ — **done**; see §7 (~1 CFM loss only).  
 4. ~~BEM stagger candidate CFD~~ — **done**; see §8 (~+0.6 CFM only). Stock **not** retuned.  
-5. **Trusted STL** under `validation/reference/` (silhouette / import) when a licensed mesh is available.  
-6. Near–shut-off numerics at tip_gap 0.5 mm (re-P–Q or finer backs past 15 Pa).  
+5. ~~Near–shut-off P–Q at tip_gap 0.5 mm~~ — **done**; see §9 (proxy ~24 Pa, interim pass).  
+6. **Trusted STL** under `validation/reference/` (silhouette / import) when a licensed mesh is available.  
 7. Prism layers / y+ (future).  
 8. Hardware Phase 5 when a commercial hub/frame + printed impeller measurement exists.
 
@@ -167,6 +168,36 @@ Committed summary: [a12x25_flow_candidate_summary.json](a12x25_flow_candidate_su
 
 ---
 
+## 9. Stock P–Q at tip_gap = 0.5 mm (near-shut-off)
+
+Campaign (~796 s): backs **0,5,10,12,14,16,18** Pa, `base_cell=0.006`, open duct, Stock `a12x25_reference.yaml`.
+
+| Back-pressure [Pa] | Simulated Q [CFM] | Converged | Drift [%] |
+|--------------------|-------------------|-----------|-----------|
+| 0 | **44.57** | yes | 0.0 |
+| 5 | 30.54 | yes | 0.3 |
+| 10 | 18.49 | yes | 0.4 |
+| 12 | 14.61 | yes | 0.1 |
+| 14 | 11.41 | yes | 0.2 |
+| 16 | 9.12 | yes | 0.2 |
+| 18 | 6.74 | **no** | 3.5 |
+
+### Shut-off ΔP proxy (Q → 0)
+
+Linear fit of last two **converged** points (**14 Pa / 11.41 CFM**, **16 Pa / 9.12 CFM**):
+
+| Metric | Published | Simulated (proxy) | Error | Interim band (±5 Pa) | Interim pass? |
+|--------|-----------|-------------------|-------|----------------------|---------------|
+| Shut-off ΔP [Pa] | 22.9 | **~24.0** | **+1.1 Pa** | **17.9–27.9 Pa** | **Yes (proxy only)** |
+
+Compared with Phase 3.2 at ~1.0 mm tip (proxy ~20.1 Pa; **20 Pa** heavily diverged), the published tip gap yields a **stronger loading branch** and a shut-off proxy **inside** the interim band. Free-air remains **outside** ±10% (44.6 vs 54.1–66.1 CFM).
+
+**Caveat:** **18 Pa** did not meet convergence (3.5% drift). Do not treat shut-off as validated at the same confidence as a converged Q=0 solve.
+
+Committed summary: [a12x25_shutoff_05_validation_summary.json](a12x25_shutoff_05_validation_summary.json).
+
+---
+
 ## Artifacts
 
 | File | Purpose |
@@ -179,6 +210,8 @@ Committed summary: [a12x25_flow_candidate_summary.json](a12x25_flow_candidate_su
 | `docs/validation/a12x25_physics_validation_summary.json` | Committed physics A/B numbers |
 | `runs/validate_a12x25_flow_candidate/validation.json` | Stagger candidate free-air (local) |
 | `docs/validation/a12x25_flow_candidate_summary.json` | Committed candidate numbers |
+| `runs/validate_a12x25_shutoff_05/validation.json` | Stock P–Q @ tip 0.5 mm (local) |
+| `docs/validation/a12x25_shutoff_05_validation_summary.json` | Committed shut-off campaign numbers |
 | `docs/validation/a12x25_recipe_sensitivity.md` | BEM one-factor table |
 | `scripts/run_a12x25_validation.py` | `--mesh-ladder`, `--tip-gap-*`, `--physics-study`, `--with-frame`, `--wall-ks-mm` |
 | `scripts/a12x25_recipe_sensitivity.py` | BEM sensitivity runner |

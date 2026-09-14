@@ -1,0 +1,40 @@
+{
+  "params": "config/problems/a12x25_reference.yaml",
+  "campaign": {
+    "kind": "Stock multi-back P–Q at published tip gap (near-shut-off)",
+    "tip_gap_mm": 0.5,
+    "base_cell_m": 0.006,
+    "backs_pa": [0, 5, 10, 12, 14, 16, 18],
+    "iters": 800,
+    "procs": 8,
+    "wall_time_s_approx": 796,
+    "local_run_dir": "runs/validate_a12x25_shutoff_05"
+  },
+  "published": {
+    "free_air_cfm": 60.1,
+    "shutoff_pa": 22.9
+  },
+  "pq_rows": [
+    {"back_pa": 0.0, "cfm": 44.568343624272, "converged": true, "drift_pct": 0.0},
+    {"back_pa": 5.0, "cfm": 30.540012007494003, "converged": true, "drift_pct": 0.3},
+    {"back_pa": 10.0, "cfm": 18.4893522543726, "converged": true, "drift_pct": 0.4},
+    {"back_pa": 12.0, "cfm": 14.6059805919534, "converged": true, "drift_pct": 0.1},
+    {"back_pa": 14.0, "cfm": 11.406974760975, "converged": true, "drift_pct": 0.2},
+    {"back_pa": 16.0, "cfm": 9.1192269767676, "converged": true, "drift_pct": 0.2},
+    {"back_pa": 18.0, "cfm": 6.7411283689746, "converged": false, "drift_pct": 3.5}
+  ],
+  "shutoff_proxy": {
+    "method": "linear P vs Q using last two converged points (14 Pa / 11.41 CFM, 16 Pa / 9.12 CFM)",
+    "shutoff_pa": 23.97,
+    "published_pa": 22.9,
+    "error_pa": 1.07,
+    "interim_band_pa": [17.9, 27.9],
+    "interim_pass": true,
+    "note": "18 Pa unconverged (3.5% drift); proxy only — not a converged Q=0 solve"
+  },
+  "interpretation": {
+    "free_air": "44.6 CFM (−26% vs 60.1) — interim free-air still fail",
+    "vs_phase32_tip1mm": "Loading branch much stronger than tip≈1.0 mm screening (then 15 Pa → 6.6 CFM; now 16 Pa → 9.1 CFM converged)",
+    "next": "trusted STL or Phase 5; free-air remains the open absolute gate"
+  }
+}
