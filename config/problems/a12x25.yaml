@@ -1,3 +1,5 @@
+# Provenance: approximate — legacy path config/problems/a12x25.yaml (not OEM CAD).
+# Prefer stock_blade_flat("a12x25") for cockpit Stock (loads a12x25_reference.yaml).
 # Approximate Noctua NF-A12x25 geometry for CFD VALIDATION (not the exact Noctua profile).
 # 7 swept blades, ~113 mm impeller / ~43 mm hub, high-solidity pressure-oriented design.
 # Target published specs (docs/a12x25-reference.md): free-air 60.1 CFM, shut-off 22.9 Pa,

@@ -329,7 +329,8 @@ def blade_to_flat(params: BladeParams) -> dict:
 
 # Parametric stock recipes for scatter ✕ click → Design (not the OEM CAD).
 STOCK_GEOMETRY_YAML = {
-    "a12x25": "config/problems/a12x25.yaml",
+    "a12x25": "config/problems/a12x25_reference.yaml",
+    "a12x25_approx": "config/problems/a12x25_approx.yaml",
 }
 
 
