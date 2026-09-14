@@ -35,6 +35,7 @@ _RE_TAG = {
 _DEFAULT_THICKNESS = 0.12
 
 
+@lru_cache(maxsize=128)
 def family_for_camber(camber: float, thickness: float = _DEFAULT_THICKNESS) -> str:
     """Nearest vendored polar family for section camber and thickness fractions."""
     c = float(camber)
@@ -43,6 +44,13 @@ def family_for_camber(camber: float, thickness: float = _DEFAULT_THICKNESS) -> s
         _FAMILIES,
         key=lambda fct: abs(c - fct[1]) + 0.5 * abs(t - fct[2]),
     )[0]
+
+
+@lru_cache(maxsize=32)
+def _polar_re_levels(family: str) -> tuple[float, ...]:
+    """Sorted Reynolds keys for a loaded polar family (avoids per-call sort in BEM hot loop)."""
+    tables = load_polar_family(family)
+    return tuple(sorted(tables.keys()))
 
 
 def _parse_csv(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -92,7 +100,7 @@ def cl_cd_table(
     if not tables:
         return None
     a_deg = math.degrees(float(alpha_rad))
-    res = sorted(tables.keys())
+    res = _polar_re_levels(fam)
     r = float(re)
     # Below the lowest table Re: do NOT clamp up (fan chord Re is often ~1–3e4). Caller falls back.
     if r < res[0]:
@@ -117,3 +125,5 @@ def cl_cd_table(
 
 def clear_polar_cache() -> None:
     load_polar_family.cache_clear()
+    family_for_camber.cache_clear()
+    _polar_re_levels.cache_clear()

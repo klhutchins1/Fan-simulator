@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Callable
 
 import numpy as np
 
@@ -81,9 +82,17 @@ def _effective_tip_gap_mm(params: BladeParams, tip_gap_mm: float | None) -> floa
     return 0.0 if shroud_is_full(params) else DEFAULT_TIP_GAP_MM
 
 
+_GeomFns = tuple[
+    Callable[[float], float],
+    Callable[[float], float],
+    Callable[[float], float],
+]
+
+
 def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
                     n_elem: int = 20, rho: float = RHO_AIR,
-                    tip_gap_mm: float | None = None, *, stator: bool = False) -> FanPoint:
+                    tip_gap_mm: float | None = None, *, stator: bool = False,
+                    geom: _GeomFns | None = None) -> FanPoint:
     """Blade-element + Euler performance at one flow rate. Angles are measured from the TANGENTIAL
     (rotation) plane, matching the geometry's stagger convention (chord axial component = sin(stagger)).
 
@@ -96,7 +105,7 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
     omega = rpm * 2.0 * math.pi / 60.0
     area = math.pi * (tip_r * tip_r - hub_r * hub_r)
     Vx = flow_m3s / area if area > 0 else 0.0             # mean axial velocity
-    chord_fn, stag_fn, camb_fn = _interp_geometry(params)
+    chord_fn, stag_fn, camb_fn = geom if geom is not None else _interp_geometry(params)
     edges = np.linspace(hub_r, tip_r, n_elem + 1)
 
     dp0_num = 0.0        # mass-weighted Euler total-pressure rise
@@ -168,8 +177,9 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
     v_tip = (rpm * 2.0 * math.pi / 60.0) * tip_r
     q_max = 0.6 * v_tip * area                            # generous upper bound on flow
     flows = np.linspace(0.02 * q_max, q_max, n_points)
+    geom = _interp_geometry(params)
     pts = [operating_point(params, rpm, float(q), n_elem=n_elem, rho=rho,
-                           tip_gap_mm=tip_gap_mm, stator=stator)
+                           tip_gap_mm=tip_gap_mm, stator=stator, geom=geom)
            for q in flows]
 
     # free delivery: interpolate where static rise crosses 0 (high-flow end)
