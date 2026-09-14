@@ -18,6 +18,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from fansim.cfd.metrics import CFM_PER_M3S
 from fansim.geometry.blade import BladeParams, open_tip_rmax_mm
 
 MM_TO_M = 1.0e-3
@@ -90,7 +91,7 @@ class TestRig:
 
     @property
     def inlet_flow_cfm(self) -> float:
-        return self.inlet_flow_m3s * 2118.88
+        return self.inlet_flow_m3s * CFM_PER_M3S
 
     @property
     def tip_speed(self) -> float:

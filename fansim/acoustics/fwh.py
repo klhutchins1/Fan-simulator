@@ -4,10 +4,9 @@
 
 """Far-field FW-H loading (Farassat 1A compact / discrete panels).
 
-Compact Curle in ``farfield.dipole_pressure`` uses the near-field 1/r² kernel. This module is the
-far-field loading term:
+This module is the far-field loading term:
 
-    p'(x, t) = (r_hat · Ḟ(t_ret)) / (4 π c₀² r)     t_ret = t - r/c₀
+    p'(x, t) = (r_hat · Ḟ(t_ret)) / (4 π c₀ r)     t_ret = t - r/c₀
 
 A compact source at the origin: the delay is a pure shift and does not change SPL. Several panels
 at different r can (permeable six-face or 2×2 face patches). This is **not** calibrated dB(A).

@@ -23,19 +23,19 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from fansim.cfd.metrics import CFM_PER_M3S
 from fansim.geometry.blade import BladeParams
 from fansim.propeller.bemt import _cl_cd   # thin cambered-airfoil polar (shared with the prop BEMT)
 
 RHO_AIR = 1.2                 # kg/m^3
 NU_AIR = 1.5e-5               # kinematic viscosity (m^2/s) -> local blade Reynolds number
-CFM_PER_M3S = 2118.88         # 1 m^3/s = 2118.88 CFM
 
 # --- first-order aggregate loss calibration (roadmap §7.3; refine with Kröger-Venter + low-Re polars) ---
 # Inviscid blade-element+Euler over-predicts ~1.6-2x: the real fan loses work to flow DEVIATION/slip
 # (fluid under-turns vs the blade), TIP-CLEARANCE leakage, and endwall/secondary flows. Until those are
 # modelled properly, three empirical buckets calibrated so the reference a12x25 geometry reproduces the
 # CFD-validated P-Q (~60 CFM free, ~23 Pa shut-off, ~25-35% eff):
-SLIP = 0.80                   # swirl actually delivered vs ideal (deviation) — tip loss now explicit (§7.3)
+SLIP = 0.71                   # swirl actually delivered vs ideal (deviation) — gap leakage now explicit (§7.3)
 K_FRICTION = 1.7              # endwall/duct/blade friction static-pressure loss ~ K * dynamic head
 K_TIP_LEAK = 9.0             # tip-clearance leakage knockdown in the outer span ~ K * gap/chord (§7.3)
 DEFAULT_TIP_GAP_MM = 0.5      # blade-to-shroud gap (leakage grows the loss near the tip)
@@ -132,18 +132,16 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
                 break
             vth = 0.5 * vth + 0.5 * vth_new
 
-        # Prandtl finite-blade tip loss (DESIGN-DEPENDENT: fewer blades / higher loading = more loss) plus
-        # tip-clearance leakage over the gap in the outer span (§7.3) -> less useful work near the tip.
-        f_tip = (B / 2.0) * max(tip_r - r, 0.0) / max(r * math.sin(phi), 1e-4)
-        F = max(0.10, (2.0 / math.pi) * math.acos(math.exp(-min(f_tip, 20.0))))
+        # Ducted fan screening model: do NOT apply Prandtl finite-blade tip loss (shroud suppresses the
+        # free-tip vortex roll-up). Only model gap leakage in the outer span (screening approximation).
+        leak = 1.0
         r_norm = (r - hub_r) / (tip_r - hub_r) if tip_r > hub_r else 0.0
         if r_norm > 0.65:                                 # outer span leaks across the blade-to-shroud gap
-            F *= max(0.2, 1.0 - K_TIP_LEAK * (tip_gap_mm / 1000.0) / max(c, 1e-3))
-        vth_eff = SLIP * F * vth                          # deviation + tip loss -> useful swirl
+            leak *= max(0.2, 1.0 - K_TIP_LEAK * (tip_gap_mm / 1000.0) / max(c, 1e-3))
+        vth_eff = SLIP * leak * vth                       # deviation + leakage -> useful swirl
         dp0_num += rho * U * vth_eff * dm                 # useful Euler total-pressure rise
         swirl_ke += 0.5 * rho * vth_eff * vth_eff * dm    # swirl dynamic head (lost, no stator)
         power += dm * U * vth                             # shaft work (full blade force; deviation = loss)
-        power += 0.5 * rho * W * W * c * B * cd * W * dr  # + profile-drag dissipation (W, cd from loop)
         mass += dm
 
     if mass <= 0:

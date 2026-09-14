@@ -5,7 +5,7 @@ The GPU noise scripts logged a control-volume force history; this module turns i
 levels. It is the single, tested home for the A-weighting curve, the Curle dipole propagation, and
 the band-limited dB(A) reduction that were previously duplicated across scripts/fan_noise_*.py.
 
-Curle compact dipole (docs/bibliography.md sec.1):  p'(x,t) = (r_hat . dF/dt) / (4 pi c0 r^2),
+Curle compact dipole (docs/bibliography.md sec.1):  p'(x,t) = (r_hat . dF/dt) / (4 pi c0 r),
 with the fan force on the fluid F(t) = -(dP/dt + Fs), P = control-volume momentum, Fs = surface
 momentum-flux + pressure. Absolute dB(A) is coarse-grid-limited; the BPF tone and RELATIVE deltas
 (a consistent band-limit) are the trustworthy outputs.
@@ -75,7 +75,7 @@ def peak_tone_over_harmonics(p, dt, f_rev, n_harm: int = 24, half_bw: float = 8.
 def dipole_pressure(F_fluct, dt, r_hat=(0.0, 0.0, 1.0), c0: float = C0_AIR, r_obs: float = 1.0):
     """Curle compact-dipole far-field pressure time series at observer direction r_hat, distance r_obs."""
     dFdt = np.gradient(np.asarray(F_fluct, float), dt, axis=0)
-    return (np.asarray(r_hat, float) @ dFdt.T) / (4.0 * np.pi * c0 * r_obs**2)
+    return (np.asarray(r_hat, float) @ dFdt.T) / (4.0 * np.pi * c0 * r_obs)
 
 
 def force_from_cv(t, P, Fs):

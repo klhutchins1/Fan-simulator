@@ -85,27 +85,47 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
         dr = edges[i + 1] - edges[i]
         c = chord_fn(r * 1000.0) / 1000.0
         beta = math.radians(twist_fn(r * 1000.0))
-        sigma = B * c / (2.0 * math.pi * r)                 # local solidity
+        U = omega * r
         vi = 2.0                                            # induced axial velocity guess [m/s]
-        for _ in range(60):                                # BEM fixed-point iteration
+        vth = 0.0                                           # far-wake swirl velocity (≈ 2 a' Ωr), +rotation
+        dT = 0.0
+        f_theta = 0.0
+        phi = 0.0
+        W2 = 0.0
+        cl = cd = 0.0
+        for _ in range(60):                                 # BEM fixed-point iteration (a, a')
             Vax = v_forward + vi
-            phi = math.atan2(Vax, omega * r)
-            W2 = Vax * Vax + (omega * r) ** 2
+            vth_m = 0.5 * vth                               # mean swirl through the disk
+            Vt = max(U - vth_m, 0.05)                       # Vt = Ωr(1 − a′)
+            phi = math.atan2(Vax, Vt)
+            W2 = Vax * Vax + Vt * Vt
             alpha = beta - phi
             cl, cd = _cl_cd(alpha, camber, re=math.sqrt(W2) * c / NU_AIR)   # Re-aware polar (§7.2)
-            # Prandtl tip-loss factor
+            # Prandtl tip-loss factor (open propeller only)
             f = (B / 2.0) * (R - r) / max(r * math.sin(phi), 1e-4)
             F = max(0.15, (2.0 / math.pi) * math.acos(math.exp(-min(f, 20.0))))
+
             dT = 0.5 * rho * W2 * c * B * (cl * math.cos(phi) - cd * math.sin(phi))   # per unit span
-            # momentum: dT = 4*pi*r*rho*(V+vi)*vi*F  -> update vi
-            denom = 4.0 * math.pi * r * rho * max(Vax, 0.1) * F
-            vi_new = dT / denom if denom > 0 else vi
+            f_theta = 0.5 * rho * W2 * c * B * (cl * math.sin(phi) + cd * math.cos(phi))
+
+            # Momentum: dT = 4π r ρ Vax vi F  (per unit span) -> update vi
+            denom_t = 4.0 * math.pi * r * rho * max(Vax, 0.1) * F
+            vi_new = dT / denom_t if denom_t > 0 else vi
             vi_new = max(0.0, min(vi_new, 60.0))
-            if abs(vi_new - vi) < 1e-3:
+
+            # Angular momentum: fθ = (ρ Vax 2π r) ΔVθ (per unit span), with ΔVθ ≈ vth (0 → far wake)
+            denom_th = rho * max(Vax, 0.1) * 2.0 * math.pi * r
+            vth_new = f_theta / denom_th if denom_th > 0 else vth
+            vth_new = max(0.0, min(vth_new, 1.9 * U))       # a′ < 0.95 (since vth ≈ 2 a′ Ωr)
+
+            if abs(vi_new - vi) < 1e-3 and abs(vth_new - vth) < 1e-3:
                 vi = vi_new
+                vth = vth_new
                 break
             vi = 0.5 * vi + 0.5 * vi_new                    # relax
-        dQ = 0.5 * rho * W2 * c * B * (cl * math.sin(phi) + cd * math.cos(phi)) * r    # per unit span
+            vth = 0.5 * vth + 0.5 * vth_new
+
+        dQ = f_theta * r                                    # per unit span
         T += dT * dr
         Q += dQ * dr
     T = max(T, 0.0)
@@ -147,5 +167,7 @@ def _cl_cd_analytic(alpha_rad: float, camber: float, re: float | None = None):
     cl = max(-cl_max, min(cl_max, cl))            # clamp near max lift
     if a_deg > stall_deg:                         # post-stall soft drop
         cl *= max(0.55, 1.0 - (a_deg - stall_deg) * 0.03)
-    cd = cd0 + 0.020 * cl * cl                    # profile + induced-ish drag polar
+    # Analytic polar: use only profile drag (cd0). Do not include an induced-drag term here;
+    # BEM/BEMT already accounts for induced power via momentum coupling.
+    cd = cd0
     return cl, cd

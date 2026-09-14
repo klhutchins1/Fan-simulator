@@ -17,7 +17,8 @@ from __future__ import annotations
 import numpy as np
 
 # physical constants / model constants
-RHO_AIR = 1.225        # kg/m^3
+# Use the same default air density as the CFD/AMCA metrics (screening-level consistency).
+RHO_AIR = 1.2          # kg/m^3
 C0_AIR = 343.0         # m/s speed of sound
 CMU = 0.09             # k-omega/k-epsilon Cmu
 ALPHA_PROUDMAN = 0.1   # rescaled Proudman constant (Sarkar & Hussaini 1993)

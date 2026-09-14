@@ -9,6 +9,8 @@ import pytest
 from fansim.acoustics.farfield import (
     a_weighting_db,
     blade_pass_frequency,
+    dipole_pressure,
+    dba_from_pressure,
     noise_from_cv_force,
     peak_tone_over_harmonics,
     tone_level_db,
@@ -24,6 +26,21 @@ def test_a_weighting_reference_points():
 
 def test_blade_pass_frequency():
     assert blade_pass_frequency(7, 2000.0) == pytest.approx(233.333, abs=1e-2)
+
+
+def test_dipole_one_over_r_drops_six_db():
+    fs = 20000.0
+    f0 = 200.0
+    t = np.arange(0, 0.4, 1.0 / fs)
+    dt = 1.0 / fs
+    Fz = 0.01 * np.sin(2.0 * np.pi * f0 * t)
+    F = np.column_stack([np.zeros_like(t), np.zeros_like(t), Fz])
+    Fp = F - F.mean(axis=0)
+    p1 = dipole_pressure(Fp, dt, r_obs=1.0)
+    p2 = dipole_pressure(Fp, dt, r_obs=2.0)
+    d1 = dba_from_pressure(p1, dt, cutoff_hz=2500.0)
+    d2 = dba_from_pressure(p2, dt, cutoff_hz=2500.0)
+    assert d1 - d2 == pytest.approx(6.0, abs=0.3)
 
 
 def test_noise_from_cv_force_detects_bpf_tone_and_thrust():

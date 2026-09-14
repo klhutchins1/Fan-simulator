@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from fansim.fan_bem import CFM_PER_M3S
+from fansim.cfd.metrics import CFM_PER_M3S
 
 REF_CFM = 50.0
 

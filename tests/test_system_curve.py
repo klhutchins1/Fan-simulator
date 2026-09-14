@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from fansim.fan_bem import CFM_PER_M3S
+from fansim.cfd.metrics import CFM_PER_M3S
 from fansim.optimize.system_curve import (
     REF_CFM,
     SystemCurveError,
