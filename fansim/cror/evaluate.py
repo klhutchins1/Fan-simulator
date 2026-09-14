@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fansim.cfd.casing import export_casing_stl
 from fansim.cfd.domain import MM_TO_M, OPTIMIZER_TIP_GAP_MM, TestRig
+from fansim.cfd.duct_area import require_circular_inlet_area
 from fansim.cfd.frame import export_frame_stl
 from fansim.cfd.metrics import parse_fan_metrics
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve
@@ -14,8 +15,8 @@ from fansim.cfd.runner import OpenFOAMRunner
 from fansim.cror.geometry import CrorParams, cror_axial_layout_mm, export_cror_stl
 from fansim.fan_spec import A12X25, FanSpec, check_build, estimate_weight_g, over_spec_flags
 from fansim.geometry import watertight_report
-from fansim.optimize.motor_curve import motor_operating_rpm
-from fansim.optimize.objectives import INFEASIBLE_NOISE, ObjectiveResult, _infeasible
+from fansim.optimize.motor_curve import motor_curve_stamps, motor_operating_rpm
+from fansim.optimize.objectives import INFEASIBLE_NOISE, ObjectiveResult, SCREENING_GRID_STAMP, _infeasible
 from fansim.optimize.print_penalty import apply_print_penalty
 from fansim.optimize.system_curve import (
     SystemCurveError,
@@ -239,6 +240,6 @@ def evaluate_cror(
         actual_rpm=actual_rpm,
         over_spec=over,
         reason=conv_note,
-        raw={**gap_raw, **print_stamps},
+        raw={**gap_raw, **motor_curve_stamps(spec), **print_stamps},
         runtime_s=round(time.time() - t0, 1),
     )

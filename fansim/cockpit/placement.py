@@ -124,9 +124,11 @@ def nominal_fits_spec(flat: dict, spec: FanSpec, measured: tuple[float, float, f
 
 
 def fit_envelope(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
-    from fansim.geometry.features import Features
-    feat = features if features is not None else Features()
+    from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
+    from fansim.geometry.features import features_from_flat
     from fansim.optimize.search_space import blade_from_flat
+
+    feat = features if features is not None else features_from_flat(flat)
 
     work = deepcopy(flat)
     changes: list[PlaceChange] = []
@@ -150,8 +152,9 @@ def fit_envelope(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
     if need is not None and cur_hub < need:
         set_mm("hub_radius", float(need))
 
-    # 2) tip: shrink until built tip diameter fits the frame
+    # 2) tip: shrink until built tip leaves OPTIMIZER_TIP_GAP_MM to the frame ID
     max_dia = float(spec.tip_dia_mm[1])
+    target_dia = max_dia - 2.0 * OPTIMIZER_TIP_GAP_MM
     tr0 = float(work.get("tip_radius", 0.0))
     tr = tr0
     for _ in range(12):
@@ -160,9 +163,9 @@ def fit_envelope(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
             dia = blade_max_dia(blade_from_flat(work, feat))
         except Exception:  # noqa: BLE001
             break
-        if dia <= max_dia - 0.15:
+        if dia <= target_dia:
             break
-        tr -= (dia - max_dia) / 2.0 + 0.15
+        tr -= (dia - target_dia) / 2.0 + 0.15
         if tr < 20.0:
             break
     work["tip_radius"] = round(tr, 2)

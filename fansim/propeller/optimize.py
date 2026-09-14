@@ -39,13 +39,72 @@ def evaluate_prop(params: BladeParams, spec: PropSpec) -> PropPerf:
     return analyze(params, rpm=spec.rpm_max)
 
 
+def bemt_thrust_g(params: BladeParams, spec: PropSpec, *, rpm: float | None = None) -> float:
+    """Static BEMT thrust in grams at ``rpm`` (default ``spec.rpm_max``)."""
+    perf = analyze(params, rpm=float(spec.rpm_max if rpm is None else rpm))
+    return float(perf.thrust_g)
+
+
+def blade_params_from_trial_params(spec: PropSpec, p: dict) -> BladeParams:
+    """Rebuild a prop BladeParams from an Optuna / Pareto flat params dict."""
+    s2 = dataclasses.replace(spec, n_blades=int(p["n_blades"]), pitch_in=float(p["pitch_in"]))
+    return prop_blade_params(
+        s2,
+        chord_frac=(float(p["chord_root"]), float(p["chord_mid"]), float(p["chord_tip"])),
+        camber=float(p["camber"]),
+    )
+
+
+def refine_pareto_cfd(spec: PropSpec, pareto: list[dict], out_dir,
+                      *, n_top: int = 1, bemt_floor_g: float = 0.0, **eval_kw) -> list[dict]:
+    """Run CFD on the top-N Pareto rows (mocked in unit tests)."""
+    from pathlib import Path
+
+    from fansim.propeller.cfd import evaluate_prop_cfd
+
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    rows: list[dict] = []
+    for i, row in enumerate(list(pareto)[: max(0, int(n_top))]):
+        params = blade_params_from_trial_params(spec, row["params"])
+        workdir = out_dir / f"cfd_{i:02d}"
+        result = evaluate_prop_cfd(
+            spec, workdir, params=params, bemt_floor_g=float(bemt_floor_g), **eval_kw)
+        rows.append({
+            "rank": i,
+            "workdir": str(workdir),
+            "bemt_thrust_g": result.get("bemt_thrust_g"),
+            "cfd_thrust_g": result.get("thrust_g"),
+            "skipped": bool(result.get("skipped")),
+            "reason": result.get("reason"),
+            "params": row.get("params"),
+        })
+    return rows
+
+
 def run_prop_study(spec: PropSpec, n_trials: int = 200, seed: int = 0,
-                   max_power_w: float | None = None):
+                   max_power_w: float | None = None,
+                   out_dir=None, prop_model: str | None = None):
     """NSGA-II over the prop blade, maximizing (thrust_g, efficiency_g_per_w). ``max_power_w`` (the
     motor's budget) gates designs that draw more than the motor can give, so the front is realistic.
-    Returns (study, pareto)."""
-    study = optuna.create_study(directions=["maximize", "maximize"],
-                                sampler=optuna.samplers.NSGAIISampler(seed=seed))
+    Returns (study, pareto). Optional ``out_dir`` persists Optuna SQLite + ``pareto.json``."""
+    from pathlib import Path
+
+    storage = None
+    if out_dir is not None:
+        out = Path(out_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        storage = f"sqlite:///{(out / 'study.db').as_posix()}"
+        study = optuna.create_study(
+            directions=["maximize", "maximize"],
+            sampler=optuna.samplers.NSGAIISampler(seed=seed),
+            storage=storage,
+            study_name="prop",
+            load_if_exists=True,
+        )
+    else:
+        study = optuna.create_study(directions=["maximize", "maximize"],
+                                    sampler=optuna.samplers.NSGAIISampler(seed=seed))
 
     def objective(trial):
         params = suggest_prop(trial, spec)
@@ -69,4 +128,7 @@ def run_prop_study(spec: PropSpec, n_trials: int = 200, seed: int = 0,
                "tip_mach": t.user_attrs.get("tip_mach"), "params": t.params}
               for t in study.best_trials]
     pareto.sort(key=lambda r: -r["thrust_g"])
+    if out_dir is not None:
+        from fansim.propeller.persist import save_prop_pareto
+        save_prop_pareto(Path(out_dir), pareto, prop_model=prop_model or getattr(spec, "name", None))
     return study, pareto

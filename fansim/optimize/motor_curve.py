@@ -50,3 +50,15 @@ def motor_operating_rpm(torque_nm_at_rated: float, spec: FanSpec) -> float:
     x = (-b + math.sqrt(disc)) / (2.0 * a)
     x = min(max(x, 1e-6), 1.0)
     return float(spec.rpm) * x
+
+
+def motor_curve_stamps(spec: FanSpec) -> dict:
+    """Honesty stamps for evaluate raw dicts (Kv-ish no-load slope + stall torque)."""
+    rpm_nl = float(spec.rpm) * NL_OVER_RATED
+    return {
+        "motor_kv_rpm_per_v": rpm_nl / max(float(spec.voltage_v), 1e-9),
+        "motor_nl_rpm": rpm_nl,
+        "motor_stall_torque_nm": float(stall_torque_nm(spec)),
+        "motor_rated_rpm": float(spec.rpm),
+        "motor_max_shaft_w": float(spec.max_shaft_power_w_leeway),
+    }

@@ -50,12 +50,20 @@ def check_printability(
     """Gate a blade on wall thickness: the BODY must meet a 2-perimeter wall; the TIP EDGE only a
     single extrusion width. Reports the tighter-binding failure. ``min_section_thickness_mm`` on the
     report is the overall thinnest section (for the difficulty score / info)."""
+    from fansim.geometry.blade import SHROUD_MIN_WALL_MM
+
     body_wall = MIN_WALL_PERIMETERS * nozzle_mm    # ~0.8 mm
     tip_wall = TIP_WALL_PERIMETERS * nozzle_mm     # ~0.4 mm — a printable thin edge
     overall = min_section_thickness_mm(params)
     body_t = min_section_thickness_mm(params, body_only=True)
     tip_t = min((_section_thickness_mm(s) for s in params.stations if s.r_frac > TIP_ZONE_FRAC),
                 default=body_t)
+
+    shroud_t = float(getattr(params, "shroud_thick_mm", 0.0) or 0.0)
+    if 0.0 < shroud_t < SHROUD_MIN_WALL_MM:
+        return PrintabilityReport(
+            False, overall, SHROUD_MIN_WALL_MM,
+            f"shroud wall {shroud_t:.2f} mm < min printable wall {SHROUD_MIN_WALL_MM:.2f} mm")
 
     if body_t < body_wall:                          # thin over the blade BODY -> genuinely un-buildable
         return PrintabilityReport(False, overall, body_wall,

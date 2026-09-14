@@ -86,3 +86,28 @@ def image_available(image: str = DEFAULT_IMAGE) -> bool:
         ["docker", "images", "-q", image], capture_output=True, text=True
     )
     return proc.returncode == 0 and bool(proc.stdout.strip())
+
+
+def kill_cfd_containers(*, session: str | None = None, timeout: float = 30.0) -> int:
+    """``docker kill`` OpenFOAM containers tagged by ``_label_args`` (best-effort).
+
+    When ``session`` is set (or ``FANSIM_CFD_SESSION`` is in the environment), only that
+    session's containers are killed; otherwise every ``fansim_cfd=1`` container is reaped.
+    Returns how many container IDs were passed to ``docker kill``.
+    """
+    sess = session if session is not None else os.environ.get("FANSIM_CFD_SESSION")
+    filt = f"label=fansim_cfd_session={sess}" if sess else "label=fansim_cfd=1"
+    try:
+        out = subprocess.run(
+            ["docker", "ps", "-q", "--filter", filt],
+            capture_output=True, text=True, timeout=min(20.0, timeout),
+        )
+        ids = out.stdout.split()
+        if not ids:
+            return 0
+        subprocess.run(
+            ["docker", "kill", *ids], capture_output=True, text=True, timeout=timeout,
+        )
+        return len(ids)
+    except Exception:  # noqa: BLE001 — cancel/timeout cleanup must not raise
+        return 0

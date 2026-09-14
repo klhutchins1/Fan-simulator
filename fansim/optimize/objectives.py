@@ -43,6 +43,13 @@ from fansim.structural.stress import centrifugal_root_stress
 INFEASIBLE = -1.0e6      # rejected value for MAXIMIZED objectives (optimizer avoids them)
 INFEASIBLE_NOISE = 1.0e6  # rejected value for the MINIMIZED noise objective (high = bad)
 
+# Layered GCI campaign (roadmap §1.5 / §10.8): p≈0.28, GCI_fine≈21%, not asymptotic.
+# Do not quote screening CFM with a 3–5% bar. Shared by axial / mixed / CROR / volute evaluate.
+SCREENING_GRID_STAMP = {
+    "grid_converged": False,
+    "grid_note": "screening mesh not grid-converged (GCI_fine≈21%, p≈0.28)",
+}
+
 
 @dataclass
 class ObjectiveResult:
@@ -87,6 +94,9 @@ def evaluate_candidate(
     require_mountable: bool = False,
     bem_prescreen_cfm: float = 0.0,
     tip_gap_mm: float | None = None,
+    surrogate_prescreen_cfm: float = 0.0,
+    surrogate=None,
+    surrogate_load=None,
 ) -> ObjectiveResult:
     """Gate, mesh once, solve at free-delivery and at ``load_pa``, return objectives.
 
@@ -122,6 +132,7 @@ def evaluate_candidate(
         "tip_gap_mm": remaining,
         "casing_id_mm": casing_id,
         "tip_gap_floor_mm": floor,
+        **SCREENING_GRID_STAMP,
     }
     if remaining < floor:
         return _infeasible(
@@ -142,6 +153,32 @@ def evaluate_candidate(
                                    "floor (skipped CFD)", t0, raw=gap_raw)
         except Exception:  # noqa: BLE001 - the screen must never break the eval
             pass
+
+    # --- Catalog GP pre-screen (roadmap §7.4): skip CFD when the GP is confident the
+    # predicted CFM is below the floor (mean + 1 std). Prefer the load-line GP when fitted.
+    # Uncertain (large std) still goes to CFD. Off by default. Predict crashes are
+    # infeasible — never silent CFD (§9.6). ---
+    screen = surrogate_load if surrogate_load is not None else surrogate
+    label = "load" if surrogate_load is not None else "free"
+    raw_mu = "surr_cfm_load" if surrogate_load is not None else "surr_cfm_free"
+    if surrogate_prescreen_cfm > 0.0 and screen is not None:
+        try:
+            from fansim.surrogate.features import feature_vector, would_skip
+            mu, sigma = screen.predict(
+                feature_vector(params).reshape(1, -1), return_std=True)
+            mu, sigma = float(mu[0]), float(sigma[0])
+            gap_raw[raw_mu] = mu
+            gap_raw["surr_std"] = sigma
+            if would_skip(mu, sigma, surrogate_prescreen_cfm):
+                return _infeasible(
+                    f"surrogate-prescreen: {mu:.0f}+/-{sigma:.0f} CFM {label} < "
+                    f"{surrogate_prescreen_cfm:.0f} (skipped CFD)",
+                    t0, raw=gap_raw)
+        except Exception as exc:  # noqa: BLE001 - stamp; do not fall through to CFD (§9.6)
+            gap_raw["surrogate_prescreen_error"] = f"{type(exc).__name__}: {exc}"
+            return _infeasible(
+                f"surrogate-prescreen failed: {type(exc).__name__}: {exc} (skipped CFD)",
+                t0, raw=gap_raw)
 
     # --- Geometry ---
     try:

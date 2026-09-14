@@ -72,11 +72,24 @@ def _interp_geometry(params: BladeParams):
             lambda rf: float(np.interp(rf, rs, cb)))
 
 
+def _effective_tip_gap_mm(params: BladeParams, tip_gap_mm: float | None) -> float:
+    """Full tip ring seals the leak path; partial / open tip keeps the screening gap."""
+    from fansim.geometry.blade import shroud_is_full
+
+    if tip_gap_mm is not None:
+        return float(tip_gap_mm)
+    return 0.0 if shroud_is_full(params) else DEFAULT_TIP_GAP_MM
+
+
 def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
                     n_elem: int = 20, rho: float = RHO_AIR,
-                    tip_gap_mm: float = DEFAULT_TIP_GAP_MM) -> FanPoint:
+                    tip_gap_mm: float | None = None, *, stator: bool = False) -> FanPoint:
     """Blade-element + Euler performance at one flow rate. Angles are measured from the TANGENTIAL
-    (rotation) plane, matching the geometry's stagger convention (chord axial component = sin(stagger))."""
+    (rotation) plane, matching the geometry's stagger convention (chord axial component = sin(stagger)).
+
+    ``stator=True`` recovers exit swirl into static pressure (ideal OGV); default loses it as KE.
+    """
+    tip_gap_mm = _effective_tip_gap_mm(params, tip_gap_mm)
     hub_r = params.hub_radius / 1000.0
     tip_r = params.tip_radius / 1000.0
     B = int(params.n_blades)
@@ -136,7 +149,8 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
     if mass <= 0:
         return FanPoint(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     dp_total = dp0_num / mass
-    dp_static = dp_total - swirl_ke / mass \
+    swirl_loss = 0.0 if stator else (swirl_ke / mass)
+    dp_static = dp_total - swirl_loss \
         - K_FRICTION * 0.5 * rho * Vx * Vx               # endwall/duct/blade friction (grows with flow)
     flow_cfm = flow_m3s * CFM_PER_M3S
     air_power = flow_m3s * max(dp_static, 0.0)
@@ -146,15 +160,18 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
 
 
 def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 20,
-             rho: float = RHO_AIR, tip_gap_mm: float = DEFAULT_TIP_GAP_MM) -> FanCurve:
+             rho: float = RHO_AIR, tip_gap_mm: float | None = None, *,
+             stator: bool = False) -> FanCurve:
     """Sweep flow from near-shutoff to past free-delivery -> the fan's P-Q curve + key points."""
+    tip_gap_mm = _effective_tip_gap_mm(params, tip_gap_mm)
     tip_r = params.tip_radius / 1000.0
     hub_r = params.hub_radius / 1000.0
     area = math.pi * (tip_r * tip_r - hub_r * hub_r)
     v_tip = (rpm * 2.0 * math.pi / 60.0) * tip_r
     q_max = 0.6 * v_tip * area                            # generous upper bound on flow
     flows = np.linspace(0.02 * q_max, q_max, n_points)
-    pts = [operating_point(params, rpm, float(q), n_elem=n_elem, rho=rho, tip_gap_mm=tip_gap_mm)
+    pts = [operating_point(params, rpm, float(q), n_elem=n_elem, rho=rho,
+                           tip_gap_mm=tip_gap_mm, stator=stator)
            for q in flows]
 
     # free delivery: interpolate where static rise crosses 0 (high-flow end)

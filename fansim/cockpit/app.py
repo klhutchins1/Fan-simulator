@@ -12,6 +12,7 @@ from pathlib import Path
 from fansim.cockpit.busy_ui import make_busy_bar, make_busy_expr, make_spawn_busy_ticker
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.data import Design, feasible_designs, load_designs
+from fansim.cockpit.trame_vtk_compat import patch_trame_vtk_protocol_defer
 
 _RUNNING_TESTS = "pytest" in sys.modules
 
@@ -28,6 +29,7 @@ else:
     from trame.widgets import vuetify3 as v3
 
     pv.OFF_SCREEN = True
+    patch_trame_vtk_protocol_defer()
 
 
 def _quiet_connection_reset(server) -> None:

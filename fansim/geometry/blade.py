@@ -89,10 +89,6 @@ NOTCH_COUNT = 3
 NOTCH_DEPTH_MM = 1.5
 NOTCH_START_FRAC = 0.88  # outer-span TE bites; hub is untouched
 NOTCH_SPAN_SECTIONS = 48
-NOTCH_COUNT = 3
-NOTCH_DEPTH_MM = 1.5
-NOTCH_START_FRAC = 0.88  # outer-span TE bites; hub is untouched
-NOTCH_SPAN_SECTIONS = 48
 
 
 @dataclass
@@ -168,25 +164,10 @@ def normalize_shroud_thick_mm(thick: float) -> float:
     return t
 
 
-
-
 def shroud_is_full(params: "BladeParams") -> bool:
     t = float(getattr(params, "shroud_thick_mm", 0.0) or 0.0)
     f = min(max(float(getattr(params, "shroud_height_frac", 1.0) or 0.0), 0.0), 1.0)
     return t > 0.0 and f >= 1.0 - SHROUD_FULL_EPS
-
-def normalize_shroud_thick_mm(thick: float) -> float:
-    """0 stays off. A nudge in (0, min wall) snaps up to a printable two-wall ring.
-
-    The cockpit slider used to step 0.2 mm, so 'turning the shroud on' landed on 0.20 mm —
-    a hair-thin hoop that still draws but fails the FDM gate.
-    """
-    t = float(thick or 0.0)
-    if t <= 0.0:
-        return 0.0
-    if t < SHROUD_MIN_WALL_MM:
-        return SHROUD_MIN_WALL_MM
-    return t
 
 
 def open_tip_rmax_mm(params: BladeParams) -> float:
@@ -277,6 +258,71 @@ def _interp_stations(params: BladeParams, n_span: int) -> dict[str, np.ndarray]:
     return out
 
 
+def _section_loop(
+    r: float,
+    r_frac: float,
+    chord: float,
+    stagger_deg: float,
+    thickness: float,
+    max_camber: float,
+    camber_pos: float,
+    sweep: float,
+    skew: float,
+    le_sweep: float,
+    lean_deg: float,
+    n_chord: int,
+    features: Features,
+    le_skew: float = 0.0,
+    tip_notch_count: int = 0,
+    tip_notch_depth_mm: float = 0.0,
+    le_thick_scale: float = 1.0,
+    te_thick_scale: float = 1.0,
+    section_family: str = SECTION_NACA,
+) -> tuple[np.ndarray, list[cq.Vector]]:
+    """Closed section on the cylinder at ``r``, plus chord-fraction ``x`` (LE/TE indexing)."""
+    fam = str(section_family or SECTION_NACA).lower().strip()
+    if fam not in SECTION_FAMILIES:
+        fam = SECTION_NACA
+    loop = section_loop_2d(
+        fam, max_camber=max_camber, camber_pos=camber_pos, thickness=thickness, n_points=n_chord)
+    # Drop the explicit closing duplicate; the wire is closed by makePolygon(close=True).
+    if np.allclose(loop[0], loop[-1]):
+        loop = loop[:-1]
+
+    beta = np.radians(stagger_deg)
+    cb, sb = np.cos(beta), np.sin(beta)
+
+    x = loop[:, 0]  # chord fraction, 0=LE .. 1=TE
+    a = (x - 0.5) * chord  # chordwise distance from mid-chord
+    b = loop[:, 1] * chord  # thickness-wise distance
+    if fam != SECTION_PLATE:
+        b = apply_le_te_thickness(x, b, chord, le_thick_scale, te_thick_scale)
+    if features.active:
+        a, b = apply_features(x, a, b, r_frac, chord, features)
+    if tip_notch_count > 0 and tip_notch_depth_mm > 0.0:
+        span = 1.0 - NOTCH_START_FRAC
+        u = float(np.clip((float(r_frac) - NOTCH_START_FRAC) / span, 0.0, 1.0))
+        w_te = np.clip((x - 0.5) / 0.5, 0.0, 1.0)
+        tooth = max(0.0, float(np.sin(2.0 * np.pi * tip_notch_count * u)))
+        a = a - float(tip_notch_depth_mm) * tooth * w_te
+    # Leading-edge weight: 1 at the LE (x=0), 0 by mid-chord (x>=0.5).
+    w_le = np.where(x < 0.5, 0.5 * (1.0 + np.cos(2.0 * np.pi * x)), 0.0)
+    t = a * cb - b * sb + skew + le_skew * w_le  # circumferential (tangential) distance, mm
+    axial = a * sb + b * cb + sweep + le_sweep * w_le
+
+    # Place the (planar) section in the tangent plane at angular position theta = lean_deg and
+    # radius r, i.e. rotate the whole section about the Z axis by theta. Keeping each section
+    # planar makes the loft cap cleanly (watertight); varying theta along the span wraps the
+    # blade circumferentially.
+    th = np.radians(lean_deg)
+    ct, st = np.cos(th), np.sin(th)
+    xs = r * ct - t * st
+    ys = r * st + t * ct
+    pts = [cq.Vector(float(px), float(py), float(z))
+           for px, py, z in zip(xs, ys, axial)]
+    return x, pts
+
+
 def _section_points_3d(
     r: float,
     r_frac: float,
@@ -306,58 +352,18 @@ def _section_points_3d(
     ARC ANGLE about the axis, and the whole section is placed at angular position ``lean_deg``.
     Because lean_deg varies along the span, the blade sweeps/wraps circumferentially and can
     overlap the neighbouring blade — the shape real fans have, which a straight radial stack
-    (lean=0) cannot make.
+    (lean=0) cannot make. Optional ``le_thick_scale`` / ``te_thick_scale`` bias thickness
+    toward the leading or trailing edge (NACA family only).
     """
-    loop = section_loop_2d(section_family, max_camber=max_camber, camber_pos=camber_pos,
-                          thickness=thickness, n_points=n_chord)
-    # Drop the explicit closing duplicate; the wire is closed by makePolygon(close=True).
-    if np.allclose(loop[0], loop[-1]):
-        loop = loop[:-1]
-
-    beta = np.radians(stagger_deg)
-    cb, sb = np.cos(beta), np.sin(beta)
-
-    x = loop[:, 0]  # chord fraction, 0=LE .. 1=TE
-    a = (x - 0.5) * chord  # chordwise distance from mid-chord
-    b = loop[:, 1] * chord  # thickness-wise distance
-    b = apply_le_te_thickness(x, b, chord, le_thick_scale, te_thick_scale)
-    if features.active:
-        a, b = apply_features(x, a, b, r_frac, chord, features)
-    # Leading-edge weight: 1 at the LE (x=0), 0 by mid-chord (x>=0.5).
-    w_le = np.where(x < 0.5, 0.5 * (1.0 + np.cos(2.0 * np.pi * x)), 0.0)
-    t = a * cb - b * sb + skew + le_skew * w_le  # circumferential (tangential) distance, mm
-    axial = a * sb + b * cb + sweep + le_sweep * w_le
-
-    # Place the (planar) section in the tangent plane at angular position theta = lean_deg and
-    # radius r, i.e. rotate the whole section about the Z axis by theta. Keeping each section
-    # planar makes the loft cap cleanly (watertight); varying theta along the span wraps the
-    # blade circumferentially.
-    th = np.radians(lean_deg)
-    ct, st = np.cos(th), np.sin(th)
-    xs = r * ct - t * st
-    ys = r * st + t * ct
-    return [cq.Vector(float(px), float(py), float(z))
-            for px, py, z in zip(xs, ys, axial)]
-
-
-
-def _section_loop(r, r_frac, chord, stagger_deg, thickness, max_camber, camber_pos,
-                  sweep, skew, le_sweep, lean_deg, n_chord, features,
-                  le_skew=0.0, tip_notch_count=0, tip_notch_depth_mm=0.0):
-    """RECOVERY BRIDGE (2026-09-12): (chord-fraction x array, 3D section pts).
-    The original _section_loop was never captured whole in any transcript; this mirrors
-    _section_points_3d and additionally returns the chord-fraction array used to find LE/TE.
-    x[i] corresponds to pts[i] (same naca4 loop order). Verify against a real copy."""
-    loop = naca4(max_camber, camber_pos, thickness, n_chord)
-    if np.allclose(loop[0], loop[-1]):
-        loop = loop[:-1]
-    x = loop[:, 0]
-    pts = _section_points_3d(
+    _, pts = _section_loop(
         r=r, r_frac=r_frac, chord=chord, stagger_deg=stagger_deg, thickness=thickness,
-        max_camber=max_camber, camber_pos=camber_pos, sweep=sweep, skew=skew,
-        le_sweep=le_sweep, lean_deg=lean_deg, n_chord=n_chord, features=features,
-        le_skew=le_skew, tip_notch_count=tip_notch_count, tip_notch_depth_mm=tip_notch_depth_mm)
-    return x, pts
+        max_camber=max_camber, camber_pos=camber_pos, sweep=sweep, skew=skew, le_sweep=le_sweep,
+        lean_deg=lean_deg, n_chord=n_chord, features=features, le_skew=le_skew,
+        tip_notch_count=tip_notch_count, tip_notch_depth_mm=tip_notch_depth_mm,
+        le_thick_scale=le_thick_scale, te_thick_scale=te_thick_scale,
+        section_family=section_family,
+    )
+    return pts
 
 
 def apply_winglet(params: BladeParams, span_frac: float = 0.85,
@@ -519,12 +525,18 @@ def tip_section_points(params: BladeParams) -> list[Vec]:
     st = max(params.stations, key=lambda s: s.r_frac)
     r = params.hub_radius - params.root_embed
     r = r + (params.tip_radius - r) * st.r_frac
-    return _section_points_3d(
+    pts = _section_points_3d(
         r=r, r_frac=st.r_frac, chord=st.chord, stagger_deg=st.stagger_deg,
         thickness=st.thickness, max_camber=st.max_camber, camber_pos=st.camber_pos,
         sweep=st.sweep, skew=st.skew, le_sweep=st.le_sweep, lean_deg=st.lean_deg,
         n_chord=params.n_chord, features=Features(), le_skew=st.le_skew,
+        tip_notch_count=params.tip_notch_count,
+        tip_notch_depth_mm=params.tip_notch_depth_mm,
+        **_thick_scale_kw(params),
     )
+    if bool(getattr(params, "cylindrical_tip", True)):
+        pts = _clamp_points_to_cylinder(pts, float(params.tip_radius))
+    return pts
 
 
 def tip_section_rmin_mm(params: BladeParams) -> float:
@@ -555,7 +567,10 @@ def _shroud_solid(params: BladeParams) -> cq.Solid | None:
     r_in = tip_section_rmin_mm(params) - SHROUD_EMBED_MM
     if r_in <= 0.0 or r_out <= r_in:
         return None
-    z0, z1 = _tip_z_span(params)
+    z_span = shroud_axial_range(params)
+    if z_span is None:
+        return None
+    z0, z1 = z_span
     h = max(z1 - z0, 1.0)
     outer = cq.Solid.makeCylinder(r_out, h, cq.Vector(0, 0, z0), cq.Vector(0, 0, 1))
     inner = cq.Solid.makeCylinder(r_in, h + 0.4, cq.Vector(0, 0, z0 - 0.2), cq.Vector(0, 0, 1))
@@ -728,34 +743,91 @@ def tip_le_te_z(params: BladeParams) -> tuple[float, float]:
    return float(pts[i_le].z), float(pts[i_te].z)
 
 
-# --- spliced (recovery 2026-09-12) ---
-TE_BLUNT_FRAC = 0.18
+# --- spliced (recovery 2026-09-12 / Cursor transcript LE-TE blunt) ---
+THICK_SCALE_LO = 0.5
+THICK_SCALE_HI = 2.0
+# Mild LE half-thickness add per unit of (scale-1), as a fraction of chord.
+THICK_PUFF_FRAC = 0.008
+# Cap TE blunt to this fraction of peak half-thickness (avoids the tall TE paddle).
+TE_BLUNT_FRAC = 0.10
+# TE blunt only in the last this fraction of chord (keeps a short tip, not a long face lip).
+TE_BLUNT_START = 0.92
 
 
-# --- RECONSTRUCTED 2026-09-12 (never captured in any transcript; from test contract; VERIFY) ---
-def le_te_thick_factors(x, le_scale=1.0, te_scale=1.0):
-    """Per-point thickness scale: `le_scale` weighted toward the LE (x->0), `te_scale` toward the
-    TE (x->1), unity by mid-chord. Returns 1.0 everywhere when both scales are 1.0."""
-    import numpy as np
-    x = np.asarray(x, dtype=float)
-    w_le = np.clip(1.0 - 2.0 * x, 0.0, 1.0)
-    w_te = np.clip(2.0 * x - 1.0, 0.0, 1.0)
-    return 1.0 + w_le * (float(le_scale) - 1.0) + w_te * (float(te_scale) - 1.0)
+def _clamp_thick_scale(v: float) -> float:
+    return float(min(max(float(v), THICK_SCALE_LO), THICK_SCALE_HI))
 
 
-def apply_le_te_thickness(x, b, chord, le_scale=1.0, te_scale=1.0):
-    """Scale the thickness-wise coordinate array `b` toward the LE/TE. No-op when both scales are 1.0."""
-    import numpy as np
-    return np.asarray(b, dtype=float) * le_te_thick_factors(x, le_scale, te_scale)
+def _section_family(params: BladeParams) -> str:
+    fam = str(getattr(params, "section_family", SECTION_NACA) or SECTION_NACA).lower().strip()
+    return fam if fam in SECTION_FAMILIES else SECTION_NACA
 
 
-# --- _thick_scale_kw (transcript, recovery) ---
 def _thick_scale_kw(params: BladeParams) -> dict[str, float]:
     return dict(
         le_thick_scale=_clamp_thick_scale(getattr(params, "le_thick_scale", 1.0) or 1.0),
         te_thick_scale=_clamp_thick_scale(getattr(params, "te_thick_scale", 1.0) or 1.0),
         section_family=_section_family(params),
     )
+
+
+def le_te_thick_factors(
+    x: np.ndarray, le_thick_scale: float = 1.0, te_thick_scale: float = 1.0,
+) -> np.ndarray:
+    """Per-point thickness multipliers. ``te_thick_scale`` ≤ 1 thins the aft section; TE > 1 blunt is separate."""
+    le = _clamp_thick_scale(le_thick_scale)
+    te = _clamp_thick_scale(te_thick_scale)
+    w_le = (1.0 - x) ** 2
+    w_te = x ** 2
+    denom = np.maximum(w_le + w_te, 1e-12)
+    return (le * w_le + te * w_te) / denom
+
+
+def apply_le_te_thickness(
+    x: np.ndarray, b: np.ndarray, chord: float,
+    le_thick_scale: float = 1.0, te_thick_scale: float = 1.0,
+) -> np.ndarray:
+    """Fatten the LE; thin or lightly blunt the TE.
+
+    TE scale ≤ 1 multiplies aft thickness (NACA already → 0 at the tip). TE scale > 1 adds only a
+    *short* finite TE thickness in the last few % of chord, capped to ``TE_BLUNT_FRAC`` of peak
+    half-thickness — a long aft floor mapped through stagger into a face lip / paddle.
+    Both 1.0 = stock NACA (sharp TE). For a full-round TE use section family ``plate``.
+    """
+    le = _clamp_thick_scale(le_thick_scale)
+    te = _clamp_thick_scale(te_thick_scale)
+    if abs(le - 1.0) < 1e-9 and abs(te - 1.0) < 1e-9:
+        return b
+
+    # TE>1 blunt is additive below; keep multiplicative TE at ≤1 so we don't inflate the aft first.
+    out = b * le_te_thick_factors(x, le, min(te, 1.0))
+    c = float(chord)
+    sign = np.sign(out)
+    sign = np.where(sign == 0.0, 1.0, sign)
+    if abs(le - 1.0) > 1e-9:
+        out = out + sign * (le - 1.0) * THICK_PUFF_FRAC * c * np.exp(-(x / 0.12) ** 2)
+
+    if te > 1.0 + 1e-9:
+        abs_b = np.abs(out)
+        t_peak = float(np.max(abs_b)) if abs_b.size else THICK_PUFF_FRAC * c
+        # te=1 → 0; te=2 → TE_BLUNT_FRAC * peak
+        te_half = TE_BLUNT_FRAC * t_peak * (te - 1.0) / (THICK_SCALE_HI - 1.0)
+        te_half = min(te_half, TE_BLUNT_FRAC * t_peak)
+        span = max(1.0 - TE_BLUNT_START, 1e-6)
+        w = np.clip((x - TE_BLUNT_START) / span, 0.0, 1.0)
+        w = w * w
+        # Upper = TE→LE (indices ≤ LE), lower = LE→TE. Matches naca4 / rounded_plate loop order.
+        i_le = int(np.argmin(x))
+        side = np.ones(len(x), dtype=float)
+        side[i_le + 1 :] = -1.0
+        mag = abs_b * (1.0 - w) + np.maximum(abs_b, te_half) * w
+        orig = np.sign(out)
+        orig = np.where(orig == 0.0, side, orig)
+        # Only force upper/lower sides where the floor actually lifts the surface.
+        lifted = mag > abs_b + 1e-12
+        s = np.where(lifted, side, orig)
+        out = s * mag
+    return out
 
 
 # --- _clamp_points_to_cylinder (transcript, recovery) ---
@@ -773,23 +845,6 @@ def _clamp_points_to_cylinder(pts: list[cq.Vector], radius: float) -> list[cq.Ve
         else:
             out.append(v)
     return out
-
-
-# --- _trim_blade_to_tip_cylinder (transcript, recovery) ---
-def _clamp_thick_scale(v: float) -> float:
-    return float(min(max(float(v), THICK_SCALE_LO), THICK_SCALE_HI))
-
-
-# --- _section_family (recovery) ---
-def _section_family(params: BladeParams) -> str:
-    fam = str(getattr(params, "section_family", SECTION_NACA) or SECTION_NACA).lower().strip()
-    return fam if fam in SECTION_FAMILIES else SECTION_NACA
-
-# --- THICK_SCALE_LO (recovery cascade) ---
-THICK_SCALE_LO = 0.5
-
-# --- THICK_SCALE_HI (recovery cascade) ---
-THICK_SCALE_HI = 1.5
 
 
 # --- real feature fns (deduped, from transcript, recovery) ---

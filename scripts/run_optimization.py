@@ -80,6 +80,8 @@ def main() -> int:
                     help="stamp a forward-swept LE (sickle, le_skew) on every trial for tone control.")
     ap.add_argument("--notched-tips", action="store_true",
                     help="stamp tip-only trailing-edge notches on every trial (blade-pass tone trick).")
+    ap.add_argument("--stator", action="store_true",
+                    help="replace the four-bar frame with a staggered vane row (roadmap 2.2). Off.")
     ap.add_argument("--mountable", action="store_true",
                     help="only search designs whose hub can house the fan model's motor (real-mount "
                          "constraint: hub radius >= motor cavity/2 + wall). Needs a model with a motor_mount.")
@@ -87,6 +89,16 @@ def main() -> int:
                     help="skip CFD on designs the instant fan-BEM predicts below CFM_FLOOR free-delivery "
                          "(roadmap 7.1c). CONSERVATIVE: the BEM ranks CFD ~0.62, so set the floor well "
                          "below any viable design (e.g. 30-35 for a 120mm fan). 0 = off.")
+    ap.add_argument("--surrogate-prescreen", type=float, default=0.0, metavar="CFM_FLOOR",
+                    help="skip CFD when the catalog GP mean+1 std of free-delivery CFM is below "
+                         "CFM_FLOOR (roadmap 7.4). Refits after each feasible CFD trial. "
+                         "Uncertain predictions still run CFD. 0 = off.")
+    ap.add_argument("--surrogate-db", default="catalog/catalog.db",
+                    help="SQLite catalog used by --surrogate-prescreen (ignored when the floor is 0).")
+    ap.add_argument("--surrogate-boost", action="store_true",
+                    help="with --surrogate-prescreen: use HistGradientBoosting for the CFM mean and "
+                         "the catalog GP for std (roadmap 7.4). Needs scikit-learn; else falls back "
+                         "to GP-only. Off by default.")
     args = ap.parse_args()
 
     if not image_available():
@@ -108,6 +120,9 @@ def main() -> int:
                       with_noise=args.noise, noise_model=args.noise_model, fan_model=args.fan_model,
                       mountable=args.mountable, with_winglet=args.winglet,
                       bem_prescreen_cfm=args.bem_prescreen,
+                      surrogate_prescreen_cfm=args.surrogate_prescreen,
+                      surrogate_db=args.surrogate_db,
+                      surrogate_boost=args.surrogate_boost,
                       min_sol_mid=min_sol_mid, min_sol_tip=min_sol_tip, on_trial=_progress)
 
     pareto = pareto_summary(study)

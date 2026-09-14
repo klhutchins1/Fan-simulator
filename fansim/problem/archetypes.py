@@ -107,16 +107,47 @@ class _StubArchetype(Archetype):
         self._fail()
 
 
-# registry: one real archetype + explicit roadmap stubs
+# registry: implemented archetypes (stubs removed once each package landed)
 _REGISTRY: dict[str, Archetype] = {
     "axial_fan": AxialFanArchetype(),
-    "centrifugal": _StubArchetype("centrifugal", "incompressible-RANS-MRF",
-                                  "radial impeller + volute; high pressure ratio"),
-    "propeller": _StubArchetype("propeller", "incompressible/compressible-RANS",
-                                "open rotor, no duct; thrust/efficiency objectives"),
-    "wind_turbine": _StubArchetype("wind_turbine", "high-Re-BEM+RANS",
-                                   "large blade, BEM+aeroelastic; power coefficient"),
 }
+
+def _register_optional() -> None:
+    """Lazy-import package archetypes so a missing optional module doesn't break axial."""
+    try:
+        from fansim.centrifugal.archetype import MixedFlowArchetype
+        _REGISTRY["centrifugal"] = MixedFlowArchetype()
+    except Exception:  # noqa: BLE001
+        _REGISTRY.setdefault("centrifugal", _StubArchetype(
+            "centrifugal", "incompressible-RANS-MRF",
+            "radial impeller + volute; high pressure ratio"))
+    try:
+        from fansim.propeller.archetype import PropellerArchetype
+        _REGISTRY["propeller"] = PropellerArchetype()
+    except Exception:  # noqa: BLE001
+        _REGISTRY.setdefault("propeller", _StubArchetype(
+            "propeller", "incompressible/compressible-RANS",
+            "open rotor, no duct; thrust/efficiency objectives"))
+    try:
+        from fansim.wind_turbine.archetype import WindTurbineArchetype
+        _REGISTRY["wind_turbine"] = WindTurbineArchetype()
+    except Exception:  # noqa: BLE001
+        _REGISTRY.setdefault("wind_turbine", _StubArchetype(
+            "wind_turbine", "high-Re-BEM+RANS",
+            "large blade, BEM+aeroelastic; power coefficient"))
+    try:
+        from fansim.volute.archetype import VoluteArchetype
+        _REGISTRY["volute"] = VoluteArchetype()
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from fansim.cror.archetype import CrorArchetype
+        _REGISTRY["cror"] = CrorArchetype()
+    except Exception:  # noqa: BLE001
+        pass
+
+
+_register_optional()
 
 
 def get_archetype(name: str) -> Archetype:

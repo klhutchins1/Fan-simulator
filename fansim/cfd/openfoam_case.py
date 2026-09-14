@@ -11,6 +11,7 @@ import trimesh
 
 from fansim.cfd import templates as T
 from fansim.cfd.domain import MM_TO_M, TestRig
+from fansim.cfd.wall_roughness import nut_wall_bc, wall_ks_m
 
 RHO_AIR = 1.2
 NU_AIR = 1.5e-5
@@ -63,9 +64,11 @@ def _write(path: Path, template: str, cls: str, obj: str, mapping: dict) -> None
     path.write_text(body, encoding="utf-8")
 
 
-def _extra_wall_snippets(name: str, feature_level: int, surf_min: int, surf_max: int
-                         ) -> dict[str, str]:
+def _extra_wall_snippets(name: str, feature_level: int, surf_min: int, surf_max: int,
+                         ks_m: float = 0.0) -> dict[str, str]:
     """Snappy / BC placeholders for an extra stationary wall STL (frame, casing, stator)."""
+    from fansim.cfd.wall_roughness import nut_wall_bc
+
     extract = (
         f"{name}.stl\n"
         "{\n"
@@ -86,7 +89,7 @@ def _extra_wall_snippets(name: str, feature_level: int, surf_min: int, surf_max:
         "PATCH": f" {name}",
         "U": f"    {name} {{ type noSlip; }}\n",
         "P": f"    {name} {{ type zeroGradient; }}\n",
-        "NUT": f"    {name} {{ type nutkWallFunction; value uniform 0; }}\n",
+        "NUT": nut_wall_bc(name, wall_ks_m=float(ks_m or 0.0)),
     }
 
 
@@ -117,6 +120,7 @@ def build_case(
     back_pressure_pa: float | None = None,
     u_guess: float = 2.0,
     dual_mrf: dict | None = None,
+    wall_ks_mm: float | None = None,
 ) -> Path:
     """Write a ready-to-run OpenFOAM case. ``impeller_stl_mm`` is a millimeter-scale STL.
 
@@ -130,6 +134,9 @@ def build_case(
     static back-pressure outlet) so the flow rate emerges from the blade design -- this is
     the mode used for optimization, where CFM is an objective. Otherwise use the
     velocity-driven BCs (fixed inlet velocity) used by the fan-curve sweep.
+
+    ``wall_ks_mm`` opt-in sand-grain roughness on printed walls (impeller + frame/stator);
+    the circular screening casing stays smooth.
 
     ``dual_mrf`` when set enables two MRF zones (CROR). Keys (SI metres / rad·s⁻¹):
     ``front_z_min``, ``front_z_max``, ``rear_z_min``, ``rear_z_max``,
@@ -178,6 +185,15 @@ def build_case(
               if casing_stl_mm is not None else _empty_wall_snippets())
     stator = (_extra_wall_snippets("stator", mesh.feature_level, mesh.surf_min, mesh.surf_max)
               if stator_stl_mm is not None else _empty_wall_snippets())
+
+    ks_m = wall_ks_m(wall_ks_mm)
+    impeller_nut = nut_wall_bc("impeller", wall_ks_m=ks_m)
+    # Printed solids get rough when ks is set; casing is a duct artifact → always smooth.
+    if ks_m > 0.0:
+        if frame_stl_mm is not None:
+            frame["NUT"] = nut_wall_bc("frame", wall_ks_m=ks_m)
+        if stator_stl_mm is not None:
+            stator["NUT"] = nut_wall_bc("stator", wall_ks_m=ks_m)
 
     if casing_stl_mm is not None:
         locx = 0.35 * rig.duct_radius
@@ -284,7 +300,8 @@ def build_case(
                {"OMEGAT": omega_turb, "FRAME_OMEGA": frame_omega, "CASING_OMEGA": casing_omega,
                 "STATOR_OMEGA": stator_omega})
     _write(case_dir / "0/nut", T.FIELD_NUT, "volScalarField", "nut",
-           {"FRAME_NUT": frame["NUT"], "CASING_NUT": casing["NUT"], "STATOR_NUT": stator["NUT"]})
+           {"IMPELLER_NUT": impeller_nut,
+            "FRAME_NUT": frame["NUT"], "CASING_NUT": casing["NUT"], "STATOR_NUT": stator["NUT"]})
 
     return case_dir
 

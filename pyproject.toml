@@ -16,9 +16,9 @@ dependencies = [
 [project.optional-dependencies]
 optim = ["optuna>=3.6"]
 viz = [
-    "pyvista>=0.44",
-    "trame>=3.6",
-    "trame-vtk>=2.8",
+    "pyvista>=0.44,<0.49",
+    "trame>=3.6,<4",
+    "trame-vtk>=2.6,<3",
     "trame-vuetify>=2.7",
     "trame-plotly>=3.1",
     "plotly>=5.20",

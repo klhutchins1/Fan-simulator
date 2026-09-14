@@ -50,7 +50,10 @@ def test_mixed_eval_worker_module_imports_evaluate():
 
 
 def _cockpit_src() -> str:
-    return Path("fansim/cockpit/app.py").read_text(encoding="utf-8")
+    # 09-11 tab split: Mixed-flow UI lives in mixed_tab.py (app.py only mounts tabs).
+    app = Path("fansim/cockpit/app.py").read_text(encoding="utf-8")
+    tab = Path("fansim/cockpit/mixed_tab.py").read_text(encoding="utf-8")
+    return app + "\n" + tab
 
 
 def test_mixed_flow_tab_in_cockpit():

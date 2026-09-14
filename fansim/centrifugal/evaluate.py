@@ -13,6 +13,7 @@ from fansim.centrifugal.geometry import (
 )
 from fansim.cfd.casing import export_casing_stl
 from fansim.cfd.domain import MM_TO_M, OPTIMIZER_TIP_GAP_MM, TestRig
+from fansim.cfd.duct_area import require_circular_inlet_area
 from fansim.cfd.frame import export_frame_stl
 from fansim.cfd.metrics import parse_fan_metrics
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve
@@ -20,8 +21,8 @@ from fansim.cfd.runner import OpenFOAMRunner
 from fansim.fan_spec import A12X25, FanSpec, check_build, estimate_weight_g, over_spec_flags
 from fansim.geometry import watertight_report
 from fansim.geometry.blade import BladeParams
-from fansim.optimize.motor_curve import motor_operating_rpm
-from fansim.optimize.objectives import INFEASIBLE_NOISE, ObjectiveResult, _infeasible
+from fansim.optimize.motor_curve import motor_curve_stamps, motor_operating_rpm
+from fansim.optimize.objectives import INFEASIBLE_NOISE, ObjectiveResult, SCREENING_GRID_STAMP, _infeasible
 from fansim.optimize.print_penalty import apply_print_penalty
 from fansim.optimize.system_curve import (
     REF_CFM,
@@ -92,6 +93,7 @@ def evaluate_mixed_flow(
     print_penalty: bool = True,
     circular_duct: bool = True,
     bem_prescreen_cfm: float = 0.0,
+    wall_ks_mm: float | None = None,
     spec: FanSpec = A12X25,
 ) -> ObjectiveResult:
     """Export mixed-flow STL and score free + load CFD in the axial A12x25 duct."""
@@ -188,15 +190,20 @@ def evaluate_mixed_flow(
     try:
         build_case(workdir, stl, rig0, mesh=MeshResolution(base_cell=base_cell),
                    n_iters=iters, n_subdomains=procs, back_pressure_pa=0.0,
-                   frame_stl_mm=frame_path, casing_stl_mm=casing_path)
+                   frame_stl_mm=frame_path, casing_stl_mm=casing_path,
+                   wall_ks_mm=wall_ks_mm)
         run_mesh(runner)
+        if circular_duct:
+            gap_raw["inlet_area_m2"] = require_circular_inlet_area(
+                workdir, rig0.duct_radius)
     except Exception as exc:  # noqa: BLE001
         return _infeasible(f"mesh failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
     def solve_at(back_pa: float):
         build_case(workdir, stl, rig0, mesh=MeshResolution(base_cell=base_cell),
                    n_iters=iters, n_subdomains=procs, back_pressure_pa=back_pa,
-                   frame_stl_mm=frame_path, casing_stl_mm=casing_path)
+                   frame_stl_mm=frame_path, casing_stl_mm=casing_path,
+                   wall_ks_mm=wall_ks_mm)
         run_solve(runner, n_procs=procs)
         return parse_fan_metrics(workdir, omega_rad_s=rig0.omega_rad_s)
 
@@ -258,6 +265,7 @@ def evaluate_mixed_flow(
              "converged": bool(m_free.converged and m_load.converged),
              "actual_rpm": actual_rpm, "derate": derate,
              "k": op.k, "dp_op_pa": op.p_op_pa, "q_ref_cfm": REF_CFM,
-             "cfm_probe": cfm_probe, "p_probe_pa": p_probe_pa, **print_stamps},
+             "cfm_probe": cfm_probe, "p_probe_pa": p_probe_pa,
+             **motor_curve_stamps(spec), **print_stamps},
         runtime_s=round(time.time() - t0, 1),
     )

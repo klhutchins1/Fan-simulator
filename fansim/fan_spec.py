@@ -78,6 +78,43 @@ class FanSpec:
         return (self.voltage_v + self.over_voltage_v) * self.max_current_a * self.motor_efficiency
 
 
+def published_scatter_point(spec: FanSpec, load_pa: float) -> dict | None:
+    """Map datasheet free-air + shut-off onto the cockpit (cfm_free, cfm_load) axes.
+
+    Free delivery is ``spec.ref_cfm``. Load CFM is a **published linear P–Q** estimate
+    intersected with the same ΔP=kQ² hose used for Assess (``load_pa`` @ 50 CFM) — not a
+    CFD of the stock impeller. Returns None when the model has no published refs.
+    """
+    q_free = spec.ref_cfm
+    p_shut = spec.ref_static_pa
+    if q_free is None or p_shut is None:
+        return None
+    q_free = float(q_free)
+    p_shut = float(p_shut)
+    if q_free <= 0.0 or p_shut <= 0.0:
+        return None
+    load_pa = float(load_pa)
+    if load_pa <= 0.0:
+        q_load = q_free
+    else:
+        # Linear datasheet fan line: P/P_shut = 1 − Q/Q_free at the probe pressure.
+        frac = min(max(1.0 - load_pa / p_shut, 1e-6), 1.0 - 1e-6)
+        q_probe = q_free * frac
+        try:
+            from fansim.optimize.system_curve import SystemCurveError, intersect_fan_line, k_from_pa
+
+            q_load, _ = intersect_fan_line(q_free, q_probe, load_pa, k_from_pa(load_pa))
+        except (SystemCurveError, ValueError, ZeroDivisionError):
+            q_load = q_probe
+    return {
+        "cfm_free": q_free,
+        "cfm_load": float(q_load),
+        "name": spec.name,
+        "noise_dba": spec.ref_noise_dba,
+        "kind": "published",
+    }
+
+
 def mount_min_hub_radius(spec: FanSpec) -> float | None:
     """Smallest impeller hub radius (mm) that can house this fan's motor with a printable wall, or
     None if the model has no motor-mount defined. Below this, the printed hub can't slip over the motor."""

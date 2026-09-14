@@ -37,30 +37,25 @@ class PropPerf:
     prop_efficiency: float | None = None   # propulsive eff (forward flight); None in hover
 
 
-def _cl_cd(alpha_rad: float, camber: float, re: float | None = None):
-    """Cambered-airfoil polar: linear lift to stall, soft drop past it, quadratic drag.
+def _cl_cd(
+    alpha_rad: float,
+    camber: float,
+    re: float | None = None,
+    thickness: float = 0.12,
+):
+    """Cambered-airfoil polar: vendored UIUC-style table when Re is set, else analytic.
 
-    REYNOLDS-AWARE (roadmap §7.2): fan blades run Re ~20-80k and small props even lower, where lift/drag
-    depart sharply from high-Re thin-airfoil theory. Pass the local Re = W*c/nu to apply low-Re trends
-    from the UIUC/Selig low-Reynolds data: max-lift drops and stall comes earlier as Re falls, profile
-    drag rises steeply (thick laminar boundary layer / separation bubble), and the lift slope softens.
-    re=None keeps the original high-Re polar (back-compat)."""
-    a_deg = math.degrees(alpha_rad)
-    cl_max, cd0, stall_deg, slope = 1.4, 0.012, 14.0, 2.0 * math.pi
+    REYNOLDS-AWARE (roadmap §7.2 / §1.6): with ``re`` given, prefer ``fansim.data.polars``
+    tables (NACA *12 + Selig e387/sd7032/s1223), matched on camber + thickness. If the
+    table path is unavailable, use the analytic low-Re trends. ``re=None`` keeps the
+    original high-Re analytic (back-compat).
+    """
     if re is not None:
-        r = max(float(re), 5000.0)
-        f = math.log10(r / 20000.0)               # 0 at Re 20k, 1 at 200k, 2 at 2M
-        cl_max = max(0.80, min(1.5, 0.95 + 0.30 * f))     # low Re -> lower max lift
-        stall_deg = max(8.0, min(15.0, 10.0 + 3.0 * f))   # low Re -> earlier stall
-        cd0 = max(0.010, 0.008 + 5.0 / math.sqrt(r))      # low Re -> much higher profile drag
-        slope = 2.0 * math.pi * max(0.75, min(1.0, 0.88 + 0.12 * f))
-    cl0 = slope * camber                          # zero-alpha lift from camber (thin-airfoil approx)
-    cl = cl0 + slope * alpha_rad
-    cl = max(-cl_max, min(cl_max, cl))            # clamp near max lift
-    if a_deg > stall_deg:                         # post-stall soft drop
-        cl *= max(0.55, 1.0 - (a_deg - stall_deg) * 0.03)
-    cd = cd0 + 0.020 * cl * cl                    # profile + induced-ish drag polar
-    return cl, cd
+        from fansim.propeller.polars import cl_cd_table
+        tab = cl_cd_table(alpha_rad, camber, re, thickness=thickness)
+        if tab is not None:
+            return tab
+    return _cl_cd_analytic(alpha_rad, camber, re)
 
 
 def _interp_geom(params: BladeParams):

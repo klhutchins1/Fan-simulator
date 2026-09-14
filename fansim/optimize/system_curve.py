@@ -125,11 +125,12 @@ def probe_flow_cfm(curve, load_pa: float) -> float:
     raise SystemCurveError("probe Pa is not on the BEM curve")
 
 
-def bem_screen_cfm(params, rpm: float, load_pa: float, tip_gap_mm: float) -> tuple[float, float]:
+def bem_screen_cfm(params, rpm: float, load_pa: float, tip_gap_mm: float,
+                   *, stator: bool = False) -> tuple[float, float]:
     """(BEM free-delivery CFM, BEM system-curve operating CFM)."""
     from fansim.fan_bem import pq_curve
 
-    curve = pq_curve(params, rpm, tip_gap_mm=tip_gap_mm)
+    curve = pq_curve(params, rpm, tip_gap_mm=tip_gap_mm, stator=stator)
     q0 = float(curve.free_delivery_cfm)
     if float(load_pa) <= 0.0:
         return q0, q0
@@ -140,9 +141,10 @@ def bem_screen_cfm(params, rpm: float, load_pa: float, tip_gap_mm: float) -> tup
     return q0, q_op
 
 
-def bem_load_cfm(params, rpm: float, load_pa: float, tip_gap_mm: float) -> float:
+def bem_load_cfm(params, rpm: float, load_pa: float, tip_gap_mm: float,
+                 *, stator: bool = False) -> float:
     """BEM 2-point fan line ∩ ΔP = k Q² — same operating point CFD uses for cfm_load."""
-    return bem_screen_cfm(params, rpm, load_pa, tip_gap_mm)[1]
+    return bem_screen_cfm(params, rpm, load_pa, tip_gap_mm, stator=stator)[1]
 
 
 # --- spliced from transcript edit-history (recovery 2026-09-12) ---

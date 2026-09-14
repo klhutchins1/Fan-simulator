@@ -60,11 +60,12 @@ mergePatchPairs ();
 SNAPPY = """@HEADER@
 castellatedMesh true;
 snap            true;
-addLayers       false;
+addLayers       @ADDLAYERS@;
 
 geometry
 {
     impeller.stl { type triSurfaceMesh; name impeller; }
+@FRAME_GEOM@@CASING_GEOM@@STATOR_GEOM@
 }
 
 castellatedMeshControls
@@ -74,10 +75,15 @@ castellatedMeshControls
     minRefinementCells 10;
     maxLoadUnbalance 0.10;
     nCellsBetweenLevels 3;
-    features ( { file "impeller.eMesh"; level @FEATLVL@; } );
+    features
+    (
+        { file "impeller.eMesh"; level @FEATLVL@; }
+@FRAME_FEAT@@CASING_FEAT@@STATOR_FEAT@
+    );
     refinementSurfaces
     {
         impeller { level (@SURFMIN@ @SURFMAX@); patchInfo { type wall; } }
+@FRAME_SURF@@CASING_SURF@@STATOR_SURF@
     }
     resolveFeatureAngle 30;
     refinementRegions {}
@@ -100,7 +106,10 @@ snapControls
 addLayersControls
 {
     relativeSizes true;
-    layers {}
+    layers
+    {
+@LAYER_PATCHES@
+    }
     expansionRatio 1.2;
     finalLayerThickness 0.3;
     minThickness 0.1;
@@ -147,6 +156,7 @@ impeller.stl
     subsetFeatures { nonManifoldEdges no; openEdges yes; }
     writeObj no;
 }
+@FRAME_EXTRACT@@CASING_EXTRACT@@STATOR_EXTRACT@
 """
 
 
@@ -173,6 +183,45 @@ actions
 """
 
 
+TOPOSET_DUAL_MRF = """@HEADER@
+actions
+(
+    {
+        name    rotorFrontCells;
+        type    cellSet;
+        action  new;
+        source  cylinderToCell;
+        point1  (0 0 @MRF_FRONT_ZMIN@);
+        point2  (0 0 @MRF_FRONT_ZMAX@);
+        radius  @MRFRADIUS@;
+    }
+    {
+        name    rotorFront;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        set     rotorFrontCells;
+    }
+    {
+        name    rotorRearCells;
+        type    cellSet;
+        action  new;
+        source  cylinderToCell;
+        point1  (0 0 @MRF_REAR_ZMIN@);
+        point2  (0 0 @MRF_REAR_ZMAX@);
+        radius  @MRFRADIUS@;
+    }
+    {
+        name    rotorRear;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        set     rotorRearCells;
+    }
+);
+"""
+
+
 DECOMPOSE_PAR = """@HEADER@
 numberOfSubdomains @NPROCS@;
 method          scotch;
@@ -184,10 +233,32 @@ MRF1
 {
     cellZone            rotor;
     active              yes;
-    nonRotatingPatches  (walls inlet outlet);
+    nonRotatingPatches  (walls inlet outlet@FRAME_PATCH@@CASING_PATCH@@STATOR_PATCH@);
     origin              (0 0 0);
     axis                (0 0 1);
     omega               @OMEGA@;
+}
+"""
+
+
+MRF_PROPERTIES_DUAL = """@HEADER@
+MRF1
+{
+    cellZone            rotorFront;
+    active              yes;
+    nonRotatingPatches  (walls inlet outlet@FRAME_PATCH@@CASING_PATCH@@STATOR_PATCH@);
+    origin              (0 0 0);
+    axis                (0 0 1);
+    omega               @OMEGA_FRONT@;
+}
+MRF2
+{
+    cellZone            rotorRear;
+    active              yes;
+    nonRotatingPatches  (walls inlet outlet@FRAME_PATCH@@CASING_PATCH@@STATOR_PATCH@);
+    origin              (0 0 0);
+    axis                (0 0 1);
+    omega               @OMEGA_REAR@;
 }
 """
 
@@ -352,6 +423,7 @@ boundaryField
     outlet   { type pressureInletOutletVelocity; value uniform (0 0 @UGUESS@); }
     walls    { type slip; }
     impeller { type noSlip; }
+@FRAME_U@@CASING_U@@STATOR_U@
 }
 """
 
@@ -364,6 +436,7 @@ boundaryField
     outlet   { type fixedValue; value uniform @PBACK@; }
     walls    { type zeroGradient; }
     impeller { type zeroGradient; }
+@FRAME_P@@CASING_P@@STATOR_P@
 }
 """
 
@@ -376,6 +449,7 @@ boundaryField
     outlet   { type inletOutlet; inletValue uniform @K@; value uniform @K@; }
     walls    { type slip; }
     impeller { type kqRWallFunction; value uniform @K@; }
+@FRAME_K@@CASING_K@@STATOR_K@
 }
 """
 
@@ -388,6 +462,7 @@ boundaryField
     outlet   { type inletOutlet; inletValue uniform @OMEGAT@; value uniform @OMEGAT@; }
     walls    { type slip; }
     impeller { type omegaWallFunction; value uniform @OMEGAT@; }
+@FRAME_OMEGA@@CASING_OMEGA@@STATOR_OMEGA@
 }
 """
 
@@ -403,6 +478,7 @@ boundaryField
     outlet   { type pressureInletOutletVelocity; value uniform (0 0 @UIN@); }
     walls    { type slip; }
     impeller { type noSlip; }
+@FRAME_U@@CASING_U@@STATOR_U@
 }
 """
 
@@ -415,6 +491,7 @@ boundaryField
     outlet   { type fixedValue; value uniform 0; }
     walls    { type zeroGradient; }
     impeller { type zeroGradient; }
+@FRAME_P@@CASING_P@@STATOR_P@
 }
 """
 
@@ -427,6 +504,7 @@ boundaryField
     outlet   { type inletOutlet; inletValue uniform @K@; value uniform @K@; }
     walls    { type slip; }
     impeller { type kqRWallFunction; value uniform @K@; }
+@FRAME_K@@CASING_K@@STATOR_K@
 }
 """
 
@@ -439,6 +517,7 @@ boundaryField
     outlet   { type inletOutlet; inletValue uniform @OMEGAT@; value uniform @OMEGAT@; }
     walls    { type slip; }
     impeller { type omegaWallFunction; value uniform @OMEGAT@; }
+@FRAME_OMEGA@@CASING_OMEGA@@STATOR_OMEGA@
 }
 """
 
@@ -450,6 +529,220 @@ boundaryField
     inlet    { type calculated; value uniform 0; }
     outlet   { type calculated; value uniform 0; }
     walls    { type slip; }
+@IMPELLER_NUT@
+@FRAME_NUT@@CASING_NUT@@STATOR_NUT@
+}
+"""
+# ---- Prop open-air compressible MRF (rhoSimpleFoam) ----
+
+PROP_THERMO = """@HEADER@
+thermoType
+{
+    type            hePsiThermo;
+    mixture         pureMixture;
+    transport       const;
+    thermo          hConst;
+    equationOfState perfectGas;
+    specie          specie;
+    energy          sensibleInternalEnergy;
+}
+mixture
+{
+    specie { molWeight 28.9; }
+    thermodynamics { Cp 1005; Hf 0; }
+    transport { mu 1.8e-05; Pr 0.7; }
+}
+"""
+
+PROP_CONTROL_DICT = """@HEADER@
+application     rhoSimpleFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         @ENDTIME@;
+deltaT          1;
+writeControl    timeStep;
+writeInterval   @WRITEINT@;
+purgeWrite      2;
+writeFormat     ascii;
+writePrecision  7;
+writeCompression off;
+timeFormat      general;
+runTimeModifiable true;
+
+functions
+{
+    forces
+    {
+        type            forces;
+        libs            (forces);
+        patches         (impeller);
+        rho             rho;
+        CofR            (0 0 0);
+        writeControl    timeStep;
+        writeInterval   @FOINT@;
+    }
+}
+"""
+
+PROP_MRF = """@HEADER@
+MRF1
+{
+    cellZone            rotor;
+    active              yes;
+    nonRotatingPatches  (walls inlet outlet);
+    origin              (0 0 0);
+    axis                (0 0 1);
+    omega               @OMEGA@;
+}
+"""
+
+PROP_TURBULENCE = """@HEADER@
+simulationType RAS;
+RAS { RASModel kOmegaSST; turbulence on; printCoeffs on; }
+"""
+
+PROP_FV_SCHEMES = """@HEADER@
+ddtSchemes { default steadyState; }
+gradSchemes { default Gauss linear; }
+divSchemes
+{
+    default         none;
+    div(phi,U)      bounded Gauss linearUpwind grad(U);
+    div(phi,K)      bounded Gauss upwind;
+    div(phi,h)      bounded Gauss upwind;
+    div(phi,e)      bounded Gauss upwind;
+    div(phi,k)      bounded Gauss upwind;
+    div(phi,omega)  bounded Gauss upwind;
+    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
+}
+laplacianSchemes { default Gauss linear corrected; }
+interpolationSchemes { default linear; }
+snGradSchemes { default corrected; }
+"""
+
+PROP_FV_SOLUTION = """@HEADER@
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        tolerance       1e-7;
+        relTol          0.05;
+        smoother        GaussSeidel;
+    }
+    "(U|h|e|k|omega)"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-8;
+        relTol          0.1;
+    }
+    Phi
+    {
+        solver          GAMG;
+        tolerance       1e-6;
+        relTol          0.01;
+        smoother        GaussSeidel;
+    }
+}
+potentialFlow { nNonOrthogonalCorrectors 5; }
+SIMPLE
+{
+    nNonOrthogonalCorrectors 1;
+    consistent      no;
+    residualControl { p 1e-4; U 1e-4; "(k|omega|h|e)" 1e-4; }
+}
+relaxationFactors
+{
+    fields    { p 0.3; }
+    equations { U 0.7; "(k|omega|h|e)" 0.7; }
+}
+"""
+
+PROP_FV_OPTIONS = """@HEADER@
+"""
+
+PROP_T = """@HEADER@
+dimensions [0 0 0 1 0 0 0];
+internalField uniform @T_INF@;
+boundaryField
+{
+    inlet    { type fixedValue; value uniform @T_INF@; }
+    outlet   { type inletOutlet; inletValue uniform @T_INF@; value uniform @T_INF@; }
+    walls    { type zeroGradient; }
+    impeller { type zeroGradient; }
+}
+"""
+
+PROP_P = """@HEADER@
+dimensions [1 -1 -2 0 0 0 0];
+internalField uniform @P_INF@;
+boundaryField
+{
+    inlet    { type freestreamPressure; freestreamValue uniform @P_INF@; value uniform @P_INF@; }
+    outlet   { type freestreamPressure; freestreamValue uniform @P_INF@; value uniform @P_INF@; }
+    walls    { type zeroGradient; }
+    impeller { type zeroGradient; }
+}
+"""
+
+PROP_U = """@HEADER@
+dimensions [0 1 -1 0 0 0 0];
+internalField uniform (0 0 @U_EPS@);
+boundaryField
+{
+    inlet    { type freestreamVelocity; freestreamValue uniform (0 0 @U_EPS@); value uniform (0 0 @U_EPS@); }
+    outlet   { type freestreamVelocity; freestreamValue uniform (0 0 @U_EPS@); value uniform (0 0 @U_EPS@); }
+    walls    { type freestreamVelocity; freestreamValue uniform (0 0 @U_EPS@); value uniform (0 0 @U_EPS@); }
+    impeller { type noSlip; }
+}
+"""
+
+PROP_K = """@HEADER@
+dimensions [0 2 -2 0 0 0 0];
+internalField uniform @K@;
+boundaryField
+{
+    inlet    { type inletOutlet; inletValue uniform @K@; value uniform @K@; }
+    outlet   { type inletOutlet; inletValue uniform @K@; value uniform @K@; }
+    walls    { type inletOutlet; inletValue uniform @K@; value uniform @K@; }
+    impeller { type kqRWallFunction; value uniform @K@; }
+}
+"""
+
+PROP_OMEGA = """@HEADER@
+dimensions [0 0 -1 0 0 0 0];
+internalField uniform @OMEGAT@;
+boundaryField
+{
+    inlet    { type inletOutlet; inletValue uniform @OMEGAT@; value uniform @OMEGAT@; }
+    outlet   { type inletOutlet; inletValue uniform @OMEGAT@; value uniform @OMEGAT@; }
+    walls    { type inletOutlet; inletValue uniform @OMEGAT@; value uniform @OMEGAT@; }
+    impeller { type omegaWallFunction; value uniform @OMEGAT@; }
+}
+"""
+
+PROP_NUT = """@HEADER@
+dimensions [0 2 -1 0 0 0 0];
+internalField uniform 0;
+boundaryField
+{
+    inlet    { type calculated; value uniform 0; }
+    outlet   { type calculated; value uniform 0; }
+    walls    { type calculated; value uniform 0; }
     impeller { type nutkWallFunction; value uniform 0; }
+}
+"""
+
+PROP_ALPHAT = """@HEADER@
+dimensions [1 -1 -1 0 0 0 0];
+internalField uniform 0;
+boundaryField
+{
+    inlet    { type calculated; value uniform 0; }
+    outlet   { type calculated; value uniform 0; }
+    walls    { type calculated; value uniform 0; }
+    impeller { type compressible::alphatWallFunction; value uniform 0; }
 }
 """

@@ -59,6 +59,10 @@ def run_study(
     mountable: bool = False,
     with_winglet: bool = False,
     bem_prescreen_cfm: float = 0.0,
+    tip_gap_mm: float | None = None,
+    surrogate_prescreen_cfm: float = 0.0,
+    surrogate_db: str | Path | None = None,
+    surrogate_boost: bool = False,
     on_trial=None,
 ) -> optuna.Study:
     from fansim.fan_spec import get_fan_spec, mount_min_hub_radius
@@ -82,6 +86,38 @@ def run_study(
         hi = max(lo + 0.1, spec.hub_dia_mm[1] / 2.0)
         hub_range = (lo, hi)
 
+    surrogate = None
+    surrogate_load = None
+    surr_free_xy: list = [None, None]
+    surr_load_xy: list = [None, None]
+    # Mutable cells so the trial closure can rebind models after online refit.
+    surr_models: list = [None, None]  # [free, load]
+    if surrogate_prescreen_cfm > 0.0:
+        from fansim.catalog import CATALOG_DB
+        from fansim.surrogate.catalog import prescreen_fit
+        db = Path(surrogate_db) if surrogate_db is not None else CATALOG_DB
+        surrogate, Xf, yf, why = prescreen_fit(db, boost=surrogate_boost)
+        if surrogate is None:
+            print(f"surrogate-prescreen: free off ({why})")
+        else:
+            surr_free_xy[0], surr_free_xy[1] = Xf, yf
+            surr_models[0] = surrogate
+            if why:
+                print(f"surrogate-prescreen: free ({why})")
+            elif surrogate_boost:
+                print("surrogate-prescreen: free boost+GP ensemble")
+        surrogate_load, Xl, yl, why_load = prescreen_fit(
+            db, y_attr="cfm_load", require_k=True, boost=surrogate_boost)
+        if surrogate_load is None:
+            print(f"surrogate-prescreen: load off ({why_load})")
+        else:
+            surr_load_xy[0], surr_load_xy[1] = Xl, yl
+            surr_models[1] = surrogate_load
+            if why_load:
+                print(f"surrogate-prescreen: load ({why_load})")
+            elif surrogate_boost:
+                print("surrogate-prescreen: load boost+GP ensemble")
+
     def objective(trial: optuna.Trial):
         if base_params is not None:
             # Feature-isolation study: fix the base geometry, vary only the feature layer.
@@ -97,7 +133,28 @@ def run_study(
                                     iters=iters, load_pa=load_pa,
                                     min_sol_mid=min_sol_mid, min_sol_tip=min_sol_tip,
                                     with_noise=with_noise, noise_model=noise_model, spec=spec,
-                                    require_mountable=mountable, bem_prescreen_cfm=bem_prescreen_cfm)
+                                    require_mountable=mountable, bem_prescreen_cfm=bem_prescreen_cfm,
+                                    tip_gap_mm=tip_gap_mm,
+                                    surrogate_prescreen_cfm=surrogate_prescreen_cfm,
+                                    surrogate=surr_models[0], surrogate_load=surr_models[1])
+        # Online GP update (§7.4): teach the in-memory screen from this study's CFD.
+        if result.feasible and surrogate_prescreen_cfm > 0.0:
+            try:
+                from fansim.surrogate.catalog import append_and_refit
+                from fansim.surrogate.features import feature_vector
+                x = feature_vector(params)
+                if (surr_models[0] is not None and surr_free_xy[0] is not None
+                        and result.cfm_free > -1e5):
+                    surr_models[0], surr_free_xy[0], surr_free_xy[1] = append_and_refit(
+                        surr_models[0], surr_free_xy[0], surr_free_xy[1], x, result.cfm_free)
+                if (surr_models[1] is not None and surr_load_xy[0] is not None
+                        and result.raw.get("k") is not None
+                        and result.cfm_load > -1e5):
+                    surr_models[1], surr_load_xy[0], surr_load_xy[1] = append_and_refit(
+                        surr_models[1], surr_load_xy[0], surr_load_xy[1],
+                        x, result.cfm_load)
+            except Exception:  # noqa: BLE001 - online update must never break the study
+                pass
         trial.set_user_attr("feasible", result.feasible)
         trial.set_user_attr("reason", result.reason)
         trial.set_user_attr("n_blades", params.n_blades)

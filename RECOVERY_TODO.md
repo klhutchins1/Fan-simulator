@@ -16,42 +16,46 @@ Run the suite: `uv run --extra optim python -m pytest -m "not docker and not slo
 - Raw mined archive: `CHAT_RECOVERY/cursor_full_recovery/` (334 files). Merge manifest:
   `CURSOR_MERGE_MANIFEST.txt`. Recovery narrative: `README_RECOVERY.md`, `HANDOFF_TO_CURSOR.md`.
 
-## Remaining test failures (~74), by bucket
+## Remaining test failures (archetype bucket closed 2026-09-13), by bucket
 
-### 1. Later feature to re-integrate — surrogate prescreen (5) — `test_surrogate_catalog`
-The 2026-09-04 surrogate/boost work. My restored `fansim/optimize/objectives.py` (clean Sep-03)
-predates it; Cursor's staging copy was truncated. Needs splicing from Cursor transcripts:
-- `evaluate_candidate(..., surrogate_prescreen_cfm=...)` gate,
-- `run_study(..., surrogate_prescreen_cfm=...)` pass-through + online refit after each feasible trial,
-- `scripts/run_optimization.py` `--surrogate-prescreen` flag + help ("Refits after each feasible…").
-`fansim/surrogate/{gp,catalog}.py` are present; `CatalogEntry.cfd_stale/k` now added.
+### 1. Later feature to re-integrate — surrogate prescreen — DONE 2026-09-13 (Cursor)
+Wired from transcript patches into `objectives.py` / `study.py` /
+`scripts/run_optimization.py`. `tests/test_surrogate_catalog.py` green.
 
 ### 2. Behavior polish (tests are the recovered spec) — core path
-- `test_le_te_thick` (2): `apply_le_te_thickness`/`le_te_thick_factors` are RECONSTRUCTED fallbacks
-  (never in any transcript). Needs the real TE-blunt-cap behavior (no mid-chord sign spike; TE capped
-  below LE nose). See `fansim/geometry/blade.py`.
-- `test_cylindrical_tip` (1): `_trim_blade_to_tip_cylinder` trims to ~52.3 mm vs expected ≤50 —
-  verify the real trim tolerance.
-- `test_stator` (2), `test_wall_ks` (3), `test_deflection` (2), `test_notched_tips` (1),
-  `test_rounded_plate` (1) — assorted reconstructed-behavior gaps.
+- `test_le_te_thick` / `test_cylindrical_tip` / `test_search_space` — **DONE 2026-09-13 (Cursor)**:
+  restored TE blunt-cap (`TE_BLUNT_FRAC=0.10`, side-aware lift), `tip_section_points` cylinder clamp,
+  `TIP_CAP_CLEARANCE_MM=0.5` + `frame_half_mm` on `suggest_params`, GUIDED blades/camber reopened.
+  23/23 green.
+- `test_stator` / `test_wall_ks` / `test_deflection` / `test_notched_tips` / `test_rounded_plate` —
+  **DONE 2026-09-13 (Cursor)**: tip-notch TE bite in `_section_loop`, print η/FSI penalty,
+  `build_case(wall_ks_mm=...)`, OpenFOAM template FRAME/CASING/STATOR + `IMPELLER_NUT` placeholders,
+  `--stator` argv, `blade_to_flat` `section_family`. 34/34 green.
 
 ### 3. Judgment calls (which version is canonical)
-- `test_shroud::test_cockpit_declares_shroud_height_slider` — the shroud slider moved from `app.py`
-  to `fan_tab.py` in the 09-11 extract; my Sep-03 test still checks `app.py`. Update the test to
-  `fan_tab.py`, or restore the old location.
-- Several `test_placement`/`test_shroud` frame-gap asserts use strict `<` on my Sep-03 frame-gap API
-  vs the newer reconstructed `placement.py`. Pick the canonical `placement.py` + matching tests.
-- `test_search_space` (4): later `suggest_params(frame_half_mm=...)` param + guided-space behavior.
+- `test_shroud::test_cockpit_declares_shroud_height_slider` — **DONE 2026-09-13**: test now reads
+  `fan_tab.py` (09-11 extract).
+- `test_placement` / `test_shroud` frame-gap / bio-features / shroud BEM — **DONE 2026-09-13 (Cursor)**:
+  `fit_envelope` uses `features_from_flat` + `OPTIMIZER_TIP_GAP_MM` target; tip-notch keys on
+  `blade_from_flat`; shroud print gate; `load_designs` merges `shroud_thick_mm`; BEM tip-gap=0 for
+  full ring; `_shroud_solid` uses `shroud_axial_range`; dropped duplicate pre-cylindrical placement
+  tests. 51/51 green.
 
-### 4. Deprioritized archetypes (skipped per "core fan path first")
-`test_volute` (5), `test_mixed_flow*` (11), `test_cror` (2), `test_wind_turbine` (1),
-`test_prop_*` (10). Later packages reconstructed from Cursor `Write`s but missing trailing edits
-(no timestamps to order the replay). Fixable against their tests when these archetypes matter.
+
+### 4. Deprioritized archetypes — DONE 2026-09-13 (Cursor)
+Volute / mixed / CROR / prop / wind recovery: `SCREENING_GRID_STAMP`, circular
+inlet-area honesty on mixed/CROR, archetype registry wiring, PROP/dual-MRF
+templates, prop optimize helpers, stator/`wall_ks`/motor-curve stamps. Focused
+suites green (mixed+volute+cror 44/44; prop/wind re-verified same day).
+
+Previously: `test_volute`, `test_mixed_flow*`, `test_cror`, `test_wind_turbine`,
+`test_prop_*` — packages reconstructed from Cursor `Write`s but missing trailing
+edits. Fixed against their tests.
 
 ### 5. Genuinely lost — not code
-- `test_uiuc_polars` (3): the UIUC LSAT airfoil-polar **CSV data files** never existed in any
-  transcript. **Re-download** from the UIUC low-speed airfoil database and drop them where the test
-  expects (`fansim/propeller/polars/` or similar per the test path).
+- `test_uiuc_polars` — **DONE 2026-09-13 (Cursor)**: regenerated NACA + e387/sd7032/s1223 CSVs from
+  transcript Shell generators into `fansim/data/polars/`; wired `_cl_cd` → `cl_cd_table`.
+  See `CHAT_RECOVERY/NOTE_UIUC_POLARS_RECOVERED.md`. Suite green.
 
 ## Also regenerable (gitignored, not lost source)
 `runs/**` CFD cases, `catalog/catalog.db`, `exports/**`, `docs/control_images/*.png` — re-create by

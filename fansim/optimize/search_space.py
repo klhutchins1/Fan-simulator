@@ -8,6 +8,8 @@ parameters (tubercles, serrations, dimples) are added here once the feature libr
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fansim.geometry.blade import (BladeParams, RadialStation, shroud_is_full,
     open_tip_rmax_mm, SHROUD_DEFAULT_MM, normalize_shroud_thick_mm)
 from fansim.geometry.features import Features
@@ -40,7 +42,7 @@ def suggest_features(trial) -> Features:
 # (both cut the noise-driving mid-solidity and the tone). Same param NAMES as the open search, so
 # blade_from_flat / design-rule tooling are unchanged.
 GUIDED = {
-    "n_blades": (5, 8),          # fewer blades: quieter + more efficient
+    "n_blades": (5, 11),         # was 5–8 (free-air); hose CFM needs OPEN's 5–11
     "stagger_root": (24.0, 48.0),
     "stagger_mid": (32.0, 48.0),  # HIGH mid-stagger — the win-win-win lever
     "stagger_tip": (18.0, 38.0),
@@ -51,7 +53,7 @@ GUIDED = {
     "sweep_tip": (0.0, 12.0),
     "lean_mid": (0.0, 12.0),      # low mid-lean -> lower blade-pass tone
     "lean_tip": (0.0, 45.0),
-    "max_camber": (0.0, 0.02),    # keep camber low
+    "max_camber": (0.0, 0.06),    # was 0–0.02 (free-air); hose scoring uses OPEN's 0–0.06
 }
 OPEN = {
     "n_blades": (5, 11), "stagger_root": (20.0, 48.0), "stagger_mid": (18.0, 42.0),
@@ -61,9 +63,9 @@ OPEN = {
     "lean_tip": (0.0, 45.0), "max_camber": (0.0, 0.06),
 }
 # Load-spreading recipe (guided + per-blade-loading cap). Keeps the flow/eff rules (high-ish
-# mid-stagger, wide tip chord, low camber) but allows MORE blades and wider mid-chord so the search
+# mid-stagger, wide tip chord) but allows MORE blades and wider mid-chord so the search
 # can meet a solidity floor -> lower per-blade loading -> quieter broadband at high flow. Pair with
-# evaluate_candidate(min_sol_mid=..., min_sol_tip=...).
+# evaluate_candidate(min_sol_mid=..., min_sol_tip=...). Camber matches OPEN (hose scoring).
 GUIDED_LC = {
     "n_blades": (7, 11),          # more blades: spread the load, cut per-blade loading
     "stagger_root": (22.0, 44.0),
@@ -76,7 +78,7 @@ GUIDED_LC = {
     "sweep_tip": (0.0, 12.0),
     "lean_mid": (0.0, 12.0),
     "lean_tip": (0.0, 45.0),
-    "max_camber": (0.0, 0.02),
+    "max_camber": (0.0, 0.06),    # was 0–0.02 (free-air); hose scoring uses OPEN's 0–0.06
 }
 BOUNDS = {"open": OPEN, "guided": GUIDED, "guided_lc": GUIDED_LC}
 
@@ -113,6 +115,7 @@ def suggest_params(trial, with_features: bool = False, space: str = "open",
                    with_spacing: bool = False, with_extended: bool = False,
                    hub_radius_range: tuple[float, float] | None = None,
                    with_winglet: bool = False, max_tip_radius: float | None = None,
+                   frame_half_mm: float | None = None,
                    with_shroud: bool = False) -> BladeParams:
     """Sample a BladeParams from an Optuna trial's search space.
 
@@ -121,7 +124,8 @@ def suggest_params(trial, with_features: bool = False, space: str = "open",
     blade-spacing DOF (spread + seed). with_extended adds hub radius, per-station thickness and
     camber position as search DOFs (else they stay at the fixed defaults). hub_radius_range forces
     the hub radius to be SAMPLED from that range (used by --mountable to keep the hub big enough to
-    house the motor) — it overrides the extended hub bound and applies even without --extended."""
+    house the motor) — it overrides the extended hub bound and applies even without --extended.
+    frame_half_mm caps tip_radius so the built envelope (ring included) leaves 0.5 mm to the frame."""
     b = BOUNDS[space]
     n_blades = trial.suggest_int("n_blades", *b["n_blades"])
 
@@ -154,15 +158,6 @@ def suggest_params(trial, with_features: bool = False, space: str = "open",
     else:
         th_r, th_m, th_t, cpos = THICKNESS[0], THICKNESS[1], THICKNESS[2], CAMBER_POS
     hub = None
-    # tip_radius (blade LENGTH): frame-aware when max_tip_radius is given, so the BUILT tip diameter
-    # lands inside the frame instead of getting gated (the built dia bulges ~4 mm past 2*tip_radius, so
-    # the caller passes frame_max/2 minus a margin). Else the extended range, else the fixed default.
-    if max_tip_radius is not None:
-        tip = trial.suggest_float("tip_radius", min(48.0, max_tip_radius - 1.0), max_tip_radius)
-    elif with_extended:
-        tip = trial.suggest_float("tip_radius", *EXTENDED["tip_radius"])
-    else:
-        tip = None
     hub_range = hub_radius_range or (EXTENDED["hub_radius"] if with_extended else None)
     if hub_range is not None:  # --mountable forces a hub big enough to house the motor
         hub = trial.suggest_float("hub_radius", *hub_range)
@@ -172,6 +167,24 @@ def suggest_params(trial, with_features: bool = False, space: str = "open",
         RadialStation(0.5, ch_mid, stg_mid, th_m, camber, cpos, sweep_mid, 0.0, lean_mid),
         RadialStation(1.0, ch_tip, stg_tip, th_t, camber, cpos, sweep_tip, 0.0, lean_tip),
     ]
+    hub_r = float(hub) if hub is not None else BladeParams.hub_radius
+
+    # tip_radius: frame-aware cap from the real section-point bulge when frame_half_mm is set.
+    # Else max_tip_radius / extended range / BladeParams default.
+    if frame_half_mm is not None:
+        shroud = SHROUD_DEFAULT_MM if with_shroud else 0.0
+        cap = tip_radius_cap_mm(stations, hub_r, frame_half_mm, shroud, n_blades)
+        lo = min(TIP_CAP_SEARCH_LO_MM, cap - 1.0)
+        if lo >= cap:
+            lo = cap - 0.5
+        tip = trial.suggest_float("tip_radius", lo, cap)
+    elif max_tip_radius is not None:
+        tip = trial.suggest_float("tip_radius", min(48.0, max_tip_radius - 1.0), max_tip_radius)
+    elif with_extended:
+        tip = trial.suggest_float("tip_radius", *EXTENDED["tip_radius"])
+    else:
+        tip = None
+
     features = suggest_features(trial) if with_features else Features()
     kw = {}
     if hub is not None:
@@ -242,7 +255,7 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
         bp.te_thick_scale = float(p["te_thick_scale"])
     if "cylindrical_tip" in p:
         bp.cylindrical_tip = bool(p["cylindrical_tip"])
-    if p.get("notched_tips"):
+    if int(p.get("tip_notch_count", 0) or 0) > 0 or p.get("notched_tips"):
         from fansim.geometry.blade import apply_notched_tips
         apply_notched_tips(bp)
     if float(p.get("sickle_mm", 0.0)) > 0.0:
@@ -306,11 +319,33 @@ def blade_to_flat(params: BladeParams) -> dict:
         shroud_thick_mm=float(params.shroud_thick_mm or 0.0),
         shroud_height_frac=float(params.shroud_height_frac or 1.0),
         span_interp=str(getattr(params, "span_interp", "linear") or "linear"),
+        section_family=str(getattr(params, "section_family", "naca") or "naca"),
         spacing_spread=0.0, spacing_seed=0,
         tip_round=0.0, tip_round_start=0.80,
         winglet_span=0.85, winglet_sweep=0.0, winglet_lean=0.0,
     )
     return flat
+
+
+# Parametric stock recipes for scatter ✕ click → Design (not the OEM CAD).
+STOCK_GEOMETRY_YAML = {
+    "a12x25": "config/problems/a12x25.yaml",
+}
+
+
+def stock_blade_flat(fan_model: str = "a12x25") -> dict:
+    """Load the parametric stock flat for ``fan_model``, or raise ``FileNotFoundError`` / ``KeyError``."""
+    from fansim.geometry.config import load_blade_params
+
+    key = str(fan_model or "a12x25")
+    rel = STOCK_GEOMETRY_YAML.get(key)
+    if rel is None:
+        raise KeyError(f"no parametric stock geometry for fan model {key!r}")
+    root = Path(__file__).resolve().parents[2]
+    path = root / rel
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    return blade_to_flat(load_blade_params(path))
 
 
 SICKLE_BOUNDS = (4.0, 12.0)   # tip le_skew mm
@@ -324,7 +359,8 @@ STATOR_BOUNDS = {
 
 
 # --- RECONSTRUCTED 2026-09-12 (never captured in any transcript; from test contract; VERIFY) ---
-TIP_CAP_CLEARANCE_MM = 4.0  # frame/2 margin for the built tip bulge (RECONSTRUCTED constant)
+TIP_CAP_CLEARANCE_MM = 0.5  # leftover to the frame ID; matches OPTIMIZER_TIP_GAP_MM
+TIP_CAP_SEARCH_LO_MM = 48.0
 
 
 # --- spliced suggest_sickle (recovery) ---

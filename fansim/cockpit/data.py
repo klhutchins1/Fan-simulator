@@ -37,9 +37,13 @@ def load_designs(out_dir: str | Path, study_name: str | None = None) -> list[Des
         feasible = bool(t.user_attrs.get("feasible", False))
         objectives = {name: float(v) for name, v in zip(OBJECTIVE_NAMES, t.values)}
         stl = out_dir / "trials" / f"trial_{t.number:04d}" / "impeller.stl"
+        params = dict(t.params)
+        # --shroud stamps after Optuna sampling; carry into params for cockpit round-trip
+        shroud = float(t.user_attrs.get("shroud_thick_mm", 0.0) or 0.0)
+        params.setdefault("shroud_thick_mm", shroud)
         designs.append(Design(
             trial=t.number,
-            params=dict(t.params),
+            params=params,
             objectives=objectives,
             feasible=feasible,
             is_pareto=t.number in pareto_numbers,

@@ -28,6 +28,12 @@ def main() -> None:
     ap.add_argument("--top", type=int, default=12, help="how many Pareto rows to print")
     ap.add_argument("--pick", type=int, default=None, help="Pareto row index to export (default: most efficient)")
     ap.add_argument("--export", type=str, default=None, help="STL path to build the picked design")
+    ap.add_argument("--cfd-top", type=int, default=0,
+                    help="after BEMT Pareto, run CFD on the top-N thrust rows (0 = off)")
+    ap.add_argument("--bemt-floor", type=float, default=0.0,
+                    help="skip CFD when BEMT thrust (g) is below this floor")
+    ap.add_argument("--cfd-out", type=str, default=None,
+                    help="directory for --cfd-top CFD cases + summary.json")
     args = ap.parse_args()
 
     spec = get_prop_spec(args.spec)
