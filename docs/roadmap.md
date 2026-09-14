@@ -16,14 +16,15 @@ session.**
 
 ## ★ Recommended sequence
 
-1. **Math audit (Phase 1)** — re-verify §10 fixes on the recovered tree (`docs/superpowers/specs/2026-09-11-math-accuracy-fixes-design.md`).
-2. **Noctua reference geometry (Phase 2)** — sickle/notches/stator polish against `docs/a12x25-reference.md`.
-3. **Validation P–Q (Phase 3)** — shut-off, grid convergence, honest stamps (§1.5; screening ≠ absolute).
+1. ~~Math audit (Phase 1)~~ — done on recovered tree.
+2. ~~Noctua reference geometry (Phase 2)~~ — envelope + `a12x25_reference.yaml` Stock (not OEM STL).
+3. **Validation P–Q (Phase 3 remainder)** — free-air mesh/tip/physics/recipe checks recorded (~−26% vs 60.1); **near–shut-off P–Q at tip_gap 0.5 mm** still open (§1.5). See `docs/validation/a12x25_pq_report.md`.
 4. **Print + measure (Phase 5)** — staged runbook `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists.
 5. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), and archetype CFD depth (§4.x).
 
 §8 cockpit scoring, §9 recovery hardening, §10 math fixes, and §11 re-review are **closed in code** (2026-09-11–13).
 **Do NOT** re-optimize tip-round or bio-features — tested null on flow AND noise.
+**Do NOT** datasheet-tune Stock from BEM (stagger candidate CFD +0.6 CFM only).
 
 ---
 
@@ -48,9 +49,7 @@ session.**
   mic would give absolute numbers. Tonal (BPF) is validated via uneven spacing; broadband is
   coarse-grid-limited (~0.5 mm cells needed, >12 GB VRAM).
 - [ ] **1.5 Full P–Q curve + shut-off pressure + grid convergence** for the buildable a12x25 designs.
-  **[impact: med]** **[effort: med]** Free-air is validated (+2%); shut-off (~22.9 Pa) via steady RANS
-  reads ~13 (transient GPU LBM gets ~21). Needed before any *absolute* pressure claim. See
-  `docs/high-accuracy-plan.md`.
+  **[impact: med]** **[effort: med]** **Partial (2026-09-14):** free-air mesh ladder + GCI asymptotic at tip_gap 0.5 mm (~44.7 CFM, −26% vs published 60.1); tip/frame/wall_ks/stagger A/Bs in `docs/validation/a12x25_pq_report.md`. Historical P–Q at ~1.0 mm tip had shut-off **proxy ~20.1 Pa** (20 Pa unconverged). **Remaining:** Stock multi-back P–Q at **published 0.5 mm** tip with finer near-stall backs; do not claim absolute shut-off until converged near Q→0. See `docs/high-accuracy-plan.md`.
 - [x] **1.6 Low-Reynolds-number airfoils (stage 1). DONE 2026-09-13**
   UIUC/Selig CSVs in `fansim/data/polars/` + `cl_cd_table` wired into `_cl_cd`
   (`tests/test_uiuc_polars.py`). Remaining: broader family coverage / cockpit airfoil picker.
