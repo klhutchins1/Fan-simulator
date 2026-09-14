@@ -1,0 +1,63 @@
+{
+  "params": "config/problems/a12x25_reference.yaml",
+  "campaign": {
+    "kind": "free-air physics A/B (open / frame / wall_ks / frame+wall_ks)",
+    "physics_only": true,
+    "base_cell_m": 0.006,
+    "tip_gap_mm": 0.5,
+    "wall_ks_mm": 0.1,
+    "iters": 800,
+    "procs": 8,
+    "wall_time_s_approx": 562,
+    "local_run_dir": "runs/validate_a12x25_physics"
+  },
+  "published": {
+    "free_air_cfm": 60.1,
+    "shutoff_pa": 22.9
+  },
+  "physics_study": [
+    {
+      "label": "open",
+      "with_frame": false,
+      "wall_ks_mm": 0.0,
+      "cfm": 44.570888401554,
+      "converged": true,
+      "drift_pct": 0.1
+    },
+    {
+      "label": "frame",
+      "with_frame": true,
+      "wall_ks_mm": 0.0,
+      "cfm": 43.808105713728004,
+      "converged": true,
+      "drift_pct": 0.1
+    },
+    {
+      "label": "wall_ks",
+      "with_frame": false,
+      "wall_ks_mm": 0.1,
+      "cfm": 43.982593527546,
+      "converged": true,
+      "drift_pct": 0.0
+    },
+    {
+      "label": "frame_wall_ks",
+      "with_frame": true,
+      "wall_ks_mm": 0.1,
+      "cfm": 43.421026231085996,
+      "converged": true,
+      "drift_pct": 0.1
+    }
+  ],
+  "interpretation": {
+    "frame_delta_cfm": "-0.8 vs open",
+    "wall_ks_delta_cfm": "-0.6 vs open",
+    "combined_delta_cfm": "-1.2 vs open",
+    "vs_published_gap_cfm": "~15 CFM still missing; frame/roughness cannot close it (they add loss)",
+    "next_levers": [
+      "reference blade recipe vs OEM (camber/stagger/solidity)",
+      "near-shut-off P–Q at tip_gap 0.5 mm",
+      "hardware Phase 5 when available"
+    ]
+  }
+}

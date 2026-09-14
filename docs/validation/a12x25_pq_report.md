@@ -105,11 +105,11 @@ Not re-run at tip_gap 0.5 mm in the mesh/tip campaign (`--ladder-only`).
 | **Geometry error** | Envelope vs OEM | **Envelope pass**; recipe remains reference-parametric |
 | **Mesh error** | Discretization | **Ruled out as primary free-air driver** — asymptotic ladder, GCI_fine ≪ 1% |
 | **Tip-gap idealization** | Clearance | **Partial:** 1.0→0.5 mm explains ~4 of ~19 CFM shortfall |
-| **Model / B.C. error** | Open duct, no frame/struts, MRF, wall_ks | **Likely dominant remaining** (~15 CFM / −26%) |
+| **Model / B.C. error** | Open duct, no frame/struts, MRF, wall_ks | Frame + wall_ks only cost **~1 CFM** (§7). Remaining **~15 CFM** gap is **not** explained by those idealizations — prefer **recipe vs OEM** next. |
 
 | Geometry envelope | CFD interim (free-air) | Interpretation |
 |-------------------|------------------------|----------------|
-| Pass | **Fail** (−26% at published tip gap, mesh-resolved) | Fix physics idealizations next — not mesh ladder |
+| Pass | **Fail** (−26% at published tip gap, mesh-resolved; frame/ks ~−1 CFM more) | Mesh/tip/frame/ks checked; **recipe fidelity** is the next software lever |
 
 ---
 
@@ -117,10 +117,28 @@ Not re-run at tip_gap 0.5 mm in the mesh/tip campaign (`--ladder-only`).
 
 1. ~~Free-air mesh ladder + GCI~~ — **done**; asymptotic ~44.8 CFM at tip_gap 0.5 mm.  
 2. ~~Tip-gap 1.0 vs 0.5 mm~~ — **done**; +3.6 CFM.  
-3. **Frame / casing / strut blockage** vs open-duct idealization.  
-4. **Wall roughness / `wall_ks`** sensitivity.  
+3. ~~Frame / wall_ks free-air A/B~~ — **done**; see §7 (~1 CFM loss only).  
+4. **Reference blade recipe vs OEM** (camber / stagger / solidity) — dominant remaining free-air gap.  
 5. Near–shut-off numerics at tip_gap 0.5 mm (re-P–Q or finer backs past 15 Pa).  
 6. Prism layers / y+ (future).  
+7. Hardware Phase 5 when a commercial hub/frame + printed impeller measurement exists.
+
+---
+
+## 7. Frame / wall_ks free-air A/B (tip_gap = 0.5 mm, base_cell = 0.006 m)
+
+Campaign (~562 s): open duct vs four-bar frame and FDM-order sand-grain ``wall_ks = 0.1 mm``.
+
+| Config | Free-air Q [CFM] | Δ vs open |
+|--------|------------------|-----------|
+| open (baseline) | **44.6** | — |
+| frame | 43.8 | **−0.8** |
+| wall_ks 0.1 mm | 44.0 | **−0.6** |
+| frame + wall_ks | 43.4 | **−1.2** |
+
+**Verdict:** Exhaust struts and print-rough walls are **small losses** (~1 CFM). They move free-air **further from** published 60.1, so they do **not** explain the remaining **~15 CFM (−26%)** shortfall. Missing “real-fan losses” were the right check historically for over-prediction; with the 7-blade reference recipe the dominant issue is now **under-performance of the parametric shape vs OEM**, not open-duct idealization.
+
+Committed summary: [a12x25_physics_validation_summary.json](a12x25_physics_validation_summary.json). Local run: `runs/validate_a12x25_physics/`.
 
 ---
 
@@ -132,4 +150,6 @@ Not re-run at tip_gap 0.5 mm in the mesh/tip campaign (`--ladder-only`).
 | `docs/validation/a12x25_phase3_validation_summary.json` | Committed Phase 3.2 numbers |
 | `runs/validate_a12x25_mesh_tip/validation.json` | Mesh ladder + tip study (local) |
 | `docs/validation/a12x25_mesh_tip_validation_summary.json` | Committed mesh/tip numbers |
-| `scripts/run_a12x25_validation.py` | `--mesh-ladder`, `--ladder-only`, `--tip-gap-mm`, `--tip-gap-study` |
+| `runs/validate_a12x25_physics/validation.json` | Frame / wall_ks A/B (local) |
+| `docs/validation/a12x25_physics_validation_summary.json` | Committed physics A/B numbers |
+| `scripts/run_a12x25_validation.py` | `--mesh-ladder`, `--tip-gap-*`, `--physics-study`, `--with-frame`, `--wall-ks-mm` |

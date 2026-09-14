@@ -24,6 +24,10 @@ def test_cli_declares_mesh_ladder_and_backs():
     assert "--ladder-only" in text
     assert "--tip-gap-mm" in text
     assert "--tip-gap-study" in text
+    assert "--physics-study" in text
+    assert "--physics-only" in text
+    assert "--with-frame" in text
+    assert "--wall-ks-mm" in text
     assert "--backs" in text
     assert "--base-cell" in text
     assert "★" not in text

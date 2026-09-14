@@ -33,9 +33,11 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 from fansim.analyze.grid_convergence import grid_convergence_index  # noqa: E402
 from fansim.cfd.domain import rig_for_impeller  # noqa: E402
+from fansim.cfd.frame import export_frame_stl  # noqa: E402
 from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
+from fansim.cfd.wall_roughness import FDM_WALL_KS_MM  # noqa: E402
 from fansim.geometry import build_impeller, export_stl  # noqa: E402
 from fansim.geometry.config import load_blade_params  # noqa: E402
 
@@ -66,6 +68,16 @@ def build_parser() -> argparse.ArgumentParser:
                          "Phase 3 screening accidentally used domain default 1.0)")
     ap.add_argument("--tip-gap-study", default=None, metavar="GAPS",
                     help="free-air A/B at fixed --base-cell for tip gaps [mm], e.g. 1.0,0.5,0.25")
+    ap.add_argument("--with-frame", action="store_true",
+                    help="include four-bar exhaust frame STL (optimizer default geometry)")
+    ap.add_argument("--wall-ks-mm", type=float, default=None,
+                    help="sand-grain roughness [mm] on impeller/frame (default smooth; "
+                         f"FDM order-of-magnitude ≈ {FDM_WALL_KS_MM:g})")
+    ap.add_argument("--physics-study", action="store_true",
+                    help="free-air A/B at --base-cell/--tip-gap-mm: open, frame, wall_ks, "
+                         "frame+wall_ks (wall_ks from --wall-ks-mm or FDM default)")
+    ap.add_argument("--physics-only", action="store_true",
+                    help="run --physics-study only (skip multi-back P–Q unless also requested)")
     ap.add_argument("--procs", type=int, default=8)
     ap.add_argument("--out", default="runs/validate_a12x25_phase3")
     return ap
@@ -79,6 +91,8 @@ def _run_free_air_at_cell(
     base_cell: float,
     n_iters: int,
     n_procs: int,
+    frame_stl: Path | None = None,
+    wall_ks_mm: float | None = None,
 ) -> dict[str, Any]:
     """Mesh + solve at 0 Pa back-pressure for one base_cell size."""
     runner = OpenFOAMRunner(out)
@@ -88,6 +102,8 @@ def _run_free_air_at_cell(
         n_iters=n_iters,
         n_subdomains=n_procs,
         back_pressure_pa=0.0,
+        frame_stl_mm=frame_stl,
+        wall_ks_mm=wall_ks_mm,
     )
     run_mesh(runner)
     run_solve(runner, n_procs=n_procs)
@@ -99,6 +115,8 @@ def _run_free_air_at_cell(
         "converged": m.converged,
         "drift_pct": round(m.flow_drift_pct, 1),
         "tip_gap_mm": float(rig.tip_gap) / 1e-3,
+        "with_frame": frame_stl is not None,
+        "wall_ks_mm": float(wall_ks_mm) if wall_ks_mm is not None else 0.0,
     }
 
 
@@ -185,6 +203,62 @@ def run_free_air_tip_gap_study(
     return rows
 
 
+def run_free_air_physics_study(
+    *,
+    params_path: str,
+    base_cell: float,
+    out_root: Path,
+    n_iters: int,
+    n_procs: int,
+    tip_gap_mm: float = 0.5,
+    wall_ks_mm: float = FDM_WALL_KS_MM,
+) -> list[dict[str, Any]]:
+    """Free-air A/B for open duct vs frame / wall_ks idealizations."""
+    configs: list[tuple[str, bool, float | None]] = [
+        ("open", False, None),
+        ("frame", True, None),
+        ("wall_ks", False, wall_ks_mm),
+        ("frame_wall_ks", True, wall_ks_mm),
+    ]
+    rows: list[dict[str, Any]] = []
+    params = load_blade_params(params_path)
+    out_root.mkdir(parents=True, exist_ok=True)
+    stl_shared = out_root / "impeller.stl"
+    if not stl_shared.exists():
+        stl_shared = export_stl(build_impeller(params), stl_shared)
+    rig = rig_for_impeller(
+        params, tip_gap_mm=tip_gap_mm, inlet_diameters=2.0, outlet_diameters=4.0)
+
+    for label, with_frame, ks in configs:
+        case_out = out_root / f"physics_{label}"
+        case_out.mkdir(parents=True, exist_ok=True)
+        stl = case_out / "impeller.stl"
+        if not stl.exists():
+            stl.write_bytes(stl_shared.read_bytes())
+        frame_path: Path | None = None
+        if with_frame:
+            frame_path = case_out / "frame.stl"
+            if not frame_path.exists():
+                export_frame_stl(params, rig, frame_path)
+        t = time.time()
+        row = _run_free_air_at_cell(
+            out=case_out, stl=stl, rig=rig,
+            base_cell=base_cell, n_iters=n_iters, n_procs=n_procs,
+            frame_stl=frame_path, wall_ks_mm=ks,
+        )
+        row["label"] = label
+        row["tip_gap_mm"] = float(tip_gap_mm)
+        print(
+            f"  physics={label} tip_gap={tip_gap_mm:g} mm base_cell={base_cell:g} "
+            f"-> {row['cfm']:.1f} CFM  "
+            f"({'converged' if row['converged'] else 'UNCONVERGED'})  "
+            f"({time.time() - t:.0f}s)",
+            flush=True,
+        )
+        rows.append(row)
+    return rows
+
+
 def maybe_stamp_gci(ladder_rows: list[dict[str, Any]]) -> dict[str, Any] | None:
     """If three ladder free-air points exist, run Roache GCI (fine→coarse by base_cell)."""
     if len(ladder_rows) != 3:
@@ -217,12 +291,18 @@ def run_pq_sweep(
     n_iters: int,
     n_procs: int,
     tip_gap_mm: float = 0.5,
+    with_frame: bool = False,
+    wall_ks_mm: float | None = None,
 ) -> list[dict[str, Any]]:
     params = load_blade_params(params_path)
     out.mkdir(parents=True, exist_ok=True)
     stl = export_stl(build_impeller(params), out / "impeller.stl")
     rig = rig_for_impeller(
         params, tip_gap_mm=tip_gap_mm, inlet_diameters=2.0, outlet_diameters=4.0)
+    frame_path: Path | None = None
+    if with_frame:
+        frame_path = out / "frame.stl"
+        export_frame_stl(params, rig, frame_path)
     runner = OpenFOAMRunner(out)
 
     build_case(
@@ -231,6 +311,8 @@ def run_pq_sweep(
         n_iters=n_iters,
         n_subdomains=n_procs,
         back_pressure_pa=backs[0],
+        frame_stl_mm=frame_path,
+        wall_ks_mm=wall_ks_mm,
     )
     run_mesh(runner)
 
@@ -242,6 +324,8 @@ def run_pq_sweep(
             n_iters=n_iters,
             n_subdomains=n_procs,
             back_pressure_pa=b,
+            frame_stl_mm=frame_path,
+            wall_ks_mm=wall_ks_mm,
         )
         t = time.time()
         run_solve(runner, n_procs=n_procs)
@@ -253,6 +337,8 @@ def run_pq_sweep(
             "drift_pct": round(m.flow_drift_pct, 1),
             "base_cell": base_cell,
             "tip_gap_mm": float(tip_gap_mm),
+            "with_frame": with_frame,
+            "wall_ks_mm": float(wall_ks_mm) if wall_ks_mm is not None else 0.0,
         })
         print(
             f"  back={b:5.1f} Pa -> {m.cfm:6.1f} CFM  "
@@ -272,11 +358,15 @@ def write_outputs(
     gci: dict[str, Any] | None,
     tip_gap_rows: list[dict[str, Any]] | None = None,
     tip_gap_mm: float | None = None,
+    physics_rows: list[dict[str, Any]] | None = None,
 ) -> None:
     free_air = next((r["cfm"] for r in pq_rows if r.get("back_pa") == 0.0), None)
     if free_air is None and ladder_rows:
         fine = min(ladder_rows, key=lambda r: r["base_cell"])
         free_air = fine["cfm"]
+    if free_air is None and physics_rows:
+        open_row = next((r for r in physics_rows if r.get("label") == "open"), physics_rows[0])
+        free_air = open_row["cfm"]
     payload: dict[str, Any] = {
         "params": params_path,
         "published": {"free_air_cfm": PUB_FREE_AIR_CFM, "shutoff_pa": PUB_SHUTOFF_PA},
@@ -288,6 +378,8 @@ def write_outputs(
         payload["mesh_ladder"] = ladder_rows
     if tip_gap_rows is not None:
         payload["tip_gap_study"] = tip_gap_rows
+    if physics_rows is not None:
+        payload["physics_study"] = physics_rows
     if gci is not None:
         payload["gci"] = gci
 
@@ -322,6 +414,15 @@ def write_outputs(
             label="mesh ladder (free-air)",
             zorder=4,
         )
+    if physics_rows:
+        ax.scatter(
+            [r["cfm"] for r in physics_rows],
+            [0.0] * len(physics_rows),
+            marker="D",
+            color="tab:orange",
+            label="physics A/B (free-air)",
+            zorder=4,
+        )
     ax.scatter(
         [PUB_FREE_AIR_CFM, 0.0],
         [0.0, PUB_SHUTOFF_PA],
@@ -348,6 +449,12 @@ def write_outputs(
             f"  sim free-air (0 Pa): {free_air:.1f} CFM  "
             f"=> {ratio:.2f}x published ({(ratio - 1) * 100:+.0f}%)"
         )
+    if physics_rows:
+        for r in physics_rows:
+            print(
+                f"  physics {r.get('label')}: {r['cfm']:.1f} CFM "
+                f"(frame={r.get('with_frame')} wall_ks={r.get('wall_ks_mm')} mm)"
+            )
     if gci and gci.get("gci_computed"):
         print(
             f"  GCI: p={gci.get('p')}, f_extrap={gci.get('f_extrapolated')}, "
@@ -372,6 +479,7 @@ def main() -> int:
 
     ladder_rows: list[dict[str, Any]] | None = None
     tip_gap_rows: list[dict[str, Any]] | None = None
+    physics_rows: list[dict[str, Any]] | None = None
     gci: dict[str, Any] | None = None
     if args.mesh_ladder:
         cells = [float(c) for c in args.mesh_ladder.split(",")]
@@ -404,11 +512,30 @@ def main() -> int:
             n_procs=args.procs,
         )
 
+    if args.physics_study:
+        ks = float(args.wall_ks_mm) if args.wall_ks_mm is not None else FDM_WALL_KS_MM
+        print(
+            f"[physics-study] free-air open/frame/wall_ks={ks:g} "
+            f"base_cell={args.base_cell} tip_gap={tip_gap_mm:g} mm",
+            flush=True,
+        )
+        physics_rows = run_free_air_physics_study(
+            params_path=args.params,
+            base_cell=args.base_cell,
+            out_root=out,
+            n_iters=args.iters,
+            n_procs=args.procs,
+            tip_gap_mm=tip_gap_mm,
+            wall_ks_mm=ks,
+        )
+
+    skip_pq = bool(args.ladder_only or args.physics_only)
     pq_rows: list[dict[str, Any]] = []
-    if not args.ladder_only:
+    if not skip_pq:
         print(
             f"[pq-sweep] backs={backs} base_cell={args.base_cell} "
-            f"tip_gap={tip_gap_mm:g} mm",
+            f"tip_gap={tip_gap_mm:g} mm frame={args.with_frame} "
+            f"wall_ks={args.wall_ks_mm}",
             flush=True,
         )
         pq_rows = run_pq_sweep(
@@ -419,6 +546,8 @@ def main() -> int:
             n_iters=args.iters,
             n_procs=args.procs,
             tip_gap_mm=tip_gap_mm,
+            with_frame=bool(args.with_frame),
+            wall_ks_mm=args.wall_ks_mm,
         )
     write_outputs(
         out=out,
@@ -428,6 +557,7 @@ def main() -> int:
         gci=gci,
         tip_gap_rows=tip_gap_rows,
         tip_gap_mm=tip_gap_mm,
+        physics_rows=physics_rows,
     )
     print(f"  total {time.time() - t0:.0f}s", flush=True)
     return 0
