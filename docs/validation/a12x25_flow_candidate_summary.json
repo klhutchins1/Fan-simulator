@@ -1,0 +1,40 @@
+{
+  "params": "config/problems/a12x25_flow_candidate.yaml",
+  "provenance": "experimental performance-oriented parametric; not Stock; not OEM",
+  "campaign": {
+    "kind": "free-air CFD verify of BEM-guided stagger candidate",
+    "tip_gap_mm": 0.5,
+    "base_cell_m": 0.006,
+    "backs_pa": [0],
+    "iters": 800,
+    "procs": 8,
+    "wall_time_s_approx": 158,
+    "local_run_dir": "runs/validate_a12x25_flow_candidate",
+    "knobs": {
+      "stagger_mid_deg": {"stock": 26.0, "candidate": 38.0},
+      "stagger_tip_deg": {"stock": 22.0, "candidate": 28.0}
+    }
+  },
+  "published": {
+    "free_air_cfm": 60.1,
+    "shutoff_pa": 22.9
+  },
+  "bem": {
+    "stock_free_cfm": 65.0,
+    "candidate_free_cfm": 78.0,
+    "note": "BEM over-predicts Stock free-air vs CFD (~44.6); stagger raises BEM a lot"
+  },
+  "cfd": {
+    "stock_free_cfm_ref": 44.6,
+    "candidate_free_cfm": 45.183039768,
+    "converged": true,
+    "drift_pct": 0.1,
+    "delta_vs_stock_cfm": 0.6
+  },
+  "interpretation": {
+    "cfd_gain": "~+0.6 CFM vs Stock open-duct free-air — not enough to close −26% gap",
+    "bem_cfd_disconnect": "BEM +13 CFM from mid stagger does not transfer to RANS MRF at this mesh",
+    "stock_wiring": "unchanged — STOCK_GEOMETRY_YAML a12x25 still a12x25_reference.yaml",
+    "next": "trusted STL silhouette or Phase 5 hardware; do not datasheet-tune Stock from BEM"
+  }
+}

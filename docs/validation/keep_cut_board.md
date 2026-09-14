@@ -13,7 +13,7 @@ This board records what we **keep** in the product, what we **park** until hones
 |------|----------|-------------------|
 | Axial Fan cockpit + CFD | **KEEP — primary** | Core design loop: CadQuery → BEM prescreen → OpenFOAM on stock axial cases. |
 | BEM screen + system curve | **KEEP** | Load-honest ranking (hose / heatsink / radiator ΔP) is the right optimizer objective; free-air-only prescreen is documented legacy. |
-| Stator / sickle / notches | **KEEP** (stage-1) | Phase 2 reference-parametric recipe (`a12x25_reference.yaml`) encodes 7-blade envelope + sickle/notch levers; deepen geometry only when validation or hardware measurement requires it — not OEM STL equivalence yet. |
+| Stator / sickle / notches | **KEEP** (stage-1) | Phase 2 reference-parametric recipe (`a12x25_reference.yaml`) remains cockpit Stock. Experimental `a12x25_flow_candidate.yaml` is research-only — **not** Stock, **not** OEM. Do not deepen planform claims without `validation/reference/` STL or Phase 5. |
 | Mixed / volute / CROR / prop | **KEEP scaffolds**, schedule after A12x25 band | Alternate machine types stay in tree for reuse; no expansion campaigns until published P–Q on the reference axial fan is honest. |
 | Surrogate GP/NN | **KEEP code**, retrain only on load-honest catalog | Models stay wired; new training runs must use catalog rows scored on system-curve load, not free-air-only studies. |
 | Wind turbine | **PARK** | Out of north-star path until axial reference CFD closes. |
@@ -27,7 +27,7 @@ This board records what we **keep** in the product, what we **park** until hones
 | Phase | What we learned | Effect on this board |
 |-------|-----------------|----------------------|
 | **Phase 2** (reference geometry) | Stock recipe is **reference-parametric** with envelope pytest pass (blade count, tip/hub bands) — **not** watertight OEM STL. | KEEP stator/sickle/notch work at stage-1; do not sell “matches Noctua CAD” without `validation/reference/` STL or print/measure. |
-| **Phase 3** (CFD vs published) | Screening free-air **40.9 CFM (−32%)** at ~1.0 mm tip; ladder at **0.5 mm** → **~44.7 CFM (−26%)**, GCI asymptotic. Frame/wall_ks A/B ≈ **−1 CFM** only. Shut-off **proxy** only. Interim ±10% band **not met**. | PARK absolute aeroacoustics / “validated stock”; next software lever is **recipe vs OEM**, then near-shut-off / Phase 5 hardware. |
+| **Phase 3** (CFD vs published) | Screening **40.9 CFM (−32%)**; ladder **~44.7 (−26%)**; frame/ks **~−1 CFM**; BEM-guided stagger candidate CFD **45.2 (+0.6 only)**. Shut-off **proxy** only. Interim ±10% **not met**. | PARK absolute aeroacoustics / “validated stock”; **do not** retune Stock from BEM. Next: trusted STL or Phase 5 hardware. |
 | **Phase 4** (perf / deps) | Screening speed and dependency hygiene help scale trials; they **do not** close the CFM gap. | KEEP perf work as throughput; do not reinterpret speedups as validation. |
 | **Phase 5** (print → measure) | **Hardware-gated** — see [north-star-staged.md](north-star-staged.md) and [.superpowers/sdd/task-5.1-blocked.md](../../.superpowers/sdd/task-5.1-blocked.md). | No absolute calibration or “§5.1 done” until a commercial A12x25 hub/frame + printed impeller yields at least one real CFM/static (preferably noise/weight/RPM) point in `validation/measurements/`. |
 

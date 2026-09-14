@@ -1,6 +1,6 @@
 # NF-A12x25 reference P–Q validation report
 
-**Status:** Task 3.2 screening + mesh/tip + frame/wall_ks campaigns recorded. **CFD interim gate: fail** on free-air (still outside ±10% of 60.1 CFM). Shut-off remains an extrapolated proxy from the Phase 3.2 P–Q only.
+**Status:** Task 3.2 screening + mesh/tip + frame/wall_ks + recipe-fidelity candidate campaigns recorded. **CFD interim gate: fail** on free-air (still outside ±10% of 60.1 CFM). Shut-off remains an extrapolated proxy from the Phase 3.2 P–Q only.
 
 **Published reference:** [a12x25-reference.md](../a12x25-reference.md) — 60.1 CFM free-air @ 0 Pa, 22.9 Pa shut-off @ 2000 RPM.
 
@@ -8,6 +8,7 @@
 - Phase 3.2 P–Q: `runs/validate_a12x25_phase3/` → [a12x25_phase3_validation_summary.json](a12x25_phase3_validation_summary.json)
 - Mesh ladder + tip A/B: `runs/validate_a12x25_mesh_tip/` → [a12x25_mesh_tip_validation_summary.json](a12x25_mesh_tip_validation_summary.json)
 - Frame / wall_ks A/B: `runs/validate_a12x25_physics/` → [a12x25_physics_validation_summary.json](a12x25_physics_validation_summary.json)
+- Flow candidate free-air: `runs/validate_a12x25_flow_candidate/` → [a12x25_flow_candidate_summary.json](a12x25_flow_candidate_summary.json)
 
 **Runner:** `scripts/run_a12x25_validation.py` with `--params config/problems/a12x25_reference.yaml` (cockpit Stock / Phase 2 reference recipe). Defaults tip clearance to **0.5 mm** (`--tip-gap-mm`); supports `--mesh-ladder`, `--ladder-only`, `--tip-gap-study`, `--physics-study`, `--with-frame`, `--wall-ks-mm`.
 
@@ -106,11 +107,12 @@ Not re-run at tip_gap 0.5 mm in the mesh/tip campaign (`--ladder-only`).
 | **Geometry error** | Envelope vs OEM | **Envelope pass**; recipe remains reference-parametric |
 | **Mesh error** | Discretization | **Ruled out as primary free-air driver** — asymptotic ladder, GCI_fine ≪ 1% |
 | **Tip-gap idealization** | Clearance | **Partial:** 1.0→0.5 mm explains ~4 of ~19 CFM shortfall |
-| **Model / B.C. error** | Open duct, no frame/struts, MRF, wall_ks | Frame + wall_ks only cost **~1 CFM** (§7). Remaining **~15 CFM** gap is **not** explained by those idealizations — prefer **recipe vs OEM** next. |
+| **Model / B.C. error** | Open duct, no frame/struts, MRF, wall_ks | Frame + wall_ks only cost **~1 CFM** (§7). |
+| **Parametric recipe vs OEM** | Station stagger/camber/chord vs real planform | Mid/tip stagger raise: BEM **+13 CFM**, CFD only **+0.6 CFM** (§8). Remaining gap needs **trusted STL / hardware**, not BEM datasheet tuning. |
 
 | Geometry envelope | CFD interim (free-air) | Interpretation |
 |-------------------|------------------------|----------------|
-| Pass | **Fail** (−26% at published tip gap, mesh-resolved; frame/ks ~−1 CFM more) | Mesh/tip/frame/ks checked; **recipe fidelity** is the next software lever |
+| Pass | **Fail** (−25% to −26% at tip_gap 0.5 mm) | Mesh/tip/frame/ks/stagger checked; **Stock wiring unchanged** |
 
 ---
 
@@ -119,10 +121,11 @@ Not re-run at tip_gap 0.5 mm in the mesh/tip campaign (`--ladder-only`).
 1. ~~Free-air mesh ladder + GCI~~ — **done**; asymptotic ~44.8 CFM at tip_gap 0.5 mm.  
 2. ~~Tip-gap 1.0 vs 0.5 mm~~ — **done**; +3.6 CFM.  
 3. ~~Frame / wall_ks free-air A/B~~ — **done**; see §7 (~1 CFM loss only).  
-4. **Reference blade recipe vs OEM** (camber / stagger / solidity) — dominant remaining free-air gap.  
-5. Near–shut-off numerics at tip_gap 0.5 mm (re-P–Q or finer backs past 15 Pa).  
-6. Prism layers / y+ (future).  
-7. Hardware Phase 5 when a commercial hub/frame + printed impeller measurement exists.
+4. ~~BEM stagger candidate CFD~~ — **done**; see §8 (~+0.6 CFM only). Stock **not** retuned.  
+5. **Trusted STL** under `validation/reference/` (silhouette / import) when a licensed mesh is available.  
+6. Near–shut-off numerics at tip_gap 0.5 mm (re-P–Q or finer backs past 15 Pa).  
+7. Prism layers / y+ (future).  
+8. Hardware Phase 5 when a commercial hub/frame + printed impeller measurement exists.
 
 ---
 
@@ -143,6 +146,27 @@ Committed summary: [a12x25_physics_validation_summary.json](a12x25_physics_valid
 
 ---
 
+## 8. Recipe fidelity — BEM sensitivity + experimental CFD candidate
+
+Plan: [2026-09-14-a12x25-recipe-fidelity.md](../superpowers/plans/2026-09-14-a12x25-recipe-fidelity.md).  
+BEM table: [a12x25_recipe_sensitivity.md](a12x25_recipe_sensitivity.md).
+
+**BEM (screening):** Stock free-air **65.0 CFM** (already above published 60.1; CFD Stock is ~44.6). Largest lever is **mid stagger** (+9 to +13 CFM at 38–44°). Tip stagger next; chord/lean barely move BEM free-air.
+
+**Experimental yaml:** `config/problems/a12x25_flow_candidate.yaml` — mid stagger **38°**, tip stagger **28°** (Stock 26° / 22°). **Not** Stock; **not** OEM.
+
+| Recipe | BEM free-air [CFM] | CFD free-air [CFM] (tip 0.5 mm, cell 0.006) |
+|--------|--------------------|-----------------------------------------------|
+| Stock `a12x25_reference.yaml` | 65.0 | **44.6** |
+| Candidate `a12x25_flow_candidate.yaml` | 78.0 | **45.2** (+0.6) |
+| Published | 60.1 | 60.1 |
+
+**Verdict:** Raising stagger does **not** close the CFD gap. BEM and RANS MRF disagree strongly on this knob. Do **not** retune `STOCK_GEOMETRY_YAML["a12x25"]` from BEM. Prefer a trusted STL or Phase 5 measurement before changing Stock.
+
+Committed summary: [a12x25_flow_candidate_summary.json](a12x25_flow_candidate_summary.json).
+
+---
+
 ## Artifacts
 
 | File | Purpose |
@@ -153,4 +177,9 @@ Committed summary: [a12x25_physics_validation_summary.json](a12x25_physics_valid
 | `docs/validation/a12x25_mesh_tip_validation_summary.json` | Committed mesh/tip numbers |
 | `runs/validate_a12x25_physics/validation.json` | Frame / wall_ks A/B (local) |
 | `docs/validation/a12x25_physics_validation_summary.json` | Committed physics A/B numbers |
+| `runs/validate_a12x25_flow_candidate/validation.json` | Stagger candidate free-air (local) |
+| `docs/validation/a12x25_flow_candidate_summary.json` | Committed candidate numbers |
+| `docs/validation/a12x25_recipe_sensitivity.md` | BEM one-factor table |
 | `scripts/run_a12x25_validation.py` | `--mesh-ladder`, `--tip-gap-*`, `--physics-study`, `--with-frame`, `--wall-ks-mm` |
+| `scripts/a12x25_recipe_sensitivity.py` | BEM sensitivity runner |
+| `config/problems/a12x25_flow_candidate.yaml` | Experimental sibling (not Stock) |
