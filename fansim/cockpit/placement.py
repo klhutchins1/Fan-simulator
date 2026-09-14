@@ -123,6 +123,26 @@ def nominal_fits_spec(flat: dict, spec: FanSpec, measured: tuple[float, float, f
     return tip_dia <= spec.tip_dia_mm[1] and depth <= spec.depth_mm[1]
 
 
+def frame_gap_note(tip_dia_mm: float, spec: FanSpec) -> str:
+    """CFD tip-clearance gate as a human reason string, or ``\"\"`` if OK.
+
+    ``check_build`` allows the impeller OD up to the frame ID. Assess/CFD also need
+    ``OPTIMIZER_TIP_GAP_MM`` radial leftover to that ID (same message shape as
+    ``evaluate_candidate``).
+    """
+    from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
+
+    casing_id = float(spec.tip_dia_mm[1])
+    remaining = casing_id / 2.0 - float(tip_dia_mm) / 2.0
+    floor = float(OPTIMIZER_TIP_GAP_MM)
+    if remaining + 1e-9 >= floor:
+        return ""
+    return (
+        f"{spec.name}: tip gap {remaining:.2f} mm < min {floor:.2f} mm "
+        f"to {casing_id:.0f} mm frame"
+    )
+
+
 def fit_envelope(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
     from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
     from fansim.geometry.features import features_from_flat
