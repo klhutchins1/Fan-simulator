@@ -59,6 +59,13 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--mesh-ladder", default=None, metavar="SIZES",
                     help="optional free-air-only ladder: base_cell sizes [m], coarse→fine "
                          "(e.g. 0.008,0.005,0.003); three sizes enable GCI stamp when computed")
+    ap.add_argument("--ladder-only", action="store_true",
+                    help="run --mesh-ladder only (skip the multi-back P–Q sweep)")
+    ap.add_argument("--tip-gap-mm", type=float, default=0.5,
+                    help="radial tip clearance [mm] for the duct (published A12x25 = 0.5; "
+                         "Phase 3 screening accidentally used domain default 1.0)")
+    ap.add_argument("--tip-gap-study", default=None, metavar="GAPS",
+                    help="free-air A/B at fixed --base-cell for tip gaps [mm], e.g. 1.0,0.5,0.25")
     ap.add_argument("--procs", type=int, default=8)
     ap.add_argument("--out", default="runs/validate_a12x25_phase3")
     return ap
@@ -91,6 +98,7 @@ def _run_free_air_at_cell(
         "cfm": m.cfm,
         "converged": m.converged,
         "drift_pct": round(m.flow_drift_pct, 1),
+        "tip_gap_mm": float(rig.tip_gap) / 1e-3,
     }
 
 
@@ -101,13 +109,16 @@ def run_mesh_ladder(
     out_root: Path,
     n_iters: int,
     n_procs: int,
+    tip_gap_mm: float = 0.5,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     params = load_blade_params(params_path)
+    out_root.mkdir(parents=True, exist_ok=True)
     stl_shared = out_root / "impeller.stl"
     if not stl_shared.exists():
         stl_shared = export_stl(build_impeller(params), stl_shared)
-    rig = rig_for_impeller(params, inlet_diameters=2.0, outlet_diameters=4.0)
+    rig = rig_for_impeller(
+        params, tip_gap_mm=tip_gap_mm, inlet_diameters=2.0, outlet_diameters=4.0)
     for bc in cells:
         cell_out = out_root / f"ladder_{bc:g}"
         cell_out.mkdir(parents=True, exist_ok=True)
@@ -123,8 +134,49 @@ def run_mesh_ladder(
             n_iters=n_iters,
             n_procs=n_procs,
         )
+        row["tip_gap_mm"] = float(tip_gap_mm)
         print(
-            f"  ladder base_cell={bc:g} -> {row['cfm']:.1f} CFM  "
+            f"  ladder base_cell={bc:g} tip_gap={tip_gap_mm:g} mm -> {row['cfm']:.1f} CFM  "
+            f"({'converged' if row['converged'] else 'UNCONVERGED'})  "
+            f"({time.time() - t:.0f}s)",
+            flush=True,
+        )
+        rows.append(row)
+    return rows
+
+
+def run_free_air_tip_gap_study(
+    *,
+    params_path: str,
+    tip_gaps_mm: list[float],
+    base_cell: float,
+    out_root: Path,
+    n_iters: int,
+    n_procs: int,
+) -> list[dict[str, Any]]:
+    """Free-air A/B at fixed mesh for several tip clearances."""
+    rows: list[dict[str, Any]] = []
+    params = load_blade_params(params_path)
+    out_root.mkdir(parents=True, exist_ok=True)
+    stl_shared = out_root / "impeller.stl"
+    if not stl_shared.exists():
+        stl_shared = export_stl(build_impeller(params), stl_shared)
+    for gap in tip_gaps_mm:
+        gap_out = out_root / f"tipgap_{gap:g}mm"
+        gap_out.mkdir(parents=True, exist_ok=True)
+        stl = gap_out / "impeller.stl"
+        if not stl.exists():
+            stl.write_bytes(stl_shared.read_bytes())
+        rig = rig_for_impeller(
+            params, tip_gap_mm=gap, inlet_diameters=2.0, outlet_diameters=4.0)
+        t = time.time()
+        row = _run_free_air_at_cell(
+            out=gap_out, stl=stl, rig=rig,
+            base_cell=base_cell, n_iters=n_iters, n_procs=n_procs,
+        )
+        row["tip_gap_mm"] = float(gap)
+        print(
+            f"  tip_gap={gap:g} mm base_cell={base_cell:g} -> {row['cfm']:.1f} CFM  "
             f"({'converged' if row['converged'] else 'UNCONVERGED'})  "
             f"({time.time() - t:.0f}s)",
             flush=True,
@@ -164,11 +216,13 @@ def run_pq_sweep(
     out: Path,
     n_iters: int,
     n_procs: int,
+    tip_gap_mm: float = 0.5,
 ) -> list[dict[str, Any]]:
     params = load_blade_params(params_path)
     out.mkdir(parents=True, exist_ok=True)
     stl = export_stl(build_impeller(params), out / "impeller.stl")
-    rig = rig_for_impeller(params, inlet_diameters=2.0, outlet_diameters=4.0)
+    rig = rig_for_impeller(
+        params, tip_gap_mm=tip_gap_mm, inlet_diameters=2.0, outlet_diameters=4.0)
     runner = OpenFOAMRunner(out)
 
     build_case(
@@ -198,6 +252,7 @@ def run_pq_sweep(
             "converged": m.converged,
             "drift_pct": round(m.flow_drift_pct, 1),
             "base_cell": base_cell,
+            "tip_gap_mm": float(tip_gap_mm),
         })
         print(
             f"  back={b:5.1f} Pa -> {m.cfm:6.1f} CFM  "
@@ -215,38 +270,57 @@ def write_outputs(
     pq_rows: list[dict[str, Any]],
     ladder_rows: list[dict[str, Any]] | None,
     gci: dict[str, Any] | None,
+    tip_gap_rows: list[dict[str, Any]] | None = None,
+    tip_gap_mm: float | None = None,
 ) -> None:
-    free_air = next((r["cfm"] for r in pq_rows if r["back_pa"] == 0.0), None)
+    free_air = next((r["cfm"] for r in pq_rows if r.get("back_pa") == 0.0), None)
+    if free_air is None and ladder_rows:
+        fine = min(ladder_rows, key=lambda r: r["base_cell"])
+        free_air = fine["cfm"]
     payload: dict[str, Any] = {
         "params": params_path,
         "published": {"free_air_cfm": PUB_FREE_AIR_CFM, "shutoff_pa": PUB_SHUTOFF_PA},
         "pq_rows": pq_rows,
     }
+    if tip_gap_mm is not None:
+        payload["tip_gap_mm"] = tip_gap_mm
     if ladder_rows is not None:
         payload["mesh_ladder"] = ladder_rows
+    if tip_gap_rows is not None:
+        payload["tip_gap_study"] = tip_gap_rows
     if gci is not None:
         payload["gci"] = gci
 
     (out / "validation.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     fig, ax = plt.subplots(figsize=(7.5, 5))
-    conv = [r for r in pq_rows if r["converged"]]
-    unconv = [r for r in pq_rows if not r["converged"]]
-    if conv:
-        ax.plot(
-            [r["cfm"] for r in conv],
-            [r["back_pa"] for r in conv],
-            "o-",
-            color="tab:blue",
-            label="sim (converged)",
-        )
-    if unconv:
+    if pq_rows:
+        conv = [r for r in pq_rows if r["converged"]]
+        unconv = [r for r in pq_rows if not r["converged"]]
+        if conv:
+            ax.plot(
+                [r["cfm"] for r in conv],
+                [r["back_pa"] for r in conv],
+                "o-",
+                color="tab:blue",
+                label="sim (converged)",
+            )
+        if unconv:
+            ax.scatter(
+                [r["cfm"] for r in unconv],
+                [r["back_pa"] for r in unconv],
+                facecolors="none",
+                edgecolors="gray",
+                label="sim (unconverged, near stall)",
+            )
+    if ladder_rows:
         ax.scatter(
-            [r["cfm"] for r in unconv],
-            [r["back_pa"] for r in unconv],
-            facecolors="none",
-            edgecolors="gray",
-            label="sim (unconverged, near stall)",
+            [r["cfm"] for r in ladder_rows],
+            [0.0] * len(ladder_rows),
+            marker="s",
+            color="tab:green",
+            label="mesh ladder (free-air)",
+            zorder=4,
         )
     ax.scatter(
         [PUB_FREE_AIR_CFM, 0.0],
@@ -275,7 +349,10 @@ def write_outputs(
             f"=> {ratio:.2f}x published ({(ratio - 1) * 100:+.0f}%)"
         )
     if gci and gci.get("gci_computed"):
-        print(f"  GCI (free-air ladder): {gci.get('note', '')}")
+        print(
+            f"  GCI: p={gci.get('p')}, f_extrap={gci.get('f_extrapolated')}, "
+            f"GCI_fine={gci.get('gci_fine_pct')}%, asymptotic={gci.get('asymptotic_ratio')}"
+        )
     elif gci:
         print(f"  GCI: not computed ({gci.get('reason', 'n/a')})")
     print(f"-> {out / 'validation.png'} , {out / 'validation.json'}")
@@ -290,37 +367,67 @@ def main() -> int:
 
     backs = [float(b) for b in args.backs.split(",")]
     out = Path(args.out)
+    tip_gap_mm = float(args.tip_gap_mm)
     t0 = time.time()
 
     ladder_rows: list[dict[str, Any]] | None = None
+    tip_gap_rows: list[dict[str, Any]] | None = None
     gci: dict[str, Any] | None = None
     if args.mesh_ladder:
         cells = [float(c) for c in args.mesh_ladder.split(",")]
-        print(f"[mesh-ladder] free-air at base_cell={cells}", flush=True)
+        print(
+            f"[mesh-ladder] free-air at base_cell={cells} tip_gap={tip_gap_mm:g} mm",
+            flush=True,
+        )
         ladder_rows = run_mesh_ladder(
             params_path=args.params,
             cells=cells,
             out_root=out,
             n_iters=args.iters,
             n_procs=args.procs,
+            tip_gap_mm=tip_gap_mm,
         )
         gci = maybe_stamp_gci(ladder_rows)
 
-    print(f"[pq-sweep] backs={backs} base_cell={args.base_cell}", flush=True)
-    pq_rows = run_pq_sweep(
-        params_path=args.params,
-        backs=backs,
-        base_cell=args.base_cell,
-        out=out,
-        n_iters=args.iters,
-        n_procs=args.procs,
-    )
+    if args.tip_gap_study:
+        gaps = [float(g) for g in args.tip_gap_study.split(",")]
+        print(
+            f"[tip-gap-study] free-air gaps={gaps} base_cell={args.base_cell}",
+            flush=True,
+        )
+        tip_gap_rows = run_free_air_tip_gap_study(
+            params_path=args.params,
+            tip_gaps_mm=gaps,
+            base_cell=args.base_cell,
+            out_root=out,
+            n_iters=args.iters,
+            n_procs=args.procs,
+        )
+
+    pq_rows: list[dict[str, Any]] = []
+    if not args.ladder_only:
+        print(
+            f"[pq-sweep] backs={backs} base_cell={args.base_cell} "
+            f"tip_gap={tip_gap_mm:g} mm",
+            flush=True,
+        )
+        pq_rows = run_pq_sweep(
+            params_path=args.params,
+            backs=backs,
+            base_cell=args.base_cell,
+            out=out,
+            n_iters=args.iters,
+            n_procs=args.procs,
+            tip_gap_mm=tip_gap_mm,
+        )
     write_outputs(
         out=out,
         params_path=args.params,
         pq_rows=pq_rows,
         ladder_rows=ladder_rows,
         gci=gci,
+        tip_gap_rows=tip_gap_rows,
+        tip_gap_mm=tip_gap_mm,
     )
     print(f"  total {time.time() - t0:.0f}s", flush=True)
     return 0

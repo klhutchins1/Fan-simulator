@@ -1,12 +1,14 @@
 # NF-A12x25 reference P–Q validation report
 
-**Status:** First reduced campaign recorded (Task 3.2). **CFD interim gate: fail** on free-air; shut-off is an extrapolated proxy only.
+**Status:** Task 3.2 screening + follow-on free-air mesh/tip campaign recorded. **CFD interim gate: fail** on free-air (still outside ±10% of 60.1 CFM). Shut-off remains an extrapolated proxy from the Phase 3.2 P–Q only.
 
-**Runner:** `scripts/run_a12x25_validation.py` with `--params config/problems/a12x25_reference.yaml` (cockpit Stock / Phase 2 reference recipe).
+**Runner:** `scripts/run_a12x25_validation.py` with `--params config/problems/a12x25_reference.yaml` (cockpit Stock / Phase 2 reference recipe). Defaults tip clearance to **0.5 mm** (`--tip-gap-mm`); supports `--mesh-ladder`, `--ladder-only`, `--tip-gap-study`.
 
 **Published reference:** [a12x25-reference.md](../a12x25-reference.md) — 60.1 CFM free-air @ 0 Pa, 22.9 Pa shut-off @ 2000 RPM.
 
-**Campaign artifact (local, not in git):** `runs/validate_a12x25_phase3/validation.json`, `validation.png`. Committed summary: [a12x25_phase3_validation_summary.json](a12x25_phase3_validation_summary.json).
+**Campaign artifacts (local, not in git):**
+- Phase 3.2 P–Q: `runs/validate_a12x25_phase3/` → [a12x25_phase3_validation_summary.json](a12x25_phase3_validation_summary.json)
+- Mesh ladder + tip A/B: `runs/validate_a12x25_mesh_tip/` → [a12x25_mesh_tip_validation_summary.json](a12x25_mesh_tip_validation_summary.json)
 
 ---
 
@@ -25,39 +27,56 @@ Geometry pass/fail is **independent** of CFD pass/fail (see geometry acceptance 
 
 ---
 
-## 2. Mesh and discretization note
+## 2. Mesh ladder + GCI (free-air, tip_gap = 0.5 mm)
+
+Follow-on campaign (~754 s wall, 800 iters, 8 procs, `--ladder-only`):
+
+| `base_cell` [m] | Free-air Q [CFM] | Converged | Drift [%] |
+|-----------------|------------------|-----------|-----------|
+| 0.008 | 43.9 | yes | 0.0 |
+| 0.006 | 44.6 | yes | 0.1 |
+| 0.004 | 44.7 | yes | 0.8 |
+
+| GCI field | Value |
+|-----------|--------|
+| Observed order \(p\) | ~5.25 |
+| \(f\) extrapolated | **~44.76 CFM** |
+| GCI fine | **~0.06%** |
+| Asymptotic ratio | **~1.004** (≈1 ⇒ asymptotic) |
+| Grid-converged **claim** (full P–Q) | **No** — free-air ladder only |
+
+**Verdict:** Free-air is **mesh-insensitive** over this ladder (~0.8 CFM from coarse→fine). The Task 3.2 **−32%** gap was **not** a coarse-mesh artifact. Best mesh-resolved free-air at published tip gap is still **~44.7 CFM (0.74× published, −26%)** — outside the interim ±10% band (54.1–66.1 CFM).
+
+---
+
+## 3. Tip-gap A/B (free-air, `base_cell` = 0.006 m)
+
+| Tip gap [mm] | Free-air Q [CFM] | Notes |
+|--------------|------------------|--------|
+| **1.0** (domain default used in Task 3.2) | **40.9** | Matches Phase 3.2 free-air |
+| **0.5** (published) | **44.6** | **+3.6 CFM** vs 1.0 mm |
+
+Closing tip gap to the published **0.5 mm** recovers ~**4 CFM** (~9% relative to the 1.0 mm case) but leaves **~15 CFM** still missing vs 60.1.
+
+---
+
+## 4. Task 3.2 screening P–Q (historical; tip_gap ≈ 1.0 mm)
 
 | Setting | Task 3.2 value |
 |---------|----------------|
-| P–Q sweep `base_cell` [m] | **0.006** (single screening size) |
-| Optional free-air `--mesh-ladder` | **Not run** — one affordable cell size for the full back-pressure sweep |
-| Solver iterations per point | **800** |
-| MPI processes | **8** |
-| Wall time (campaign) | **~466 s** |
-| Cell counts (checkMesh) | Not stamped in `validation.json` for this run |
-| GCI / grid-converged claim | **Not computed** — no three-point ladder; **not grid-converged** |
+| P–Q sweep `base_cell` [m] | **0.006** |
+| Tip gap (effective) | **~1.0 mm** (domain default; not published 0.5 mm) |
+| Solver iterations / MPI | **800** / **8** |
+| Wall time | **~466 s** |
+| GCI | Not computed in that run |
 
-**Honesty stamp:** This is a **single-mesh screening sweep**. Interim CFM/Pa numbers must not be read as mesh-independent until a free-air ladder and Roache GCI (or equivalent) are documented (runner `validation.json` → `gci` when present).
-
----
-
-## 3. Free-air vs published (60.1 CFM)
+### 4.1 Free-air vs published (that run)
 
 | Metric | Published | Simulated | Error | Interim band (±10%) | Interim pass? |
 |--------|-----------|-----------|-------|---------------------|---------------|
-| Free-air Q [CFM] @ 0 Pa | 60.1 | **40.94** | **−31.9%** (−19.2 CFM) | **54.1–66.1 CFM** | **No** |
+| Free-air Q [CFM] @ 0 Pa | 60.1 | **40.94** | **−31.9%** | **54.1–66.1 CFM** | **No** |
 
-Simulated point: **0 Pa** back-pressure, **converged** (flow drift **1.0%**).
-
-Interim CFD acceptance from [a12x25_geometry_acceptance.md](a12x25_geometry_acceptance.md): free-air within **±10%** of 60.1 CFM until a mesh/physics study tightens X/Y. At **0.68×** published flow, this run **misses the interim band by a wide margin**.
-
----
-
-## 4. Shut-off / stall proxy vs published (22.9 Pa)
-
-Direct zero-flow shut-off was **not** converged in this sweep. The **20 Pa** point stalled (**−2.37 CFM**, **unconverged**, **46.7%** flow drift).
-
-### 4.1 Multi-point P–Q (medium cell)
+### 4.2 Multi-point P–Q
 
 | Back-pressure [Pa] | Simulated Q [CFM] | Converged | Flow drift [%] |
 |--------------------|-------------------|-----------|----------------|
@@ -67,49 +86,50 @@ Direct zero-flow shut-off was **not** converged in this sweep. The **20 Pa** poi
 | 15 | 6.64 | yes | 0.6 |
 | 20 | −2.37 | **no** | 46.7 |
 
-### 4.2 Shut-off ΔP proxy (Q → 0 extrapolation)
+### 4.3 Shut-off ΔP proxy (Q → 0)
 
-**Method:** Linear extrapolation of static pressure vs flow using the last **two converged** points on the loading branch (**10 Pa / 13.10 CFM** and **15 Pa / 6.64 CFM**) to estimate ΔP at **Q = 0**.
+Linear fit of last two **converged** points (**10 Pa / 13.10 CFM**, **15 Pa / 6.64 CFM**):
 
 | Metric | Published | Simulated (proxy) | Error | Interim band (±5 Pa) | Interim pass? |
 |--------|-----------|-------------------|-------|----------------------|---------------|
-| Shut-off ΔP [Pa] | 22.9 | **~20.1** | **−2.8 Pa** (~−12%) | **17.9–27.9 Pa** | **Yes (proxy only)** |
+| Shut-off ΔP [Pa] | 22.9 | **~20.1** | **−2.8 Pa** | **17.9–27.9 Pa** | **Yes (proxy only)** |
 
-**Caveats:** Proxy depends on linear fit near stall; **20 Pa** did not converge; a dedicated near–zero-flow solve or finer mesh may move this intercept. Do **not** treat shut-off as validated at the same confidence as free-air until the stall branch is resolved.
+Not re-run at tip_gap 0.5 mm in the mesh/tip campaign (`--ladder-only`).
 
 ---
 
 ## 5. Geometry error vs model / idealization error
 
-| Source | What it affects | Task 3.2 assessment |
+| Source | What it affects | Current assessment |
 |--------|-----------------|---------------------|
-| **Geometry error** | Envelope vs OEM (blade count, tip/hub, sickle, clearance) | **Envelope pass** (pytest bands); recipe remains **reference-parametric**, not watertight OEM STL. Sickle/depth are qualitative acceptance items — not fully automated. |
-| **Model error** | MRF, walls, tip-gap resolution, frame/struts omitted, B.C. idealization, **coarse single mesh** | **Likely dominant** for the **−32%** free-air gap: screening mesh, open-duct idealization, and MRF stack are prioritized levers before blaming envelope numerics alone. |
+| **Geometry error** | Envelope vs OEM | **Envelope pass**; recipe remains reference-parametric |
+| **Mesh error** | Discretization | **Ruled out as primary free-air driver** — asymptotic ladder, GCI_fine ≪ 1% |
+| **Tip-gap idealization** | Clearance | **Partial:** 1.0→0.5 mm explains ~4 of ~19 CFM shortfall |
+| **Model / B.C. error** | Open duct, no frame/struts, MRF, wall_ks | **Likely dominant remaining** (~15 CFM / −26%) |
 
-**Independence table (this run):**
-
-| Geometry envelope | CFD interim (free-air + shut-off proxy) | Interpretation |
-|-------------------|----------------------------------------|----------------|
-| Pass | **Fail** (free-air); shut-off proxy in band | Shape bands OK; **do not** claim absolute stock P–Q match — fix mesh ladder and physics idealizations first ([acceptance doc §3](a12x25_geometry_acceptance.md)). |
-
-Do **not** merge geometry and CFD budgets into a single “validation passed” flag.
+| Geometry envelope | CFD interim (free-air) | Interpretation |
+|-------------------|------------------------|----------------|
+| Pass | **Fail** (−26% at published tip gap, mesh-resolved) | Fix physics idealizations next — not mesh ladder |
 
 ---
 
-## 6. Next physics levers (after first numbers)
+## 6. Next physics levers
 
-1. **Free-air mesh ladder** (`--mesh-ladder`) before tightening absolute CFM claims; compute GCI when three ladder CFMs exist.  
-2. Tip-gap and wall treatment vs **0.5 mm** published clearance at **0.006 m** base cell.  
-3. Frame / strut blockage vs open-duct idealization (explains part of low Q).  
-4. Near–shut-off numerics: smaller back-pressure steps or longer iterations past **15 Pa**; avoid trusting extrapolation once **20 Pa** diverges.  
-5. Prism layers / y+ (future; not default in screening).  
+1. ~~Free-air mesh ladder + GCI~~ — **done**; asymptotic ~44.8 CFM at tip_gap 0.5 mm.  
+2. ~~Tip-gap 1.0 vs 0.5 mm~~ — **done**; +3.6 CFM.  
+3. **Frame / casing / strut blockage** vs open-duct idealization.  
+4. **Wall roughness / `wall_ks`** sensitivity.  
+5. Near–shut-off numerics at tip_gap 0.5 mm (re-P–Q or finer backs past 15 Pa).  
+6. Prism layers / y+ (future).  
 
 ---
 
-## Artifacts (Task 3.2)
+## Artifacts
 
 | File | Purpose |
 |------|---------|
-| `runs/validate_a12x25_phase3/validation.json` | Full P–Q rows (local run tree) |
-| `runs/validate_a12x25_phase3/validation.png` | P–Q plot vs published points |
-| `docs/validation/a12x25_phase3_validation_summary.json` | Same numeric payload as JSON above, for docs/git |
+| `runs/validate_a12x25_phase3/validation.json` | Task 3.2 full P–Q (local) |
+| `docs/validation/a12x25_phase3_validation_summary.json` | Committed Phase 3.2 numbers |
+| `runs/validate_a12x25_mesh_tip/validation.json` | Mesh ladder + tip study (local) |
+| `docs/validation/a12x25_mesh_tip_validation_summary.json` | Committed mesh/tip numbers |
+| `scripts/run_a12x25_validation.py` | `--mesh-ladder`, `--ladder-only`, `--tip-gap-mm`, `--tip-gap-study` |

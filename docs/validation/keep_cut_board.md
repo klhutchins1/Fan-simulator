@@ -17,7 +17,7 @@ This board records what we **keep** in the product, what we **park** until hones
 | Mixed / volute / CROR / prop | **KEEP scaffolds**, schedule after A12x25 band | Alternate machine types stay in tree for reuse; no expansion campaigns until published P–Q on the reference axial fan is honest. |
 | Surrogate GP/NN | **KEEP code**, retrain only on load-honest catalog | Models stay wired; new training runs must use catalog rows scored on system-curve load, not free-air-only studies. |
 | Wind turbine | **PARK** | Out of north-star path until axial reference CFD closes. |
-| Absolute FW-H / DES | **PARK** until RANS free-air/shut-off trusted | Phase 3 free-air is **~−32%** vs published 60.1 CFM ([a12x25_pq_report.md](a12x25_pq_report.md)); 22.6 dB(A) and DES campaigns would over-claim before absolute P–Q is defensible. |
+| Absolute FW-H / DES | **PARK** until RANS free-air/shut-off trusted | Mesh-resolved free-air at published tip gap is still **~−26%** vs 60.1 CFM ([a12x25_pq_report.md](a12x25_pq_report.md)); Task 3.2 screening was **~−32%** at ~1.0 mm tip gap. Absolute aeroacoustics would over-claim before P–Q is defensible. |
 | Chat recovery extracts | **DON'T SHIP** | Local transcript/recovery trees are developer archaeology only — never product docs, configs, or defaults. |
 
 ---
@@ -27,7 +27,7 @@ This board records what we **keep** in the product, what we **park** until hones
 | Phase | What we learned | Effect on this board |
 |-------|-----------------|----------------------|
 | **Phase 2** (reference geometry) | Stock recipe is **reference-parametric** with envelope pytest pass (blade count, tip/hub bands) — **not** watertight OEM STL. | KEEP stator/sickle/notch work at stage-1; do not sell “matches Noctua CAD” without `validation/reference/` STL or print/measure. |
-| **Phase 3** (CFD vs published) | Free-air **40.94 CFM** vs **60.1 CFM** (**−31.9%**); shut-off is a **proxy** only. Interim free-air band **54.1–66.1 CFM** **not met**. | PARK absolute aeroacoustics and any “validated stock” marketing; prioritize mesh ladder + physics levers before new machine classes. |
+| **Phase 3** (CFD vs published) | Screening free-air **40.9 CFM (−32%)** at ~1.0 mm tip; follow-on ladder at **0.5 mm** → **~44.7 CFM (−26%)**, GCI asymptotic. Shut-off **proxy** only. Interim ±10% band **not met**. | PARK absolute aeroacoustics / “validated stock”; next levers are frame/casing and wall_ks — not mesh. |
 | **Phase 4** (perf / deps) | Screening speed and dependency hygiene help scale trials; they **do not** close the CFM gap. | KEEP perf work as throughput; do not reinterpret speedups as validation. |
 | **Phase 5** (print → measure) | **Hardware-gated** — see [north-star-staged.md](north-star-staged.md) and [.superpowers/sdd/task-5.1-blocked.md](../../.superpowers/sdd/task-5.1-blocked.md). | No absolute calibration or “§5.1 done” until a commercial A12x25 hub/frame + printed impeller yields at least one real CFM/static (preferably noise/weight/RPM) point in `validation/measurements/`. |
 

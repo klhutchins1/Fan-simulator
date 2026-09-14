@@ -1,0 +1,75 @@
+{
+  "params": "config/problems/a12x25_reference.yaml",
+  "campaign": {
+    "kind": "free-air mesh ladder + tip-gap A/B",
+    "ladder_only": true,
+    "mesh_ladder_m": [0.008, 0.006, 0.004],
+    "ladder_tip_gap_mm": 0.5,
+    "tip_gap_study_mm": [1.0, 0.5],
+    "tip_gap_study_base_cell_m": 0.006,
+    "iters": 800,
+    "procs": 8,
+    "wall_time_s_approx": 754,
+    "local_run_dir": "runs/validate_a12x25_mesh_tip"
+  },
+  "published": {
+    "free_air_cfm": 60.1,
+    "shutoff_pa": 22.9
+  },
+  "mesh_ladder": [
+    {
+      "base_cell": 0.008,
+      "tip_gap_mm": 0.5,
+      "cfm": 43.92280291527,
+      "converged": true,
+      "drift_pct": 0.0
+    },
+    {
+      "base_cell": 0.006,
+      "tip_gap_mm": 0.5,
+      "cfm": 44.576280956244,
+      "converged": true,
+      "drift_pct": 0.1
+    },
+    {
+      "base_cell": 0.004,
+      "tip_gap_mm": 0.5,
+      "cfm": 44.739227219808,
+      "converged": true,
+      "drift_pct": 0.8
+    }
+  ],
+  "tip_gap_study": [
+    {
+      "base_cell": 0.006,
+      "tip_gap_mm": 1.0,
+      "cfm": 40.942631403263995,
+      "converged": true,
+      "drift_pct": 0.9
+    },
+    {
+      "base_cell": 0.006,
+      "tip_gap_mm": 0.5,
+      "cfm": 44.567921966754,
+      "converged": true,
+      "drift_pct": 0.0
+    }
+  ],
+  "gci": {
+    "gci_computed": true,
+    "grid_converged_claim": false,
+    "p": 5.254461546016089,
+    "f_extrapolated": 44.76119034939475,
+    "gci_fine_pct": 0.06136429636692908,
+    "gci_medium_pct": 0.5185195724750689,
+    "asymptotic_ratio": 1.0036554477020836,
+    "converged": true,
+    "note": "Free-air ladder at tip_gap=0.5 mm; asymptotic and low GCI_fine, but not a full P–Q grid-converged campaign."
+  },
+  "interpretation": {
+    "mesh_sensitivity_cfm": "~0.8 CFM from 0.008→0.004 at tip_gap 0.5 mm; not the −32% driver",
+    "tip_gap_1p0_to_0p5_cfm_delta": "+3.6 CFM at base_cell 0.006 (40.9→44.6)",
+    "best_free_air_vs_published": "44.7 CFM (−26% vs 60.1); interim ±10% band still fail",
+    "next_levers": ["frame/casing/strut blockage", "wall_ks / roughness", "near-shut-off numerics"]
+  }
+}
