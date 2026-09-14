@@ -1,6 +1,8 @@
 # NF-A12x25 reference P–Q validation report
 
-**Status:** Task 3.2 screening + follow-on free-air mesh/tip campaign recorded. **CFD interim gate: fail** on free-air (still outside ±10% of 60.1 CFM). Shut-off remains an extrapolated proxy from the Phase 3.2 P–Q only.
+**Status:** Task 3.2 screening + mesh/tip + frame/wall_ks campaigns recorded. **CFD interim gate: fail** on free-air (still outside ±10% of 60.1 CFM). Shut-off remains an extrapolated proxy from the Phase 3.2 P–Q only.
+
+**Published reference:** [a12x25-reference.md](../a12x25-reference.md) — 60.1 CFM free-air @ 0 Pa, 22.9 Pa shut-off @ 2000 RPM.
 
 **Campaign artifacts (local, not in git):**
 - Phase 3.2 P–Q: `runs/validate_a12x25_phase3/` → [a12x25_phase3_validation_summary.json](a12x25_phase3_validation_summary.json)
