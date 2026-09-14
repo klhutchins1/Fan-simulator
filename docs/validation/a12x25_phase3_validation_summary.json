@@ -1,0 +1,58 @@
+{
+  "params": "config/problems/a12x25_reference.yaml",
+  "campaign": {
+    "base_cell_m": 0.006,
+    "iters": 800,
+    "backs_pa": [0, 5, 10, 15, 20],
+    "mesh_ladder": null,
+    "wall_time_s_approx": 466
+  },
+  "published": {
+    "free_air_cfm": 60.1,
+    "shutoff_pa": 22.9
+  },
+  "pq_rows": [
+    {
+      "back_pa": 0.0,
+      "cfm": 40.935747155646,
+      "converged": true,
+      "drift_pct": 1.0,
+      "base_cell": 0.006
+    },
+    {
+      "back_pa": 5.0,
+      "cfm": 24.856831462374,
+      "converged": true,
+      "drift_pct": 0.5,
+      "base_cell": 0.006
+    },
+    {
+      "back_pa": 10.0,
+      "cfm": 13.099478585767201,
+      "converged": true,
+      "drift_pct": 0.3,
+      "base_cell": 0.006
+    },
+    {
+      "back_pa": 15.0,
+      "cfm": 6.6397165575726005,
+      "converged": true,
+      "drift_pct": 0.6,
+      "base_cell": 0.006
+    },
+    {
+      "back_pa": 20.0,
+      "cfm": -2.3700508820688,
+      "converged": false,
+      "drift_pct": 46.7,
+      "base_cell": 0.006
+    }
+  ],
+  "derived": {
+    "free_air_error_pct": -31.9,
+    "shutoff_proxy_pa_linear_10_15_pa": 20.1,
+    "shutoff_proxy_error_pa": -2.8,
+    "interim_free_air_pass": false,
+    "interim_shutoff_proxy_pass": true
+  }
+}
