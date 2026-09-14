@@ -1,20 +1,24 @@
 # A12x25 reference geometry assets
 
-## Trusted impeller STL (future)
+## Trusted impeller STL
 
-When a licensed or otherwise distributable watertight impeller mesh is available, place it here as:
+`validation/reference/a12x25_impeller.stl` — watertight impeller mesh used for silhouette
+checks and optional CFD (`scripts/run_a12x25_validation.py --stl …`).
 
-`validation/reference/a12x25_impeller.stl`
+| Field | Value |
+|-------|--------|
+| Provenance | User-provided close reference to NF-A12x25 (not OEM CAD / not a licensed Noctua mesh) |
+| Source file | `A12x25_Fan.STL` (Downloads); prepared into this path |
+| Prep | Thin axis reoriented to **+Z** (OpenFOAM MRF), bounds-centered |
+| Silhouette (approx.) | **9** blades, tip ~**55.3 mm**, hub vertex p5 ~**19.2 mm**, axial ~**16.7 mm** |
 
-Stock loading and geometry acceptance can then move from the yaml **reference-parametric** recipe
-(`config/problems/a12x25_reference.yaml`) to an STL-backed import without changing the structure of
+Do **not** claim this file is official Noctua CAD. Geometry pass (silhouette) and CFD pass
+(published CFM/Pa) remain independent gates — see
 `docs/validation/a12x25_geometry_acceptance.md`.
 
 ## CFD absolute claims
 
-Interim CFD pass/fail against published free-air and shut-off numbers should wait until:
-
-1. A trusted STL (or equivalent CAD-backed mesh) is in this directory, **and**
-2. Phase 3 mesh-study work (Task 3.1) has tightened the CFD budget.
+Interim CFD vs published free-air / shut-off should prefer this mesh (or equivalent) over the
+parametric Stock yaml alone, with tip gap **0.5 mm** and a documented mesh budget.
 
 Geometry envelope checks and CFD performance checks remain separate gates.

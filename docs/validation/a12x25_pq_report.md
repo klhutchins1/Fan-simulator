@@ -1,8 +1,8 @@
 # NF-A12x25 reference P–Q validation report
 
-**Status:** Task 3.2 screening + mesh/tip + frame/wall_ks + recipe + **tip_gap 0.5 mm P–Q** campaigns recorded. **CFD interim:** free-air **fail** (−26%); shut-off **proxy pass** (~24 Pa vs 22.9, tip 0.5 mm).
+**Status:** Task 3.2 screening + mesh/tip + frame/wall_ks + recipe + tip_gap 0.5 mm P–Q + **close-reference STL free-air** recorded. **CFD interim:** free-air still **fail** (−17% on reference STL vs −26% parametric); shut-off **proxy pass** (~24 Pa, parametric tip 0.5 mm).
 
-**Published reference:** [a12x25-reference.md](../a12x25-reference.md) — 60.1 CFM free-air @ 0 Pa, 22.9 Pa shut-off @ 2000 RPM.
+**Published reference:** [a12x25-reference.md](../a12x25-reference.md) — 60.1 CFM free-air @ 0 Pa, 22.9 Pa shut-off @ 2000 RPM, **9** blades.
 
 **Campaign artifacts (local, not in git):**
 - Phase 3.2 P–Q (~1.0 mm tip): `runs/validate_a12x25_phase3/` → [a12x25_phase3_validation_summary.json](a12x25_phase3_validation_summary.json)
@@ -10,8 +10,9 @@
 - Frame / wall_ks A/B: `runs/validate_a12x25_physics/` → [a12x25_physics_validation_summary.json](a12x25_physics_validation_summary.json)
 - Flow candidate free-air: `runs/validate_a12x25_flow_candidate/` → [a12x25_flow_candidate_summary.json](a12x25_flow_candidate_summary.json)
 - Stock P–Q @ tip 0.5 mm: `runs/validate_a12x25_shutoff_05/` → [a12x25_shutoff_05_validation_summary.json](a12x25_shutoff_05_validation_summary.json)
+- Close-reference STL free-air: `runs/validate_a12x25_ref_stl/` → [a12x25_ref_stl_validation_summary.json](a12x25_ref_stl_validation_summary.json)
 
-**Runner:** `scripts/run_a12x25_validation.py` with `--params config/problems/a12x25_reference.yaml` (cockpit Stock / Phase 2 reference recipe). Defaults tip clearance to **0.5 mm** (`--tip-gap-mm`); supports `--mesh-ladder`, `--ladder-only`, `--tip-gap-study`, `--physics-study`, `--with-frame`, `--wall-ks-mm`.
+**Runner:** `scripts/run_a12x25_validation.py` with `--params config/problems/a12x25_reference.yaml` (cockpit Stock / Phase 2 reference recipe). Defaults tip clearance to **0.5 mm** (`--tip-gap-mm`); supports `--stl` (default `validation/reference/a12x25_impeller.stl`), `--mesh-ladder`, `--ladder-only`, `--tip-gap-study`, `--physics-study`, `--with-frame`, `--wall-ks-mm`.
 
 ---
 
@@ -19,14 +20,15 @@
 
 | Item | Value |
 |------|--------|
-| Parametric recipe | `config/problems/a12x25_reference.yaml` |
-| Blade count (published) | 7 |
+| Parametric recipe | `config/problems/a12x25_reference.yaml` (**9** blades) |
+| Close-reference STL | `validation/reference/a12x25_impeller.stl` (user-provided; **not** OEM CAD) |
+| Blade count (published) | **9** (Noctua A-series; older docs incorrectly said 7) |
 | Tip clearance target | 0.5 mm (published) |
 | Geometry acceptance doc | [a12x25_geometry_acceptance.md](a12x25_geometry_acceptance.md) |
 
-Geometry pass/fail is **independent** of CFD pass/fail (see geometry acceptance doc). This report focuses on solver P–Q vs published numbers for the reference stock shape.
+Geometry pass/fail is **independent** of CFD pass/fail (see geometry acceptance doc). This report focuses on solver P–Q vs published numbers.
 
-**Geometry budget (Task 2.2):** Envelope pytest (`tests/test_a12x25_reference_geometry.py`) passes blade count, tip **55–57 mm**, and hub **20–23 mm** for the reference loader. Treat as **geometry envelope pass** for the parametric recipe — not OEM CAD equivalence (see yaml `reference-parametric` provenance).
+**Geometry budget:** Envelope pytest + STL silhouette (`tests/test_a12x25_reference_geometry.py`) — tip **55–57 mm**, hub band, **9** blades, watertight. Silhouette **pass** for the checked-in close-reference mesh; parametric Stock remains approximate planform (not OEM equivalence).
 
 ---
 
@@ -105,15 +107,15 @@ Not re-run at tip_gap 0.5 mm in the mesh/tip campaign (`--ladder-only`).
 
 | Source | What it affects | Current assessment |
 |--------|-----------------|---------------------|
-| **Geometry error** | Envelope vs OEM | **Envelope pass**; recipe remains reference-parametric |
-| **Mesh error** | Discretization | **Ruled out as primary free-air driver** — asymptotic ladder, GCI_fine ≪ 1% |
-| **Tip-gap idealization** | Clearance | **Partial:** 1.0→0.5 mm explains ~4 of ~19 CFM shortfall |
+| **Geometry error** | Envelope vs OEM | Silhouette **pass** on close-reference STL; parametric Stock still approximate |
+| **Mesh error** | Discretization | **Ruled out as primary free-air driver** — asymptotic ladder, GCI_fine ≪ 1% (parametric) |
+| **Tip-gap idealization** | Clearance | **Partial:** 1.0→0.5 mm explains ~4 of ~19 CFM shortfall (parametric) |
 | **Model / B.C. error** | Open duct, no frame/struts, MRF, wall_ks | Frame + wall_ks only cost **~1 CFM** (§7). |
-| **Parametric recipe vs OEM** | Station stagger/camber/chord vs real planform | Mid/tip stagger raise: BEM **+13 CFM**, CFD only **+0.6 CFM** (§8). Remaining gap needs **trusted STL / hardware**, not BEM datasheet tuning. |
+| **Parametric recipe vs close STL** | Station stagger/camber/chord vs real planform | Mid/tip stagger raise: BEM **+13 CFM**, CFD only **+0.6 CFM** (§8). Close-reference STL recovers **~+5 CFM** vs parametric (§10). |
 
 | Geometry envelope | CFD interim (free-air) | Interpretation |
 |-------------------|------------------------|----------------|
-| Pass | **Fail** (−25% to −26% at tip_gap 0.5 mm) | Mesh/tip/frame/ks/stagger checked; **Stock wiring unchanged** |
+| Pass (STL silhouette) | **Fail** (−17% on close-ref STL; −26% parametric) at tip_gap 0.5 mm | Shape closer; still outside ±10%. Prefer STL for absolute claims. |
 
 ---
 
@@ -124,9 +126,10 @@ Not re-run at tip_gap 0.5 mm in the mesh/tip campaign (`--ladder-only`).
 3. ~~Frame / wall_ks free-air A/B~~ — **done**; see §7 (~1 CFM loss only).  
 4. ~~BEM stagger candidate CFD~~ — **done**; see §8 (~+0.6 CFM only). Stock **not** retuned.  
 5. ~~Near–shut-off P–Q at tip_gap 0.5 mm~~ — **done**; see §9 (proxy ~24 Pa, interim pass).  
-6. **Trusted STL** under `validation/reference/` (silhouette / import) when a licensed mesh is available.  
+6. ~~Trusted / close-reference STL~~ — **done**; see §10 (**49.8 CFM**, −17%).  
 7. Prism layers / y+ (future).  
 8. Hardware Phase 5 when a commercial hub/frame + printed impeller measurement exists.
+9. Full P–Q / shut-off on the close-reference STL (same tip/mesh budget as §9).
 
 ---
 
@@ -141,7 +144,7 @@ Campaign (~562 s): open duct vs four-bar frame and FDM-order sand-grain ``wall_k
 | wall_ks 0.1 mm | 44.0 | **−0.6** |
 | frame + wall_ks | 43.4 | **−1.2** |
 
-**Verdict:** Exhaust struts and print-rough walls are **small losses** (~1 CFM). They move free-air **further from** published 60.1, so they do **not** explain the remaining **~15 CFM (−26%)** shortfall. Missing “real-fan losses” were the right check historically for over-prediction; with the 7-blade reference recipe the dominant issue is now **under-performance of the parametric shape vs OEM**, not open-duct idealization.
+**Verdict:** Exhaust struts and print-rough walls are **small losses** (~1 CFM). They move free-air **further from** published 60.1, so they do **not** explain the remaining shortfall. With the parametric recipe the dominant issue was **under-performance of the approximate shape**; the close-reference STL (§10) closes part of that gap.
 
 Committed summary: [a12x25_physics_validation_summary.json](a12x25_physics_validation_summary.json). Local run: `runs/validate_a12x25_physics/`.
 
@@ -198,6 +201,22 @@ Committed summary: [a12x25_shutoff_05_validation_summary.json](a12x25_shutoff_05
 
 ---
 
+## 10. Close-reference STL free-air (tip_gap = 0.5 mm, base_cell = 0.006 m)
+
+**Mesh:** `validation/reference/a12x25_impeller.stl` — user-provided close reference to NF-A12x25 (**not** OEM CAD). Spin axis prepared to **+Z**; silhouette: **9** blades, tip ~55.3 mm, axial ~16.7 mm. Runner: `--stl --ladder-only --mesh-ladder 0.006` (~120 s).
+
+| Geometry | Free-air Q [CFM] | vs published | Interim ±10% |
+|----------|------------------|--------------|--------------|
+| Parametric Stock (`a12x25_reference.yaml`) | **44.6** | −26% | **Fail** |
+| Close-reference STL | **49.8** | **−17%** | **Fail** (need ≥54.1) |
+| Published | 60.1 | — | — |
+
+**Verdict:** The close-reference mesh recovers **~+5.2 CFM** vs the parametric Stock at the same tip gap and cell size — largest single free-air gain since tip-gap 0.5 mm. Still **~10 CFM** short of published and outside interim ±10%. Do **not** claim OEM CAD fidelity; do prefer `--stl` for absolute CFD claims going forward. Next: P–Q / shut-off on this mesh; Phase 5 hardware.
+
+Committed summary: [a12x25_ref_stl_validation_summary.json](a12x25_ref_stl_validation_summary.json). Local run: `runs/validate_a12x25_ref_stl/`.
+
+---
+
 ## Artifacts
 
 | File | Purpose |
@@ -212,7 +231,10 @@ Committed summary: [a12x25_shutoff_05_validation_summary.json](a12x25_shutoff_05
 | `docs/validation/a12x25_flow_candidate_summary.json` | Committed candidate numbers |
 | `runs/validate_a12x25_shutoff_05/validation.json` | Stock P–Q @ tip 0.5 mm (local) |
 | `docs/validation/a12x25_shutoff_05_validation_summary.json` | Committed shut-off campaign numbers |
+| `runs/validate_a12x25_ref_stl/validation.json` | Close-reference STL free-air (local) |
+| `docs/validation/a12x25_ref_stl_validation_summary.json` | Committed STL free-air numbers |
+| `validation/reference/a12x25_impeller.stl` | Close-reference impeller (Z-up); not OEM CAD |
 | `docs/validation/a12x25_recipe_sensitivity.md` | BEM one-factor table |
-| `scripts/run_a12x25_validation.py` | `--mesh-ladder`, `--tip-gap-*`, `--physics-study`, `--with-frame`, `--wall-ks-mm` |
+| `scripts/run_a12x25_validation.py` | `--stl`, `--mesh-ladder`, `--tip-gap-*`, `--physics-study`, `--with-frame`, `--wall-ks-mm` |
 | `scripts/a12x25_recipe_sensitivity.py` | BEM sensitivity runner |
 | `config/problems/a12x25_flow_candidate.yaml` | Experimental sibling (not Stock) |

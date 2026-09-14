@@ -1,9 +1,9 @@
 # Provenance: experimental performance-oriented parametric — NOT cockpit Stock, NOT OEM CAD.
 # Sibling of a12x25_reference.yaml for recipe-fidelity CFD; see docs/superpowers/plans/2026-09-14-a12x25-recipe-fidelity.md.
 # Knobs from BEM sensitivity: raise mid/tip stagger toward GUIDED band (Stock mid 26° → 38°, tip 22° → 28°).
-# Envelope unchanged: 7 blades, tip/hub 56.5 / 21.5 mm. Do not load via stock_blade_flat("a12x25").
+# Envelope unchanged tip/hub 56.5 / 21.5 mm; blade count corrected to published 9. Do not load via stock_blade_flat("a12x25").
 # Published targets remain docs/a12x25-reference.md (60.1 CFM / 22.9 Pa); this file is a CFD experiment only.
-n_blades: 7
+n_blades: 9
 hub_radius: 21.5
 tip_radius: 56.5
 root_embed: 2.0

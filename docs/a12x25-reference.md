@@ -16,7 +16,7 @@ Sources: [Noctua specs](https://noctua.at/en/nf-a12x25-pwm/specification),
 | **Max acoustic noise** | **22.6 dB(A)** | (18.8 dB(A) min) |
 | Input power (max) | ~1.68 W | — |
 | Tip clearance | **0.5 mm** | Sterrox LCP + MIM hub |
-| Blade count | 7 | — |
+| Blade count | 9 | — |
 
 ## Acceptance budgets (geometry vs CFD)
 
@@ -25,23 +25,24 @@ Two **separate** gates apply before absolute-performance claims; they must not b
 1. **Geometry fidelity** — blade count, tip/hub radii, axial depth, LE sickle character, and **0.5 mm** tip clearance vs the **110 mm** frame ID (vs trusted STL when available, else the parametric envelope).
 2. **CFD fidelity** — vs this table at 2000 RPM: interim **±10%** on free-air (**60.1 CFM**) and **±5 Pa** on shut-off (**22.9 Pa**), until Task 3.1 mesh study tightens X/Y.
 
-Full criteria, numeric bands (e.g. tip **55–57 mm**, hub **20–23 mm**, **7** blades), and the rule that geometry pass **does not** imply CFD pass (and vice versa): [validation/a12x25_geometry_acceptance.md](validation/a12x25_geometry_acceptance.md).
+Full criteria, numeric bands (e.g. tip **55–57 mm**, hub **20–23 mm**, **9** blades), and the rule that geometry pass **does not** imply CFD pass (and vice versa): [validation/a12x25_geometry_acceptance.md](validation/a12x25_geometry_acceptance.md).
 
 ## Immediate reality check (why validation matters)
 
-Our current idealized sim of a *9-blade envelope-approximation* baseline gives **free-air ≈
-81.5 CFM**; the real 7-blade A12x25 is **60.1 CFM**. The ~30–35% over-prediction is expected
-from the idealizations and must be closed/quantified before trusting absolute numbers:
+Our parametric Stock / approximate recipes historically under-resolved tip leakage and frame losses;
+published free-air is **60.1 CFM** at 2000 RPM. Closing the gap requires a trusted impeller mesh
+(see `validation/reference/a12x25_impeller.stl`), resolved tip gap (**0.5 mm**), and honest duct/frame
+physics — not datasheet-tuning of BEM alone:
 - **Slip duct walls** remove all duct friction (real ducts/frames add loss).
 - **No fan frame / motor struts / venturi inlet** — the real fan has flow-blocking structure.
 - **No resolved tip-leakage** (0.5 mm gap, ~1 mesh cell) — a dominant real loss.
 - **Fully-turbulent SST at transitional Re**, coarse mesh (grid convergence pending).
-- Geometry mismatch: 9 vs 7 blades, approximate profile.
+- Geometry mismatch: parametric planform vs close-reference STL (blade count must be **9**).
 
 ## Validation plan (review §6.1)
 
-1. Build the **actual A12x25 geometry** (from the Thingiverse remix thing:4553248, or a
-   reverse-engineered 7-blade parameter fit) rather than the envelope approximation.
+1. Prefer the **close-reference STL** under `validation/reference/a12x25_impeller.stl` (user-provided;
+   not OEM CAD) over envelope-only parametric builds for absolute CFD claims.
 2. Run the full **P–Q curve** at 2000 RPM and compare to (60.1 CFM free-air, 22.9 Pa
    shut-off). Report the error.
 3. Add the missing physics in priority of impact: resolved tip gap → frame struts/venturi →

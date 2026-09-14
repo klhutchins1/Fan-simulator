@@ -1,11 +1,11 @@
 # Provenance: approximate — parametric stand-in for regression / legacy paths (not OEM CAD).
 # Same body as config/problems/a12x25.yaml; use fan key a12x25_approx via stock_blade_flat.
 # Approximate Noctua NF-A12x25 geometry for CFD VALIDATION (not the exact Noctua profile).
-# 7 swept blades, ~113 mm impeller / ~43 mm hub, high-solidity pressure-oriented design.
+# 9 swept blades, ~113 mm impeller / ~43 mm hub, high-solidity pressure-oriented design.
 # Target published specs (docs/a12x25-reference.md): free-air 60.1 CFM, shut-off 22.9 Pa,
 # 22.6 dB(A), 2000 RPM, 0.5 mm tip clearance.
 # NOTE: this is a parametric approximation; geometry-approximation error is separate from CFD error.
-n_blades: 7
+n_blades: 9
 hub_radius: 21.5
 tip_radius: 56.5
 root_embed: 2.0

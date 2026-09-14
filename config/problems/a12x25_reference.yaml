@@ -1,9 +1,9 @@
 # Provenance: reference-parametric — best available yaml fit within published envelope bands.
-# NOT OEM CAD or a watertight STL import; see docs/validation/a12x25_geometry_acceptance.md.
-# Cockpit Stock (stock_blade_flat "a12x25") loads this recipe until validation/reference/a12x25_impeller.stl exists.
-# Noctua NF-A12x25 parametric reference: 7 blades, tip/hub within acceptance envelope (55–57 / 20–23 mm).
+# NOT OEM CAD; preferred CFD geometry is validation/reference/a12x25_impeller.stl when present.
+# Cockpit Stock (stock_blade_flat "a12x25") loads this recipe for parametric builds / BEM.
+# NF-A12x25: 9 blades (Noctua A-series), tip/hub within envelope (55–57 / 20–23 mm).
 # Published targets (docs/a12x25-reference.md): 60.1 CFM, 22.9 Pa, 22.6 dB(A), 2000 RPM, 0.5 mm tip clearance.
-n_blades: 7
+n_blades: 9
 hub_radius: 21.5
 tip_radius: 56.5
 root_embed: 2.0

@@ -40,6 +40,10 @@ from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.cfd.wall_roughness import FDM_WALL_KS_MM  # noqa: E402
 from fansim.geometry import build_impeller, export_stl  # noqa: E402
 from fansim.geometry.config import load_blade_params  # noqa: E402
+from fansim.validation.reference_stl import (  # noqa: E402
+    DEFAULT_REFERENCE_STL,
+    rig_for_reference_stl,
+)
 
 DEFAULT_PARAMS = "config/problems/a12x25_reference.yaml"
 
@@ -78,9 +82,52 @@ def build_parser() -> argparse.ArgumentParser:
                          "frame+wall_ks (wall_ks from --wall-ks-mm or FDM default)")
     ap.add_argument("--physics-only", action="store_true",
                     help="run --physics-study only (skip multi-back P–Q unless also requested)")
+    ap.add_argument(
+        "--stl",
+        default=None,
+        metavar="PATH",
+        help="use this impeller STL instead of build_impeller(params); "
+             f"default when flag is bare: {DEFAULT_REFERENCE_STL.as_posix()}",
+        nargs="?",
+        const=str(DEFAULT_REFERENCE_STL),
+    )
     ap.add_argument("--procs", type=int, default=8)
     ap.add_argument("--out", default="runs/validate_a12x25_phase3")
     return ap
+
+
+def _resolve_impeller_stl(
+    out_root: Path,
+    params: Any,
+    stl_src: Path | None,
+) -> Path:
+    """Copy shared impeller into out_root; build from params when no --stl."""
+    out_root.mkdir(parents=True, exist_ok=True)
+    dest = out_root / "impeller.stl"
+    if dest.exists():
+        return dest
+    if stl_src is not None:
+        src = Path(stl_src)
+        if not src.is_file():
+            raise FileNotFoundError(f"--stl not found: {src}")
+        dest.write_bytes(src.read_bytes())
+        return dest
+    return export_stl(build_impeller(params), dest)
+
+
+def _rig_for_case(params: Any, tip_gap_mm: float, stl_path: Path | None) -> Any:
+    if stl_path is not None:
+        return rig_for_reference_stl(
+            stl_path,
+            rpm=float(params.rpm),
+            tip_gap_mm=tip_gap_mm,
+            inlet_diameters=2.0,
+            outlet_diameters=4.0,
+            params=params,
+        )
+    return rig_for_impeller(
+        params, tip_gap_mm=tip_gap_mm, inlet_diameters=2.0, outlet_diameters=4.0)
+
 
 
 def _run_free_air_at_cell(
@@ -128,15 +175,12 @@ def run_mesh_ladder(
     n_iters: int,
     n_procs: int,
     tip_gap_mm: float = 0.5,
+    stl_src: Path | None = None,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     params = load_blade_params(params_path)
-    out_root.mkdir(parents=True, exist_ok=True)
-    stl_shared = out_root / "impeller.stl"
-    if not stl_shared.exists():
-        stl_shared = export_stl(build_impeller(params), stl_shared)
-    rig = rig_for_impeller(
-        params, tip_gap_mm=tip_gap_mm, inlet_diameters=2.0, outlet_diameters=4.0)
+    stl_shared = _resolve_impeller_stl(out_root, params, stl_src)
+    rig = _rig_for_case(params, tip_gap_mm, stl_shared if stl_src else None)
     for bc in cells:
         cell_out = out_root / f"ladder_{bc:g}"
         cell_out.mkdir(parents=True, exist_ok=True)
@@ -171,22 +215,19 @@ def run_free_air_tip_gap_study(
     out_root: Path,
     n_iters: int,
     n_procs: int,
+    stl_src: Path | None = None,
 ) -> list[dict[str, Any]]:
     """Free-air A/B at fixed mesh for several tip clearances."""
     rows: list[dict[str, Any]] = []
     params = load_blade_params(params_path)
-    out_root.mkdir(parents=True, exist_ok=True)
-    stl_shared = out_root / "impeller.stl"
-    if not stl_shared.exists():
-        stl_shared = export_stl(build_impeller(params), stl_shared)
+    stl_shared = _resolve_impeller_stl(out_root, params, stl_src)
     for gap in tip_gaps_mm:
         gap_out = out_root / f"tipgap_{gap:g}mm"
         gap_out.mkdir(parents=True, exist_ok=True)
         stl = gap_out / "impeller.stl"
         if not stl.exists():
             stl.write_bytes(stl_shared.read_bytes())
-        rig = rig_for_impeller(
-            params, tip_gap_mm=gap, inlet_diameters=2.0, outlet_diameters=4.0)
+        rig = _rig_for_case(params, gap, stl_shared if stl_src else None)
         t = time.time()
         row = _run_free_air_at_cell(
             out=gap_out, stl=stl, rig=rig,
@@ -212,6 +253,7 @@ def run_free_air_physics_study(
     n_procs: int,
     tip_gap_mm: float = 0.5,
     wall_ks_mm: float = FDM_WALL_KS_MM,
+    stl_src: Path | None = None,
 ) -> list[dict[str, Any]]:
     """Free-air A/B for open duct vs frame / wall_ks idealizations."""
     configs: list[tuple[str, bool, float | None]] = [
@@ -222,12 +264,8 @@ def run_free_air_physics_study(
     ]
     rows: list[dict[str, Any]] = []
     params = load_blade_params(params_path)
-    out_root.mkdir(parents=True, exist_ok=True)
-    stl_shared = out_root / "impeller.stl"
-    if not stl_shared.exists():
-        stl_shared = export_stl(build_impeller(params), stl_shared)
-    rig = rig_for_impeller(
-        params, tip_gap_mm=tip_gap_mm, inlet_diameters=2.0, outlet_diameters=4.0)
+    stl_shared = _resolve_impeller_stl(out_root, params, stl_src)
+    rig = _rig_for_case(params, tip_gap_mm, stl_shared if stl_src else None)
 
     for label, with_frame, ks in configs:
         case_out = out_root / f"physics_{label}"
@@ -293,12 +331,11 @@ def run_pq_sweep(
     tip_gap_mm: float = 0.5,
     with_frame: bool = False,
     wall_ks_mm: float | None = None,
+    stl_src: Path | None = None,
 ) -> list[dict[str, Any]]:
     params = load_blade_params(params_path)
-    out.mkdir(parents=True, exist_ok=True)
-    stl = export_stl(build_impeller(params), out / "impeller.stl")
-    rig = rig_for_impeller(
-        params, tip_gap_mm=tip_gap_mm, inlet_diameters=2.0, outlet_diameters=4.0)
+    stl = _resolve_impeller_stl(out, params, stl_src)
+    rig = _rig_for_case(params, tip_gap_mm, stl if stl_src else None)
     frame_path: Path | None = None
     if with_frame:
         frame_path = out / "frame.stl"
@@ -359,6 +396,7 @@ def write_outputs(
     tip_gap_rows: list[dict[str, Any]] | None = None,
     tip_gap_mm: float | None = None,
     physics_rows: list[dict[str, Any]] | None = None,
+    stl_src: str | None = None,
 ) -> None:
     free_air = next((r["cfm"] for r in pq_rows if r.get("back_pa") == 0.0), None)
     if free_air is None and ladder_rows:
@@ -372,6 +410,8 @@ def write_outputs(
         "published": {"free_air_cfm": PUB_FREE_AIR_CFM, "shutoff_pa": PUB_SHUTOFF_PA},
         "pq_rows": pq_rows,
     }
+    if stl_src is not None:
+        payload["stl"] = stl_src
     if tip_gap_mm is not None:
         payload["tip_gap_mm"] = tip_gap_mm
     if ladder_rows is not None:
@@ -475,6 +515,7 @@ def main() -> int:
     backs = [float(b) for b in args.backs.split(",")]
     out = Path(args.out)
     tip_gap_mm = float(args.tip_gap_mm)
+    stl_src = Path(args.stl) if args.stl else None
     t0 = time.time()
 
     ladder_rows: list[dict[str, Any]] | None = None
@@ -484,7 +525,8 @@ def main() -> int:
     if args.mesh_ladder:
         cells = [float(c) for c in args.mesh_ladder.split(",")]
         print(
-            f"[mesh-ladder] free-air at base_cell={cells} tip_gap={tip_gap_mm:g} mm",
+            f"[mesh-ladder] free-air at base_cell={cells} tip_gap={tip_gap_mm:g} mm"
+            + (f" stl={stl_src}" if stl_src else ""),
             flush=True,
         )
         ladder_rows = run_mesh_ladder(
@@ -494,6 +536,7 @@ def main() -> int:
             n_iters=args.iters,
             n_procs=args.procs,
             tip_gap_mm=tip_gap_mm,
+            stl_src=stl_src,
         )
         gci = maybe_stamp_gci(ladder_rows)
 
@@ -510,6 +553,7 @@ def main() -> int:
             out_root=out,
             n_iters=args.iters,
             n_procs=args.procs,
+            stl_src=stl_src,
         )
 
     if args.physics_study:
@@ -527,6 +571,7 @@ def main() -> int:
             n_procs=args.procs,
             tip_gap_mm=tip_gap_mm,
             wall_ks_mm=ks,
+            stl_src=stl_src,
         )
 
     skip_pq = bool(args.ladder_only or args.physics_only)
@@ -535,7 +580,8 @@ def main() -> int:
         print(
             f"[pq-sweep] backs={backs} base_cell={args.base_cell} "
             f"tip_gap={tip_gap_mm:g} mm frame={args.with_frame} "
-            f"wall_ks={args.wall_ks_mm}",
+            f"wall_ks={args.wall_ks_mm}"
+            + (f" stl={stl_src}" if stl_src else ""),
             flush=True,
         )
         pq_rows = run_pq_sweep(
@@ -548,6 +594,7 @@ def main() -> int:
             tip_gap_mm=tip_gap_mm,
             with_frame=bool(args.with_frame),
             wall_ks_mm=args.wall_ks_mm,
+            stl_src=stl_src,
         )
     write_outputs(
         out=out,
@@ -558,6 +605,7 @@ def main() -> int:
         tip_gap_rows=tip_gap_rows,
         tip_gap_mm=tip_gap_mm,
         physics_rows=physics_rows,
+        stl_src=str(stl_src) if stl_src else None,
     )
     print(f"  total {time.time() - t0:.0f}s", flush=True)
     return 0

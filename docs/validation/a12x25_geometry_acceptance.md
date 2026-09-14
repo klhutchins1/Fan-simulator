@@ -2,7 +2,7 @@
 
 **Purpose:** Define two **independent** pass/fail budgets for the Noctua NF-A12x25 PWM reference. Published manufacturer numbers live in [a12x25-reference.md](../a12x25-reference.md). Parametric recipes under `config/problems/` are **not** OEM truth unless labeled and backed by a trusted STL (see [proper-state program](../superpowers/plans/2026-09-14-proper-state-program.md) Phase 2).
 
-**Ground truth consumed:** 60.1 CFM free-air, 22.9 Pa shut-off, 22.6 dB(A), 2000 RPM, **0.5 mm** tip clearance, **7** blades.
+**Ground truth consumed:** 60.1 CFM free-air, 22.9 Pa shut-off, 22.6 dB(A), 2000 RPM, **0.5 mm** tip clearance, **9** blades (Noctua A-series; earlier docs incorrectly said 7).
 
 ---
 
@@ -12,14 +12,14 @@
 
 | Check | Acceptance (parametric envelope) | Notes |
 |-------|----------------------------------|--------|
-| Blade count | `n_blades == 7` | Must match published NF-A12x25 |
+| Blade count | `n_blades == 9` | Must match published NF-A12x25 (nine-blade A-series) |
 | Tip radius | **55.0–57.0 mm** | Nominal ~56.5 mm in approximate fit; bands match `tests/test_a12x25_reference_geometry.py` |
-| Hub radius | **20.0–23.0 mm** | ~43 mm hub OD band |
+| Hub radius | **20.0–23.0 mm** | ~43 mm hub OD band (STL vertex p5 may read slightly lower — soft band in silhouette test) |
 | Axial depth | Impeller fits **25 mm** frame class | Fan form factor is 120×120×25 mm; blade stack + hub margins must not exceed the printable depth budget used by `FanSpec` for `a12x25` (impeller depth within the documented min/max envelope, not a generic 120×38 industrial slot) |
-| LE sickle character | Visible tip-weighted LE sweep / sickle | NF-A12x25 planform is not a straight radial blade; reference recipe must encode non-trivial tip LE skew or sickle (e.g. `sickle_mm` / station sweep), not a flat-paddle 7-blade placeholder |
+| LE sickle character | Visible tip-weighted LE sweep / sickle | NF-A12x25 planform is not a straight radial blade; reference recipe must encode non-trivial tip LE skew or sickle (e.g. `sickle_mm` / station sweep), not a flat-paddle placeholder |
 | Tip clearance → frame ID | **0.5 mm** radial gap (published) | Frame inner diameter **110 mm** (measured mount envelope in `fan_spec`); built outer tip vs casing ID targets **0.5 mm** Sterrox LCP clearance — verify in placement/export, not nominal `tip_radius` alone |
 
-**STL-backed path (when `validation/reference/a12x25_impeller.stl` exists):** Replace numeric envelope checks with silhouette / bounding metrics against the STL (Task 2.2 may add soft asserts). Geometry pass means the loaded recipe reproduces the trusted solid within agreed mesh sampling tolerance — still **not** a CFD pass.
+**STL-backed path (when `validation/reference/a12x25_impeller.stl` exists):** Silhouette / bounding metrics against the STL (`tests/test_a12x25_reference_geometry.py`). Geometry pass means the mesh matches the published envelope within sampling tolerance — still **not** a CFD pass. The checked-in mesh is a **user-provided close reference**, not OEM CAD.
 
 **Explicit non-merge:** Geometry acceptance answers “does our reference impeller match the real shape envelope?” It does **not** answer “does OpenFOAM hit 60.1 CFM?”
 
@@ -49,7 +49,7 @@
 | Yes | Yes | Reference shape and solver campaign both within budget — strongest claim |
 | Yes | No | Shape/envelope OK; fix mesh, physics, or idealizations before absolute CFM/P claims |
 | No | Yes | Do not trust absolute “beats stock” — geometry error dominates interpretation |
-| No | No | Expected during migration off 9-blade / idealized baselines |
+| No | No | Expected during migration off idealized / wrong-blade baselines |
 
 **Passing geometry does not imply CFD pass, and vice versa.** Do not merge these into a single “validation passed” flag in UI, tests, or docs.
 

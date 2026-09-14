@@ -104,7 +104,7 @@ def run(out_path: Path) -> dict[str, Any]:
     baseline = blade_from_flat(flat)
     assert 55.0 <= baseline.tip_radius <= 57.0
     assert 20.0 <= baseline.hub_radius <= 23.0
-    assert baseline.n_blades == 7
+    assert baseline.n_blades == 9
 
     rows: list[tuple[str, dict[str, float]]] = []
     for label, params in _cases(baseline):
