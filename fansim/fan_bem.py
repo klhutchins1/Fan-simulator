@@ -189,7 +189,15 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
             t = a.dp_static_pa / (a.dp_static_pa - b.dp_static_pa)
             free_cfm = round(a.flow_cfm + t * (b.flow_cfm - a.flow_cfm), 1)
             break
-    shutoff = max(p.dp_static_pa for p in pts)
+    # Shut-off: Q→0 linear intercept from the lowest-flow points (§10.7), not max(ΔP)
+    # which can sit off the loading branch on a coarse sweep.
+    from fansim.analyze.fan_curve import shut_off_pa as _shut_off_pa
+    shut_proxy = _shut_off_pa(
+        [{"cfm": p.flow_cfm, "static_pa": p.dp_static_pa} for p in pts],
+        q_near_zero=max(5.0, 0.15 * free_cfm),
+    )
+    shutoff = float(shut_proxy) if shut_proxy is not None else max(
+        p.dp_static_pa for p in pts)
     peak = max(pts, key=lambda p: p.efficiency)
     return FanCurve(points=pts, free_delivery_cfm=free_cfm, shutoff_dp_pa=round(shutoff, 2),
                     peak_efficiency=peak.efficiency, peak_eff_cfm=peak.flow_cfm)

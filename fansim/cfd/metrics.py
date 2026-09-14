@@ -57,6 +57,9 @@ class FanMetrics:
     p_outlet_kin: float
     converged: bool = True
     flow_drift_pct: float = 0.0
+    # Total (static+dynamic) efficiency when known; None until a caller sets it or a
+    # future parse path computes ΔP_total. point_row passes this through as-is.
+    eta_total: float | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)

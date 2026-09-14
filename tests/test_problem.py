@@ -50,9 +50,18 @@ def test_axial_archetype_builds_geometry(tmp_path):
 
 
 def test_stub_archetype_fails_loudly():
-    stub = get_archetype("centrifugal")
-    with pytest.raises(NotImplementedError):
+    """Roadmap stubs must raise — centrifugal/prop/etc. are now real packages."""
+    from fansim.problem.archetypes import _StubArchetype
+
+    stub = _StubArchetype("example", "incompressible-RANS-MRF", "unit-test stub")
+    with pytest.raises(NotImplementedError, match="roadmap stub"):
         stub.suggest_design(None)
+
+
+def test_centrifugal_archetype_is_mixed_flow():
+    from fansim.centrifugal.archetype import MixedFlowArchetype
+
+    assert isinstance(get_archetype("centrifugal"), MixedFlowArchetype)
 
 
 def test_problem_from_dict_validates():

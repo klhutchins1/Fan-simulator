@@ -746,3 +746,120 @@ boundaryField
     impeller { type compressible::alphatWallFunction; value uniform 0; }
 }
 """
+
+
+# --- DES / pimpleFoam overlay (roadmap §1.4 stage A; parked for absolute claims) ---
+
+DES_FACE_FO = """
+    desFace@IDX@
+    {
+        type            surfaceFieldValue;
+        libs            (fieldFunctionObjects);
+        writeControl    timeStep;
+        writeInterval   @FOINT@;
+        writeFields     false;
+        log             false;
+        regionType      sampledSurface;
+        name            desFace@IDX@;
+        sampledSurfaceDict
+        {
+            type        cuttingPlane;
+            planeType   pointAndNormal;
+            pointAndNormalDict
+            {
+                point   (@PX@ @PY@ @PZ@);
+                normal  (@NX@ @NY@ @NZ@);
+            }
+            interpolate true;
+        }
+        operation       areaIntegrate;
+        fields          (p);
+    }
+"""
+
+DES_TURBULENCE = """@HEADER@
+simulationType LES;
+LES
+{
+    LESModel        kOmegaSSTDES;
+    turbulence      on;
+    printCoeffs     on;
+    delta           cubeRootVol;
+    cubeRootVolCoeffs { deltaCoeff 1; }
+}
+"""
+
+DES_FV_SCHEMES = """@HEADER@
+ddtSchemes      { default backward; }
+gradSchemes     { default Gauss linear; }
+divSchemes
+{
+    default         none;
+    div(phi,U)      Gauss LUST grad(U);
+    div(phi,k)      Gauss limitedLinear 1;
+    div(phi,omega)  Gauss limitedLinear 1;
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+}
+laplacianSchemes { default Gauss linear corrected; }
+interpolationSchemes { default linear; }
+snGradSchemes { default corrected; }
+wallDist { method meshWave; }
+"""
+
+DES_FV_SOLUTION = """@HEADER@
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        tolerance       1e-6;
+        relTol          0.01;
+        smoother        DICGaussSeidel;
+    }
+    pFinal
+    {
+        $p;
+        relTol          0;
+    }
+    "(U|k|omega)"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+    "(U|k|omega)Final"
+    {
+        $U;
+        relTol          0;
+    }
+}
+PIMPLE
+{
+    nOuterCorrectors 1;
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 1;
+}
+"""
+
+DES_CONTROL_DICT = """@HEADER@
+application     pimpleFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         @ENDTIME@;
+deltaT          @DELTAT@;
+writeControl    timeStep;
+writeInterval   @WRITEINT@;
+purgeWrite      2;
+writeFormat     ascii;
+writePrecision  7;
+writeCompression off;
+timeFormat      general;
+runTimeModifiable true;
+
+functions
+{
+@DES_FACE_FOS@
+}
+"""
