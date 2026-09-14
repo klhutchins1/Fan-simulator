@@ -84,3 +84,48 @@ def test_stats_and_empty(tmp_path):
     build_catalog(runs_dir=runs, store_dir=tmp_path / "none", db=db)
     s = catalog_stats(db)
     assert s["designs"] == 2 and s["pareto"] == 2 and s["measured"] == 0 and s["runs"] == 1
+
+
+def test_classify_puts_small_blade_on_a12x25(tmp_path):
+    from fansim.catalog import results_for_hub
+    runs = tmp_path / "runs"
+    params = {
+        "n_blades": 5, "hub_radius": 21.0, "tip_radius": 49.8,
+        "stagger_root": 26, "stagger_mid": 26, "stagger_tip": 22,
+        "chord_root": 34, "chord_mid": 30, "chord_tip": 28,
+        "sweep_mid": 0, "sweep_tip": 2, "max_camber": 0.02,
+    }
+    _make_run(runs, "opt_realframe", [{"trial": 22, "cfm_free": 53.9, "cfm_load": 50.0,
+                                       "efficiency": 30.0, "params": params}])
+    db = tmp_path / "cat.db"
+    build_catalog(runs_dir=runs, store_dir=tmp_path / "none", db=db)
+    e = get_entry("opt_realframe_t22", db)
+    assert "a12x25" in e.hub_models
+    assert e.fit_status == "fits"
+    hits = results_for_hub(load_catalog(db), "a12x25")
+    assert any(x.design_id == "opt_realframe_t22" for x in hits)
+
+
+def test_oversized_tip_not_in_a12x25_results(tmp_path):
+    from fansim.catalog import results_for_hub
+    runs = tmp_path / "runs"
+    params = {"n_blades": 9, "hub_radius": 16.5, "tip_radius": 59.0,
+              "stagger_root": 26, "stagger_mid": 26, "stagger_tip": 22,
+              "chord_root": 34, "chord_mid": 44, "chord_tip": 38,
+              "sweep_mid": 3, "sweep_tip": 5, "max_camber": 0.05}
+    _make_run(runs, "opt_run1", [{"trial": 9038, "cfm_free": 92.4, "cfm_load": 87.0,
+                                  "efficiency": 35.0, "params": params}])
+    db = tmp_path / "cat.db"
+    build_catalog(runs_dir=runs, store_dir=tmp_path / "none", db=db)
+    e = get_entry("opt_run1_t9038", db)
+    assert "a12x25" not in (e.hub_models or [])
+    hits = results_for_hub(load_catalog(db), "a12x25")
+    assert all(x.design_id != "opt_run1_t9038" for x in hits)
+
+
+def test_placed_on_includes_in_results_even_if_geometry_borderline():
+    from fansim.catalog import CatalogEntry, results_for_hub
+    e = CatalogEntry(design_id="placed_t1", hub_models=[], placed_on="a12x25",
+                     cfd_stale=True, fit_status="fits")
+    hits = results_for_hub([e], "a12x25")
+    assert hits[0].design_id == "placed_t1"

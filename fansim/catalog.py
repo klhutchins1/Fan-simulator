@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from datetime import date as _date
 from pathlib import Path
 
@@ -63,11 +63,17 @@ class CatalogEntry:
     date_indexed: str = ""
     cfd_stale: bool = False               # recovery: placed/derived design awaiting a fresh CFD
     k: float | None = None                # recovery: system-curve k (Pa at 50 CFM) when scored on load
+    hub_models: list = field(default_factory=list)  # fan-spec keys this geometry fits
+    fit_status: str = "unplaced"          # fits | unplaced | over_spec
+    placed_on: str = ""                   # hub key when explicitly placed onto a non-fit hub
+    parent_id: str = ""
+    place_op: str = ""
 
 
 _COLS = ("design_id", "run", "trial", "source", "is_pareto", "n_blades", "cfm_free", "cfm_load",
          "efficiency", "noise", "stl_path", "print_dir", "has_measurement", "measured_cfm",
-         "measured_noise", "cfm_error_pct", "params", "measured", "date_indexed")
+         "measured_noise", "cfm_error_pct", "params", "measured", "date_indexed",
+         "hub_models", "fit_status", "placed_on", "cfd_stale", "parent_id", "place_op")
 
 
 def _merge(dst: CatalogEntry, src: CatalogEntry) -> None:
@@ -82,16 +88,24 @@ def _merge(dst: CatalogEntry, src: CatalogEntry) -> None:
 
 
 def _from_row(run: str, row: dict, source: str, is_pareto: bool) -> CatalogEntry:
-    p = row.get("params", row)
+    p = row.get("params", row) if isinstance(row.get("params", row), dict) else row
+    if not isinstance(p, dict):
+        p = {}
     trial = row.get("trial")
+    extra = row.get("extra") if isinstance(row.get("extra"), dict) else {}
     return CatalogEntry(
         design_id=make_design_id(run, trial), run=run, trial=trial, source=source,
         is_pareto=is_pareto, n_blades=p.get("n_blades") or row.get("n_blades"),
         cfm_free=row.get("cfm_free") or (row.get("objectives") or {}).get("cfm_free"),
         cfm_load=row.get("cfm_load") or (row.get("objectives") or {}).get("cfm_load"),
         efficiency=row.get("efficiency") or (row.get("objectives") or {}).get("efficiency"),
-        noise=row.get("noise_swl") or (row.get("extra") or {}).get("noise"),
-        params=p)
+        noise=row.get("noise_swl") or extra.get("noise"),
+        params=p,
+        placed_on=str(extra.get("placed_on") or p.get("placed_on") or ""),
+        parent_id=str(extra.get("parent_id") or ""),
+        place_op=str(extra.get("place_op") or ""),
+        cfd_stale=bool(extra.get("cfd_stale", False)),
+    )
 
 
 def _scan_runs(runs_dir: Path) -> dict[str, CatalogEntry]:
@@ -161,6 +175,9 @@ def build_catalog(runs_dir: str | Path = "runs", store_dir: str | Path = "valida
     for rid in removed:
         entries.pop(rid, None)
 
+    for e in entries.values():
+        classify_entry(e)
+
     db = Path(db)
     db.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(db)
@@ -169,7 +186,9 @@ def build_catalog(runs_dir: str | Path = "runs", store_dir: str | Path = "valida
         design_id TEXT PRIMARY KEY, run TEXT, trial INTEGER, source TEXT, is_pareto INTEGER,
         n_blades INTEGER, cfm_free REAL, cfm_load REAL, efficiency REAL, noise REAL,
         stl_path TEXT, print_dir TEXT, has_measurement INTEGER, measured_cfm REAL,
-        measured_noise REAL, cfm_error_pct REAL, params TEXT, measured TEXT, date_indexed TEXT)""")
+        measured_noise REAL, cfm_error_pct REAL, params TEXT, measured TEXT, date_indexed TEXT,
+        hub_models TEXT, fit_status TEXT, placed_on TEXT, cfd_stale INTEGER,
+        parent_id TEXT, place_op TEXT)""")
     today = _date.today().isoformat()
     for e in entries.values():
         con.execute(
@@ -177,7 +196,9 @@ def build_catalog(runs_dir: str | Path = "runs", store_dir: str | Path = "valida
             (e.design_id, e.run, e.trial, e.source, int(e.is_pareto), e.n_blades, e.cfm_free,
              e.cfm_load, e.efficiency, e.noise, e.stl_path, e.print_dir, int(e.has_measurement),
              e.measured_cfm, e.measured_noise, e.cfm_error_pct, json.dumps(e.params),
-             json.dumps(e.measured), today))
+             json.dumps(e.measured), today, json.dumps(list(e.hub_models or [])),
+             e.fit_status or "unplaced", e.placed_on or "", int(bool(e.cfd_stale)),
+             e.parent_id or "", e.place_op or ""))
     con.commit()
     con.close()
     return len(entries)
@@ -185,11 +206,29 @@ def build_catalog(runs_dir: str | Path = "runs", store_dir: str | Path = "valida
 
 def _row_to_entry(r: sqlite3.Row) -> CatalogEntry:
     d = dict(r)
-    d["is_pareto"] = bool(d["is_pareto"])
-    d["has_measurement"] = bool(d["has_measurement"])
+    d["is_pareto"] = bool(d.get("is_pareto", 0))
+    d["has_measurement"] = bool(d.get("has_measurement", 0))
+    d["cfd_stale"] = bool(d.get("cfd_stale", 0))
     d["params"] = json.loads(d.get("params") or "{}")
     d["measured"] = json.loads(d.get("measured") or "[]")
-    return CatalogEntry(**d)
+    hub_raw = d.get("hub_models")
+    if isinstance(hub_raw, str):
+        d["hub_models"] = json.loads(hub_raw or "[]")
+    elif hub_raw is None:
+        d["hub_models"] = []
+    d.setdefault("fit_status", "unplaced")
+    d.setdefault("placed_on", "")
+    d.setdefault("parent_id", "")
+    d.setdefault("place_op", "")
+    for key in ("fit_status", "placed_on", "parent_id", "place_op"):
+        if d.get(key) is None:
+            d[key] = "" if key != "fit_status" else "unplaced"
+    valid = {f.name for f in fields(CatalogEntry)}
+    e = CatalogEntry(**{k: v for k, v in d.items() if k in valid})
+    # Old catalog.db rows lack hub columns — classify from params so cockpit Results works.
+    if e.params:
+        classify_entry(e)
+    return e
 
 
 def load_catalog(db: str | Path = CATALOG_DB) -> list[CatalogEntry]:
@@ -225,7 +264,31 @@ def catalog_stats(db: str | Path = CATALOG_DB) -> dict:
     }
 
 
-# --- spliced from transcript edit-history (recovery 2026-09-12) ---
+def classify_entry(e: CatalogEntry) -> CatalogEntry:
+    """Fill ``hub_models`` / ``fit_status`` from geometry vs each registered FanSpec."""
+    from fansim.cockpit.placement import nominal_fits_spec
+    from fansim.fan_spec import fan_spec_names, get_fan_spec
+
+    p = e.params or {}
+    fitted: list[str] = []
+    for key in fan_spec_names():
+        try:
+            if nominal_fits_spec(p, get_fan_spec(key)):
+                fitted.append(key)
+        except (KeyError, TypeError, ValueError):
+            continue
+    e.hub_models = fitted
+    if e.placed_on:
+        # Keep an explicit over_spec stamp when geometry still misses the placed hub.
+        if e.placed_on in fitted:
+            e.fit_status = "fits"
+        elif e.fit_status != "over_spec":
+            e.fit_status = "fits" if fitted else "unplaced"
+    else:
+        e.fit_status = "fits" if fitted else "unplaced"
+    return e
+
+
 def results_for_hub(entries: list[CatalogEntry], hub_key: str) -> list[CatalogEntry]:
     return [e for e in entries if hub_key in (e.hub_models or []) or e.placed_on == hub_key]
 
