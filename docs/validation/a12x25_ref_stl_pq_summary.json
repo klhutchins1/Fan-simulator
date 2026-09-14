@@ -1,0 +1,31 @@
+{
+  "params": "config/problems/a12x25_reference.yaml",
+  "stl": "validation/reference/a12x25_impeller.stl",
+  "provenance": "user-provided close reference to NF-A12x25; not OEM CAD",
+  "published": {
+    "free_air_cfm": 60.1,
+    "shutoff_pa": 22.9,
+    "n_blades": 9
+  },
+  "tip_gap_mm": 0.5,
+  "base_cell": 0.006,
+  "iters": 800,
+  "pq_rows": [
+    {"back_pa": 0.0, "cfm": 49.774540523489996, "converged": true, "drift_pct": 0.2},
+    {"back_pa": 5.0, "cfm": 22.84734310227, "converged": true, "drift_pct": 1.1},
+    {"back_pa": 10.0, "cfm": 7.6418292980688, "converged": true, "drift_pct": 0.0},
+    {"back_pa": 12.0, "cfm": 4.3439011301502, "converged": true, "drift_pct": 0.2},
+    {"back_pa": 14.0, "cfm": 0.87354472290642, "converged": false, "drift_pct": 15.5},
+    {"back_pa": 16.0, "cfm": -2.817533545773, "converged": false, "drift_pct": 10.9},
+    {"back_pa": 18.0, "cfm": -6.979048305673801, "converged": false, "drift_pct": 11.8}
+  ],
+  "shutoff_proxy_pa": 14.63,
+  "shutoff_proxy_method": "linear Q->0 from last two converged points (10 Pa / 7.64 CFM, 12 Pa / 4.34 CFM)",
+  "interim": {
+    "free_air_band_cfm": [54.1, 66.1],
+    "free_air_pass": false,
+    "shutoff_band_pa": [17.9, 27.9],
+    "shutoff_pass": false
+  },
+  "note": "Steeper loading branch than parametric Stock (Stock shut-off proxy ~24 Pa). Free-air matches §10 single-point 49.8 CFM."
+}

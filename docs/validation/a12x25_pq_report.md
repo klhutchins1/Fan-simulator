@@ -1,6 +1,6 @@
 # NF-A12x25 reference P–Q validation report
 
-**Status:** Task 3.2 screening + mesh/tip + frame/wall_ks + recipe + tip_gap 0.5 mm P–Q + **close-reference STL free-air** recorded. **CFD interim:** free-air still **fail** (−17% on reference STL vs −26% parametric); shut-off **proxy pass** (~24 Pa, parametric tip 0.5 mm).
+**Status:** Task 3.2 + mesh/tip + frame/wall_ks + recipe + tip_gap 0.5 P–Q + close-reference STL free-air/P–Q + **prism layers**. **CFD interim:** free-air **fail** (−17% / layers −16%); shut-off **proxy fail** on STL (~14.6 Pa) vs **proxy pass** on parametric Stock (~24 Pa). Screening free-air levers exhausted.
 
 **Published reference:** [a12x25-reference.md](../a12x25-reference.md) — 60.1 CFM free-air @ 0 Pa, 22.9 Pa shut-off @ 2000 RPM, **9** blades.
 
@@ -11,8 +11,10 @@
 - Flow candidate free-air: `runs/validate_a12x25_flow_candidate/` → [a12x25_flow_candidate_summary.json](a12x25_flow_candidate_summary.json)
 - Stock P–Q @ tip 0.5 mm: `runs/validate_a12x25_shutoff_05/` → [a12x25_shutoff_05_validation_summary.json](a12x25_shutoff_05_validation_summary.json)
 - Close-reference STL free-air: `runs/validate_a12x25_ref_stl/` → [a12x25_ref_stl_validation_summary.json](a12x25_ref_stl_validation_summary.json)
+- Close-reference STL P–Q: `runs/validate_a12x25_ref_stl_pq/` → [a12x25_ref_stl_pq_summary.json](a12x25_ref_stl_pq_summary.json)
+- Close-reference STL + layers: `runs/validate_a12x25_ref_stl_layers/` → [a12x25_ref_stl_layers_summary.json](a12x25_ref_stl_layers_summary.json)
 
-**Runner:** `scripts/run_a12x25_validation.py` with `--params config/problems/a12x25_reference.yaml` (cockpit Stock / Phase 2 reference recipe). Defaults tip clearance to **0.5 mm** (`--tip-gap-mm`); supports `--stl` (default `validation/reference/a12x25_impeller.stl`), `--mesh-ladder`, `--ladder-only`, `--tip-gap-study`, `--physics-study`, `--with-frame`, `--wall-ks-mm`.
+**Runner:** `scripts/run_a12x25_validation.py` — `--stl`, `--layers` (prism), tip **0.5 mm**, mesh ladder / physics / P–Q flags as before.
 
 ---
 
@@ -127,9 +129,9 @@ Not re-run at tip_gap 0.5 mm in the mesh/tip campaign (`--ladder-only`).
 4. ~~BEM stagger candidate CFD~~ — **done**; see §8 (~+0.6 CFM only). Stock **not** retuned.  
 5. ~~Near–shut-off P–Q at tip_gap 0.5 mm~~ — **done**; see §9 (proxy ~24 Pa, interim pass).  
 6. ~~Trusted / close-reference STL~~ — **done**; see §10 (**49.8 CFM**, −17%).  
-7. Prism layers / y+ (future).  
+7. ~~Prism layers / y+~~ — **done**; see §12 (**+0.6 CFM** only).  
 8. Hardware Phase 5 when a commercial hub/frame + printed impeller measurement exists.
-9. Full P–Q / shut-off on the close-reference STL (same tip/mesh budget as §9).
+9. ~~Full P–Q / shut-off on the close-reference STL~~ — **done**; see §11 (shut-off proxy **fail** ~14.6 Pa).
 
 ---
 
@@ -217,6 +219,50 @@ Committed summary: [a12x25_ref_stl_validation_summary.json](a12x25_ref_stl_valid
 
 ---
 
+## 11. Close-reference STL P–Q (tip_gap = 0.5 mm, base_cell = 0.006 m)
+
+Campaign (~582 s): backs **0,5,10,12,14,16,18** Pa, open duct, `--stl`.
+
+| Back-pressure [Pa] | Simulated Q [CFM] | Converged | Drift [%] |
+|--------------------|-------------------|-----------|-----------|
+| 0 | **49.77** | yes | 0.2 |
+| 5 | 22.85 | yes | 1.1 |
+| 10 | 7.64 | yes | 0.0 |
+| 12 | 4.34 | yes | 0.2 |
+| 14 | 0.87 | **no** | 15.5 |
+| 16 | −2.82 | **no** | 10.9 |
+| 18 | −6.98 | **no** | 11.8 |
+
+### Shut-off ΔP proxy (Q → 0)
+
+Linear fit of last two **converged** points (**10 Pa / 7.64 CFM**, **12 Pa / 4.34 CFM**):
+
+| Metric | Published | Simulated (proxy) | Error | Interim band (±5 Pa) | Interim pass? |
+|--------|-----------|-------------------|-------|----------------------|---------------|
+| Shut-off ΔP [Pa] | 22.9 | **~14.6** | **−8.3 Pa** | **17.9–27.9 Pa** | **No** |
+
+**Verdict:** Free-air still **−17%** (outside ±10%). Loading branch is **much steeper** than parametric Stock (§9): higher free-air but **weaker** shut-off (~14.6 vs Stock ~24 Pa). Geometry pass on silhouette does **not** imply CFD pass — both free-air and shut-off fail interim on this mesh. Prefer documenting both curves; do not promote absolute claims.
+
+Committed summary: [a12x25_ref_stl_pq_summary.json](a12x25_ref_stl_pq_summary.json). Local run: `runs/validate_a12x25_ref_stl_pq/`.
+
+---
+
+## 12. Prism layers free-air A/B (close-ref STL, tip 0.5 mm, cell 0.006)
+
+Runner `--layers` enables snappy `addLayers` (3 surface layers on impeller).
+
+| Config | Free-air Q [CFM] | Δ |
+|--------|------------------|---|
+| no layers (§10) | **49.8** | — |
+| `--layers` | **50.4** | **+0.6** |
+| Published | 60.1 | — |
+
+**Verdict:** Near-wall prism growth is a **negligible** free-air lever here (~1% relative). Remaining ~10 CFM gap is not a missing-layer artifact at this mesh budget. Next honest software path is thin; absolute free-air needs better geometry fidelity and/or Phase 5 hardware, not more screening knobs.
+
+Committed summary: [a12x25_ref_stl_layers_summary.json](a12x25_ref_stl_layers_summary.json). Local run: `runs/validate_a12x25_ref_stl_layers/`.
+
+---
+
 ## Artifacts
 
 | File | Purpose |
@@ -234,7 +280,11 @@ Committed summary: [a12x25_ref_stl_validation_summary.json](a12x25_ref_stl_valid
 | `runs/validate_a12x25_ref_stl/validation.json` | Close-reference STL free-air (local) |
 | `docs/validation/a12x25_ref_stl_validation_summary.json` | Committed STL free-air numbers |
 | `validation/reference/a12x25_impeller.stl` | Close-reference impeller (Z-up); not OEM CAD |
+| `runs/validate_a12x25_ref_stl_pq/validation.json` | Close-reference STL P–Q (local) |
+| `docs/validation/a12x25_ref_stl_pq_summary.json` | Committed STL P–Q + shut-off proxy |
+| `runs/validate_a12x25_ref_stl_layers/validation.json` | STL free-air with prism layers (local) |
+| `docs/validation/a12x25_ref_stl_layers_summary.json` | Committed layers A/B numbers |
 | `docs/validation/a12x25_recipe_sensitivity.md` | BEM one-factor table |
-| `scripts/run_a12x25_validation.py` | `--stl`, `--mesh-ladder`, `--tip-gap-*`, `--physics-study`, `--with-frame`, `--wall-ks-mm` |
+| `scripts/run_a12x25_validation.py` | `--stl`, `--layers`, `--mesh-ladder`, `--tip-gap-*`, `--physics-study`, … |
 | `scripts/a12x25_recipe_sensitivity.py` | BEM sensitivity runner |
 | `config/problems/a12x25_flow_candidate.yaml` | Experimental sibling (not Stock) |

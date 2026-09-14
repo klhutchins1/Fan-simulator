@@ -1,0 +1,22 @@
+{
+  "params": "config/problems/a12x25_reference.yaml",
+  "stl": "validation/reference/a12x25_impeller.stl",
+  "tip_gap_mm": 0.5,
+  "base_cell": 0.006,
+  "add_layers": true,
+  "n_surface_layers": 3,
+  "mesh_ladder": [
+    {
+      "base_cell": 0.006,
+      "cfm": 50.391080094558,
+      "converged": true,
+      "drift_pct": 0.3
+    }
+  ],
+  "comparison": {
+    "no_layers_cfm": 49.8,
+    "with_layers_cfm": 50.39,
+    "delta_cfm": 0.6
+  },
+  "verdict": "Prism layers recover ~0.6 CFM only; not enough to close interim ±10% free-air gap."
+}

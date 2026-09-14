@@ -7,7 +7,7 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-09-14** (post free-air/shut-off campaigns + suite fail cleanup; see `docs/validation/suite_baseline_2026-09-14.md` and `a12x25_pq_report.md`)
+- Last reviewed: **2026-09-14** (close-reference STL free-air **49.8 CFM / −17%**; Phases 4–6 docs landed; see `a12x25_pq_report.md`)
 - Tags: **[impact]** how much it changes results · **[effort]** rough build cost · owner *me* unless noted.
 - Related: `docs/known-issues.md` (historical cockpit fixes), `docs/high-accuracy-plan.md` (fidelity
   ladder), `docs/design-rules.md` (extracted levers), the memory index.
@@ -17,12 +17,13 @@ session.**
 ## ★ Recommended sequence
 
 1. ~~Math audit (Phase 1)~~ — done on recovered tree.
-2. ~~Noctua reference geometry (Phase 2)~~ — envelope + `a12x25_reference.yaml` Stock (not OEM STL).
-3. **Validation P–Q (Phase 3 remainder)** — free-air still **~−26%** vs 60.1; shut-off **proxy ~24 Pa** at tip_gap 0.5 mm (interim ±5 Pa pass). Absolute free-air still open. See `docs/validation/a12x25_pq_report.md`.
-4. **Print + measure (Phase 5)** — staged runbook `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Trusted STL under `validation/reference/` also unblocks geometry fidelity.
+2. ~~Noctua reference geometry (Phase 2)~~ — envelope + Stock yaml; close-reference STL under `validation/reference/` (not OEM CAD).
+3. **Validation P–Q (Phase 3 remainder)** — close-ref STL free-air **−17%** (49.8 CFM; layers +0.6 → 50.4). Shut-off proxy **fails** on STL (~14.6 Pa) while parametric Stock still ~24 Pa (interim pass). Screening levers (mesh/tip/frame/ks/stagger/layers) exhausted for free-air. See `docs/validation/a12x25_pq_report.md`.
+4. **Print + measure (Phase 5)** — staged runbook `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. This is now the primary path to close absolute free-air.
 5. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), and archetype CFD depth (§4.x).
 
 §8 cockpit scoring, §9 recovery hardening, §10 math fixes, and §11 re-review are **closed in code** (2026-09-11–13).
+Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 **Do NOT** re-optimize tip-round or bio-features — tested null on flow AND noise.
 **Do NOT** datasheet-tune Stock from BEM (stagger candidate CFD +0.6 CFM only).
 

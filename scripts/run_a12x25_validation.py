@@ -91,9 +91,15 @@ def build_parser() -> argparse.ArgumentParser:
         nargs="?",
         const=str(DEFAULT_REFERENCE_STL),
     )
+    ap.add_argument("--layers", action="store_true",
+                    help="grow prism layers on the impeller (snappy addLayers; off by default)")
     ap.add_argument("--procs", type=int, default=8)
     ap.add_argument("--out", default="runs/validate_a12x25_phase3")
     return ap
+
+
+def _mesh(base_cell: float, add_layers: bool = False) -> MeshResolution:
+    return MeshResolution(base_cell=base_cell, add_layers=bool(add_layers))
 
 
 def _resolve_impeller_stl(
@@ -140,12 +146,13 @@ def _run_free_air_at_cell(
     n_procs: int,
     frame_stl: Path | None = None,
     wall_ks_mm: float | None = None,
+    add_layers: bool = False,
 ) -> dict[str, Any]:
     """Mesh + solve at 0 Pa back-pressure for one base_cell size."""
     runner = OpenFOAMRunner(out)
     build_case(
         out, stl, rig,
-        mesh=MeshResolution(base_cell=base_cell),
+        mesh=_mesh(base_cell, add_layers),
         n_iters=n_iters,
         n_subdomains=n_procs,
         back_pressure_pa=0.0,
@@ -164,6 +171,7 @@ def _run_free_air_at_cell(
         "tip_gap_mm": float(rig.tip_gap) / 1e-3,
         "with_frame": frame_stl is not None,
         "wall_ks_mm": float(wall_ks_mm) if wall_ks_mm is not None else 0.0,
+        "add_layers": bool(add_layers),
     }
 
 
@@ -176,6 +184,7 @@ def run_mesh_ladder(
     n_procs: int,
     tip_gap_mm: float = 0.5,
     stl_src: Path | None = None,
+    add_layers: bool = False,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     params = load_blade_params(params_path)
@@ -195,6 +204,7 @@ def run_mesh_ladder(
             base_cell=bc,
             n_iters=n_iters,
             n_procs=n_procs,
+            add_layers=add_layers,
         )
         row["tip_gap_mm"] = float(tip_gap_mm)
         print(
@@ -216,6 +226,7 @@ def run_free_air_tip_gap_study(
     n_iters: int,
     n_procs: int,
     stl_src: Path | None = None,
+    add_layers: bool = False,
 ) -> list[dict[str, Any]]:
     """Free-air A/B at fixed mesh for several tip clearances."""
     rows: list[dict[str, Any]] = []
@@ -232,6 +243,7 @@ def run_free_air_tip_gap_study(
         row = _run_free_air_at_cell(
             out=gap_out, stl=stl, rig=rig,
             base_cell=base_cell, n_iters=n_iters, n_procs=n_procs,
+            add_layers=add_layers,
         )
         row["tip_gap_mm"] = float(gap)
         print(
@@ -254,6 +266,7 @@ def run_free_air_physics_study(
     tip_gap_mm: float = 0.5,
     wall_ks_mm: float = FDM_WALL_KS_MM,
     stl_src: Path | None = None,
+    add_layers: bool = False,
 ) -> list[dict[str, Any]]:
     """Free-air A/B for open duct vs frame / wall_ks idealizations."""
     configs: list[tuple[str, bool, float | None]] = [
@@ -283,6 +296,7 @@ def run_free_air_physics_study(
             out=case_out, stl=stl, rig=rig,
             base_cell=base_cell, n_iters=n_iters, n_procs=n_procs,
             frame_stl=frame_path, wall_ks_mm=ks,
+            add_layers=add_layers,
         )
         row["label"] = label
         row["tip_gap_mm"] = float(tip_gap_mm)
@@ -332,6 +346,7 @@ def run_pq_sweep(
     with_frame: bool = False,
     wall_ks_mm: float | None = None,
     stl_src: Path | None = None,
+    add_layers: bool = False,
 ) -> list[dict[str, Any]]:
     params = load_blade_params(params_path)
     stl = _resolve_impeller_stl(out, params, stl_src)
@@ -344,7 +359,7 @@ def run_pq_sweep(
 
     build_case(
         out, stl, rig,
-        mesh=MeshResolution(base_cell=base_cell),
+        mesh=_mesh(base_cell, add_layers),
         n_iters=n_iters,
         n_subdomains=n_procs,
         back_pressure_pa=backs[0],
@@ -357,7 +372,7 @@ def run_pq_sweep(
     for b in backs:
         build_case(
             out, stl, rig,
-            mesh=MeshResolution(base_cell=base_cell),
+            mesh=_mesh(base_cell, add_layers),
             n_iters=n_iters,
             n_subdomains=n_procs,
             back_pressure_pa=b,
@@ -376,6 +391,7 @@ def run_pq_sweep(
             "tip_gap_mm": float(tip_gap_mm),
             "with_frame": with_frame,
             "wall_ks_mm": float(wall_ks_mm) if wall_ks_mm is not None else 0.0,
+            "add_layers": bool(add_layers),
         })
         print(
             f"  back={b:5.1f} Pa -> {m.cfm:6.1f} CFM  "
@@ -397,6 +413,7 @@ def write_outputs(
     tip_gap_mm: float | None = None,
     physics_rows: list[dict[str, Any]] | None = None,
     stl_src: str | None = None,
+    add_layers: bool = False,
 ) -> None:
     free_air = next((r["cfm"] for r in pq_rows if r.get("back_pa") == 0.0), None)
     if free_air is None and ladder_rows:
@@ -409,6 +426,7 @@ def write_outputs(
         "params": params_path,
         "published": {"free_air_cfm": PUB_FREE_AIR_CFM, "shutoff_pa": PUB_SHUTOFF_PA},
         "pq_rows": pq_rows,
+        "add_layers": bool(add_layers),
     }
     if stl_src is not None:
         payload["stl"] = stl_src
@@ -516,6 +534,7 @@ def main() -> int:
     out = Path(args.out)
     tip_gap_mm = float(args.tip_gap_mm)
     stl_src = Path(args.stl) if args.stl else None
+    add_layers = bool(args.layers)
     t0 = time.time()
 
     ladder_rows: list[dict[str, Any]] | None = None
@@ -526,7 +545,8 @@ def main() -> int:
         cells = [float(c) for c in args.mesh_ladder.split(",")]
         print(
             f"[mesh-ladder] free-air at base_cell={cells} tip_gap={tip_gap_mm:g} mm"
-            + (f" stl={stl_src}" if stl_src else ""),
+            + (f" stl={stl_src}" if stl_src else "")
+            + (" layers=on" if add_layers else ""),
             flush=True,
         )
         ladder_rows = run_mesh_ladder(
@@ -537,6 +557,7 @@ def main() -> int:
             n_procs=args.procs,
             tip_gap_mm=tip_gap_mm,
             stl_src=stl_src,
+            add_layers=add_layers,
         )
         gci = maybe_stamp_gci(ladder_rows)
 
@@ -554,6 +575,7 @@ def main() -> int:
             n_iters=args.iters,
             n_procs=args.procs,
             stl_src=stl_src,
+            add_layers=add_layers,
         )
 
     if args.physics_study:
@@ -572,6 +594,7 @@ def main() -> int:
             tip_gap_mm=tip_gap_mm,
             wall_ks_mm=ks,
             stl_src=stl_src,
+            add_layers=add_layers,
         )
 
     skip_pq = bool(args.ladder_only or args.physics_only)
@@ -581,7 +604,8 @@ def main() -> int:
             f"[pq-sweep] backs={backs} base_cell={args.base_cell} "
             f"tip_gap={tip_gap_mm:g} mm frame={args.with_frame} "
             f"wall_ks={args.wall_ks_mm}"
-            + (f" stl={stl_src}" if stl_src else ""),
+            + (f" stl={stl_src}" if stl_src else "")
+            + (" layers=on" if add_layers else ""),
             flush=True,
         )
         pq_rows = run_pq_sweep(
@@ -595,6 +619,7 @@ def main() -> int:
             with_frame=bool(args.with_frame),
             wall_ks_mm=args.wall_ks_mm,
             stl_src=stl_src,
+            add_layers=add_layers,
         )
     write_outputs(
         out=out,
@@ -606,6 +631,7 @@ def main() -> int:
         tip_gap_mm=tip_gap_mm,
         physics_rows=physics_rows,
         stl_src=str(stl_src) if stl_src else None,
+        add_layers=add_layers,
     )
     print(f"  total {time.time() - t0:.0f}s", flush=True)
     return 0
