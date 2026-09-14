@@ -3,9 +3,10 @@
 optional parameterized motor-shaft bore, a per-material print-settings sheet, and a rotor-balance
 report. Bridges the simulation to the physical showdown (plan Phase 5).
 
-HONEST CAVEAT ON THE BORE: we do not have measured Noctua hub/shaft dimensions (no fan on hand), so
-the bore diameter is a PLACEHOLDER the user must set to their actual motor shaft/boss before printing.
-It is exposed as a single number (``bore_dia_mm``) so re-exporting after measuring is one edit.
+HONEST CAVEAT ON THE BORE: simple ``BoreSpec`` diameters are placeholders until measured.
+For A12x25, prefer ``MotorMount`` from ``fansim.fan_spec`` (cup measured 2026-08-31) via
+``export_print_ready(..., mount=spec.motor_mount)`` or ``scripts/export_a12x25_print_ready.py``.
+Confirm with calipers when the commercial hub arrives; re-export if dimensions differ.
 """
 
 from __future__ import annotations

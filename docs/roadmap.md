@@ -108,9 +108,11 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 
 - [ ] **5.1 Print a real-frame design + measure** CFM / static / noise / weight. Recorder is built
-  (material/print-type/weight fields). **Nothing is measured yet** — the whole design layer is unvalidated
-  (only the CFD *engine* is, on the real STL). One measurement changes "hypothesis" → "result."
-  **Staged 2026-09-11** (no commercial hub on hand): `docs/validation/north-star-staged.md`.
+  (cockpit → `validation/measurements/` with material/print-type/weight fields). **Nothing is
+  measured yet** — one real point changes hypothesis → result. **Print-fit kit ready**
+  (`scripts/export_a12x25_print_ready.py` + mount gauge vs measured MotorMount / frame); still
+  **blocked on commercial hub**. See `docs/validation/north-star-staged.md`. Do **not** check
+  done until hardware data exists.
 - [ ] **5.2 Calibrate the sim** from the measurement (the store's sim-vs-real + calibration hooks exist).
 
 ## 6. Research / papers to fold into `docs/bibliography.md`
