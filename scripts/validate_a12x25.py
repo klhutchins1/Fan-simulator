@@ -8,6 +8,8 @@ sim and the published numbers is the idealization+geometry error budget we must 
 any absolute claim. Points near shut-off (deep stall) will flag unconverged — expected.
 
 Usage:
+    Prefer Phase 3 entry: ``scripts/run_a12x25_validation.py`` (defaults to reference stock).
+
     uv run python scripts/validate_a12x25.py --params config/problems/a12x25.yaml \
         --backs 0,5,10,15,20 --iters 1000 --base-cell 0.005 --procs 8
 """
