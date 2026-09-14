@@ -6,7 +6,9 @@ Used before the commercial hub arrives so exports are checked against the
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import trimesh
@@ -234,3 +236,55 @@ def mount_checklist_md(gauge: MountGauge, spec: FanSpec, *, stl_name: str) -> st
         "CFD-oriented and is not a carved print-ready cup.",
     ]
     return "\n".join(lines)
+
+
+def write_print_fit_sidecars(
+    stl_path: str | Path,
+    spec: FanSpec,
+    *,
+    report_mount_fits: bool | None = None,
+    report_mount_msg: str = "",
+    params_summary: dict | None = None,
+) -> MountGauge:
+    """Write ``*_mount_checklist.md`` and ``*_print_fit.json`` next to an exported STL."""
+    stl_path = Path(stl_path)
+    gauge = gauge_print_stl(str(stl_path), spec)
+    checklist = mount_checklist_md(gauge, spec, stl_name=stl_path.name)
+    stl_path.with_name(stl_path.stem + "_mount_checklist.md").write_text(
+        checklist, encoding="utf-8"
+    )
+    payload = {
+        "stl": stl_path.as_posix(),
+        "spec": spec.name,
+        "mount_fits_carve": report_mount_fits,
+        "mount_msg": report_mount_msg,
+        "params": params_summary or {},
+        "gauge": {
+            "tip_od_mm": gauge.tip_od_mm,
+            "hub_od_mm": gauge.hub_od_mm,
+            "axial_depth_mm": gauge.axial_depth_mm,
+            "cavity_dia_mm": gauge.cavity_dia_mm,
+            "cavity_depth_mm": gauge.cavity_depth_mm,
+            "rear_bore_dia_mm": gauge.rear_bore_dia_mm,
+            "watertight": gauge.watertight,
+            "mount_ok": gauge.mount_ok,
+            "frame_ok": gauge.frame_ok,
+            "hub_wall_ok": gauge.hub_wall_ok,
+            "notes": list(gauge.notes),
+        },
+        "motor_mount": None
+        if spec.motor_mount is None
+        else {
+            "cavity_dia_mm": spec.motor_mount.cavity_dia_mm,
+            "cavity_depth_mm": spec.motor_mount.cavity_depth_mm,
+            "rear_bore_dia_mm": spec.motor_mount.rear_bore_dia_mm,
+            "shaft_dia_mm": spec.motor_mount.shaft_dia_mm,
+            "min_wall_mm": spec.motor_mount.min_wall_mm,
+            "min_hub_height_mm": spec.motor_mount.min_hub_height_mm,
+            "provenance": "measured cup 2026-08-31; confirm when commercial hub arrives",
+        },
+    }
+    stl_path.with_name(stl_path.stem + "_print_fit.json").write_text(
+        json.dumps(payload, indent=2), encoding="utf-8"
+    )
+    return gauge

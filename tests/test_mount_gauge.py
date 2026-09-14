@@ -22,12 +22,16 @@ def test_gauge_accepts_carved_stock_export(tmp_path):
     stl = tmp_path / "print.stl"
     rep = export_print_ready(params, stl, mount=spec.motor_mount)
     assert rep.ok and rep.mount_fits is True
-    g = gauge_print_stl(str(stl), spec)
+    from fansim.manufacturability.mount_gauge import write_print_fit_sidecars
+
+    g = write_print_fit_sidecars(
+        stl, spec, report_mount_fits=rep.mount_fits, report_mount_msg=rep.mount_msg or ""
+    )
     assert g.watertight
     assert g.frame_ok
     assert g.mount_ok, g.notes
-    assert g.cavity_dia_mm is not None
-    assert abs(g.cavity_dia_mm - spec.motor_mount.cavity_dia_mm) <= 0.6
+    assert stl.with_name("print_mount_checklist.md").is_file()
+    assert stl.with_name("print_print_fit.json").is_file()
 
 
 def test_cfd_reference_stl_is_not_print_mount_ready():

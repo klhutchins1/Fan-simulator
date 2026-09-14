@@ -12,27 +12,21 @@ You can print an impeller now. You cannot honestly validate a **real-frame** des
 
 | File | Use |
 |------|-----|
-| **Print-ready export** from `scripts/export_a12x25_print_ready.py` (or cockpit Design → Export) | **Yes — mount on the semi-official / commercial hub** |
+| **Cockpit Export print STL** (Fan → Design) | **Yes — primary path** |
+| Headless twin: `scripts/export_a12x25_print_ready.py` | Same carve/gauge; for CI / batch only |
 | `validation/reference/a12x25_impeller.stl` | **No** — CFD close-reference only; not a carved motor cup |
 
-The print export carves the **measured MotorMount** (2026-08-31): cup **37.25 mm** × **13 mm** deep, rear bore **20 mm**, min hub wall **1.2 mm**, min hub height **15 mm**. Frame target: tip OD ≤ **109 mm** (110 mm ID − 0.5 mm radial gap), depth ≤ **25 mm**.
+Export carves the **measured MotorMount** (2026-08-31): cup **37.25 mm** × **13 mm** deep, rear bore **20 mm**, min hub wall **1.2 mm**, min hub height **15 mm**. Frame target: tip OD ≤ **109 mm** (110 mm ID − 0.5 mm radial gap), depth ≤ **25 mm**.
 
-## Before the hub arrives (do this now)
+## Before the hub arrives (do this in the GUI)
 
-1. Export a frame-fitted Stock print:
-   ```powershell
-   uv run python scripts/export_a12x25_print_ready.py
-   ```
-   Writes under `exports/print_a12x25_stock_<stamp>/`:
-   - `impeller_print.stl` — watertight, cup carved
-   - `print_sheet.md` — material / orientation
-   - `mount_checklist.md` — gauge vs MotorMount + frame
-   - `print_fit.json` — machine-readable pass/fail
-2. Confirm `mount_fits=True`, `gauge.mount_ok=True`, `gauge.frame_ok=True`.
-3. Print that STL when ready; keep the export folder with the part.
-4. Treat MotorMount as **semi-official** until you caliper the real motor; re-export if Δ > 0.2 mm.
-
-Optional cockpit path: Assess a design that **fits this hub** → Design → Export (same `carve_motor_mount` path).
+1. Open the Fan cockpit → **Design**.
+2. Leave **Fit hub to motor** and **Fit tip/depth to frame** **on** (defaults).
+3. Click **Export print STL**.
+4. Read the status line: motor cup carved + print-fit gauge mount/frame PASS.
+5. In `exports/`, use the new `.stl` plus `*_mount_checklist.md` / `*_print_fit.json`.
+6. Print that STL; keep the export files with the part.
+7. Treat MotorMount as **semi-official** until you caliper the real motor; re-export if Δ > 0.2 mm.
 
 ## When the commercial hub arrives
 
@@ -44,13 +38,10 @@ Optional cockpit path: Assess a design that **fits this hub** → Design → Exp
 6. Cockpit → that design → measurement fields → Save → JSON under `validation/measurements/`.
 7. Then §5.2: sim-vs-real / calibration from the store.
 
-## Minimum viable (from `validation/rig.md` when present)
-
-Matched A/B deltas on the same motor/RPM/duct beat absolute AMCA accuracy for ranking. Absolute CFM can wait for a better rig.
-
 ## Honesty
 
 - Printable stand-in frames do **not** close §5.1.
 - Synthetic store rows do **not** close §5.1.
 - CFD reference STL silhouette pass does **not** mean print-mount ready.
+- Multi-hour OpenFOAM validation campaigns stay as scripts (not day-to-day GUI buttons).
 - One real measurement changes the design layer from hypothesis → result.

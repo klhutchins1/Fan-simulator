@@ -453,7 +453,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
     state.export_msg = ""
     state.export_busy = False
     state.export_fit_hub = True
-    state.export_fit_frame = False
+    state.export_fit_frame = True
     state.assess_preset = "legacy"
     state.assess_preset_items = assess_preset_items()
     state.assess_refine_op = False
@@ -1063,7 +1063,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
     def build_edit_params():
         return blade_from_flat(edit_flat(), edit_features())
 
-    def _do_export(params, out, mount):
+    def _do_export(params, out, mount, spec):
+        from fansim.manufacturability.mount_gauge import write_print_fit_sidecars
         from fansim.manufacturability.print_export import (
             balance_summary,
             export_print_ready,
@@ -1073,7 +1074,6 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
 
         rep = export_print_ready(params, out, mount=mount)
         try:
-            spec = active_spec()
             settings = recommend_print_settings(spec.material)
             bal = balance_summary(params, spec.rpm)
             (out.with_suffix(".md")).write_text(
@@ -1082,7 +1082,24 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             )
         except Exception:  # noqa: BLE001
             pass
-        return rep
+        gauge = None
+        if mount is not None:
+            try:
+                gauge = write_print_fit_sidecars(
+                    out,
+                    spec,
+                    report_mount_fits=rep.mount_fits,
+                    report_mount_msg=rep.mount_msg or "",
+                    params_summary={
+                        "n_blades": int(params.n_blades),
+                        "hub_radius": float(params.hub_radius),
+                        "tip_radius": float(params.tip_radius),
+                        "rpm": float(params.rpm),
+                    },
+                )
+            except Exception:  # noqa: BLE001
+                gauge = None
+        return rep, gauge
 
     def export_stl_current():
         if state.export_busy or state.preview_busy or state.assess_busy:
@@ -1133,7 +1150,9 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             state.flush()
             loop = asyncio.get_running_loop()
             try:
-                rep = await loop.run_in_executor(None, _do_export, params, out, spec.motor_mount)
+                rep, gauge = await loop.run_in_executor(
+                    None, _do_export, params, out, spec.motor_mount, spec
+                )
             except Exception as exc:  # noqa: BLE001
                 state.export_msg = f"⚠ Export failed: {type(exc).__name__}: {exc}"
                 state.export_busy = False
@@ -1149,6 +1168,17 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                     mnt += " — turn on 'Fit hub to motor on export' to widen it and carve the cup"
             else:
                 mnt = " · (this fan model has no motor-mount defined)"
+            gauge_txt = ""
+            if gauge is not None:
+                mk = "PASS" if gauge.mount_ok else "FAIL"
+                fk = "PASS" if gauge.frame_ok else "FAIL"
+                gauge_txt = (
+                    f"\n↳ Print-fit gauge: mount {mk}, frame {fk} "
+                    f"(tip OD {gauge.tip_od_mm:.1f} mm). See {out.stem}_mount_checklist.md"
+                )
+                if not gauge.mount_ok or not gauge.frame_ok:
+                    for n in gauge.notes[:3]:
+                        gauge_txt += f"\n  · {n}"
             extra = ""
             if frame_changes:
                 extra += "\n" + preview_changes(frame_changes)
@@ -1167,7 +1197,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                     " Press Preview to see it; the CFM/eff shown were for the original geometry, so "
                     "they're now approximate — re-Assess for exact numbers."
                 )
-            state.export_msg = f"✓ Saved {out.resolve()}  ({wt}{mnt}){extra}"
+            state.export_msg = f"✓ Saved {out.resolve()}  ({wt}{mnt}){gauge_txt}{extra}"
             state.export_busy = False
             ticker.cancel()
             state.flush()
@@ -3050,7 +3080,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 ),
                             )
                             v3.VBtn(
-                                "Export STL",
+                                "Export print STL",
                                 size="small",
                                 variant="tonal",
                                 color="primary",
@@ -3099,14 +3129,19 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         html.Div("{{ export_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
                         html.Div("{{ opt_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
                         busy_bar("preview_busy", "assess_busy", "export_busy", "opt_running", color="success")
+                        html.Div(
+                            "Export carves the motor cup and writes a mount/frame checklist next to the STL. "
+                            "Leave both Fit switches on for the commercial A12x25 hub/frame.",
+                            classes="text-caption text-medium-emphasis mt-2 mb-1",
+                        )
                         v3.VSwitch(
                             v_model=("export_fit_hub",),
                             density="compact",
                             hide_details=True,
                             color="primary",
                             inset=True,
-                            classes="mt-2",
-                            label="Fit hub to motor on export (widen a too-small hub so the cup carves)",
+                            classes="mt-1",
+                            label="Fit hub to motor on export (widen so the cup carves)",
                         )
                         v3.VSwitch(
                             v_model=("export_fit_frame",),
@@ -3115,7 +3150,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             color="primary",
                             inset=True,
                             classes="mt-1",
-                            label="Fit envelope on export — shrink tip/depth to the selected frame (changes aero; re-Assess)",
+                            label="Fit tip/depth to frame on export (default on — re-Assess after)",
                         )
 
                     with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):

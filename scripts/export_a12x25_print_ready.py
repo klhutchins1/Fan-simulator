@@ -1,4 +1,7 @@
-"""Export a frame-fitted, motor-cup-carved A12x25 Stock impeller for print trials.
+"""Export a frame-fitted, motor-cup-carved A12x25 Stock impeller (headless).
+
+Prefer the cockpit for day-to-day use: Fan → Design → **Export print STL**
+(with Fit hub + Fit frame on). This script is the same path for CI / batch.
 
 Usage:
     uv run python scripts/export_a12x25_print_ready.py
@@ -8,7 +11,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 import sys
@@ -17,10 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fansim.cockpit.placement import fit_envelope, measure_flat, nominal_fits_spec  # noqa: E402
 from fansim.fan_spec import get_fan_spec  # noqa: E402
-from fansim.manufacturability.mount_gauge import (  # noqa: E402
-    gauge_print_stl,
-    mount_checklist_md,
-)
+from fansim.manufacturability.mount_gauge import write_print_fit_sidecars  # noqa: E402
 from fansim.manufacturability.print_export import (  # noqa: E402
     balance_summary,
     export_print_ready,
@@ -31,7 +30,9 @@ from fansim.optimize.search_space import blade_from_flat, stock_blade_flat  # no
 
 
 def build_parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(description="Export print-ready A12x25 Stock with mount gauge")
+    ap = argparse.ArgumentParser(
+        description="Headless print-ready A12x25 export (GUI: Design → Export print STL)"
+    )
     ap.add_argument("--fan", default="a12x25", help="FanSpec key (default a12x25)")
     ap.add_argument("--material", default=None, help="override material (default from FanSpec)")
     ap.add_argument("--out", default=None, help="output directory (default exports/…)")
@@ -76,60 +77,34 @@ def main() -> int:
     )
     (out_dir / "print_sheet.md").write_text(sheet, encoding="utf-8")
 
-    gauge = gauge_print_stl(str(stl), spec)
-    checklist = mount_checklist_md(gauge, spec, stl_name=stl.name)
-    (out_dir / "mount_checklist.md").write_text(checklist, encoding="utf-8")
-
-    measured = measure_flat(flat)
-    payload = {
-        "fan": args.fan,
-        "spec": spec.name,
-        "stl": str(stl.as_posix()),
-        "fit_envelope": not args.no_fit,
-        "fit_changes": changes,
-        "params": {
+    gauge = write_print_fit_sidecars(
+        stl,
+        spec,
+        report_mount_fits=rep.mount_fits,
+        report_mount_msg=rep.mount_msg or "",
+        params_summary={
             "n_blades": params.n_blades,
             "hub_radius": params.hub_radius,
             "tip_radius": params.tip_radius,
             "rpm": params.rpm,
+            "fit_envelope": not args.no_fit,
+            "fit_changes": changes,
+            "nominal_fits_spec": nominal_fits_spec(flat, spec, measure_flat(flat)),
         },
-        "measured_flat": None if measured is None else {
-            "tip_dia_mm": measured[0],
-            "depth_mm": measured[1],
-            "hub_radius_mm": measured[2],
-        },
-        "nominal_fits_spec": nominal_fits_spec(flat, spec, measured),
-        "mount_fits": rep.mount_fits,
-        "mount_msg": rep.mount_msg,
-        "watertight": rep.ok,
-        "gauge": {
-            "tip_od_mm": gauge.tip_od_mm,
-            "hub_od_mm": gauge.hub_od_mm,
-            "axial_depth_mm": gauge.axial_depth_mm,
-            "cavity_dia_mm": gauge.cavity_dia_mm,
-            "cavity_depth_mm": gauge.cavity_depth_mm,
-            "rear_bore_dia_mm": gauge.rear_bore_dia_mm,
-            "mount_ok": gauge.mount_ok,
-            "frame_ok": gauge.frame_ok,
-            "notes": list(gauge.notes),
-        },
-        "motor_mount": {
-            "cavity_dia_mm": spec.motor_mount.cavity_dia_mm,
-            "cavity_depth_mm": spec.motor_mount.cavity_depth_mm,
-            "rear_bore_dia_mm": spec.motor_mount.rear_bore_dia_mm,
-            "shaft_dia_mm": spec.motor_mount.shaft_dia_mm,
-            "min_wall_mm": spec.motor_mount.min_wall_mm,
-            "min_hub_height_mm": spec.motor_mount.min_hub_height_mm,
-            "provenance": "measured cup 2026-08-31 (semi-official); confirm when commercial hub arrives",
-        },
-    }
-    (out_dir / "print_fit.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    )
+    # Also keep the friendly names used by the north-star runbook.
+    checklist = stl.with_name(stl.stem + "_mount_checklist.md")
+    if checklist.is_file():
+        (out_dir / "mount_checklist.md").write_text(checklist.read_text(encoding="utf-8"), encoding="utf-8")
+    fit_json = stl.with_name(stl.stem + "_print_fit.json")
+    if fit_json.is_file():
+        (out_dir / "print_fit.json").write_text(fit_json.read_text(encoding="utf-8"), encoding="utf-8")
 
     print(f"STL: {stl}")
     print(f"sheet: {out_dir / 'print_sheet.md'}")
     print(f"checklist: {out_dir / 'mount_checklist.md'}")
     print(f"mount_fits={rep.mount_fits}  gauge mount_ok={gauge.mount_ok} frame_ok={gauge.frame_ok}")
-    print(f"nominal_fits_spec={payload['nominal_fits_spec']}")
+    print("(GUI equivalent: Fan → Design → Export print STL)")
     for n in gauge.notes:
         print(f"  note: {n}")
     if not (rep.mount_fits and gauge.frame_ok and rep.ok):
