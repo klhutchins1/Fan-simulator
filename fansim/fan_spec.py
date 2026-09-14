@@ -122,10 +122,34 @@ def mount_min_hub_radius(spec: FanSpec) -> float | None:
     return None if m is None else m.cavity_dia_mm / 2.0 + m.min_wall_mm
 
 
-def estimate_weight_g(volume_mm3: float, material: str = DEFAULT_MATERIAL) -> float:
-    """Printed part mass [g] from solid volume [mm^3] and material density (assumes 100% infill)."""
+# Default sparse-FDM fill for weight gates (roadmap §2.4). Solid / resin use 1.0.
+DEFAULT_PRINT_INFILL = 0.20
+
+
+def _default_infill_frac(material: str) -> float:
+    name = str(material or "").upper()
+    if name in ("RESIN", "ABS_RESIN", "SLA") or "RESIN" in name:
+        return 1.0
+    return float(DEFAULT_PRINT_INFILL)
+
+
+def estimate_weight_g(
+    volume_mm3: float,
+    material: str = DEFAULT_MATERIAL,
+    *,
+    infill_frac: float | None = None,
+) -> float:
+    """Printed part mass [g] from CAD solid volume [mm^3] and material density.
+
+    ``volume_mm3`` is the watertight solid envelope. Multiply by ``infill_frac`` (0–1) for
+    sparse FDM fills so the build-weight gate is not a 100%-infill pessimist (roadmap §2.4).
+    Default is ``DEFAULT_PRINT_INFILL`` for filaments; resin defaults to solid (1.0).
+    Pass ``infill_frac=1.0`` to force a solid-print mass.
+    """
     density_kg_m3 = MATERIALS[material].density_kg_m3
-    return volume_mm3 * density_kg_m3 * 1e-6  # mm^3 * kg/m^3 * (1e-9 m^3/mm^3 * 1e3 g/kg)
+    f = _default_infill_frac(material) if infill_frac is None else float(infill_frac)
+    f = min(max(f, 0.0), 1.0)
+    return volume_mm3 * density_kg_m3 * 1e-6 * f  # mm^3 → g via kg/m^3
 
 
 def _within(val, rng, label, unit) -> str | None:
@@ -193,9 +217,9 @@ _REGISTRY: dict[str, FanSpec] = {
     "a12x25": FanSpec(
         name="Noctua NF-A12x25", tip_dia_mm=(95.0, 110.0), hub_dia_mm=(30.0, 60.0),
         depth_mm=(10.0, 25.0), rpm=2000.0, voltage_v=12.0, max_current_a=0.14,
-        # max_weight_g is the SOLID (100% infill) printed mass; realistic optimized impellers run
-        # ~50 g solid, so 65 g leaves headroom and only rejects very heavy (thick/high-solidity)
-        # blades. Real printed weight is lower with infill; tune per model/print settings.
+        # max_weight_g is a *printed* mass budget (default estimate uses DEFAULT_PRINT_INFILL
+        # for FDM; pass infill_frac=1.0 for solid). ~65 g leaves headroom for thick/high-solidity
+        # blades under typical sparse fill; tune per model/print settings.
         motor_efficiency=0.40, max_weight_g=65.0, material="PETG",
         ref_cfm=60.1, ref_static_pa=22.9, ref_noise_dba=22.6,
         # Motor interface: REAL MEASURED 2026-08-31 (user printed a fan + measured; the old 50 mm was a

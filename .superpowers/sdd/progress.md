@@ -23,6 +23,6 @@ Branch: master @ 0ded165
 
 ## Program status
 Software-side Phase 3 free-air gate still open (−26%). Shut-off interim proxy in band at tip 0.5 mm.
-Baseline suite fails cleared (DES templates, eta_total, stub test); math consistency tests added (§10).
+Baseline suite fails cleared; math consistency + infill-aware weight (§2.4) + FDM anisotropy marked done (§1.3).
 Next honest path: trusted STL or Phase 5 hardware.
 Local master pushed to origin.

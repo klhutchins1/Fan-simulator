@@ -7,7 +7,7 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-09-14** (reconciled to post-recovery tree; fast suite **602 passed / 6 failed** — see `docs/validation/suite_baseline_2026-09-14.md`)
+- Last reviewed: **2026-09-14** (post free-air/shut-off campaigns + suite fail cleanup; see `docs/validation/suite_baseline_2026-09-14.md` and `a12x25_pq_report.md`)
 - Tags: **[impact]** how much it changes results · **[effort]** rough build cost · owner *me* unless noted.
 - Related: `docs/known-issues.md` (historical cockpit fixes), `docs/high-accuracy-plan.md` (fidelity
   ladder), `docs/design-rules.md` (extracted levers), the memory index.
@@ -39,10 +39,10 @@ session.**
   (free + that Pa); `cfm_load` / efficiency are the 2-point fan line ∩ parabola.
   Remaining: third CFD at the predicted op, affinity-correct P∝RPM² under derate,
   BEM prescreen on the curve.
-- [ ] **1.3 FDM anisotropy in the structural gate.** **[impact: med]** **[effort: low]**
-  `structural/stress.py` uses isotropic stiffness, but printed blades are weak *between layers* (~50–70%
-  of in-plane). A thin swept blade can delaminate at speed. Add a layer-adhesion knockdown so the gate
-  doesn't green-light un-printable-in-practice blades. Also consider a flutter/first-mode check.
+- [x] **1.3 FDM anisotropy in the structural gate (stage 1). DONE 2026-09-14** **[impact: med]** **[effort: low]**
+  `LAYER_ADHESION_K=0.60` on centrifugal yield (`structural/stress.py`) + `FDM_E_K=0.70` on tip
+  deflection / flutter modulus (`structural/deflection.py`, §10.11). Tests: `tests/test_stress.py`,
+  `tests/test_deflection.py`. Remaining: full orthotropic FEA / first-mode flutter depth.
 - [ ] **1.4 Absolute noise (FW-H), fan + prop.** **[impact: med]** **[effort: high]**
   Fan noise is a band-limited *relative* proxy (Curle/loading); prop noise is a *relative* analytic
   proxy (`propeller/noise.py`). Both lack calibrated dB(A). A porous FW-H surface (GPU LBM) or a bench
@@ -67,8 +67,10 @@ session.**
   (`tests/test_stator.py`). Remaining: cambered OGVs, searched vane count, measured η gain.
 - [x] **2.3 Sickle / forward-swept planform (stage 1). DONE 2026-09-13** **[impact: med]** **[effort: med]**
   `apply_sickle` + Optuna `--sickle` (`tests/test_sickle.py`). Remaining: cockpit LE editor / mid-band search.
-- [ ] **2.4 Infill-aware weight.** **[impact: low]** **[effort: low]** Weight uses solid volume; real
-  prints use infill, so the 65 g cap is pessimistic (rejects buildable designs). Make it infill-%-aware.
+- [x] **2.4 Infill-aware weight (stage 1). DONE 2026-09-14** **[impact: low]** **[effort: low]**
+  `estimate_weight_g(..., infill_frac=)` defaults to ``DEFAULT_PRINT_INFILL=0.20`` for FDM filaments
+  (resin stays solid). Build gate no longer assumes 100% fill. Override with ``infill_frac=1.0`` for
+  solid-mass checks. Tests: `tests/test_fan_spec.py`.
 - [x] **2.5 RPM as a lever / real motor torque–speed curve (stage 1). DONE 2026-09-13**
   `fansim/optimize/motor_curve.py` stamps + operating RPM on mixed/volute/CROR evaluate
   (`tests/test_search_rpm.py` — CLI wiring still a known gap). Remaining: full PWM search in all archetypes.

@@ -51,8 +51,22 @@ def test_delta_is_a_different_regime():
 
 
 def test_weight_estimate():
-    # 10000 mm^3 of PETG (1270 kg/m^3) = 12.7 g
-    assert estimate_weight_g(10000.0, "PETG") == pytest.approx(12.7, rel=1e-3)
+    # 10000 mm^3 of PETG (1270 kg/m^3) = 12.7 g at 100% infill
+    assert estimate_weight_g(10000.0, "PETG", infill_frac=1.0) == pytest.approx(12.7, rel=1e-3)
+    # Default FDM fill is sparse (roadmap §2.4)
+    from fansim.fan_spec import DEFAULT_PRINT_INFILL
+    assert estimate_weight_g(10000.0, "PETG") == pytest.approx(
+        12.7 * DEFAULT_PRINT_INFILL, rel=1e-3)
+    assert estimate_weight_g(10000.0, "PETG", infill_frac=0.5) == pytest.approx(6.35, rel=1e-3)
+
+
+def test_weight_estimate_resin_defaults_solid():
+    from fansim.fan_spec import _default_infill_frac
+
+    assert _default_infill_frac("PETG") == pytest.approx(0.20)
+    assert _default_infill_frac("PLA") == pytest.approx(0.20)
+    assert _default_infill_frac("RESIN") == pytest.approx(1.0)
+    assert _default_infill_frac("ABS_RESIN") == pytest.approx(1.0)
 
 
 def test_check_build_pass_and_fail():

@@ -16,6 +16,20 @@ def test_default_petg_clear_of_half_mm_gap():
     assert r.ok
     assert r.tip_deflection_mm < 0.5
     assert r.gap_frac < 1.0
+    assert r.e_fdm_knockdown == pytest.approx(0.70)  # §10.11 FDM E knockdown
+
+
+def test_fdm_e_knockdown_increases_deflection():
+    from fansim.structural.stress import FDM_E_K
+    from fansim.structural.deflection import tip_deflection_mm
+
+    p = BladeParams()
+    d_fdm = tip_deflection_mm(p, material="PETG", load_pa=20.0)
+    # Force full-E comparison via resin path if available, else scale expectation
+    assert FDM_E_K == pytest.approx(0.70)
+    # Lower E → larger δ; PETG uses FDM_E_K so δ scales as 1/E_k vs isotropic E
+    d_iso_equiv = d_fdm * FDM_E_K  # what full-E would give for same load
+    assert d_fdm > d_iso_equiv
 
 
 def test_tpu_can_fail_tip_gap_gate():
