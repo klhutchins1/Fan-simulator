@@ -199,7 +199,7 @@ Concrete, open-source / academically-usable methods found in the literature. The
   [tip clearance, winglets & shroud height on tip leakage](https://www.sciencedirect.com/science/article/abs/pii/S0140700718302470). → refines §2.1, §2.x winglet.
 - [x] **7.6 Sim→print penalty calibration from published printed-impeller studies. DONE 2026-09-15.** **[impact: med]**
   **[effort: low]** `print_penalty.py` knockdown (CFM×0.95, η×0.92–0.96 by tip thickness, optional FSI
-  tip-deflection×gap) wired into axial `evaluate_candidate` + mixed/CROR. Smooth-wall stamps stay in
+  tip-deflection×gap) wired into axial `evaluate_candidate` + mixed/CROR/volute. Smooth-wall stamps stay in
   `raw` (`cfm_*_cfd`); reported objectives are *printed*. Still provisional until §5 hardware
   recalibrates the factors. Refs:
   [tip-vortex manipulators, num vs experimental on printed condenser fan](https://arxiv.org/pdf/2309.13195),

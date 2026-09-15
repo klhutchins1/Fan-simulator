@@ -26,11 +26,13 @@ def test_evaluate_mixed_flow_mocked_cfd(tmp_path, monkeypatch):
 
     free_m = SimpleNamespace(
         cfm=70.0, efficiency=0.40, thrust_n=0.5, torque_nm=0.01,
+        static_pressure_rise_pa=1.0,
         converged=True, flow_drift_pct=0.1,
         to_dict=lambda: {"cfm": 70.0},
     )
     load_m = SimpleNamespace(
         cfm=50.0, efficiency=0.32, thrust_n=0.4, torque_nm=0.012,
+        static_pressure_rise_pa=8.0,
         converged=True, flow_drift_pct=0.1,
         to_dict=lambda: {"cfm": 50.0},
     )
@@ -50,13 +52,14 @@ def test_evaluate_mixed_flow_mocked_cfd(tmp_path, monkeypatch):
     monkeypatch.setattr(ev, "parse_fan_metrics", lambda *a, **k: next(seq))
     monkeypatch.setattr(ev, "OpenFOAMRunner", lambda workdir: SimpleNamespace())
 
-    res = evaluate_mixed_flow(MixedFlowParams(), tmp_path / "run")
+    res = evaluate_mixed_flow(MixedFlowParams(), tmp_path / "run", load_pa=8.0)
     assert res.feasible is True
     assert res.raw.get("topology") == "mixed_flow"
     assert res.raw.get("archetype") == "centrifugal"
     assert res.raw.get("grid_converged") is False
     assert "GCI" in str(res.raw.get("grid_note", ""))
     assert res.cfm_free > 0
+    assert "print_k_cfm" in res.raw
 
 
 def test_mixed_bem_prescreen_exception_is_infeasible(tmp_path, monkeypatch):

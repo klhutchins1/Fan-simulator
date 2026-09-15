@@ -211,11 +211,13 @@ def test_evaluate_volute_mocked_cfd(tmp_path, monkeypatch):
 
     free_m = SimpleNamespace(
         cfm=40.0, efficiency=0.35, thrust_n=0.2, torque_nm=0.0005,
+        static_pressure_rise_pa=2.0,
         converged=True, flow_drift_pct=0.2,
         to_dict=lambda: {"cfm": 40.0},
     )
     load_m = SimpleNamespace(
         cfm=25.0, efficiency=0.28, thrust_n=0.15, torque_nm=0.0006,
+        static_pressure_rise_pa=50.0,
         converged=True, flow_drift_pct=0.3,
         to_dict=lambda: {"cfm": 25.0},
     )
@@ -246,6 +248,9 @@ def test_evaluate_volute_mocked_cfd(tmp_path, monkeypatch):
     assert res.raw.get("honesty") == VOLUTE_HONESTY
     assert res.raw.get("honesty") == "stage3_smooth_scroll"
     assert res.cfm_free > 0
+    assert res.raw.get("cfm_free_cfd") == pytest.approx(40.0)
+    assert "print_k_cfm" in res.raw
+    assert res.cfm_free == pytest.approx(40.0 * float(res.raw["print_k_cfm"]))
     assert res.raw.get("derate") == pytest.approx(1.0)
     assert res.actual_rpm == pytest.approx(float(res.raw["cfd_rpm"]))
     assert "motor_kv_rpm_per_v" in res.raw
@@ -261,11 +266,13 @@ def test_evaluate_volute_motor_derates_when_torque_exceeds_budget(tmp_path, monk
 
     free_m = SimpleNamespace(
         cfm=40.0, efficiency=0.35, thrust_n=0.2, torque_nm=5.0,
+        static_pressure_rise_pa=2.0,
         converged=True, flow_drift_pct=0.2,
         to_dict=lambda: {"cfm": 40.0, "torque_nm": 5.0},
     )
     load_m = SimpleNamespace(
         cfm=25.0, efficiency=0.28, thrust_n=0.15, torque_nm=5.0,
+        static_pressure_rise_pa=50.0,
         converged=True, flow_drift_pct=0.3,
         to_dict=lambda: {"cfm": 25.0, "torque_nm": 5.0},
     )
@@ -293,7 +300,10 @@ def test_evaluate_volute_motor_derates_when_torque_exceeds_budget(tmp_path, monk
     assert res.feasible is True
     assert res.raw["derate"] < 0.995
     assert res.actual_rpm < DEFAULT_VOLUTE_RPM
-    assert res.cfm_free == pytest.approx(40.0 * res.raw["derate"])
+    # Derated CFD free CFM is stamped; reported CFM also carries the print knockdown.
+    assert res.raw.get("cfm_free_cfd") == pytest.approx(40.0 * res.raw["derate"])
+    assert res.cfm_free == pytest.approx(
+        float(res.raw["cfm_free_cfd"]) * float(res.raw["print_k_cfm"]))
     assert "motor-limited" in res.reason
 
 

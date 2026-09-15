@@ -13,6 +13,7 @@ from fansim.fan_spec import A12X25, FanSpec
 from fansim.geometry import watertight_report
 from fansim.optimize.motor_curve import motor_curve_stamps, motor_operating_rpm
 from fansim.optimize.objectives import INFEASIBLE_NOISE, ObjectiveResult, SCREENING_GRID_STAMP, _infeasible
+from fansim.optimize.print_penalty import apply_print_penalty
 from fansim.optimize.system_curve import (
     REF_CFM,
     SystemCurveError,
@@ -36,6 +37,7 @@ def evaluate_volute(
     spec: FanSpec = A12X25,
     wall_ks_mm: float | None = None,
     mesh_only: bool = False,
+    print_penalty: bool = True,
 ) -> ObjectiveResult:
     """Export impeller+casing, write the volute MRF case, mesh, and free+load solve.
 
@@ -170,11 +172,17 @@ def evaluate_volute(
             f"UNCONVERGED (free drift {m_free.flow_drift_pct:.1f}%, "
             f"load drift {m_load.flow_drift_pct:.1f}%)")
 
+    cfm_load = op.q_op_cfm
+    efficiency = max(op.eta * 100.0, 0.0)
+    # Radial blades: no axial tip station; base sim→print knockdown (§7.6).
+    cfm_free, cfm_load, efficiency, print_stamps = apply_print_penalty(
+        cfm_free, cfm_load, efficiency, enabled=print_penalty)
+
     return ObjectiveResult(
         feasible=True,
         cfm_free=cfm_free,
-        cfm_load=op.q_op_cfm,
-        efficiency=max(op.eta * 100.0, 0.0),
+        cfm_load=cfm_load,
+        efficiency=efficiency,
         noise_swl=INFEASIBLE_NOISE,
         actual_rpm=actual_rpm,
         reason=conv_note,
@@ -189,6 +197,7 @@ def evaluate_volute(
             "actual_rpm": actual_rpm,
             "derate": derate,
             **motor_curve_stamps(run_spec),
+            **print_stamps,
         },
         runtime_s=round(time.time() - t0, 1),
     )

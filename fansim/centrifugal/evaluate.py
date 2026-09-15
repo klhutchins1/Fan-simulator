@@ -125,7 +125,6 @@ def evaluate_mixed_flow(
     if bem_prescreen_cfm > 0.0:
         gap_raw["bem_adapter"] = "axial"
         try:
-            from fansim.optimize.system_curve import SystemCurveError
             bem_free, bem_op = mixed_bem_screen_cfm(
                 params, spec.rpm, load_pa, remaining)
             gap_raw["bem_cfm_free"] = bem_free
