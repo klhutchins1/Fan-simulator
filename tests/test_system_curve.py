@@ -32,6 +32,19 @@ def test_probe_on_hose_is_exact_op():
     assert p_op == pytest.approx(8.0)
 
 
+def test_nonzero_free_static_moves_op():
+    """CFD free often has measured static >0 — fan line must use that endpoint."""
+    k = k_from_pa(8.0)
+    # Probe not on the hose so free-endpoint Pa changes the intersection.
+    q0, p0 = intersect_fan_line(80.0, 40.0, 8.0, k, p_free_pa=0.0)
+    qn, pn = intersect_fan_line(80.0, 40.0, 8.0, k, p_free_pa=2.0)
+    assert qn != pytest.approx(q0, abs=0.05)
+    assert pn > 0.0 and p0 > 0.0
+    # Both ops must sit on the hose ΔP = k Q².
+    qn_m3 = qn / CFM_PER_M3S
+    assert pn == pytest.approx(k * qn_m3 * qn_m3, rel=1e-6)
+
+
 def test_weaker_probe_raises_op_above_probe():
     k = k_from_pa(8.0)
     q_op, p_op = intersect_fan_line(80.0, 40.0, 8.0, k)
@@ -58,3 +71,25 @@ def test_score_clamps_efficiency_past_probe_point():
 def test_derated_probe_pa_is_load_times_lambda_squared():
     assert derated_probe_pa(8.0, 1.0) == pytest.approx(8.0)
     assert derated_probe_pa(8.0, 0.5) == pytest.approx(2.0)
+
+
+def test_rated_op_back_pressure_undoes_affinity():
+    from fansim.optimize.system_curve import rated_op_back_pressure
+
+    assert rated_op_back_pressure(8.0, 1.0) == pytest.approx(8.0)
+    assert rated_op_back_pressure(5.12, 0.8) == pytest.approx(8.0)
+    with pytest.raises(SystemCurveError):
+        rated_op_back_pressure(8.0, 0.0)
+
+
+def test_axial_affinity_probe_must_scale_p_with_lambda_squared():
+    """Motor derate: CFM∝λ then fan-line probe Pa must be load·λ² (axial matches mixed)."""
+    free_r, probe_r, load, lam = 80.0, 50.0, 8.0, 0.8
+    free, probe = free_r * lam, probe_r * lam
+    buggy = score_operating_point(free, probe, load, 0.4, 0.35, load)
+    fixed = score_operating_point(
+        free, probe, derated_probe_pa(load, lam), 0.4, 0.35, load,
+    )
+    assert buggy.q_op_cfm == pytest.approx(44.76, abs=0.05)
+    assert fixed.q_op_cfm == pytest.approx(40.0)
+    assert fixed.p_op_pa == pytest.approx(5.12)

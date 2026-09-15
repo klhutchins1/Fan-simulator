@@ -100,7 +100,7 @@ def test_motor_mount_grips_add_back_vs_smooth_cup(tmp_path):
     p = dataclasses.replace(_simple_params(), hub_radius=30.0)
     solid_v = export_print_ready(p, tmp_path / "solid.stl").volume_mm3
     over = dataclasses.replace(base, grip_count=0, grip_clearance_mm=0.35)
-    gripped = dataclasses.replace(base, grip_count=20, grip_dia_mm=0.8, grip_clearance_mm=0.35)
+    gripped = dataclasses.replace(base, grip_count=20, grip_dia_mm=2.4, grip_clearance_mm=0.35)
     v_over = export_print_ready(p, tmp_path / "over.stl", mount=over).volume_mm3
     v_grip = export_print_ready(p, tmp_path / "grip.stl", mount=gripped).volume_mm3
     assert v_grip > v_over, "grip pads must fuse material back into the oversize cup"
@@ -123,7 +123,8 @@ def test_fan_spec_motor_mount_roundtrips():
     assert spec.motor_mount is not None and spec.motor_mount.cavity_dia_mm == 37.25
     back = fan_spec_from_dict(fan_spec_to_dict(spec))
     assert back.motor_mount.cavity_dia_mm == 37.25 and back.motor_mount.rear_bore_dia_mm == 20.0
-    assert back.motor_mount.grip_count == 20 and back.motor_mount.grip_dia_mm == 0.8
+    assert back.motor_mount.grip_count == 20 and back.motor_mount.grip_dia_mm == 2.4
+    assert back.motor_mount.grip_protrude_mm == 0.7
 
 
 def test_readme_flags_placeholder_bore(tmp_path):

@@ -16,6 +16,9 @@ catalog/*.db
 *.stl.meta.json
 # Exception: trusted A12x25 reference impeller for geometry/CFD gates
 !validation/reference/a12x25_impeller.stl
+# Cached parametric Stock preview (gold ✕) — rebuilt when recipe fingerprint changes
+!validation/reference/*_stock_parametric.stl
+!validation/reference/*_stock_parametric.stl.meta.json
 
 # OpenFOAM case artifacts
 processor*/

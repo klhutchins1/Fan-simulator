@@ -197,6 +197,7 @@ def evaluate_cror(
     over = over_spec_flags(spec, dia, depth, weight_g)
     cfm_probe = cfm_load
     p_probe_pa = derated_probe_pa(load_pa, derate)
+    p_free_pa = max(0.0, float(m_free.static_pressure_rise_pa)) * (derate * derate)
     gap_raw.update({
         "free": m_free.to_dict(),
         "load": m_load.to_dict(),
@@ -205,6 +206,7 @@ def evaluate_cror(
         "derate": derate,
         "cfm_probe": cfm_probe,
         "p_probe_pa": p_probe_pa,
+        "p_free_pa": p_free_pa,
     })
     try:
         op = score_operating_point(
@@ -214,6 +216,7 @@ def evaluate_cror(
             eta_free=m_free.efficiency,
             eta_load=m_load.efficiency,
             load_pa=load_pa,
+            p_free_pa=p_free_pa,
         )
     except SystemCurveError as exc:
         return _infeasible(f"system-curve: {exc}", t0, raw=gap_raw)

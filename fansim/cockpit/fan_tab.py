@@ -48,11 +48,14 @@ from fansim.cockpit.figures import (
 from fansim.cockpit.library_view import apply_library_recipe, library_list_items
 from fansim.cockpit.placement import (
     fit_envelope,
+    frame_gap_note,
+    impeller_z_extent,
     nominal_fits_spec,
     prepare_export_flat,
     preview_changes,
     scale_to_hub,
 )
+from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
 from fansim.cockpit.score_caption import score_caption, stamp_score_extra
 from fansim.fan_spec import (
     MotorMount,
@@ -68,7 +71,7 @@ from fansim.fan_spec import (
     published_scatter_point,
     save_user_fan_model,
 )
-from fansim.geometry.blade import normalize_shroud_thick_mm
+from fansim.geometry.blade import normalize_shroud_thick_mm, uniform_thickness_tc
 from fansim.geometry.features import Features
 from fansim.manufacturability import check_printability
 from fansim.manufacturability.fdm_rules import preview_unprintable_note
@@ -102,185 +105,43 @@ else:
     from trame.widgets import vuetify3 as v3
 
 
-# Per-slider plain-English descriptions + min/max illustration images (shown as hover tooltips).
-_CTRL_IMG_DIR = Path(__file__).resolve().parents[2] / "docs" / "control_images"
+from fansim.cockpit.fan_copy import CONTROL_DESC, OPT_SEARCH_HELP, _IMG_URI
 
 
-def _load_control_images() -> dict:
-    uris = {}
-    if _CTRL_IMG_DIR.exists():
-        for p in _CTRL_IMG_DIR.glob("e_*.png"):
-            try:
-                uris[p.stem] = "data:image/png;base64," + base64.b64encode(p.read_bytes()).decode()
-            except Exception:  # noqa: BLE001
-                pass
-    return uris
-
-
-_IMG_URI = _load_control_images()
-
-CONTROL_DESC = {
-    "e_n_blades": "How many blades. More = more airflow & pressure, but louder and less efficient.",
-    "e_camber": "Blade curvature. More camber turns the air harder (pressure); too much hurts efficiency.",
-    "e_stagger_root": "Blade PITCH angle at the hub. Higher = more axial (flow); lower = blades overlap (pressure).",
-    "e_stagger_mid": "Blade PITCH angle at mid-span.",
-    "e_stagger_tip": "Blade PITCH angle at the tip.",
-    "e_chord_root": "Blade width at the hub. Wider = more area/solidity (pressure) but heavier, less efficient.",
-    "e_chord_mid": "Blade width at mid-span.",
-    "e_chord_tip": "Blade width at the tip.",
-    "e_lean_mid": "Circumferential WRAP at mid-span — wraps blades so they overlap like a real fan.",
-    "e_lean_tip": "Circumferential WRAP at the tip (0 = a flat radial paddle).",
-    "e_sweep_mid": "Axial position of the WHOLE mid section (forward/back rake).",
-    "e_sweep_tip": "Axial position of the WHOLE tip section.",
-    "e_le_mid": "Rakes only the LEADING edge at mid-span — curves the LE line, trailing edge unchanged.",
-    "e_le_tip": "Rakes only the LEADING edge at the tip.",
-    "e_skew_mid": "Skew (mm) — shifts the whole mid section sideways (tangentially). Fine balance/overlap tweak.",
-    "e_skew_tip": "Skew (mm) — shifts the whole tip section sideways (tangentially).",
-    "e_smooth_span": "Smooth span curves (PCHIP) — interpolate hub→mid→tip with a shape-preserving cubic so mid wrap/sweep/skew don't put a sharp kink in the blade. Off = linear (historical).",
-    "e_tip_round": "Rounds the blade TIP — tapers the chord over the outer span so the leading & trailing edges curve together, instead of a blunt straight tip edge. 0 = square.",
-    "e_cylindrical_tip": "Cuts each blade tip to a cylinder at Tip radius so the outer tip face matches the fan-cover circle (constant OD). Off = legacy tips with LE/TE corners that bulge past Tip radius. Tip Round still petals the planform before the cut.",
-    "e_tip_start": "Where the tip rounding begins (fraction of span). Lower = a longer, gentler rounded tip; higher = a small rounded cap near the very tip.",
-    "e_winglet_span": "Where the WINGLET starts (fraction of span). Below this the blade is straight; beyond it the tip curls.",
-    "e_winglet_sweep": "Winglet AXIAL bend (mm) — curls the tip forward/up out of the rotation plane (a real winglet). 0 = off.",
-    "e_winglet_lean": "Winglet CIRCUMFERENTIAL curl (deg) — wraps the tip around the axis. 0 = off.",
-    "e_shroud_thick": "Radial wall of a ring fused at the blade tips (mm). 0 = open tip. Grows the outer diameter by twice this amount.",
-    "e_shroud_height": "How much of the tip chord the ring covers. 1 = full span. Below 1 the hoop starts at the trailing edge. BEM still treats a partial ring as an open tip.",
-    "e_hub_radius": "Hub size. Smaller hub = bigger flow annulus (more airflow/efficiency); must fit the model's hub limits.",
-    "e_tip_radius": "Blade LENGTH (outer radius). Shrink it to make an oversized blade fit the frame (tip diameter) or trim depth.",
-    "e_hub_height": "Hub HEIGHT (mm). 0 = auto (just covers the blade roots — shortest). Raise it for a taller hub; it can't go below root coverage.",
-    "e_hub_nose": "Nose height (mm) for the cone/dome hub profile. Adds a spinner on the intake side (increases depth — may go over-spec).",
-    "e_camber_pos": "Where max camber sits along the chord (0.2 = near LE, 0.6 = aft). Shifts loading fore/aft.",
-    "e_thick_root": "Blade thickness at the hub. Thinner = lighter/more efficient; too thin drops below the min printable wall.",
-    "e_thick_mid": "Blade thickness at mid-span.",
-    "e_thick_tip": "Blade thickness at the tip.",
-    "e_le_thick": "Fatten the LEADING-EDGE nose (global, NACA only). 1 = stock. Ignored for Rounded plate. Click Preview after changing.",
-    "e_te_thick": "Trailing edge (NACA only): <1 thins the aft section; 1 = sharp stock; >1 adds a short tip blunt only (not a long face lip). For a full-round TE use Section family → Rounded plate. Ignored for plate.",
-    "e_section_family": "NACA = classic cambered airfoil. Rounded plate = constant thickness with full-round (bullnose) LE and TE — radius = half thickness, like a stadium section.",
-    "e_spacing": "Uneven-but-balanced blade spacing to spread the blade-pass tone. 0 = evenly spaced.",
-    "e_tub_amp": "Tubercle amplitude — bumpy leading edge (whale-fin), delays stall.",
-    "e_tub_waves": "Number of tubercle bumps along the span.",
-    "e_ser_amp": "Serration depth — sawtooth trailing edge (owl-wing), cuts edge noise.",
-    "e_ser_waves": "Number of serration teeth.",
-    "e_dim_amp": "Dimple depth — golf-ball-style surface texture.",
-    "e_dim_rows": "Dimples along the chord.",
-    "e_dim_cols": "Dimples along the span.",
-}
-
-# Plain-language help for Fan Optimize Advanced search (and Assess flags Optimize reuses).
-# Keys match state model names. Hover tooltips only — flag behavior is unchanged.
-OPT_SEARCH_HELP = {
-    "opt_trials": (
-        "How many CFD designs to try. Each trial is a full mesh+solve (often tens of minutes). "
-        "Start small (8). More trials ≈ better Pareto coverage, linear wall-clock cost."
-    ),
-    "opt_resume": (
-        "Append new trials into the currently opened run folder instead of making a new "
-        "runs/cockpit_opt_* folder. Use when continuing a campaign. Risk: mixes settings if you "
-        "changed hose/flags since the last batch."
-    ),
-    "opt_shroud": (
-        "Also search designs with a plastic tip ring fused at the blade tips (kills tip leak). "
-        "When to use: ducted / sealed-tip ideas. Cost: same CFD budget, slightly different geometry "
-        "stamp. Risk: ring grows OD — tip radius is capped so it still fits the frame."
-    ),
-    "opt_stator": (
-        "Replace the usual four-bar exit frame with a row of fixed guide vanes (straightens swirl). "
-        "When to use: chasing pressure / efficiency after the rotor. Cost: same CFD count. "
-        "Risk: can cut free CFM; mutually exclusive with stator+frame stack."
-    ),
-    "opt_stator_stack": (
-        "Guide vanes first, then the four-bar frame a few mm downstream. When to use: mountable "
-        "hardware that still needs OGVs. Cost: same CFD count. Risk: more blockage than stator alone; "
-        "turns off plain stator."
-    ),
-    "opt_sickle": (
-        "Forward-sweeps the leading edge in the rotation plane (scimitar / sickle shape). "
-        "When to use: exploring tip loading / tone ideas. Cost: same CFD count. "
-        "Risk: another geometry family — compare fairly against un-sickled runs."
-    ),
-    "opt_stepped": (
-        "Adds a concentric step on the circular inlet casing (not on the blade). "
-        "When to use: inlet-conditioning experiments. Cost: same CFD count. Risk: casing-only change."
-    ),
-    "opt_notched": (
-        "Cuts three small bites into the trailing edge near the tip. When to use: tip-tone "
-        "experiments. Cost: same CFD count. Risk: fixed recipe (not a free search variable); "
-        "do not expect proven dB cuts."
-    ),
-    "opt_bem": (
-        "Cheap blade-element estimate first: skip full CFD if predicted hose CFM is below ~32. "
-        "When to use: large campaigns to burn fewer CFD hours. Cost: much faster. "
-        "Risk: BEM under-ranks real CFD (~0.6×) — may discard borderline winners if the floor is high."
-    ),
-    "opt_gp": (
-        "Catalog Gaussian-process guess of free-delivery CFM: skip CFD when mean+uncertainty "
-        "is below ~40 CFM. When to use: with a populated catalog. Cost: faster after a few scored "
-        "points. Risk: weak early on; uncertain predictions still run CFD."
-    ),
-    "opt_gp_boost": (
-        "With Catalog GP skip on: use a boosted-tree mean + GP uncertainty. When to use: richer "
-        "catalog. Cost: tiny CPU overhead. Risk: needs scikit-learn or falls back to GP-only."
-    ),
-    "opt_gp_nn": (
-        "With Catalog GP skip on: use a small neural net for the CFM mean + GP uncertainty "
-        "(wins over Boost if both on). When to use: experimental surrogate. Cost: tiny. "
-        "Risk: needs PyTorch or falls back to GP-only."
-    ),
-    "opt_search_rpm": (
-        "Treat RPM as a searchable dial inside the fan’s PWM band (not fixed nameplate speed). "
-        "When to use: PWM / thermal fans. Cost: wider search → more trials to cover well. "
-        "Risk: compares apples-to-oranges vs fixed-RPM campaigns."
-    ),
-    "opt_rpm_min": "Lowest RPM Optuna may pick when Search RPM is on (PWM band floor).",
-    "opt_rpm_max": "Highest RPM Optuna may pick when Search RPM is on (PWM band ceiling).",
-    "assess_refine_op": (
-        "Runs a third CFD at the real hose operating pressure instead of estimating load CFM "
-        "from two points. Used by Assess and by Optimize. When to use: more honest load CFM. "
-        "Cost: ~50% longer per design. Risk: still RANS, not a lab measurement."
-    ),
-    "assess_wall_ks": (
-        "Models FDM print roughness (~0.1 mm sand grain) on impeller + frame/stator; casing "
-        "stays smooth. Used by Assess and Optimize. When to use: printed-part honesty. "
-        "Cost: same solve time. Risk: slightly lower predicted CFM vs smooth walls."
-    ),
-}
-
-
-def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None):
-    """A labelled slider with a HOVER TOOLTIP: what it does + a min/max illustration."""
+def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None, unit: str = ""):
+    """Slider with always-visible value + unit (not only on thumb click)."""
     desc, uri = CONTROL_DESC.get(model, ""), _IMG_URI.get(model)
     extra = {}
     if disabled is not None:
         extra["disabled"] = disabled
-    if not desc and not uri:
+    unit_s = f" {unit}" if unit else ""
+
+    def _body():
+        with html.Div(classes="d-flex justify-space-between align-center text-caption mb-0"):
+            html.Span(label)
+            html.Span(
+                f"{{{{ {model} }}}}{unit_s}",
+                classes="font-weight-medium text-no-wrap ml-2",
+            )
         v3.VSlider(
             v_model=(model,),
             min=mn,
             max=mx,
             step=step,
-            label=label,
-            thumb_label=True,
+            thumb_label="always",
             density="compact",
             hide_details=True,
-            classes="mb-1",
+            classes="mt-0 mb-2",
             **extra,
         )
+
+    if not desc and not uri:
+        _body()
         return
     with v3.VTooltip(location="end", open_delay=150, max_width=380):
         with v3.Template(v_slot_activator="{ props }"):
-            v3.VSlider(
-                v_bind="props",
-                v_model=(model,),
-                min=mn,
-                max=mx,
-                step=step,
-                label=label,
-                thumb_label=True,
-                density="compact",
-                hide_details=True,
-                classes="mb-1",
-                **extra,
-            )
+            with html.Div(v_bind="props"):
+                _body()
         if uri:
             html.Img(
                 src=uri,
@@ -516,6 +377,10 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         {"title": "NACA airfoil", "value": "naca"},
         {"title": "Rounded plate (bullnose)", "value": "plate"},
     ]
+    state.thick_mode_items = [
+        {"title": "Uniform wall (mm)", "value": "uniform"},
+        {"title": "Tapered (t/c by span)", "value": "tapered"},
+    ]
     state.declutter = False
     state.fits_only = True
     state.show_stock = True
@@ -599,21 +464,31 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
     def _tip_fit_readout():
         s = get_fan_spec(state.fan_model)
         max_dia = s.tip_dia_mm[1]
+        floor = float(OPTIMIZER_TIP_GAP_MM)
         if state.e_tip_radius is None:
-            state.tip_fit_info = f"Frame ≤ {max_dia:.0f} mm dia."
+            state.tip_fit_info = f"Frame ≤ {max_dia:.0f} mm dia (need ≥{floor:.1f} mm tip gap)."
             return
         try:
             dia = _blade_max_dia(build_edit_params())
         except Exception:  # noqa: BLE001
             dia = 2.0 * float(state.e_tip_radius)
-        state.tip_fit_info = (
-            f"Frame ≤ {max_dia:.0f} mm → built tip dia {dia:.1f} mm "
-            + (
-                "✓ fits the housing."
-                if dia <= max_dia
-                else f"✗ over by {dia-max_dia:.1f} mm — use Fit envelope."
+        gap = max_dia / 2.0 - dia / 2.0
+        note = frame_gap_note(dia, s)
+        if note:
+            state.tip_fit_info = (
+                f"Frame ≤ {max_dia:.0f} mm → built tip dia {dia:.1f} mm "
+                f"(gap {gap:.2f} mm) ✗ {note} — use Fit envelope."
             )
-        )
+        elif dia > max_dia:
+            state.tip_fit_info = (
+                f"Frame ≤ {max_dia:.0f} mm → built tip dia {dia:.1f} mm "
+                f"✗ over by {dia - max_dia:.1f} mm — use Fit envelope."
+            )
+        else:
+            state.tip_fit_info = (
+                f"Frame ≤ {max_dia:.0f} mm → built tip dia {dia:.1f} mm "
+                f"(gap {gap:.2f} mm ≥ {floor:.1f} mm) ✓ fits."
+            )
 
     def _depth_fit_readout():
         s = get_fan_spec(state.fan_model)
@@ -622,12 +497,12 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             state.depth_fit_info = f"Frame ≤ {max_d:.0f} mm deep."
             return
         try:
-            d = _blade_z_extent(build_edit_params())
+            d = impeller_z_extent(build_edit_params())
         except Exception:  # noqa: BLE001
             state.depth_fit_info = ""
             return
         state.depth_fit_info = (
-            f"Frame ≤ {max_d:.0f} mm deep → blade {d:.1f} mm "
+            f"Frame ≤ {max_d:.0f} mm deep → impeller {d:.1f} mm "
             + (
                 "✓ fits."
                 if d <= max_d
@@ -703,8 +578,9 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                 shaft_dia_mm=(base.motor_mount.shaft_dia_mm if base.motor_mount else 0.0),
                 min_hub_height_mm=float(state.fm_hub_h),
                 grip_count=int(getattr(base.motor_mount, "grip_count", 0) or 0) if base.motor_mount else 0,
-                grip_dia_mm=float(getattr(base.motor_mount, "grip_dia_mm", 0.8) or 0.8) if base.motor_mount else 0.8,
+                grip_dia_mm=float(getattr(base.motor_mount, "grip_dia_mm", 2.4) or 2.4) if base.motor_mount else 2.4,
                 grip_clearance_mm=float(getattr(base.motor_mount, "grip_clearance_mm", 0.35) or 0.35) if base.motor_mount else 0.35,
+                grip_protrude_mm=float(getattr(base.motor_mount, "grip_protrude_mm", 0.7) or 0.7) if base.motor_mount else 0.7,
             )
         spec = dataclasses.replace(
             base,
@@ -804,7 +680,11 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         state.e_chord_root = float(p.get("chord_root", 34.0))
         state.e_chord_mid = float(p.get("chord_mid", 44.0))
         state.e_chord_tip = float(p.get("chord_tip", 38.0))
-        state.e_camber = float(p.get("max_camber", 0.05))
+        _cam = float(p.get("max_camber", 0.05))
+        state.e_camber_root = float(p.get("camber_root", _cam))
+        state.e_camber_mid = float(p.get("camber_mid", _cam))
+        state.e_camber_tip = float(p.get("camber_tip", _cam))
+        state.e_camber = state.e_camber_mid
         state.e_sweep_mid = float(p.get("sweep_mid", 3.0))
         state.e_sweep_tip = float(p.get("sweep_tip", 5.0))
         state.e_lean_mid = float(p.get("lean_mid", 14.0))
@@ -842,6 +722,29 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         state.e_thick_root = float(p.get("thickness_root", 0.10))
         state.e_thick_mid = float(p.get("thickness_mid", 0.08))
         state.e_thick_tip = float(p.get("thickness_tip", 0.06))
+        cr = float(p.get("chord_root", state.e_chord_root or 34.0))
+        cm = float(p.get("chord_mid", state.e_chord_mid or 44.0))
+        ct = float(p.get("chord_tip", state.e_chord_tip or 38.0))
+        # Absolute wall (mm) at each station — uniform mode means equal mm, not equal t/c.
+        ar = state.e_thick_root * cr
+        am = state.e_thick_mid * cm
+        at = state.e_thick_tip * ct
+        mode = str(p.get("thick_mode") or "").strip().lower()
+        if mode in ("uniform", "tapered"):
+            state.e_thick_mode = mode
+        else:
+            state.e_thick_mode = (
+                "uniform"
+                if abs(ar - am) < 0.12 and abs(am - at) < 0.12
+                else "tapered"
+            )
+        if p.get("thick_mm") is not None:
+            try:
+                state.e_thick_mm = round(float(p["thick_mm"]), 2)
+            except Exception:  # noqa: BLE001
+                state.e_thick_mm = round((ar + am + at) / 3.0, 2)
+        else:
+            state.e_thick_mm = round((ar + am + at) / 3.0, 2)
         state.e_le_thick = float(p.get("le_thick_scale", 1.0))
         state.e_te_thick = float(p.get("te_thick_scale", 1.0))
         _sf = str(p.get("section_family", "naca") or "naca").lower().strip()
@@ -862,6 +765,17 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         shroud = normalize_shroud_thick_mm(state.e_shroud_thick)
         if float(state.e_shroud_thick or 0.0) != shroud:
             state.e_shroud_thick = shroud
+        if str(getattr(state, "e_thick_mode", "tapered")) == "uniform":
+            th_r, th_m, th_t = uniform_thickness_tc(
+                float(getattr(state, "e_thick_mm", 2.0) or 2.0),
+                float(state.e_chord_root),
+                float(state.e_chord_mid),
+                float(state.e_chord_tip),
+            )
+        else:
+            th_r = float(state.e_thick_root)
+            th_m = float(state.e_thick_mid)
+            th_t = float(state.e_thick_tip)
         return dict(
             n_blades=int(state.e_n_blades),
             stagger_root=state.e_stagger_root,
@@ -872,7 +786,10 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             chord_tip=state.e_chord_tip,
             sweep_mid=state.e_sweep_mid,
             sweep_tip=state.e_sweep_tip,
-            max_camber=state.e_camber,
+            camber_root=float(state.e_camber_root),
+            camber_mid=float(state.e_camber_mid),
+            camber_tip=float(state.e_camber_tip),
+            max_camber=float(state.e_camber_mid),
             camber_pos=state.e_camber_pos,
             lean_mid=state.e_lean_mid,
             lean_tip=state.e_lean_tip,
@@ -894,9 +811,11 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             hub_height=state.e_hub_height,
             hub_profile=state.e_hub_profile,
             hub_nose=state.e_hub_nose,
-            thickness_root=state.e_thick_root,
-            thickness_mid=state.e_thick_mid,
-            thickness_tip=state.e_thick_tip,
+            thickness_root=th_r,
+            thickness_mid=th_m,
+            thickness_tip=th_t,
+            thick_mode=str(getattr(state, "e_thick_mode", "tapered") or "tapered"),
+            thick_mm=float(getattr(state, "e_thick_mm", 2.0) or 2.0),
             le_thick_scale=float(state.e_le_thick),
             te_thick_scale=float(state.e_te_thick),
             section_family=str(state.e_section_family or "naca"),
@@ -915,7 +834,10 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             "chord_tip": ("e_chord_tip", float),
             "sweep_mid": ("e_sweep_mid", float),
             "sweep_tip": ("e_sweep_tip", float),
-            "max_camber": ("e_camber", float),
+            "camber_root": ("e_camber_root", float),
+            "camber_mid": ("e_camber_mid", float),
+            "camber_tip": ("e_camber_tip", float),
+            "max_camber": ("e_camber_mid", float),
             "camber_pos": ("e_camber_pos", float),
             "lean_mid": ("e_lean_mid", float),
             "lean_tip": ("e_lean_tip", float),
@@ -938,6 +860,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             "thickness_root": ("e_thick_root", float),
             "thickness_mid": ("e_thick_mid", float),
             "thickness_tip": ("e_thick_tip", float),
+            "thick_mm": ("e_thick_mm", float),
             "le_thick_scale": ("e_le_thick", float),
             "te_thick_scale": ("e_te_thick", float),
             "section_family": ("e_section_family", str),
@@ -953,6 +876,11 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                 setattr(state, sv, cast(v))
             except Exception:  # noqa: BLE001
                 continue
+        if "thick_mode" in flat:
+            mode = str(flat.get("thick_mode") or "").strip().lower()
+            if mode in ("uniform", "tapered"):
+                state.e_thick_mode = mode
+        state.e_camber = float(getattr(state, "e_camber_mid", getattr(state, "e_camber", 0.05)))
         _sf = str(getattr(state, "e_section_family", "naca") or "naca").lower().strip()
         state.e_section_family = _sf if _sf in ("naca", "plate") else "naca"
         if "span_interp" in flat:
@@ -1033,9 +961,12 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         state.e_chord_root = round(_r.uniform(16, 40), 1)
         state.e_chord_mid = round(_r.uniform(16, 42), 1)
         state.e_chord_tip = round(_r.uniform(16, 40), 1)
-        state.e_sweep_mid = round(_r.uniform(-3, 8), 1)
-        state.e_sweep_tip = round(_r.uniform(0, 12), 1)
-        state.e_camber = round(_r.uniform(0.0, 0.06), 3)
+        state.e_sweep_mid = round(_r.uniform(-8, 16), 1)
+        state.e_sweep_tip = round(_r.uniform(-4, 20), 1)
+        state.e_camber_root = round(_r.uniform(0.0, 0.06), 3)
+        state.e_camber_mid = round(_r.uniform(0.0, 0.06), 3)
+        state.e_camber_tip = round(_r.uniform(0.0, 0.06), 3)
+        state.e_camber = state.e_camber_mid
         state.e_camber_pos = round(_r.uniform(0.3, 0.5), 2)
         state.e_lean_mid = round(_r.uniform(0, 25), 1)
         state.e_lean_tip = round(_r.uniform(0, 45), 1)
@@ -1052,9 +983,14 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         state.e_tip_start = round(_r.uniform(0.7, 0.88), 2)
         state.e_hub_radius = round(_r.uniform(17, 28), 1)
         state.e_tip_radius = round(_r.uniform(48, 58), 1)
-        state.e_thick_root = round(_r.uniform(0.06, 0.12), 3)
-        state.e_thick_mid = round(_r.uniform(0.05, 0.10), 3)
-        state.e_thick_tip = round(_r.uniform(0.04, 0.08), 3)
+        state.e_thick_mode = "uniform"
+        state.e_thick_mm = round(_r.uniform(1.2, 2.4), 1)
+        th_r, th_m, th_t = uniform_thickness_tc(
+            state.e_thick_mm, state.e_chord_root, state.e_chord_mid, state.e_chord_tip,
+        )
+        state.e_thick_root = round(th_r, 3)
+        state.e_thick_mid = round(th_m, 3)
+        state.e_thick_tip = round(th_t, 3)
         state.e_hub_profile = _r.choice(["cylinder", "cylinder", "cone", "dome"])
         state.e_hub_nose = (
             round(_r.uniform(3, 12), 1) if state.e_hub_profile != "cylinder" else 0.0
@@ -1116,24 +1052,21 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             spec,
             fit_frame=bool(state.export_fit_frame),
             features=edit_features(),
+            fit_hub=bool(state.export_fit_hub),
         )
-        if state.export_fit_frame:
-            _apply_editor_flat(fitted)
-            _hub_fit_readout()
-            _tip_fit_readout()
-            _depth_fit_readout()
-            if frame_changes:
-                state.edited_stale = True
-        need = mount_min_hub_radius(spec)
+        _apply_editor_flat(fitted)
+        _hub_fit_readout()
+        _tip_fit_readout()
+        _depth_fit_readout()
+        if frame_changes:
+            state.edited_stale = True
         grew_from = None
-        if state.export_fit_hub and need is not None and float(state.e_hub_radius) < need:
-            grew_from = float(state.e_hub_radius)
-            state.e_hub_radius = round(need + 0.05, 2)
-        min_h = getattr(spec.motor_mount, "min_hub_height_mm", 0.0) if spec.motor_mount else 0.0
         grew_h_from = None
-        if state.export_fit_hub and min_h and float(state.e_hub_height) < min_h:
-            grew_h_from = float(state.e_hub_height)
-            state.e_hub_height = float(min_h)
+        for ch in frame_changes:
+            if ch.field == "hub_radius" and ch.after > ch.before:
+                grew_from = ch.before
+            if ch.field == "hub_height" and ch.after > ch.before:
+                grew_h_from = ch.before
         params = build_edit_params()
         exports = Path("exports")
         exports.mkdir(exist_ok=True)
@@ -1445,7 +1378,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                     tone_line = ""
             state.preview_msg = (
                 f"Preview (orange): {params.n_blades} blades, "
-                f"camber {state.e_camber:.3f}, {feats}.\n{status}{print_line}"
+                f"camber {state.e_camber_root:.3f}/{state.e_camber_mid:.3f}/{state.e_camber_tip:.3f}, {feats}.\n{status}{print_line}"
                 f"{tone_line}{print_warn}"
             )
             state.preview_busy = False
@@ -1516,6 +1449,9 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         "e_chord_tip",
         "e_sweep_mid",
         "e_sweep_tip",
+        "e_camber_root",
+        "e_camber_mid",
+        "e_camber_tip",
         "e_camber",
         "e_camber_pos",
         "e_lean_mid",
@@ -1538,6 +1474,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         "e_hub_height",
         "e_hub_profile",
         "e_hub_nose",
+        "e_thick_mode",
+        "e_thick_mm",
         "e_thick_root",
         "e_thick_mid",
         "e_thick_tip",
@@ -1582,6 +1520,25 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         )
 
     state.change(*EDITOR_VARS)(_recompute_stale)
+
+    @state.change("e_thick_mode")
+    def _on_thick_mode(e_thick_mode=None, **_):
+        mode = str(e_thick_mode if e_thick_mode is not None else getattr(state, "e_thick_mode", "tapered"))
+        if mode == "uniform":
+            # Preserve current physical wall at root when entering uniform-mm mode.
+            mm = float(state.e_thick_root) * float(state.e_chord_root)
+            state.e_thick_mm = round(max(mm, 0.8), 2)
+        else:
+            mm = float(getattr(state, "e_thick_mm", 2.0) or 2.0)
+            th_r, th_m, th_t = uniform_thickness_tc(
+                mm,
+                float(state.e_chord_root),
+                float(state.e_chord_mid),
+                float(state.e_chord_tip),
+            )
+            state.e_thick_root = round(th_r, 3)
+            state.e_thick_mid = round(th_m, 3)
+            state.e_thick_tip = round(th_t, 3)
 
     @state.change("assess_preset", "assess_refine_op", "assess_wall_ks")
     def _on_assess_score_settings(
@@ -1930,20 +1887,30 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             state.flush()
             ticker = asynchronous.create_task(_assess_progress_ticker(t0, wd_holder, note=note))
             try:
-                if preview_stl.exists():
-                    ok_prev, status_prev = spec_status(preview_stl, params, flat)
+                try:
+                    # Always gate on LIVE editor geometry — never orphan Preview STL bounds
+                    # (edit-after-Preview used to false-reject or skip the gate).
+                    from fansim.cockpit.placement import frame_gap_note, impeller_z_extent
+
+                    spec = active_spec()
+                    dia = _blade_max_dia(params)
+                    depth = impeller_z_extent(params)
+                    ok_prev, reason_prev = check_build(
+                        spec, dia, 2.0 * float(params.hub_radius), depth, None,
+                    )
+                    if ok_prev:
+                        gap = frame_gap_note(dia, spec)
+                        if gap:
+                            ok_prev, reason_prev = False, gap
                     if not ok_prev:
-                        reason = status_prev
-                        marker = "Assess will reject: "
-                        if marker in status_prev:
-                            reason = status_prev.split(marker, 1)[1]
-                            if ". ↳" in reason:
-                                reason = reason.split(". ↳", 1)[0]
-                            elif reason.endswith("."):
-                                reason = reason[:-1]
-                        hint = reject_hint(reason)
-                        state.assess_msg = f"Assess: rejected — {reason}" + (f"\n{hint}" if hint else "")
+                        hint = reject_hint(reason_prev)
+                        state.assess_msg = (
+                            f"Assess: rejected — {reason_prev}"
+                            + (f"\n{hint}" if hint else "")
+                        )
                         return
+                except Exception:  # noqa: BLE001 — never block Assess on readout failure
+                    pass
                 cur = (
                     by_trial.get(int(state.selected_trial))
                     if state.selected_trial is not None
@@ -2589,13 +2556,27 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             state.flush()
             return
 
+        from fansim.cockpit.placement import fit_envelope
+        from fansim.cockpit.stock_cache import (
+            stock_cache_hit,
+            stock_cache_paths,
+            write_stock_cache_meta,
+        )
+
         spec = active_spec()
+        # Bake frame/mount fit into the editor so gold ✕ does not need a manual Fit.
+        fitted = fit_envelope(flat, spec, features=Features())
+        flat = fitted.flat
         load_pa, hose = assess_load(str(state.assess_preset or "legacy"))
         pub = published_scatter_point(spec, load_pa)
         _init_editor(flat, Features())
         state.selected_trial = None
         state.fan_subtab = "design"
-        state.edited_stale = True
+        state.edited_stale = False
+        fit_note = ""
+        if fitted.changes:
+            bits = ", ".join(f"{c.field}→{c.after:g}" for c in fitted.changes[:4])
+            fit_note = f" Frame-fit applied ({bits})."
         state.info_lines = [
             f"Stock reference — {spec.name} (parametric, not OEM CAD)",
             (
@@ -2604,7 +2585,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                 if pub
                 else "No published CFM on this fan model."
             ),
-            "Sliders loaded from config/problems stock yaml. Add features, then Preview / Assess.",
+            "Sliders = Stock recipe (frame-fitted). Edit then Preview / Assess for CFD ◆."
+            + fit_note,
         ]
         state.preview_msg = "Loading stock 3-D preview…"
         state.stale_msg = (
@@ -2612,10 +2594,23 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             "Edit freely; re-Assess after changes for CFD numbers."
         )
         _clear_airflow("Stock reference — no CFD case (Assess to generate airflow viz).")
-        _clear_glyphs("Stock reference — no velocity arrows until Assess.")
+        state.glyph_caption = "Loading schematic flow arrows…"
         state.flush()
 
         flat_s, feat_s = edit_flat(), edit_features()
+        cache_stl, _cache_meta = stock_cache_paths(key)
+
+        def _ensure_stock_preview() -> Path:
+            hit = stock_cache_hit(key, flat_s, preview=True)
+            if hit is not None:
+                return hit
+            from fansim.geometry.isolated import build_stl_isolated
+
+            cache_stl.parent.mkdir(parents=True, exist_ok=True)
+            # Fast fused-free preview mesh for gold ✕ (Export / Assess still do full solids).
+            build_stl_isolated(flat_s, feat_s, cache_stl, timeout=300.0, preview=True)
+            write_stock_cache_meta(key, flat_s, preview=True)
+            return cache_stl
 
         async def task():
             state.preview_busy = True
@@ -2623,16 +2618,33 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                 action="Stock preview",
                 msg_attr="preview_msg",
                 busy_attr="preview_busy",
-                note="parametric Noctua-like blade",
+                note="cached parametric mesh" if stock_cache_hit(key, flat_s, preview=True) else "building Stock cache once",
             )
             state.flush()
             loop = asyncio.get_running_loop()
             try:
-                await loop.run_in_executor(None, _build_preview_stl, flat_s, feat_s)
-                _draw(preview_stl, "gold")
+                path = await loop.run_in_executor(None, _ensure_stock_preview)
+                _draw(path, "gold")
+                from fansim.cfd.glyphs import schematic_axial_flow_cloud
+
+                hub_r = float(flat_s.get("hub_radius") or 21.5)
+                tip_r = float(flat_s.get("tip_radius") or (active_spec().tip_dia_mm[1] / 2.0 - 0.5))
+                z_span = float(flat_s.get("hub_height") or 22.0)
+                render_state["glyph_cloud"] = schematic_axial_flow_cloud(
+                    hub_radius_mm=hub_r,
+                    tip_radius_mm=tip_r,
+                    z_span_mm=max(z_span, 20.0),
+                )
+                state.glyph_caption = (
+                    "Schematic axial flow (stock has no CFD case — Assess for real velocity arrows)"
+                )
+                _rebuild_glyph_arrows()
+                _apply_render(reset=False)
+                cached = stock_cache_hit(key, flat_s, preview=True) is not None
                 state.preview_msg = (
-                    f"✓ Stock reference loaded ({spec.name}). "
-                    "Gold mesh = parametric approximation — tweak Design sliders / features."
+                    f"✓ Stock reference loaded ({spec.name})"
+                    + (" — cached mesh." if cached else " — cached for next click.")
+                    + " Gold = parametric Stock; published CFM is the ✕, not this mesh's CFD."
                 )
             except Exception as exc:  # noqa: BLE001
                 state.preview_msg = f"⚠ Stock preview failed: {exc}"
@@ -2853,10 +2865,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         with v3.VExpansionPanels(classes="mb-2", v_show="fan_subtab === 'library'"):
                             with v3.VExpansionPanel(title="Leeway (allow exceeding nominal → over-spec)"):
                                 with v3.VExpansionPanelText():
-                                    _slider("Tip past frame (mm)", "lee_tip", 0, 10, 0.5)
-                                    _slider("Extra depth Z (mm)", "lee_depth", 0, 12, 0.5)
-                                    _slider("Over-voltage (V)", "lee_overvolt", 0, 12, 0.5)
-                                    _slider("Extra weight (g)", "lee_weight", 0, 40, 1)
+                                    _slider("Tip past frame", "lee_tip", 0, 10, 0.5, unit="mm")
+                                    _slider("Extra depth Z", "lee_depth", 0, 12, 0.5, unit="mm")
+                                    _slider("Over-voltage", "lee_overvolt", 0, 12, 0.5, unit="V")
+                                    _slider("Extra weight", "lee_weight", 0, 40, 1, unit="g")
                             with v3.VExpansionPanel(title="Manage fan models (add / edit / delete)"):
                                 with v3.VExpansionPanelText():
                                     html.Div(
@@ -3331,14 +3343,14 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             with v3.VExpansionPanel(title="Planform — blades & chord"):
                                 with v3.VExpansionPanelText():
                                     _slider("Blades", "e_n_blades", 5, 11, 1)
-                                    _slider("Chord root", "e_chord_root", 14, 42, 0.5)
-                                    _slider("Chord mid", "e_chord_mid", 14, 42, 0.5)
-                                    _slider("Chord tip", "e_chord_tip", 14, 42, 0.5)
+                                    _slider("Chord root", "e_chord_root", 14, 42, 0.5, unit="mm")
+                                    _slider("Chord mid", "e_chord_mid", 14, 42, 0.5, unit="mm")
+                                    _slider("Chord tip", "e_chord_tip", 14, 42, 0.5, unit="mm")
                             with v3.VExpansionPanel(title="Pitch / twist — stagger"):
                                 with v3.VExpansionPanelText():
-                                    _slider("Stagger root", "e_stagger_root", 15, 55, 1)
-                                    _slider("Stagger mid", "e_stagger_mid", 15, 55, 1)
-                                    _slider("Stagger tip", "e_stagger_tip", 15, 55, 1)
+                                    _slider("Stagger root", "e_stagger_root", 15, 55, 1, unit="deg")
+                                    _slider("Stagger mid", "e_stagger_mid", 15, 55, 1, unit="deg")
+                                    _slider("Stagger tip", "e_stagger_tip", 15, 55, 1, unit="deg")
                             with v3.VExpansionPanel(title="Airfoil — camber & thickness"):
                                 with v3.VExpansionPanelText():
                                     v3.VSelect(
@@ -3355,20 +3367,65 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     html.Div(
                                         "NACA = cambered airfoil. Rounded plate = "
                                         "constant thickness with full-round LE & TE "
-                                        "(R = half thickness).",
+                                        "(R = half thickness). Uniform wall uses mm; "
+                                        "tapered uses t/c (fraction of local chord).",
                                         classes="text-caption mb-2",
                                     )
-                                    _slider("Camber (curve)", "e_camber", 0.0, 0.06, 0.005)
-                                    _slider("Camber position", "e_camber_pos", 0.2, 0.6, 0.05)
-                                    _slider("Thickness root", "e_thick_root", 0.03, 0.15, 0.01)
-                                    _slider("Thickness mid", "e_thick_mid", 0.03, 0.15, 0.01)
-                                    _slider("Thickness tip", "e_thick_tip", 0.03, 0.15, 0.01)
-                                    # §2.9 / §11.4 — LE/TE thickness scales PARKED (TE visually
-                                    # backwards). Rounded plate gives a full bullnose instead.
-                                    # State keys e_le_thick / e_te_thick still load/save for old rows.
+                                    _slider("Camber root", "e_camber_root", 0.0, 0.06, 0.005, unit="c/c")
+                                    _slider("Camber mid", "e_camber_mid", 0.0, 0.06, 0.005, unit="c/c")
+                                    _slider("Camber tip", "e_camber_tip", 0.0, 0.06, 0.005, unit="c/c")
+                                    _slider("Camber position", "e_camber_pos", 0.2, 0.6, 0.05, unit="x/c")
+                                    v3.VSelect(
+                                        label="Thickness span",
+                                        v_model=("e_thick_mode",),
+                                        items=("thick_mode_items",),
+                                        item_title="title",
+                                        item_value="value",
+                                        density="compact",
+                                        variant="outlined",
+                                        hide_details=True,
+                                        classes="mb-2",
+                                    )
+                                    _slider(
+                                        "Blade thickness", "e_thick_mm", 0.8, 4.0, 0.1,
+                                        unit="mm",
+                                        disabled=("e_thick_mode !== 'uniform'",),
+                                    )
+                                    _slider(
+                                        "Thickness root", "e_thick_root", 0.03, 0.15, 0.01,
+                                        unit="t/c",
+                                        disabled=("e_thick_mode === 'uniform'",),
+                                    )
+                                    _slider(
+                                        "Thickness mid", "e_thick_mid", 0.03, 0.15, 0.01,
+                                        unit="t/c",
+                                        disabled=("e_thick_mode === 'uniform'",),
+                                    )
+                                    _slider(
+                                        "Thickness tip", "e_thick_tip", 0.03, 0.15, 0.01,
+                                        unit="t/c",
+                                        disabled=("e_thick_mode === 'uniform'",),
+                                    )
                                     html.Div(
-                                        "LE/TE thickness scales are parked (known visual bug). "
-                                        "Use Section family → Rounded plate for a bullnose TE.",
+                                        "Uniform wall = same mm root→tip (t/c falls as chord grows). "
+                                        "Tapered = independent t/c. Lift comes from camber/stagger, "
+                                        "not thickness taper.",
+                                        classes="text-caption mb-2",
+                                    )
+                                    _slider(
+                                        "LE thick scale", "e_le_thick", 0.5, 2.0, 0.05,
+                                        unit="×",
+                                        disabled=("e_section_family === 'plate'",),
+                                    )
+                                    _slider(
+                                        "TE thick scale", "e_te_thick", 0.5, 2.0, 0.05,
+                                        unit="×",
+                                        disabled=("e_section_family === 'plate'",),
+                                    )
+                                    html.Div(
+                                        "LE/TE scales reshape nose/tail on top of the span thickness "
+                                        "(1 = stock NACA). TE>1 fattens the aft section. "
+                                        "Full bullnose → Rounded plate. Preview after changes.",
                                         classes="text-caption text-medium-emphasis mb-2",
                                         v_show="e_section_family === 'naca'",
                                     )
@@ -3380,14 +3437,14 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         help_map=CONTROL_DESC,
                                         classes="mb-2",
                                     )
-                                    _slider("Wrap mid (deg)", "e_lean_mid", 0, 30, 1)
-                                    _slider("Wrap tip (deg)", "e_lean_tip", 0, 45, 1)
-                                    _slider("Sweep mid", "e_sweep_mid", -3, 8, 0.5)
-                                    _slider("Sweep tip", "e_sweep_tip", 0, 15, 0.5)
-                                    _slider("LE curve mid (mm)", "e_le_mid", -8, 8, 0.5)
-                                    _slider("LE curve tip (mm)", "e_le_tip", -8, 8, 0.5)
-                                    _slider("Skew mid (mm)", "e_skew_mid", -6, 6, 0.5)
-                                    _slider("Skew tip (mm)", "e_skew_tip", -6, 6, 0.5)
+                                    _slider("Wrap mid", "e_lean_mid", 0, 30, 1, unit="deg")
+                                    _slider("Wrap tip", "e_lean_tip", 0, 45, 1, unit="deg")
+                                    _slider("Sweep mid", "e_sweep_mid", -10, 20, 0.5, unit="mm")
+                                    _slider("Sweep tip", "e_sweep_tip", -8, 25, 0.5, unit="mm")
+                                    _slider("LE curve mid", "e_le_mid", -12, 12, 0.5, unit="mm")
+                                    _slider("LE curve tip", "e_le_tip", -12, 12, 0.5, unit="mm")
+                                    _slider("Skew mid", "e_skew_mid", -20, 20, 0.5, unit="mm")
+                                    _slider("Skew tip", "e_skew_tip", -25, 25, 0.5, unit="mm")
                                     html.Div("{{ depth_fit_info }}", classes="text-caption")
                             with v3.VExpansionPanel(title="Tip — round & winglet"):
                                 with v3.VExpansionPanelText():
@@ -3396,18 +3453,19 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         "Cylindrical tip (match cover)",
                                         help_map=CONTROL_DESC,
                                     )
-                                    _slider("Tip round", "e_tip_round", 0.0, 1.0, 0.05)
-                                    _slider("Tip round start (span)", "e_tip_start", 0.5, 0.92, 0.02)
-                                    _slider("Winglet start (span)", "e_winglet_span", 0.6, 0.95, 0.05)
-                                    _slider("Winglet sweep (mm)", "e_winglet_sweep", 0, 15, 0.5)
-                                    _slider("Winglet lean (deg)", "e_winglet_lean", 0, 30, 1)
-                                    _slider("Shroud thickness (mm)", "e_shroud_thick", 0, 3, 0.8)
+                                    _slider("Tip round", "e_tip_round", 0.0, 1.0, 0.05, unit="0–1")
+                                    _slider("Tip round start", "e_tip_start", 0.5, 0.92, 0.02, unit="span")
+                                    _slider("Winglet start", "e_winglet_span", 0.6, 0.95, 0.05, unit="span")
+                                    _slider("Winglet sweep", "e_winglet_sweep", 0, 15, 0.5, unit="mm")
+                                    _slider("Winglet lean", "e_winglet_lean", 0, 30, 1, unit="deg")
+                                    _slider("Shroud thickness", "e_shroud_thick", 0, 3, 0.8, unit="mm")
                                     _slider(
-                                        "Shroud height (tip chord)",
+                                        "Shroud height",
                                         "e_shroud_height",
                                         0,
                                         1,
                                         0.1,
+                                        unit="span",
                                         disabled=("e_shroud_thick == 0",),
                                     )
                                     html.Div(
@@ -3416,11 +3474,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     )
                             with v3.VExpansionPanel(title="Hub"):
                                 with v3.VExpansionPanelText():
-                                    _slider("Hub radius (mm)", "e_hub_radius", 15, 35, 0.5)
+                                    _slider("Hub radius", "e_hub_radius", 15, 35, 0.5, unit="mm")
                                     html.Div("{{ hub_fit_info }}", classes="text-caption mb-1")
-                                    _slider("Tip radius / length (mm)", "e_tip_radius", 45, 59, 0.5)
+                                    _slider("Tip radius / length", "e_tip_radius", 45, 59, 0.5, unit="mm")
                                     html.Div("{{ tip_fit_info }}", classes="text-caption mb-1")
-                                    _slider("Hub height (mm, 0=auto)", "e_hub_height", 0, 30, 0.5)
+                                    _slider("Hub height (0=auto)", "e_hub_height", 0, 30, 0.5, unit="mm")
                                     v3.VSelect(
                                         label="Hub profile",
                                         v_model=("e_hub_profile",),
@@ -3430,10 +3488,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         hide_details=True,
                                         classes="mb-3",
                                     )
-                                    _slider("Hub nose (mm, cone/dome)", "e_hub_nose", 0, 15, 0.5)
+                                    _slider("Hub nose (cone/dome)", "e_hub_nose", 0, 15, 0.5, unit="mm")
                             with v3.VExpansionPanel(title="Spacing — tonal noise"):
                                 with v3.VExpansionPanelText():
-                                    _slider("Uneven spacing", "e_spacing", 0.0, 0.6, 0.05)
+                                    _slider("Uneven spacing", "e_spacing", 0.0, 0.6, 0.05, unit="0–1")
                             with v3.VExpansionPanel(title="Features (bio-inspired)"):
                                 with v3.VExpansionPanelText():
                                     v3.VBtn(
@@ -3445,11 +3503,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         click=(randomize_features,),
                                         classes="mb-3",
                                     )
-                                    _slider("Tubercle amp", "e_tub_amp", 0.0, 0.10, 0.01)
+                                    _slider("Tubercle amp", "e_tub_amp", 0.0, 0.10, 0.01, unit="c")
                                     _slider("Tubercle waves", "e_tub_waves", 0, 8, 1)
-                                    _slider("Serration amp", "e_ser_amp", 0.0, 0.06, 0.005)
+                                    _slider("Serration amp", "e_ser_amp", 0.0, 0.06, 0.005, unit="c")
                                     _slider("Serration teeth", "e_ser_waves", 0, 12, 1)
-                                    _slider("Dimple depth", "e_dim_amp", 0.0, 0.35, 0.05)
+                                    _slider("Dimple depth", "e_dim_amp", 0.0, 0.35, 0.05, unit="t")
                                     _slider("Dimple rows", "e_dim_rows", 0, 6, 1)
                                     _slider("Dimple cols", "e_dim_cols", 0, 6, 1)
 
@@ -3499,7 +3557,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "Skip hopeless CFD early. Faster campaigns; can miss "
                                     "borderline winners if floors are aggressive.",
                                 )
-                                _help_switch("opt_bem", "BEM skip below ~32 CFM (--bem-prescreen)")
+                                _help_switch(
+                                    "opt_bem",
+                                    "BEM ranking screen — skip CFD below ~32 CFM (--bem-prescreen)",
+                                )
                                 _help_switch(
                                     "opt_gp",
                                     "Catalog GP skip below ~40 CFM free (--surrogate-prescreen)",

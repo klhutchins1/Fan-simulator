@@ -221,6 +221,7 @@ def evaluate_mixed_flow(
     over = over_spec_flags(spec, dia, depth, weight_g)
     cfm_probe = cfm_load
     p_probe_pa = derated_probe_pa(load_pa, derate)
+    p_free_pa = max(0.0, float(m_free.static_pressure_rise_pa)) * (derate * derate)
     try:
         op = score_operating_point(
             q_free_cfm=cfm_free,
@@ -229,6 +230,7 @@ def evaluate_mixed_flow(
             eta_free=m_free.efficiency,
             eta_load=m_load.efficiency,
             load_pa=load_pa,
+            p_free_pa=p_free_pa,
         )
     except SystemCurveError as exc:
         return _infeasible(f"system-curve: {exc}", t0, raw=gap_raw)

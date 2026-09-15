@@ -39,14 +39,16 @@ Other docs: [`docs/high-accuracy-plan.md`](docs/high-accuracy-plan.md),
   files + measurements, one stable id per design.
 - **Measurement store** + sim-vs-real calibration hooks (`validation/`).
 
-**Validated:** CFD is accurate to **+2%** on the *real* A12x25 STL at free delivery (61.5 vs published
-60.1 CFM), monotonic under grid refinement. GPU shut-off pressure ≈ 21 Pa (−8% vs 22.9). Screening
-results are reproducible after the convergence fixes.
+**Validated (interim — see `docs/validation/a12x25_pq_report.md`):** close-reference STL free-air
+is about **−17%** vs published 60.1 CFM (~49.8 CFM; prism layers ~50.4). Parametric Stock free-air
+screening is roughly **−26%** at tip_gap 0.5 mm. Shut-off **proxy** ~24 Pa on Stock (interim pass)
+but fails on the close-ref STL (~14.6 Pa). The old “+2% free-air” claim is **retired**. Relative
+rankings under a fixed mesh/settings budget remain the usable signal; absolute CFM needs print +
+measure.
 
-**Honest caveats:** the *optimizer's* designs run on idealized (slip-wall, strut-free) geometry, so their
-absolute CFM is optimistic — **relative rankings are the trustworthy signal.** Absolute broadband dB(A) is
-coarse-grid-limited (tone + relative ranking are usable). The bio-feature benefit tested **null at
-achievable fidelity** — the features operate below what the mesh resolves; only a physical print settles it.
+**Honest caveats:** absolute broadband dB(A) is coarse-grid-limited (tone + relative ranking are
+usable). Bio-feature benefit tested **null at achievable fidelity** — only a physical print settles
+it. BEM is **ranking-only**, not absolute CFM.
 
 **The one real gap:** nothing has been physically **printed and measured** yet. That's the next step, and
 it's on the user side — see the workflow below.

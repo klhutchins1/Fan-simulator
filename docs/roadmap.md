@@ -7,22 +7,28 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-09-14** (close-reference STL free-air **49.8 CFM / −17%**; Phases 4–6 docs landed; see `a12x25_pq_report.md`)
+- Last reviewed: **2026-09-15** (full production-readiness pass: **not shippable**. Physics honesty
+  stays **§12**; engineering hygiene is **§13**. Validation P–Q still open — see `a12x25_pq_report.md`)
 - Tags: **[impact]** how much it changes results · **[effort]** rough build cost · owner *me* unless noted.
-- Related: `docs/known-issues.md` (historical cockpit fixes), `docs/high-accuracy-plan.md` (fidelity
+- Related: `docs/known-issues.md` (historical cockpit fixes — **stale**, see §13.4), `docs/high-accuracy-plan.md` (fidelity
   ladder), `docs/design-rules.md` (extracted levers), the memory index.
+  Canvases: `math-application-audit.canvas.tsx` (fidelity) · `production-readiness-review.canvas.tsx` (hygiene).
 
 ---
 
 ## ★ Recommended sequence
 
-1. ~~Math audit (Phase 1)~~ — done on recovered tree.
-2. ~~Noctua reference geometry (Phase 2)~~ — envelope + Stock yaml; close-reference STL under `validation/reference/` (not OEM CAD).
-3. **Validation P–Q (Phase 3 remainder)** — close-ref STL free-air **−17%** (49.8 CFM; layers +0.6 → 50.4). Shut-off proxy **fails** on STL (~14.6 Pa) while parametric Stock still ~24 Pa (interim pass). Screening levers (mesh/tip/frame/ks/stagger/layers) exhausted for free-air. See `docs/validation/a12x25_pq_report.md`.
-4. **Print + measure (Phase 5)** — staged runbook `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. This is now the primary path to close absolute free-air.
-5. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), and archetype CFD depth (§4.x).
+1. ~~**§13.0 parse**~~ — dirty-tree `fan_tab.py` Assess splice fixed; `tests/test_fan_tab_parse.py`
+   smoke. Rest of **§13** still open (docs honesty, CI, duplicate tests) — parallel with §12.
+2. ~~Math audit (Phase 1)~~ — recovered-tree pass 2026-09-11 (§10). **Re-opened 2026-09-15** after thickness/LE-TE/Fit/scoring bugs; remaining work is **§12** (do this before trusting Stock/Fit/Assess numbers).
+3. ~~Noctua reference geometry (Phase 2)~~ — envelope + Stock yaml; close-reference STL under `validation/reference/` (not OEM CAD).
+4. **§12 math-application fidelity (cockpit + Fit + scoring honesty)** — stock camber, depth/tip gates, free-ΔP convention, BEM labeling. Canvas: `math-application-audit`.
+5. **Validation P–Q (Phase 3 remainder)** — close-ref STL free-air **−17%** (49.8 CFM; layers +0.6 → 50.4). Shut-off proxy **fails** on STL (~14.6 Pa) while parametric Stock still ~24 Pa (interim pass). Screening levers (mesh/tip/frame/ks/stagger/layers) exhausted for free-air. See `docs/validation/a12x25_pq_report.md`.
+6. **Print + measure (Phase 5)** — staged runbook `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. This is now the primary path to close absolute free-air.
+7. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), and archetype CFD depth (§4.x).
 
-§8 cockpit scoring, §9 recovery hardening, §10 math fixes, and §11 re-review are **closed in code** (2026-09-11–13).
+§8 cockpit scoring and §9 recovery hardening are **closed in code** (2026-09-11–13) but **§13 reopened hygiene**: the Fan tab is a 3600-line recovery splice, tests do not import it, and front-door docs still claim CFD accuracy the P–Q campaign disproved.
+§10 equation stamps remain; **§12 is the live “don’t trust the UI math yet” list**; **§13 is “don’t ship this as a product yet.”**
 Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 **Do NOT** re-optimize tip-round or bio-features — tested null on flow AND noise.
 **Do NOT** datasheet-tune Stock from BEM (stagger candidate CFD +0.6 CFM only).
@@ -38,8 +44,9 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 - [x] **1.2 Realistic operating point / system curve (stage 1). DONE 2026-09-02**
   Presets / `--load-pa` are **Pa at 50 CFM** on ΔP = k Q². Two CFD solves stay
   (free + that Pa); `cfm_load` / efficiency are the 2-point fan line ∩ parabola.
-  Remaining: third CFD at the predicted op, affinity-correct P∝RPM² under derate,
-  BEM prescreen on the curve.
+  Remaining: third CFD at the predicted op (cockpit refine-op exists).
+  **2026-09-15:** axial affinity `P∝RPM²` under derate + BEM hose-op prescreen landed
+  (`objectives.py`, matches mixed/CROR/volute).
 - [x] **1.3 FDM anisotropy in the structural gate (stage 1). DONE 2026-09-14** **[impact: med]** **[effort: low]**
   `LAYER_ADHESION_K=0.60` on centrifugal yield (`structural/stress.py`) + `FDM_E_K=0.70` on tip
   deflection / flutter modulus (`structural/deflection.py`, §10.11). Tests: `tests/test_stress.py`,
@@ -250,6 +257,117 @@ Windows OCCT shutdown may exit `0xC0000374` after a green pytest summary — not
 - [x] **11.5 CROR/prop Optimize: no `(0,0)` gated trials** — `TrialPruned` + `feasible=False`.
 - [x] **11.6 Roadmap encoding repair** (UTF-8 §8–§11 restored 2026-09-14).
 - Hardware print + measure: **§5** — staged; see `docs/validation/north-star-staged.md`.
+- [ ] **11.7 claim superseded:** “no new must-fix equations” was wrong — see **§12** (2026-09-15 audit).
+
+---
+
+## 12. Math-application fidelity (2026-09-15 audit) — OPEN
+
+Evidence board: Cursor canvas `math-application-audit.canvas.tsx`. Prior “math is good / §10–11 closed”
+assurance was wrong for cockpit thickness, Fit envelopes, and axial scoring. Items below are what
+still needs to happen before Stock / Fit / Assess / BEM can be trusted together.
+
+### 12.0 Landed this session (do not re-add)
+
+- [x] **12.0a** Uniform thickness = wall **mm** (not equal t/c).
+- [x] **12.0b** TE thick scale >1 multiplies aft section (not near-invisible blunt only).
+- [x] **12.0c** Stock fingerprint includes LE/TE / section_family / span_interp / le_skew.
+- [x] **12.0d** `le_skew_mid/tip` round-trip through `blade_from_flat`.
+- [x] **12.0e** Assess preflight gates on **live** dia/depth (not stale Preview STL).
+- [x] **12.0f** Axial affinity `derated_probe_pa` + BEM prescreen on **hose op CFM**.
+- [x] **12.0g** Grip-aware `mount_min_hub_radius` (~20.725 mm) + shared pad layout.
+- [x] **12.0h** `tip_le_te_z` / `_root_axial_span` honor LE/TE thick scales.
+
+### 12.1 Cockpit / Stock fidelity — HIGH **[impact: high]** **[effort: med]**
+
+- [x] **12.1 Stock camber fidelity.** YAML root/mid/tip camber preserved as `camber_root/mid/tip`
+  (+ `max_camber` mid alias). Cockpit has three camber sliders; `tests/test_camber_thick_mode.py`.
+- [x] **12.2 Persist thickness mode.** Store `thick_mode` (+ `thick_mm`) in flat/Assess JSON; reload
+  uses stored mode instead of re-inferring from wall mm.
+- [x] **12.3 Deduplicate `CONTROL_DESC`.** Single source: `fansim/cockpit/fan_copy.py`
+  (imported by `fan_tab` + `fan_widgets`).
+
+### 12.2 Fit / envelope coherence — HIGH **[impact: high]** **[effort: med]**
+
+- [x] **12.4 One depth measure.** `impeller_z_extent` = blades + hub (+ nose) + shroud — Fit UI,
+  `measure_flat`, Assess gate, `fit_envelope`.
+- [x] **12.5 One tip gate.** `remaining_tip_gap_mm` / 0.5 mm leftover in tip UI, Fit status
+  (`frame_gap_note` + tip readout).
+- [x] **12.6 `scale_to_hub` tip leftover.** Uses Fit/CFD gap (`OPTIMIZER_TIP_GAP_MM`), not hardcoded −2.
+- [x] **12.7 Mount gauge false FAIL.** Wider cavity wall sampling (grip-aware) + tip mesh FP
+  tolerance (0.20 mm) so export sidecars match Fit/CFD leftover without loosening design gates.
+- [x] **12.8 Export order.** Grow grip-aware hub first (`prepare_export_flat(..., fit_hub=)`), then
+  `fit_envelope`, then editor re-apply.
+
+### 12.3 Scoring / BEM honesty — HIGH **[impact: high]** **[effort: med–high]**
+
+- [x] **12.9 Free-delivery ΔP convention.** Fan line accepts measured CFD free static (`p_free_pa`,
+  affinity λ²); BEM still uses P=0 by construction. Axial/mixed/CROR/volute wired.
+- [x] **12.10 Label BEM ranking-only.** UI switch + `--bem-prescreen` help + `fan_bem` module
+  docstring: never present BEM CFM beside CFD as equivalent; notes ignored geometry levers.
+- [x] **12.11 CFD kinematic-pressure contract.** Fixture: FO averages field `p`; parse ×ρ once
+  (`tests/test_cfd.py::test_kinematic_pressure_contract_once_times_rho`).
+
+### 12.4 Geometry honesty — MEDIUM **[impact: med]** **[effort: med–high]**
+
+- [x] **12.12 Cylinder wrap.** Documented as planar tangent sections + ``cylindrical_tip`` trim
+  (not θ = t/r stream-surface); `_section_points_3d` / `_section_loop` comments corrected.
+- [x] **12.13 LE/TE parametric `x`.** Scales/weights use generator chord parameter (not cambered
+  surface X); `naca4(..., return_chord_param=True)`.
+- [x] **12.14 TE blunt under stagger.** Documented experimental (chord-normal pre-pitch); UI
+  tooltip + stagger≠0 regression in `tests/test_le_te_thick.py`.
+- [x] **12.15 Solidity radius + analytic test.** Hub σ at `hub_radius` (not `hub−embed`);
+  `tests/test_solidity.py`.
+
+---
+
+## 13. Production readiness / engineering hygiene (2026-09-15 review) — OPEN
+
+Full-repo pass after the memory-rebuild. **Verdict: not production-ready** (research prototype with a working design loop). Rubric **53/100**. Physics/fidelity items stay in **§12**; this section is ship/maintainability. Evidence canvas: `production-readiness-review.canvas.tsx`.
+
+Do **not** treat a green pytest summary as “the app works.” Fast suite collected **654** tests (`not docker and not slow`). **§13.1–13.4** ship blockers addressed in-tree (parse smoke, README honesty, archived known-issues). Ruff/CI still open.
+
+### 13.0 Ship blockers — CRITICAL **[impact: high]** **[effort: low]**
+
+- [x] **13.1 Restore `fan_tab.py` parse.** Assess-gate nested `try:` fixed. Prove: `tests/test_fan_tab_parse.py`.
+- [x] **13.2 Cockpit import/compile smoke.** `tests/test_cockpit_compile_smoke.py` parses every `*_tab.py` + `app.py`.
+- [x] **13.3 Front-door honesty.** `README.md` Status matches P–Q report (−17% / −26%); old +2% claim retired.
+- [x] **13.4 Kill stale trackers.** `docs/known-issues.md` archived → points at this roadmap.
+
+### 13.1 Tests that lie — HIGH **[impact: high]** **[effort: low–med]**
+
+- [ ] **13.5 Deduplicate F811 tests.** Recovery splices redefined the same names; pytest keeps the **last** copy only. Files: `tests/test_placement.py` (3), `tests/test_shroud.py` (2), `tests/test_cockpit_view.py` (2), `tests/test_prop_cfd.py` (1). Delete the duplicates; if the copies drifted, keep the stricter one.
+- [ ] **13.6 Stop source-string CLI tests.** `tests/test_search_rpm.py::test_cli_declares_search_rpm_and_bounds` (and peers in `test_surrogate_catalog.py`, `test_stator.py`, `test_boost_ensemble.py`, `test_prop_cfd.py`, …) assert `"--flag" in Path(...).read_text()`. Parse `argparse` or invoke `main` with `SystemExit`. The `--search-rpm` wiring gap in §8.3 is still a real gap — the string test does not close it.
+- [ ] **13.7 `test_catalog.py` type hint.** `_make_run(runs: "pathlib.Path", ...)` — `pathlib` is never imported (`F821`). Use `from pathlib import Path`.
+- [ ] **13.8 Coverage gate on critical paths.** No `pytest-cov`, no threshold. Provenance already flags `objectives.py` / `study.py` as having **no numeric CFM assertion** in the fast suite (`docs/validation/provenance_risks.md`). Add coverage for `evaluate_candidate` feasible path + `blade_from_flat` round-trip of camber/thick_mode (feeds §12.1–12.2).
+
+### 13.2 Code quality / maintainability — HIGH **[impact: med]** **[effort: med–high]**
+
+- [ ] **13.9 Split `fan_tab.py`.** **3633 lines** (next cockpit file is ~780). Assess / Optimize / Preview / Results / export are one module with duplicated `CONTROL_DESC` / `OPT_SEARCH_HELP` vs `fan_copy.py` (stale TE-thick tooltip in `fan_copy`; widgets still import it). Fold into §12.3: **one** `CONTROL_DESC` source, tab modules < ~400 lines.
+- [ ] **13.10 Ruff as a gate.** `ruff check fansim tests scripts` → **551** issues. Highest-signal first: **10 invalid-syntax** (the 13.1 splice), **8 F811**, **2 F821**, **24 S110** try/except/pass, **179 unused `# noqa`**. Then autofix I001/F401. Do **not** mass-rewrite BLE001 on isolated eval workers — those swallows are load-bearing (§9.6).
+- [ ] **13.11 CI on push.** No `.github/workflows` (and no in-repo Gitea workflow). Fast job: `uv run --extra dev --extra optim python -m pytest -m "not docker and not slow" -q` + `ruff check`. Document Windows OCCT teardown `0xC0000374` after a **green** summary (`docs/validation/suite_baseline_2026-09-14.md`) so CI does not treat heap-corruption-on-exit as a failed assertion.
+- [ ] **13.12 Recovery archaeology out of the product tree.** `CHAT_RECOVERY/` is untracked and **not** in `.gitignore` (keep/cut: **DON’T SHIP**). Ignore it. Move one-shot `scripts/_patch_roadmap_11.py`, `scripts/_fix_roadmap_encoding.py`, `scripts/_smoke_ui_review_after.py` out of `scripts/` (or a `scripts/_recovery/` that is gitignored).
+
+### 13.3 Performance — MEDIUM **[impact: med]** **[effort: med]**
+
+Already measured (`docs/validation/perf_baseline.md`); not re-litigated:
+
+- [ ] **13.13 Screening-resolution geometry policy.** Fused `build_impeller` **~13 s** dominates every Optuna trial that passes BEM (~16 ms). Preview **~5 s**. Polar cache bought **~14%** on BEM only. Need an explicit coarser `n_span`/`n_chord` for screen-only STL (acceptance: watertight + envelope, not CFD-identical). Do not silently drop loft resolution on the CFD path.
+- [ ] **13.14 Drop debug `print` on design select.** `fansim/cockpit/fan_tab.py` ~2499 `print(f"[cockpit] select({trial!r})", flush=True)` on every Results click. Use `_log.debug`.
+- [ ] **13.15 Stock / polar cache completeness.** `stock_cache.py` exists (uncommitted). Confirm Preview gold-STL cache invalidates on every fingerprint field in §12.0c, and that BEM polar-family cache does not leak across airfoil family changes.
+
+### 13.4 Production hygiene — MEDIUM **[impact: low–med]** **[effort: low]**
+
+- [ ] **13.16 License + version.** No `LICENSE`. `pyproject.toml` is `0.0.1`. Decide license (personal tool vs publish) before any “product” language.
+- [ ] **13.17 Cockpit bind address.** `scripts/cockpit.py` `server.start(port=args.port)` with no `--host`. Trame/uvicorn default is often **0.0.0.0**. Bind `127.0.0.1` unless `--host` is set (local CFD UI is not meant to be a LAN service).
+- [ ] **13.18 Control images in repo or generated.** `.gitignore` drops `docs/control_images/*.png`; cockpit encodes them as data-URIs if present, else empty tooltips. Either generate in `uv sync` / a makefile target, or stop advertising hover min/max images.
+- [ ] **13.19 Type-check the public surface.** No mypy. Start with `fansim/fan_spec.py`, `optimize/search_space.py`, `cfd/metrics.py` — the modules provenance ranks for absolute CFM.
+- [ ] **13.20 VTK/NumPy 2.5 warning.** Fast suite emits 52 `DeprecationWarning`s from VTK `result.shape = shape`. Track PyVista 0.49 / VTK pin (`docs/validation/dependency_peer_audit.md` already capped viz for API churn).
+- [ ] **13.21 Dirty-tree discipline.** This review ran against a large uncommitted mix (geometry, Fit, glyphs, Stock STL, SDD packets). Do not treat the working copy as HEAD. Land or revert before the next fidelity campaign.
+
+### 13.0 Landed / do not re-add
+
+Nothing in §13 is done. Do not copy §12.0 items here. Do not re-open parked wind / absolute FW-H / mixed-flow expansion — those are `docs/validation/keep_cut_board.md`.
 
 ---
 

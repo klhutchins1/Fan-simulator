@@ -8,9 +8,10 @@ metadata:
 ---
 
 The comprehensive, tracked plan of remaining work lives in the repo at
-`E:\Projects\programming_2\Fan-simulator\docs\roadmap.md` (committed 2026-09-01). It is the SOURCE OF
-TRUTH for what's left — READ IT at the start of a Fan-sim work session before proposing next steps, and
-check items off / update it as work lands.
+`docs/roadmap.md`. It is the SOURCE OF TRUTH for what's left — READ IT at the start of a Fan-sim
+work session before proposing next steps, and check items off / update it as work lands.
+
+**2026-09-15:** Two live lists, not one. **§12** = don’t trust Stock/Fit/Assess math yet (camber flatten, Fit vs Assess gates, free-ΔP / BEM honesty). **§13** = don’t ship as a product (working-tree `fan_tab.py` SyntaxError, tests that never import the Fan tab, README still claims CFD +2% vs P–Q −17/−26%, 551 ruff issues, no CI). Evidence canvases: `math-application-audit.canvas.tsx`, `production-readiness-review.canvas.tsx`. Sequence: fix §13.0 cockpit parse + import smoke, then §12, then validation P–Q (§1.5) and print+measure (§5). Do **not** treat a green fast pytest as production-ready.
 
 It captures the 2026-09-01 engineering review (major sim-fidelity + feature gaps) + the standing backlog,
 tagged by impact/effort, in 6 sections: (1) sim fidelity, (2) missing geometry/features, (3) objectives/

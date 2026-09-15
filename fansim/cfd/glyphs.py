@@ -96,6 +96,47 @@ def build_velocity_cloud(
     return cloud
 
 
+def schematic_axial_flow_cloud(
+    *,
+    hub_radius_mm: float,
+    tip_radius_mm: float,
+    z_span_mm: float = 40.0,
+    u_axial_ms: float = 3.0,
+    n_radial: int = 4,
+    n_theta: int = 16,
+    n_axial: int = 5,
+):
+    """Build a non-CFD axial through-flow sample cloud for stock / no-case previews.
+
+    Flow is +Z (outlet), matching the cockpit midplane convention (FRONT −Z → OUTLET +Z).
+    Points and arrow lengths use the same units as CFD glyphs (points in mm, ``U`` in m/s).
+    """
+    import pyvista as pv
+
+    hub_r = max(1.0, float(hub_radius_mm))
+    tip_r = max(hub_r + 1.0, float(tip_radius_mm))
+    z_half = 0.5 * max(8.0, float(z_span_mm))
+    n_radial = max(1, int(n_radial))
+    n_theta = max(4, int(n_theta))
+    n_axial = max(1, int(n_axial))
+
+    rs = np.linspace(hub_r + 0.5, tip_r - 0.5, n_radial)
+    thetas = np.linspace(0.0, 2.0 * np.pi, n_theta, endpoint=False)
+    zs = np.linspace(-z_half, z_half, n_axial)
+    pts = []
+    for r in rs:
+        for th in thetas:
+            for z in zs:
+                pts.append((r * np.cos(th), r * np.sin(th), z))
+    pts_a = np.asarray(pts, dtype=float)
+    u = np.zeros_like(pts_a)
+    u[:, 2] = float(u_axial_ms)
+    cloud = pv.PolyData(pts_a)
+    cloud["U"] = u
+    cloud["U_mag"] = np.full(pts_a.shape[0], float(u_axial_ms), dtype=float)
+    return cloud
+
+
 def make_glyph_arrows(
     cloud,
     *,

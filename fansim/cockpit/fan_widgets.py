@@ -20,41 +20,40 @@ else:
     from trame.widgets import vuetify3 as v3
 
 
-def slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None):
-    """A labelled slider with a HOVER TOOLTIP: what it does + a min/max illustration."""
+def slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None, unit: str = ""):
+    """Slider with always-visible value + unit (not only on thumb click)."""
     desc, uri = CONTROL_DESC.get(model, ""), _IMG_URI.get(model)
     extra = {}
     if disabled is not None:
         extra["disabled"] = disabled
-    if not desc and not uri:
+    unit_s = f" {unit}" if unit else ""
+
+    def _body():
+        with html.Div(classes="d-flex justify-space-between align-center text-caption mb-0"):
+            html.Span(label)
+            html.Span(
+                f"{{{{ {model} }}}}{unit_s}",
+                classes="font-weight-medium text-no-wrap ml-2",
+            )
         v3.VSlider(
             v_model=(model,),
             min=mn,
             max=mx,
             step=step,
-            label=label,
-            thumb_label=True,
+            thumb_label="always",
             density="compact",
             hide_details=True,
-            classes="mb-1",
+            classes="mt-0 mb-2",
             **extra,
         )
+
+    if not desc and not uri:
+        _body()
         return
     with v3.VTooltip(location="end", open_delay=150, max_width=380):
         with v3.Template(v_slot_activator="{ props }"):
-            v3.VSlider(
-                v_bind="props",
-                v_model=(model,),
-                min=mn,
-                max=mx,
-                step=step,
-                label=label,
-                thumb_label=True,
-                density="compact",
-                hide_details=True,
-                classes="mb-1",
-                **extra,
-            )
+            with html.Div(v_bind="props"):
+                _body()
         if uri:
             html.Img(
                 src=uri,

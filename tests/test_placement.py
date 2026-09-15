@@ -76,13 +76,17 @@ def test_fit_envelope_shrinks_tip_inside_110mm_frame():
 
 
 def test_scale_halves_chords_not_stagger():
+    from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
+
     spec = get_fan_spec("a12x25")
     src = _base(tip_radius=110.0, chord_root=40, chord_mid=40, chord_tip=40, stagger_mid=30)
-    # scale_to_hub uses target tip ~ 110/2 - 2 = 53; s ≈ 53/110
+    # scale_to_hub uses target tip = frame/2 − OPTIMIZER_TIP_GAP_MM
     r = scale_to_hub(src, spec)
     assert r.flat["stagger_mid"] == 30
     assert r.flat["chord_root"] < 40
     assert r.flat["n_blades"] == 9
+    target = spec.tip_dia_mm[1] / 2.0 - float(OPTIMIZER_TIP_GAP_MM)
+    assert abs(r.flat["tip_radius"] - target) < 2.5
 
 
 def test_scale_refuses_nonpositive_tip():
@@ -94,10 +98,12 @@ def test_scale_refuses_nonpositive_tip():
 
 
 def test_scale_defaults_missing_tip_radius():
+    from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
+
     spec = get_fan_spec("a12x25")
     src = _base()
     del src["tip_radius"]
-    target_tip = spec.tip_dia_mm[1] / 2.0 - 2.0
+    target_tip = spec.tip_dia_mm[1] / 2.0 - float(OPTIMIZER_TIP_GAP_MM)
     r = scale_to_hub(src, spec)
     assert r.flat["tip_radius"] > 0.0
     assert r.fit_status != "unplaced"
@@ -208,6 +214,20 @@ def test_prepare_export_flat_on_does_not_grow_legal_tip():
     assert flat["tip_radius"] <= src["tip_radius"]
 
 
+def test_prepare_export_flat_fit_hub_grows_before_frame():
+    from fansim.cockpit.placement import prepare_export_flat
+    from fansim.fan_spec import mount_min_hub_radius
+
+    spec = get_fan_spec("a12x25")
+    need = mount_min_hub_radius(spec)
+    assert need is not None
+    src = _base(hub_radius=16.5, tip_radius=59.0)
+    flat, changes = prepare_export_flat(src, spec, fit_frame=True, fit_hub=True)
+    assert any(c.field == "hub_radius" for c in changes)
+    assert float(flat["hub_radius"]) >= need
+    assert float(flat["tip_radius"]) < 59.0
+
+
 def test_prepare_export_flat_off_leaves_oversize_untouched():
     from fansim.cockpit.placement import prepare_export_flat
 
@@ -260,7 +280,7 @@ def test_features_from_flat_roundtrips_bio_keys():
 
 def test_measure_flat_uses_bio_features_from_flat():
     """With cylindrical_tip off, blank Features under-reads tip OD vs featured Preview."""
-    from fansim.cockpit.placement import blade_max_dia, blade_z_extent
+    from fansim.cockpit.placement import blade_max_dia, impeller_z_extent
     from fansim.geometry.features import Features
 
     flat = _base(
@@ -278,7 +298,7 @@ def test_measure_flat_uses_bio_features_from_flat():
     assert m is not None
     tip_dia, depth, _hub = m
     assert abs(tip_dia - dia_feat) < 1e-6
-    assert abs(depth - blade_z_extent(blade_from_flat(flat, feat))) < 1e-6
+    assert abs(depth - impeller_z_extent(blade_from_flat(flat, feat))) < 1e-6
     assert abs(tip_dia - dia_blank) > 1.0
 
 

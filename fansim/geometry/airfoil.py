@@ -4,6 +4,10 @@ Sections are returned as a closed, ordered loop of (x_chord, y_thickness) points
 normalized chord coordinates (x in [0, 1], chord length = 1). The loop starts at the
 trailing edge, runs along the upper surface to the leading edge, and back along the lower
 surface to the trailing edge (standard airfoil ordering), and is explicitly closed.
+
+For cambered NACA sections, loop[:,0] is the *cambered surface* X. LE/TE thickness scales
+and chordwise weights must use the generator chord parameter instead — request it via
+``return_chord_param=True``.
 """
 
 from __future__ import annotations
@@ -20,7 +24,9 @@ def naca4(
     camber_pos: float,
     thickness: float,
     n_points: int = 60,
-) -> np.ndarray:
+    *,
+    return_chord_param: bool = False,
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """Generate a NACA 4-digit airfoil as a closed loop of 2D points.
 
     Args:
@@ -30,9 +36,12 @@ def naca4(
             0.4). Ignored when ``max_camber`` is 0.
         thickness: Maximum thickness as a fraction of chord (``t``, e.g. 0.10 for 10%).
         n_points: Number of points per surface (upper/lower). More points = smoother.
+        return_chord_param: When True, also return generator chord parameter ``x`` in [0, 1]
+            aligned with each loop vertex (not the cambered surface X).
 
     Returns:
-        Array of shape (2 * n_points, 2) of (x, y) points, closed loop, chord = 1.
+        Array of shape (N, 2) of (x, y) points, closed loop, chord = 1.
+        Or ``(loop, x_param)`` when ``return_chord_param`` is True.
     """
     m, p, t = float(max_camber), float(camber_pos), float(thickness)
 
@@ -74,14 +83,20 @@ def naca4(
     upper = np.column_stack([xu[::-1], yu[::-1]])
     lower = np.column_stack([xl[1:], yl[1:]])
     loop = np.vstack([upper, lower])
+    x_param = np.concatenate([x[::-1], x[1:]])
 
     # Ensure explicit closure.
     if not np.allclose(loop[0], loop[-1]):
         loop = np.vstack([loop, loop[0]])
+        x_param = np.concatenate([x_param, [float(x_param[0])]])
+    if return_chord_param:
+        return loop, x_param
     return loop
 
 
-def rounded_plate(thickness: float, n_points: int = 60) -> np.ndarray:
+def rounded_plate(
+    thickness: float, n_points: int = 60, *, return_chord_param: bool = False,
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """Constant-thickness stadium section: flat faces + semicircle LE and TE (bullnose).
 
     Radius of each end = ``thickness / 2`` (full round). Chord normalized to 1. Same loop
@@ -118,6 +133,9 @@ def rounded_plate(thickness: float, n_points: int = 60) -> np.ndarray:
     loop = np.vstack([upper, lower])
     if not np.allclose(loop[0], loop[-1]):
         loop = np.vstack([loop, loop[0]])
+    # No camber → surface X is the chord parameter.
+    if return_chord_param:
+        return loop, np.asarray(loop[:, 0], dtype=float)
     return loop
 
 
@@ -128,9 +146,12 @@ def section_loop_2d(
     camber_pos: float,
     thickness: float,
     n_points: int = 60,
-) -> np.ndarray:
+    return_chord_param: bool = False,
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """Dispatch to NACA or rounded-plate generator."""
     fam = str(family or SECTION_NACA).lower().strip()
     if fam == SECTION_PLATE:
-        return rounded_plate(thickness, n_points)
-    return naca4(max_camber, camber_pos, thickness, n_points)
+        return rounded_plate(thickness, n_points, return_chord_param=return_chord_param)
+    return naca4(
+        max_camber, camber_pos, thickness, n_points, return_chord_param=return_chord_param,
+    )

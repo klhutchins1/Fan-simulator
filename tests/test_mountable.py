@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import optuna
+import pytest
 
 from fansim.fan_spec import get_fan_spec, mount_min_hub_radius
 from fansim.geometry.blade import BladeParams
@@ -11,11 +12,14 @@ from fansim.optimize.search_space import suggest_params
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-A12_MIN_HUB = 37.25 / 2.0 + 0.35 + 1.2  # cavity/2 + grip clearance + wall (a12x25 MotorMount)
+A12_MIN_HUB = 20.725  # grip-aware: pad outer + margin (cavity/2+clear+wall alone is 20.175)
 
 
 def test_mount_min_hub_radius():
-    assert mount_min_hub_radius(get_fan_spec("a12x25")) == A12_MIN_HUB
+    need = mount_min_hub_radius(get_fan_spec("a12x25"))
+    assert need == pytest.approx(A12_MIN_HUB, abs=1e-6)
+    # Must cover grip pads, not just smooth-cup wall.
+    assert need > 37.25 / 2.0 + 0.35 + 1.2
     from fansim.fan_spec import FanSpec
     bare = FanSpec(name="x", tip_dia_mm=(1, 2), hub_dia_mm=(1, 2), depth_mm=(1, 2),
                    rpm=1, voltage_v=1, max_current_a=1)

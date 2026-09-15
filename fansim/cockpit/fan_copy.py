@@ -1,8 +1,4 @@
-# EXTRACTED-FROM-CURSOR-TRANSCRIPT 2026-09-12
-# source: agent-transcripts/9f43d5b7...jsonl write@3374 + 0 later StrReplace
-# NOT verified against lost E: tree — re-check before deleting RECOVERED-FROM-CHAT peers.
-
-"""Fan Design slider tooltips / control images (Fan-tab local copy)."""
+"""Fan Design slider tooltips / Optimize help (single source for Fan tab + widgets)."""
 
 from __future__ import annotations
 
@@ -27,7 +23,10 @@ _IMG_URI = _load_control_images()
 
 CONTROL_DESC = {
     "e_n_blades": "How many blades. More = more airflow & pressure, but louder and less efficient.",
-    "e_camber": "Blade curvature. More camber turns the air harder (pressure); too much hurts efficiency.",
+    "e_camber": "Mid-span blade curvature (legacy single slider alias). Prefer Camber root/mid/tip.",
+    "e_camber_root": "Blade curvature at the hub. More camber turns the air harder (pressure); too much hurts efficiency.",
+    "e_camber_mid": "Blade curvature at mid-span. Primary lift/pressure lever mid-blade.",
+    "e_camber_tip": "Blade curvature at the tip. Often similar to mid; tip camber affects tip loading.",
     "e_stagger_root": "Blade PITCH angle at the hub. Higher = more axial (flow); lower = blades overlap (pressure).",
     "e_stagger_mid": "Blade PITCH angle at mid-span.",
     "e_stagger_tip": "Blade PITCH angle at the tip.",
@@ -36,12 +35,12 @@ CONTROL_DESC = {
     "e_chord_tip": "Blade width at the tip.",
     "e_lean_mid": "Circumferential WRAP at mid-span — wraps blades so they overlap like a real fan.",
     "e_lean_tip": "Circumferential WRAP at the tip (0 = a flat radial paddle).",
-    "e_sweep_mid": "Axial position of the WHOLE mid section (forward/back rake).",
-    "e_sweep_tip": "Axial position of the WHOLE tip section.",
-    "e_le_mid": "Rakes only the LEADING edge at mid-span — curves the LE line, trailing edge unchanged.",
-    "e_le_tip": "Rakes only the LEADING edge at the tip.",
+    "e_sweep_mid": "Axial rake of the WHOLE mid section (mm, + toward outlet / +Z). Wider range for matching reference STLs.",
+    "e_sweep_tip": "Axial rake of the WHOLE tip section (mm, + toward outlet / +Z).",
+    "e_le_mid": "Rakes only the LEADING edge at mid-span (mm) — curves the LE line, trailing edge unchanged.",
+    "e_le_tip": "Rakes only the LEADING edge at the tip (mm).",
     "e_skew_mid": "Skew (mm) — shifts the whole mid section sideways (tangentially). Fine balance/overlap tweak.",
-    "e_skew_tip": "Skew (mm) — shifts the whole tip section sideways (tangentially).",
+    "e_skew_tip": "Skew (mm) — shifts the whole tip section sideways (tangentially). Wide range for matching reference planforms.",
     "e_smooth_span": "Smooth span curves (PCHIP) — interpolate hub→mid→tip with a shape-preserving cubic so mid wrap/sweep/skew don't put a sharp kink in the blade. Off = linear (historical).",
     "e_tip_round": "Rounds the blade TIP — tapers the chord over the outer span so the leading & trailing edges curve together, instead of a blunt straight tip edge. 0 = square.",
     "e_cylindrical_tip": "Cuts each blade tip to a cylinder at Tip radius so the outer tip face matches the fan-cover circle (constant OD). Off = legacy tips with LE/TE corners that bulge past Tip radius. Tip Round still petals the planform before the cut.",
@@ -51,16 +50,18 @@ CONTROL_DESC = {
     "e_winglet_lean": "Winglet CIRCUMFERENTIAL curl (deg) — wraps the tip around the axis. 0 = off.",
     "e_shroud_thick": "Radial wall of a ring fused at the blade tips (mm). 0 = open tip. Grows the outer diameter by twice this amount.",
     "e_shroud_height": "How much of the tip chord the ring covers. 1 = full span. Below 1 the hoop starts at the trailing edge. BEM still treats a partial ring as an open tip.",
-    "e_hub_radius": "Hub size. Smaller hub = bigger flow annulus (more airflow/efficiency); must fit the model's hub limits.",
-    "e_tip_radius": "Blade LENGTH (outer radius). Shrink it to make an oversized blade fit the frame (tip diameter) or trim depth.",
+    "e_hub_radius": "Hub size (mm). Smaller hub = bigger flow annulus (more airflow/efficiency); must fit the model's hub limits.",
+    "e_tip_radius": "Blade LENGTH / outer radius (mm). Shrink it to make an oversized blade fit the frame (tip diameter) or trim depth.",
     "e_hub_height": "Hub HEIGHT (mm). 0 = auto (just covers the blade roots — shortest). Raise it for a taller hub; it can't go below root coverage.",
     "e_hub_nose": "Nose height (mm) for the cone/dome hub profile. Adds a spinner on the intake side (increases depth — may go over-spec).",
-    "e_camber_pos": "Where max camber sits along the chord (0.2 = near LE, 0.6 = aft). Shifts loading fore/aft.",
-    "e_thick_root": "Blade thickness at the hub. Thinner = lighter/more efficient; too thin drops below the min printable wall.",
-    "e_thick_mid": "Blade thickness at mid-span.",
-    "e_thick_tip": "Blade thickness at the tip.",
-    "e_le_thick": "Fatten the LEADING-EDGE nose (global, NACA only). 1 = stock. Ignored for Rounded plate. Click Preview after changing.",
-    "e_te_thick": "Trailing edge (NACA only): <1 thins the aft section; 1 = sharp stock; >1 adds a short tip blunt only (not a long face lip). For a full-round TE use Section family → Rounded plate. Ignored for plate.",
+    "e_camber_pos": "Where max camber sits along the chord (0.2 = near LE, 0.6 = aft). Fraction of chord — not mm.",
+    "e_thick_root": "Max section thickness at the hub as a FRACTION of chord (0.08 ≈ 8% thick). Used in Tapered mode. Not mm.",
+    "e_thick_mid": "Max section thickness at mid-span as a FRACTION of chord. Tapered mode only.",
+    "e_thick_tip": "Max section thickness at the tip as a FRACTION of chord. Tapered mode only.",
+    "e_thick_mm": "Absolute max section thickness (mm) held constant root→tip. Chord usually grows outward, so t/c drops toward the tip. Typical FDM fan wall ~1.2–2.5 mm.",
+    "e_thick_mode": "Uniform wall = same thickness in mm at every station (usual for printed fans). Tapered = independent t/c root→mid→tip. Thickness does not create lift — camber/stagger do.",
+    "e_le_thick": "LEADING-EDGE thickness scale (NACA only). 1 = stock; >1 fattens the nose; mid-chord stays near the span thickness. Click Preview after changing.",
+    "e_te_thick": "TRAILING-EDGE thickness scale (NACA only). 1 = sharp stock; <1 thins aft; >1 fattens the aft section and adds a short printable TE blunt (experimental under high stagger — use Rounded plate for a true bullnose). Mid-chord stays near span thickness.",
     "e_section_family": "NACA = classic cambered airfoil. Rounded plate = constant thickness with full-round (bullnose) LE and TE — radius = half thickness, like a stadium section.",
     "e_spacing": "Uneven-but-balanced blade spacing to spread the blade-pass tone. 0 = evenly spaced.",
     "e_tub_amp": "Tubercle amplitude — bumpy leading edge (whale-fin), delays stall.",
@@ -73,6 +74,7 @@ CONTROL_DESC = {
 }
 
 # Plain-language help for Fan Optimize Advanced search (and Assess flags Optimize reuses).
+# Keys match state model names. Hover tooltips only — flag behavior is unchanged.
 OPT_SEARCH_HELP = {
     "opt_trials": (
         "How many CFD designs to try. Each trial is a full mesh+solve (often tens of minutes). "
@@ -113,9 +115,9 @@ OPT_SEARCH_HELP = {
         "do not expect proven dB cuts."
     ),
     "opt_bem": (
-        "Cheap blade-element estimate first: skip full CFD if predicted hose CFM is below ~32. "
-        "When to use: large campaigns to burn fewer CFD hours. Cost: much faster. "
-        "Risk: BEM under-ranks real CFD (~0.6×) — may discard borderline winners if the floor is high."
+        "RANKING-ONLY blade-element screen: skip CFD if predicted hose CFM is below ~32. "
+        "Not absolute CFM — ignores thickness/lean/wrap/LE-TE/plate; typically under-ranks CFD (~0.6×). "
+        "When to use: large campaigns to burn fewer CFD hours. Never quote BEM beside CFD as equal."
     ),
     "opt_gp": (
         "Catalog Gaussian-process guess of free-delivery CFM: skip CFD when mean+uncertainty "

@@ -26,11 +26,12 @@ class MotorMount:
     The impeller hub is a CUP that slips over the motor: an inner CAVITY (over the motor hub/stator),
     stepping down to a smaller REAR BORE (bearing/shaft region). Carved from the hub's REAR (motor)
     side at export — it's internal/hidden and does NOT affect the aero model (CFD is unchanged). To
-    house the motor the impeller hub must be wide enough: hub_radius >= cavity_dia/2 + min_wall.
+    house the motor the impeller hub must be wide enough: hub_radius >= cavity_dia/2 + clearance +
+    min_wall, and when grip pads are enabled also >= pad outer radius (see ``mount_min_hub_radius``).
 
     Optional **grip cylinders**: evenly spaced axial pads on the cavity wall (A12x25-style press-fit).
-    The cup is cut slightly oversize (``grip_clearance_mm``), then cylinders are fused back with a
-    small wall overlap so contact is at discrete pads instead of a full cylindrical press.
+    The cup is cut slightly oversize (``grip_clearance_mm``), then cylinders are fused back with most of
+    their body in the wall (``grip_protrude_mm`` into the cavity) so contact is at discrete pads.
     """
     cavity_dia_mm: float          # nominal motor boss OD the cup targets (before grip clearance)
     cavity_depth_mm: float        # cavity depth from the rear face
@@ -40,8 +41,9 @@ class MotorMount:
     min_hub_height_mm: float = 0.0  # hub must be at least this TALL to house the cup + clear the frame
                                     # spokes (export grows the hub height to this; 0 = no requirement)
     grip_count: int = 0            # 0 = smooth cup; ~20 matches A12x25-style grip pads
-    grip_dia_mm: float = 0.8       # diameter of each axial grip cylinder (mm)
+    grip_dia_mm: float = 2.4       # diameter of each axial grip cylinder (mm)
     grip_clearance_mm: float = 0.35  # radial oversize of the cup cut before grips are fused back
+    grip_protrude_mm: float = 0.7  # how far each pad sticks into the cavity (rest sits in the wall)
 
 
 @dataclass
@@ -122,14 +124,47 @@ def published_scatter_point(spec: FanSpec, load_pa: float) -> dict | None:
     }
 
 
+def mount_grip_pad_layout(mount: MotorMount) -> tuple[float, float, float] | None:
+    """Return ``(cav_r, r_center, grip_r)`` for grip pads, or None if grips are off.
+
+    Matches ``carve_motor_mount`` geometry so Fit / mount_min / export agree.
+    """
+    n_grip = int(getattr(mount, "grip_count", 0) or 0)
+    grip_d = float(getattr(mount, "grip_dia_mm", 0.0) or 0.0)
+    if n_grip <= 0 or grip_d <= 0.05:
+        return None
+    clear = float(getattr(mount, "grip_clearance_mm", 0.0) or 0.0)
+    cav_r = float(mount.cavity_dia_mm) / 2.0 + clear
+    grip_r = grip_d / 2.0
+    protrude = float(getattr(mount, "grip_protrude_mm", 0.0) or 0.0)
+    if protrude <= 0.0:
+        protrude = min(0.7, 0.35 * grip_d)
+    protrude = min(protrude, max(0.15, grip_d - 0.1))
+    wall_embed = grip_r - protrude
+    if wall_embed < 0.05:
+        wall_embed = 0.05
+        protrude = grip_r - wall_embed
+    r_center = cav_r - protrude + grip_r
+    return cav_r, r_center, grip_r
+
+
 def mount_min_hub_radius(spec: FanSpec) -> float | None:
-    """Smallest impeller hub radius (mm) that can house this fan's motor with a printable wall, or
-    None if the model has no motor-mount defined. Below this, the printed hub can't slip over the motor."""
+    """Smallest impeller hub radius (mm) that can house this fan's motor with a printable wall
+    (and grip pads when configured), or None if the model has no motor-mount defined.
+
+    Below this, export either cannot carve the cup or silently skips grip pads.
+    """
     m = spec.motor_mount
     if m is None:
         return None
     clear = float(m.grip_clearance_mm or 0.0)
-    return m.cavity_dia_mm / 2.0 + clear + m.min_wall_mm
+    wall_need = m.cavity_dia_mm / 2.0 + clear + m.min_wall_mm
+    layout = mount_grip_pad_layout(m)
+    if layout is None:
+        return wall_need
+    _cav_r, r_center, grip_r = layout
+    grip_need = r_center + grip_r + 0.05
+    return max(wall_need, grip_need)
 
 
 # Default sparse-FDM fill for weight gates (roadmap §2.4). Solid / resin use 1.0.
@@ -240,7 +275,7 @@ _REGISTRY: dict[str, FanSpec] = {
         motor_mount=MotorMount(
             cavity_dia_mm=37.25, cavity_depth_mm=13.0, rear_bore_dia_mm=20.0,
             shaft_dia_mm=3.0, min_hub_height_mm=15.0,
-            grip_count=20, grip_dia_mm=0.8, grip_clearance_mm=0.35,
+            grip_count=20, grip_dia_mm=2.4, grip_clearance_mm=0.35, grip_protrude_mm=0.7,
         )),
     # GENERIC 120 mm axial fan — the LOOSE exploratory envelope our early optimizer runs used, BEFORE
     # the real a12x25 frame was measured to 110 mm. The old designs (e.g. opt_extended2_t36 ~118 mm)

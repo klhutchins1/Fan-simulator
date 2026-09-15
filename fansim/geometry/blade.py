@@ -211,13 +211,17 @@ def blade_solidity(params: BladeParams) -> dict[str, float]:
     Solidity > 1 means adjacent blades OVERLAP (no see-through gap) — a first-order driver of
     static pressure and the defining look of high-pressure fans like the A12x25. Reported so
     overlap is an explicit, optimizable quantity rather than an accident of the parameters.
+
+    Hub radius is ``params.hub_radius`` (physical annulus), not ``hub − root_embed`` (embed is
+    only for CAD fuse depth).
     """
     interp = _interp_stations(params, 3)  # hub, mid, tip
-    r_root = params.hub_radius - params.root_embed
+    r_hub = float(params.hub_radius)
+    r_tip = float(params.tip_radius)
     out = {}
     for i, name in enumerate(("hub", "mid", "tip")):
-        rf = interp["r_frac"][i]
-        r = r_root + (params.tip_radius - r_root) * rf
+        rf = float(interp["r_frac"][i])
+        r = r_hub + (r_tip - r_hub) * rf
         chord = float(interp["chord"][i])
         beta = np.radians(float(interp["stagger_deg"][i]))
         pitch = 2.0 * np.pi * r / params.n_blades
@@ -283,17 +287,22 @@ def _section_loop(
     fam = str(section_family or SECTION_NACA).lower().strip()
     if fam not in SECTION_FAMILIES:
         fam = SECTION_NACA
-    loop = section_loop_2d(
-        fam, max_camber=max_camber, camber_pos=camber_pos, thickness=thickness, n_points=n_chord)
+    loop, x_param = section_loop_2d(
+        fam, max_camber=max_camber, camber_pos=camber_pos, thickness=thickness,
+        n_points=n_chord, return_chord_param=True,
+    )
     # Drop the explicit closing duplicate; the wire is closed by makePolygon(close=True).
     if np.allclose(loop[0], loop[-1]):
         loop = loop[:-1]
+        x_param = x_param[:-1]
 
     beta = np.radians(stagger_deg)
     cb, sb = np.cos(beta), np.sin(beta)
 
-    x = loop[:, 0]  # chord fraction, 0=LE .. 1=TE
-    a = (x - 0.5) * chord  # chordwise distance from mid-chord
+    # Surface X places the section; generator chord param drives LE/TE weights (not cambered X).
+    x_surf = loop[:, 0]
+    x = np.asarray(x_param, dtype=float)
+    a = (x_surf - 0.5) * chord  # chordwise distance from mid-chord (cambered surface)
     b = loop[:, 1] * chord  # thickness-wise distance
     if fam != SECTION_PLATE:
         b = apply_le_te_thickness(x, b, chord, le_thick_scale, te_thick_scale)
@@ -310,10 +319,12 @@ def _section_loop(
     t = a * cb - b * sb + skew + le_skew * w_le  # circumferential (tangential) distance, mm
     axial = a * sb + b * cb + sweep + le_sweep * w_le
 
-    # Place the (planar) section in the tangent plane at angular position theta = lean_deg and
-    # radius r, i.e. rotate the whole section about the Z axis by theta. Keeping each section
-    # planar makes the loft cap cleanly (watertight); varying theta along the span wraps the
-    # blade circumferentially.
+    # Place the (planar) section in the TANGENT PLANE at angular position theta = lean_deg and
+    # radius r: rotate the section about Z by theta. This is NOT stream-surface wrapping
+    # (θ = t/r); chordwise ``t`` stays Euclidean in the tangent plane. Keeping each section
+    # planar makes the loft watertight; varying lean along the span wraps the planform
+    # circumferentially. ``cylindrical_tip`` then clips the solid to a cylinder of tip_radius
+    # (whole tip face — LE/TE corners included).
     th = np.radians(lean_deg)
     ct, st = np.cos(th), np.sin(th)
     xs = r * ct - t * st
@@ -344,16 +355,14 @@ def _section_points_3d(
     te_thick_scale: float = 1.0,
     section_family: str = SECTION_NACA,
 ) -> list[cq.Vector]:
-    """Build the closed 3D loop of one airfoil section wrapped onto the cylinder at radius ``r``.
+    """Build the closed 3D loop of one airfoil section in the tangent plane at radius ``r``.
 
-    The airfoil is defined on the cylindrical stream-surface of radius ``r`` (standard for
-    axial turbomachinery): chordwise/thickness coords are pitched by the stagger angle into
-    circumferential (arc) and axial directions, the circumferential distance is mapped to an
-    ARC ANGLE about the axis, and the whole section is placed at angular position ``lean_deg``.
-    Because lean_deg varies along the span, the blade sweeps/wraps circumferentially and can
-    overlap the neighbouring blade — the shape real fans have, which a straight radial stack
-    (lean=0) cannot make. Optional ``le_thick_scale`` / ``te_thick_scale`` bias thickness
-    toward the leading or trailing edge (NACA family only).
+    Placement is planar-tangent (not θ = t/r stream-surface wrap): chordwise/thickness coords
+    are pitched by stagger into tangential ``t`` and axial ``z``, then the whole planar section
+    is rotated about Z to ``lean_deg``. Varying lean along the span wraps the planform so
+    blades can overlap — a straight radial stack (lean=0) cannot. ``cylindrical_tip`` later
+    clips the lofted solid to a cylinder of ``tip_radius``. Optional ``le_thick_scale`` /
+    ``te_thick_scale`` bias thickness toward LE/TE (NACA family only).
     """
     _, pts = _section_loop(
         r=r, r_frac=r_frac, chord=chord, stagger_deg=stagger_deg, thickness=thickness,
@@ -515,7 +524,9 @@ def _root_axial_span(params: BladeParams) -> tuple[float, float]:
         le_sweep=st.le_sweep, lean_deg=st.lean_deg, n_chord=params.n_chord, features=Features(),
         le_skew=st.le_skew,
         tip_notch_count=params.tip_notch_count,
-        tip_notch_depth_mm=params.tip_notch_depth_mm)
+        tip_notch_depth_mm=params.tip_notch_depth_mm,
+        **_thick_scale_kw(params),
+    )
     zs = [p.z for p in pts]
     return min(zs), max(zs)
 
@@ -735,6 +746,7 @@ def tip_le_te_z(params: BladeParams) -> tuple[float, float]:
        n_chord=params.n_chord, features=Features(), le_skew=st.le_skew,
        tip_notch_count=params.tip_notch_count,
        tip_notch_depth_mm=params.tip_notch_depth_mm,
+       **_thick_scale_kw(params),
    )
    if bool(getattr(params, "cylindrical_tip", True)):
        pts = _clamp_points_to_cylinder(pts, float(params.tip_radius))
@@ -743,11 +755,9 @@ def tip_le_te_z(params: BladeParams) -> tuple[float, float]:
    return float(pts[i_le].z), float(pts[i_te].z)
 
 
-# --- spliced (recovery 2026-09-12 / Cursor transcript LE-TE blunt) ---
+# --- LE / TE chordwise thickness bias ---
 THICK_SCALE_LO = 0.5
 THICK_SCALE_HI = 2.0
-# Mild LE half-thickness add per unit of (scale-1), as a fraction of chord.
-THICK_PUFF_FRAC = 0.008
 # Cap TE blunt to this fraction of peak half-thickness (avoids the tall TE paddle).
 TE_BLUNT_FRAC = 0.10
 # TE blunt only in the last this fraction of chord (keeps a short tip, not a long face lip).
@@ -774,42 +784,40 @@ def _thick_scale_kw(params: BladeParams) -> dict[str, float]:
 def le_te_thick_factors(
     x: np.ndarray, le_thick_scale: float = 1.0, te_thick_scale: float = 1.0,
 ) -> np.ndarray:
-    """Per-point thickness multipliers. ``te_thick_scale`` ≤ 1 thins the aft section; TE > 1 blunt is separate."""
+    """Per-point thickness multipliers that keep mid-chord near stock when only ends change.
+
+    ``factor = 1 + (le-1)*(1-x)^3 + (te-1)*x^3`` — at x=0 → le, x=1 → te, mid barely moves.
+    TE may be >1 (fattens the aft section); a separate blunt floor still closes the razor tip.
+    """
     le = _clamp_thick_scale(le_thick_scale)
     te = _clamp_thick_scale(te_thick_scale)
-    w_le = (1.0 - x) ** 2
-    w_te = x ** 2
-    denom = np.maximum(w_le + w_te, 1e-12)
-    return (le * w_le + te * w_te) / denom
+    x = np.asarray(x, dtype=float)
+    return 1.0 + (le - 1.0) * (1.0 - x) ** 3 + (te - 1.0) * x ** 3
 
 
 def apply_le_te_thickness(
     x: np.ndarray, b: np.ndarray, chord: float,
     le_thick_scale: float = 1.0, te_thick_scale: float = 1.0,
 ) -> np.ndarray:
-    """Fatten the LE; thin or lightly blunt the TE.
+    """Bias NACA thickness toward LE / TE without double-fattening the mid-chord.
 
-    TE scale ≤ 1 multiplies aft thickness (NACA already → 0 at the tip). TE scale > 1 adds only a
-    *short* finite TE thickness in the last few % of chord, capped to ``TE_BLUNT_FRAC`` of peak
-    half-thickness — a long aft floor mapped through stagger into a face lip / paddle.
-    Both 1.0 = stock NACA (sharp TE). For a full-round TE use section family ``plate``.
+    Multiplicative end-weighted blend (no additive LE puff). LE/TE scales may both exceed 1
+    so the nose and aft section actually thicken. TE > 1 also adds a short blunt floor in the
+    last few % of chord so the NACA razor tip does not stay zero. Both 1.0 = stock NACA.
     """
     le = _clamp_thick_scale(le_thick_scale)
     te = _clamp_thick_scale(te_thick_scale)
     if abs(le - 1.0) < 1e-9 and abs(te - 1.0) < 1e-9:
         return b
 
-    # TE>1 blunt is additive below; keep multiplicative TE at ≤1 so we don't inflate the aft first.
-    out = b * le_te_thick_factors(x, le, min(te, 1.0))
-    c = float(chord)
-    sign = np.sign(out)
-    sign = np.where(sign == 0.0, 1.0, sign)
-    if abs(le - 1.0) > 1e-9:
-        out = out + sign * (le - 1.0) * THICK_PUFF_FRAC * c * np.exp(-(x / 0.12) ** 2)
+    out = b * le_te_thick_factors(x, le, te)
 
     if te > 1.0 + 1e-9:
+        # EXPERIMENTAL under stagger≠0: blunt is applied in section (a,b) before pitch, so
+        # the floor is chord-normal, not TE-normal in the staggered plane. Prefer Rounded
+        # plate for a true bullnose TE. Keep for printable NACA tips at moderate stagger.
         abs_b = np.abs(out)
-        t_peak = float(np.max(abs_b)) if abs_b.size else THICK_PUFF_FRAC * c
+        t_peak = float(np.max(abs_b)) if abs_b.size else 0.01 * float(chord)
         # te=1 → 0; te=2 → TE_BLUNT_FRAC * peak
         te_half = TE_BLUNT_FRAC * t_peak * (te - 1.0) / (THICK_SCALE_HI - 1.0)
         te_half = min(te_half, TE_BLUNT_FRAC * t_peak)
@@ -823,12 +831,26 @@ def apply_le_te_thickness(
         mag = abs_b * (1.0 - w) + np.maximum(abs_b, te_half) * w
         orig = np.sign(out)
         orig = np.where(orig == 0.0, side, orig)
-        # Only force upper/lower sides where the floor actually lifts the surface.
         lifted = mag > abs_b + 1e-12
         s = np.where(lifted, side, orig)
         out = s * mag
     return out
 
+
+def thickness_tc_from_mm(thick_mm: float, chord_mm: float) -> float:
+    """Convert absolute section thickness (mm) to NACA t/c for a given chord (mm)."""
+    return float(thick_mm) / max(float(chord_mm), 1e-6)
+
+
+def uniform_thickness_tc(
+    thick_mm: float, chord_root: float, chord_mid: float, chord_tip: float,
+) -> tuple[float, float, float]:
+    """Same wall thickness (mm) at root/mid/tip → per-station t/c (chord usually grows outward)."""
+    return (
+        thickness_tc_from_mm(thick_mm, chord_root),
+        thickness_tc_from_mm(thick_mm, chord_mid),
+        thickness_tc_from_mm(thick_mm, chord_tip),
+    )
 
 # --- _clamp_points_to_cylinder (transcript, recovery) ---
 def _clamp_points_to_cylinder(pts: list[cq.Vector], radius: float) -> list[cq.Vector]:

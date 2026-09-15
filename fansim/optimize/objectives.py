@@ -42,6 +42,8 @@ from fansim.manufacturability.fdm_rules import check_printability
 from fansim.optimize.system_curve import (
     REF_CFM,
     SystemCurveError,
+    bem_screen_cfm,
+    derated_probe_pa,
     refine_operating_metrics,
     score_operating_point,
 )
@@ -158,17 +160,21 @@ def evaluate_candidate(
             f"to {casing_id:.0f} mm frame",
             t0, raw=gap_raw)
 
-    # --- BEM pre-screen (roadmap §7.1c): reject clearly-non-viable designs before the ~5-min CFD (and
-    # even the geometry build). CONSERVATIVE by design — the mean-line BEM ranks CFD at only ~0.62, so
-    # the floor should be well below any viable design so we only skip the clearly-bad ones. Off (0.0)
-    # by default. Cheap (milliseconds); never allowed to break the eval. ---
+    # --- BEM pre-screen (roadmap §7.1c): reject clearly-non-viable designs before CFD.
+    # Floor is on hose operating CFM (same axis as CFD cfm_load), not free-delivery.
+    # Off (0.0) by default. Cheap; never allowed to break the eval. ---
     if bem_prescreen_cfm > 0.0:
         try:
-            from fansim.fan_bem import pq_curve
-            bem_cfm = pq_curve(params, target_rpm, tip_gap_mm=remaining).free_delivery_cfm
-            if bem_cfm < bem_prescreen_cfm:
-                return _infeasible(f"bem-prescreen: {bem_cfm:.0f} CFM free < {bem_prescreen_cfm:.0f} "
-                                   "floor (skipped CFD)", t0, raw=gap_raw)
+            bem_free, bem_op = bem_screen_cfm(
+                params, target_rpm, load_pa, remaining, stator=bool(stator))
+            gap_raw["bem_cfm_free"] = bem_free
+            gap_raw["bem_cfm_load"] = bem_op
+            if bem_op < bem_prescreen_cfm:
+                return _infeasible(
+                    f"bem-prescreen: {bem_op:.0f} CFM load < {bem_prescreen_cfm:.0f} "
+                    f"floor (free {bem_free:.0f}; skipped CFD)",
+                    t0, raw=gap_raw,
+                )
         except Exception:  # noqa: BLE001 - the screen must never break the eval
             pass
 
@@ -330,14 +336,22 @@ def evaluate_candidate(
     over = over_spec_flags(spec, dia, depth, weight_g)   # geometry over-spec; power now derates RPM
 
     cfm_probe = cfm_load
+    # Affinity: probe CFD was at rated RPM with back-pressure ``load_pa``. After CFM∝RPM
+    # derate, the fan-line probe pressure must scale as λ² (hose k unchanged). Mixed/CROR/volute
+    # already do this; axial must match.
+    p_probe_pa = derated_probe_pa(load_pa, derate)
+    # CFD free (zero BP) is not forced to ΔP=0 — stamp measured static (affinity λ²) so the
+    # fan line matches the free endpoint. BEM still uses p_free=0 by construction.
+    p_free_pa = max(0.0, float(m_free.static_pressure_rise_pa)) * (derate * derate)
     try:
         op = score_operating_point(
             q_free_cfm=cfm_free,
             q_probe_cfm=cfm_probe,
-            p_probe_pa=load_pa,
+            p_probe_pa=p_probe_pa,
             eta_free=m_free.efficiency,
             eta_load=m_load.efficiency,
             load_pa=load_pa,
+            p_free_pa=p_free_pa,
         )
     except SystemCurveError as exc:
         return _infeasible(f"system-curve: {exc}", t0, raw=gap_raw)
@@ -375,6 +389,7 @@ def evaluate_candidate(
              "shaft_power_rated_w": shaft_rated,
              "min_wall_mm": printable.min_section_thickness_mm,
              "sigma_root_mpa": stress.sigma_root_mpa,
-             "k": op.k, "dp_op_pa": op.p_op_pa, "q_ref_cfm": REF_CFM, "cfm_probe": cfm_probe},
+             "k": op.k, "dp_op_pa": op.p_op_pa, "q_ref_cfm": REF_CFM, "cfm_probe": cfm_probe,
+             "p_probe_pa": p_probe_pa, "p_free_pa": p_free_pa},
         runtime_s=round(time.time() - t0, 1),
     )

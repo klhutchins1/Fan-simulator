@@ -51,10 +51,10 @@ def _has_real_cfm(d: Design) -> bool:
 
 
 def _blade_z_extent(params) -> float:
-    """Axial (Z) extent of the blade from its section points -- FAST (no CAD-kernel solid)."""
-    from fansim.cockpit.placement import blade_z_extent
+    """Axial impeller envelope (blades + hub + nose + shroud) — FAST, no CAD solid."""
+    from fansim.cockpit.placement import impeller_z_extent
 
-    return blade_z_extent(params)
+    return impeller_z_extent(params)
 
 
 def _blade_max_dia(params) -> float:

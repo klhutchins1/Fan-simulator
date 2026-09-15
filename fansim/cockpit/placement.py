@@ -24,6 +24,11 @@ class PlaceResult:
 
 def blade_z_extent(params) -> float:
     """Axial (Z) extent of the blade from its section points -- FAST (no CAD-kernel solid)."""
+    zmin, zmax = _blade_z_bounds(params)
+    return zmax - zmin
+
+
+def _blade_z_bounds(params) -> tuple[float, float]:
     from fansim.geometry.blade import _interp_stations, _section_points_3d
 
     it = _interp_stations(params, params.n_span)
@@ -54,6 +59,28 @@ def blade_z_extent(params) -> float:
             section_family=str(getattr(params, "section_family", "naca") or "naca"),
         )
         zs += [v.z for v in pts]
+    return min(zs), max(zs)
+
+
+def impeller_z_extent(params) -> float:
+    """Axial envelope of blades + hub (+ nose) + optional shroud — FAST, no CAD solid.
+
+    Matches the Fit/UI/Assess depth gate: hub height and nose can exceed blade Z alone.
+    """
+    from fansim.geometry.blade import _root_axial_span, shroud_axial_range
+
+    b_lo, b_hi = _blade_z_bounds(params)
+    r_lo, r_hi = _root_axial_span(params)
+    center = 0.5 * (r_lo + r_hi)
+    min_h = (r_hi - r_lo) + 2.0 * float(getattr(params, "hub_axial_margin", 1.5) or 1.5)
+    hub_h = float(params.hub_height_mm) if params.hub_height_mm is not None else min_h
+    hub_h = max(hub_h, min_h)
+    hub_lo = center - hub_h / 2.0
+    hub_hi = center + hub_h / 2.0 + float(getattr(params, "hub_nose_mm", 0.0) or 0.0)
+    zs = [b_lo, b_hi, hub_lo, hub_hi]
+    shroud = shroud_axial_range(params)
+    if shroud is not None:
+        zs.extend(shroud)
     return max(zs) - min(zs)
 
 
@@ -98,7 +125,7 @@ def measure_flat(
         feat = features if features is not None else features_from_flat(flat)
         p = blade_from_flat(flat, feat)
         built_tip_dia = float(blade_max_dia(p))
-        built_depth = float(blade_z_extent(p))
+        built_depth = float(impeller_z_extent(p))
         hub_radius = float(getattr(p, "hub_radius", flat.get("hub_radius")))
         return built_tip_dia, built_depth, hub_radius
     except Exception:  # noqa: BLE001
@@ -120,7 +147,10 @@ def nominal_fits_spec(flat: dict, spec: FanSpec, measured: tuple[float, float, f
     if not (spec.hub_dia_mm[0] <= hub_dia <= spec.hub_dia_mm[1]):
         return False
 
-    return tip_dia <= spec.tip_dia_mm[1] and depth <= spec.depth_mm[1]
+    if tip_dia > spec.tip_dia_mm[1] or depth > spec.depth_mm[1]:
+        return False
+    # Same CFD leftover gate Assess uses (OPTIMIZER_TIP_GAP_MM).
+    return not bool(frame_gap_note(tip_dia, spec))
 
 
 def frame_gap_note(tip_dia_mm: float, spec: FanSpec) -> str:
@@ -196,7 +226,7 @@ def fit_envelope(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
     max_d = float(spec.depth_mm[1])
 
     def depth() -> float:
-        return blade_z_extent(blade_from_flat(work, feat))
+        return impeller_z_extent(blade_from_flat(work, feat))
 
     rake = ("sweep_mid", "sweep_tip", "le_sweep_mid", "le_sweep_tip")
     base_rake = {k: float(work.get(k, 0.0)) for k in rake}
@@ -243,7 +273,7 @@ def fit_envelope(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
     try:
         p = blade_from_flat(work, feat)
         built_tip_dia = float(blade_max_dia(p))
-        z_depth = float(blade_z_extent(p))
+        z_depth = float(impeller_z_extent(p))
     except Exception as exc:  # noqa: BLE001
         return PlaceResult(
             flat=work,
@@ -254,6 +284,10 @@ def fit_envelope(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
 
     hub_dia = 2.0 * float(work.get("hub_radius", 0.0))
     ok, reason = check_build(spec, built_tip_dia, hub_dia, z_depth)
+    if ok:
+        gap = frame_gap_note(built_tip_dia, spec)
+        if gap:
+            ok, reason = False, gap
     return PlaceResult(
         flat=work,
         changes=changes,
@@ -263,21 +297,48 @@ def fit_envelope(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
 
 
 def prepare_export_flat(
-    flat: dict, spec: FanSpec, fit_frame: bool, features=None,
+    flat: dict, spec: FanSpec, fit_frame: bool, features=None, *, fit_hub: bool = False,
 ) -> tuple[dict, list[PlaceChange]]:
     """Return the flat that Export should build from.
 
-    ``fit_frame=False`` copies the editor (no geometry change). ``True`` runs
-    ``fit_envelope`` so the STL fits the selected frame before hub-grow.
+    Order (when flags are on): grow grip-aware hub first, then ``fit_envelope`` tip/depth,
+    so mounting clearance is not lost when tip shrink runs. ``fit_frame=False`` still
+    applies hub grow when ``fit_hub=True``.
     """
+    work = deepcopy(flat)
+    changes: list[PlaceChange] = []
+
+    def set_mm(field: str, after: float) -> None:
+        before = work.get(field)
+        if before is None:
+            b = 0.0
+        else:
+            try:
+                b = float(before)
+            except Exception:  # noqa: BLE001
+                b = 0.0
+        if abs(after - b) > 1e-9:
+            work[field] = after
+            changes.append(PlaceChange(field=field, before=b, after=float(after)))
+
+    if fit_hub:
+        need = mount_min_hub_radius(spec)
+        if need is not None and float(work.get("hub_radius", 0.0)) < need:
+            set_mm("hub_radius", float(need) + 0.05)
+        min_h = float(getattr(getattr(spec, "motor_mount", None), "min_hub_height_mm", 0.0) or 0.0)
+        if min_h > 0.0 and float(work.get("hub_height", 0.0)) < min_h:
+            set_mm("hub_height", min_h)
+
     if not fit_frame:
-        return deepcopy(flat), []
-    res = fit_envelope(flat, spec, features=features)
-    return res.flat, res.changes
+        return work, changes
+    res = fit_envelope(work, spec, features=features)
+    return res.flat, changes + res.changes
 
 
 def scale_to_hub(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
     import math
+
+    from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
 
     src = deepcopy(flat)
     changes: list[PlaceChange] = []
@@ -297,7 +358,8 @@ def scale_to_hub(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
     if src_tip <= 0.0:
         return PlaceResult(flat=src, changes=[], fit_status="unplaced", leftover="source tip radius <= 0")
 
-    target_tip = float(spec.tip_dia_mm[1]) / 2.0 - 2.0
+    # Same leftover as Fit / Assess / CFD (not a hardcoded 2 mm cushion).
+    target_tip = float(spec.tip_dia_mm[1]) / 2.0 - float(OPTIMIZER_TIP_GAP_MM)
     s = target_tip / src_tip
 
     scale_keys = (

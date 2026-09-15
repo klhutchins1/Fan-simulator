@@ -47,6 +47,21 @@ def test_parse_fan_metrics(tmp_path):
     assert m.thrust_n == pytest.approx(0.28, abs=1e-6)
 
 
+def test_kinematic_pressure_contract_once_times_rho():
+    """FO ``inletP``/``outletP`` are kinematic p; parse must ×ρ exactly once (§12.11)."""
+    from fansim.cfd import templates
+    from fansim.cfd.metrics import RHO_AIR
+    from fansim.cfd.openfoam_case import RHO_AIR as CASE_RHO
+
+    assert RHO_AIR == CASE_RHO == 1.2
+    blob = templates.CONTROL_DICT
+    assert "inletP" in blob and "outletP" in blob
+    # Both FOs average field ``p`` (incompressible OF = kinematic m²/s²).
+    assert blob.count("fields          (p);") >= 2
+    # Guard against accidental double-conversion fields.
+    assert "pStatic" not in blob and "p_rgh" not in blob.split("functions")[-1]
+
+
 @pytest.mark.docker
 def test_case_build_files(tmp_path):
     """Case assembly writes a valid directory structure (no meshing/solving)."""

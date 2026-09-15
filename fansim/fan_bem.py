@@ -12,8 +12,10 @@ the Euler turbomachinery relation (ΔP0 = ρ·U·ΔVθ). Integrate over radius -
 power, efficiency. Losses: airfoil profile drag (from the polar) now; TIP-CLEARANCE (Kröger-Venter) and
 low-Reynolds airfoil polars are the next upgrades (roadmap §7.2/§7.3).
 
-HONEST SCOPE: a screening model. Absolute CFM/pressure need the CFD tier (validated +2% free-air on the
-real STL). Relative rankings + P-Q shape are what this is for.
+HONEST SCOPE: RANKING-ONLY screening. Do not quote BEM CFM as absolute or beside CFD as
+equivalent — BEM ignores thickness/lean/wrap/LE-TE scales/plate sections and typically
+under-ranks CFD (~0.6×). Absolute free-air needs CFD + print/measure (P–Q report: CFD Stock
+~−26% vs published 60.1 CFM; the old “+2%” claim is retired).
 """
 
 from __future__ import annotations

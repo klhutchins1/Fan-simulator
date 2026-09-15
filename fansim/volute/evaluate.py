@@ -135,6 +135,7 @@ def evaluate_volute(
     cfm_free = float(m_free.cfm) * derate
     cfm_probe = max(float(m_load.cfm), 0.0) * derate
     p_probe_pa = derated_probe_pa(load_pa, derate)
+    p_free_pa = max(0.0, float(m_free.static_pressure_rise_pa)) * (derate * derate)
     raw.update({
         "free": m_free.to_dict(),
         "load": m_load.to_dict(),
@@ -143,6 +144,7 @@ def evaluate_volute(
         "derate": derate,
         "cfm_probe": cfm_probe,
         "p_probe_pa": p_probe_pa,
+        "p_free_pa": p_free_pa,
         **motor_curve_stamps(run_spec),
     })
     try:
@@ -153,6 +155,7 @@ def evaluate_volute(
             eta_free=m_free.efficiency,
             eta_load=m_load.efficiency,
             load_pa=float(load_pa),
+            p_free_pa=p_free_pa,
         )
     except SystemCurveError as exc:
         return _infeasible(f"system-curve: {exc}", t0, raw=raw)

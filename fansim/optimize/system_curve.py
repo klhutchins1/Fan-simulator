@@ -23,6 +23,32 @@ class SystemCurveError(ValueError):
     """Infeasible system-curve inputs or no intersection in (0, Q_free)."""
 
 
+def rated_op_back_pressure(p_op_pa: float, derate: float) -> float:
+    """Rated-RPM boundary Pa that matches hose pressure at actual RPM (P ∝ RPM²).
+
+    Inverse of ``derated_probe_pa``: if the fan is running at ``derate`` × rated RPM,
+    the hose ΔP seen in the derated solve is ``p_op``; the equivalent rated-RPM
+    back-pressure for a third CFD is ``p_op / derate²``.
+    """
+    lam = float(derate)
+    if lam <= 0.0:
+        raise SystemCurveError("derate must be positive")
+    return float(p_op_pa) / (lam * lam)
+
+
+OP_REUSE_PA = 0.05  # Pa — skip third CFD if p_rated ≈ hose load_pa
+
+
+@dataclass(frozen=True)
+class RefinedOp:
+    """Result of optional third CFD at the rated-RPM hose operating pressure."""
+
+    q_op_cfm: float
+    eta: float
+    op_cfd: str  # "reused-probe" | "solved" | "failed"
+    cfm_op_alg: float
+
+
 def k_from_pa(load_pa: float, ref_cfm: float = REF_CFM) -> float:
     """Pa at ``ref_cfm`` → k for ΔP = k Q² with Q in m³/s."""
     q_ref = float(ref_cfm) / CFM_PER_M3S
@@ -36,14 +62,21 @@ def intersect_fan_line(
     q_probe_cfm: float,
     p_probe_pa: float,
     k: float,
+    *,
+    p_free_pa: float = 0.0,
 ) -> tuple[float, float]:
-    """Intersect fan line (Q0,0)–(Q1,P1) with ΔP = k Q².
+    """Intersect fan line (Q0,P0)–(Q1,P1) with ΔP = k Q².
+
+    ``p_free_pa`` defaults to 0 (AMCA free delivery / BEM zero-crossing). CFD free
+    (zero back-pressure) often measures a small positive static rise — pass that as
+    ``p_free_pa`` so the hose operating point matches the measured free endpoint.
 
     Returns ``(q_op_cfm, p_op_pa)``. Raises ``SystemCurveError`` on bad inputs
     or no root in ``(0, Q0)``.
     """
     q0_cfm = float(q_free_cfm)
     q1_cfm = float(q_probe_cfm)
+    p0 = float(p_free_pa)
     p1 = float(p_probe_pa)
     kk = float(k)
     if q0_cfm <= 0.0:
@@ -52,17 +85,21 @@ def intersect_fan_line(
         raise SystemCurveError("probe CFM must be positive")
     if q1_cfm >= q0_cfm:
         raise SystemCurveError("probe CFM must be below free-delivery")
-    if p1 <= 0.0:
-        raise SystemCurveError("probe Pa must be positive")
+    if p1 <= p0:
+        raise SystemCurveError("probe Pa must exceed free-endpoint Pa")
     if kk <= 0.0:
         raise SystemCurveError("system-curve k must be positive")
+    if p0 < 0.0:
+        raise SystemCurveError("free-endpoint Pa must be non-negative")
 
     q0 = q0_cfm / CFM_PER_M3S
     q1 = q1_cfm / CFM_PER_M3S
-    # a Q² + b Q + c = 0  (Q in m³/s); see 2026-09-02-system-curve-design.md
-    a = kk * (q0 - q1)
-    b = p1
-    c = -p1 * q0
+    # Fan line: P = [(q1-Q)*p0 + (Q-q0)*p1] / (q1-q0)
+    # Set = k Q² → k(q1-q0) Q² - (p1-p0) Q - (q1 p0 - q0 p1) = 0
+    dq = q1 - q0
+    a = kk * dq
+    b = -(p1 - p0)
+    c = -(q1 * p0 - q0 * p1)
     if abs(a) < 1e-30:
         raise SystemCurveError("degenerate fan-line / k")
     disc = b * b - 4.0 * a * c
@@ -93,10 +130,14 @@ def score_operating_point(
     eta_free: float,
     eta_load: float,
     load_pa: float,
+    *,
+    p_free_pa: float = 0.0,
 ) -> OperatingPoint:
-    """Hose k from ``load_pa`` @ REF_CFM; fan line uses ``p_probe_pa`` (may be derated)."""
+    """Hose k from ``load_pa`` @ REF_CFM; fan line uses free/probe pressures (may be derated)."""
     k = k_from_pa(load_pa)
-    q_op_cfm, p_op_pa = intersect_fan_line(q_free_cfm, q_probe_cfm, p_probe_pa, k)
+    q_op_cfm, p_op_pa = intersect_fan_line(
+        q_free_cfm, q_probe_cfm, p_probe_pa, k, p_free_pa=p_free_pa,
+    )
     denom = float(q_probe_cfm) - float(q_free_cfm)
     if abs(denom) < 1e-12:
         raise SystemCurveError("free and probe CFM coincide")

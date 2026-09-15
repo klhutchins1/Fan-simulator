@@ -82,8 +82,8 @@ def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float):
     Returns (model, fits, msg). Does NOT widen the hub — if the hub is too narrow to house the motor
     with a wall, it returns fits=False and the model unchanged.
 
-    Grip pads: cut an oversize smooth cup, then fuse cylinders that slightly overlap the cavity wall
-    so they bond into the hub (tangent-only pads do not fuse). Bore is cut last.
+    Grip pads: cut an oversize smooth cup, then fuse cylinders whose centers sit near the cup wall
+    (most of the pad in the wall; ``grip_protrude_mm`` sticks into the cavity). Bore is cut last.
     """
     import math
 
@@ -91,7 +91,13 @@ def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float):
     grip_d = float(getattr(mount, "grip_dia_mm", 0.0) or 0.0)
     # Radial oversize of the cup (slip fit); used with or without grip pads.
     clear = float(getattr(mount, "grip_clearance_mm", 0.0) or 0.0)
+    from fansim.fan_spec import mount_grip_pad_layout
+
     need = mount.cavity_dia_mm / 2.0 + clear + mount.min_wall_mm
+    layout = mount_grip_pad_layout(mount)
+    if layout is not None:
+        _cav, r_c, g_r = layout
+        need = max(need, r_c + g_r + 0.05)
     if hub_radius_mm < need:
         return (model, False,
                 f"hub radius {hub_radius_mm:.1f} mm too small to house the {mount.cavity_dia_mm:.0f} mm "
@@ -105,13 +111,17 @@ def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float):
     cutter = cq.Solid.makeCylinder(cav_r, cav_h, cq.Vector(0, 0, z0), cq.Vector(0, 0, 1))
     result = shape.cut(cutter)
     grip_msg = ""
-    if n_grip > 0 and grip_d > 0.05:
-        # Overlap into the remaining wall so fuse has volume contact (not a tangent kiss).
-        wall_overlap = max(0.05, 0.1 * grip_d)
-        r_center = cav_r - grip_d / 2.0 + wall_overlap
+    if layout is not None:
+        _cav_r, r_center, grip_r = layout
+        protrude = grip_r - (r_center - cav_r)
         bore_r = float(mount.rear_bore_dia_mm or 0.0) / 2.0
-        if r_center - grip_d / 2.0 <= bore_r + 0.3:
+        if r_center - grip_r <= bore_r + 0.3:
             grip_msg = f"; grip skipped (would collide with {mount.rear_bore_dia_mm:.0f} mm bore)"
+        elif r_center + grip_r > hub_radius_mm - 0.05:
+            grip_msg = (
+                f"; grip skipped (Ø{grip_d:.1f} mm pads need hub radius "
+                f">= {r_center + grip_r + 0.05:.1f} mm)"
+            )
         else:
             pads = None
             for k in range(n_grip):
@@ -119,14 +129,14 @@ def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float):
                 x = r_center * math.cos(a)
                 y = r_center * math.sin(a)
                 pad = cq.Solid.makeCylinder(
-                    grip_d / 2.0, cav_h,
+                    grip_r, cav_h,
                     cq.Vector(x, y, z0), cq.Vector(0, 0, 1),
                 )
                 pads = pad if pads is None else pads.fuse(pad)
             result = result.fuse(pads)
             grip_msg = (
                 f" + {n_grip}×Ø{grip_d:.1f} mm grip pads "
-                f"(cup +{clear:.2f} mm radial clearance)"
+                f"(+{protrude:.2f} mm into cup, +{clear:.2f} mm radial clearance)"
             )
     try:
         result = result.clean()

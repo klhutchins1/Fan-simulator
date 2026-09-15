@@ -212,20 +212,32 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
 
     Thickness (root/mid/tip), camber position and hub radius fall back to the fixed defaults when
     absent, so older param dicts (and the optimizer, which fixes them) still work; the cockpit can
-    now override them."""
+    now override them.
+
+    Camber: prefer ``camber_root`` / ``camber_mid`` / ``camber_tip``; else fall back to the single
+    ``max_camber`` used by the optimizer (all three stations get that value).
+    """
     cpos = float(p.get("camber_pos", CAMBER_POS))
     th_r = float(p.get("thickness_root", THICKNESS[0]))
     th_m = float(p.get("thickness_mid", THICKNESS[1]))
     th_t = float(p.get("thickness_tip", THICKNESS[2]))
+    cam_fallback = float(p.get("max_camber", 0.05))
+    cam_r = float(p.get("camber_root", cam_fallback))
+    cam_m = float(p.get("camber_mid", cam_fallback))
+    cam_t = float(p.get("camber_tip", cam_fallback))
     stations = [
         RadialStation(0.0, p["chord_root"], p["stagger_root"], th_r,
-                      p["max_camber"], cpos, 0.0, 0.0, 0.0),
+                      cam_r, cpos, 0.0, 0.0, 0.0,
+                      le_sweep=p.get("le_sweep_root", 0.0),
+                      le_skew=p.get("le_skew_root", 0.0)),
         RadialStation(0.5, p["chord_mid"], p["stagger_mid"], th_m,
-                      p["max_camber"], cpos, p["sweep_mid"], p.get("skew_mid", 0.0),
-                      p.get("lean_mid", 0.0), le_sweep=p.get("le_sweep_mid", 0.0)),
+                      cam_m, cpos, p["sweep_mid"], p.get("skew_mid", 0.0),
+                      p.get("lean_mid", 0.0), le_sweep=p.get("le_sweep_mid", 0.0),
+                      le_skew=p.get("le_skew_mid", 0.0)),
         RadialStation(1.0, p["chord_tip"], p["stagger_tip"], th_t,
-                      p["max_camber"], cpos, p["sweep_tip"], p.get("skew_tip", 0.0),
-                      p.get("lean_tip", 0.0), le_sweep=p.get("le_sweep_tip", 0.0)),
+                      cam_t, cpos, p["sweep_tip"], p.get("skew_tip", 0.0),
+                      p.get("lean_tip", 0.0), le_sweep=p.get("le_sweep_tip", 0.0),
+                      le_skew=p.get("le_skew_tip", 0.0)),
     ]
     kw = {}
     if "hub_radius" in p:
@@ -286,7 +298,8 @@ def blade_to_flat(params: BladeParams) -> dict:
 
     Bio-features and post-loft stamps (winglet / tip-round / sickle / notches) are not
     reverse-engineered — start clean so the stock reference is editable from the yaml
-    stations. Mid-span camber is used for the single editor camber slider.
+    stations. Per-station camber is preserved as ``camber_root/mid/tip``; ``max_camber``
+    stays mid for optimizer / older-UI compatibility.
     """
     st = sorted(params.stations, key=lambda s: s.r_frac)
     if len(st) < 3:
@@ -296,23 +309,39 @@ def blade_to_flat(params: BladeParams) -> dict:
         return min(st, key=lambda s: abs(float(s.r_frac) - frac))
 
     root, mid, tip = nearest(0.0), nearest(0.5), nearest(1.0)
+    cam_r, cam_m, cam_t = float(root.max_camber), float(mid.max_camber), float(tip.max_camber)
+    th_r, th_m, th_t = float(root.thickness), float(mid.thickness), float(tip.thickness)
+    cr, cm, ct = float(root.chord), float(mid.chord), float(tip.chord)
+    # Absolute wall mm at each station — same rule as the cockpit uniform/tapered picker.
+    ar, am, at = th_r * cr, th_m * cm, th_t * ct
+    thick_mode = (
+        "uniform"
+        if abs(ar - am) < 0.12 and abs(am - at) < 0.12
+        else "tapered"
+    )
+    thick_mm = round((ar + am + at) / 3.0, 2)
     flat = dict(
         n_blades=int(params.n_blades),
         hub_radius=float(params.hub_radius),
         tip_radius=float(params.tip_radius),
-        chord_root=float(root.chord), chord_mid=float(mid.chord), chord_tip=float(tip.chord),
+        chord_root=cr, chord_mid=cm, chord_tip=ct,
         stagger_root=float(root.stagger_deg), stagger_mid=float(mid.stagger_deg),
         stagger_tip=float(tip.stagger_deg),
-        max_camber=float(mid.max_camber),
+        camber_root=cam_r, camber_mid=cam_m, camber_tip=cam_t,
+        max_camber=cam_m,
         camber_pos=float(mid.camber_pos),
-        thickness_root=float(root.thickness), thickness_mid=float(mid.thickness),
-        thickness_tip=float(tip.thickness),
+        thickness_root=th_r, thickness_mid=th_m, thickness_tip=th_t,
+        thick_mode=thick_mode,
+        thick_mm=thick_mm,
+        le_thick_scale=float(getattr(params, "le_thick_scale", 1.0) or 1.0),
+        te_thick_scale=float(getattr(params, "te_thick_scale", 1.0) or 1.0),
         sweep_mid=float(mid.sweep), sweep_tip=float(tip.sweep),
         skew_mid=float(mid.skew), skew_tip=float(tip.skew),
         lean_mid=float(mid.lean_deg), lean_tip=float(tip.lean_deg),
         le_sweep_mid=float(mid.le_sweep), le_sweep_tip=float(tip.le_sweep),
         le_skew_mid=float(getattr(mid, "le_skew", 0.0) or 0.0),
         le_skew_tip=float(getattr(tip, "le_skew", 0.0) or 0.0),
+        cylindrical_tip=bool(getattr(params, "cylindrical_tip", True)),
         hub_height=float(params.hub_height_mm or 0.0),
         hub_profile=str(params.hub_profile or "cylinder"),
         hub_nose=float(params.hub_nose_mm or 0.0),

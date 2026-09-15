@@ -13,6 +13,7 @@ from fansim.cfd.glyphs import (
     build_velocity_cloud,
     ensure_velocity_glyphs,
     make_glyph_arrows,
+    schematic_axial_flow_cloud,
 )
 
 
@@ -77,7 +78,27 @@ def test_build_velocity_cloud_z_clip_prefers_near_impeller():
     assert np.all(np.abs(z_mm) <= 0.05 * M_TO_MM + 1e-6)
 
 
-def test_make_glyph_arrows_respects_max_and_stride():
+def test_schematic_axial_flow_cloud_is_plus_z_in_annulus():
+    pv = pytest.importorskip("pyvista")
+    cloud = schematic_axial_flow_cloud(
+        hub_radius_mm=20.0,
+        tip_radius_mm=55.0,
+        z_span_mm=30.0,
+        u_axial_ms=2.5,
+        n_radial=3,
+        n_theta=8,
+        n_axial=4,
+    )
+    assert cloud.n_points == 3 * 8 * 4
+    assert "U" in cloud.point_data and "U_mag" in cloud.point_data
+    u = np.asarray(cloud["U"])
+    assert np.allclose(u[:, 0], 0.0) and np.allclose(u[:, 1], 0.0)
+    assert np.allclose(u[:, 2], 2.5)
+    r = np.hypot(cloud.points[:, 0], cloud.points[:, 1])
+    assert r.min() > 20.0 and r.max() < 55.0
+    arrows = make_glyph_arrows(cloud, factor=1.0, max_arrows=50)
+    assert arrows is not None and arrows.n_points > 0
+
     pv = pytest.importorskip("pyvista")
     pts = np.random.default_rng(0).uniform(-20, 20, size=(200, 3))
     cloud = pv.PolyData(pts)

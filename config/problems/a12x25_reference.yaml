@@ -1,17 +1,21 @@
-# Provenance: reference-parametric — best available yaml fit within published envelope bands.
+# Provenance: reference-parametric — eye-fit to close-reference / real NF-A12x25 planform
+# (narrower root/mid chord, higher root stagger, tip skew) within published envelope bands.
 # NOT OEM CAD; preferred CFD geometry is validation/reference/a12x25_impeller.stl when present.
 # Cockpit Stock (stock_blade_flat "a12x25") loads this recipe for parametric builds / BEM.
-# NF-A12x25: 9 blades (Noctua A-series), tip/hub within envelope (55–57 / 20–23 mm).
+# tip_radius / hub_height are frame+mount fitted (110 mm ID − 0.5 mm gap; min hub height 15 mm)
+# so gold ✕ does not require a manual Fit envelope.
 # Published targets (docs/a12x25-reference.md): 60.1 CFM, 22.9 Pa, 22.6 dB(A), 2000 RPM, 0.5 mm tip clearance.
+# Prior wide-chord recipe (34/44/38 @ 26°/26°/22°, tip 56.5) kept as config/problems/a12x25_approx.yaml.
 n_blades: 9
 hub_radius: 21.5
-tip_radius: 56.5
+tip_radius: 54.5
+hub_height_mm: 15.0
 root_embed: 2.0
 hub_axial_margin: 1.5
 rpm: 2000.0
 n_span: 18
 n_chord: 60
 stations:
-  - {r_frac: 0.0, chord: 34.0, stagger_deg: 26.0, thickness: 0.08, max_camber: 0.05, camber_pos: 0.4, sweep: 0.0, skew: 0.0, lean_deg: 0.0}
-  - {r_frac: 0.5, chord: 44.0, stagger_deg: 26.0, thickness: 0.05, max_camber: 0.06, camber_pos: 0.4, sweep: 3.0, skew: 0.0, lean_deg: 14.0}
-  - {r_frac: 1.0, chord: 38.0, stagger_deg: 22.0, thickness: 0.03, max_camber: 0.06, camber_pos: 0.4, sweep: 5.0, skew: 0.0, lean_deg: 26.0}
+  - {r_frac: 0.0, chord: 18.0, stagger_deg: 40.0, thickness: 0.08, max_camber: 0.05, camber_pos: 0.4, sweep: 0.0, skew: 0.0, lean_deg: 0.0}
+  - {r_frac: 0.5, chord: 25.0, stagger_deg: 30.0, thickness: 0.05, max_camber: 0.06, camber_pos: 0.4, sweep: 3.0, skew: 0.0, lean_deg: 14.0}
+  - {r_frac: 1.0, chord: 38.0, stagger_deg: 22.0, thickness: 0.03, max_camber: 0.06, camber_pos: 0.4, sweep: 5.0, skew: 4.5, lean_deg: 26.0}
