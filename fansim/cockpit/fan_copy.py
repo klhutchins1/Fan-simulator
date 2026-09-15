@@ -39,6 +39,8 @@ CONTROL_DESC = {
     "e_sweep_tip": "Axial rake of the WHOLE tip section (mm, + toward outlet / +Z).",
     "e_le_mid": "Rakes only the LEADING edge at mid-span (mm) — curves the LE line, trailing edge unchanged.",
     "e_le_tip": "Rakes only the LEADING edge at the tip (mm).",
+    "e_le_skew_mid": "Sickle / LE skew at mid-span (mm) — shifts only the leading-edge region sideways in the rotation plane (scimitar). Trailing edge stays put. 0 = radial LE.",
+    "e_le_skew_tip": "Sickle / LE skew at the tip (mm). Typical printed PC-fan tips sit around 4–12 mm. Same axis as Optimize --sickle, but editable per station.",
     "e_skew_mid": "Skew (mm) — shifts the whole mid section sideways (tangentially). Fine balance/overlap tweak.",
     "e_skew_tip": "Skew (mm) — shifts the whole tip section sideways (tangentially). Wide range for matching reference planforms.",
     "e_smooth_span": "Smooth span curves (PCHIP) — interpolate hub→mid→tip with a shape-preserving cubic so mid wrap/sweep/skew don't put a sharp kink in the blade. Off = linear (historical).",

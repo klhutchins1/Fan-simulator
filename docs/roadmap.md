@@ -73,7 +73,9 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   Plate OGV row in `fansim/cfd/stator.py`, `--stator` / `--stator-stack`, OpenFOAM `stator.stl`
   (`tests/test_stator.py`). Remaining: cambered OGVs, searched vane count, measured η gain.
 - [x] **2.3 Sickle / forward-swept planform (stage 1). DONE 2026-09-13** **[impact: med]** **[effort: med]**
-  `apply_sickle` + Optuna `--sickle` (`tests/test_sickle.py`). Remaining: cockpit LE editor / mid-band search.
+  `apply_sickle` + Optuna `--sickle` (`tests/test_sickle.py`). Cockpit Design LE sickle mid/tip
+  sliders (`e_le_skew_*`) landed 2026-09-15. Remaining: Optuna mid-band search (independent mid
+  vs tip) beyond tip-only `--sickle`.
 - [x] **2.4 Infill-aware weight (stage 1). DONE 2026-09-14** **[impact: low]** **[effort: low]**
   `estimate_weight_g(..., infill_frac=)` defaults to ``DEFAULT_PRINT_INFILL=0.20`` for FDM filaments
   (resin stays solid). Build gate no longer assumes 100% fill. Override with ``infill_frac=1.0`` for

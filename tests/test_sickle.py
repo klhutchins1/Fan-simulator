@@ -84,17 +84,30 @@ def test_apply_sickle_zero_is_noop():
     assert all(s.le_skew == 0.0 for s in p.stations)
 
 
-def test_blade_from_flat_sickle_mm_round_trips():
-    from fansim.optimize.search_space import blade_from_flat
+def test_blade_from_flat_explicit_le_skew_round_trips():
+    """Design-editor sickle mid/tip (not sickle_mm) must reach stations."""
+    from fansim.optimize.search_space import blade_from_flat, blade_to_flat
 
     bp = blade_from_flat({
         "n_blades": 7, "chord_root": 34, "chord_mid": 44, "chord_tip": 38,
         "stagger_root": 26, "stagger_mid": 26, "stagger_tip": 22,
         "sweep_mid": 3, "sweep_tip": 5, "max_camber": 0.05,
-        "sickle_mm": 8,
+        "le_skew_mid": 3.2, "le_skew_tip": 8.0,
     })
+    mid = min(bp.stations, key=lambda s: abs(s.r_frac - 0.5))
     tip = max(bp.stations, key=lambda s: s.r_frac)
-    assert tip.le_skew == pytest.approx(SICKLE_DEFAULT_MM)
+    assert mid.le_skew == pytest.approx(3.2)
+    assert tip.le_skew == pytest.approx(8.0)
+    flat = blade_to_flat(bp)
+    assert flat["le_skew_mid"] == pytest.approx(3.2)
+    assert flat["le_skew_tip"] == pytest.approx(8.0)
+
+
+def test_cockpit_declares_sickle_le_skew_sliders():
+    ui = Path("fansim/cockpit/fan_tab_ui.py").read_text(encoding="utf-8")
+    assert "e_le_skew_mid" in ui and "e_le_skew_tip" in ui
+    copy = Path("fansim/cockpit/fan_copy.py").read_text(encoding="utf-8")
+    assert "e_le_skew_mid" in copy and "e_le_skew_tip" in copy
 
 
 def test_sickled_default_is_one_solid_in_120mm():

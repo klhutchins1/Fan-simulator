@@ -792,6 +792,8 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     _slider("Sweep tip", "e_sweep_tip", -8, 25, 0.5, unit="mm")
                                     _slider("LE curve mid", "e_le_mid", -12, 12, 0.5, unit="mm")
                                     _slider("LE curve tip", "e_le_tip", -12, 12, 0.5, unit="mm")
+                                    _slider("Sickle mid", "e_le_skew_mid", 0, 12, 0.5, unit="mm")
+                                    _slider("Sickle tip", "e_le_skew_tip", 0, 15, 0.5, unit="mm")
                                     _slider("Skew mid", "e_skew_mid", -20, 20, 0.5, unit="mm")
                                     _slider("Skew tip", "e_skew_tip", -25, 25, 0.5, unit="mm")
                                     html.Div("{{ depth_fit_info }}", classes="text-caption")

@@ -601,6 +601,14 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         state.e_lean_tip = float(p.get("lean_tip", 26.0))
         state.e_le_mid = float(p.get("le_sweep_mid", 0.0))
         state.e_le_tip = float(p.get("le_sweep_tip", 0.0))
+        _le_skew_mid = float(p.get("le_skew_mid", 0.0) or 0.0)
+        _le_skew_tip = float(p.get("le_skew_tip", 0.0) or 0.0)
+        _sickle = float(p.get("sickle_mm", 0.0) or 0.0)
+        if _le_skew_mid == 0.0 and _le_skew_tip == 0.0 and _sickle > 0.0:
+            _le_skew_tip = _sickle
+            _le_skew_mid = 0.40 * _sickle
+        state.e_le_skew_mid = _le_skew_mid
+        state.e_le_skew_tip = _le_skew_tip
         state.e_skew_mid = float(p.get("skew_mid", 0.0))
         state.e_skew_tip = float(p.get("skew_tip", 0.0))
         state.e_smooth_span = (
@@ -722,6 +730,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             lean_tip=state.e_lean_tip,
             le_sweep_mid=state.e_le_mid,
             le_sweep_tip=state.e_le_tip,
+            le_skew_mid=float(getattr(state, "e_le_skew_mid", 0.0) or 0.0),
+            le_skew_tip=float(getattr(state, "e_le_skew_tip", 0.0) or 0.0),
             skew_mid=state.e_skew_mid,
             skew_tip=state.e_skew_tip,
             span_interp=("pchip" if bool(state.e_smooth_span) else "linear"),
@@ -771,6 +781,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             "lean_tip": ("e_lean_tip", float),
             "le_sweep_mid": ("e_le_mid", float),
             "le_sweep_tip": ("e_le_tip", float),
+            "le_skew_mid": ("e_le_skew_mid", float),
+            "le_skew_tip": ("e_le_skew_tip", float),
             "skew_mid": ("e_skew_mid", float),
             "skew_tip": ("e_skew_tip", float),
             "winglet_span": ("e_winglet_span", float),
@@ -901,6 +913,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         state.e_lean_tip = round(_r.uniform(0, 45), 1)
         state.e_le_mid = round(_r.uniform(-8, 8), 1)
         state.e_le_tip = round(_r.uniform(-8, 8), 1)
+        state.e_le_skew_mid = round(_r.uniform(0, 6), 1)
+        state.e_le_skew_tip = round(_r.uniform(0, 10), 1)
         state.e_skew_mid = round(_r.uniform(-4, 4), 1)
         state.e_skew_tip = round(_r.uniform(-4, 4), 1)
         wl = _r.random() < 0.4
@@ -1387,6 +1401,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         "e_lean_tip",
         "e_le_mid",
         "e_le_tip",
+        "e_le_skew_mid",
+        "e_le_skew_tip",
         "e_skew_mid",
         "e_skew_tip",
         "e_smooth_span",
