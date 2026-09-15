@@ -4,6 +4,8 @@
 Usage:
     uv run --extra viz --extra optim python scripts/cockpit.py --run runs/opt_run1 [--port 8080]
 
+Binds 127.0.0.1 by default (local UI). Pass --host 0.0.0.0 only if you intend LAN access.
+
 Add --reload for DEV MODE: the server runs as a child process and AUTO-RESTARTS whenever any
 fansim/ or validation/ source file changes, so you never have to restart by hand to pick up code
 edits. The browser reconnects on its own after each restart (a brief blip). Without --reload the
@@ -40,7 +42,8 @@ def _snapshot() -> dict[str, float]:
 def _run_with_reload(args) -> int:
     """Supervise a child server, restarting it when watched source changes (pure-Python, no deps)."""
     child = [sys.executable, str(Path(__file__).resolve()),
-             "--run", args.run, "--port", str(args.port)]
+             "--run", args.run, "--port", str(args.port),
+             "--host", args.host]
     if args.study_name:
         child += ["--study-name", args.study_name]
 
@@ -116,6 +119,11 @@ def main() -> int:
     ap.add_argument("--run", default="runs/opt_run1", help="optimization run directory")
     ap.add_argument("--study-name", default=None)
     ap.add_argument("--port", type=int, default=8080)
+    ap.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="bind address (default 127.0.0.1; use 0.0.0.0 only if you intend LAN access)",
+    )
     ap.add_argument("--reload", action="store_true",
                     help="dev mode: auto-restart the server when fansim/ or validation/ source changes")
     args = ap.parse_args()
@@ -125,7 +133,7 @@ def main() -> int:
 
     from fansim.cockpit.app import build_server
     server = build_server(args.run, args.study_name)
-    server.start(port=args.port, open_browser=False)
+    server.start(port=args.port, host=args.host, open_browser=False)
     return 0
 
 

@@ -24,6 +24,10 @@ def test_fingerprint_stable_and_sensitive():
     assert a != stock_fingerprint({**flat, "te_thick_scale": 1.5}, preview=True)
     assert a != stock_fingerprint({**flat, "section_family": "plate"}, preview=True)
     assert a != stock_fingerprint({**flat, "span_interp": "pchip"}, preview=True)
+    assert a != stock_fingerprint({**flat, "le_skew_mid": 0.2}, preview=True)
+    assert a != stock_fingerprint({**flat, "le_skew_tip": 0.3}, preview=True)
+    assert a != stock_fingerprint({**flat, "camber_root": 0.04}, preview=True)
+    assert a != stock_fingerprint({**flat, "thick_mode": "uniform"}, preview=True)
 
 
 def test_cache_hit_requires_matching_meta(tmp_path, monkeypatch):

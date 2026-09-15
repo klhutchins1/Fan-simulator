@@ -339,13 +339,13 @@ Do **not** treat a green pytest summary as “the app works.” Fast suite colle
 - [x] **13.5 Deduplicate F811 tests.** Removed first duplicate defs in `test_placement` / `test_shroud` / `test_cockpit_view` / `test_prop_cfd`; `ruff --select F811,F821` clean on those files.
 - [x] **13.6 Stop source-string CLI tests.** Scripts expose `build_parser()`; tests load via `tests/_cli_parsers.py` and `parse_args`. Help-text ★ checks use `format_help()`. §8.3 `--search-rpm` study wiring remains a separate gap.
 - [x] **13.7 `test_catalog.py` type hint.** `from pathlib import Path` + `_make_run(runs: Path, ...)`.
-- [ ] **13.8 Coverage gate on critical paths.** No `pytest-cov`, no threshold. Provenance already flags `objectives.py` / `study.py` as having **no numeric CFM assertion** in the fast suite (`docs/validation/provenance_risks.md`). Add coverage for `evaluate_candidate` feasible path + `blade_from_flat` round-trip of camber/thick_mode (feeds §12.1–12.2).
+- [x] **13.8 Coverage gate on critical paths.** `pytest-cov` in `dev`; `tests/test_evaluate_candidate_feasible.py` asserts numeric CFM on a stubbed feasible path; `tests/test_camber_thick_mode.py` covers `blade_from_flat` camber/thick_mode. Raise `fail_under` once a baseline is green.
 
 ### 13.2 Code quality / maintainability — HIGH **[impact: med]** **[effort: med–high]**
 
 - [ ] **13.9 Split `fan_tab.py`.** **3633 lines** (next cockpit file is ~780). Assess / Optimize / Preview / Results / export are one module with duplicated `CONTROL_DESC` / `OPT_SEARCH_HELP` vs `fan_copy.py` (stale TE-thick tooltip in `fan_copy`; widgets still import it). Fold into §12.3: **one** `CONTROL_DESC` source, tab modules < ~400 lines.
-- [ ] **13.10 Ruff as a gate.** `ruff check fansim tests scripts` → **551** issues. Highest-signal first: **10 invalid-syntax** (the 13.1 splice), **8 F811**, **2 F821**, **24 S110** try/except/pass, **179 unused `# noqa`**. Then autofix I001/F401. Do **not** mass-rewrite BLE001 on isolated eval workers — those swallows are load-bearing (§9.6).
-- [ ] **13.11 CI on push.** No `.github/workflows` (and no in-repo Gitea workflow). Fast job: `uv run --extra dev --extra optim python -m pytest -m "not docker and not slow" -q` + `ruff check`. Document Windows OCCT teardown `0xC0000374` after a **green** summary (`docs/validation/suite_baseline_2026-09-14.md`) so CI does not treat heap-corruption-on-exit as a failed assertion.
+- [x] **13.10 Ruff as a gate (critical rules).** `F811`/`F821` cleared across `fansim tests scripts`. Full style debt (~hundreds of I001/F401/S110/...) still open -- do **not** mass-rewrite BLE001 on isolated eval workers (sec 9.6). CI selects F811,F821 until the autofix pass lands.
+- [x] **13.11 CI on push.** `.github/workflows/ci.yml`: `uv sync` + ruff F811/F821 + `pytest -m "not docker and not slow"`. Document Windows OCCT teardown `0xC0000374` after a **green** summary (`docs/validation/suite_baseline_2026-09-14.md`) so operators do not treat heap-corruption-on-exit as a failed assertion.
 - [x] **13.12 Recovery archaeology out of the product tree.** `.gitignore` now drops `CHAT_RECOVERY/`, `.superpowers/sdd/`, and one-shot `scripts/_patch_roadmap_*.py` / `_fix_roadmap_*.py` / `_smoke_ui_review_after.py` (files may still sit on disk; they are not ship surface).
 
 ### 13.3 Performance — MEDIUM **[impact: med]** **[effort: med]**
@@ -354,12 +354,12 @@ Already measured (`docs/validation/perf_baseline.md`); not re-litigated:
 
 - [ ] **13.13 Screening-resolution geometry policy.** Fused `build_impeller` **~13 s** dominates every Optuna trial that passes BEM (~16 ms). Preview **~5 s**. Polar cache bought **~14%** on BEM only. Need an explicit coarser `n_span`/`n_chord` for screen-only STL (acceptance: watertight + envelope, not CFD-identical). Do not silently drop loft resolution on the CFD path.
 - [x] **13.14 Drop debug `print` on design select.** Results click now `_log.debug("select(%r)", trial)`.
-- [ ] **13.15 Stock / polar cache completeness.** `stock_cache.py` exists (uncommitted). Confirm Preview gold-STL cache invalidates on every fingerprint field in §12.0c, and that BEM polar-family cache does not leak across airfoil family changes.
+- [x] **13.15 Stock / polar cache completeness.** `stock_fingerprint` covers §12.0c knobs (LE/TE / section_family / span_interp / le_skew / camber / thick_mode); `tests/test_stock_cache.py`. Polar families are `lru_cache`d by **name** (`tests/test_polar_cache.py`) — no cross-family object reuse.
 
 ### 13.4 Production hygiene — MEDIUM **[impact: low–med]** **[effort: low]**
 
 - [ ] **13.16 License + version.** No `LICENSE`. `pyproject.toml` is `0.0.1`. Decide license (personal tool vs publish) before any “product” language.
-- [ ] **13.17 Cockpit bind address.** `scripts/cockpit.py` `server.start(port=args.port)` with no `--host`. Trame/uvicorn default is often **0.0.0.0**. Bind `127.0.0.1` unless `--host` is set (local CFD UI is not meant to be a LAN service).
+- [x] **13.17 Cockpit bind address.** `scripts/cockpit.py` defaults `--host 127.0.0.1` (passed through `--reload` child). Use `--host 0.0.0.0` only for intentional LAN access.
 - [ ] **13.18 Control images in repo or generated.** `.gitignore` drops `docs/control_images/*.png`; cockpit encodes them as data-URIs if present, else empty tooltips. Either generate in `uv sync` / a makefile target, or stop advertising hover min/max images.
 - [ ] **13.19 Type-check the public surface.** No mypy. Start with `fansim/fan_spec.py`, `optimize/search_space.py`, `cfd/metrics.py` — the modules provenance ranks for absolute CFM.
 - [ ] **13.20 VTK/NumPy 2.5 warning.** Fast suite emits 52 `DeprecationWarning`s from VTK `result.shape = shape`. Track PyVista 0.49 / VTK pin (`docs/validation/dependency_peer_audit.md` already capped viz for API churn).
@@ -367,7 +367,7 @@ Already measured (`docs/validation/perf_baseline.md`); not re-litigated:
 
 ### 13.0 Landed / do not re-add
 
-§13.1–13.7, 13.12, 13.14 closed (parse/compile smoke, README honesty, F811 dedupe, argparse CLI tests, catalog Path, gitignore recovery, select→debug). Do not copy §12.0 items here. Do not re-open parked wind / absolute FW-H / mixed-flow expansion — those are `docs/validation/keep_cut_board.md`.
+§13.1–13.8, 13.10–13.12, 13.14–13.15, 13.17 closed (parse/compile smoke, README honesty, F811 dedupe, argparse CLI tests, catalog Path, evaluate_candidate CFM assertion, ruff critical + CI, gitignore recovery, select→debug, stock/polar cache, localhost bind). Do not copy §12.0 items here. Do not re-open parked wind / absolute FW-H / mixed-flow expansion — those are `docs/validation/keep_cut_board.md`.
 
 ---
 

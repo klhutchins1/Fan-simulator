@@ -238,7 +238,6 @@ def test_run_study_refits_surrogate_after_feasible_trial(tmp_path, monkeypatch):
     monkeypatch.setattr(cat_mod, "prescreen_fit", fake_prescreen_fit)
 
     def fake_evaluate(_params, workdir, *_a, **_kw):
-        from pathlib import Path
         Path(workdir).mkdir(parents=True, exist_ok=True)
         return ObjectiveResult(
             feasible=True, cfm_free=55.0, cfm_load=40.0, efficiency=1.0,
