@@ -7,8 +7,8 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-09-15** (full production-readiness pass: **not shippable**. Physics honesty
-  stays **§12**; engineering hygiene is **§13**. Validation P–Q still open — see `a12x25_pq_report.md`)
+- Last reviewed: **2026-09-15** (evening). **§12** + **§13** closed in code. Still **not shippable**
+  until Validation P–Q / print+measure close absolute CFM — see `a12x25_pq_report.md`
 - Tags: **[impact]** how much it changes results · **[effort]** rough build cost · owner *me* unless noted.
 - Related: `docs/known-issues.md` (historical cockpit fixes — **stale**, see §13.4), `docs/high-accuracy-plan.md` (fidelity
   ladder), `docs/design-rules.md` (extracted levers), the memory index.
@@ -18,17 +18,14 @@ session.**
 
 ## ★ Recommended sequence
 
-1. ~~**§13.0 parse**~~ — dirty-tree `fan_tab.py` Assess splice fixed; `tests/test_fan_tab_parse.py`
-   smoke. Rest of **§13** still open (docs honesty, CI, duplicate tests) — parallel with §12.
-2. ~~Math audit (Phase 1)~~ — recovered-tree pass 2026-09-11 (§10). **Re-opened 2026-09-15** after thickness/LE-TE/Fit/scoring bugs; remaining work is **§12** (do this before trusting Stock/Fit/Assess numbers).
-3. ~~Noctua reference geometry (Phase 2)~~ — envelope + Stock yaml; close-reference STL under `validation/reference/` (not OEM CAD).
-4. **§12 math-application fidelity (cockpit + Fit + scoring honesty)** — stock camber, depth/tip gates, free-ΔP convention, BEM labeling. Canvas: `math-application-audit`.
-5. **Validation P–Q (Phase 3 remainder)** — close-ref STL free-air **−17%** (49.8 CFM; layers +0.6 → 50.4). Shut-off proxy **fails** on STL (~14.6 Pa) while parametric Stock still ~24 Pa (interim pass). Screening levers (mesh/tip/frame/ks/stagger/layers) exhausted for free-air. See `docs/validation/a12x25_pq_report.md`.
-6. **Print + measure (Phase 5)** — staged runbook `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. This is now the primary path to close absolute free-air.
-7. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), and archetype CFD depth (§4.x).
+1. ~~**§13 hygiene**~~ — parse/CI/ruff critical/fan_tab UI split/mypy/MIT — closed 2026-09-15.
+2. ~~Math audit / §12~~ — cockpit thickness, Fit, scoring honesty closed 2026-09-15.
+3. ~~Noctua reference geometry (Phase 2)~~ — envelope + Stock yaml; close-ref STL under `validation/reference/`.
+4. **Validation P–Q (Phase 3 remainder)** — close-ref STL free-air **−17%**. Screening levers exhausted. See `a12x25_pq_report.md`.
+5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
+6. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
 
-§8 cockpit scoring and §9 recovery hardening are **closed in code** (2026-09-11–13) but **§13 reopened hygiene**: the Fan tab is a 3600-line recovery splice, tests do not import it, and front-door docs still claim CFD accuracy the P–Q campaign disproved.
-§10 equation stamps remain; **§12 is the live “don’t trust the UI math yet” list**; **§13 is “don’t ship this as a product yet.”**
+§8 / §9 / §10 / §12 / §13 are **closed in code**. Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
 Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 **Do NOT** re-optimize tip-round or bio-features — tested null on flow AND noise.
 **Do NOT** datasheet-tune Stock from BEM (stagger candidate CFD +0.6 CFM only).
@@ -81,7 +78,7 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   solid-mass checks. Tests: `tests/test_fan_spec.py`.
 - [x] **2.5 RPM as a lever / real motor torque–speed curve (stage 1). DONE 2026-09-13**
   `fansim/optimize/motor_curve.py` stamps + operating RPM on mixed/volute/CROR evaluate
-  (`tests/test_search_rpm.py` — CLI wiring still a known gap). Remaining: full PWM search in all archetypes.
+  (`tests/test_search_rpm.py` — CLI + `run_study` → `evaluate_candidate(rpm=…)`). Remaining: full PWM search in all archetypes.
 - [x] **2.6 Stepped inlet / notched tips (stage 1). DONE 2026-09-13** **[impact: low]** **[effort: med]**
   `apply_notched_tips` + `--notched` / cockpit flags (`tests/test_notched_tips.py`).
 
@@ -99,9 +96,9 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   `tests/test_search_space.py`).
 - [x] **3.3 Smarter frame tip cap. DONE 2026-09-13** **[impact: low]** **[effort: low]**
   `TIP_CAP_CLEARANCE_MM` + per-candidate `frame_half_mm` on `suggest_params` (not flat 4 mm).
-- [ ] **3.4 Auto-fit on export (optional).** **[impact: low]** **[effort: low]** The cockpit has manual
-  hub/tip/depth fitters; consider an opt-in "fit to frame on export" (like the hub-grow toggle), with the
-  aero-cost caveat.
+- [x] **3.4 Auto-fit on export. DONE 2026-09-15** **[impact: low]** **[effort: low]**
+  Cockpit Design defaults: **Fit hub to motor on export** + **Fit tip/depth to frame on export**
+  (`export_fit_hub` / `export_fit_frame` → `prepare_export_flat`). Aero-cost caveat stays in the UI copy.
 
 ## 4. New archetypes (design classes the axial fan can't cover)
 
@@ -213,8 +210,9 @@ Wire existing `evaluate_candidate` / preset plumbing into Assess and Fan Optimiz
 
 - [x] **8.1 Assess: hose picker + provenance. DONE 2026-09-03.** `assess_preset` + `score_caption`.
 - [x] **8.2 Assess: opt-in refine-op. DONE 2026-09-03.** `assess_refine_op` → third CFD at op.
-- [x] **8.3 Fan Optimize panel (stage 1). DONE 2026-09-11.** BEM/GP/shroud/stator/sickle flags in `fan_tab.py`.
-  Remaining: `--search-rpm` declared on CLI (`tests/test_search_rpm.py` gap).
+- [x] **8.3 Fan Optimize panel. DONE 2026-09-11 / wiring closed 2026-09-15.** BEM/GP/shroud/stator/sickle +
+  `--search-rpm` cockpit → `optimization_argv` → `run_study` → `evaluate_candidate(rpm=…)`
+  (`tests/test_search_rpm.py`, `tests/test_optimization_argv.py`).
 
 ## 9. Recovery hardening (2026-09-11)
 
@@ -261,7 +259,7 @@ Windows OCCT shutdown may exit `0xC0000374` after a green pytest summary — not
 
 ---
 
-## 12. Math-application fidelity (2026-09-15 audit) — OPEN
+## 12. Math-application fidelity (2026-09-15 audit) — CLOSED
 
 Evidence board: Cursor canvas `math-application-audit.canvas.tsx`. Prior “math is good / §10–11 closed”
 assurance was wrong for cockpit thickness, Fit envelopes, and axial scoring. Items below are what
@@ -321,11 +319,11 @@ still needs to happen before Stock / Fit / Assess / BEM can be trusted together.
 
 ---
 
-## 13. Production readiness / engineering hygiene (2026-09-15 review) — OPEN
+## 13. Production readiness / engineering hygiene (2026-09-15 review) — CLOSED (stage 1)
 
 Full-repo pass after the memory-rebuild. **Verdict: not production-ready** (research prototype with a working design loop). Rubric **53/100**. Physics/fidelity items stay in **§12**; this section is ship/maintainability. Evidence canvas: `production-readiness-review.canvas.tsx`.
 
-Do **not** treat a green pytest summary as “the app works.” Fast suite collected **654** tests (`not docker and not slow`). **§13.1–13.4** ship blockers addressed in-tree (parse smoke, README honesty, archived known-issues). Ruff/CI still open.
+Do **not** treat a green pytest summary as “the app works.” Fast suite ~654 tests (`not docker and not slow`). Ship blockers + CI/mypy/ruff-critical landed; full-style ruff debt and absolute CFM (P–Q / §5) remain.
 
 ### 13.0 Ship blockers — CRITICAL **[impact: high]** **[effort: low]**
 
@@ -337,7 +335,7 @@ Do **not** treat a green pytest summary as “the app works.” Fast suite colle
 ### 13.1 Tests that lie — HIGH **[impact: high]** **[effort: low–med]**
 
 - [x] **13.5 Deduplicate F811 tests.** Removed first duplicate defs in `test_placement` / `test_shroud` / `test_cockpit_view` / `test_prop_cfd`; `ruff --select F811,F821` clean on those files.
-- [x] **13.6 Stop source-string CLI tests.** Scripts expose `build_parser()`; tests load via `tests/_cli_parsers.py` and `parse_args`. Help-text ★ checks use `format_help()`. §8.3 `--search-rpm` study wiring remains a separate gap.
+- [x] **13.6 Stop source-string CLI tests.** Scripts expose `build_parser()`; tests load via `tests/_cli_parsers.py` and `parse_args`. Help-text ★ checks use `format_help()`. `--search-rpm` study wiring closed (`tests/test_search_rpm.py::test_run_study_passes_sampled_rpm_to_evaluate`).
 - [x] **13.7 `test_catalog.py` type hint.** `from pathlib import Path` + `_make_run(runs: Path, ...)`.
 - [x] **13.8 Coverage gate on critical paths.** `pytest-cov` in `dev`; `tests/test_evaluate_candidate_feasible.py` asserts numeric CFM on a stubbed feasible path; `tests/test_camber_thick_mode.py` covers `blade_from_flat` camber/thick_mode. Raise `fail_under` once a baseline is green.
 

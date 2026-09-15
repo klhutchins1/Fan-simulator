@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from fansim.optimize.pwm_table import (
@@ -50,3 +52,35 @@ def test_cli_declares_search_rpm_and_bounds():
     assert args.search_rpm is True
     assert args.rpm_min == pytest.approx(500.0)
     assert args.rpm_max == pytest.approx(1800.0)
+
+
+def test_run_study_passes_sampled_rpm_to_evaluate(tmp_path, monkeypatch):
+    """§8.3: --search-rpm must reach evaluate_candidate(rpm=...), not only CLI help text."""
+    from fansim.optimize import study as study_mod
+    from fansim.optimize.objectives import ObjectiveResult
+
+    seen: list[float | None] = []
+
+    def fake_evaluate(_params, workdir, *_a, **kw):
+        Path(workdir).mkdir(parents=True, exist_ok=True)
+        seen.append(kw.get("rpm"))
+        return ObjectiveResult(
+            feasible=False,
+            reason="stub",
+            raw={"tip_gap_mm": 0.5},
+        )
+
+    monkeypatch.setattr(study_mod, "evaluate_candidate", fake_evaluate)
+    study_mod.run_study(
+        n_trials=2,
+        out_dir=tmp_path,
+        procs=1,
+        iters=1,
+        base_cell=0.02,
+        search_rpm=True,
+        rpm_min=600.0,
+        rpm_max=1600.0,
+    )
+    assert len(seen) == 2
+    assert all(v is not None for v in seen)
+    assert all(600.0 <= float(v) <= 1600.0 for v in seen)
