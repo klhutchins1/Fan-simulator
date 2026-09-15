@@ -47,6 +47,8 @@ from fansim.optimize.system_curve import (
     refine_operating_metrics,
     score_operating_point,
 )
+from fansim.optimize.print_penalty import apply_print_penalty, tip_section_thickness
+from fansim.structural.deflection import tip_deflection_mm
 from fansim.structural.stress import centrifugal_root_stress
 
 INFEASIBLE = -1.0e6      # rejected value for MAXIMIZED objectives (optimizer avoids them)
@@ -107,6 +109,7 @@ def evaluate_candidate(
     surrogate=None,
     surrogate_load=None,
     refine_op: bool = False,
+    print_penalty: bool = True,
     wall_ks_mm: float | None = None,
     stator: bool = False,
     stator_stack: bool = False,
@@ -389,6 +392,22 @@ def evaluate_candidate(
             f"UNCONVERGED (free drift {m_free.flow_drift_pct:.1f}%, "
             f"load drift {m_load.flow_drift_pct:.1f}%)")
 
+    # Sim→print knockdown (§7.6): report printed CFM/η from smooth-wall (or ks) RANS.
+    tip_t = tip_section_thickness(params)
+    try:
+        tip_defl = tip_deflection_mm(params, material=material, load_pa=float(load_pa))
+    except Exception:  # noqa: BLE001
+        tip_defl = None
+    cfm_free, cfm_load, efficiency, print_stamps = apply_print_penalty(
+        cfm_free,
+        cfm_load,
+        efficiency,
+        enabled=print_penalty,
+        tip_thickness=tip_t,
+        tip_deflection_mm=tip_defl,
+        tip_gap_mm=float(remaining),
+    )
+
     return ObjectiveResult(
         feasible=True,
         cfm_free=cfm_free,
@@ -405,6 +424,7 @@ def evaluate_candidate(
              "min_wall_mm": printable.min_section_thickness_mm,
              "sigma_root_mpa": stress.sigma_root_mpa,
              "k": op.k, "dp_op_pa": op.p_op_pa, "q_ref_cfm": REF_CFM, "cfm_probe": cfm_probe,
-             "p_probe_pa": p_probe_pa, "p_free_pa": p_free_pa},
+             "p_probe_pa": p_probe_pa, "p_free_pa": p_free_pa,
+             **print_stamps},
         runtime_s=round(time.time() - t0, 1),
     )

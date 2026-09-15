@@ -7,7 +7,7 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-09-15** (evening). **§12** + **§13** closed in code. Stock gold ✕
+- Last reviewed: **2026-09-15** (evening). **§12** + **§13** + **§7.6** closed in code. Stock gold ✕
   eye-fit + blade-on-hub + full control-image set landed same day. Still **not shippable**
   until Validation P–Q / print+measure close absolute CFM — see `a12x25_pq_report.md`
 - Tags: **[impact]** how much it changes results · **[effort]** rough build cost · owner *me* unless noted.
@@ -128,7 +128,8 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 - [ ] Shrouded/ducted fans; casing treatments / recirculation for stall margin (→ §2.1).
 - [ ] Fan broadband noise — **Sharland (1964)** (complements Curle/FW-H).
 - [ ] Swept/sickle automotive cooling-fan noise studies (→ §2.3).
-- [ ] 3D-printed impeller performance — FDM surface-roughness & anisotropy (→ §1.3, sim→print penalty).
+- [x] 3D-printed impeller performance — FDM surface-roughness & anisotropy (→ §1.3, sim→print penalty §7.6).
+  Structural anisotropy + sim→print knockdown landed; absolute printed CFM still waits on §5 measure.
 - [ ] Props — **Hanson** open-rotor/CROR noise; QProp/JavaProp Re + compressibility BEMT corrections.
 
 ---
@@ -196,11 +197,11 @@ Concrete, open-source / academically-usable methods found in the literature. The
   [effect of tip geometry on low-speed axial fan](https://www.sciencedirect.com/science/article/abs/pii/S0140700721003273),
   [winglet designs for small axial fans (exp+num, 2024)](https://www.sciencedirect.com/science/article/abs/pii/S0003682X24005991),
   [tip clearance, winglets & shroud height on tip leakage](https://www.sciencedirect.com/science/article/abs/pii/S0140700718302470). → refines §2.1, §2.x winglet.
-- [ ] **7.6 Sim→print penalty calibration from published printed-impeller studies.** **[impact: med]**
-  **[effort: low]** Studies comparing metal vs FDM-plastic impellers quantify the roughness + deflection
-  penalty — use them to set a knockdown so the tool predicts *printed* performance, not idealized. Bonus
-  finding: **thick blades give a flatter efficiency curve + more stable operation across impedance** (a
-  robustness lever). Refs:
+- [x] **7.6 Sim→print penalty calibration from published printed-impeller studies. DONE 2026-09-15.** **[impact: med]**
+  **[effort: low]** `print_penalty.py` knockdown (CFM×0.95, η×0.92–0.96 by tip thickness, optional FSI
+  tip-deflection×gap) wired into axial `evaluate_candidate` + mixed/CROR. Smooth-wall stamps stay in
+  `raw` (`cfm_*_cfd`); reported objectives are *printed*. Still provisional until §5 hardware
+  recalibrates the factors. Refs:
   [tip-vortex manipulators, num vs experimental on printed condenser fan](https://arxiv.org/pdf/2309.13195),
   [blade-thickness effects on axial-fan performance](https://www.academia.edu/70824092/Experimental_study_of_blade_thickness_effects_on_the_global_and_the_local_performances_of_axial_flow_fans). → feeds §1.3, §5.
 

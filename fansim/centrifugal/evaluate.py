@@ -252,7 +252,8 @@ def evaluate_mixed_flow(
             f"load drift {m_load.flow_drift_pct:.1f}%)")
 
     cfm_free, cfm_load, efficiency, print_stamps = apply_print_penalty(
-        cfm_free, cfm_load, efficiency, enabled=print_penalty)
+        cfm_free, cfm_load, efficiency, enabled=print_penalty,
+        tip_thickness=float(params.thickness) if print_penalty else None)
 
     return ObjectiveResult(
         feasible=True,
