@@ -149,6 +149,18 @@ SHROUD_DEFAULT_MM = 1.6
 SHROUD_MIN_WALL_MM = 0.8
 SHROUD_FULL_EPS = 1e-9
 
+# Coarser loft for screen-only solids (watertight + envelope). CFD / export keep BladeParams defaults.
+SCREEN_N_SPAN = 10
+SCREEN_N_CHORD = 36
+
+
+def with_screen_loft(params: BladeParams) -> BladeParams:
+    """Copy ``params`` with screen loft density. Does not mutate the caller's object."""
+    from copy import deepcopy
+    from dataclasses import replace
+
+    return replace(deepcopy(params), n_span=SCREEN_N_SPAN, n_chord=SCREEN_N_CHORD)
+
 
 def normalize_shroud_thick_mm(thick: float) -> float:
     """0 stays off. A nudge in (0, min wall) snaps up to a printable two-wall ring.
@@ -668,19 +680,28 @@ def build_impeller(params: BladeParams | None = None) -> cq.Workplane:
     return cq.Workplane(obj=fused)
 
 
+def build_impeller_screen(params: BladeParams | None = None) -> cq.Workplane:
+    """Fused impeller at ``SCREEN_N_*`` loft density (watertight + envelope, not CFD mesh).
+
+    CFD / print-export / Assess must call ``build_impeller`` at default loft resolution.
+    """
+    return build_impeller(with_screen_loft(params or BladeParams()))
+
+
 def build_impeller_preview(params: BladeParams | None = None, tol: float = 0.15):
     """FAST visual impeller for the live preview: tessellate ONE lofted blade + the hub, then
     rotate-copy the blade mesh around the axis — with NO boolean fuse.
 
     The boolean union in ``build_impeller`` dominates featured builds (a fuse of 11 featured blades
     onto the hub is ~140 s and blows the preview timeout), yet a preview only needs to LOOK right, not
-    be watertight. Skipping the fuse turns ~160 s into ~6 s. Returns ``(trimesh.Trimesh, volume_mm3)``
+    be watertight. Skipping the fuse turns ~160 s into ~6 s. Uses ``with_screen_loft`` so the single
+    blade loft is also cheap. Returns ``(trimesh.Trimesh, volume_mm3)``
     where volume is the accurate sum of the solids' own volumes (the meshes overlap at the blade roots,
     so the concatenated mesh's own volume would be wrong for the weight check). NOT watertight — use
     ``build_impeller`` for CFD/export where a single sealed solid is required."""
     import trimesh
 
-    params = params or BladeParams()
+    params = with_screen_loft(params or BladeParams())
     blade = build_blade_solid(params)
     z_bottom, z_top = _hub_axial_range(params, blade)
     hub = build_hub(params, z_bottom, z_top)

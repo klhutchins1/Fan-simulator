@@ -352,7 +352,7 @@ Do **not** treat a green pytest summary as “the app works.” Fast suite colle
 
 Already measured (`docs/validation/perf_baseline.md`); not re-litigated:
 
-- [ ] **13.13 Screening-resolution geometry policy.** Fused `build_impeller` **~13 s** dominates every Optuna trial that passes BEM (~16 ms). Preview **~5 s**. Polar cache bought **~14%** on BEM only. Need an explicit coarser `n_span`/`n_chord` for screen-only STL (acceptance: watertight + envelope, not CFD-identical). Do not silently drop loft resolution on the CFD path.
+- [x] **13.13 Screening-resolution geometry policy.** `with_screen_loft` / `build_impeller_screen` (`SCREEN_N_SPAN=10`, `SCREEN_N_CHORD=36`) for watertight+envelope screens; `build_impeller_preview` uses screen loft. CFD `evaluate_candidate` keeps default `n_span`/`n_chord` (`tests/test_screen_loft.py`).
 - [x] **13.14 Drop debug `print` on design select.** Results click now `_log.debug("select(%r)", trial)`.
 - [x] **13.15 Stock / polar cache completeness.** `stock_fingerprint` covers §12.0c knobs (LE/TE / section_family / span_interp / le_skew / camber / thick_mode); `tests/test_stock_cache.py`. Polar families are `lru_cache`d by **name** (`tests/test_polar_cache.py`) — no cross-family object reuse.
 
@@ -360,14 +360,14 @@ Already measured (`docs/validation/perf_baseline.md`); not re-litigated:
 
 - [ ] **13.16 License + version.** No `LICENSE`. `pyproject.toml` is `0.0.1`. Decide license (personal tool vs publish) before any “product” language.
 - [x] **13.17 Cockpit bind address.** `scripts/cockpit.py` defaults `--host 127.0.0.1` (passed through `--reload` child). Use `--host 0.0.0.0` only for intentional LAN access.
-- [ ] **13.18 Control images in repo or generated.** `.gitignore` drops `docs/control_images/*.png`; cockpit encodes them as data-URIs if present, else empty tooltips. Either generate in `uv sync` / a makefile target, or stop advertising hover min/max images.
+- [x] **13.18 Control images in repo or generated.** `docs/control_images/*.png` tracked in git (39 files); cockpit data-URIs from disk.
 - [ ] **13.19 Type-check the public surface.** No mypy. Start with `fansim/fan_spec.py`, `optimize/search_space.py`, `cfd/metrics.py` — the modules provenance ranks for absolute CFM.
 - [ ] **13.20 VTK/NumPy 2.5 warning.** Fast suite emits 52 `DeprecationWarning`s from VTK `result.shape = shape`. Track PyVista 0.49 / VTK pin (`docs/validation/dependency_peer_audit.md` already capped viz for API churn).
 - [ ] **13.21 Dirty-tree discipline.** This review ran against a large uncommitted mix (geometry, Fit, glyphs, Stock STL, SDD packets). Do not treat the working copy as HEAD. Land or revert before the next fidelity campaign.
 
 ### 13.0 Landed / do not re-add
 
-§13.1–13.8, 13.10–13.12, 13.14–13.15, 13.17 closed (parse/compile smoke, README honesty, F811 dedupe, argparse CLI tests, catalog Path, evaluate_candidate CFM assertion, ruff critical + CI, gitignore recovery, select→debug, stock/polar cache, localhost bind). Do not copy §12.0 items here. Do not re-open parked wind / absolute FW-H / mixed-flow expansion — those are `docs/validation/keep_cut_board.md`.
+§13.1–13.8, 13.10–13.15, 13.17–13.18 closed (parse/compile smoke, README honesty, F811 dedupe, argparse CLI tests, catalog Path, evaluate_candidate CFM assertion, ruff critical + CI, gitignore recovery, select→debug, screen loft, stock/polar cache, localhost bind, control images). Do not copy §12.0 items here. Do not re-open parked wind / absolute FW-H / mixed-flow expansion — those are `docs/validation/keep_cut_board.md`.
 
 ---
 
