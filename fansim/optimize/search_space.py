@@ -239,7 +239,7 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
                       p.get("lean_tip", 0.0), le_sweep=p.get("le_sweep_tip", 0.0),
                       le_skew=p.get("le_skew_tip", 0.0)),
     ]
-    kw = {}
+    kw: dict[str, object] = {}
     if "hub_radius" in p:
         kw["hub_radius"] = float(p["hub_radius"])
     if "tip_radius" in p:                               # blade LENGTH (outer radius) -- shrink to fit

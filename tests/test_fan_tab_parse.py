@@ -7,9 +7,10 @@ from pathlib import Path
 
 
 def test_fan_tab_parses():
-    path = Path(__file__).resolve().parents[1] / "fansim" / "cockpit" / "fan_tab.py"
-    src = path.read_text(encoding="utf-8")
-    ast.parse(src)
+    root = Path(__file__).resolve().parents[1] / "fansim" / "cockpit"
+    for name in ("fan_tab.py", "fan_tab_ui.py", "fan_widgets.py", "fan_copy.py"):
+        src = (root / name).read_text(encoding="utf-8")
+        ast.parse(src)
 
 
 def test_placement_exports_impeller_z_extent():

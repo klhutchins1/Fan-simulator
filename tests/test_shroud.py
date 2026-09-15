@@ -308,10 +308,11 @@ def test_preview_partial_ring_is_shorter_than_full():
 
 
 def test_cockpit_declares_shroud_height_slider():
-    # 09-11 fan-tab extract moved Design widgets out of app.py into fan_tab.py.
-    text = Path("fansim/cockpit/fan_tab.py").read_text(encoding="utf-8")
+    # Design widgets live in fan_tab_ui (extracted from fan_tab).
+    text = Path("fansim/cockpit/fan_tab_ui.py").read_text(encoding="utf-8")
     assert "e_shroud_height" in text
     assert '"Shroud height"' in text or "'Shroud height'" in text
     assert "trailing edge" in text.lower()
-    assert "shroud_height_frac" in text
+    setup = Path("fansim/cockpit/fan_tab.py").read_text(encoding="utf-8")
+    assert "shroud_height_frac" in setup
     assert "e_shroud_thick == 0" in text

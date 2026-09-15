@@ -10,6 +10,9 @@ ROOT = Path(__file__).resolve().parents[1] / "fansim" / "cockpit"
 _TAB_MODULES = (
     "app.py",
     "fan_tab.py",
+    "fan_tab_ui.py",
+    "fan_widgets.py",
+    "fan_copy.py",
     "prop_tab.py",
     "mixed_tab.py",
     "cror_tab.py",

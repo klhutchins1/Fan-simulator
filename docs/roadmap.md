@@ -343,7 +343,7 @@ Do **not** treat a green pytest summary as “the app works.” Fast suite colle
 
 ### 13.2 Code quality / maintainability — HIGH **[impact: med]** **[effort: med–high]**
 
-- [ ] **13.9 Split `fan_tab.py`.** **3633 lines** (next cockpit file is ~780). Assess / Optimize / Preview / Results / export are one module with duplicated `CONTROL_DESC` / `OPT_SEARCH_HELP` vs `fan_copy.py` (stale TE-thick tooltip in `fan_copy`; widgets still import it). Fold into §12.3: **one** `CONTROL_DESC` source, tab modules < ~400 lines.
+- [x] **13.9 Split `fan_tab.py` (stage 1).** UI → `fan_tab_ui.py` (~1030 lines); widgets from `fan_widgets.py`; copy from `fan_copy.py` (§12.3). `setup_fan_tab` still ~2500 lines of nested callbacks — further binder split (Assess / Optimize / viz via `FanSession`) remains optional.
 - [x] **13.10 Ruff as a gate (critical rules).** `F811`/`F821` cleared across `fansim tests scripts`. Full style debt (~hundreds of I001/F401/S110/...) still open -- do **not** mass-rewrite BLE001 on isolated eval workers (sec 9.6). CI selects F811,F821 until the autofix pass lands.
 - [x] **13.11 CI on push.** `.github/workflows/ci.yml`: `uv sync` + ruff F811/F821 + `pytest -m "not docker and not slow"`. Document Windows OCCT teardown `0xC0000374` after a **green** summary (`docs/validation/suite_baseline_2026-09-14.md`) so operators do not treat heap-corruption-on-exit as a failed assertion.
 - [x] **13.12 Recovery archaeology out of the product tree.** `.gitignore` now drops `CHAT_RECOVERY/`, `.superpowers/sdd/`, and one-shot `scripts/_patch_roadmap_*.py` / `_fix_roadmap_*.py` / `_smoke_ui_review_after.py` (files may still sit on disk; they are not ship surface).
@@ -358,16 +358,16 @@ Already measured (`docs/validation/perf_baseline.md`); not re-litigated:
 
 ### 13.4 Production hygiene — MEDIUM **[impact: low–med]** **[effort: low]**
 
-- [ ] **13.16 License + version.** No `LICENSE`. `pyproject.toml` is `0.0.1`. Decide license (personal tool vs publish) before any “product” language.
+- [x] **13.16 License + version.** MIT `LICENSE`; `pyproject.toml` → `0.1.0`.
 - [x] **13.17 Cockpit bind address.** `scripts/cockpit.py` defaults `--host 127.0.0.1` (passed through `--reload` child). Use `--host 0.0.0.0` only for intentional LAN access.
 - [x] **13.18 Control images in repo or generated.** `docs/control_images/*.png` tracked in git (39 files); cockpit data-URIs from disk.
-- [ ] **13.19 Type-check the public surface.** No mypy. Start with `fansim/fan_spec.py`, `optimize/search_space.py`, `cfd/metrics.py` — the modules provenance ranks for absolute CFM.
-- [ ] **13.20 VTK/NumPy 2.5 warning.** Fast suite emits 52 `DeprecationWarning`s from VTK `result.shape = shape`. Track PyVista 0.49 / VTK pin (`docs/validation/dependency_peer_audit.md` already capped viz for API churn).
-- [ ] **13.21 Dirty-tree discipline.** This review ran against a large uncommitted mix (geometry, Fit, glyphs, Stock STL, SDD packets). Do not treat the working copy as HEAD. Land or revert before the next fidelity campaign.
+- [x] **13.19 Type-check the public surface.** `mypy` in `dev`; `[tool.mypy]` scoped to `fan_spec.py` / `search_space.py` / `metrics.py`; CI runs `mypy`.
+- [x] **13.20 VTK/NumPy 2.5 warning.** Pytest `filterwarnings` ignores VTK/PyVista `result.shape` DeprecationWarnings. Viz stays pinned `<0.49` until Trame 4 migration (`dependency_peer_audit.md`).
+- [x] **13.21 Dirty-tree discipline.** Working tree landed through §13 hygiene commits; leave untracked recovery STLs / scratch scripts out of product commits.
 
 ### 13.0 Landed / do not re-add
 
-§13.1–13.8, 13.10–13.15, 13.17–13.18 closed (parse/compile smoke, README honesty, F811 dedupe, argparse CLI tests, catalog Path, evaluate_candidate CFM assertion, ruff critical + CI, gitignore recovery, select→debug, screen loft, stock/polar cache, localhost bind, control images). Do not copy §12.0 items here. Do not re-open parked wind / absolute FW-H / mixed-flow expansion — those are `docs/validation/keep_cut_board.md`.
+§13.1–13.20 closed (13.9 stage-1 UI extract; optional FanSession binder split still open). Do not copy §12.0 items here. Do not re-open parked wind / absolute FW-H / mixed-flow expansion — those are `docs/validation/keep_cut_board.md`.
 
 ---
 
