@@ -170,11 +170,18 @@ def test_surrogate_prescreen_below_floor_does_not_skip_when_uncertain():
 
 
 def test_cli_help_mentions_surrogate_prescreen_and_no_star():
-    text = Path("scripts/run_optimization.py").read_text(encoding="utf-8")
-    assert "--surrogate-prescreen" in text
-    assert "--surrogate-db" in text
-    assert "★" not in text
-    assert "mean+1" in text or "mean + 1" in text or "mean+1σ" in text or "1σ" in text
+    from tests._cli_parsers import load_build_parser
+
+    ap = load_build_parser("run_optimization.py")()
+    args = ap.parse_args([
+        "--surrogate-prescreen", "30",
+        "--surrogate-db", "catalog/other.db",
+    ])
+    assert args.surrogate_prescreen == pytest.approx(30.0)
+    assert args.surrogate_db == "catalog/other.db"
+    help_text = " ".join(ap.format_help().split())
+    assert "★" not in help_text
+    assert "mean+1" in help_text or "mean + 1" in help_text or "mean+1σ" in help_text or "1σ" in help_text
 
 
 def test_training_xy_load_drops_wall_scored_without_k():
@@ -249,6 +256,8 @@ def test_run_study_refits_surrogate_after_feasible_trial(tmp_path, monkeypatch):
 
 
 def test_cli_help_mentions_surrogate_online_refit():
-    text = Path("scripts/run_optimization.py").read_text(encoding="utf-8")
-    assert "Refits after each feasible" in text
-    assert "★" not in text
+    from tests._cli_parsers import load_build_parser
+
+    help_text = " ".join(load_build_parser("run_optimization.py")().format_help().split())
+    assert "Refits after each feasible" in help_text
+    assert "★" not in help_text

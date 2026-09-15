@@ -62,33 +62,6 @@ def test_filter_fitting_designs_drops_oversize_tip():
     assert [d.trial for d in kept] == [1]
 
 
-def test_filter_fitting_designs_drops_oversize_tip():
-    from fansim.cockpit.placement import fit_envelope
-
-    spec = get_fan_spec("a12x25")
-    # Start from a known-good envelope-fitted flat, then an intentionally oversize tip.
-    fitted = fit_envelope({
-        "n_blades": 7, "hub_radius": 21.5, "tip_radius": 56.5,
-        "chord_root": 34, "chord_mid": 40, "chord_tip": 30,
-        "stagger_root": 26, "stagger_mid": 26, "stagger_tip": 22,
-        "max_camber": 0.05, "sweep_mid": 0.0, "sweep_tip": 0.0,
-        "lean_mid": 0.0, "lean_tip": 0.0,
-    }, spec).flat
-    oversize = {**fitted, "tip_radius": 59.0}
-    ok = Design(
-        trial=1, params=fitted,
-        objectives={"cfm_free": 50.0, "cfm_load": 40.0, "efficiency": 30.0},
-        feasible=True, is_pareto=False, stl_path=None,
-    )
-    big = Design(
-        trial=2, params=oversize,
-        objectives={"cfm_free": 90.0, "cfm_load": 80.0, "efficiency": 35.0},
-        feasible=True, is_pareto=False, stl_path=None,
-    )
-    kept = filter_fitting_designs([ok, big], spec)
-    assert [d.trial for d in kept] == [1]
-
-
 def test_results_for_hub_hides_foreign_envelope():
     a12 = CatalogEntry(design_id="ok", hub_models=["a12x25"], cfm_free=54.0, cfm_load=50.0)
     big = CatalogEntry(design_id="big", hub_models=[], cfm_free=92.0, cfm_load=87.0)
@@ -105,19 +78,6 @@ def test_scatter_colorbar_not_capped_at_22():
     fig = scatter_figure([d])
     cmax = fig.data[0].marker.cmax
     assert cmax is None or cmax >= 36 or cmax >= 45
-
-
-def test_scatter_stock_ref_is_distinct_marker():
-    d = Design(trial=1, params={}, objectives={"cfm_free": 50, "cfm_load": 48, "efficiency": 36},
-               feasible=True, is_pareto=True, stl_path=None)
-    fig = scatter_figure([d], stock_ref={
-        "cfm_free": 60.1, "cfm_load": 55.0, "name": "Noctua NF-A12x25", "kind": "published",
-    })
-    assert len(fig.data) == 2
-    stock = fig.data[-1]
-    assert stock.marker.symbol == "x"
-    assert list(stock.x) == [60.1]
-    assert "stock" in (stock.name or "").lower() or "stock" in str(stock.customdata)
 
 
 def test_scatter_stock_ref_is_distinct_marker():

@@ -43,43 +43,15 @@ def test_prop_templates_declare_rhosimple():
     assert "alphatWallFunction" in T.PROP_ALPHAT or "compressible::alphatWallFunction" in T.PROP_ALPHAT
 
 
-def test_build_prop_case_writes_compressible(tmp_path):
-    from fansim.propeller.cfd import prop_open_air, build_prop_case
-    from fansim.propeller.geometry import build_prop
-    from fansim.prop_spec import get_prop_spec
-    from fansim.cfd.openfoam_case import MeshResolution
-
-    spec = get_prop_spec("fpv_5inch")
-    stl = tmp_path / "prop.stl"
-    build_prop(spec, stl)
-
-    # bounds from report
-    from fansim.geometry import watertight_report
-    rep = watertight_report(stl)
-    (_, _, z0), (_, _, z1) = rep.bounds_mm
-    R = spec.diameter_mm / 2000.0
-    dom = prop_open_air(R, z0 / 1000.0, z1 / 1000.0, rpm=0.7 * spec.rpm_max)
-
-    case = tmp_path / "case"
-    build_prop_case(case, stl, dom, mesh=MeshResolution(base_cell=0.01), n_iters=10, n_subdomains=2)
-
-    ctrl = (case / "system/controlDict").read_text(encoding="utf-8")
-    assert "rhoSimpleFoam" in ctrl
-    assert (case / "constant/thermophysicalProperties").is_file()
-    assert (case / "0/T").is_file()
-    assert (case / "0/alphat").is_file()
-
-    mrf = (case / "constant/MRFProperties").read_text(encoding="utf-8")
-    assert "rotor" in mrf
-    assert "omega" in mrf.lower() or str(int(dom.omega_signed))[:4] in mrf or "omega" in mrf
-
-
 def test_cli_evaluate_prop_cfd_declares_flags():
-    text = Path("scripts/evaluate_prop_cfd.py").read_text(encoding="utf-8")
-    assert "--dry-run" in text
-    assert "rhoSimpleFoam" in text or "prop" in text.lower()
-    assert "--spec" in text
-    assert "fpv_5inch" in text
+    from tests._cli_parsers import load_build_parser
+
+    ap = load_build_parser("evaluate_prop_cfd.py")()
+    args = ap.parse_args(["--dry-run", "--spec", "fpv_5inch"])
+    assert args.dry_run is True
+    assert args.spec == "fpv_5inch"
+    help_text = ap.format_help()
+    assert "rhoSimpleFoam" in help_text or "prop" in help_text.lower()
 
 
 def test_default_rpm_tip_mach_compressible():

@@ -43,7 +43,8 @@ def _progress(trial, params, result):
     sys.stdout.flush()
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """CLI flags for Optuna study (tests parse this; main() runs it)."""
     ap = argparse.ArgumentParser(description="fansim multi-objective optimization")
     ap.add_argument("--trials", type=int, default=30)
     ap.add_argument("--out", default="runs/opt")
@@ -126,7 +127,11 @@ def main() -> int:
                     help="opt-in sand-grain roughness on printed impeller/frame/stator walls (mm).")
     ap.add_argument("--material", default="PETG",
                     help="print material for stress / weight gates (default PETG).")
-    args = ap.parse_args()
+    return ap
+
+
+def main() -> int:
+    args = build_parser().parse_args()
 
     if not image_available():
         print("ERROR: OpenFOAM Docker image not found.")

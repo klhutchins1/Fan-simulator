@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import numpy as np
 import pytest
 
@@ -11,9 +9,12 @@ from fansim.surrogate.boost import available
 
 
 def test_cli_help_mentions_surrogate_boost():
-    text = Path("scripts/run_optimization.py").read_text(encoding="utf-8")
-    assert "--surrogate-boost" in text
-    assert "★" not in text
+    from tests._cli_parsers import load_build_parser
+
+    ap = load_build_parser("run_optimization.py")()
+    args = ap.parse_args(["--surrogate-boost"])
+    assert args.surrogate_boost is True
+    assert "★" not in ap.format_help()
 
 
 def test_available_matches_sklearn_import():

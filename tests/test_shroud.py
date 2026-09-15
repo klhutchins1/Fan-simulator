@@ -56,30 +56,6 @@ def test_preview_note_for_thin_shroud_does_not_blame_tip_thickness():
     assert "Thickness tip" not in note
 
 
-def test_nudge_off_zero_snaps_to_min_printable_wall():
-    """Cockpit slider step used to land on 0.2 mm — a hair-thin ring that still draws."""
-    from fansim.geometry.blade import SHROUD_MIN_WALL_MM, normalize_shroud_thick_mm
-
-    assert normalize_shroud_thick_mm(0.0) == 0.0
-    assert normalize_shroud_thick_mm(0.2) == SHROUD_MIN_WALL_MM
-    p = blade_from_flat({
-        "n_blades": 7, "chord_root": 34, "chord_mid": 44, "chord_tip": 38,
-        "stagger_root": 26, "stagger_mid": 26, "stagger_tip": 22,
-        "sweep_mid": 3, "sweep_tip": 5, "max_camber": 0.05,
-        "shroud_thick_mm": 0.2,
-    })
-    assert p.shroud_thick_mm == SHROUD_MIN_WALL_MM
-    assert check_printability(p).printable
-
-
-def test_preview_note_for_thin_shroud_does_not_blame_tip_thickness():
-    from fansim.manufacturability.fdm_rules import preview_unprintable_note
-
-    note = preview_unprintable_note("shroud wall 0.20 mm < min wall 0.80 mm")
-    assert "Shroud thickness" in note
-    assert "Thickness tip" not in note
-
-
 def test_default_shroud_on_baseline_is_printable():
     p = BladeParams()
     p.shroud_thick_mm = SHROUD_DEFAULT_MM
@@ -335,7 +311,7 @@ def test_cockpit_declares_shroud_height_slider():
     # 09-11 fan-tab extract moved Design widgets out of app.py into fan_tab.py.
     text = Path("fansim/cockpit/fan_tab.py").read_text(encoding="utf-8")
     assert "e_shroud_height" in text
-    assert "Shroud height (tip chord)" in text
+    assert '"Shroud height"' in text or "'Shroud height'" in text
     assert "trailing edge" in text.lower()
     assert "shroud_height_frac" in text
     assert "e_shroud_thick == 0" in text

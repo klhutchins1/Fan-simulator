@@ -170,6 +170,9 @@ def test_templates_have_stator_placeholders():
 
 
 def test_run_optimization_declares_stator_flag():
-    text = Path("scripts/run_optimization.py").read_text(encoding="utf-8")
-    assert "--stator" in text
-    assert "★" not in text
+    from tests._cli_parsers import load_build_parser
+
+    ap = load_build_parser("run_optimization.py")()
+    args = ap.parse_args(["--stator"])
+    assert args.stator is True
+    assert "★" not in ap.format_help()

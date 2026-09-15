@@ -177,43 +177,6 @@ def test_scale_does_not_change_shroud_height_frac():
     assert r.flat["shroud_height_frac"] == 0.3
 
 
-def test_prepare_export_flat_off_leaves_oversize_untouched():
-    from fansim.cockpit.placement import prepare_export_flat
-
-    spec = get_fan_spec("a12x25")
-    src = _base(tip_radius=59.0)
-    snap = deepcopy(src)
-    flat, changes = prepare_export_flat(src, spec, fit_frame=False)
-    assert changes == []
-    assert flat["tip_radius"] == 59.0
-    assert src == snap
-    assert flat is not src
-
-
-def test_prepare_export_flat_on_shrinks_oversize_tip():
-    from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM, remaining_tip_gap_mm
-    from fansim.cockpit.placement import prepare_export_flat
-
-    spec = get_fan_spec("a12x25")
-    src = _base(tip_radius=59.0)
-    snap = deepcopy(src)
-    flat, changes = prepare_export_flat(src, spec, fit_frame=True)
-    assert src == snap
-    assert any(c.field == "tip_radius" for c in changes)
-    assert flat["tip_radius"] < 59.0
-    bp = blade_from_flat(flat)
-    assert remaining_tip_gap_mm(bp, spec.tip_dia_mm[1]) >= OPTIMIZER_TIP_GAP_MM
-
-
-def test_prepare_export_flat_on_does_not_grow_legal_tip():
-    from fansim.cockpit.placement import prepare_export_flat
-
-    spec = get_fan_spec("a12x25")
-    src = _base(hub_radius=21.5, tip_radius=48.0, lean_mid=0, lean_tip=0, chord_tip=22)
-    flat, _changes = prepare_export_flat(src, spec, fit_frame=True)
-    assert flat["tip_radius"] <= src["tip_radius"]
-
-
 def test_prepare_export_flat_fit_hub_grows_before_frame():
     from fansim.cockpit.placement import prepare_export_flat
     from fansim.fan_spec import mount_min_hub_radius

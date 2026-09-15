@@ -4,13 +4,14 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from fansim.catalog import build_catalog, catalog_stats, get_entry, load_catalog
 from validation.ingest import MeasuredPoint
 from validation.store import record_measurement
 
 
-def _make_run(runs: "pathlib.Path", name: str, trials: list[dict]):
+def _make_run(runs: Path, name: str, trials: list[dict]):
     d = runs / name
     d.mkdir(parents=True)
     (d / "pareto.json").write_text(json.dumps(trials))

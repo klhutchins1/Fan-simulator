@@ -2397,7 +2397,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             pass
 
     def select(trial: int | None):
-        print(f"[cockpit] select({trial!r})", flush=True)
+        _log.debug("select(%r)", trial)
         if trial is None:
             return
         d = by_trial.get(int(trial))

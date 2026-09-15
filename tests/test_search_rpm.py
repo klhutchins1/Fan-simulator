@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from fansim.optimize.pwm_table import (
@@ -12,6 +10,8 @@ from fansim.optimize.pwm_table import (
     resolve_pwm_table,
     suggest_rpm,
 )
+
+from tests._cli_parsers import load_build_parser
 
 
 class _Trial:
@@ -45,7 +45,8 @@ def test_pwm_caption_mentions_band():
 
 
 def test_cli_declares_search_rpm_and_bounds():
-    text = Path("scripts/run_optimization.py").read_text(encoding="utf-8")
-    assert "--search-rpm" in text
-    assert "--rpm-min" in text
-    assert "--rpm-max" in text
+    ap = load_build_parser("run_optimization.py")()
+    args = ap.parse_args(["--search-rpm", "--rpm-min", "500", "--rpm-max", "1800"])
+    assert args.search_rpm is True
+    assert args.rpm_min == pytest.approx(500.0)
+    assert args.rpm_max == pytest.approx(1800.0)

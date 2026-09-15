@@ -22,7 +22,8 @@ from fansim.cfd.runner import image_available  # noqa: E402
 from fansim.prop_spec import get_prop_spec  # noqa: E402
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """CLI flags for prop CFD evaluate (tests parse this; main() runs it)."""
     ap = argparse.ArgumentParser(description="Prop compressible open-air CFD evaluate (stage 1)")
     ap.add_argument("--out", type=Path, default=Path("runs/prop_cfd_smoke"))
     ap.add_argument("--procs", type=int, default=8)
@@ -48,7 +49,11 @@ def main() -> int:
         action="store_true",
         help="write compressible prop case only (no Docker solve)",
     )
-    args = ap.parse_args()
+    return ap
+
+
+def main() -> int:
+    args = build_parser().parse_args()
 
     spec = get_prop_spec(args.spec)
     rpm = float(0.7 * spec.rpm_max if args.rpm is None else args.rpm)

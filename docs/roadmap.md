@@ -336,9 +336,9 @@ Do **not** treat a green pytest summary as “the app works.” Fast suite colle
 
 ### 13.1 Tests that lie — HIGH **[impact: high]** **[effort: low–med]**
 
-- [ ] **13.5 Deduplicate F811 tests.** Recovery splices redefined the same names; pytest keeps the **last** copy only. Files: `tests/test_placement.py` (3), `tests/test_shroud.py` (2), `tests/test_cockpit_view.py` (2), `tests/test_prop_cfd.py` (1). Delete the duplicates; if the copies drifted, keep the stricter one.
-- [ ] **13.6 Stop source-string CLI tests.** `tests/test_search_rpm.py::test_cli_declares_search_rpm_and_bounds` (and peers in `test_surrogate_catalog.py`, `test_stator.py`, `test_boost_ensemble.py`, `test_prop_cfd.py`, …) assert `"--flag" in Path(...).read_text()`. Parse `argparse` or invoke `main` with `SystemExit`. The `--search-rpm` wiring gap in §8.3 is still a real gap — the string test does not close it.
-- [ ] **13.7 `test_catalog.py` type hint.** `_make_run(runs: "pathlib.Path", ...)` — `pathlib` is never imported (`F821`). Use `from pathlib import Path`.
+- [x] **13.5 Deduplicate F811 tests.** Removed first duplicate defs in `test_placement` / `test_shroud` / `test_cockpit_view` / `test_prop_cfd`; `ruff --select F811,F821` clean on those files.
+- [x] **13.6 Stop source-string CLI tests.** Scripts expose `build_parser()`; tests load via `tests/_cli_parsers.py` and `parse_args`. Help-text ★ checks use `format_help()`. §8.3 `--search-rpm` study wiring remains a separate gap.
+- [x] **13.7 `test_catalog.py` type hint.** `from pathlib import Path` + `_make_run(runs: Path, ...)`.
 - [ ] **13.8 Coverage gate on critical paths.** No `pytest-cov`, no threshold. Provenance already flags `objectives.py` / `study.py` as having **no numeric CFM assertion** in the fast suite (`docs/validation/provenance_risks.md`). Add coverage for `evaluate_candidate` feasible path + `blade_from_flat` round-trip of camber/thick_mode (feeds §12.1–12.2).
 
 ### 13.2 Code quality / maintainability — HIGH **[impact: med]** **[effort: med–high]**
@@ -346,14 +346,14 @@ Do **not** treat a green pytest summary as “the app works.” Fast suite colle
 - [ ] **13.9 Split `fan_tab.py`.** **3633 lines** (next cockpit file is ~780). Assess / Optimize / Preview / Results / export are one module with duplicated `CONTROL_DESC` / `OPT_SEARCH_HELP` vs `fan_copy.py` (stale TE-thick tooltip in `fan_copy`; widgets still import it). Fold into §12.3: **one** `CONTROL_DESC` source, tab modules < ~400 lines.
 - [ ] **13.10 Ruff as a gate.** `ruff check fansim tests scripts` → **551** issues. Highest-signal first: **10 invalid-syntax** (the 13.1 splice), **8 F811**, **2 F821**, **24 S110** try/except/pass, **179 unused `# noqa`**. Then autofix I001/F401. Do **not** mass-rewrite BLE001 on isolated eval workers — those swallows are load-bearing (§9.6).
 - [ ] **13.11 CI on push.** No `.github/workflows` (and no in-repo Gitea workflow). Fast job: `uv run --extra dev --extra optim python -m pytest -m "not docker and not slow" -q` + `ruff check`. Document Windows OCCT teardown `0xC0000374` after a **green** summary (`docs/validation/suite_baseline_2026-09-14.md`) so CI does not treat heap-corruption-on-exit as a failed assertion.
-- [ ] **13.12 Recovery archaeology out of the product tree.** `CHAT_RECOVERY/` is untracked and **not** in `.gitignore` (keep/cut: **DON’T SHIP**). Ignore it. Move one-shot `scripts/_patch_roadmap_11.py`, `scripts/_fix_roadmap_encoding.py`, `scripts/_smoke_ui_review_after.py` out of `scripts/` (or a `scripts/_recovery/` that is gitignored).
+- [x] **13.12 Recovery archaeology out of the product tree.** `.gitignore` now drops `CHAT_RECOVERY/`, `.superpowers/sdd/`, and one-shot `scripts/_patch_roadmap_*.py` / `_fix_roadmap_*.py` / `_smoke_ui_review_after.py` (files may still sit on disk; they are not ship surface).
 
 ### 13.3 Performance — MEDIUM **[impact: med]** **[effort: med]**
 
 Already measured (`docs/validation/perf_baseline.md`); not re-litigated:
 
 - [ ] **13.13 Screening-resolution geometry policy.** Fused `build_impeller` **~13 s** dominates every Optuna trial that passes BEM (~16 ms). Preview **~5 s**. Polar cache bought **~14%** on BEM only. Need an explicit coarser `n_span`/`n_chord` for screen-only STL (acceptance: watertight + envelope, not CFD-identical). Do not silently drop loft resolution on the CFD path.
-- [ ] **13.14 Drop debug `print` on design select.** `fansim/cockpit/fan_tab.py` ~2499 `print(f"[cockpit] select({trial!r})", flush=True)` on every Results click. Use `_log.debug`.
+- [x] **13.14 Drop debug `print` on design select.** Results click now `_log.debug("select(%r)", trial)`.
 - [ ] **13.15 Stock / polar cache completeness.** `stock_cache.py` exists (uncommitted). Confirm Preview gold-STL cache invalidates on every fingerprint field in §12.0c, and that BEM polar-family cache does not leak across airfoil family changes.
 
 ### 13.4 Production hygiene — MEDIUM **[impact: low–med]** **[effort: low]**
@@ -367,7 +367,7 @@ Already measured (`docs/validation/perf_baseline.md`); not re-litigated:
 
 ### 13.0 Landed / do not re-add
 
-Nothing in §13 is done. Do not copy §12.0 items here. Do not re-open parked wind / absolute FW-H / mixed-flow expansion — those are `docs/validation/keep_cut_board.md`.
+§13.1–13.7, 13.12, 13.14 closed (parse/compile smoke, README honesty, F811 dedupe, argparse CLI tests, catalog Path, gitignore recovery, select→debug). Do not copy §12.0 items here. Do not re-open parked wind / absolute FW-H / mixed-flow expansion — those are `docs/validation/keep_cut_board.md`.
 
 ---
 
