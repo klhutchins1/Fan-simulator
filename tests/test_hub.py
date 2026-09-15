@@ -64,6 +64,42 @@ def test_nose_profiles_watertight_and_add_height(profile, nose):
     assert nosed > flat_depth, f"{profile} nose should add axial height"
 
 
-def test_cylinder_default_unchanged_shape():
-    # default (no hub_height, cylinder) still builds a clean single body
-    assert _depth(BladeParams()) > 0
+def test_blade_hub_z_shifts_hub_relative_to_roots():
+    """Positive blade_hub_z_mm puts more hub below the roots (blades sit higher)."""
+    p = _swept(sweep_tip=2.0)
+    r_lo, r_hi = _root_axial_span(p)
+    root_h = r_hi - r_lo
+    tall = dataclasses.replace(p, hub_height_mm=root_h + 10.0, blade_hub_z_mm=0.0)
+    z0, z1 = _hub_axial_range(tall)
+    mid0 = 0.5 * (z0 + z1)
+    high = dataclasses.replace(tall, blade_hub_z_mm=4.0)
+    z0b, z1b = _hub_axial_range(high)
+    mid_b = 0.5 * (z0b + z1b)
+    # Hub shifts down → midpoint below root center → blades sit higher on hub
+    assert mid_b < mid0 - 3.0
+    assert z0b <= r_lo + 1e-6
+    assert z1b >= r_hi - 1e-6
+
+
+def test_blade_hub_z_clamped_to_hub_slack():
+    p = _swept(sweep_tip=2.0)
+    r_lo, r_hi = _root_axial_span(p)
+    root_h = r_hi - r_lo
+    # Auto hub has ~zero slack — large bias must clamp to no-op-ish
+    auto = dataclasses.replace(p, blade_hub_z_mm=20.0)
+    z0, z1 = _hub_axial_range(auto)
+    assert z0 <= r_lo + 1e-6 and z1 >= r_hi - 1e-6
+    assert (z1 - z0) == pytest.approx(root_h + 2 * p.hub_axial_margin, abs=1e-6)
+
+
+def test_blade_hub_z_round_trip_flat():
+    from fansim.geometry.features import Features
+    from fansim.optimize.search_space import blade_from_flat, blade_to_flat
+
+    p = _swept(sweep_tip=2.0)
+    p.hub_height_mm = 20.0
+    p.blade_hub_z_mm = 3.5
+    flat = blade_to_flat(p)
+    assert flat["blade_hub_z"] == pytest.approx(3.5)
+    q = blade_from_flat(flat, Features())
+    assert q.blade_hub_z_mm == pytest.approx(3.5)

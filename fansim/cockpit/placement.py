@@ -67,16 +67,11 @@ def impeller_z_extent(params) -> float:
 
     Matches the Fit/UI/Assess depth gate: hub height and nose can exceed blade Z alone.
     """
-    from fansim.geometry.blade import _root_axial_span, shroud_axial_range
+    from fansim.geometry.blade import _hub_axial_range, shroud_axial_range
 
     b_lo, b_hi = _blade_z_bounds(params)
-    r_lo, r_hi = _root_axial_span(params)
-    center = 0.5 * (r_lo + r_hi)
-    min_h = (r_hi - r_lo) + 2.0 * float(getattr(params, "hub_axial_margin", 1.5) or 1.5)
-    hub_h = float(params.hub_height_mm) if params.hub_height_mm is not None else min_h
-    hub_h = max(hub_h, min_h)
-    hub_lo = center - hub_h / 2.0
-    hub_hi = center + hub_h / 2.0 + float(getattr(params, "hub_nose_mm", 0.0) or 0.0)
+    hub_lo, hub_hi = _hub_axial_range(params)
+    hub_hi = hub_hi + float(getattr(params, "hub_nose_mm", 0.0) or 0.0)
     zs = [b_lo, b_hi, hub_lo, hub_hi]
     shroud = shroud_axial_range(params)
     if shroud is not None:

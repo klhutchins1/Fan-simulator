@@ -343,6 +343,17 @@ def evaluate_candidate(
     # CFD free (zero BP) is not forced to ΔP=0 — stamp measured static (affinity λ²) so the
     # fan line matches the free endpoint. BEM still uses p_free=0 by construction.
     p_free_pa = max(0.0, float(m_free.static_pressure_rise_pa)) * (derate * derate)
+    if p_probe_pa <= p_free_pa:
+        # Typical when Assess hose is "1 Pa legacy": free CFD residual static is a few Pa,
+        # so the probe is not downstream of free on the fan line. Application presets
+        # (case 8 / heatsink 20 / radiator 35) clear this.
+        return _infeasible(
+            f"system-curve: free static {p_free_pa:.1f} Pa ≥ hose probe {p_probe_pa:.1f} Pa "
+            f"— use Case / Heatsink / Radiator (1 Pa legacy is below free residual)",
+            t0,
+            raw={**gap_raw, "p_free_pa": p_free_pa, "p_probe_pa": p_probe_pa,
+                 "load_pa": float(load_pa)},
+        )
     try:
         op = score_operating_point(
             q_free_cfm=cfm_free,
@@ -354,7 +365,11 @@ def evaluate_candidate(
             p_free_pa=p_free_pa,
         )
     except SystemCurveError as exc:
-        return _infeasible(f"system-curve: {exc}", t0, raw=gap_raw)
+        return _infeasible(
+            f"system-curve: {exc} (free {p_free_pa:.1f} Pa, probe {p_probe_pa:.1f} Pa)",
+            t0,
+            raw={**gap_raw, "p_free_pa": p_free_pa, "p_probe_pa": p_probe_pa},
+        )
     cfm_load = op.q_op_cfm
     efficiency = max(op.eta * 100.0, 0.0)
     if refine_op:

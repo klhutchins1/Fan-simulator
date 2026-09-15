@@ -2,7 +2,7 @@
 """Launch the Fan-simulator design cockpit.
 
 Usage:
-    uv run --extra viz --extra optim python scripts/cockpit.py --run runs/opt_run1 [--port 8080]
+    uv run python scripts/cockpit.py --run runs/opt_run1 [--port 8080]
 
 Binds 127.0.0.1 by default (local UI). Pass --host 0.0.0.0 only if you intend LAN access.
 

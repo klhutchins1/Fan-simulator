@@ -27,9 +27,14 @@ pv.OFF_SCREEN = True
 OUT = Path("docs/control_images")
 DEFAULT = dict(n_blades=7, stagger_root=26, stagger_mid=26, stagger_tip=22,
                chord_root=34, chord_mid=44, chord_tip=38, max_camber=0.05,
+               camber_root=0.05, camber_mid=0.05, camber_tip=0.05,
                sweep_mid=3, sweep_tip=5, lean_mid=14, lean_tip=26,
-               hub_radius=21.5, thickness_root=0.10, thickness_mid=0.08, thickness_tip=0.06,
-               camber_pos=0.4, spacing_spread=0.0, spacing_seed=0)
+               hub_radius=21.5, tip_radius=56.5, hub_height=18.0,
+               thickness_root=0.10, thickness_mid=0.08, thickness_tip=0.06,
+               camber_pos=0.4, spacing_spread=0.0, spacing_seed=0,
+               section_family="naca", span_interp="linear",
+               cylindrical_tip=True, le_thick_scale=1.0, te_thick_scale=1.0,
+               blade_hub_z=0.0)
 
 # (model, label, key, min, max, mode[, base_overrides]).
 # mode 'fan' = whole impeller, 'blade' = one zoomed blade.
@@ -40,12 +45,15 @@ DEFAULT = dict(n_blades=7, stagger_root=26, stagger_mid=26, stagger_tip=22,
 CONTROLS = [
     ("e_n_blades", "Blades", "n_blades", 5, 11, "fan"),
     ("e_camber", "Camber (curve)", "max_camber", 0.0, 0.06, "blade"),
+    ("e_camber_root", "Camber — root", "camber_root", 0.0, 0.06, "blade"),
+    ("e_camber_mid", "Camber — mid", "camber_mid", 0.0, 0.06, "blade"),
+    ("e_camber_tip", "Camber — tip", "camber_tip", 0.0, 0.06, "blade"),
     ("e_stagger_root", "Stagger / pitch — root", "stagger_root", 15, 55, "fan"),
     ("e_stagger_mid", "Stagger / pitch — mid", "stagger_mid", 15, 55, "fan"),
     ("e_stagger_tip", "Stagger / pitch — tip", "stagger_tip", 15, 55, "fan"),
-    ("e_chord_root", "Chord — root", "chord_root", 14, 42, "fan"),
-    ("e_chord_mid", "Chord — mid", "chord_mid", 14, 42, "fan"),
-    ("e_chord_tip", "Chord — tip", "chord_tip", 14, 42, "fan"),
+    ("e_chord_root", "Chord — root", "chord_root", 14, 50, "fan"),
+    ("e_chord_mid", "Chord — mid", "chord_mid", 14, 60, "fan"),
+    ("e_chord_tip", "Chord — tip", "chord_tip", 14, 70, "fan"),
     ("e_lean_mid", "Wrap — mid", "lean_mid", 0, 30, "fan"),
     ("e_lean_tip", "Wrap — tip", "lean_tip", 0, 45, "fan"),
     ("e_sweep_mid", "Sweep — mid", "sweep_mid", -10, 20, "blade"),
@@ -63,16 +71,31 @@ CONTROLS = [
     ("e_tip_round", "Tip round", "tip_round", 0.0, 1.0, "fan"),
     ("e_tip_start", "Tip round start", "tip_round_start", 0.5, 0.92, "fan",
      {"tip_round": 0.85}),
+    ("e_cylindrical_tip", "Cylindrical tip", "cylindrical_tip", 0, 1, "fan",
+     {"lean_tip": 40.0, "chord_tip": 40.0, "stagger_tip": 28.0}),
     ("e_shroud_thick", "Shroud thickness", "shroud_thick_mm", 0.0, 3.0, "fan"),
     ("e_shroud_height", "Shroud height", "shroud_height_frac", 0.2, 1.0, "fan",
      {"shroud_thick_mm": 1.6}),
     ("e_hub_height", "Hub height", "hub_height", 6, 30, "fan"),
+    ("e_blade_hub_z", "Blade on hub", "blade_hub_z", -5, 5, "fan",
+     {"hub_height": 24.0}),
     ("e_hub_nose", "Hub nose", "hub_nose", 0.0, 15.0, "fan",
      {"hub_profile": "cone", "hub_height": 18.0}),
     ("e_camber_pos", "Camber position", "camber_pos", 0.2, 0.6, "blade"),
     ("e_thick_root", "Thickness — root", "thickness_root", 0.03, 0.15, "blade"),
     ("e_thick_mid", "Thickness — mid", "thickness_mid", 0.03, 0.15, "blade"),
     ("e_thick_tip", "Thickness — tip", "thickness_tip", 0.03, 0.15, "blade"),
+    ("e_thick_mm", "Wall thickness", "thick_mm", 1.0, 3.0, "blade",
+     {"section_family": "plate"}),
+    ("e_thick_mode", "Thickness span", "thick_mode", "tapered", "uniform", "blade"),
+    ("e_le_thick", "LE thick scale", "le_thick_scale", 0.5, 2.0, "blade",
+     {"section_family": "naca", "thickness_mid": 0.08}),
+    ("e_te_thick", "TE thick scale", "te_thick_scale", 0.5, 2.0, "blade",
+     {"section_family": "naca", "thickness_mid": 0.08}),
+    ("e_section_family", "Section family", "section_family", "naca", "plate", "blade",
+     {"thickness_root": 0.08, "thickness_mid": 0.08, "thickness_tip": 0.08}),
+    ("e_smooth_span", "Smooth span", "span_interp", "linear", "pchip", "fan",
+     {"lean_mid": 8.0, "lean_tip": 35.0, "sweep_mid": 2.0, "sweep_tip": 10.0}),
     ("e_spacing", "Uneven spacing", "spacing_spread", 0.0, 0.6, "fan"),
     ("e_tub_amp", "Tubercle amp", ("feat", "tubercle_amp", "tubercle_waves", 5), 0.0, 0.10, "blade"),
     ("e_tub_waves", "Tubercle waves", ("feat_n", {"tubercle_amp": 0.08}, "tubercle_waves"), 2, 8, "blade"),
@@ -117,9 +140,45 @@ def _params(key, value, base=None):
             feat = Features(**kw)
         else:
             raise ValueError(f"unknown feature key kind: {kind!r}")
+    elif key == "thick_mm":
+        from fansim.geometry.blade import uniform_thickness_tc
+
+        mm = float(value)
+        th = uniform_thickness_tc(mm, flat["chord_root"], flat["chord_mid"], flat["chord_tip"])
+        flat["thick_mode"] = "uniform"
+        flat["thick_mm"] = mm
+        flat["thickness_root"], flat["thickness_mid"], flat["thickness_tip"] = th
+        flat.setdefault("section_family", "plate")
+    elif key == "thick_mode":
+        from fansim.geometry.blade import uniform_thickness_tc
+
+        mode = str(value)
+        flat["thick_mode"] = mode
+        if mode == "uniform":
+            th = uniform_thickness_tc(
+                2.4, flat["chord_root"], flat["chord_mid"], flat["chord_tip"],
+            )
+            flat["thick_mm"] = 2.4
+            flat["thickness_root"], flat["thickness_mid"], flat["thickness_tip"] = th
+        else:
+            flat["thickness_root"] = 0.12
+            flat["thickness_mid"] = 0.08
+            flat["thickness_tip"] = 0.03
+    elif key == "cylindrical_tip":
+        flat["cylindrical_tip"] = bool(int(value)) if not isinstance(value, bool) else bool(value)
+    elif key == "section_family":
+        flat["section_family"] = str(value)
+    elif key == "span_interp":
+        flat["span_interp"] = str(value)
     else:
         flat[key] = value
     return blade_from_flat(flat, feat)
+
+
+def _fmt_extreme(v) -> str:
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return f"{v:g}"
+    return str(v)
 
 
 def _mesh(key, value, mode, base=None):
@@ -146,7 +205,8 @@ def main(only=None):
             for col, (m, v) in enumerate([(mlo, lo), (mhi, hi)]):
                 p.subplot(0, col)
                 p.add_mesh(m, color="#3b82f6", smooth_shading=True)
-                p.add_text(f"min = {lo:g}" if col == 0 else f"max = {hi:g}",
+                tag = "min" if col == 0 else "max"
+                p.add_text(f"{tag} = {_fmt_extreme(v)}",
                            font_size=9, color="black", position="upper_edge")
                 p.view_isometric()
                 p.camera.zoom(1.3)

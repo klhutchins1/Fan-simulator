@@ -13,6 +13,22 @@ def test_fan_tab_parses():
         ast.parse(src)
 
 
+def test_fan_tab_ui_imports_render_deps():
+    """Catch missing symbols used by render_fan_tab (NameError at cockpit start)."""
+    import fansim.cockpit.fan_tab_ui as ui
+
+    for name in (
+        "filter_fitting_designs",
+        "scatter_figure",
+        "assess_load",
+        "published_scatter_point",
+        "CONTROL_DESC",
+        "OPT_SEARCH_HELP",
+        "render_fan_tab",
+    ):
+        assert hasattr(ui, name), name
+
+
 def test_placement_exports_impeller_z_extent():
     from fansim.cockpit.placement import impeller_z_extent
     from fansim.geometry.blade import BladeParams

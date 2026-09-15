@@ -78,12 +78,13 @@ optimize  ─►  browse/tweak in the cockpit  ─►  export print files  ─�
 ## Quickstart
 
 ```bash
-uv sync                                                   # core deps (Python 3.12)
+uv sync                                                   # core + cockpit + optimizer (Python 3.12)
 uv run python -m pytest -q -m "not docker"                # fast tests (no CFD)
-uv run --extra viz --extra optim python scripts/cockpit.py --run runs/opt_mountable --reload
+uv run python scripts/cockpit.py --run runs/opt_mountable --reload
 ```
 
 `--reload` auto-restarts the cockpit when you edit source — no manual restart.
+Optional: `uv sync --extra surrogate` (sklearn) · `uv sync --extra dev` (pytest/ruff/mypy).
 
 ## Key commands
 

@@ -13,7 +13,7 @@ jobs:
         with:
           enable-cache: true
       - name: Sync deps
-        run: uv sync --extra dev --extra optim
+        run: uv sync --extra dev
       - name: Ruff critical
         # Full fansim/tests/scripts still has hundreds of style hits; gate on ship blockers.
         run: uv run --extra dev ruff check fansim tests scripts --select F811,F821
@@ -23,5 +23,5 @@ jobs:
         # Windows OCCT teardown 0xC0000374 after a green summary is documented in
         # docs/validation/suite_baseline_2026-09-14.md — Linux CI should exit 0 on pass.
         run: >
-          uv run --extra dev --extra optim python -m pytest
+          uv run --extra dev python -m pytest
           -m "not docker and not slow" -q --tb=line

@@ -104,6 +104,11 @@ class BladeParams:
     # swept tips no longer inflate the hub / depth. Set a number to force a taller hub (clamped to
     # the root-coverage minimum). See build_impeller.
     hub_height_mm: float | None = None
+    # Where the blade roots sit on the hub, mm. 0 = centered (legacy). Positive = blades higher
+    # toward +Z / intake (more hub below the roots). Negative = blades lower toward the outlet.
+    # Clamped so the root section stays inside the hub. Needs hub_height taller than the root
+    # span to have any effect (auto hub has no slack).
+    blade_hub_z_mm: float = 0.0
     hub_profile: str = "cylinder"  # "cylinder" (stubby, default) | "cone" (pointy spinner) | "dome"
     hub_nose_mm: float = 0.0  # nose height on the +Z (intake) end for cone/dome; 0 = flat top
     rpm: float = 2000.0  # metadata; used later by CFD, not by geometry
@@ -600,20 +605,33 @@ def _shroud_solid(params: BladeParams) -> cq.Solid | None:
     return outer.cut(inner)
 
 
-def _hub_axial_range(params: BladeParams, blade: cq.Solid) -> tuple[float, float]:
+def _hub_axial_range(params: BladeParams, blade: cq.Solid | None = None) -> tuple[float, float]:
     """(z_bottom, z_top) of the hub CYLINDER body.
 
-    AUTO (hub_height_mm is None): cover the blade ROOTS + hub_axial_margin each side — short, so a
-    swept tip no longer drags the hub (and total depth) taller. An explicit hub_height_mm forces a
-    taller hub (clamped to the root-coverage minimum), centered on the root z-span."""
+    AUTO (``hub_height_mm`` is None): cover the blade ROOTS + ``hub_axial_margin`` each side —
+    short, so a swept tip no longer drags the hub (and total depth) taller. An explicit
+    ``hub_height_mm`` forces a taller hub (clamped to the root-coverage minimum).
+
+    ``blade_hub_z_mm`` shifts the hub relative to the roots: positive places the blades higher
+    on the hub (more hub below / toward the outlet). Clamped so the root section stays inside.
+    """
+    del blade  # kept for call-site compatibility; sizing is root-station based
     r_lo, r_hi = _root_axial_span(params)
     center = 0.5 * (r_lo + r_hi)
-    min_h = (r_hi - r_lo) + 2.0 * params.hub_axial_margin
+    root_h = r_hi - r_lo
+    min_h = root_h + 2.0 * float(params.hub_axial_margin)
     if params.hub_height_mm is not None:
         h = max(float(params.hub_height_mm), min_h)
     else:
         h = min_h
-    return center - h / 2.0, center + h / 2.0
+    bias = float(getattr(params, "blade_hub_z_mm", 0.0) or 0.0)
+    # Keep roots inside the hub: |bias| <= (h - root_h) / 2
+    max_bias = max(0.0, (h - root_h) / 2.0)
+    if bias > max_bias:
+        bias = max_bias
+    elif bias < -max_bias:
+        bias = -max_bias
+    return center - h / 2.0 - bias, center + h / 2.0 - bias
 
 
 def _cylinder_hub(params: BladeParams, z_bottom: float, z_top: float) -> cq.Solid:

@@ -80,6 +80,7 @@ def help_switch(
 ):
     """Compact switch with a hover tooltip (same pattern as design sliders)."""
     desc = (help_map or OPT_SEARCH_HELP).get(model, "")
+    uri = _IMG_URI.get(model)
     extra = {}
     if disabled is not None:
         extra["disabled"] = disabled
@@ -94,16 +95,64 @@ def help_switch(
         classes=cls,
         **extra,
     )
-    if not desc:
+    if not desc and not uri:
         v3.VSwitch(**kwargs)
         return
     with v3.VTooltip(location="end", open_delay=150, max_width=420):
         with v3.Template(v_slot_activator="{ props }"):
             v3.VSwitch(v_bind="props", **kwargs)
-        html.Div(desc, classes="text-caption")
+        if uri:
+            html.Img(
+                src=uri,
+                style="width:360px;max-width:100%;display:block;"
+                "margin-bottom:4px;border-radius:4px;",
+            )
+        if desc:
+            html.Div(desc, classes="text-caption")
+
+
+def help_select(
+    model: str,
+    label: str,
+    *,
+    items: str,
+    help_map: dict | None = None,
+    item_title: str = "title",
+    item_value: str = "value",
+    classes: str = "mb-2",
+):
+    """Outlined VSelect with the same hover image+text tooltip as design sliders."""
+    desc = (help_map or CONTROL_DESC).get(model, "")
+    uri = _IMG_URI.get(model)
+    kwargs = dict(
+        label=label,
+        v_model=(model,),
+        items=(items,),
+        item_title=item_title,
+        item_value=item_value,
+        density="compact",
+        variant="outlined",
+        hide_details=True,
+        classes=classes,
+    )
+    if not desc and not uri:
+        v3.VSelect(**kwargs)
+        return
+    with v3.VTooltip(location="end", open_delay=150, max_width=420):
+        with v3.Template(v_slot_activator="{ props }"):
+            v3.VSelect(v_bind="props", **kwargs)
+        if uri:
+            html.Img(
+                src=uri,
+                style="width:360px;max-width:100%;display:block;"
+                "margin-bottom:4px;border-radius:4px;",
+            )
+        if desc:
+            html.Div(desc, classes="text-caption")
 
 
 # Back-compat aliases used by render_fan_tab
 _slider = slider
 _opt_section = opt_section
 _help_switch = help_switch
+_help_select = help_select

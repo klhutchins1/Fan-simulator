@@ -21,6 +21,7 @@ def stock_fingerprint(flat: dict, *, preview: bool = True) -> str:
     """Stable hash of the geometry knobs that affect the Stock preview mesh."""
     keys = (
         "n_blades", "hub_radius", "tip_radius", "hub_height", "hub_nose", "hub_profile",
+        "blade_hub_z",
         "chord_root", "chord_mid", "chord_tip",
         "stagger_root", "stagger_mid", "stagger_tip",
         "sweep_mid", "sweep_tip", "lean_mid", "lean_tip",

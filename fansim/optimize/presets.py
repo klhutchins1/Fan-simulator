@@ -58,12 +58,16 @@ def resolve_load(preset: str | None = None, load_pa: float | None = None
 
 
 def assess_preset_items() -> list[dict]:
-    """VSelect items for cockpit Assess: legacy 1 Pa plus the three application hoses."""
-    items = [{"title": "1 Pa (legacy)", "value": "legacy"}]
+    """VSelect items for cockpit Assess: application hoses + legacy 1 Pa."""
+    items = []
     titles = {"case": "Case", "heatsink": "Heatsink", "radiator": "Radiator"}
     for name, preset in PRESETS.items():
         title = f"{titles.get(name, name.capitalize())} {preset.load_pa:g} Pa"
         items.append({"title": title, "value": name})
+    items.append({
+        "title": "1 Pa (legacy — often below free static)",
+        "value": "legacy",
+    })
     return items
 
 

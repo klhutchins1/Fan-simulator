@@ -225,7 +225,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
     state.export_fit_hub = True
     state.export_fit_frame = True
     state.preview_motor_cup = True
-    state.assess_preset = "legacy"
+    state.assess_preset = "case"
     state.assess_preset_items = assess_preset_items()
     state.assess_refine_op = False
     state.assess_wall_ks = False
@@ -287,9 +287,10 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         {"title": "Rounded plate (bullnose)", "value": "plate"},
     ]
     state.thick_mode_items = [
-        {"title": "Uniform wall (mm)", "value": "uniform"},
+        {"title": "Uniform wall (mm through blade)", "value": "uniform"},
         {"title": "Tapered (t/c by span)", "value": "tapered"},
     ]
+    state.thick_wall_readout = "Wall ≈ — mm (set Thickness span / Blade thickness)"
     state.declutter = False
     state.fits_only = True
     state.show_stock = True
@@ -570,7 +571,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         ud = [d for d in scored if d in users_snap]
         if state.declutter:
             sd, ud = _thin(sd), _thin(list(ud))
-        load_pa, _ = assess_load(str(state.assess_preset or "legacy"))
+        load_pa, _ = assess_load(str(state.assess_preset or "case"))
         stock = published_scatter_point(active_spec(), load_pa) if state.show_stock else None
         fig = scatter_figure(sd, ud, stock_ref=stock)
         if hasattr(ctrl, "figure_update"):
@@ -626,6 +627,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         state.e_hub_radius = float(p.get("hub_radius", 21.5))
         state.e_tip_radius = float(p.get("tip_radius", 56.5))
         state.e_hub_height = float(p.get("hub_height", 0.0))
+        state.e_blade_hub_z = float(p.get("blade_hub_z", p.get("blade_hub_z_mm", 0.0)) or 0.0)
         state.e_hub_profile = str(p.get("hub_profile", "cylinder"))
         state.e_hub_nose = float(p.get("hub_nose", 0.0))
         state.e_thick_root = float(p.get("thickness_root", 0.10))
@@ -654,6 +656,22 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                 state.e_thick_mm = round((ar + am + at) / 3.0, 2)
         else:
             state.e_thick_mm = round((ar + am + at) / 3.0, 2)
+        # Refresh mm readout after load (Uniform preferred when walls already match).
+        if state.e_thick_mode == "uniform":
+            th_r, th_m, th_t = uniform_thickness_tc(
+                float(state.e_thick_mm), cr, cm, ct,
+            )
+            state.e_thick_root = round(th_r, 4)
+            state.e_thick_mid = round(th_m, 4)
+            state.e_thick_tip = round(th_t, 4)
+            state.thick_wall_readout = (
+                f"Wall ≈ {float(state.e_thick_mm):.2f} mm at root/mid/tip "
+                f"(t/c {th_r:.3f} / {th_m:.3f} / {th_t:.3f})"
+            )
+        else:
+            state.thick_wall_readout = (
+                f"Wall ≈ {ar:.2f} / {am:.2f} / {at:.2f} mm root/mid/tip"
+            )
         state.e_le_thick = float(p.get("le_thick_scale", 1.0))
         state.e_te_thick = float(p.get("te_thick_scale", 1.0))
         _sf = str(p.get("section_family", "naca") or "naca").lower().strip()
@@ -718,6 +736,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             hub_radius=state.e_hub_radius,
             tip_radius=state.e_tip_radius,
             hub_height=state.e_hub_height,
+            blade_hub_z=float(getattr(state, "e_blade_hub_z", 0.0) or 0.0),
             hub_profile=state.e_hub_profile,
             hub_nose=state.e_hub_nose,
             thickness_root=th_r,
@@ -764,6 +783,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             "hub_radius": ("e_hub_radius", float),
             "tip_radius": ("e_tip_radius", float),
             "hub_height": ("e_hub_height", float),
+            "blade_hub_z": ("e_blade_hub_z", float),
             "hub_profile": ("e_hub_profile", str),
             "hub_nose": ("e_hub_nose", float),
             "thickness_root": ("e_thick_root", float),
@@ -868,8 +888,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         state.e_stagger_mid = round(_r.uniform(18, 48), 1)
         state.e_stagger_tip = round(_r.uniform(16, 40), 1)
         state.e_chord_root = round(_r.uniform(16, 40), 1)
-        state.e_chord_mid = round(_r.uniform(16, 42), 1)
-        state.e_chord_tip = round(_r.uniform(16, 40), 1)
+        state.e_chord_mid = round(_r.uniform(18, 50), 1)
+        state.e_chord_tip = round(_r.uniform(20, 60), 1)
         state.e_sweep_mid = round(_r.uniform(-8, 16), 1)
         state.e_sweep_tip = round(_r.uniform(-4, 20), 1)
         state.e_camber_root = round(_r.uniform(0.0, 0.06), 3)
@@ -1308,8 +1328,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
     SWEEP_OPTIONS = [
         # planform / solidity — biggest flow + pressure levers
         ("blades", "flat", "n_blades", 5.0, 11.0),
-        ("chord mid", "flat", "chord_mid", 14.0, 42.0),
-        ("chord tip", "flat", "chord_tip", 14.0, 42.0),
+        ("chord mid", "flat", "chord_mid", 14.0, 60.0),
+        ("chord tip", "flat", "chord_tip", 14.0, 70.0),
         # pitch / twist (stagger mid = the win-win-win lever from the design rules)
         ("stagger root", "flat", "stagger_root", 15.0, 55.0),
         ("stagger mid", "flat", "stagger_mid", 15.0, 55.0),
@@ -1381,6 +1401,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         "e_hub_radius",
         "e_tip_radius",
         "e_hub_height",
+        "e_blade_hub_z",
         "e_hub_profile",
         "e_hub_nose",
         "e_thick_mode",
@@ -1434,9 +1455,24 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
     def _on_thick_mode(e_thick_mode=None, **_):
         mode = str(e_thick_mode if e_thick_mode is not None else getattr(state, "e_thick_mode", "tapered"))
         if mode == "uniform":
-            # Preserve current physical wall at root when entering uniform-mm mode.
-            mm = float(state.e_thick_root) * float(state.e_chord_root)
+            # Prefer the Blade-thickness mm control; fall back to root wall if unset.
+            mm = float(getattr(state, "e_thick_mm", 0.0) or 0.0)
+            if mm < 0.8:
+                mm = float(state.e_thick_root) * float(state.e_chord_root)
             state.e_thick_mm = round(max(mm, 0.8), 2)
+            th_r, th_m, th_t = uniform_thickness_tc(
+                state.e_thick_mm,
+                float(state.e_chord_root),
+                float(state.e_chord_mid),
+                float(state.e_chord_tip),
+            )
+            state.e_thick_root = round(th_r, 4)
+            state.e_thick_mid = round(th_m, 4)
+            state.e_thick_tip = round(th_t, 4)
+            state.thick_wall_readout = (
+                f"Wall ≈ {state.e_thick_mm:.2f} mm at root/mid/tip "
+                f"(t/c {th_r:.3f} / {th_m:.3f} / {th_t:.3f})"
+            )
         else:
             mm = float(getattr(state, "e_thick_mm", 2.0) or 2.0)
             th_r, th_m, th_t = uniform_thickness_tc(
@@ -1445,9 +1481,48 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                 float(state.e_chord_mid),
                 float(state.e_chord_tip),
             )
-            state.e_thick_root = round(th_r, 3)
-            state.e_thick_mid = round(th_m, 3)
-            state.e_thick_tip = round(th_t, 3)
+            state.e_thick_root = round(th_r, 4)
+            state.e_thick_mid = round(th_m, 4)
+            state.e_thick_tip = round(th_t, 4)
+            ar = th_r * float(state.e_chord_root)
+            am = th_m * float(state.e_chord_mid)
+            at = th_t * float(state.e_chord_tip)
+            state.thick_wall_readout = (
+                f"Wall ≈ {ar:.2f} / {am:.2f} / {at:.2f} mm root/mid/tip "
+                f"(t/c sliders — tip was historically too thin at 3%)"
+            )
+
+    @state.change("e_thick_mm", "e_chord_root", "e_chord_mid", "e_chord_tip")
+    def _sync_uniform_tc(**_):
+        """Keep station t/c aligned with Blade thickness (mm) while Uniform is active."""
+        if str(getattr(state, "e_thick_mode", "tapered") or "tapered") != "uniform":
+            return
+        mm = float(getattr(state, "e_thick_mm", 2.0) or 2.0)
+        th_r, th_m, th_t = uniform_thickness_tc(
+            mm,
+            float(state.e_chord_root),
+            float(state.e_chord_mid),
+            float(state.e_chord_tip),
+        )
+        state.e_thick_root = round(th_r, 4)
+        state.e_thick_mid = round(th_m, 4)
+        state.e_thick_tip = round(th_t, 4)
+        state.thick_wall_readout = (
+            f"Wall ≈ {mm:.2f} mm at root/mid/tip "
+            f"(t/c {th_r:.3f} / {th_m:.3f} / {th_t:.3f})"
+        )
+
+    @state.change("e_thick_root", "e_thick_mid", "e_thick_tip", "e_thick_mode")
+    def _sync_tapered_wall_readout(**_):
+        if str(getattr(state, "e_thick_mode", "tapered") or "tapered") == "uniform":
+            return
+        ar = float(state.e_thick_root) * float(state.e_chord_root)
+        am = float(state.e_thick_mid) * float(state.e_chord_mid)
+        at = float(state.e_thick_tip) * float(state.e_chord_tip)
+        state.thick_wall_readout = (
+            f"Wall ≈ {ar:.2f} / {am:.2f} / {at:.2f} mm root/mid/tip "
+            f"(t/c sliders — tip was historically too thin at 3%)"
+        )
 
     @state.change("assess_preset", "assess_refine_op", "assess_wall_ks")
     def _on_assess_score_settings(
@@ -1462,7 +1537,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         scored_refine = bool(cur.extra.get("refine_op")) if cur else False
         scored_ks = float((cur.extra.get("wall_ks_mm") if cur else None) or 0) > 0
         preset = str(
-            assess_preset if assess_preset is not None else state.assess_preset or "legacy"
+            assess_preset if assess_preset is not None else state.assess_preset or "case"
         )
         refine = bool(state.assess_refine_op) if assess_refine_op is None else bool(assess_refine_op)
         wall_ks = bool(state.assess_wall_ks) if assess_wall_ks is None else bool(assess_wall_ks)
@@ -1605,7 +1680,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
     def _blocking_eval(flat, features, workdir):
         from fansim.cfd.wall_roughness import FDM_WALL_KS_MM
 
-        load_pa, _ = assess_load(str(state.assess_preset or "legacy"))
+        load_pa, _ = assess_load(str(state.assess_preset or "case"))
         ks = FDM_WALL_KS_MM if state.assess_wall_ks else None
         return evaluate_candidate_isolated(
             flat,
@@ -1642,12 +1717,12 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             await asyncio.sleep(2.0)
 
     def _stamp_assess_extra(extra, result):
-        load_pa, _ = assess_load(str(state.assess_preset or "legacy"))
+        load_pa, _ = assess_load(str(state.assess_preset or "case"))
         stamp_score_extra(
             extra,
             result.raw,
             load_pa=load_pa,
-            preset=str(state.assess_preset or "legacy"),
+            preset=str(state.assess_preset or "case"),
             refine_op=bool(state.assess_refine_op),
         )
 
@@ -2042,7 +2117,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             trials=trials,
             out=out,
             fan_model=str(state.fan_model or "a12x25"),
-            preset=str(state.assess_preset or "legacy"),
+            preset=str(state.assess_preset or "case"),
             refine_op=bool(state.assess_refine_op),
             shroud=bool(state.opt_shroud),
             bem_floor=32.0 if state.opt_bem else 0.0,
@@ -2476,7 +2551,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         # Bake frame/mount fit into the editor so gold ✕ does not need a manual Fit.
         fitted = fit_envelope(flat, spec, features=Features())
         flat = fitted.flat
-        load_pa, hose = assess_load(str(state.assess_preset or "legacy"))
+        load_pa, hose = assess_load(str(state.assess_preset or "case"))
         pub = published_scatter_point(spec, load_pa)
         _init_editor(flat, Features())
         state.selected_trial = None

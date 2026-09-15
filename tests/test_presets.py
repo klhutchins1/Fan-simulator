@@ -37,6 +37,13 @@ def test_resolve_load_explicit_load_pa_overrides_preset():
     assert name == "radiator"
 
 
-def test_resolve_load_rejects_unknown_preset():
+def test_assess_items_lead_with_application_hoses():
+    from fansim.optimize.presets import assess_load, assess_preset_items
+
+    items = assess_preset_items()
+    assert items[0]["value"] == "case"
+    assert assess_load("legacy")[0] == 1.0
+    assert assess_load("case")[0] == 8.0
+    assert "legacy" in {it["value"] for it in items}
     with pytest.raises(ValueError, match="unknown preset"):
         resolve_load(preset="fridge")

@@ -7,7 +7,8 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-09-15** (evening). **§12** + **§13** closed in code. Still **not shippable**
+- Last reviewed: **2026-09-15** (evening). **§12** + **§13** closed in code. Stock gold ✕
+  eye-fit + blade-on-hub + full control-image set landed same day. Still **not shippable**
   until Validation P–Q / print+measure close absolute CFM — see `a12x25_pq_report.md`
 - Tags: **[impact]** how much it changes results · **[effort]** rough build cost · owner *me* unless noted.
 - Related: `docs/known-issues.md` (historical cockpit fixes — **stale**, see §13.4), `docs/high-accuracy-plan.md` (fidelity
@@ -21,6 +22,7 @@ session.**
 1. ~~**§13 hygiene**~~ — parse/CI/ruff critical/fan_tab UI split/mypy/MIT — closed 2026-09-15.
 2. ~~Math audit / §12~~ — cockpit thickness, Fit, scoring honesty closed 2026-09-15.
 3. ~~Noctua reference geometry (Phase 2)~~ — envelope + Stock yaml; close-ref STL under `validation/reference/`.
+   Stock gold ✕ cylinder-sliced to the close-ref (plate wall, tip ~33 mm chord, `blade_hub_z`); not OEM CAD.
 4. **Validation P–Q (Phase 3 remainder)** — close-ref STL free-air **−17%**. Screening levers exhausted. See `a12x25_pq_report.md`.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
@@ -358,7 +360,10 @@ Already measured (`docs/validation/perf_baseline.md`); not re-litigated:
 
 - [x] **13.16 License + version.** MIT `LICENSE`; `pyproject.toml` → `0.1.0`.
 - [x] **13.17 Cockpit bind address.** `scripts/cockpit.py` defaults `--host 127.0.0.1` (passed through `--reload` child). Use `--host 0.0.0.0` only for intentional LAN access.
-- [x] **13.18 Control images in repo or generated.** `docs/control_images/*.png` tracked in git (39 files); cockpit data-URIs from disk.
+- [x] **13.18 Control images in repo or generated.** `docs/control_images/*.png` tracked in git
+  (**50** files — covers every `CONTROL_DESC` key including camber stations, wall/section family,
+  LE/TE scales, cylindrical tip, smooth span, blade-on-hub); cockpit data-URIs from disk.
+  Regenerate: `uv run python scripts/generate_control_images.py`.
 - [x] **13.19 Type-check the public surface.** `mypy` in `dev`; `[tool.mypy]` scoped to `fan_spec.py` / `search_space.py` / `metrics.py`; CI runs `mypy`.
 - [x] **13.20 VTK/NumPy 2.5 warning.** Pytest `filterwarnings` ignores VTK/PyVista `result.shape` DeprecationWarnings. Viz stays pinned `<0.49` until Trame 4 migration (`dependency_peer_audit.md`).
 - [x] **13.21 Dirty-tree discipline.** Working tree landed through §13 hygiene commits; leave untracked recovery STLs / scratch scripts out of product commits.

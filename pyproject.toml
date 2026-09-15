@@ -11,10 +11,23 @@ dependencies = [
     "networkx>=3.0",
     "pyyaml>=6.0",
     "cadquery>=2.4",
+    # Cockpit + optimizer are the default UX — no --extra flags needed for
+    # `uv run python scripts/cockpit.py` / `uv run python scripts/run_optimization.py`.
+    "optuna>=3.6",
+    "matplotlib>=3.8",
+    "pyvista>=0.44,<0.49",
+    "trame>=3.6,<4",
+    "trame-vtk>=2.6,<3",
+    "trame-vuetify>=2.7",
+    "trame-plotly>=3.1",
+    "plotly>=5.20",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
 ]
 
 [project.optional-dependencies]
-optim = ["optuna>=3.6"]
+# Kept so older `uv run --extra viz --extra optim …` commands still resolve.
+optim = ["optuna>=3.6", "matplotlib>=3.8"]
 viz = [
     "pyvista>=0.44,<0.49",
     "trame>=3.6,<4",

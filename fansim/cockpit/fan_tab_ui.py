@@ -10,7 +10,10 @@ import sys
 
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.fan_copy import CONTROL_DESC, OPT_SEARCH_HELP
-from fansim.cockpit.fan_widgets import help_switch, opt_section, slider
+from fansim.cockpit.fan_widgets import help_select, help_switch, opt_section, slider
+from fansim.cockpit.figures import filter_fitting_designs, scatter_figure
+from fansim.fan_spec import published_scatter_point
+from fansim.optimize.presets import assess_load
 
 _RUNNING_TESTS = "pytest" in sys.modules
 
@@ -31,6 +34,7 @@ else:
 _slider = slider
 _opt_section = opt_section
 _help_switch = help_switch
+_help_select = help_select
 
 
 def render_fan_tab(ctx: CockpitCtx) -> None:
@@ -152,7 +156,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         hub_all = [d for d in hub_designs() if not d.extra.get("cfd_stale")]
                         if state.fits_only:
                             hub_all = filter_fitting_designs(hub_all, active_spec())
-                        _load_pa0, _ = assess_load(str(state.assess_preset or "legacy"))
+                        _load_pa0, _ = assess_load(str(state.assess_preset or "case"))
                         _stock0 = (
                             published_scatter_point(active_spec(), _load_pa0)
                             if state.show_stock
@@ -691,9 +695,13 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             with v3.VExpansionPanel(title="Planform — blades & chord"):
                                 with v3.VExpansionPanelText():
                                     _slider("Blades", "e_n_blades", 5, 11, 1)
-                                    _slider("Chord root", "e_chord_root", 14, 42, 0.5, unit="mm")
-                                    _slider("Chord mid", "e_chord_mid", 14, 42, 0.5, unit="mm")
-                                    _slider("Chord tip", "e_chord_tip", 14, 42, 0.5, unit="mm")
+                                    _slider("Chord root", "e_chord_root", 14, 50, 0.5, unit="mm")
+                                    _slider("Chord mid", "e_chord_mid", 14, 60, 0.5, unit="mm")
+                                    _slider("Chord tip", "e_chord_tip", 14, 70, 0.5, unit="mm")
+                                    html.Div(
+                                        "Chord = LE→TE blade width (planform). Not wall thickness.",
+                                        classes="text-caption mb-2",
+                                    )
                             with v3.VExpansionPanel(title="Pitch / twist — stagger"):
                                 with v3.VExpansionPanelText():
                                     _slider("Stagger root", "e_stagger_root", 15, 55, 1, unit="deg")
@@ -701,63 +709,56 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     _slider("Stagger tip", "e_stagger_tip", 15, 55, 1, unit="deg")
                             with v3.VExpansionPanel(title="Airfoil — camber & thickness"):
                                 with v3.VExpansionPanelText():
-                                    v3.VSelect(
-                                        label="Section family",
-                                        v_model=("e_section_family",),
-                                        items=("section_family_items",),
-                                        item_title="title",
-                                        item_value="value",
-                                        density="compact",
-                                        variant="outlined",
-                                        hide_details=True,
-                                        classes="mb-2",
+                                    _help_select(
+                                        "e_section_family",
+                                        "Section family",
+                                        items="section_family_items",
+                                        help_map=CONTROL_DESC,
                                     )
                                     html.Div(
-                                        "NACA = cambered airfoil. Rounded plate = "
-                                        "constant thickness with full-round LE & TE "
-                                        "(R = half thickness). Uniform wall uses mm; "
-                                        "tapered uses t/c (fraction of local chord).",
+                                        "NACA = cambered airfoil (knife LE/TE). Rounded plate = "
+                                        "constant wall with full-round LE & TE (R = half wall) — "
+                                        "use this to match printed PC-fan blades.",
                                         classes="text-caption mb-2",
                                     )
                                     _slider("Camber root", "e_camber_root", 0.0, 0.06, 0.005, unit="c/c")
                                     _slider("Camber mid", "e_camber_mid", 0.0, 0.06, 0.005, unit="c/c")
                                     _slider("Camber tip", "e_camber_tip", 0.0, 0.06, 0.005, unit="c/c")
                                     _slider("Camber position", "e_camber_pos", 0.2, 0.6, 0.05, unit="x/c")
-                                    v3.VSelect(
-                                        label="Thickness span",
-                                        v_model=("e_thick_mode",),
-                                        items=("thick_mode_items",),
-                                        item_title="title",
-                                        item_value="value",
-                                        density="compact",
-                                        variant="outlined",
-                                        hide_details=True,
-                                        classes="mb-2",
+                                    _help_select(
+                                        "e_thick_mode",
+                                        "Thickness span",
+                                        items="thick_mode_items",
+                                        help_map=CONTROL_DESC,
+                                    )
+                                    html.Div(
+                                        "{{ thick_wall_readout }}",
+                                        classes="text-caption mb-2",
                                     )
                                     _slider(
-                                        "Blade thickness", "e_thick_mm", 0.8, 4.0, 0.1,
+                                        "Wall thickness", "e_thick_mm", 0.8, 4.0, 0.1,
                                         unit="mm",
                                         disabled=("e_thick_mode !== 'uniform'",),
                                     )
                                     _slider(
-                                        "Thickness root", "e_thick_root", 0.03, 0.15, 0.01,
+                                        "Wall t/c root", "e_thick_root", 0.03, 0.15, 0.01,
                                         unit="t/c",
                                         disabled=("e_thick_mode === 'uniform'",),
                                     )
                                     _slider(
-                                        "Thickness mid", "e_thick_mid", 0.03, 0.15, 0.01,
+                                        "Wall t/c mid", "e_thick_mid", 0.03, 0.15, 0.01,
                                         unit="t/c",
                                         disabled=("e_thick_mode === 'uniform'",),
                                     )
                                     _slider(
-                                        "Thickness tip", "e_thick_tip", 0.03, 0.15, 0.01,
+                                        "Wall t/c tip", "e_thick_tip", 0.03, 0.15, 0.01,
                                         unit="t/c",
                                         disabled=("e_thick_mode === 'uniform'",),
                                     )
                                     html.Div(
-                                        "Uniform wall = same mm root→tip (t/c falls as chord grows). "
-                                        "Tapered = independent t/c. Lift comes from camber/stagger, "
-                                        "not thickness taper.",
+                                        "Wall = the thin dimension through the blade (not LE→TE width). "
+                                        "Uniform = same mm root→tip. Rounded plate keeps that wall "
+                                        "to the bullnose ends; NACA still knives the TE.",
                                         classes="text-caption mb-2",
                                     )
                                     _slider(
@@ -827,6 +828,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     _slider("Tip radius / length", "e_tip_radius", 45, 59, 0.5, unit="mm")
                                     html.Div("{{ tip_fit_info }}", classes="text-caption mb-1")
                                     _slider("Hub height (0=auto)", "e_hub_height", 0, 30, 0.5, unit="mm")
+                                    _slider("Blade on hub", "e_blade_hub_z", -8, 8, 0.5, unit="mm")
+                                    html.Div(
+                                        "Blade on hub: + raises blades toward the intake (more hub below). "
+                                        "Needs Hub height taller than the root span.",
+                                        classes="text-caption mb-2",
+                                    )
                                     v3.VSelect(
                                         label="Hub profile",
                                         v_model=("e_hub_profile",),
