@@ -16,7 +16,6 @@ catalog/*.db
 *.stl.meta.json
 # Exception: trusted A12x25 reference impeller for geometry/CFD gates
 !validation/reference/a12x25_impeller.stl
-docs/control_images/*.png
 
 # OpenFOAM case artifacts
 processor*/
