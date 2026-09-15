@@ -16,7 +16,9 @@ You can print an impeller now. You cannot honestly validate a **real-frame** des
 | Headless twin: `scripts/export_a12x25_print_ready.py` | Same carve/gauge; for CI / batch only |
 | `validation/reference/a12x25_impeller.stl` | **No** — CFD close-reference only; not a carved motor cup |
 
-Export carves the **measured MotorMount** (2026-08-31): cup **37.25 mm** × **13 mm** deep, rear bore **20 mm**, min hub wall **1.2 mm**, min hub height **15 mm**. Frame target: tip OD ≤ **109 mm** (110 mm ID − 0.5 mm radial gap), depth ≤ **25 mm**.
+Export carves the **measured MotorMount** (2026-08-31): cup **37.25 mm** × **13 mm** deep, rear bore **20 mm**, **20×Ø0.8 mm grip pads** (+0.35 mm radial clearance), min hub wall **1.2 mm**, min hub height **15 mm**. Frame target: tip OD ≤ **109 mm** (110 mm ID − 0.5 mm radial gap), depth ≤ **25 mm**.
+
+In the cockpit, leave **Preview motor cup + grip pads** on to see the hub opening in Preview (full solid build). **Export print STL** always includes the cup + grips.
 
 ## Before the hub arrives (do this in the GUI)
 

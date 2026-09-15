@@ -27,14 +27,21 @@ class MotorMount:
     stepping down to a smaller REAR BORE (bearing/shaft region). Carved from the hub's REAR (motor)
     side at export — it's internal/hidden and does NOT affect the aero model (CFD is unchanged). To
     house the motor the impeller hub must be wide enough: hub_radius >= cavity_dia/2 + min_wall.
+
+    Optional **grip cylinders**: evenly spaced axial pads on the cavity wall (A12x25-style press-fit).
+    The cup is cut slightly oversize (``grip_clearance_mm``), then cylinders are fused back with a
+    small wall overlap so contact is at discrete pads instead of a full cylindrical press.
     """
-    cavity_dia_mm: float          # inner cavity diameter (slips over the motor hub; add slip clearance)
+    cavity_dia_mm: float          # nominal motor boss OD the cup targets (before grip clearance)
     cavity_depth_mm: float        # cavity depth from the rear face
     rear_bore_dia_mm: float = 0.0  # smaller rear opening past the cavity (bearing/shaft region)
     shaft_dia_mm: float = 0.0      # motor shaft dia (reference; the shaft is on the MOTOR, not printed)
     min_wall_mm: float = 1.2       # min printable/strong hub wall around the cavity
     min_hub_height_mm: float = 0.0  # hub must be at least this TALL to house the cup + clear the frame
                                     # spokes (export grows the hub height to this; 0 = no requirement)
+    grip_count: int = 0            # 0 = smooth cup; ~20 matches A12x25-style grip pads
+    grip_dia_mm: float = 0.8       # diameter of each axial grip cylinder (mm)
+    grip_clearance_mm: float = 0.35  # radial oversize of the cup cut before grips are fused back
 
 
 @dataclass
@@ -119,7 +126,10 @@ def mount_min_hub_radius(spec: FanSpec) -> float | None:
     """Smallest impeller hub radius (mm) that can house this fan's motor with a printable wall, or
     None if the model has no motor-mount defined. Below this, the printed hub can't slip over the motor."""
     m = spec.motor_mount
-    return None if m is None else m.cavity_dia_mm / 2.0 + m.min_wall_mm
+    if m is None:
+        return None
+    clear = float(m.grip_clearance_mm or 0.0)
+    return m.cavity_dia_mm / 2.0 + clear + m.min_wall_mm
 
 
 # Default sparse-FDM fill for weight gates (roadmap §2.4). Solid / resin use 1.0.
@@ -227,8 +237,11 @@ _REGISTRY: dict[str, FanSpec] = {
         # 37.25 mm inner dia; cup ~13 mm deep; hub must be >=15 mm tall to clear the frame spokes; ~20 mm
         # rear bore; 3 mm shaft. Outer dia must be <=110 mm to clear the frame (tip_dia max above).
         # See [[fan-sim-a12x25-specs]].
-        motor_mount=MotorMount(cavity_dia_mm=37.25, cavity_depth_mm=13.0, rear_bore_dia_mm=20.0,
-                               shaft_dia_mm=3.0, min_hub_height_mm=15.0)),
+        motor_mount=MotorMount(
+            cavity_dia_mm=37.25, cavity_depth_mm=13.0, rear_bore_dia_mm=20.0,
+            shaft_dia_mm=3.0, min_hub_height_mm=15.0,
+            grip_count=20, grip_dia_mm=0.8, grip_clearance_mm=0.35,
+        )),
     # GENERIC 120 mm axial fan — the LOOSE exploratory envelope our early optimizer runs used, BEFORE
     # the real a12x25 frame was measured to 110 mm. The old designs (e.g. opt_extended2_t36 ~118 mm)
     # are good aero DATA; they just target a generic 120 mm slot, not the tighter real Noctua frame, so

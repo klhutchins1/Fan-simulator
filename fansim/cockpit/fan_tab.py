@@ -454,6 +454,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
     state.export_busy = False
     state.export_fit_hub = True
     state.export_fit_frame = True
+    state.preview_motor_cup = True
     state.assess_preset = "legacy"
     state.assess_preset_items = assess_preset_items()
     state.assess_refine_op = False
@@ -701,6 +702,9 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                 rear_bore_dia_mm=(base.motor_mount.rear_bore_dia_mm if base.motor_mount else 0.0),
                 shaft_dia_mm=(base.motor_mount.shaft_dia_mm if base.motor_mount else 0.0),
                 min_hub_height_mm=float(state.fm_hub_h),
+                grip_count=int(getattr(base.motor_mount, "grip_count", 0) or 0) if base.motor_mount else 0,
+                grip_dia_mm=float(getattr(base.motor_mount, "grip_dia_mm", 0.8) or 0.8) if base.motor_mount else 0.8,
+                grip_clearance_mm=float(getattr(base.motor_mount, "grip_clearance_mm", 0.35) or 0.35) if base.motor_mount else 0.35,
             )
         spec = dataclasses.replace(
             base,
@@ -1205,9 +1209,21 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         asynchronous.create_task(task())
 
     def _build_preview_stl(flat, feat):
+        from dataclasses import asdict
+
         from fansim.geometry.isolated import build_stl_isolated
 
-        build_stl_isolated(flat, feat, preview_stl, timeout=300.0, preview=True)
+        mount = None
+        if bool(getattr(state, "preview_motor_cup", False)):
+            spec = active_spec()
+            if spec.motor_mount is not None:
+                mount = asdict(spec.motor_mount)
+        # Motor cup needs a real boolean solid (not the fast non-fused preview mesh).
+        build_stl_isolated(
+            flat, feat, preview_stl, timeout=300.0,
+            preview=mount is None,
+            motor_mount=mount,
+        )
 
     render_state = {
         "path": None,
@@ -3130,9 +3146,18 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         html.Div("{{ opt_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
                         busy_bar("preview_busy", "assess_busy", "export_busy", "opt_running", color="success")
                         html.Div(
-                            "Export carves the motor cup and writes a mount/frame checklist next to the STL. "
+                            "Export carves the motor cup (+ grip pads) and writes a mount/frame checklist. "
                             "Leave both Fit switches on for the commercial A12x25 hub/frame.",
                             classes="text-caption text-medium-emphasis mt-2 mb-1",
+                        )
+                        v3.VSwitch(
+                            v_model=("preview_motor_cup",),
+                            density="compact",
+                            hide_details=True,
+                            color="primary",
+                            inset=True,
+                            classes="mt-1",
+                            label="Preview motor cup + grip pads (slower full solid; matches Export)",
                         )
                         v3.VSwitch(
                             v_model=("export_fit_hub",),

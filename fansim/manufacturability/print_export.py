@@ -77,10 +77,21 @@ def bore_hub(model: cq.Workplane, bore: BoreSpec) -> cq.Workplane:
 
 def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float):
     """Hollow the hub into a CUP that slips over the fan's motor: a cavity from the REAR (-Z) face + a
-    central through-bore (bearing/shaft passage). Returns (model, fits, msg). Does NOT widen the hub —
-    if the hub is too narrow to house the motor with a wall, it returns fits=False and the model
-    unchanged (aero-optimal small hubs typically CAN'T mount a big motor — an honest, surfaced tension)."""
-    need = mount.cavity_dia_mm / 2.0 + mount.min_wall_mm
+    central through-bore (bearing/shaft passage), optionally with axial grip cylinders.
+
+    Returns (model, fits, msg). Does NOT widen the hub — if the hub is too narrow to house the motor
+    with a wall, it returns fits=False and the model unchanged.
+
+    Grip pads: cut an oversize smooth cup, then fuse cylinders that slightly overlap the cavity wall
+    so they bond into the hub (tangent-only pads do not fuse). Bore is cut last.
+    """
+    import math
+
+    n_grip = int(getattr(mount, "grip_count", 0) or 0)
+    grip_d = float(getattr(mount, "grip_dia_mm", 0.0) or 0.0)
+    # Radial oversize of the cup (slip fit); used with or without grip pads.
+    clear = float(getattr(mount, "grip_clearance_mm", 0.0) or 0.0)
+    need = mount.cavity_dia_mm / 2.0 + clear + mount.min_wall_mm
     if hub_radius_mm < need:
         return (model, False,
                 f"hub radius {hub_radius_mm:.1f} mm too small to house the {mount.cavity_dia_mm:.0f} mm "
@@ -88,17 +99,50 @@ def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float):
     shape = model.val()
     bb = shape.BoundingBox()
     eps = 0.5
-    # cup cavity from the rear (-Z, motor) face, going forward cavity_depth
-    cav = cq.Solid.makeCylinder(mount.cavity_dia_mm / 2.0, mount.cavity_depth_mm + eps,
-                                cq.Vector(0, 0, bb.zmin - eps), cq.Vector(0, 0, 1))
-    result = shape.cut(cav)
-    if mount.rear_bore_dia_mm and mount.rear_bore_dia_mm > 0:  # central bearing/shaft passage (through)
+    cav_r = float(mount.cavity_dia_mm) / 2.0 + clear
+    cav_h = float(mount.cavity_depth_mm) + eps
+    z0 = bb.zmin - eps
+    cutter = cq.Solid.makeCylinder(cav_r, cav_h, cq.Vector(0, 0, z0), cq.Vector(0, 0, 1))
+    result = shape.cut(cutter)
+    grip_msg = ""
+    if n_grip > 0 and grip_d > 0.05:
+        # Overlap into the remaining wall so fuse has volume contact (not a tangent kiss).
+        wall_overlap = max(0.05, 0.1 * grip_d)
+        r_center = cav_r - grip_d / 2.0 + wall_overlap
+        bore_r = float(mount.rear_bore_dia_mm or 0.0) / 2.0
+        if r_center - grip_d / 2.0 <= bore_r + 0.3:
+            grip_msg = f"; grip skipped (would collide with {mount.rear_bore_dia_mm:.0f} mm bore)"
+        else:
+            pads = None
+            for k in range(n_grip):
+                a = 2.0 * math.pi * k / n_grip
+                x = r_center * math.cos(a)
+                y = r_center * math.sin(a)
+                pad = cq.Solid.makeCylinder(
+                    grip_d / 2.0, cav_h,
+                    cq.Vector(x, y, z0), cq.Vector(0, 0, 1),
+                )
+                pads = pad if pads is None else pads.fuse(pad)
+            result = result.fuse(pads)
+            grip_msg = (
+                f" + {n_grip}×Ø{grip_d:.1f} mm grip pads "
+                f"(cup +{clear:.2f} mm radial clearance)"
+            )
+    try:
+        result = result.clean()
+    except Exception:  # noqa: BLE001
+        pass
+    if mount.rear_bore_dia_mm and mount.rear_bore_dia_mm > 0:
         h = (bb.zmax - bb.zmin) + 2 * eps
-        bore = cq.Solid.makeCylinder(mount.rear_bore_dia_mm / 2.0, h,
-                                     cq.Vector(0, 0, bb.zmin - eps), cq.Vector(0, 0, 1))
+        bore = cq.Solid.makeCylinder(
+            mount.rear_bore_dia_mm / 2.0, h,
+            cq.Vector(0, 0, bb.zmin - eps), cq.Vector(0, 0, 1),
+        )
         result = result.cut(bore)
+
     msg = (f"cup cavity {mount.cavity_dia_mm:.0f} mm x {mount.cavity_depth_mm:.0f} mm deep"
-           + (f" + {mount.rear_bore_dia_mm:.0f} mm center bore" if mount.rear_bore_dia_mm else ""))
+           + (f" + {mount.rear_bore_dia_mm:.0f} mm center bore" if mount.rear_bore_dia_mm else "")
+           + grip_msg)
     return cq.Workplane(obj=result), True, msg
 
 
@@ -147,6 +191,16 @@ def recommend_print_settings(material: str = DEFAULT_MATERIAL) -> dict:
     }
 
 
+def build_impeller_with_mount(params: BladeParams, mount) -> tuple[cq.Workplane, bool, str]:
+    """Build the aero impeller solid and carve the motor cup (+ grips) into the hub.
+
+    CFD/Assess keep using ``build_impeller`` alone (solid hub). Print + optional preview
+    use this so the STL includes the hub opening that matches the commercial motor.
+    """
+    model = build_impeller(params)
+    return carve_motor_mount(model, mount, params.hub_radius)
+
+
 def export_print_ready(
     params: BladeParams,
     out_stl: str | Path,
@@ -159,12 +213,13 @@ def export_print_ready(
     """Build the impeller, carve the motor mount (or a simple bore), export a fine STL, return the
     watertight report (with mount_fits/mount_msg when a MotorMount is given)."""
     out_stl = Path(out_stl)
-    model = build_impeller(params)
     mount_fits, mount_msg = None, ""
     if mount is not None:
-        model, mount_fits, mount_msg = carve_motor_mount(model, mount, params.hub_radius)
-    elif bore is not None:
-        model = bore_hub(model, bore)
+        model, mount_fits, mount_msg = build_impeller_with_mount(params, mount)
+    else:
+        model = build_impeller(params)
+        if bore is not None:
+            model = bore_hub(model, bore)
     export_stl(model, out_stl, tolerance=tolerance, angular_tolerance=angular_tolerance)
     rep = watertight_report(out_stl)
     rep.mount_fits, rep.mount_msg = mount_fits, mount_msg

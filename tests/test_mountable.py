@@ -11,7 +11,7 @@ from fansim.optimize.search_space import suggest_params
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-A12_MIN_HUB = 37.25 / 2.0 + 1.2  # 19.825 mm — measured cup 2026-08-31
+A12_MIN_HUB = 37.25 / 2.0 + 0.35 + 1.2  # cavity/2 + grip clearance + wall (a12x25 MotorMount)
 
 
 def test_mount_min_hub_radius():

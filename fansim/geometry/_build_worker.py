@@ -19,13 +19,21 @@ def main() -> int:
     from fansim.optimize.search_space import blade_from_flat
 
     params = blade_from_flat(job["flat"], Features(**job.get("features", {})))
-    if job.get("preview"):
+    mount_dict = job.get("motor_mount")
+    if job.get("preview") and not mount_dict:
         # FAST path: non-fused visual mesh (skips the ~140s boolean fuse). Write an accurate volume
         # sidecar so the caller's weight/spec check doesn't rely on the overlapping mesh's own volume.
         from fansim.geometry.blade import build_impeller_preview
         mesh, volume_mm3 = build_impeller_preview(params)
         mesh.export(job["out"])
         open(job["out"] + ".meta.json", "w").write(json.dumps({"volume_mm3": volume_mm3}))
+    elif mount_dict:
+        from fansim.fan_spec import MotorMount
+        from fansim.geometry.export import export_stl
+        from fansim.manufacturability.print_export import build_impeller_with_mount
+
+        model, _fits, _msg = build_impeller_with_mount(params, MotorMount(**mount_dict))
+        export_stl(model, job["out"])
     else:
         from fansim.geometry import build_impeller, export_stl
         export_stl(build_impeller(params), job["out"])

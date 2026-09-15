@@ -44,6 +44,7 @@ def _estimate_cavity(
 ) -> tuple[float | None, float | None, float | None]:
     """Estimate cup cavity dia/depth and rear bore from a Z-up mesh.
 
+    ``expected_cavity_r`` should be the *cut* radius (nominal + radial clearance).
     Samples near the rear (−Z) face for the cup wall, and forward of the cup
     depth for the smaller through-bore (mid-hub still sits inside the cavity).
     """
@@ -56,10 +57,15 @@ def _estimate_cavity(
     rear = z <= (zmin + 0.08 * span)
     r = _radial_xy(v)
 
-    rear_inner = rear & (r < expected_cavity_r * 1.15)
-    if int(np.count_nonzero(rear_inner)) < 20:
-        rear_inner = rear & (r < np.percentile(r, 40))
-    cav_r = float(np.percentile(r[rear_inner], 95)) if np.any(rear_inner) else None
+    # Wall band around the expected cut radius (grips sit inward; ignore them).
+    wall = rear & (r > expected_cavity_r * 0.92) & (r < expected_cavity_r * 1.12)
+    if int(np.count_nonzero(wall)) < 20:
+        rear_inner = rear & (r < expected_cavity_r * 1.15)
+        if int(np.count_nonzero(rear_inner)) < 20:
+            rear_inner = rear & (r < np.percentile(r, 40))
+        cav_r = float(np.percentile(r[rear_inner], 95)) if np.any(rear_inner) else None
+    else:
+        cav_r = float(np.percentile(r[wall], 50))
 
     cav_depth = None
     if cav_r is not None and cav_r > 1.0:
@@ -87,6 +93,22 @@ def _estimate_cavity(
     )
 
 
+def _estimate_hub_od_mm(mesh: trimesh.Trimesh, *, outside_r: float) -> float:
+    """Hub outer diameter from vertices *outside* the motor cup (cavity verts skew low percentiles)."""
+    v = np.asarray(mesh.vertices, dtype=float)
+    r = _radial_xy(v)
+    outer = r > (outside_r + 0.4)
+    # Hub shell is the low-r band of the exterior; blades sit farther out.
+    if int(np.count_nonzero(outer)) < 30:
+        return 2.0 * float(np.percentile(r, 8.0))
+    # Cap well below tip so blades don't dominate; take a low percentile of that band.
+    tip_r = float(np.percentile(r[outer], 99.0))
+    hub_band = outer & (r < max(outside_r + 8.0, 0.45 * tip_r))
+    if int(np.count_nonzero(hub_band)) < 30:
+        hub_band = outer & (r < 0.55 * tip_r)
+    return 2.0 * float(np.percentile(r[hub_band], 10.0))
+
+
 def gauge_print_stl(
     path: str,
     spec: FanSpec,
@@ -101,7 +123,6 @@ def gauge_print_stl(
     v = np.asarray(mesh.vertices, dtype=float)
     r = _radial_xy(v)
     tip_od = 2.0 * float(np.percentile(r, 99.5))
-    hub_od = 2.0 * float(np.percentile(r, 8.0))
     axial = float(mesh.extents[2])
     notes: list[str] = []
 
@@ -109,6 +130,9 @@ def gauge_print_stl(
     cav_dia = cav_dep = bore_dia = None
     mount_ok = False
     hub_wall_ok = True
+    clear = float(getattr(mount, "grip_clearance_mm", 0.0) or 0.0) if mount else 0.0
+    cut_r = (mount.cavity_dia_mm / 2.0 + clear) if mount else 0.0
+    hub_od = _estimate_hub_od_mm(mesh, outside_r=cut_r if cut_r > 0 else float(np.percentile(r, 8.0)))
     if mount is None:
         notes.append("spec has no MotorMount — cannot verify cup")
     else:
@@ -118,9 +142,11 @@ def gauge_print_stl(
             notes.append(
                 f"hub OD {hub_od:.1f} mm may be thin vs mount min radius {need_r:.2f} mm"
             )
+        # Gauge the *cut* cup (nominal + radial clearance); grips sit inside that wall.
+        expected_cut_dia = mount.cavity_dia_mm + 2.0 * clear
         cav_dia, cav_dep, bore_dia = _estimate_cavity(
             mesh,
-            expected_cavity_r=mount.cavity_dia_mm / 2.0,
+            expected_cavity_r=cut_r,
             expected_cavity_depth=mount.cavity_depth_mm,
         )
         ok_parts = []
@@ -128,12 +154,13 @@ def gauge_print_stl(
             notes.append("could not estimate cavity diameter from mesh")
             ok_parts.append(False)
         else:
-            d_cav = abs(cav_dia - mount.cavity_dia_mm)
+            d_cav = abs(cav_dia - expected_cut_dia)
             ok_parts.append(d_cav <= cavity_tol_mm)
             if d_cav > cavity_tol_mm:
                 notes.append(
-                    f"cavity dia ~{cav_dia:.2f} mm vs mount {mount.cavity_dia_mm:.2f} "
-                    f"(Δ {d_cav:.2f} > tol {cavity_tol_mm})"
+                    f"cavity dia ~{cav_dia:.2f} mm vs cut {expected_cut_dia:.2f} "
+                    f"(nominal {mount.cavity_dia_mm:.2f} + {2.0 * clear:.2f} clear; "
+                    f"Δ {d_cav:.2f} > tol {cavity_tol_mm})"
                 )
         if cav_dep is None:
             notes.append("could not estimate cavity depth from mesh")
@@ -200,13 +227,14 @@ def mount_checklist_md(gauge: MountGauge, spec: FanSpec, *, stl_name: str) -> st
         "",
         "## Gauge (from exported STL)",
         f"- Tip OD: **{gauge.tip_od_mm:.2f} mm**",
-        f"- Hub OD (p8): **{gauge.hub_od_mm:.2f} mm**",
+        f"- Hub OD (exterior): **{gauge.hub_od_mm:.2f} mm**",
         f"- Axial depth: **{gauge.axial_depth_mm:.2f} mm**",
         f"- Watertight: {'YES' if gauge.watertight else 'NO'}",
         f"- Frame fit: {'PASS' if gauge.frame_ok else 'FAIL'}",
         f"- Mount cup: {'PASS' if gauge.mount_ok else 'FAIL'}",
     ]
     if mm is not None:
+        clear = float(mm.grip_clearance_mm or 0.0)
         lines += [
             "",
             "## Expected MotorMount (measured 2026-08-31)",
@@ -214,11 +242,13 @@ def mount_checklist_md(gauge: MountGauge, spec: FanSpec, *, stl_name: str) -> st
             f"- Rear bore: **{mm.rear_bore_dia_mm:.1f} mm**",
             f"- Shaft (motor): **{mm.shaft_dia_mm:.1f} mm** (not printed)",
             f"- Min hub wall: **{mm.min_wall_mm:.1f} mm** → min hub radius "
-            f"**{(mm.cavity_dia_mm / 2.0 + mm.min_wall_mm):.2f} mm**",
+            f"**{(mm.cavity_dia_mm / 2.0 + clear + mm.min_wall_mm):.2f} mm**",
             f"- Min hub height: **{mm.min_hub_height_mm:.1f} mm**",
+            f"- Grip pads: **{int(mm.grip_count)}** × Ø**{mm.grip_dia_mm:.1f} mm** "
+            f"(cup +**{clear:.2f} mm** radial clearance)",
             "",
             "## Mesh estimates",
-            f"- Cavity dia ~ **{gauge.cavity_dia_mm}** mm",
+            f"- Cavity dia (cut) ~ **{gauge.cavity_dia_mm}** mm",
             f"- Cavity depth ~ **{gauge.cavity_depth_mm}** mm",
             f"- Rear bore ~ **{gauge.rear_bore_dia_mm}** mm",
         ]
@@ -281,6 +311,9 @@ def write_print_fit_sidecars(
             "shaft_dia_mm": spec.motor_mount.shaft_dia_mm,
             "min_wall_mm": spec.motor_mount.min_wall_mm,
             "min_hub_height_mm": spec.motor_mount.min_hub_height_mm,
+            "grip_count": int(spec.motor_mount.grip_count),
+            "grip_dia_mm": float(spec.motor_mount.grip_dia_mm),
+            "grip_clearance_mm": float(spec.motor_mount.grip_clearance_mm),
             "provenance": "measured cup 2026-08-31; confirm when commercial hub arrives",
         },
     }
