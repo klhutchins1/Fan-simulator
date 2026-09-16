@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """FDM filament properties for the printer's supported materials.
 
 Limited to what the user's printer can run: PLA, PLA+, PETG, ABS, TPU (no ASA / carbon- or

@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """Grid Convergence Index (Roache 1994) — report discretization error from 3 mesh solutions.
 
 The right way to say "the mesh is fine enough": from a coarse/medium/fine triplet, estimate the

@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """Cheap aeroacoustic noise proxies from RANS fields (screening tier).
 
 The GPU LBM control-volume dipole (scripts/evaluate_noise.py) is accurate but expensive (~2.5 min

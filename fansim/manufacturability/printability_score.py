@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """Graded printability difficulty — how hard a blade is to FDM-print, and which printer class it
 needs. Complements the binary fdm_rules gate (which only checks the min wall) with a 0-100 difficulty
 score and a recommended printer class, driven by geometry the optimizer already varies.

@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 + CURSOR overlay
 """Multi-objective optimization of the blade design vector.
 
 Lazy exports so importing ``fansim.optimize.presets`` / ``system_curve`` does not

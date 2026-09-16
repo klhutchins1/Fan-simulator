@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """Adapters that run the RANS noise proxies on a solved OpenFOAM case (compute-free post-process).
 
 Reads the internal k/omega volume fields + cell volumes from a *reconstructed* OpenFOAM case and

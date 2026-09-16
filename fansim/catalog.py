@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """Unified design catalog — one queryable index over every design the project has produced.
 
 Optimization data lives in per-run islands (runs/<name>/pareto.json, cockpit_assess/, study.db) and

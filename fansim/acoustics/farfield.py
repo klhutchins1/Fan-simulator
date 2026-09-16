@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """Far-field reduction for the LBM control-volume noise data (Curle compact dipole + A-weighting).
 
 The GPU noise scripts logged a control-volume force history; this module turns it into far-field

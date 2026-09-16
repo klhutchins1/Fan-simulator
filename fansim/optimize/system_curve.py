@@ -1,4 +1,3 @@
-# RECONSTRUCTED-FROM-CURSOR-TRANSCRIPT 2026-09-12
 # Provenance: docs/superpowers/specs/2026-09-02-system-curve-design.md + StrReplace
 # patches in agent-transcripts/9f43d5b7...jsonl (initial Write was via subagent; body rebuilt).
 # Later additions: probe_flow_cfm / bem_* / derated_probe_pa / eta clamp.

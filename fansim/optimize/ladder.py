@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """Fidelity ladder: run cheap evals on everything, expensive evals only on what survives.
 
 Plan Architecture principle #2 -- the optimizer should spend its expensive evaluations (fine RANS,
