@@ -7,8 +7,8 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-09-15** (evening). **§12** + **§13** + **§7.6** + **§14.1–14.5** closed in code
-  (Prop/Mixed/Volute/CROR Design depth; Volute Optimize 14.4b still open). Still **not shippable**
+- Last reviewed: **2026-09-15** (evening). **§12** + **§13** + **§7.6** + **§14.1–14.5** closed in code.
+  §14 leftovers tracked as open checkboxes (**14.3b** / **14.4b** / **14.6**). Still **not shippable**
   until Validation P–Q / print+measure close absolute CFM — see `a12x25_pq_report.md`
 - Tags: **[impact]** how much it changes results · **[effort]** rough build cost · owner *me* unless noted.
 - Related: `docs/known-issues.md` (historical cockpit fixes — **stale**, see §13.4), `docs/high-accuracy-plan.md` (fidelity
@@ -25,8 +25,8 @@ session.**
    Stock gold ✕ cylinder-sliced to the close-ref (plate wall, tip ~33 mm chord, `blade_hub_z`); not OEM CAD.
 4. **Validation P–Q (Phase 3 remainder)** — close-ref STL free-air **−17%**. Screening levers exhausted. See `a12x25_pq_report.md`.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
-6. **§14 Archetype Design Parity** — Prop/Mixed/Volute/CROR Design+Optimize depth (parallel with §5;
-   Design UI only — not archetype CFD expansion; see keep/cut board).
+6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
+   Leftovers: **14.3b** / **14.4b** / **14.6** below (parallel with §5; Design UI only — not archetype CFD).
 7. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
 
 §8 / §9 / §10 / §12 / §13 are **closed in code**. Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
@@ -390,11 +390,16 @@ Bring Prop / Mixed / Volute / CROR editors up toward Fan blade vocabulary. Spec:
 - [x] **14.2 Shared BladeParams editor kit. DONE 2026-09-15.** `blade_editor.py` + `blade_copy.py`; Prop on kit;
   CROR mounts two prefixes.
 - [x] **14.3 Mixed Design + Optimize (stage a). DONE 2026-09-15.** Expose `thickness` / `max_camber` / `camber_pos`
-  in UI + `suggest_mixed`. Stage b (span-varying chord/stagger) only after 14.3a is green.
+  in UI + `suggest_mixed`.
+- [ ] **14.3b Mixed span-varying chord/stagger.** **[impact: med]** **[effort: med]** Diagonal loft today uses
+  one chord + one stagger; root/mid/tip stations need geometry changes in `centrifugal/geometry.py` + UI/Optuna.
 - [x] **14.4 Volute Design depth. DONE 2026-09-15.** Expose dormant `VoluteParams` (blade/backplate/tongue/outlet/wall).
-  **14.4b** optional cheap Optimize — still open (Design-first; no BEM screen yet).
+- [ ] **14.4b Volute cheap Optimize.** **[impact: med]** **[effort: med]** No BEM screen yet — Design-only for now.
+  Add NSGA over volute flats (or a thin proxy) + cockpit Optimize; CFD Assess stays top-N refine.
 - [x] **14.5 CROR dual BladeParams Design + expanded `suggest_cror`. DONE 2026-09-15.** Front/rear editors,
   thin/export on edited flats; Optimize searches prefixed chords/stagger/thickness/camber/sickle.
+- [ ] **14.6 CROR 3-D Preview.** **[impact: low]** **[effort: low–med]** Export/Thin work on edited flats; cockpit
+  still has no mesh viewer for the stack (placeholder card). Mirror Prop/Mixed Preview → plotter pattern.
 
 ---
 
