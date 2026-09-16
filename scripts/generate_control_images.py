@@ -44,10 +44,10 @@ DEFAULT = dict(n_blades=7, stagger_root=26, stagger_mid=26, stagger_tip=22,
 #   ("feat_n", feat_fixed: dict, count_key)            — vary count; amp/other dims fixed
 CONTROLS = [
     ("e_n_blades", "Blades", "n_blades", 5, 11, "fan"),
-    ("e_camber", "Camber (curve)", "max_camber", 0.0, 0.06, "blade"),
-    ("e_camber_root", "Camber — root", "camber_root", 0.0, 0.06, "blade"),
-    ("e_camber_mid", "Camber — mid", "camber_mid", 0.0, 0.06, "blade"),
-    ("e_camber_tip", "Camber — tip", "camber_tip", 0.0, 0.06, "blade"),
+    ("e_camber", "Camber / scoop", "max_camber", 0.0, 0.12, "blade"),
+    ("e_camber_root", "Camber / scoop — root", "camber_root", 0.0, 0.12, "blade"),
+    ("e_camber_mid", "Camber / scoop — mid", "camber_mid", 0.0, 0.12, "blade"),
+    ("e_camber_tip", "Camber / scoop — tip", "camber_tip", 0.0, 0.12, "blade"),
     ("e_stagger_root", "Stagger / pitch — root", "stagger_root", 15, 55, "fan"),
     ("e_stagger_mid", "Stagger / pitch — mid", "stagger_mid", 15, 55, "fan"),
     ("e_stagger_tip", "Stagger / pitch — tip", "stagger_tip", 15, 55, "fan"),
@@ -60,6 +60,10 @@ CONTROLS = [
     ("e_sweep_tip", "Sweep — tip", "sweep_tip", -8, 25, "blade"),
     ("e_le_mid", "LE curve — mid", "le_sweep_mid", -12, 12, "blade"),
     ("e_le_tip", "LE curve — tip", "le_sweep_tip", -12, 12, "blade"),
+    ("e_le_skew_mid", "Sickle — mid", "le_skew_mid", 0, 12, "fan",
+     {"lean_tip": 10.0, "cylindrical_tip": False}),
+    ("e_le_skew_tip", "Sickle — tip", "le_skew_tip", 0, 15, "fan",
+     {"lean_tip": 10.0, "cylindrical_tip": False}),
     ("e_hub_radius", "Hub radius", "hub_radius", 15, 30, "fan"),
     ("e_tip_radius", "Tip radius / length", "tip_radius", 45, 59, "fan"),
     ("e_skew_mid", "Skew mid", "skew_mid", -6, 6, "fan"),
@@ -90,10 +94,15 @@ CONTROLS = [
     ("e_thick_mode", "Thickness span", "thick_mode", "tapered", "uniform", "blade"),
     ("e_le_thick", "LE thick scale", "le_thick_scale", 0.5, 2.0, "blade",
      {"section_family": "naca", "thickness_mid": 0.08}),
-    ("e_te_thick", "TE thick scale", "te_thick_scale", 0.5, 2.0, "blade",
-     {"section_family": "naca", "thickness_mid": 0.08}),
+    ("e_te_thick", "TE thick / roundness", "te_thick_scale", 0.15, 1.0, "blade",
+     {"section_family": "plate", "thickness_mid": 0.10, "max_camber": 0.0,
+      "camber_root": 0.0, "camber_mid": 0.0, "camber_tip": 0.0}),
     ("e_section_family", "Section family", "section_family", "naca", "plate", "blade",
      {"thickness_root": 0.08, "thickness_mid": 0.08, "thickness_tip": 0.08}),
+    ("e_tip_notched", "Tip TE notches", "notched_tips", 0, 1, "fan",
+     {"lean_tip": 20.0, "chord_tip": 40.0, "cylindrical_tip": True}),
+    ("e_tip_notch_depth", "Tip notch depth", "tip_notch_depth_mm", 0.5, 2.5, "fan",
+     {"notched_tips": True, "lean_tip": 20.0, "chord_tip": 40.0}),
     ("e_smooth_span", "Smooth span", "span_interp", "linear", "pchip", "fan",
      {"lean_mid": 8.0, "lean_tip": 35.0, "sweep_mid": 2.0, "sweep_tip": 10.0}),
     ("e_spacing", "Uneven spacing", "spacing_spread", 0.0, 0.6, "fan"),
@@ -166,6 +175,15 @@ def _params(key, value, base=None):
             flat["thickness_tip"] = 0.03
     elif key == "cylindrical_tip":
         flat["cylindrical_tip"] = bool(int(value)) if not isinstance(value, bool) else bool(value)
+    elif key == "notched_tips":
+        on = bool(int(value)) if not isinstance(value, bool) else bool(value)
+        flat["notched_tips"] = on
+        flat["tip_notch_count"] = 3 if on else 0
+        flat["tip_notch_depth_mm"] = 1.5 if on else 0.0
+    elif key == "tip_notch_depth_mm":
+        flat["notched_tips"] = True
+        flat["tip_notch_count"] = 3
+        flat["tip_notch_depth_mm"] = float(value)
     elif key == "section_family":
         flat["section_family"] = str(value)
     elif key == "span_interp":

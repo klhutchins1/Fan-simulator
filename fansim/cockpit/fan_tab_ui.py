@@ -717,13 +717,19 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     )
                                     html.Div(
                                         "NACA = cambered airfoil (knife LE/TE). Rounded plate = "
-                                        "constant wall with full-round LE & TE (R = half wall) — "
-                                        "use this to match printed PC-fan blades.",
+                                        "constant wall, round LE, tunable TE + camber for the slight "
+                                        "face curve — match printed PC-fan blades.",
                                         classes="text-caption mb-2",
                                     )
-                                    _slider("Camber root", "e_camber_root", 0.0, 0.06, 0.005, unit="c/c")
-                                    _slider("Camber mid", "e_camber_mid", 0.0, 0.06, 0.005, unit="c/c")
-                                    _slider("Camber tip", "e_camber_tip", 0.0, 0.06, 0.005, unit="c/c")
+                                    _slider("Camber root", "e_camber_root", 0.0, 0.15, 0.005, unit="c/c")
+                                    _slider("Camber mid", "e_camber_mid", 0.0, 0.15, 0.005, unit="c/c")
+                                    _slider("Camber tip", "e_camber_tip", 0.0, 0.15, 0.005, unit="c/c")
+                                    html.Div(
+                                        "Camber = the scoop in the blade face (LE→TE curve). "
+                                        "Raise tip/mid until the tip-on view matches the white reference. "
+                                        "Not wrap/sickle — those move the planform, not the face scoop. Preview after changes.",
+                                        classes="text-caption mb-2",
+                                    )
                                     _slider("Camber position", "e_camber_pos", 0.2, 0.6, 0.05, unit="x/c")
                                     _help_select(
                                         "e_thick_mode",
@@ -757,8 +763,8 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     )
                                     html.Div(
                                         "Wall = the thin dimension through the blade (not LE→TE width). "
-                                        "Uniform = same mm root→tip. Rounded plate keeps that wall "
-                                        "to the bullnose ends; NACA still knives the TE.",
+                                        "Uniform = same mm root→tip. Rounded plate keeps wall through "
+                                        "the section (LE round; TE from the roundness slider); NACA knives the TE.",
                                         classes="text-caption mb-2",
                                     )
                                     _slider(
@@ -767,16 +773,15 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         disabled=("e_section_family === 'plate'",),
                                     )
                                     _slider(
-                                        "TE thick scale", "e_te_thick", 0.5, 2.0, 0.05,
+                                        "TE thick / roundness", "e_te_thick", 0.0, 2.0, 0.05,
                                         unit="×",
-                                        disabled=("e_section_family === 'plate'",),
                                     )
                                     html.Div(
-                                        "LE/TE scales reshape nose/tail on top of the span thickness "
-                                        "(1 = stock NACA). TE>1 fattens the aft section. "
-                                        "Full bullnose → Rounded plate. Preview after changes.",
+                                        "NACA: LE/TE scales reshape nose/tail (1 = stock). TE>1 fattens "
+                                        "the aft section. Plate: TE slider is trailing-edge roundness "
+                                        "(1 = full bullnose, ~0.2 = sharp TE; LE stays round). "
+                                        "Camber bows the plate face (slight tip→hub curve). Preview after changes.",
                                         classes="text-caption text-medium-emphasis mb-2",
-                                        v_show="e_section_family === 'naca'",
                                     )
                             with v3.VExpansionPanel(title="3-D shape — wrap, sweep, rake"):
                                 with v3.VExpansionPanelText():
@@ -806,6 +811,25 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     )
                                     _slider("Tip round", "e_tip_round", 0.0, 1.0, 0.05, unit="0–1")
                                     _slider("Tip round start", "e_tip_start", 0.5, 0.92, 0.02, unit="span")
+                                    _help_switch(
+                                        "e_tip_notched",
+                                        "Tip TE notches (3 boxy bites)",
+                                        help_map=CONTROL_DESC,
+                                    )
+                                    _slider(
+                                        "Tip notch depth",
+                                        "e_tip_notch_depth",
+                                        0.5,
+                                        3.0,
+                                        0.1,
+                                        unit="mm",
+                                        disabled=("!e_tip_notched",),
+                                    )
+                                    html.Div(
+                                        "Three boxy / skewed-rectangle bites on the outer trailing edge "
+                                        "(stock A12x25 style). Not spanwise owl serrations.",
+                                        classes="text-caption mb-2",
+                                    )
                                     _slider("Winglet start", "e_winglet_span", 0.6, 0.95, 0.05, unit="span")
                                     _slider("Winglet sweep", "e_winglet_sweep", 0, 15, 0.5, unit="mm")
                                     _slider("Winglet lean", "e_winglet_lean", 0, 30, 1, unit="deg")

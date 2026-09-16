@@ -621,6 +621,14 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         state.e_shroud_height = min(max(float(p.get("shroud_height_frac", 1.0)), 0.0), 1.0)
         state.e_tip_round = float(p.get("tip_round", 0.0))
         state.e_tip_start = float(p.get("tip_round_start", 0.80))
+        state.e_tip_notched = bool(
+            int(p.get("tip_notch_count", 0) or 0) > 0
+            or p.get("notched_tips")
+            or float(p.get("tip_notch_depth_mm", 0.0) or 0.0) > 0.0
+        )
+        state.e_tip_notch_depth = float(
+            p.get("tip_notch_depth_mm", 1.5) or 1.5
+        ) if state.e_tip_notched else 1.5
         _ct = p.get("cylindrical_tip", True)
         if isinstance(_ct, str):
             state.e_cylindrical_tip = _ct.strip().lower() not in (
@@ -743,6 +751,13 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             tip_round=state.e_tip_round,
             tip_round_start=state.e_tip_start,
             cylindrical_tip=bool(state.e_cylindrical_tip),
+            notched_tips=bool(getattr(state, "e_tip_notched", False)),
+            tip_notch_count=(3 if bool(getattr(state, "e_tip_notched", False)) else 0),
+            tip_notch_depth_mm=(
+                float(getattr(state, "e_tip_notch_depth", 1.5) or 1.5)
+                if bool(getattr(state, "e_tip_notched", False))
+                else 0.0
+            ),
             hub_radius=state.e_hub_radius,
             tip_radius=state.e_tip_radius,
             hub_height=state.e_hub_height,
@@ -792,6 +807,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             "shroud_height_frac": ("e_shroud_height", float),
             "tip_round": ("e_tip_round", float),
             "tip_round_start": ("e_tip_start", float),
+            "tip_notch_depth_mm": ("e_tip_notch_depth", float),
             "hub_radius": ("e_hub_radius", float),
             "tip_radius": ("e_tip_radius", float),
             "hub_height": ("e_hub_height", float),
@@ -838,6 +854,13 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                 )
             else:
                 state.e_cylindrical_tip = bool(_ct) if _ct is not None else True
+        state.e_tip_notched = bool(
+            int(flat.get("tip_notch_count", 0) or 0) > 0
+            or flat.get("notched_tips")
+            or float(flat.get("tip_notch_depth_mm", 0.0) or 0.0) > 0.0
+        )
+        if "tip_notch_depth_mm" in flat and float(flat.get("tip_notch_depth_mm") or 0) > 0:
+            state.e_tip_notch_depth = float(flat["tip_notch_depth_mm"])
 
     def on_fit_envelope():
         res = fit_envelope(edit_flat(), active_spec(), features=edit_features())
@@ -1267,7 +1290,11 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
 
         async def task():
             state.preview_busy = True
-            heavy = "features are heavy — up to ~2 min" if params.features.active else ""
+            heavy = ""
+            if params.features.active:
+                heavy = "features are heavy — up to ~2 min"
+            elif int(getattr(params, "tip_notch_count", 0) or 0) > 0:
+                heavy = "tip TE notches — first build can take ~30–60 s"
             ticker, _t0 = spawn_busy_ticker(
                 action="Preview",
                 msg_attr="preview_msg",
@@ -1280,8 +1307,9 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                 await loop.run_in_executor(None, _build_preview_stl, flat, feat)
             except TimeoutError:
                 state.preview_msg = (
-                    "⚠ Geometry build timed out — featured blades are heavy; "
-                    "try a lower serration/dimple count (the app is fine)."
+                    "⚠ Geometry build timed out — previous mesh kept (so nothing looks "
+                    "changed). Tip TE notches / bio-features are heavy; wait for Preview to "
+                    "finish, or turn notches off briefly to tweak Sickle/Wrap, then re-enable."
                 )
                 state.preview_busy = False
                 ticker.cancel()
@@ -1413,6 +1441,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         "e_shroud_height",
         "e_tip_round",
         "e_tip_start",
+        "e_tip_notched",
+        "e_tip_notch_depth",
         "e_cylindrical_tip",
         "e_hub_radius",
         "e_tip_radius",

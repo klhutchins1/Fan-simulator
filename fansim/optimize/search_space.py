@@ -269,7 +269,14 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
         bp.te_thick_scale = float(p["te_thick_scale"])
     if "cylindrical_tip" in p:
         bp.cylindrical_tip = bool(p["cylindrical_tip"])
-    if int(p.get("tip_notch_count", 0) or 0) > 0 or p.get("notched_tips"):
+    if (
+        int(p.get("tip_notch_count", 0) or 0) > 0
+        or p.get("notched_tips")
+        or float(p.get("tip_notch_depth_mm", 0.0) or 0.0) > 0.0
+    ):
+        # Notches are a FIXED recipe (on/off): apply_notched_tips stamps the canonical
+        # count/depth. Do NOT override from the flat -- that silently reintroduced 1.2 mm
+        # over the 1.5 mm recipe (test_fit_envelope_preserves_sickle_and_notch_keys).
         from fansim.geometry.blade import apply_notched_tips
         apply_notched_tips(bp)
     if float(p.get("sickle_mm", 0.0)) > 0.0:
@@ -352,6 +359,9 @@ def blade_to_flat(params: BladeParams) -> dict:
         shroud_height_frac=float(params.shroud_height_frac or 1.0),
         span_interp=str(getattr(params, "span_interp", "linear") or "linear"),
         section_family=str(getattr(params, "section_family", "naca") or "naca"),
+        tip_notch_count=int(getattr(params, "tip_notch_count", 0) or 0),
+        tip_notch_depth_mm=float(getattr(params, "tip_notch_depth_mm", 0.0) or 0.0),
+        notched_tips=bool(int(getattr(params, "tip_notch_count", 0) or 0) > 0),
         spacing_spread=0.0, spacing_seed=0,
         tip_round=0.0, tip_round_start=0.80,
         winglet_span=0.85, winglet_sweep=0.0, winglet_lean=0.0,

@@ -17,8 +17,12 @@ def test_reference_blade_count_and_envelope():
     assert flat["n_blades"] == 9
     assert 54.0 <= flat["tip_radius"] <= 55.0
     assert 20.0 <= flat["hub_radius"] <= 23.0
-    assert float(flat.get("hub_height") or 0.0) >= 15.0
-    assert float(flat.get("blade_hub_z") or 0.0) == pytest.approx(4.5)
+    assert float(flat.get("hub_height") or 0.0) == pytest.approx(16.5)
+    assert float(flat.get("blade_hub_z") or 0.0) == pytest.approx(2.5)
+    assert flat.get("span_interp") == "pchip"
+    assert float(flat.get("te_thick_scale") or 1.0) == pytest.approx(0.2)
+    assert int(flat.get("tip_notch_count") or 0) == 3
+    assert float(flat.get("tip_notch_depth_mm") or 0.0) == pytest.approx(1.5)
     # STL cylinder-slice eye-fit (2026-09-15): mid~23/30°, tip~33/21°, wrap via lean.
     assert flat["chord_root"] == pytest.approx(18.0)
     assert flat["chord_mid"] == pytest.approx(24.0)

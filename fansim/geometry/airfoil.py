@@ -94,48 +94,95 @@ def naca4(
     return loop
 
 
-def rounded_plate(
-    thickness: float, n_points: int = 60, *, return_chord_param: bool = False,
-) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
-    """Constant-thickness stadium section: flat faces + semicircle LE and TE (bullnose).
+def _naca_camber_line(
+    x: np.ndarray, max_camber: float, camber_pos: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """NACA 4-digit meanline ``yc`` and slope angle ``theta`` at chord stations ``x``."""
+    m, p = float(max_camber), float(camber_pos)
+    if m <= 0.0 or not (0.0 < p < 1.0):
+        z = np.zeros_like(x, dtype=float)
+        return z, z
+    yc = np.where(
+        x < p,
+        (m / p**2) * (2 * p * x - x**2),
+        (m / (1 - p) ** 2) * ((1 - 2 * p) + 2 * p * x - x**2),
+    )
+    dyc = np.where(
+        x < p,
+        (2 * m / p**2) * (p - x),
+        (2 * m / (1 - p) ** 2) * (p - x),
+    )
+    return yc, np.arctan(dyc)
 
-    Radius of each end = ``thickness / 2`` (full round). Chord normalized to 1. Same loop
-    ordering as ``naca4`` (start at TE, upper to LE, lower back to TE). Symmetric — no camber.
+
+def rounded_plate(
+    thickness: float,
+    n_points: int = 60,
+    *,
+    max_camber: float = 0.0,
+    camber_pos: float = 0.4,
+    te_radius_frac: float = 1.0,
+    return_chord_param: bool = False,
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+    """Constant-thickness plate: round LE, tunable TE, optional camber (slight face curve).
+
+    LE radius is always ``t/2`` (full bullnose). TE radius is
+    ``te_radius_frac * t/2`` (1 = stadium / full round, ~0 = sharp knife TE). Flat faces
+    sit at ±``t/2`` before camber. Camber uses the NACA 4-digit meanline so the blade
+    face bows chordwise (the tip→hub “slight curve” on printed PC fans) — wrap/lean still
+    handle the spanwise vortex/planform twist.
     """
     t = max(float(thickness), 1e-6)
-    R = min(0.5 * t, 0.49)
+    half_t = 0.5 * t
+    R_le = min(half_t, 0.49)
+    te_frac = float(np.clip(te_radius_frac, 0.0, 1.0))
+    # Keep a tiny TE radius so the loft wire stays manifold when "sharp".
+    R_te = max(te_frac * half_t, min(0.02 * half_t, 0.004))
+    R_te = min(R_te, 0.49)
 
     n_arc = max(int(n_points) // 2, 8)
     n_flat = max(int(n_points) // 2, 4)
 
-    # Upper TE→LE: TE tip → TE quarter-circle → flat → LE quarter-circle → LE tip
+    # Upper TE→LE: TE tip → TE arc → flat → LE arc → LE tip
     th_te_u = np.linspace(0.0, 0.5 * np.pi, n_arc, endpoint=False)
-    te_u = np.column_stack([(1.0 - R) + R * np.cos(th_te_u), R * np.sin(th_te_u)])
+    te_u = np.column_stack([(1.0 - R_te) + R_te * np.cos(th_te_u), R_te * np.sin(th_te_u)])
 
-    x_flat_u = np.linspace(1.0 - R, R, n_flat, endpoint=False)
-    flat_u = np.column_stack([x_flat_u, np.full_like(x_flat_u, R)])
+    x_flat_u = np.linspace(1.0 - R_te, R_le, n_flat, endpoint=False)
+    flat_u = np.column_stack([x_flat_u, np.full_like(x_flat_u, half_t)])
 
     th_le_u = np.linspace(0.5 * np.pi, np.pi, n_arc, endpoint=True)
-    le_u = np.column_stack([R + R * np.cos(th_le_u), R * np.sin(th_le_u)])
+    le_u = np.column_stack([R_le + R_le * np.cos(th_le_u), R_le * np.sin(th_le_u)])
     upper = np.vstack([te_u, flat_u, le_u])
 
     # Lower LE→TE (skip LE tip duplicate)
     th_le_l = np.linspace(np.pi, 1.5 * np.pi, n_arc, endpoint=False)[1:]
-    le_l = np.column_stack([R + R * np.cos(th_le_l), R * np.sin(th_le_l)])
+    le_l = np.column_stack([R_le + R_le * np.cos(th_le_l), R_le * np.sin(th_le_l)])
 
-    x_flat_l = np.linspace(R, 1.0 - R, n_flat, endpoint=False)
-    flat_l = np.column_stack([x_flat_l, np.full_like(x_flat_l, -R)])
+    x_flat_l = np.linspace(R_le, 1.0 - R_te, n_flat, endpoint=False)
+    flat_l = np.column_stack([x_flat_l, np.full_like(x_flat_l, -half_t)])
 
     th_te_l = np.linspace(-0.5 * np.pi, 0.0, n_arc, endpoint=True)
-    te_l = np.column_stack([(1.0 - R) + R * np.cos(th_te_l), R * np.sin(th_te_l)])
+    te_l = np.column_stack([(1.0 - R_te) + R_te * np.cos(th_te_l), R_te * np.sin(th_te_l)])
     lower = np.vstack([le_l, flat_l, te_l])
 
     loop = np.vstack([upper, lower])
     if not np.allclose(loop[0], loop[-1]):
         loop = np.vstack([loop, loop[0]])
-    # No camber → surface X is the chord parameter.
+
+    # Chord parameter before camber (surface X ≈ chord param on the flat plate).
+    x_param = np.asarray(loop[:, 0], dtype=float)
+
+    m = float(max_camber)
+    if m > 1e-9:
+        yc, theta = _naca_camber_line(x_param, m, float(camber_pos))
+        y_local = loop[:, 1]
+        loop = np.column_stack([
+            x_param - y_local * np.sin(theta),
+            yc + y_local * np.cos(theta),
+        ])
+
     if return_chord_param:
-        return loop, np.asarray(loop[:, 0], dtype=float)
+        return loop, x_param
     return loop
 
 
@@ -146,12 +193,20 @@ def section_loop_2d(
     camber_pos: float,
     thickness: float,
     n_points: int = 60,
+    te_radius_frac: float = 1.0,
     return_chord_param: bool = False,
 ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """Dispatch to NACA or rounded-plate generator."""
     fam = str(family or SECTION_NACA).lower().strip()
     if fam == SECTION_PLATE:
-        return rounded_plate(thickness, n_points, return_chord_param=return_chord_param)
+        return rounded_plate(
+            thickness,
+            n_points,
+            max_camber=max_camber,
+            camber_pos=camber_pos,
+            te_radius_frac=te_radius_frac,
+            return_chord_param=return_chord_param,
+        )
     return naca4(
         max_camber, camber_pos, thickness, n_points, return_chord_param=return_chord_param,
     )

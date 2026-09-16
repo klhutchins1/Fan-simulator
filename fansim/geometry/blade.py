@@ -89,6 +89,32 @@ NOTCH_COUNT = 3
 NOTCH_DEPTH_MM = 1.5
 NOTCH_START_FRAC = 0.88  # outer-span TE bites; hub is untouched
 NOTCH_SPAN_SECTIONS = 48
+# Preview can use fewer span samples; still enough to read three boxy bites.
+NOTCH_SPAN_SECTIONS_PREVIEW = 28
+# Boxy TE tooth: steep ramps + flat bite (skewed-rectangle TE steps vs soft sin lobes).
+NOTCH_RAMP = 0.06
+NOTCH_DUTY = 0.55
+
+
+def tip_notch_tooth(u: float, count: int) -> float:
+    """Unit-height boxy TE bite at outer-span fraction ``u`` ∈ [0, 1].
+
+    Three (``count``) flat-bottom pulses in the outer band — steep walls so the loft reads as
+    skewed rectangular TE steps (close-ref A12x25 tip TE), not a sine wave. 0 at the hub.
+    """
+    n = int(count)
+    if n <= 0 or u <= 0.0:
+        return 0.0
+    local = (float(n) * float(u)) % 1.0
+    ramp = float(NOTCH_RAMP)
+    duty = float(NOTCH_DUTY)
+    if local < ramp:
+        return local / ramp if ramp > 1e-9 else 1.0
+    if local < duty:
+        return 1.0
+    if local < duty + ramp:
+        return max(0.0, 1.0 - (local - duty) / ramp) if ramp > 1e-9 else 0.0
+    return 0.0
 
 
 @dataclass
@@ -126,12 +152,14 @@ class BladeParams:
     # When True, intersect each lofted blade with a cylinder of radius tip_radius so the tip
     # face is cylindrical (matches the cover circle). False = legacy bulging LE/TE corners.
     cylindrical_tip: bool = True
-    # Chordwise thickness bias (global): scale local NACA thickness near LE / TE.
-    # 1.0 = unchanged; typical range 0.5–1.5. Thickness root/mid/tip still set max thickness.
-    # Ignored when section_family == "plate".
+    # Chordwise thickness bias (global):
+    #   NACA — scale local thickness near LE / TE (1 = stock; typical 0.5–1.5).
+    #   plate — LE stays full bullnose; ``te_thick_scale`` is TE roundness in [0, 1]
+    #   (1 = full TE bullnose, ~0.2 = sharp printable TE). ``le_thick_scale`` unused.
     le_thick_scale: float = 1.0
     te_thick_scale: float = 1.0
-    # Airfoil family: "naca" (default) or "plate" (constant-t stadium / bullnose both ends).
+    # Airfoil family: "naca" (default) or "plate" (constant-t; camber bows the face;
+    # TE radius from te_thick_scale).
     section_family: str = SECTION_NACA
     # Span loft between control stations: "linear" (default, can kink at mid) or "pchip"
     # (shape-preserving cubic — smooth through hub/mid/tip). Stage 1 optional smooth curves.
@@ -304,9 +332,11 @@ def _section_loop(
     fam = str(section_family or SECTION_NACA).lower().strip()
     if fam not in SECTION_FAMILIES:
         fam = SECTION_NACA
+    # Plate: te_thick_scale → TE roundness (1=full bullnose, 0=sharp). NACA ignores this path.
+    te_radius_frac = float(np.clip(te_thick_scale, 0.0, 1.0)) if fam == SECTION_PLATE else 1.0
     loop, x_param = section_loop_2d(
         fam, max_camber=max_camber, camber_pos=camber_pos, thickness=thickness,
-        n_points=n_chord, return_chord_param=True,
+        n_points=n_chord, te_radius_frac=te_radius_frac, return_chord_param=True,
     )
     # Drop the explicit closing duplicate; the wire is closed by makePolygon(close=True).
     if np.allclose(loop[0], loop[-1]):
@@ -329,7 +359,10 @@ def _section_loop(
         span = 1.0 - NOTCH_START_FRAC
         u = float(np.clip((float(r_frac) - NOTCH_START_FRAC) / span, 0.0, 1.0))
         w_te = np.clip((x - 0.5) / 0.5, 0.0, 1.0)
-        tooth = max(0.0, float(np.sin(2.0 * np.pi * tip_notch_count * u)))
+        # Mild tip-ward amplitude ramp (skewed-rectangle read on TE). Do NOT reuse
+        # the name ``skew`` — that is the circumferential station offset below.
+        tooth_amp = 0.92 + 0.16 * u
+        tooth = tip_notch_tooth(u, int(tip_notch_count)) * tooth_amp
         a = a - float(tip_notch_depth_mm) * tooth * w_te
     # Leading-edge weight: 1 at the LE (x=0), 0 by mid-chord (x>=0.5).
     w_le = np.where(x < 0.5, 0.5 * (1.0 + np.cos(2.0 * np.pi * x)), 0.0)
@@ -379,7 +412,7 @@ def _section_points_3d(
     is rotated about Z to ``lean_deg``. Varying lean along the span wraps the planform so
     blades can overlap — a straight radial stack (lean=0) cannot. ``cylindrical_tip`` later
     clips the lofted solid to a cylinder of ``tip_radius``. Optional ``le_thick_scale`` /
-    ``te_thick_scale`` bias thickness toward LE/TE (NACA family only).
+    ``te_thick_scale`` biases NACA LE/TE thickness; on plate it sets TE roundness (0–1).
     """
     _, pts = _section_loop(
         r=r, r_frac=r_frac, chord=chord, stagger_deg=stagger_deg, thickness=thickness,
@@ -465,7 +498,14 @@ def build_blade_solid(params: BladeParams) -> cq.Solid:
     if len(params.stations) > 3:
         n_span = max(n_span, 30)
     if int(params.tip_notch_count or 0) > 0:
-        n_span = max(n_span, NOTCH_SPAN_SECTIONS)
+        # Full solids keep 48; screen/preview loft (n_span already ≤ SCREEN_N_SPAN) uses a
+        # lighter floor so cockpit Preview with tip notches does not time out.
+        notch_floor = (
+            NOTCH_SPAN_SECTIONS_PREVIEW
+            if int(params.n_span) <= SCREEN_N_SPAN
+            else NOTCH_SPAN_SECTIONS
+        )
+        n_span = max(n_span, notch_floor)
     n_chord = params.features.required_chord_points(params.n_chord)
     interp = _interp_stations(params, n_span)
     r_root = params.hub_radius - params.root_embed
@@ -812,12 +852,17 @@ def _section_family(params: BladeParams) -> str:
     return fam if fam in SECTION_FAMILIES else SECTION_NACA
 
 
-def _thick_scale_kw(params: BladeParams) -> dict[str, float]:
-    return dict(
-        le_thick_scale=_clamp_thick_scale(getattr(params, "le_thick_scale", 1.0) or 1.0),
-        te_thick_scale=_clamp_thick_scale(getattr(params, "te_thick_scale", 1.0) or 1.0),
-        section_family=_section_family(params),
-    )
+def _thick_scale_kw(params: BladeParams) -> dict[str, float | str]:
+    fam = _section_family(params)
+    te_raw = float(getattr(params, "te_thick_scale", 1.0) or 1.0)
+    if fam == SECTION_PLATE:
+        # Plate TE roundness is 0–1 (sharp→bullnose); do not apply NACA 0.5 floor.
+        te = float(min(max(te_raw, 0.0), 1.0))
+        le = 1.0
+    else:
+        te = _clamp_thick_scale(te_raw)
+        le = _clamp_thick_scale(getattr(params, "le_thick_scale", 1.0) or 1.0)
+    return dict(le_thick_scale=le, te_thick_scale=te, section_family=fam)
 
 
 def le_te_thick_factors(

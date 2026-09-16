@@ -69,9 +69,14 @@ def test_notched_tips_leave_hub_te():
 
 
 def test_notched_tips_bite_te_at_first_tooth_not_le():
+    from fansim.geometry.blade import NOTCH_DUTY, NOTCH_RAMP, tip_notch_tooth
+
     p = _unswept()
-    u_peak = 0.25 / NOTCH_COUNT  # first positive lobe of sin(2π count u)
+    # Mid of the first boxy tooth flat (not the old sin peak).
+    local_mid = 0.5 * (NOTCH_RAMP + NOTCH_DUTY)
+    u_peak = local_mid / NOTCH_COUNT
     rf = NOTCH_START_FRAC + (1.0 - NOTCH_START_FRAC) * u_peak
+    assert tip_notch_tooth(u_peak, NOTCH_COUNT) == pytest.approx(1.0, abs=0.05)
     le0, te0 = _le_te_at(p, rf)
     apply_notched_tips(p)
     assert p.tip_notch_count == NOTCH_COUNT
@@ -80,7 +85,8 @@ def test_notched_tips_bite_te_at_first_tooth_not_le():
     assert _dist(le1, le0) < 0.3
     chord0 = _dist(le0, te0)
     chord1 = _dist(le1, te1)
-    assert chord0 - chord1 == pytest.approx(NOTCH_DEPTH_MM, abs=0.3)
+    # Boxy tooth × mild tip-ward skew (~0.85–1.15) → bite near depth_mm.
+    assert chord0 - chord1 == pytest.approx(NOTCH_DEPTH_MM, abs=0.45)
 
 
 def test_apply_notched_tips_is_idempotent():
