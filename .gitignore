@@ -16,9 +16,11 @@ catalog/*.db
 *.stl.meta.json
 # Exception: trusted A12x25 reference impeller for geometry/CFD gates
 !validation/reference/a12x25_impeller.stl
-# Cached parametric Stock preview (gold ✕) — rebuilt when recipe fingerprint changes
-!validation/reference/*_stock_parametric.stl
-!validation/reference/*_stock_parametric.stl.meta.json
+# Parametric Stock preview (gold ✕) is a rebuildable runtime cache, not tracked reference
+# data — it lives under .cache/ now (see fansim/cockpit/stock_cache.py), so nothing to track.
+
+# Rebuildable caches (stock preview mesh, etc.)
+.cache/
 
 # OpenFOAM case artifacts
 processor*/

@@ -7,7 +7,11 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-STOCK_CACHE_DIR = ROOT / "validation" / "reference"
+# Runtime cache for the parametric Stock preview mesh (gold ✕). This is a rebuildable cache,
+# NOT tracked reference data — it lives under a gitignored dir so a stock preview (in the app
+# or a test) never rewrites anything in git. Tests redirect it to a tmp dir (tests/conftest.py).
+# The trusted geometry/CFD golden is the separate validation/reference/a12x25_impeller.stl.
+STOCK_CACHE_DIR = ROOT / ".cache" / "stock"
 
 
 def stock_cache_paths(fan_model: str = "a12x25") -> tuple[Path, Path]:
@@ -56,6 +60,7 @@ def stock_cache_hit(fan_model: str, flat: dict, *, preview: bool = True) -> Path
 
 def write_stock_cache_meta(fan_model: str, flat: dict, *, preview: bool = True) -> Path:
     stl, meta = stock_cache_paths(fan_model)
+    meta.parent.mkdir(parents=True, exist_ok=True)
     meta.write_text(
         json.dumps(
             {
