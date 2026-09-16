@@ -22,6 +22,8 @@ DEFAULT_MAX_CLOUD = 2000
 DEFAULT_STRIDE = 1
 DEFAULT_MAX_ARROWS = 700
 DEFAULT_FACTOR = 2.0  # |U| [m/s] * factor ≈ arrow length in mm
+# Tip |U| spikes (~20+ m/s) blow glyph scale vs bulk (~3 m/s). Cap length at p95 (§15.3).
+GLYPH_MAG_PERCENTILE = 95.0
 
 
 @dataclass(frozen=True)
@@ -143,8 +145,13 @@ def make_glyph_arrows(
     stride: int = DEFAULT_STRIDE,
     factor: float = DEFAULT_FACTOR,
     max_arrows: int = DEFAULT_MAX_ARROWS,
+    mag_percentile: float = GLYPH_MAG_PERCENTILE,
 ):
-    """Build arrow glyphs from a velocity cloud (already in plotter units)."""
+    """Build arrow glyphs from a velocity cloud (already in plotter units).
+
+    Orientation uses true ``U``; arrow *length* scales with ``U_mag`` capped at the
+    given percentile so tip spikes cannot dominate the Design 3-D view (§15.3).
+    """
     import pyvista as pv
 
     if cloud is None or cloud.n_points == 0:
@@ -171,9 +178,21 @@ def make_glyph_arrows(
         u = np.asarray(src["U"], dtype=float)
         src["U_mag"] = np.linalg.norm(u, axis=1) if u.ndim > 1 else np.abs(u)
 
+    mag = np.asarray(src["U_mag"], dtype=float)
+    pct = float(np.clip(mag_percentile, 50.0, 100.0))
+    if mag.size and pct < 100.0:
+        cap = float(np.percentile(mag, pct))
+        if cap > 0.0:
+            src["U_glyph_scale"] = np.minimum(mag, cap)
+            scale_key = "U_glyph_scale"
+        else:
+            scale_key = "U_mag"
+    else:
+        scale_key = "U_mag"
+
     arrows = src.glyph(
         orient="U",
-        scale="U_mag",
+        scale=scale_key,
         factor=float(factor),
         geom=pv.Arrow(),
     )

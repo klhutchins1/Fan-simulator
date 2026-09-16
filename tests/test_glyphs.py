@@ -137,3 +137,31 @@ def test_ensure_velocity_glyphs_with_injected_mesh(tmp_path: Path):
     assert art.n_points <= 50
     arrows = make_glyph_arrows(art.cloud, factor=2.0, max_arrows=40)
     assert arrows is not None and arrows.n_cells > 0
+
+
+def test_glyph_length_caps_tip_spikes_at_p95():
+    """§15.3: a few tip spikes must not set the arrow length scale."""
+    pv = pytest.importorskip("pyvista")
+    n = 100
+    pts = np.zeros((n, 3), dtype=float)
+    pts[:, 0] = np.linspace(-10, 10, n)
+    cloud = pv.PolyData(pts)
+    u = np.zeros((n, 3), dtype=float)
+    u[:, 2] = 3.0
+    u[-1, 2] = 30.0  # tip spike
+    cloud["U"] = u
+    cloud["U_mag"] = np.linalg.norm(u, axis=1)
+
+    # Build with and without clamp; capped glyphs use smaller max scale input.
+    src = cloud.copy(deep=True)
+    mag = np.asarray(src["U_mag"], dtype=float)
+    cap = float(np.percentile(mag, 95))
+    assert cap < 30.0
+    assert cap == pytest.approx(3.0, abs=0.5)
+    arrows = make_glyph_arrows(cloud, factor=1.0, max_arrows=200, mag_percentile=95)
+    assert arrows is not None and arrows.n_points > 0
+    # Unclamped would scale the spike to 30×; with p95 the effective max scale is ~3.
+    arrows_uncapped = make_glyph_arrows(cloud, factor=1.0, max_arrows=200, mag_percentile=100)
+    assert arrows_uncapped is not None
+    # Bounds of capped arrows should be tighter along Z than uncapped (spike arrow tip).
+    assert arrows.bounds[5] - arrows.bounds[4] < arrows_uncapped.bounds[5] - arrows_uncapped.bounds[4]
