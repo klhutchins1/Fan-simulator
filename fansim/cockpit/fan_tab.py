@@ -32,6 +32,7 @@ from fansim.cockpit.busy import (
 )
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.data import Design, feasible_designs, load_designs
+from fansim.cockpit.errors import log_caught
 from fansim.cockpit.fan_helpers import (
     _blade_max_dia,
     _blade_z_extent,
@@ -986,8 +987,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                 print_readme(out.stem, params, spec.material, rep, bal, settings, None),
                 encoding="utf-8",
             )
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001 - README sidecar is best-effort
+            log_caught(_log, "export print README", exc)
         gauge = None
         if mount is not None:
             try:
@@ -1003,7 +1004,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                         "rpm": float(params.rpm),
                     },
                 )
-            except Exception:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
+                log_caught(_log, "print fit sidecars", exc, level=logging.DEBUG)
                 gauge = None
         return rep, gauge
 
@@ -1191,17 +1193,23 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         plotter.add_mesh(cyl, color="seagreen", opacity=0.10)
         try:
             plotter.add_mesh(cyl.extract_feature_edges(), color="seagreen", line_width=2)
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001 - feature edges optional
+            log_caught(_log, "frame cylinder edges", exc, level=logging.DEBUG)
 
     def _apply_render(reset: bool = False):
+        """(Re)draw the current model with the active highlight/envelope/glyph options.
+
+        Split back out of ``_add_envelope`` (drive-loss recovery had merged the two, leaving a
+        recursive ``_add_envelope`` call and an undefined ``_apply_render`` on the render path).
+        """
         plotter.clear_actors()
         p = render_state["path"]
         mesh = None
         if p:
             try:
                 mesh = pv.read(str(p))
-            except Exception:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
+                log_caught(_log, f"read preview mesh {p}", exc)
                 mesh = None
         if mesh is not None:
             base = render_state["color"]
@@ -1239,9 +1247,9 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                         color="royalblue",
                         show_scalar_bar=False,
                     )
-                except Exception:
-                    pass
-        if reset and (mesh is not None or render_state.get("glyph_arrows") is not None):
+                except Exception as exc:  # noqa: BLE001
+                    log_caught(_log, "glyph overlay", exc, level=logging.DEBUG)
+        if reset:
             plotter.reset_camera()
 
     def _draw(path, color: str):
@@ -1254,8 +1262,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         _apply_render(reset=False)
         try:
             ctrl.view_update()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            log_caught(_log, "view_update (viz toggle)", exc, level=logging.DEBUG)
 
     @state.change("glyph_mode")
     def _on_glyph_mode(glyph_mode=None, **_):
@@ -1272,8 +1280,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         _apply_render(reset=False)
         try:
             ctrl.view_update()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            log_caught(_log, "view_update (glyph params)", exc, level=logging.DEBUG)
 
     def do_preview():
         if state.preview_busy or state.assess_busy:
@@ -1356,8 +1364,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             ticker.cancel()
             try:
                 ctrl.view_update()
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001
+                log_caught(_log, "view_update (preview)", exc, level=logging.DEBUG)
             state.flush()
 
         asynchronous.create_task(task())
@@ -1623,8 +1631,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             need = mount_min_hub_radius(active_spec())
             parts.append("mountable" if (need is None or lp.hub_radius >= need) else "NOT mountable")
             parts.append(f"print {grade_printability(lp).difficulty:.0f}/100")
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001 - catalog caption is best-effort
+            log_caught(_log, "catalog printability caption", exc, level=logging.DEBUG)
         if e.has_measurement and e.measured_cfm is not None:
             parts.append(
                 f"MEASURED {e.measured_cfm:.0f} CFM (sim {e.cfm_error_pct:+.0f}%)"
@@ -1698,8 +1706,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
             if meta.exists():
                 try:
                     vol = float(json.loads(meta.read_text()).get("volume_mm3", vol))
-                except Exception:  # noqa: BLE001
-                    pass
+                except Exception as exc:  # noqa: BLE001
+                    log_caught(_log, "preview volume sidecar", exc, level=logging.DEBUG)
             weight = estimate_weight_g(vol, spec.material)
         except Exception:  # noqa: BLE001
             return True, ""
@@ -1939,8 +1947,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                             + (f"\n{hint}" if hint else "")
                         )
                         return
-                except Exception:  # noqa: BLE001 — never block Assess on readout failure
-                    pass
+                except Exception as exc:  # noqa: BLE001 — never block Assess on readout failure
+                    log_caught(_log, "Assess preflight readout", exc)
                 cur = (
                     by_trial.get(int(state.selected_trial))
                     if state.selected_trial is not None
@@ -2413,8 +2421,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                 try:
                     state.flush()
                     ctrl.view_update()
-                except Exception:
-                    pass
+                except Exception as exc:  # noqa: BLE001
+                    log_caught(_log, "view_update (airflow)", exc, level=logging.DEBUG)
 
         asynchronous.create_task(task())
 
@@ -2423,8 +2431,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         _apply_airflow_field()
         try:
             state.flush()
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001
+            log_caught(_log, "state.flush (airflow field)", exc, level=logging.DEBUG)
 
     def select(trial: int | None):
         _log.debug("select(%r)", trial)
@@ -2482,8 +2490,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
         _schedule_airflow(d)
         try:
             ctrl.view_update()
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001
+            log_caught(_log, "view_update (select)", exc, level=logging.DEBUG)
 
     @state.change("selected_trial")
     def _on_dropdown(selected_trial=None, **_):
@@ -2684,8 +2692,8 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
                 try:
                     state.flush()
                     ctrl.view_update()
-                except Exception:
-                    pass
+                except Exception as exc:  # noqa: BLE001
+                    log_caught(_log, "view_update (stock preview)", exc, level=logging.DEBUG)
 
         asynchronous.create_task(task())
 

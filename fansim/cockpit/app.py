@@ -45,8 +45,12 @@ def _quiet_connection_reset(server) -> None:
                 loop.default_exception_handler(context)
 
             loop.set_exception_handler(handler)
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 - optional loop hook
+            import logging
+
+            logging.getLogger(__name__).debug(
+                "skip asyncio exception handler install: %s: %s", type(exc).__name__, exc
+            )
 
     server.controller.on_server_ready.add(_ready)
 
@@ -128,8 +132,8 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
     setup_prop_tab(ctx)
     setup_cror_tab(ctx)
 
-    # Defer Mixed/Volute/Prop layout (and their VTK Plotters) until first tab visit.
-    _lazy_ui = {"mixed": False, "volute": False, "propeller": False}
+    # Defer Mixed/Volute/Prop/CROR layout (and their VTK Plotters) until first tab visit.
+    _lazy_ui = {"mixed": False, "volute": False, "propeller": False, "cror": False}
 
     with SinglePageLayout(server) as layout:
         layout.title.set_text("Fan-simulator Cockpit")
@@ -154,7 +158,6 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                             v3.VTab("CROR", value="cror", v_bind="props")
 
                 render_fan_tab(ctx)
-                render_cror_tab(ctx)  # scatter-only; no Plotter
 
                 @state.change("active_tab")
                 def _lazy_tab_ui(active_tab=None, **_):
@@ -168,5 +171,8 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                     elif tab == "propeller" and not _lazy_ui["propeller"]:
                         render_prop_tab(ctx)
                         _lazy_ui["propeller"] = True
+                    elif tab == "cror" and not _lazy_ui["cror"]:
+                        render_cror_tab(ctx)
+                        _lazy_ui["cror"] = True
 
     return server
