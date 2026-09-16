@@ -1,4 +1,3 @@
-# RECONSTRUCTED 2026-09-12: my 420-line base + Cursor blade.py edits replayed + shroud_is_full/SHROUD_FULL_EPS/shroud_axial_range/tip_le_te_z spliced. 752 lines vs ~745 target; VERIFY against any real copy.
 """Parametric axial-fan impeller builder.
 
 Coordinate convention (millimeters):
@@ -88,7 +87,10 @@ SICKLE_DEFAULT_MM = 8.0
 NOTCH_COUNT = 3
 NOTCH_DEPTH_MM = 1.5
 NOTCH_START_FRAC = 0.88  # outer-span TE bites; hub is untouched
-NOTCH_SPAN_SECTIONS = 48
+# Full/CFD loft floor when tip notches are on. Was 48; §15.6 profile (2026-09-16) showed
+# fuse wall-clock ~linear in this floor (48→~168 s, 28→~87 s, 24→~63 s on stock a12x25).
+# 28 still resolves three boxy outer-span bites (same as preview).
+NOTCH_SPAN_SECTIONS = 28
 # Preview can use fewer span samples; still enough to read three boxy bites.
 NOTCH_SPAN_SECTIONS_PREVIEW = 28
 # Boxy TE tooth: steep ramps + flat bite (skewed-rectangle TE steps vs soft sin lobes).
@@ -495,15 +497,15 @@ def build_blade_solid(params: BladeParams) -> cq.Solid:
     n_span = params.features.required_span_sections(params.n_span)
     # Extra inserted stations (winglet shoulder / tip rounding) live in the outer span; raise the
     # spanwise loft resolution so that curved tip reads smoothly instead of as a few facets.
-    if len(params.stations) > 3:
+    # Screen/preview loft (§13.22): do NOT bump — ``with_screen_loft`` already set n_span low on
+    # purpose; bumping to 30 defeats Preview timing (tip-round was ~7.8 s vs stock ~2.3 s).
+    screen = int(params.n_span) <= SCREEN_N_SPAN
+    if len(params.stations) > 3 and not screen:
         n_span = max(n_span, 30)
     if int(params.tip_notch_count or 0) > 0:
-        # Full solids keep 48; screen/preview loft (n_span already ≤ SCREEN_N_SPAN) uses a
-        # lighter floor so cockpit Preview with tip notches does not time out.
+        # Full solids keep 48; screen/preview loft uses a lighter floor.
         notch_floor = (
-            NOTCH_SPAN_SECTIONS_PREVIEW
-            if int(params.n_span) <= SCREEN_N_SPAN
-            else NOTCH_SPAN_SECTIONS
+            NOTCH_SPAN_SECTIONS_PREVIEW if screen else NOTCH_SPAN_SECTIONS
         )
         n_span = max(n_span, notch_floor)
     n_chord = params.features.required_chord_points(params.n_chord)

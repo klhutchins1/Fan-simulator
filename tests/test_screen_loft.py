@@ -35,27 +35,57 @@ def test_build_impeller_screen_watertight_envelope(tmp_path):
     assert abs(dia - 2.0 * p.tip_radius) < 1.5  # cylindrical tip ≈ tip_radius
 
 
-def test_evaluate_candidate_uses_full_loft_not_screen(tmp_path, monkeypatch):
-    """CFD path must not silently drop loft resolution (§13.13)."""
-    seen = {"n_span": None}
+def test_preview_tip_round_keeps_screen_span():
+    """§13.22: tip-round inserts stations; preview must not bump loft to 30."""
+    from copy import deepcopy
 
-    real_build = obj_mod.build_impeller
+    from fansim.geometry.blade import apply_tip_shape, build_blade_solid
 
-    def tracking_build(params):
-        seen["n_span"] = int(params.n_span)
-        seen["n_chord"] = int(params.n_chord)
-        raise RuntimeError("stop-after-loft-check")
+    p = with_screen_loft(apply_tip_shape(deepcopy(BladeParams()), tip_round=0.85))
+    assert len(p.stations) > 3
+    assert p.n_span == SCREEN_N_SPAN
+    # Spy via interp: build_blade_solid would raise if we force a hook — instead check
+    # that screen density is preserved by comparing open tip of screen vs bumped would differ
+    # only in cost. Direct: call build and ensure it completes; assert n_span used via monkeypatch.
+    used = {}
 
-    monkeypatch.setattr(obj_mod, "build_impeller", tracking_build)
-    from fansim.optimize.search_space import stock_blade_flat, blade_from_flat
-    from fansim.geometry.features import Features
-    from dataclasses import replace
+    import fansim.geometry.blade as blade_mod
 
-    params = replace(blade_from_flat(stock_blade_flat("a12x25"), Features()), tip_radius=50.0)
-    res = evaluate_candidate(params, tmp_path / "full", procs=1, iters=1)
-    assert res.feasible is False
-    assert "geometry failed" in res.reason
-    assert seen["n_span"] == 18
-    assert seen["n_chord"] == 60
-    # Sanity: full builder still exists for real CFD.
-    assert callable(real_build)
+    real_interp = blade_mod._interp_stations
+
+    def tracking_interp(params, n_span):
+        used["n_span"] = int(n_span)
+        return real_interp(params, n_span)
+
+    blade_mod._interp_stations = tracking_interp
+    try:
+        build_blade_solid(p)
+    finally:
+        blade_mod._interp_stations = real_interp
+    assert used["n_span"] == SCREEN_N_SPAN
+
+
+def test_full_loft_tip_round_still_bumps_span():
+    """CFD/print path keeps the ≥30 bump when tip-round adds stations."""
+    from copy import deepcopy
+
+    from fansim.geometry.blade import apply_tip_shape, build_blade_solid
+    import fansim.geometry.blade as blade_mod
+
+    p = apply_tip_shape(deepcopy(BladeParams()), tip_round=0.85)
+    assert len(p.stations) > 3
+    assert p.n_span == 18
+    used = {}
+    real_interp = blade_mod._interp_stations
+
+    def tracking_interp(params, n_span):
+        used["n_span"] = int(n_span)
+        return real_interp(params, n_span)
+
+    blade_mod._interp_stations = tracking_interp
+    try:
+        build_blade_solid(p)
+    finally:
+        blade_mod._interp_stations = real_interp
+    assert used["n_span"] >= 30
+

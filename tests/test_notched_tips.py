@@ -13,6 +13,7 @@ from fansim.geometry.blade import (
     BladeParams,
     NOTCH_COUNT,
     NOTCH_DEPTH_MM,
+    NOTCH_SPAN_SECTIONS,
     NOTCH_START_FRAC,
     RadialStation,
     _interp_stations,
@@ -66,6 +67,11 @@ def test_notched_tips_leave_hub_te():
     le1, te1 = _le_te_at(p, 0.0)
     assert _dist(te1, te0) < 0.3
     assert _dist(le1, le0) < 0.3
+
+
+def test_notch_span_floor_is_preview_aligned():
+    """§15.6: full/CFD notch loft floor must stay at 28 (was 48 — fuse ~2× slower)."""
+    assert NOTCH_SPAN_SECTIONS == 28
 
 
 def test_notched_tips_bite_te_at_first_tooth_not_le():

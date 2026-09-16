@@ -72,3 +72,51 @@ Outputs after change: free **65.0 CFM**, shutoff **36.4 Pa** (unchanged on stock
 
 - **Screening speed** helps Optuna and BEM pre-gates scale to many trials; it does **not** fix validated free-air error vs the Noctua datasheet.
 - Absolute claims remain gated by Phase 3 CFD (`docs/validation/a12x25_pq_report.md`) and geometry acceptance (`docs/validation/a12x25_geometry_acceptance.md`).
+
+---
+
+## 5. §15.6 fused-build regression root cause (2026-09-16)
+
+**Profiler:** `scripts/_profile_build_impeller.py` (unbuffered). Same machine class as §2.
+
+### What changed since the 13.1 s baseline
+
+The 2026-09-14 stock recipe had **no tip notches** and a simpler loft. Stock now ships **plate + camber + cylindrical tip + 3 tip TE notches**. Tip notches force `build_blade_solid` to raise `n_span` to `NOTCH_SPAN_SECTIONS`.
+
+### Measured full `build_impeller` (cold, stock a12x25)
+
+| Recipe | Time |
+|--------|------|
+| Stock (notches + cylindrical tip), floor **48** | **~153–168 s** |
+| Stock notches, floor **28** | **~87 s** |
+| Stock notches, floor **24** | **~63 s** |
+| No notches (still cyl tip, plate) | **~61 s** |
+| No notches, no cylindrical tip | **~53 s** |
+| `BladeParams()` default (7 blades, NACA) | **~19 s** |
+| 2026-09-14 baseline (old stock) | **13.1 s** |
+
+### Phase split (blade already lofted)
+
+| Phase | No notches | Stock notches (floor 48) |
+|-------|------------|---------------------------|
+| `hub.fuse(N).clean()` | **51 s** | **154 s** |
+| `hub.fuse(N)` only | 47 s | 147 s |
+| `.clean()` alone | **4.4 s** | 14 s |
+
+### Blade loft only
+
+| Config | Loft |
+|--------|------|
+| Stock notches (→48 span) | ~16–23 s |
+| No notches (18 span) | ~7 s |
+| No notches, no cyl tip | ~2 s |
+| Default | ~2.7 s |
+
+### Conclusions
+
+1. **Root cause of the big regression:** tip-notch span floor (was **48**) — boolean fuse cost scales roughly with loft density × TE notch complexity. Not “mystery OCCT”; recipe feature cost.
+2. **Cylindrical tip** adds ~4–5 s to loft and a smaller fuse tax; secondary.
+3. **§13.24 one-`.clean()` micro** saves only **~4 s (~8%)** on the no-notch path — fuse dominates; do **not** chase double-clean as the fix.
+4. **Action taken:** lowered `NOTCH_SPAN_SECTIONS` **48 → 28** (same as preview). Still resolves three outer-span TE bites; ~2× faster stock CFD STL (~87 s vs ~168 s). Further cuts need a deliberate fidelity trade (e.g. 24).
+
+OpenFOAM remains the long pole for full Optimize trials; this only recovers CadQuery STL time when BEM passes and tip notches are on.
