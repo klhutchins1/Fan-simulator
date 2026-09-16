@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fansim.centrifugal.geometry import MixedFlowParams
 
-# Core cockpit knobs (camber/thickness stay at dataclass defaults).
+# Core cockpit knobs + section aero (§14.3a).
 CORE_FLAT_KEYS = (
     "n_blades",
     "r_eye_mm",
@@ -13,6 +13,9 @@ CORE_FLAT_KEYS = (
     "z_span_mm",
     "chord_mm",
     "stagger_deg",
+    "thickness",
+    "max_camber",
+    "camber_pos",
 )
 
 

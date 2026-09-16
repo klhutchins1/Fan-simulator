@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from fansim.centrifugal.geometry import MixedFlowParams
 from fansim.centrifugal.optimize import evaluate_mixed_bem, run_mixed_study, suggest_mixed
 from fansim.centrifugal.persist import (
@@ -27,6 +29,20 @@ def test_suggest_mixed_eye_lt_back():
     p = suggest_mixed(_T())
     assert p.r_eye_mm < p.r_back_mm
     assert isinstance(p, MixedFlowParams)
+    assert p.thickness == pytest.approx(0.05)
+    assert p.max_camber == pytest.approx(0.02)
+
+
+def test_mixed_flat_includes_section_aero():
+    from fansim.centrifugal.params_io import CORE_FLAT_KEYS, mixed_flat_from_params, mixed_params_from_flat
+
+    assert "thickness" in CORE_FLAT_KEYS
+    p = MixedFlowParams(thickness=0.09, max_camber=0.05, camber_pos=0.35)
+    flat = mixed_flat_from_params(p)
+    assert flat["thickness"] == pytest.approx(0.09)
+    q = mixed_params_from_flat(flat)
+    assert q.max_camber == pytest.approx(0.05)
+    assert q.camber_pos == pytest.approx(0.35)
 
 
 def test_evaluate_mixed_bem_returns_positive_cfm():

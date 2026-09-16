@@ -18,25 +18,20 @@ def test_bemt_thrust_g_finite():
 
 
 def test_blade_params_from_trial_params_roundtrip():
-    import optuna
-
-    from fansim.propeller.optimize import blade_params_from_trial_params, suggest_prop
+    from fansim.propeller.optimize import blade_params_from_trial_params
 
     spec = get_prop_spec("fpv_5inch")
-    trial = optuna.trial.FixedTrial(
-        {
-            "n_blades": 3,
-            "pitch_in": 4.3,
-            "chord_root": 0.20,
-            "chord_mid": 0.26,
-            "chord_tip": 0.10,
-            "camber": 0.04,
-        }
-    )
-    a = suggest_prop(trial, spec)
-    b = blade_params_from_trial_params(spec, trial.params)
-    assert a.n_blades == b.n_blades
-    assert a.stations[0].chord == pytest.approx(b.stations[0].chord)
+    flat = {
+        "n_blades": 3,
+        "pitch_in": 4.3,
+        "chord_root": 0.20,
+        "chord_mid": 0.26,
+        "chord_tip": 0.10,
+        "camber": 0.04,
+    }
+    b = blade_params_from_trial_params(spec, flat)
+    assert b.n_blades == 3
+    assert b.stations[0].chord == pytest.approx(0.20 * (spec.diameter_mm / 2.0))
 
 
 def test_evaluate_prop_cfd_skips_below_bemt_floor(tmp_path, monkeypatch):

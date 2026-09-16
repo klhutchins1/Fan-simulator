@@ -90,14 +90,33 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     state.prop_last_opt = str(_prop_last) if _prop_last else ""
     state.prop_has_front = False  # set True after load / Optimize
 
-    def _init_prop_editor(spec):
-        """Load the prop sliders from a spec's default blade (chord fractions + camber defaults)."""
-        state.p_n_blades = int(spec.n_blades)
-        state.p_pitch = float(spec.pitch_in)
-        state.p_chord_root = 0.20
-        state.p_chord_mid = 0.26
-        state.p_chord_tip = 0.10
-        state.p_camber = 0.04
+    def _init_prop_editor(spec, flat: dict | None = None):
+        """Load prop sliders from a spec (+ optional Pareto/Analyze flat)."""
+        from fansim.cockpit.blade_editor import apply_shape_flat_to_state, init_shape_state
+        from fansim.propeller.params_io import prop_design_defaults
+
+        flat = flat or {}
+        state.p_n_blades = int(flat.get("n_blades", spec.n_blades))
+        state.p_pitch = float(flat.get("pitch_in", spec.pitch_in))
+        state.p_chord_root = float(flat.get("chord_root", 0.20))
+        state.p_chord_mid = float(flat.get("chord_mid", 0.26))
+        state.p_chord_tip = float(flat.get("chord_tip", 0.10))
+        # Legacy single camber for older UI bindings / readout.
+        if "camber_mid" in flat:
+            state.p_camber = float(flat["camber_mid"])
+        elif "camber" in flat:
+            state.p_camber = float(flat["camber"])
+        else:
+            state.p_camber = 0.04
+        base = prop_design_defaults()
+        base.update({k: flat[k] for k in flat if k in base})
+        if "camber" in flat and "camber_mid" not in flat:
+            c = float(flat["camber"])
+            base["camber_root"] = base["camber_mid"] = base["camber_tip"] = c
+        apply_shape_flat_to_state(state, "p_", base)
+        # Ensure thick_mode select exists even if init skipped.
+        if not hasattr(state, "p_thick_mode"):
+            init_shape_state(state, "p_", base)
 
     def _prop_click_store() -> list[dict]:
         return list(prop_pareto_store) + list(prop_user_store)
@@ -164,18 +183,32 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         )
 
     def prop_editor_params():
-        # Lazy import: geometry touches CadQuery/OCCT in solid-build paths.
-        from fansim.propeller.geometry import prop_blade_params
+        from fansim.cockpit.blade_editor import shape_flat_from_state
+        from fansim.propeller.params_io import prop_params_from_flat
 
-        return prop_blade_params(
-            prop_editor_spec(),
-            chord_frac=(
-                float(state.p_chord_root),
-                float(state.p_chord_mid),
-                float(state.p_chord_tip),
-            ),
-            camber=float(state.p_camber),
-        )
+        flat = {
+            "n_blades": int(state.p_n_blades),
+            "pitch_in": float(state.p_pitch),
+            "chord_root": float(state.p_chord_root),
+            "chord_mid": float(state.p_chord_mid),
+            "chord_tip": float(state.p_chord_tip),
+            **shape_flat_from_state(state, "p_"),
+        }
+        # Keep legacy p_camber in sync with mid when the user moves mid.
+        state.p_camber = float(flat["camber_mid"])
+        return prop_params_from_flat(prop_editor_spec(), flat)
+
+    def _prop_flat_from_state() -> dict:
+        from fansim.cockpit.blade_editor import shape_flat_from_state
+
+        return {
+            "n_blades": int(state.p_n_blades),
+            "pitch_in": float(state.p_pitch),
+            "chord_root": float(state.p_chord_root),
+            "chord_mid": float(state.p_chord_mid),
+            "chord_tip": float(state.p_chord_tip),
+            **shape_flat_from_state(state, "p_"),
+        }
 
     def _draw_prop(path):
         prop_plotter = ensure_plotter(ctx, "prop_plotter")
@@ -245,14 +278,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
             if persist:
                 perf = bemt_analyze(params, rpm=spec.rpm_max)
                 nz = estimate_prop_noise(params, spec.rpm_max, perf)
-                flat = {
-                    "n_blades": int(state.p_n_blades),
-                    "pitch_in": float(state.p_pitch),
-                    "chord_root": float(state.p_chord_root),
-                    "chord_mid": float(state.p_chord_mid),
-                    "chord_tip": float(state.p_chord_tip),
-                    "camber": float(state.p_camber),
-                }
+                flat = _prop_flat_from_state()
                 row = prop_row_from_bemt(
                     params_flat=flat,
                     thrust_g=perf.thrust_g,
@@ -297,16 +323,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
 
                 await loop.run_in_executor(
                     None,
-                    lambda: build_prop(
-                        spec,
-                        prop_preview_stl,
-                        chord_frac=(
-                            float(state.p_chord_root),
-                            float(state.p_chord_mid),
-                            float(state.p_chord_tip),
-                        ),
-                        camber=float(state.p_camber),
-                    ),
+                    lambda: build_prop(spec, prop_preview_stl, params=params),
                 )
                 _draw_prop(prop_preview_stl)
                 state.prop_geo_ready = True
@@ -475,18 +492,12 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         if idx is None or not (0 <= int(idx) < len(store)):
             return
         p = store[int(idx)]["params"]
-        state.p_n_blades = int(p["n_blades"])
-        state.p_pitch = float(p["pitch_in"])
-        state.p_chord_root = float(p["chord_root"])
-        state.p_chord_mid = float(p["chord_mid"])
-        state.p_chord_tip = float(p["chord_tip"])
-        state.p_camber = float(p["camber"])
         if store[int(idx)].get("prop_model"):
-            # Keep envelope aligned when the point came from another model.
             try:
                 state.prop_model = str(store[int(idx)]["prop_model"])
             except Exception:  # noqa: BLE001
                 pass
+        _init_prop_editor(get_prop_spec(state.prop_model), flat=p)
         state.flush()
         analyze_prop(persist=False)
 
@@ -515,16 +526,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
 
                 rep = await loop.run_in_executor(
                     None,
-                    lambda: build_prop(
-                        spec,
-                        out,
-                        chord_frac=(
-                            float(state.p_chord_root),
-                            float(state.p_chord_mid),
-                            float(state.p_chord_tip),
-                        ),
-                        camber=float(state.p_camber),
-                    ),
+                    lambda: build_prop(spec, out, params=prop_editor_params()),
                 )
             except Exception as exc:  # noqa: BLE001
                 state.prop_export_msg = f"⚠ Export failed: {type(exc).__name__}: {exc}"
@@ -592,7 +594,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                     )
                 with v3.VCard(classes="mb-2 pa-3"):
                     html.Div(
-                        "Blade — pitch drives the twist automatically",
+                        "Blade — pitch drives the twist; expand panels for thickness / 3-D / tip",
                         classes="text-subtitle-2 mb-2",
                     )
                     _slider("Blades", "p_n_blades", 2, 4, 1)
@@ -600,7 +602,31 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                     _slider("Chord root (×tip R)", "p_chord_root", 0.08, 0.30, 0.01)
                     _slider("Chord mid (×tip R)", "p_chord_mid", 0.10, 0.32, 0.01)
                     _slider("Chord tip (×tip R)", "p_chord_tip", 0.04, 0.18, 0.01)
-                    _slider("Camber (curve)", "p_camber", 0.0, 0.06, 0.005)
+                    v3.VSelect(
+                        label="Wall mode",
+                        v_model=("p_thick_mode",),
+                        items=[
+                            {"title": "Tapered t/c", "value": "tapered"},
+                            {"title": "Uniform wall mm", "value": "uniform"},
+                        ],
+                        density="compact",
+                        variant="outlined",
+                        hide_details=True,
+                        classes="mb-2",
+                    )
+                    from fansim.cockpit.blade_editor import render_shape_panels
+                    from fansim.cockpit.fan_widgets import help_switch as _help_switch
+
+                    def _pslider(label, model, mn, mx, step, unit="", disabled=None, **_kw):
+                        _slider(label, model, mn, mx, step, disabled=disabled)
+
+                    render_shape_panels(
+                        prefix="p_",
+                        slider=_pslider,
+                        help_switch=_help_switch,
+                        v3=v3,
+                        html=html,
+                    )
                     with v3.VRow(no_gutters=True, classes="mt-2"):
                         v3.VBtn(
                             "Analyze",

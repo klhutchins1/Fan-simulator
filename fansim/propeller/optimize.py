@@ -3,9 +3,7 @@
 
 Because BEMT is instant (no CFD), a full multi-objective search runs in SECONDS. It fixes the envelope
 (diameter, RPM, hub from the PropSpec) and searches the BLADE: pitch, planform (chord distribution),
-blade count, camber — maximizing THRUST and EFFICIENCY (g/W) at once. Those two fight (aggressive
-high-pitch wide blades push more air but sip more watts), so the result is a Pareto front: pick the
-point that suits the mission (punchy freestyle vs efficient long-range).
+blade count, camber, thickness, and light 3-D shape — maximizing THRUST and EFFICIENCY (g/W).
 """
 
 from __future__ import annotations
@@ -17,22 +15,41 @@ import optuna
 from fansim.geometry.blade import BladeParams
 from fansim.prop_spec import PropSpec
 from fansim.propeller.bemt import PropPerf, analyze
-from fansim.propeller.geometry import prop_blade_params
 from fansim.propeller.noise import estimate_prop_noise
+from fansim.propeller.params_io import prop_params_from_flat, spec_with_flat
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 
 def suggest_prop(trial, spec: PropSpec) -> BladeParams:
-    """Sample a prop blade for ``spec``'s envelope: blade count, pitch, planform, camber."""
+    """Sample a prop blade for ``spec``'s envelope (§14.1 Design keys)."""
     n_blades = trial.suggest_int("n_blades", 2, 4)
     pitch_in = trial.suggest_float("pitch_in", spec.pitch_in * 0.6, spec.pitch_in * 1.4)
-    cr = trial.suggest_float("chord_root", 0.10, 0.26)
-    cm = trial.suggest_float("chord_mid", 0.14, 0.30)
-    ct = trial.suggest_float("chord_tip", 0.05, 0.16)
-    camber = trial.suggest_float("camber", 0.02, 0.055)
+    flat = {
+        "n_blades": n_blades,
+        "pitch_in": pitch_in,
+        "chord_root": trial.suggest_float("chord_root", 0.10, 0.26),
+        "chord_mid": trial.suggest_float("chord_mid", 0.14, 0.30),
+        "chord_tip": trial.suggest_float("chord_tip", 0.05, 0.16),
+        "camber_root": trial.suggest_float("camber_root", 0.02, 0.055),
+        "camber_mid": trial.suggest_float("camber_mid", 0.02, 0.055),
+        "camber_tip": trial.suggest_float("camber_tip", 0.02, 0.055),
+        "thickness_root": trial.suggest_float("thickness_root", 0.06, 0.12),
+        "thickness_mid": trial.suggest_float("thickness_mid", 0.04, 0.09),
+        "thickness_tip": trial.suggest_float("thickness_tip", 0.03, 0.07),
+        "sweep_mid": trial.suggest_float("sweep_mid", 0.0, 6.0),
+        "sweep_tip": trial.suggest_float("sweep_tip", 0.0, 10.0),
+        "le_skew_mid": trial.suggest_float("le_skew_mid", 0.0, 6.0),
+        "le_skew_tip": trial.suggest_float("le_skew_tip", 0.0, 12.0),
+        "lean_tip": trial.suggest_float("lean_tip", 0.0, 15.0),
+        "tip_round": trial.suggest_float("tip_round", 0.0, 0.6),
+        "cylindrical_tip": True,
+        "thick_mode": "tapered",
+    }
+    # Keep a legacy ``camber`` stamp = mid for older consumers.
+    flat["camber"] = flat["camber_mid"]
     s2 = dataclasses.replace(spec, n_blades=n_blades, pitch_in=pitch_in)
-    return prop_blade_params(s2, chord_frac=(cr, cm, ct), camber=camber)
+    return prop_params_from_flat(s2, flat)
 
 
 def evaluate_prop(params: BladeParams, spec: PropSpec) -> PropPerf:
@@ -47,12 +64,8 @@ def bemt_thrust_g(params: BladeParams, spec: PropSpec, *, rpm: float | None = No
 
 def blade_params_from_trial_params(spec: PropSpec, p: dict) -> BladeParams:
     """Rebuild a prop BladeParams from an Optuna / Pareto flat params dict."""
-    s2 = dataclasses.replace(spec, n_blades=int(p["n_blades"]), pitch_in=float(p["pitch_in"]))
-    return prop_blade_params(
-        s2,
-        chord_frac=(float(p["chord_root"]), float(p["chord_mid"]), float(p["chord_tip"])),
-        camber=float(p["camber"]),
-    )
+    s2 = spec_with_flat(spec, p)
+    return prop_params_from_flat(s2, p)
 
 
 def refine_pareto_cfd(spec: PropSpec, pareto: list[dict], out_dir,
@@ -85,9 +98,7 @@ def refine_pareto_cfd(spec: PropSpec, pareto: list[dict], out_dir,
 def run_prop_study(spec: PropSpec, n_trials: int = 200, seed: int = 0,
                    max_power_w: float | None = None,
                    out_dir=None, prop_model: str | None = None):
-    """NSGA-II over the prop blade, maximizing (thrust_g, efficiency_g_per_w). ``max_power_w`` (the
-    motor's budget) gates designs that draw more than the motor can give, so the front is realistic.
-    Returns (study, pareto). Optional ``out_dir`` persists Optuna SQLite + ``pareto.json``."""
+    """NSGA-II over the prop blade, maximizing (thrust_g, efficiency_g_per_w)."""
     from pathlib import Path
 
     storage = None
@@ -110,13 +121,13 @@ def run_prop_study(spec: PropSpec, n_trials: int = 200, seed: int = 0,
         params = suggest_prop(trial, spec)
         perf = evaluate_prop(params, spec)
         if max_power_w is not None and perf.power_w > max_power_w:
-            return 0.0, 0.0                       # over the motor budget -> not a real option
+            return 0.0, 0.0
         trial.set_user_attr("thrust_g", perf.thrust_g)
         trial.set_user_attr("eff", perf.efficiency_g_per_w)
         trial.set_user_attr("power_w", perf.power_w)
         trial.set_user_attr("fm", perf.figure_of_merit)
         trial.set_user_attr("n_blades", params.n_blades)
-        noise = estimate_prop_noise(params, spec.rpm_max, perf)   # relative noise (for thrust-vs-noise)
+        noise = estimate_prop_noise(params, spec.rpm_max, perf)
         trial.set_user_attr("rel_dba", noise["rel_dba"])
         trial.set_user_attr("tip_mach", noise["tip_mach"])
         return perf.thrust_g, perf.efficiency_g_per_w

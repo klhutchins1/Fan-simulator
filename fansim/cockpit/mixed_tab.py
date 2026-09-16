@@ -84,6 +84,9 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
     state.mf_z_span = float(_mf0.z_span_mm)
     state.mf_chord = float(_mf0.chord_mm)
     state.mf_stagger = float(_mf0.stagger_deg)
+    state.mf_thickness = float(_mf0.thickness)
+    state.mf_camber = float(_mf0.max_camber)
+    state.mf_camber_pos = float(_mf0.camber_pos)
     state.mf_assess_preset = "case"
     state.mf_refine_op = False
     state.mf_preview_busy = False
@@ -128,6 +131,9 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             "z_span_mm": float(state.mf_z_span),
             "chord_mm": float(state.mf_chord),
             "stagger_deg": float(state.mf_stagger),
+            "thickness": float(state.mf_thickness),
+            "max_camber": float(state.mf_camber),
+            "camber_pos": float(state.mf_camber_pos),
         }
 
     def _mf_busy() -> bool:
@@ -484,6 +490,12 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             state.mf_chord = float(p["chord_mm"])
         if "stagger_deg" in p:
             state.mf_stagger = float(p["stagger_deg"])
+        if "thickness" in p:
+            state.mf_thickness = float(p["thickness"])
+        if "max_camber" in p:
+            state.mf_camber = float(p["max_camber"])
+        if "camber_pos" in p:
+            state.mf_camber_pos = float(p["camber_pos"])
         o = row.get("objectives") or {}
         state.mf_readout = [
             f"#{tid}  cfm_free {o.get('cfm_free', 0):.1f}  ·  cfm_load {o.get('cfm_load', 0):.1f}  ·  "
@@ -544,6 +556,10 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                     _slider("Z span (mm)", "mf_z_span", 12.0, 22.0, 0.5)
                     _slider("Chord (mm)", "mf_chord", 14.0, 28.0, 0.5)
                     _slider("Stagger (°)", "mf_stagger", 20.0, 50.0, 1.0)
+                    html.Div("Section aero", classes="text-subtitle-2 mt-3 mb-1")
+                    _slider("Thickness t/c", "mf_thickness", 0.04, 0.14, 0.005)
+                    _slider("Camber", "mf_camber", 0.0, 0.08, 0.005)
+                    _slider("Camber pos", "mf_camber_pos", 0.25, 0.55, 0.01)
                 with v3.VCard(classes="mb-2 pa-3"):
                     v3.VSelect(
                         label="Application",

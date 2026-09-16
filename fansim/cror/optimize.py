@@ -80,29 +80,51 @@ def _proxy_perf(params: CrorParams, rpm: float) -> dict:
 
 
 def suggest_cror(trial, *, tip_radius: float = 55.0, hub_radius: float = 18.0) -> CrorParams:
-    gap = trial.suggest_float("axial_gap_mm", 2.0, 10.0)
-    n_f = trial.suggest_int("n_front", 5, 9)
-    n_r = trial.suggest_int("n_rear", 5, 11)
-    stag = trial.suggest_float("stagger_deg", 28.0, 48.0)
-    chord = trial.suggest_float("chord_mm", 10.0, 18.0)
+    """Sample dual-rotor Design knobs (§14.5)."""
+    from fansim.cror.params_io import cror_params_from_flat
 
-    def stations(sign: float) -> list[RadialStation]:
-        s = sign * stag
-        return [
-            RadialStation(0.0, chord, s, thickness=0.10, max_camber=0.04),
-            RadialStation(0.5, chord, s * 0.9, thickness=0.08, max_camber=0.04),
-            RadialStation(1.0, chord * 0.75, s * 0.8, thickness=0.06, max_camber=0.04),
-        ]
+    flat = {
+        "axial_gap_mm": trial.suggest_float("axial_gap_mm", 2.0, 10.0),
+        "n_front": trial.suggest_int("n_front", 5, 9),
+        "n_rear": trial.suggest_int("n_rear", 5, 11),
+        "hub_radius": hub_radius,
+        "tip_radius": tip_radius,
+        "f_chord_root": trial.suggest_float("f_chord_root", 10.0, 18.0),
+        "f_chord_mid": trial.suggest_float("f_chord_mid", 10.0, 18.0),
+        "f_chord_tip": trial.suggest_float("f_chord_tip", 8.0, 14.0),
+        "f_stagger": trial.suggest_float("f_stagger", 28.0, 48.0),
+        "f_thickness_mid": trial.suggest_float("f_thickness_mid", 0.05, 0.10),
+        "f_camber_mid": trial.suggest_float("f_camber_mid", 0.02, 0.055),
+        "f_le_skew_tip": trial.suggest_float("f_le_skew_tip", 0.0, 8.0),
+        "r_chord_root": trial.suggest_float("r_chord_root", 10.0, 18.0),
+        "r_chord_mid": trial.suggest_float("r_chord_mid", 10.0, 18.0),
+        "r_chord_tip": trial.suggest_float("r_chord_tip", 8.0, 14.0),
+        "r_stagger": trial.suggest_float("r_stagger", 28.0, 48.0),
+        "r_thickness_mid": trial.suggest_float("r_thickness_mid", 0.05, 0.10),
+        "r_camber_mid": trial.suggest_float("r_camber_mid", 0.02, 0.055),
+        "r_le_skew_tip": trial.suggest_float("r_le_skew_tip", 0.0, 8.0),
+    }
+    # Mirror mid thickness/camber to root/tip for a compact search space.
+    for pref in ("f_", "r_"):
+        flat[f"{pref}thickness_root"] = flat[f"{pref}thickness_mid"] + 0.02
+        flat[f"{pref}thickness_tip"] = max(0.04, flat[f"{pref}thickness_mid"] - 0.02)
+        flat[f"{pref}camber_root"] = flat[f"{pref}camber_mid"]
+        flat[f"{pref}camber_tip"] = flat[f"{pref}camber_mid"]
+    return cror_params_from_flat(flat, tip_radius=tip_radius, hub_radius=hub_radius)
 
-    front = BladeParams(
-        n_blades=n_f, hub_radius=hub_radius, tip_radius=tip_radius,
-        stations=stations(+1.0),
+
+def cror_params_from_trial_params(
+    p: dict,
+    *,
+    tip_radius: float = 55.0,
+    hub_radius: float = 18.0,
+) -> CrorParams:
+    """Rebuild ``CrorParams`` from Optuna / Design flat (legacy + §14.5 keys)."""
+    from fansim.cror.params_io import cror_params_from_flat
+
+    return thin_cror_for_frame(
+        cror_params_from_flat(p, tip_radius=tip_radius, hub_radius=hub_radius),
     )
-    rear = BladeParams(
-        n_blades=n_r, hub_radius=hub_radius, tip_radius=tip_radius,
-        stations=stations(-1.0),
-    )
-    return CrorParams(front=front, rear=rear, axial_gap_mm=gap)
 
 
 def run_cror_study(
@@ -150,42 +172,6 @@ def run_cror_study(
     ]
     pareto.sort(key=lambda r: -r["thrust_g"])
     return study, pareto
-
-
-def cror_params_from_trial_params(
-    p: dict,
-    *,
-    tip_radius: float = 55.0,
-    hub_radius: float = 18.0,
-) -> CrorParams:
-    """Rebuild ``CrorParams`` from Optuna trial params (same keys as ``suggest_cror``)."""
-    gap = float(p["axial_gap_mm"])
-    n_f = int(p["n_front"])
-    n_r = int(p["n_rear"])
-    stag = float(p["stagger_deg"])
-    chord = float(p["chord_mm"])
-
-    def stations(sign: float) -> list:
-        from fansim.geometry.blade import RadialStation
-        s = sign * stag
-        return [
-            RadialStation(0.0, chord, s, thickness=0.10, max_camber=0.04),
-            RadialStation(0.5, chord, s * 0.9, thickness=0.08, max_camber=0.04),
-            RadialStation(1.0, chord * 0.75, s * 0.8, thickness=0.06, max_camber=0.04),
-        ]
-
-    from fansim.geometry.blade import BladeParams
-    front = BladeParams(
-        n_blades=n_f, hub_radius=hub_radius, tip_radius=tip_radius,
-        stations=stations(+1.0),
-    )
-    rear = BladeParams(
-        n_blades=n_r, hub_radius=hub_radius, tip_radius=tip_radius,
-        stations=stations(-1.0),
-    )
-    return thin_cror_for_frame(
-        CrorParams(front=front, rear=rear, axial_gap_mm=gap),
-    )
 
 
 def refine_pareto_cfd(

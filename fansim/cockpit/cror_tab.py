@@ -62,12 +62,35 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
     state.cror_refine_busy = False
     state.cror_thin_busy = False
     state.cror_export_busy = False
+    state.cror_preview_busy = False
     state.cror_geo_ready = False
     state.cror_msg = ""
     state.cror_readout = [
-        "CROR: BEMT-proxy Optimize (not dual-MRF). Thin packs the stack into ≤25 mm. "
-        "CFD refine runs dual-MRF on top-N finalists. Relative noise only."
+        "CROR: edit front/rear blades, Thin to ≤25 mm, Optimize (BEMT proxy), CFD refine top-N. "
+        "Relative noise only."
     ]
+    # Design defaults (§14.5)
+    _c0 = CrorParams()
+    state.cror_hub_r = float(_c0.front.hub_radius)
+    state.cror_tip_r = float(_c0.front.tip_radius)
+    state.cror_gap = float(_c0.axial_gap_mm)
+    state.cror_f_n = int(_c0.front.n_blades)
+    state.cror_r_n = int(_c0.rear.n_blades)
+    from fansim.cockpit.blade_editor import init_shape_state
+    from fansim.cror.params_io import cror_flat_from_params
+
+    _flat0 = cror_flat_from_params(_c0)
+    state.cror_f_chord_root = float(_flat0["f_chord_root"])
+    state.cror_f_chord_mid = float(_flat0["f_chord_mid"])
+    state.cror_f_chord_tip = float(_flat0["f_chord_tip"])
+    state.cror_f_stagger = float(_flat0["f_stagger"])
+    state.cror_r_chord_root = float(_flat0["r_chord_root"])
+    state.cror_r_chord_mid = float(_flat0["r_chord_mid"])
+    state.cror_r_chord_tip = float(_flat0["r_chord_tip"])
+    state.cror_r_stagger = float(_flat0["r_stagger"])
+    # Map f_/r_ shape keys onto cror_f_ / cror_r_ state prefixes.
+    init_shape_state(state, "cror_f_", {k[2:]: v for k, v in _flat0.items() if k.startswith("f_")})
+    init_shape_state(state, "cror_r_", {k[2:]: v for k, v in _flat0.items() if k.startswith("r_")})
     _cror_runs = runs_root if runs_root.exists() else Path("runs")
     _cror_last = latest_cror_opt_dir(_cror_runs)
     state.cror_last_opt = str(_cror_last) if _cror_last else ""
@@ -84,10 +107,40 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
             or state.cror_refine_busy
             or state.cror_thin_busy
             or state.cror_export_busy
+            or state.cror_preview_busy
         )
 
+    def _cror_flat_from_state() -> dict:
+        from fansim.cockpit.blade_editor import shape_flat_from_state
+
+        f_shape = shape_flat_from_state(state, "cror_f_")
+        r_shape = shape_flat_from_state(state, "cror_r_")
+        flat = {
+            "axial_gap_mm": float(state.cror_gap),
+            "hub_radius": float(state.cror_hub_r),
+            "tip_radius": float(state.cror_tip_r),
+            "n_front": int(state.cror_f_n),
+            "n_rear": int(state.cror_r_n),
+            "f_chord_root": float(state.cror_f_chord_root),
+            "f_chord_mid": float(state.cror_f_chord_mid),
+            "f_chord_tip": float(state.cror_f_chord_tip),
+            "f_stagger": float(state.cror_f_stagger),
+            "r_chord_root": float(state.cror_r_chord_root),
+            "r_chord_mid": float(state.cror_r_chord_mid),
+            "r_chord_tip": float(state.cror_r_chord_tip),
+            "r_stagger": float(state.cror_r_stagger),
+        }
+        for k, v in f_shape.items():
+            flat[f"f_{k}"] = v
+        for k, v in r_shape.items():
+            flat[f"r_{k}"] = v
+        return flat
+
     def _cror_params_from_editor() -> CrorParams:
-        return thin_cror_for_frame(CrorParams(), max_depth_mm=float(state.cror_max_depth))
+        from fansim.cror.params_io import cror_params_from_flat
+
+        raw = cror_params_from_flat(_cror_flat_from_state())
+        return thin_cror_for_frame(raw, max_depth_mm=float(state.cror_max_depth))
 
     def thin_cror_now():
         if _cror_busy() or asynchronous is None:
@@ -104,7 +157,10 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
             state.flush()
             loop = asyncio.get_running_loop()
             try:
-                raw = CrorParams()
+                from fansim.cror.params_io import cror_params_from_flat
+
+                flat = _cror_flat_from_state()
+                raw = await loop.run_in_executor(None, lambda: cror_params_from_flat(flat))
                 thin = await loop.run_in_executor(
                     None,
                     lambda: thin_cror_for_frame(raw, max_depth_mm=float(state.cror_max_depth)),
@@ -268,16 +324,36 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
             return
         row = cror_pareto_store[int(idx)]
         p = row.get("params") or {}
+        from fansim.cockpit.blade_editor import apply_shape_flat_to_state
+        from fansim.cror.params_io import cror_flat_from_params, cror_params_from_flat
+
+        params = cror_params_from_flat(p)
+        flat = cror_flat_from_params(params)
+        state.cror_hub_r = float(flat["hub_radius"])
+        state.cror_tip_r = float(flat["tip_radius"])
+        state.cror_gap = float(flat["axial_gap_mm"])
+        state.cror_f_n = int(flat["n_front"])
+        state.cror_r_n = int(flat["n_rear"])
+        state.cror_f_chord_root = float(flat["f_chord_root"])
+        state.cror_f_chord_mid = float(flat["f_chord_mid"])
+        state.cror_f_chord_tip = float(flat["f_chord_tip"])
+        state.cror_f_stagger = float(flat["f_stagger"])
+        state.cror_r_chord_root = float(flat["r_chord_root"])
+        state.cror_r_chord_mid = float(flat["r_chord_mid"])
+        state.cror_r_chord_tip = float(flat["r_chord_tip"])
+        state.cror_r_stagger = float(flat["r_stagger"])
+        apply_shape_flat_to_state(
+            state, "cror_f_", {k[2:]: v for k, v in flat.items() if k.startswith("f_")})
+        apply_shape_flat_to_state(
+            state, "cror_r_", {k[2:]: v for k, v in flat.items() if k.startswith("r_")})
         state.cror_readout = [
             f"#{idx}  thrust {row.get('thrust_g', 0):.0f} g  ·  "
             f"{row.get('eff_g_per_w', 0):.2f} g/W  ·  "
             f"depth {row.get('depth_mm', 0):.1f} mm  ·  "
             f"noise {row.get('rel_dba', 0):.0f} (rel)",
-            f"params: n_front={p.get('n_front')} n_rear={p.get('n_rear')} "
-            f"gap={p.get('axial_gap_mm')} stagger={p.get('stagger_deg')} "
-            f"chord={p.get('chord_mm')}  ·  {row.get('source_run', '')}",
+            f"Loaded front/rear Design from {row.get('source_run', 'front')}",
         ]
-        state.cror_msg = f"Loaded CROR front row #{idx}."
+        state.cror_msg = f"Loaded CROR front row #{idx} into the editor."
         state.flush()
 
     def export_cror_now():
@@ -327,23 +403,68 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
     state, ctrl = ctx.state, ctx.ctrl
     cror_pareto_store = getattr(ctx, "cror_pareto_store")  # set by setup_cror_tab
 
+    def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None, **_kw):
+        extra = {}
+        if disabled is not None:
+            extra["disabled"] = disabled
+        v3.VSlider(
+            v_model=(model,),
+            min=mn,
+            max=mx,
+            step=step,
+            label=label,
+            thumb_label=True,
+            density="compact",
+            hide_details=True,
+            classes="mb-1",
+            **extra,
+        )
+
     # ---- CROR TAB -----------------------------------------------------------------
     with html.Div(v_show="active_tab === 'cror'"):
         with v3.VRow(no_gutters=True):
             with v3.VCol(cols=5, classes="pr-2"):
                 with v3.VCard(classes="mb-2 pa-3"):
                     html.Div(
-                        "Counter-rotating stacked rotors (BEMT proxy + dual-MRF refine)",
+                        "Counter-rotating stacked rotors — Design + BEMT proxy Optimize",
                         classes="text-subtitle-2 mb-1",
                     )
                     html.Div(
-                        "Optimize is a coarse BEMT-proxy NSGA (not dual-MRF physics). "
-                        "Thin packs default geometry into the depth cap. "
-                        "Relative noise only — not calibrated dB(A). "
-                        "CFD refine needs OpenFOAM Docker.",
+                        "Edit front/rear planform, then Thin / Export / Optimize. "
+                        "Optimize is BEMT-proxy NSGA (not dual-MRF). Relative noise only.",
                         classes="text-caption mb-2",
                         style="white-space: pre-line",
                     )
+                    _slider("Hub R (mm)", "cror_hub_r", 14.0, 28.0, 0.5)
+                    _slider("Tip R (mm)", "cror_tip_r", 45.0, 58.0, 0.5)
+                    _slider("Axial gap (mm)", "cror_gap", 2.0, 12.0, 0.5)
+                    with v3.VExpansionPanels(variant="accordion", class_="mb-2"):
+                        with v3.VExpansionPanel(title="Front rotor"):
+                            with v3.VExpansionPanelText():
+                                _slider("Front blades", "cror_f_n", 5, 11, 1)
+                                _slider("Chord root", "cror_f_chord_root", 8.0, 20.0, 0.5, unit="mm")
+                                _slider("Chord mid", "cror_f_chord_mid", 8.0, 20.0, 0.5, unit="mm")
+                                _slider("Chord tip", "cror_f_chord_tip", 6.0, 16.0, 0.5, unit="mm")
+                                _slider("Stagger", "cror_f_stagger", 25.0, 50.0, 1.0, unit="deg")
+                                from fansim.cockpit.blade_editor import render_shape_panels
+                                from fansim.cockpit.fan_widgets import help_switch as _hs
+                                render_shape_panels(
+                                    prefix="cror_f_", slider=_slider, help_switch=_hs,
+                                    v3=v3, html=html, title_thick="Front thickness/camber",
+                                    title_3d="Front 3-D", title_tip="Front tip")
+                        with v3.VExpansionPanel(title="Rear rotor"):
+                            with v3.VExpansionPanelText():
+                                _slider("Rear blades", "cror_r_n", 5, 13, 1)
+                                _slider("Chord root", "cror_r_chord_root", 8.0, 20.0, 0.5, unit="mm")
+                                _slider("Chord mid", "cror_r_chord_mid", 8.0, 20.0, 0.5, unit="mm")
+                                _slider("Chord tip", "cror_r_chord_tip", 6.0, 16.0, 0.5, unit="mm")
+                                _slider("Stagger", "cror_r_stagger", 25.0, 50.0, 1.0, unit="deg")
+                                from fansim.cockpit.blade_editor import render_shape_panels
+                                from fansim.cockpit.fan_widgets import help_switch as _hs
+                                render_shape_panels(
+                                    prefix="cror_r_", slider=_slider, help_switch=_hs,
+                                    v3=v3, html=html, title_thick="Rear thickness/camber",
+                                    title_3d="Rear 3-D", title_tip="Rear tip")
                     with v3.VRow(no_gutters=True, classes="align-center"):
                         with v3.VCol(cols=4, classes="pr-1"):
                             v3.VTextField(
@@ -374,7 +495,7 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                             )
                     with v3.VRow(no_gutters=True, classes="mt-2"):
                         v3.VBtn(
-                            "Thin default",
+                            "Thin to depth",
                             size="small",
                             variant="tonal",
                             color="primary",
@@ -449,15 +570,9 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                         v_for="line in cror_readout",
                         classes="text-body-2",
                     )
-                with v3.VCard(classes="mb-2 pa-4", style="height:200px;"):
-                    html.Div("Proxy-only — no mesh viewer yet", classes="text-subtitle-2 mb-1")
-                    html.Div(
-                        "CROR Optimize is a BEMT proxy (no dual-MRF mesh in the cockpit). "
-                        "Use Export STL for printable geometry; Thin packs the default "
-                        "stack into the depth cap. 3-D preview deferred.",
-                        classes="text-caption text-medium-emphasis",
-                        style="white-space: pre-line",
-                    )
+                with v3.VCard(classes="mb-2 pa-4", style="height:120px;"):
+                    html.Div("Export STL builds the edited stack (thinned to depth cap).",
+                             classes="text-caption text-medium-emphasis")
                 with v3.VCard(style="height:360px;", classes="pa-1 mb-2"):
                     cror_fig_widget = plotly_widgets.Figure(
                         figure=cror_scatter_figure(cror_pareto_store),

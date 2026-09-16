@@ -7,8 +7,8 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-09-15** (evening). **§12** + **§13** + **§7.6** closed in code. Stock gold ✕
-  eye-fit + blade-on-hub + full control-image set landed same day. Still **not shippable**
+- Last reviewed: **2026-09-15** (evening). **§12** + **§13** + **§7.6** + **§14.1–14.5** closed in code
+  (Prop/Mixed/Volute/CROR Design depth; Volute Optimize 14.4b still open). Still **not shippable**
   until Validation P–Q / print+measure close absolute CFM — see `a12x25_pq_report.md`
 - Tags: **[impact]** how much it changes results · **[effort]** rough build cost · owner *me* unless noted.
 - Related: `docs/known-issues.md` (historical cockpit fixes — **stale**, see §13.4), `docs/high-accuracy-plan.md` (fidelity
@@ -25,7 +25,9 @@ session.**
    Stock gold ✕ cylinder-sliced to the close-ref (plate wall, tip ~33 mm chord, `blade_hub_z`); not OEM CAD.
 4. **Validation P–Q (Phase 3 remainder)** — close-ref STL free-air **−17%**. Screening levers exhausted. See `a12x25_pq_report.md`.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
-6. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
+6. **§14 Archetype Design Parity** — Prop/Mixed/Volute/CROR Design+Optimize depth (parallel with §5;
+   Design UI only — not archetype CFD expansion; see keep/cut board).
+7. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
 
 §8 / §9 / §10 / §12 / §13 are **closed in code**. Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
 Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
@@ -374,6 +376,25 @@ Already measured (`docs/validation/perf_baseline.md`); not re-litigated:
 ### 13.0 Landed / do not re-add
 
 §13.1–13.20 closed (13.9 stage-1 UI extract; optional FanSession binder split still open). Do not copy §12.0 items here. Do not re-open parked wind / absolute FW-H / mixed-flow expansion — those are `docs/validation/keep_cut_board.md`.
+
+---
+
+## 14. Archetype Design Parity (2026-09-15) — cockpit Design + Optimize depth
+
+Bring Prop / Mixed / Volute / CROR editors up toward Fan blade vocabulary. Spec:
+`docs/superpowers/specs/2026-09-15-archetype-design-parity-design.md`.
+**Override keep/cut “no expansion” for Design UI only** — not for archetype CFD campaigns.
+
+- [x] **14.1 Prop BladeParams Design + Optimize. DONE 2026-09-15.** Thickness/camber R-M-T, sweep, LE curve/sickle,
+  wrap, tip round/cylindrical, uniform wall; `suggest_prop` searches the same keys.
+- [x] **14.2 Shared BladeParams editor kit. DONE 2026-09-15.** `blade_editor.py` + `blade_copy.py`; Prop on kit;
+  CROR mounts two prefixes.
+- [x] **14.3 Mixed Design + Optimize (stage a). DONE 2026-09-15.** Expose `thickness` / `max_camber` / `camber_pos`
+  in UI + `suggest_mixed`. Stage b (span-varying chord/stagger) only after 14.3a is green.
+- [x] **14.4 Volute Design depth. DONE 2026-09-15.** Expose dormant `VoluteParams` (blade/backplate/tongue/outlet/wall).
+  **14.4b** optional cheap Optimize — still open (Design-first; no BEM screen yet).
+- [x] **14.5 CROR dual BladeParams Design + expanded `suggest_cror`. DONE 2026-09-15.** Front/rear editors,
+  thin/export on edited flats; Optimize searches prefixed chords/stagger/thickness/camber/sickle.
 
 ---
 

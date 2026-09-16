@@ -369,3 +369,11 @@ def test_volute_params_from_flat_roundtrip():
     assert q.n_blades == 9 and q.r_tip_mm == 48.0
     assert q.tongue_angle_deg == 6.0
     assert q.tongue_fillet_mm == 2.0
+
+
+def test_volute_cockpit_declares_dormant_design_knobs():
+    text = Path("fansim/cockpit/volute_tab.py").read_text(encoding="utf-8")
+    assert "volute_blade_thick" in text
+    assert "volute_tongue_angle" in text
+    assert "volute_out_w" in text
+    assert "Scroll & tongue" in text

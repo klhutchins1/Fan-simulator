@@ -29,10 +29,13 @@ _R_TIP = (48.0, 54.5)
 _Z_SPAN = (12.0, 22.0)
 _CHORD = (14.0, 28.0)
 _STAGGER = (20.0, 50.0)
+_THICKNESS = (0.05, 0.12)
+_CAMBER = (0.02, 0.06)
+_CAMBER_POS = (0.30, 0.50)
 
 
 def suggest_mixed(trial) -> MixedFlowParams:
-    """Sample core mixed-flow knobs within the cockpit slider envelope."""
+    """Sample core mixed-flow knobs within the cockpit slider envelope (§14.3a)."""
     return MixedFlowParams(
         n_blades=int(trial.suggest_int("n_blades", *_N_BLADES)),
         r_eye_mm=float(trial.suggest_float("r_eye_mm", *_R_EYE)),
@@ -41,6 +44,9 @@ def suggest_mixed(trial) -> MixedFlowParams:
         z_span_mm=float(trial.suggest_float("z_span_mm", *_Z_SPAN)),
         chord_mm=float(trial.suggest_float("chord_mm", *_CHORD)),
         stagger_deg=float(trial.suggest_float("stagger_deg", *_STAGGER)),
+        thickness=float(trial.suggest_float("thickness", *_THICKNESS)),
+        max_camber=float(trial.suggest_float("max_camber", *_CAMBER)),
+        camber_pos=float(trial.suggest_float("camber_pos", *_CAMBER_POS)),
     )
 
 

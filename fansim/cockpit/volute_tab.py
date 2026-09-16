@@ -56,8 +56,17 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
     state.volute_r_hub = float(_v0.r_hub_mm)
     state.volute_r_tip = float(_v0.r_tip_mm)
     state.volute_blade_h = float(_v0.blade_height_mm)
+    state.volute_blade_thick = float(_v0.blade_thick_mm)
+    state.volute_backplate = float(_v0.backplate_thick_mm)
     state.volute_spiral = float(_v0.spiral_growth_mm)
     state.volute_clearance = float(_v0.volute_clearance_mm)
+    state.volute_wall = float(_v0.volute_wall_mm)
+    state.volute_tongue_angle = float(_v0.tongue_angle_deg)
+    state.volute_tongue_clear = float(_v0.tongue_tip_clearance_mm)
+    state.volute_tongue_fillet = float(_v0.tongue_fillet_mm)
+    state.volute_out_w = float(_v0.outlet_width_mm)
+    state.volute_out_l = float(_v0.outlet_length_mm)
+    state.volute_out_h = float(_v0.outlet_height_mm)
     state.volute_rpm = float(_VOLUTE_RPM)
     state.volute_load_pa = 50.0
     state.volute_preview_busy = False
@@ -79,8 +88,17 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
             "r_hub_mm": float(state.volute_r_hub),
             "r_tip_mm": float(state.volute_r_tip),
             "blade_height_mm": float(state.volute_blade_h),
+            "blade_thick_mm": float(state.volute_blade_thick),
+            "backplate_thick_mm": float(state.volute_backplate),
             "spiral_growth_mm": float(state.volute_spiral),
             "volute_clearance_mm": float(state.volute_clearance),
+            "volute_wall_mm": float(state.volute_wall),
+            "tongue_angle_deg": float(state.volute_tongue_angle),
+            "tongue_tip_clearance_mm": float(state.volute_tongue_clear),
+            "tongue_fillet_mm": float(state.volute_tongue_fillet),
+            "outlet_width_mm": float(state.volute_out_w),
+            "outlet_length_mm": float(state.volute_out_l),
+            "outlet_height_mm": float(state.volute_out_h),
         }
 
     def _volute_busy() -> bool:
@@ -288,8 +306,22 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                     _slider("Hub R (mm)", "volute_r_hub", 12.0, 28.0, 0.5)
                     _slider("Tip R (mm)", "volute_r_tip", 35.0, 60.0, 0.5)
                     _slider("Blade height (mm)", "volute_blade_h", 12.0, 32.0, 0.5)
-                    _slider("Spiral growth (mm)", "volute_spiral", 10.0, 40.0, 1.0)
-                    _slider("Tip clearance (mm)", "volute_clearance", 1.0, 8.0, 0.5)
+                    _slider("Blade thick (mm)", "volute_blade_thick", 0.6, 2.5, 0.1)
+                    _slider("Backplate (mm)", "volute_backplate", 1.0, 4.0, 0.1)
+                    with v3.VExpansionPanels(variant="accordion", class_="mb-2"):
+                        with v3.VExpansionPanel(title="Scroll & tongue"):
+                            with v3.VExpansionPanelText():
+                                _slider("Spiral growth (mm)", "volute_spiral", 10.0, 40.0, 1.0)
+                                _slider("Tip clearance (mm)", "volute_clearance", 1.0, 8.0, 0.5)
+                                _slider("Wall (mm)", "volute_wall", 1.0, 4.0, 0.1)
+                                _slider("Tongue angle (°)", "volute_tongue_angle", 2.0, 15.0, 0.5)
+                                _slider("Tongue clear (mm)", "volute_tongue_clear", 0.5, 4.0, 0.1)
+                                _slider("Tongue fillet (mm)", "volute_tongue_fillet", 0.0, 4.0, 0.1)
+                        with v3.VExpansionPanel(title="Outlet"):
+                            with v3.VExpansionPanelText():
+                                _slider("Outlet width (mm)", "volute_out_w", 20.0, 50.0, 1.0)
+                                _slider("Outlet length (mm)", "volute_out_l", 20.0, 60.0, 1.0)
+                                _slider("Outlet height (mm)", "volute_out_h", 12.0, 40.0, 1.0)
                     with v3.VRow(no_gutters=True, classes="mt-1"):
                         with v3.VCol(cols=6, classes="pr-1"):
                             v3.VTextField(

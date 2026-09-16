@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
+from typing import Sequence
 
 import cadquery as cq
 
@@ -26,31 +27,77 @@ def _pitch_angle_deg(pitch_mm: float, radius_mm: float) -> float:
     return math.degrees(math.atan(pitch_mm / (2.0 * math.pi * radius_mm)))
 
 
-def prop_blade_params(spec: PropSpec, *, chord_frac=(0.20, 0.26, 0.10), thickness=(0.09, 0.06, 0.04),
-                      camber: float = 0.04, sweep_tip: float = 3.0) -> BladeParams:
-    """Prop-appropriate BladeParams from a spec: pitch-driven twist, few blades, thin cambered airfoils,
-    small shaft-mount hub. chord_frac/thickness are (root, mid, tip); chord_frac is fraction of tip radius."""
-    R = spec.diameter_mm / 2.0                     # tip radius
-    hub_r = max(spec.shaft.hub_dia_mm / 2.0, 3.0)  # small shaft-mount hub
+def _as_triplet(value, default: tuple[float, float, float]) -> tuple[float, float, float]:
+    """Accept a scalar (broadcast) or length-3 sequence."""
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        v = float(value)
+        return (v, v, v)
+    seq = list(value)
+    if len(seq) != 3:
+        raise ValueError(f"expected 3 values, got {len(seq)}")
+    return (float(seq[0]), float(seq[1]), float(seq[2]))
+
+
+def prop_blade_params(
+    spec: PropSpec,
+    *,
+    chord_frac=(0.20, 0.26, 0.10),
+    thickness=(0.09, 0.06, 0.04),
+    camber: float | Sequence[float] = 0.04,
+    camber_pos: float = 0.4,
+    sweep_mid: float = 0.0,
+    sweep_tip: float = 3.0,
+    lean_mid: float = 0.0,
+    lean_tip: float = 0.0,
+    le_sweep_mid: float = 0.0,
+    le_sweep_tip: float = 0.0,
+    le_skew_mid: float = 0.0,
+    le_skew_tip: float = 0.0,
+    cylindrical_tip: bool = True,
+) -> BladeParams:
+    """Prop-appropriate BladeParams from a spec: pitch-driven twist + Design knobs (§14.1).
+
+    ``chord_frac`` / ``thickness`` / ``camber`` are (root, mid, tip); chord_frac is fraction of
+    tip radius. ``camber`` may be a scalar (legacy) or a length-3 sequence.
+    """
+    R = spec.diameter_mm / 2.0
+    hub_r = max(spec.shaft.hub_dia_mm / 2.0, 3.0)
     r_at = {0.0: hub_r, 0.5: 0.5 * (hub_r + R), 1.0: R}
     beta = {rf: _pitch_angle_deg(spec.pitch_mm, r) for rf, r in r_at.items()}
     ch = {0.0: chord_frac[0] * R, 0.5: chord_frac[1] * R, 1.0: chord_frac[2] * R}
+    th = _as_triplet(thickness, (0.09, 0.06, 0.04))
+    cam = _as_triplet(camber, (0.04, 0.04, 0.04))
+    cpos = float(camber_pos)
     stations = [
-        RadialStation(0.0, ch[0.0], beta[0.0], thickness[0], camber, 0.4, 0.0, 0.0, 0.0),
-        RadialStation(0.5, ch[0.5], beta[0.5], thickness[1], camber, 0.4, 0.0, 0.0, 0.0),
-        RadialStation(1.0, ch[1.0], beta[1.0], thickness[2], camber, 0.5, sweep_tip, 0.0, 0.0),
+        RadialStation(
+            0.0, ch[0.0], beta[0.0], th[0], cam[0], cpos, 0.0, 0.0, 0.0,
+            le_sweep=0.0, le_skew=0.0),
+        RadialStation(
+            0.5, ch[0.5], beta[0.5], th[1], cam[1], cpos,
+            float(sweep_mid), 0.0, float(lean_mid),
+            le_sweep=float(le_sweep_mid), le_skew=float(le_skew_mid)),
+        RadialStation(
+            1.0, ch[1.0], beta[1.0], th[2], cam[2], max(cpos, 0.5),
+            float(sweep_tip), 0.0, float(lean_tip),
+            le_sweep=float(le_sweep_tip), le_skew=float(le_skew_tip)),
     ]
-    # small axial hub margin (props have a thin hub, not a deep fan cup)
-    return BladeParams(n_blades=spec.n_blades, hub_radius=hub_r, tip_radius=R,
-                       root_embed=1.5, hub_axial_margin=1.0, stations=stations)
+    return BladeParams(
+        n_blades=spec.n_blades, hub_radius=hub_r, tip_radius=R,
+        root_embed=1.5, hub_axial_margin=1.0, stations=stations,
+        cylindrical_tip=bool(cylindrical_tip),
+    )
 
 
-def build_prop(spec: PropSpec, out_path: str | Path, *, bore: bool = True, **kw):
+def build_prop(spec: PropSpec, out_path: str | Path, *, bore: bool = True,
+               params: BladeParams | None = None, **kw):
     """Build a printable prop STL for ``spec`` (optional center shaft bore). Returns the WatertightReport."""
     from fansim.geometry import watertight_report
-    params = prop_blade_params(spec, **kw)
+    if params is None:
+        params = prop_blade_params(spec, **kw)
     model = build_impeller(params)
-    if bore and spec.shaft.shaft_dia_mm > 0:      # center bore for the motor shaft (through the hub)
+    if bore and spec.shaft.shaft_dia_mm > 0:
         shape = model.val()
         bb = shape.BoundingBox()
         r = spec.shaft.shaft_dia_mm / 2.0
