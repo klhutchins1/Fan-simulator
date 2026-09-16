@@ -1,7 +1,3 @@
-# EXTRACTED-FROM-CURSOR-TRANSCRIPT 2026-09-12
-# source: agent-transcripts/9f43d5b7...jsonl write@967 + 1 later StrReplace
-# NOT verified against lost E: tree — re-check before deleting RECOVERED-FROM-CHAT peers.
-
 """Human-readable Assess/optimizer score provenance (hose, duct, print knockdown)."""
 
 from __future__ import annotations

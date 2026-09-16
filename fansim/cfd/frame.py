@@ -1,7 +1,3 @@
-# EXTRACTED-FROM-CURSOR-TRANSCRIPT 2026-09-12
-# source: agent-transcripts/9f43d5b7...jsonl write@1678 + 0 later StrReplace
-# NOT verified against lost E: tree — re-check before deleting RECOVERED-FROM-CHAT peers.
-
 """Stationary exhaust-frame geometry for honest CFD (CadQuery solids in mm)."""
 
 from __future__ import annotations

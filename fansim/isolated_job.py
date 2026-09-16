@@ -1,7 +1,3 @@
-# EXTRACTED-FROM-CURSOR-TRANSCRIPT 2026-09-12
-# source: agent-transcripts/9f43d5b7...jsonl write@3337 + 0 later StrReplace
-# NOT verified against lost E: tree — re-check before deleting RECOVERED-FROM-CHAT peers.
-
 """Shared JSON-job subprocess runner for CadQuery/CFD workers.
 
 Build/eval callers write a temp job file and run ``python -m <module> <job.json>``.

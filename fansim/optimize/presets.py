@@ -1,7 +1,3 @@
-# EXTRACTED-FROM-CURSOR-TRANSCRIPT 2026-09-12
-# source: agent-transcripts/9f43d5b7...jsonl write@217 + 1 later StrReplace
-# NOT verified against lost E: tree — re-check before deleting RECOVERED-FROM-CHAT peers.
-
 """Application load presets for the fan optimizer (roadmap §3.1).
 
 Each preset sets the CFD load-point so ``cfm_load`` is airflow against a real
