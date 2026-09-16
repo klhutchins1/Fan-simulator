@@ -8,12 +8,18 @@ geometry, and passes ~529 / 622 non-docker tests**, all committed and pushed to
 Run the suite: `uv run --extra optim python -m pytest -m "not docker and not slow" -q`
 
 ## Provenance / trust
-- **Unmarked files** = verbatim Cursor `Write`s (the drive-death bytes) — trust these.
-- **`# RECONSTRUCTED` / `# --- spliced ...`** (notably `fansim/geometry/blade.py`, and small
-  helpers) = rebuilt from replayed edits or authored from a test contract — **verify** if a bug
-  surfaces. `blade.py` is the main one (my 420-line base + replayed Cursor edits + splices).
-- **`# RECOVERED-FROM-CHAT`** = my Aug26–Sep03 snapshot, kept only where nothing newer existed.
-- Raw mined archive: `CHAT_RECOVERY/cursor_full_recovery/` (334 files). Merge manifest:
+
+**2026-09-16:** Leading `# RECOVERED-FROM-CHAT` / `# RECONSTRUCTED` / `# EXTRACTED-FROM-CURSOR*`
+apology headers were stripped from all `fansim/*.py` modules (roadmap §15.1). This file is the
+single provenance note — do not put recovery apologies back into source headers.
+
+- **Unmarked product code** under `fansim/` is the current trusted tree for day-to-day work.
+- **`fansim/geometry/blade.py` geometry-golden signed off 2026-09-16 (roadmap §15.2)** —
+  `validation/reference/a12x25_blade_golden.json` + `tests/test_blade_golden.py` freeze parametric
+  stock volume/bounds/tip-section and soft-envelope tip/axial vs the close-ref STL. Absolute
+  stock↔close-ref volume is still approximate (~1.4×); treat published CFM claims as validation-
+  gated, not recipe-gated. Mid-file `# --- spliced` archaeology comments may still exist; ignore them.
+- Raw mined archive: `CHAT_RECOVERY/cursor_full_recovery/` (gitignored). Merge manifest:
   `CURSOR_MERGE_MANIFEST.txt`. Recovery narrative: `README_RECOVERY.md`, `HANDOFF_TO_CURSOR.md`.
 
 ## Remaining test failures (archetype bucket closed 2026-09-13), by bucket

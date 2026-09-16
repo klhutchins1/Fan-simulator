@@ -42,14 +42,17 @@ def test_blade_from_flat_falls_back_to_max_camber():
 
 
 def test_a12x25_stock_keeps_root_mid_camber_split():
+    # a12x25_reference.yaml was re-fit to STL slices (2026-09-15): per-station camber is
+    # now 0.08/0.10/0.12 root/mid/tip. What this guards is that the split survives the
+    # blade_to_flat -> blade_from_flat round-trip (not collapsed to one value).
     flat = stock_blade_flat("a12x25")
-    assert abs(float(flat["camber_root"]) - 0.05) < 1e-9
-    assert abs(float(flat["camber_mid"]) - 0.06) < 1e-9
-    assert abs(float(flat["camber_tip"]) - 0.06) < 1e-9
+    assert abs(float(flat["camber_root"]) - 0.08) < 1e-9
+    assert abs(float(flat["camber_mid"]) - 0.10) < 1e-9
+    assert abs(float(flat["camber_tip"]) - 0.12) < 1e-9
     bp = blade_from_flat(flat, Features())
     st = sorted(bp.stations, key=lambda s: s.r_frac)
-    assert abs(st[0].max_camber - 0.05) < 1e-9
-    assert abs(st[1].max_camber - 0.06) < 1e-9
+    assert abs(st[0].max_camber - 0.08) < 1e-9
+    assert abs(st[1].max_camber - 0.10) < 1e-9
 
 
 def test_blade_to_flat_emits_thick_mode():
