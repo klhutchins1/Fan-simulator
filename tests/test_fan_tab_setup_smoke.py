@@ -2,14 +2,20 @@
 
 Unlike test_fan_tab_parse (which only ``ast.parse``s the file), this actually runs
 ``setup_fan_tab`` against a headless Trame server and invokes the bound handlers, so a
-broken cross-reference in a callback fails a test instead of only at cockpit runtime.
+broken reference in a callback fails a test instead of only at cockpit runtime.
 
-This is the safety net for splitting ``setup_fan_tab`` into FanSession binders: the bind
-path plus every synchronous handler must resolve every name it calls.
+Two levels:
+- sync handlers are called directly;
+- async handlers (Preview/Assess/Sweep/Optimize/Export/Stock) have their ``async def task()``
+  body actually driven, with the heavy I/O boundaries (``run_in_executor`` targets and
+  ``subprocess.Popen``) stubbed by name. That catches name/attribute typos *inside* the
+  coroutine bodies, which a plain ``coro.close()`` would skip.
 """
 
 from __future__ import annotations
 
+import asyncio
+import subprocess
 import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -27,6 +33,11 @@ def _make_ctx(tmp_path):
 
     server = trame.get_server(f"fan_tab_smoke_{tmp_path.name}")
     state, ctrl = server.state, server.controller
+    # render_fan_tab registers these in the real app; handlers (refresh_figure/view_update)
+    # call them after the UI exists. Register no-ops so driving handlers headless doesn't
+    # raise FunctionNotImplementedError.
+    ctrl.figure_update = lambda *a, **k: None
+    ctrl.view_update = lambda *a, **k: None
 
     def _ticker(**_):
         return MagicMock(), 0.0
@@ -52,20 +63,22 @@ def _make_ctx(tmp_path):
 
 @pytest.fixture
 def bound_ctx(tmp_path, monkeypatch):
-    """A ctx with setup_fan_tab already run; async spawns are neutralized."""
+    """A ctx with setup_fan_tab run; scheduled coroutines are collected on ``ctx._tasks``."""
     import fansim.cockpit.fan_runtime as fan_runtime
     import fansim.cockpit.fan_tab as fan_tab
 
-    # Run the sync prefix of async handlers but don't schedule the coroutine
-    # (no running loop in the test; the coroutine bodies need one).
+    tasks: list = []
+
+    def _create_task(coro):
+        tasks.append(coro)
+        return MagicMock()  # code calls .cancel() on the returned handle
+
     monkeypatch.setattr(
-        fan_runtime,
-        "asynchronous",
-        SimpleNamespace(create_task=lambda coro: coro.close()),
-        raising=False,
+        fan_runtime, "asynchronous", SimpleNamespace(create_task=_create_task), raising=False
     )
     ctx = _make_ctx(tmp_path)
     fan_tab.setup_fan_tab(ctx)  # binds + runs initial population (refresh_*, readouts)
+    ctx._tasks = tasks  # type: ignore[attr-defined]
     return ctx
 
 
@@ -103,10 +116,85 @@ def test_cancel_handlers_are_safe_when_idle(bound_ctx):
     bound_ctx.fan_cancel_optimize()
 
 
-def test_async_handlers_run_sync_prefix(bound_ctx):
-    """Async handlers must resolve their names up to the (neutralized) task spawn."""
-    bound_ctx.fan_do_preview()
-    bound_ctx.fan_on_assess()
-    bound_ctx.fan_on_sweep()
-    bound_ctx.fan_on_optimize()
-    bound_ctx.fan_load_stock_reference()
+class _LoopProxy:
+    """Wraps the real loop but returns canned results for run_in_executor (no real I/O)."""
+
+    def __init__(self, real, canned):
+        object.__setattr__(self, "_real", real)
+        object.__setattr__(self, "_canned", canned)
+
+    def __getattr__(self, k):
+        return getattr(self._real, k)
+
+    def run_in_executor(self, executor, fn, *args):
+        fut = self._real.create_future()
+        try:
+            fut.set_result(self._canned(fn, *args))
+        except Exception as exc:  # surface stub bugs as a test failure
+            fut.set_exception(exc)
+        return fut
+
+
+def _drive(coro, canned):
+    """Run one coroutine to completion with run_in_executor stubbed by fn name."""
+    async def runner():
+        proxy = _LoopProxy(asyncio.get_running_loop(), canned)
+        saved = asyncio.get_running_loop
+        asyncio.get_running_loop = lambda: proxy  # cockpit code awaits proxy.run_in_executor
+        try:
+            await coro
+        finally:
+            asyncio.get_running_loop = saved
+
+    asyncio.run(runner())
+
+
+def test_async_handler_bodies_execute(bound_ctx, monkeypatch, tmp_path):
+    """Drive each async handler's task() body; catches typos inside the coroutine."""
+    tasks = bound_ctx._tasks
+
+    result = SimpleNamespace(
+        feasible=True, reason="", over_spec=[],
+        cfm_free=10.0, cfm_load=8.0, efficiency=40.0, actual_rpm=2000.0, raw={},
+    )
+    rep = SimpleNamespace(ok=True, mount_fits=None, mount_msg="")
+
+    def canned(fn, *args):
+        name = getattr(fn, "__name__", "")
+        return {
+            "_blocking_eval": result,
+            "_do_export": (rep, None),
+            "_ensure_stock_preview": tmp_path / "stock.stl",
+            "poll_merge": 0,
+            "get_item": None,  # ends the optimize log loop immediately
+        }.get(name)  # default None (e.g. _build_preview_stl)
+
+    class _FakeProc:
+        def __init__(self, *a, **k):
+            self.stdout = iter(["trial 0 ok\n", "done\n"])
+            self.pid = 4321
+
+        def poll(self):
+            return 0
+
+        def wait(self):
+            return 0
+
+        def terminate(self):
+            pass
+
+    monkeypatch.setattr(subprocess, "Popen", _FakeProc)
+
+    for handler in (
+        "fan_do_preview", "fan_on_assess", "fan_on_sweep",
+        "fan_on_optimize", "fan_load_stock_reference", "fan_export_stl_current",
+    ):
+        getattr(bound_ctx, handler)()
+        # Drain the queue: driving a body (all named ``task``) can enqueue more (the assess
+        # progress ticker); pop until empty, driving task bodies and closing the rest.
+        while tasks:
+            coro = tasks.pop(0)
+            if coro.cr_code.co_name == "task":
+                _drive(coro, canned)
+            else:
+                coro.close()

@@ -69,7 +69,6 @@ class FanSession:
             "glyph_arrows": None,
         }
         self.preview_stl = Path(tempfile.gettempdir()) / "fansim_cockpit_preview.stl"
-        self.SWEEP_OPTIONS: list = []
 
     def expose_to_ctx(self) -> None:
         """Copy public handlers onto ``ctx`` for ``render_fan_tab``."""

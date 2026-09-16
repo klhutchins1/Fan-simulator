@@ -484,10 +484,13 @@ visual, and error-handling that hides failure.
   (`fan_core` / `fan_models` / `fan_editor` / `fan_viz` / `fan_library` / `fan_export` / `fan_assess`
   / `fan_optimize` / `fan_trials`, each 117–545 lines) sharing the `FanSession` bag; `pv`/`asynchronous`
   moved to `fan_runtime`. Cross-domain calls route through `session.*`. Behavior-preserving. New nets:
-  `test_fan_tab_setup_smoke` (runs `setup_fan_tab` on a headless Trame server + invokes every handler)
-  and `test_fan_binders_wiring` (AST: every `session.x` read is provided — the F821-equivalent for the
-  bag). While mapping, found+fixed a recovery-induced render bug (`_apply_render` merged into
-  `_add_envelope` → recursion + NameError). The four other `*_tab.py` can now share this scaffold.
+  `test_fan_tab_setup_smoke` (runs `setup_fan_tab` on a headless Trame server, invokes the sync
+  handlers, and drives the async handler bodies — Preview/Assess/Sweep/Optimize/Export/Stock — with the
+  heavy I/O boundaries, i.e. `run_in_executor` targets and `subprocess.Popen`, stubbed by name) and
+  `test_fan_binders_wiring` (AST: every `session.x` read is provided — the F821-equivalent for the bag;
+  bare-name typos are already caught by ruff F821). While mapping, found+fixed a recovery-induced render
+  bug (`_apply_render` merged into `_add_envelope` → recursion + NameError). The four other `*_tab.py`
+  can now share this scaffold.
 - [x] **15.6 Root-cause the `build_impeller` 13→31.6 s regression. DONE 2026-09-16.**
   Profiled (`scripts/_profile_build_impeller.py`). Stock with tip notches was **~153–168 s**
   (floor 48), not ~32 s — fuse of notched blades dominates. Ablation: no notches ~61 s;
