@@ -22,3 +22,10 @@ Interim CFD vs published free-air / shut-off should prefer this mesh (or equival
 parametric Stock yaml alone, with tip gap **0.5 mm** and a documented mesh budget.
 
 Geometry envelope checks and CFD performance checks remain separate gates.
+
+## Blade geometry golden (§15.2)
+
+`a12x25_blade_golden.json` — parametric Stock volume / bounds / tip-section sample from
+`fansim.validation.blade_golden`. Guards `blade.py` regressions. Soft tip/axial envelope vs
+the close-ref STL is checked in `tests/test_blade_golden.py` (absolute volume is *not* matched —
+Stock is an approximate recipe).
