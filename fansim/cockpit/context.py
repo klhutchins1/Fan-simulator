@@ -19,10 +19,11 @@ class CockpitCtx:
     busy_expr: Callable[..., str]
     spawn_busy_ticker: Callable[..., tuple]
 
-    # Non-Fan VTK plotters — None until first Mixed/Volute/Prop visit (§12.3).
+    # Non-Fan VTK plotters — None until first Mixed/Volute/Prop/CROR visit (§12.3 / §14.6).
     prop_plotter: Any = None
     mf_plotter: Any = None
     volute_plotter: Any = None
+    cror_plotter: Any = None
 
     # Optional Fan session fields (populated by the cockpit shell before `setup_fan_tab`).
     study_name: str | None = None

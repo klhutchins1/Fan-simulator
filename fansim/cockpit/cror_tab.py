@@ -7,11 +7,13 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import tempfile
 import time
 from pathlib import Path
 
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.figures import cror_scatter_figure
+from fansim.cockpit.plotters import ensure_plotter
 from fansim.cror.geometry import CrorParams, export_cror_stl
 from fansim.cror.noise import estimate_cror_noise
 from fansim.cror.optimize import (
@@ -31,11 +33,15 @@ from fansim.cror.persist import (
 _RUNNING_TESTS = "pytest" in sys.modules
 
 if _RUNNING_TESTS:
+    pv = None  # type: ignore[assignment]
+    plotter_ui = None  # type: ignore[assignment]
     asynchronous = None  # type: ignore[assignment]
     html = None  # type: ignore[assignment]
     plotly_widgets = None  # type: ignore[assignment]
     v3 = None  # type: ignore[assignment]
 else:
+    import pyvista as pv
+    from pyvista.trame.ui import plotter_ui
     from trame.app import asynchronous
     from trame.widgets import html
     from trame.widgets import plotly as plotly_widgets
@@ -50,9 +56,11 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
 
     # ---- CROR tab (counter-rotating stacked rotors, §4.2) ---------------------------------
     cror_pareto_store: list[dict] = []
+    cror_preview_stl = Path(tempfile.gettempdir()) / "fansim_cror_preview.stl"
 
     # Shared objects for render + callbacks (kept per-session).
     ctx.cror_pareto_store = cror_pareto_store  # type: ignore[attr-defined]
+    ctx.cror_preview_stl = cror_preview_stl  # type: ignore[attr-defined]
 
     state.cror_trials = 60
     state.cror_rpm = 2000.0
@@ -66,8 +74,8 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
     state.cror_geo_ready = False
     state.cror_msg = ""
     state.cror_readout = [
-        "CROR: edit front/rear blades, Thin to ≤25 mm, Optimize (BEMT proxy), CFD refine top-N. "
-        "Relative noise only."
+        "CROR: edit front/rear blades, Preview the stack, Thin to ≤25 mm, Optimize (BEMT proxy), "
+        "CFD refine top-N. Relative noise only."
     ]
     # Design defaults (§14.5)
     _c0 = CrorParams()
@@ -109,6 +117,62 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
             or state.cror_export_busy
             or state.cror_preview_busy
         )
+
+    def _draw_cror(path: Path) -> None:
+        cror_plotter = ensure_plotter(ctx, "cror_plotter")
+        if cror_plotter is None:
+            return
+        cror_plotter.clear_actors()
+        try:
+            cror_plotter.add_mesh(pv.read(str(path)), color="cadetblue", smooth_shading=True)
+            cror_plotter.reset_camera()
+        except Exception:  # noqa: BLE001 - nothing to show
+            pass
+        try:
+            ctrl.cror_view_update()
+        except Exception:  # noqa: BLE001
+            pass
+
+    def preview_cror(**_):
+        """Build thinned CROR stack STL and show it in the tab plotter (§14.6)."""
+        if _cror_busy() or asynchronous is None:
+            return
+
+        async def task():
+            state.cror_preview_busy = True
+            ticker, _t0 = spawn_busy_ticker(
+                action="Preview",
+                msg_attr="cror_msg",
+                busy_attr="cror_preview_busy",
+                note="building CROR stack",
+            )
+            state.flush()
+            loop = asyncio.get_running_loop()
+            try:
+                params = await loop.run_in_executor(None, _cror_params_from_editor)
+                await loop.run_in_executor(
+                    None,
+                    lambda: export_cror_stl(params, cror_preview_stl),
+                )
+                _draw_cror(cror_preview_stl)
+                depth = cror_stack_depth_mm(params)
+                nz = estimate_cror_noise(params, float(state.cror_rpm))
+                state.cror_geo_ready = True
+                state.cror_readout = [
+                    f"Stack depth {depth:.1f} mm · gap {params.axial_gap_mm:.1f} mm · "
+                    f"{params.front.n_blades}+{params.rear.n_blades} blades",
+                    f"Proxy noise {nz['rel_dba']:.0f} (rel) · front BPF {nz['front_bpf_hz']:.0f} Hz · "
+                    f"rear {nz['rear_bpf_hz']:.0f} Hz",
+                ]
+                state.cror_msg = "✓ Preview ready (thinned to depth cap)."
+            except Exception as exc:  # noqa: BLE001
+                state.cror_msg = f"⚠ Preview failed: {type(exc).__name__}: {exc}"
+            finally:
+                state.cror_preview_busy = False
+                ticker.cancel()
+                state.flush()
+
+        asynchronous.create_task(task())
 
     def _cror_flat_from_state() -> dict:
         from fansim.cockpit.blade_editor import shape_flat_from_state
@@ -390,6 +454,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
     # Expose callbacks for the UI renderer.
     ctx.thin_cror_now = thin_cror_now  # type: ignore[attr-defined]
     ctx.export_cror_now = export_cror_now  # type: ignore[attr-defined]
+    ctx.preview_cror = preview_cror  # type: ignore[attr-defined]
     ctx.optimize_cror = optimize_cror  # type: ignore[attr-defined]
     ctx.refine_cror_cfd = refine_cror_cfd  # type: ignore[attr-defined]
     ctx.load_cror_row = load_cror_row  # type: ignore[attr-defined]
@@ -397,11 +462,12 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
 
 def render_cror_tab(ctx: CockpitCtx) -> None:
     """Build CROR UI (call inside layout content)."""
-    if html is None or v3 is None or plotly_widgets is None:
+    if html is None or v3 is None or plotly_widgets is None or plotter_ui is None:
         return
 
     state, ctrl = ctx.state, ctx.ctrl
     cror_pareto_store = getattr(ctx, "cror_pareto_store")  # set by setup_cror_tab
+    cror_plotter = ensure_plotter(ctx, "cror_plotter")
 
     def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None, **_kw):
         extra = {}
@@ -430,7 +496,7 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                         classes="text-subtitle-2 mb-1",
                     )
                     html.Div(
-                        "Edit front/rear planform, then Thin / Export / Optimize. "
+                        "Edit front/rear planform, then Preview / Thin / Export / Optimize. "
                         "Optimize is BEMT-proxy NSGA (not dual-MRF). Relative noise only.",
                         classes="text-caption mb-2",
                         style="white-space: pre-line",
@@ -495,6 +561,19 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                             )
                     with v3.VRow(no_gutters=True, classes="mt-2"):
                         v3.VBtn(
+                            "Preview",
+                            size="small",
+                            variant="tonal",
+                            color="primary",
+                            click=(getattr(ctx, "preview_cror"),),
+                            classes="mr-2",
+                            loading=("cror_preview_busy",),
+                            disabled=(
+                                "cror_preview_busy || cror_opt_busy || cror_refine_busy || "
+                                "cror_thin_busy || cror_export_busy",
+                            ),
+                        )
+                        v3.VBtn(
                             "Thin to depth",
                             size="small",
                             variant="tonal",
@@ -503,7 +582,8 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                             classes="mr-2",
                             loading=("cror_thin_busy",),
                             disabled=(
-                                "cror_opt_busy || cror_refine_busy || cror_thin_busy || cror_export_busy",
+                                "cror_preview_busy || cror_opt_busy || cror_refine_busy || "
+                                "cror_thin_busy || cror_export_busy",
                             ),
                         )
                         v3.VBtn(
@@ -515,7 +595,8 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                             classes="mr-2",
                             loading=("cror_export_busy",),
                             disabled=(
-                                "cror_opt_busy || cror_refine_busy || cror_thin_busy || cror_export_busy",
+                                "cror_preview_busy || cror_opt_busy || cror_refine_busy || "
+                                "cror_thin_busy || cror_export_busy",
                             ),
                         )
                         v3.VBtn(
@@ -525,7 +606,8 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                             click=(getattr(ctx, "optimize_cror"),),
                             loading=("cror_opt_busy",),
                             disabled=(
-                                "cror_opt_busy || cror_refine_busy || cror_thin_busy || cror_export_busy",
+                                "cror_preview_busy || cror_opt_busy || cror_refine_busy || "
+                                "cror_thin_busy || cror_export_busy",
                             ),
                         )
                     with v3.VRow(no_gutters=True, classes="mt-2 align-center"):
@@ -547,8 +629,9 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                                 click=(getattr(ctx, "refine_cror_cfd"),),
                                 loading=("cror_refine_busy",),
                                 disabled=(
-                                    "cror_opt_busy || cror_refine_busy || cror_thin_busy || "
-                                    "cror_export_busy || !cror_has_front || !(cror_cfd_top > 0)",
+                                    "cror_preview_busy || cror_opt_busy || cror_refine_busy || "
+                                    "cror_thin_busy || cror_export_busy || !cror_has_front || "
+                                    "!(cror_cfd_top > 0)",
                                 ),
                             )
                     html.Div(
@@ -557,6 +640,7 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                         style="white-space: pre-line",
                     )
                     ctx.busy_bar(
+                        "cror_preview_busy",
                         "cror_opt_busy",
                         "cror_refine_busy",
                         "cror_thin_busy",
@@ -570,9 +654,9 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                         v_for="line in cror_readout",
                         classes="text-body-2",
                     )
-                with v3.VCard(classes="mb-2 pa-4", style="height:120px;"):
-                    html.Div("Export STL builds the edited stack (thinned to depth cap).",
-                             classes="text-caption text-medium-emphasis")
+                with v3.VCard(style="height:360px;", classes="mb-2"):
+                    cror_view = plotter_ui(cror_plotter)
+                    ctrl.cror_view_update = cror_view.update
                 with v3.VCard(style="height:360px;", classes="pa-1 mb-2"):
                     cror_fig_widget = plotly_widgets.Figure(
                         figure=cror_scatter_figure(cror_pareto_store),

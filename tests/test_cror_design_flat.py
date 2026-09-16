@@ -71,3 +71,6 @@ def test_cockpit_declares_cror_design_panels():
     assert "cror_f_chord_mid" in text
     assert "render_shape_panels" in text
     assert "Front rotor" in text
+    assert "preview_cror" in text
+    assert "cror_view_update" in text
+    assert 'VBtn(\n                            "Preview"' in text or '"Preview"' in text
