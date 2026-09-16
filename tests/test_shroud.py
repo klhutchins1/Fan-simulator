@@ -313,6 +313,7 @@ def test_cockpit_declares_shroud_height_slider():
     assert "e_shroud_height" in text
     assert '"Shroud height"' in text or "'Shroud height'" in text
     assert "trailing edge" in text.lower()
-    setup = Path("fansim/cockpit/fan_tab.py").read_text(encoding="utf-8")
+    # setup_fan_tab's editor serialization moved to the fan_editor binder (§13.9 split).
+    setup = Path("fansim/cockpit/fan_editor.py").read_text(encoding="utf-8")
     assert "shroud_height_frac" in setup
     assert "e_shroud_thick == 0" in text

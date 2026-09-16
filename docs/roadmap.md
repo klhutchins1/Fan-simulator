@@ -32,7 +32,7 @@ session.**
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: **14.3b** / **14.4b** below (parallel with §5; Design UI only — not archetype CFD).
-7. **§15 adversarial leftovers** — ~~15.1–15.4~~ / ~~15.6~~ done 2026-09-16; still **15.5** binder split.
+7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
 
 §8 / §9 / §10 / §12 / §13 stage-1 are **closed in code**. §13.23 remains (Mixed/Prop preview fuse). Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
@@ -371,7 +371,7 @@ Do **not** treat a green pytest summary as “the app works.” Fast suite ~654 
 
 ### 13.2 Code quality / maintainability — HIGH **[impact: med]** **[effort: med–high]**
 
-- [x] **13.9 Split `fan_tab.py` (stage 1).** UI → `fan_tab_ui.py` (~1030 lines); widgets from `fan_widgets.py`; copy from `fan_copy.py` (§12.3). `setup_fan_tab` still ~2500 lines of nested callbacks — further binder split (Assess / Optimize / viz via `FanSession`) remains optional.
+- [x] **13.9 Split `fan_tab.py`.** Stage 1: UI → `fan_tab_ui.py` (~1030 lines); widgets from `fan_widgets.py`; copy from `fan_copy.py` (§12.3). Stage 2 (§15.5, 2026-09-16): `setup_fan_tab` → 68-line coordinator + nine `FanSession` binders (core/models/editor/viz/library/export/assess/optimize/trials, 117–545 lines each) + `fan_runtime`.
 - [x] **13.10 Ruff as a gate (critical rules).** `F811`/`F821` cleared across `fansim tests scripts`. Full style debt (~hundreds of I001/F401/S110/...) still open -- do **not** mass-rewrite BLE001 on isolated eval workers (sec 9.6). CI selects F811,F821 until the autofix pass lands.
 - [x] **13.11 CI on push.** `.github/workflows/ci.yml`: `uv sync` + ruff F811/F821 + `pytest -m "not docker and not slow"`. Document Windows OCCT teardown `0xC0000374` after a **green** summary (`docs/validation/suite_baseline_2026-09-14.md`) so operators do not treat heap-corruption-on-exit as a failed assertion.
 - [x] **13.12 Recovery archaeology out of the product tree.** `.gitignore` now drops `CHAT_RECOVERY/`, `.superpowers/sdd/`, and one-shot `scripts/_patch_roadmap_*.py` / `_fix_roadmap_*.py` / `_smoke_ui_review_after.py` (files may still sit on disk; they are not ship surface).
@@ -421,7 +421,7 @@ BEM is ~14 ms after polar cache — **leave it**. OpenFOAM `base_cell` is a vali
 
 ### 13.0 Landed / do not re-add
 
-§13.1–13.20 closed (13.9 stage-1 UI extract; optional FanSession binder split still open). Do not copy §12.0 items here. Do not re-open parked wind / absolute FW-H / mixed-flow expansion — those are `docs/validation/keep_cut_board.md`.
+§13.1–13.20 closed (13.9: UI extract + FanSession binder split both done 2026-09-16). Do not copy §12.0 items here. Do not re-open parked wind / absolute FW-H / mixed-flow expansion — those are `docs/validation/keep_cut_board.md`.
 
 ---
 
@@ -479,12 +479,15 @@ visual, and error-handling that hides failure.
   (depth fit, thickness average, …) remain intentional; action handlers already surface
   Preview/Assess/Export/Optimize errors. Tests: `tests/test_cockpit_errors.py`.
   Further: push the same helper into Mixed/Prop/Volute/CROR binders when touching those files.
-- [ ] **15.5 `setup_fan_tab` (2717 lines, 85 nested closures) — the binder split is not optional. MED** **[impact: med]** **[effort: med–high]**
-  §13.9 extracted the UI to `fan_tab_ui.py` but left `setup_fan_tab` as one ~2500-line function of nested
-  callbacks and called the further split "optional." For PROD it isn't: it's untestable in isolation,
-  concentrates 41 of the repo's silent excepts, and is where every closure + recovery header lives.
-  Promote the `FanSession` binder split (Assess / Optimize / viz) from optional to planned; the other
-  four `*_tab.py` (mixed/volute/cror/prop) repeat the same scaffolding and should share it.
+- [x] **15.5 `setup_fan_tab` binder split. DONE 2026-09-16.**
+  Split the single 2717-line `setup_fan_tab` into a 68-line coordinator plus nine per-domain binders
+  (`fan_core` / `fan_models` / `fan_editor` / `fan_viz` / `fan_library` / `fan_export` / `fan_assess`
+  / `fan_optimize` / `fan_trials`, each 117–545 lines) sharing the `FanSession` bag; `pv`/`asynchronous`
+  moved to `fan_runtime`. Cross-domain calls route through `session.*`. Behavior-preserving. New nets:
+  `test_fan_tab_setup_smoke` (runs `setup_fan_tab` on a headless Trame server + invokes every handler)
+  and `test_fan_binders_wiring` (AST: every `session.x` read is provided — the F821-equivalent for the
+  bag). While mapping, found+fixed a recovery-induced render bug (`_apply_render` merged into
+  `_add_envelope` → recursion + NameError). The four other `*_tab.py` can now share this scaffold.
 - [x] **15.6 Root-cause the `build_impeller` 13→31.6 s regression. DONE 2026-09-16.**
   Profiled (`scripts/_profile_build_impeller.py`). Stock with tip notches was **~153–168 s**
   (floor 48), not ~32 s — fuse of notched blades dominates. Ablation: no notches ~61 s;
@@ -492,8 +495,8 @@ visual, and error-handling that hides failure.
   (~4–5 s loft). One-`.clean()` ~4 s only. **Fix:** `NOTCH_SPAN_SECTIONS` 48→28 (~87 s, ~2×).
   Write-up: `docs/validation/perf_baseline.md` §5.
 
-**Rollup:** §15.1–15.4 / §15.6 closed 2026-09-16. Remaining adversarial: **15.5** fan_tab
-binder split. Geometry-perf: ~~13.22~~ / ~~13.24~~; still **13.23** Mixed/Prop preview fuse.
+**Rollup:** §15.1–15.6 all closed 2026-09-16 (15.5 binder split done). Geometry-perf:
+~~13.22~~ / ~~13.24~~; still **13.23** Mixed/Prop preview fuse.
 
 ---
 
