@@ -7,9 +7,10 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-09-15** (evening). **§12** + **§13** + **§7.6** + **§14.1–14.5** closed in code.
-  §14 leftovers tracked as open checkboxes (**14.3b** / **14.4b** / **14.6**). Still **not shippable**
-  until Validation P–Q / print+measure close absolute CFM — see `a12x25_pq_report.md`
+- Last reviewed: **2026-09-15** (late evening). **§12** + **§13** + **§7.6** + **§14.1–14.5** closed in code.
+  §14 leftovers tracked as open checkboxes (**14.3b** / **14.4b** / **14.6**). Stock close-ref fidelity
+  pass (hub 16.5 / PCHIP / cambered plate / sharp TE / boxy tip notches) landed same day — see §2.7–2.8.
+  Still **not shippable** until Validation P–Q / print+measure close absolute CFM — see `a12x25_pq_report.md`
 - Tags: **[impact]** how much it changes results · **[effort]** rough build cost · owner *me* unless noted.
 - Related: `docs/known-issues.md` (historical cockpit fixes — **stale**, see §13.4), `docs/high-accuracy-plan.md` (fidelity
   ladder), `docs/design-rules.md` (extracted levers), the memory index.
@@ -20,16 +21,19 @@ session.**
 ## ★ Recommended sequence
 
 1. ~~**§13 hygiene**~~ — parse/CI/ruff critical/fan_tab UI split/mypy/MIT — closed 2026-09-15.
+   Leftover geometry perf: **13.22–13.24** (preview loft bump, Mixed/Prop fuse, don’t coarsen CFD STL).
 2. ~~Math audit / §12~~ — cockpit thickness, Fit, scoring honesty closed 2026-09-15.
 3. ~~Noctua reference geometry (Phase 2)~~ — envelope + Stock yaml; close-ref STL under `validation/reference/`.
    Stock gold ✕ cylinder-sliced to the close-ref (plate wall, tip ~33 mm chord, `blade_hub_z`); not OEM CAD.
+   **2026-09-15 evening:** hub 16.5 / PCHIP / cambered plate / sharp TE / boxy tip notches (§2.7–2.8).
+   Open: **2.3b** sickle UX review (keep for now; odd to edit).
 4. **Validation P–Q (Phase 3 remainder)** — close-ref STL free-air **−17%**. Screening levers exhausted. See `a12x25_pq_report.md`.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: **14.3b** / **14.4b** / **14.6** below (parallel with §5; Design UI only — not archetype CFD).
 7. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
 
-§8 / §9 / §10 / §12 / §13 are **closed in code**. Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
+§8 / §9 / §10 / §12 / §13 stage-1 are **closed in code**. §13.22–13.24 are remaining geometry-perf leftovers (not ship blockers). Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
 Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 **Do NOT** re-optimize tip-round or bio-features — tested null on flow AND noise.
 **Do NOT** datasheet-tune Stock from BEM (stagger candidate CFD +0.6 CFM only).
@@ -78,6 +82,11 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   `apply_sickle` + Optuna `--sickle` (`tests/test_sickle.py`). Cockpit Design LE sickle mid/tip
   sliders (`e_le_skew_*`) landed 2026-09-15. Remaining: Optuna mid-band search (independent mid
   vs tip) beyond tip-only `--sickle`.
+  - [ ] **2.3b Sickle UX / semantics review.** **[impact: low]** **[effort: med]** Keep stage-1
+    sliders for now, but they feel odd to edit (LE-only tangential skew; Preview not live;
+    tip-notch builds can time out and leave the old mesh so sickle looks like a no-op). Review
+    whether Design should keep mid/tip sickle, collapse to one tip control, rename, or park behind
+    Optimize `--sickle` only. Do not remove until that review — note only.
 - [x] **2.4 Infill-aware weight (stage 1). DONE 2026-09-14** **[impact: low]** **[effort: low]**
   `estimate_weight_g(..., infill_frac=)` defaults to ``DEFAULT_PRINT_INFILL=0.20`` for FDM filaments
   (resin stays solid). Build gate no longer assumes 100% fill. Override with ``infill_frac=1.0`` for
@@ -87,6 +96,18 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   (`tests/test_search_rpm.py` — CLI + `run_study` → `evaluate_candidate(rpm=…)`). Remaining: full PWM search in all archetypes.
 - [x] **2.6 Stepped inlet / notched tips (stage 1). DONE 2026-09-13** **[impact: low]** **[effort: med]**
   `apply_notched_tips` + `--notched` / cockpit flags (`tests/test_notched_tips.py`).
+  **2026-09-15:** boxy/skewed rectangular tip TE bites (not sine lobes); Design Tip panel switch +
+  depth; Stock reference enables them; control images `e_tip_notched` / `e_tip_notch_depth`.
+- [x] **2.7 Cambered plate face curve / scoop (hub→tip). DONE 2026-09-15** **[impact: med]** **[effort: low]**
+  Rounded plate previously ignored camber (flat paddle). `rounded_plate` now bows with NACA
+  meanline (`max_camber` / `camber_pos`) so Camber root/mid/tip create the tip-on **scoop**
+  (LE↔TE face curve) along the span — matches the white close-ref overlay vs a flat black
+  paddle. UI copy says “scoop”; technical name remains camber. Slider max raised to **0.15**;
+  Stock tip camber **0.12**. Wrap/lean still owns spanwise planform twist. Tests:
+  `tests/test_rounded_plate.py`.
+- [x] **2.8 Plate sharp TE + Stock close-ref defaults. DONE 2026-09-15** **[impact: med]** **[effort: low]**
+  Plate TE roundness via `te_thick_scale` (1 = bullnose, ~0.2 = sharp); Stock
+  `a12x25_reference.yaml`: hub **16.5**, `span_interp=pchip`, `te_thick_scale=0.2`, tip notches on.
 
 ## 3. Objectives, constraints & settings to revisit
 
@@ -373,6 +394,24 @@ Already measured (`docs/validation/perf_baseline.md`); not re-litigated:
 - [x] **13.20 VTK/NumPy 2.5 warning.** Pytest `filterwarnings` ignores VTK/PyVista `result.shape` DeprecationWarnings. Viz stays pinned `<0.49` until Trame 4 migration (`dependency_peer_audit.md`).
 - [x] **13.21 Dirty-tree discipline.** Working tree landed through §13 hygiene commits; leave untracked recovery STLs / scratch scripts out of product commits.
 
+### 13.5 Geometry perf leftovers (recheck 2026-09-15 evening) — OPEN
+
+F811 name-collision duplicates are **gone**. Axial Fan preview already skips the boolean fuse and uses `SCREEN_N_SPAN=10`. Timed on current stock (`a12x25_reference.yaml`, 9 blades, cylindrical tip):
+
+| Path | Wall | Notes |
+|------|------|-------|
+| `build_impeller_preview` stock | **2.3 s** | screen loft + mesh copies, no fuse |
+| same, second call | **2.3 s** | no in-process cache beyond OCCT warmup |
+| `build_impeller_screen` (fused, coarse) | **8.5 s** | watertight, not for CFD |
+| `build_impeller` (fused, CFD/print) | **31.6 s** | was 13.1 s on the old recipe (Task 4.1) |
+| preview with tip-round (6 stations) | **7.8 s** | screen `n_span=10` then forced to 30 |
+
+- [ ] **13.22 Preview must not bump loft to 30.** `build_blade_solid` does `n_span = max(n_span, 30)` when `len(stations) > 3` (winglet / tip-round / extra YAML stations). That **defeats** `with_screen_loft`. Keep the bump on the CFD/print path only. Prove: tip-round preview stays near stock ~2.3 s and `n_span==SCREEN_N_SPAN` inside `build_impeller_preview`.
+- [ ] **13.23 Mixed / Prop cockpit Preview still fuses.** Axial uses non-fused tessellate copies. Mixed `export_mixed_flow_stl` and Prop `build_prop` still boolean-union for Preview. Same pattern (one blade + rotate-copy mesh) if the viewer only needs to look right. CROR has no Preview yet (§14.6).
+- [ ] **13.24 Do not coarsen CFD STL.** Optimizer still pays ~32 s fused loft per trial that passes BEM (OpenFOAM is still the long pole). Optional micro: one `.clean()` instead of fuse+clean then shroud+clean; measure before changing. Motor-cup Preview (`preview_motor_cup`) correctly takes this slow fused path — leave it.
+
+BEM is ~14 ms after polar cache — **leave it**. OpenFOAM `base_cell` is a validation honesty choice, not a speed knob.
+
 ### 13.0 Landed / do not re-add
 
 §13.1–13.20 closed (13.9 stage-1 UI extract; optional FanSession binder split still open). Do not copy §12.0 items here. Do not re-open parked wind / absolute FW-H / mixed-flow expansion — those are `docs/validation/keep_cut_board.md`.
@@ -400,6 +439,59 @@ Bring Prop / Mixed / Volute / CROR editors up toward Fan blade vocabulary. Spec:
   thin/export on edited flats; Optimize searches prefixed chords/stagger/thickness/camber/sickle.
 - [ ] **14.6 CROR 3-D Preview.** **[impact: low]** **[effort: low–med]** Export/Thin work on edited flats; cockpit
   still has no mesh viewer for the stack (placeholder card). Mirror Prop/Mixed Preview → plotter pattern.
+
+---
+
+## 15. Adversarial review — new findings (2026-09-15 evening)
+
+Second, hostile pass **after** §12 (math fidelity) and §13 (hygiene, rubric 53/100). Those were
+thorough; this only lists what they **missed or under-weighted**, with evidence. Fair note first —
+the small stuff is clean: **0** mutable-default args, **0** `== None`, **0** `shell=True`/`eval`/`exec`,
+**0** `time.sleep` in `fansim/`; the FNO/archetype `NotImplementedError`s are *honest* fail-loud stubs;
+archetype `evaluate_*` are real (not placeholders). The problems are provenance, one embarrassing
+visual, and error-handling that hides failure.
+
+- [ ] **15.1 Strip recovery-apology headers from shipped modules. CRITICAL-embarrassment** **[impact: low fn / high credibility]** **[effort: low]**
+  **62 modules** under `fansim/` still open with `# RECOVERED-FROM-CHAT …` and `fansim/geometry/blade.py`
+  **line 1** is `# RECONSTRUCTED … VERIFY against any real copy.` §13.12 only gitignored the
+  `CHAT_RECOVERY/` *directory*; the in-file headers were never removed. The whole package literally
+  ships apologizing for itself — first thing any reviewer/hire sees. Fix: one script to strip the
+  header block from every file whose content is now trusted; keep a single provenance note in
+  `RECOVERY_TODO.md`, not in 62 source files. Evidence: `grep -rl RECOVERED-FROM-CHAT fansim` → 62.
+- [ ] **15.2 `blade.py` is unverified reconstruction — sign it off. HIGH (trust)** **[impact: high]** **[effort: med]**
+  The single most load-bearing module (all impeller geometry) was rebuilt from a 420-line base +
+  replayed Cursor edits + hand-splices, and **no one has diffed it against a trusted copy** — its own
+  header says so. §12/§13 added provenance *gates*, but those tests are themselves recovered, so they
+  can't catch a subtly-wrong section/loft. Fix: a geometry-golden sign-off — build the a12x25 reference
+  and compare volume / bounds / per-station section coords against the published reference STL within a
+  tight tolerance; on pass, delete the header. Until then treat all absolute geometry numbers as suspect.
+- [ ] **15.3 Flagship 3-D view looks broken — clamp velocity glyphs. MED-embarrassment** **[impact: med]** **[effort: low]**
+  The FAN → Design 3-D pane is dominated by huge yellow arrows: tip `|U|` spikes (~24 m/s vs ~3 median)
+  blow the glyph scale so the primary visual reads as a rendering bug (screenshot 2026-09-15). Known
+  internally (CHAT_RECOVERY viz note) but never fixed and absent from §13. Fix: clamp glyph length at
+  ~p95 (or log-scale) in the cockpit viz. Evidence: no `percentile`/`p95`/`clamp` in `fansim/cockpit/*`.
+- [ ] **15.4 Cockpit swallows failures silently. MED (correctness-of-signal)** **[impact: med]** **[effort: med]**
+  **159** broad `except Exception` repo-wide; **44** immediately `pass`/`return None`/`continue`;
+  `fan_tab.py` alone holds **41**. §13.10 filed this as BLE001 *style* debt and deferred it, but the real
+  hazard is behavioral: a Preview/Assess that hits a genuine error shows a vague caption (or nothing),
+  so a silently-degraded run is indistinguishable from a healthy one — you cannot trust the UI's "OK."
+  Fix: every cockpit action handler must `_log.exception(...)` and surface the real error text; keep
+  bare-swallow only in the isolated eval workers (§9.6). Evidence: `grep -rc "except Exception" fansim`.
+- [ ] **15.5 `setup_fan_tab` (2717 lines, 85 nested closures) — the binder split is not optional. MED** **[impact: med]** **[effort: med–high]**
+  §13.9 extracted the UI to `fan_tab_ui.py` but left `setup_fan_tab` as one ~2500-line function of nested
+  callbacks and called the further split "optional." For PROD it isn't: it's untestable in isolation,
+  concentrates 41 of the repo's silent excepts, and is where every closure + recovery header lives.
+  Promote the `FanSession` binder split (Assess / Optimize / viz) from optional to planned; the other
+  four `*_tab.py` (mixed/volute/cror/prop) repeat the same scaffolding and should share it.
+- [ ] **15.6 Root-cause the `build_impeller` 13→31.6 s regression (extends §13.24).** **[impact: med]** **[effort: med]**
+  §13.5 measured the fused CFD build at **31.6 s** vs **13.1 s** on the old recipe — a **2.4× per-trial**
+  regression paid on every BEM-passing optimizer trial. §13.24 offers a micro (one `.clean()` vs
+  fuse+clean+shroud+clean) but nobody has bisected *what in the new recipe* (cylindrical-tip trim?
+  extra stations? section_family?) tripled the loft/boolean cost. Profile it before shipping big campaigns.
+
+**Rollup:** §15.1/15.3 are cheap and high-signal — do them before anyone else opens the repo. 15.2 is
+the one that could hide a real bug. 15.4/15.5 are the "an intern could've done better" maintainability
+core. None change the 53/100 verdict; they sharpen the path to "not embarrassing."
 
 ---
 
