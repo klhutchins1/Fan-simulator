@@ -44,6 +44,9 @@ def stock_fingerprint(flat: dict, *, preview: bool = True) -> str:
     payload["_preview"] = bool(preview)
     # Dense stock preview (full loft) must not hit a coarse screen-loft cache entry.
     payload["_preview_dense"] = True
+    # Bump when the builder's geometry/orientation changes so stale cached STLs (same knobs, old
+    # code) are not served. 2 = real-fan orientation: motor cup/boss on the +Z exhaust (2026-09-17).
+    payload["_geom_version"] = 2
     blob = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
     return hashlib.sha256(blob).hexdigest()[:16]
 
