@@ -114,7 +114,7 @@ def bind(session) -> None:
         tip = float(np.percentile(r, 99.0))
         # Airflow: a few bold −Z arrows just outside the tip (air exits the −Z exhaust).
         for ang in np.linspace(0.0, 2.0 * np.pi, 4, endpoint=False):
-            x, y = (tip * 1.18) * np.cos(ang), (tip * 1.18) * np.sin(ang)
+            x, y = (tip * 1.15) * np.cos(ang), (tip * 1.15) * np.sin(ang)
             try:
                 arr = pv.Arrow(start=(x, y, zmax + 0.25 * span),
                                direction=(0, 0, -1), scale=1.4 * span)
@@ -122,15 +122,16 @@ def bind(session) -> None:
             except Exception as exc:  # noqa: BLE001 - cue is optional
                 log_caught(_log, "airflow cue", exc, level=logging.DEBUG)
                 break
-        # Rotation: tangent arrows around a ring, CCW viewed from the +Z intake.
+        # Rotation: tangent arrows around a ring OUTSIDE the blade tip, CCW viewed from the +Z
+        # intake, so the cue never overlaps the blades.
         zc = 0.5 * (zmin + zmax)
-        rr = tip * 0.72
-        for k in range(8):
-            a = 2.0 * np.pi * k / 8.0
+        rr = tip * 1.30
+        for k in range(10):
+            a = 2.0 * np.pi * k / 10.0
             x, y = rr * np.cos(a), rr * np.sin(a)
             tang = (-np.sin(a), np.cos(a), 0.0)  # CCW looking from +Z toward −Z
             try:
-                arr = pv.Arrow(start=(x, y, zc), direction=tang, scale=tip * 0.30)
+                arr = pv.Arrow(start=(x, y, zc), direction=tang, scale=tip * 0.34)
                 plotter.add_mesh(arr, color="darkorange")
             except Exception as exc:  # noqa: BLE001 - cue is optional
                 log_caught(_log, "rotation cue", exc, level=logging.DEBUG)
