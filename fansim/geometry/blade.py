@@ -132,13 +132,13 @@ class BladeParams:
     # swept tips no longer inflate the hub / depth. Set a number to force a taller hub (clamped to
     # the root-coverage minimum). See build_impeller.
     hub_height_mm: float | None = None
-    # Where the blade roots sit on the hub, mm. 0 = centered (legacy). Positive = more hub toward
-    # the +Z exhaust (the motor-boss/cup side), so the blades sit lower toward the −Z intake.
+    # Where the blade roots sit on the hub, mm. 0 = centered (legacy). Positive = blades higher
+    # toward +Z / intake (more hub below the roots). Negative = blades lower toward the outlet.
     # Clamped so the root section stays inside the hub. Needs hub_height taller than the root
     # span to have any effect (auto hub has no slack).
     blade_hub_z_mm: float = 0.0
     hub_profile: str = "cylinder"  # "cylinder" (stubby, default) | "cone" (pointy spinner) | "dome"
-    hub_nose_mm: float = 0.0  # nose height on the −Z (intake) end for cone/dome; 0 = flat face
+    hub_nose_mm: float = 0.0  # nose height on the +Z (intake) end for cone/dome; 0 = flat top
     rpm: float = 2000.0  # metadata; used later by CFD, not by geometry
     n_span: int = 18  # loft sections across the span (wide wrapped blades need resolution)
     n_chord: int = 60  # points per airfoil surface
@@ -659,9 +659,8 @@ def _hub_axial_range(params: BladeParams, blade: cq.Solid | None = None) -> tupl
     short, so a swept tip no longer drags the hub (and total depth) taller. An explicit
     ``hub_height_mm`` forces a taller hub (clamped to the root-coverage minimum).
 
-    ``blade_hub_z_mm`` shifts the hub relative to the roots: positive extends the hub toward the
-    +Z exhaust (the motor-boss/cup side), so the blades sit lower toward the −Z intake. Clamped
-    so the root section stays inside.
+    ``blade_hub_z_mm`` shifts the hub relative to the roots: positive places the blades higher
+    on the hub (more hub below / toward the outlet). Clamped so the root section stays inside.
     """
     del blade  # kept for call-site compatibility; sizing is root-station based
     r_lo, r_hi = _root_axial_span(params)
@@ -679,8 +678,7 @@ def _hub_axial_range(params: BladeParams, blade: cq.Solid | None = None) -> tupl
         bias = max_bias
     elif bias < -max_bias:
         bias = -max_bias
-    # +bias grows the hub on the +Z exhaust end (motor boss / cup), matching a real fan.
-    return center - h / 2.0 + bias, center + h / 2.0 + bias
+    return center - h / 2.0 - bias, center + h / 2.0 - bias
 
 
 def _cylinder_hub(params: BladeParams, z_bottom: float, z_top: float) -> cq.Solid:
@@ -691,9 +689,8 @@ def _cylinder_hub(params: BladeParams, z_bottom: float, z_top: float) -> cq.Soli
 
 def build_hub(params: BladeParams, z_bottom: float, z_top: float) -> cq.Solid:
     """The hub solid between z_bottom..z_top: a cylinder, optionally capped with a pointy cone or a
-    rounded dome nose of height ``hub_nose_mm`` on the −Z (intake) end — the smooth face that meets
-    oncoming air (the motor cup is carved on the +Z exhaust end). Falls back to a plain cylinder if
-    a nose op fails, so the impeller always builds."""
+    rounded dome nose of height ``hub_nose_mm`` on the +Z (intake) end. Falls back to a plain
+    cylinder if a nose op fails, so the impeller always builds."""
     cq = _cq()
     R = params.hub_radius
     profile = (params.hub_profile or "cylinder").lower()
@@ -704,15 +701,14 @@ def build_hub(params: BladeParams, z_bottom: float, z_top: float) -> cq.Solid:
         if profile == "cone":  # analytic cone cap, seated 0.5 mm into the hub for a clean fuse
             ov = 0.5
             base = _cylinder_hub(params, z_bottom, z_top)
-            cap = cq.Solid.makeCone(R, 0.5, nose + ov,
-                                    cq.Vector(0, 0, z_bottom + ov), cq.Vector(0, 0, -1))
+            cap = cq.Solid.makeCone(R, 0.5, nose + ov, cq.Vector(0, 0, z_top - ov), cq.Vector(0, 0, 1))
             return base.fuse(cap).clean()
         if profile == "dome":  # ONE revolved profile (hub wall + quarter-ellipse dome) — no fuse seam
             import numpy as np
             eps = 0.1  # tiny axis offset avoids the revolve axis-degeneracy (negligible center pinhole)
-            arc = [(max(float(R * np.cos(t)), eps), float(z_bottom - nose * np.sin(t)))
+            arc = [(max(float(R * np.cos(t)), eps), float(z_top + nose * np.sin(t)))
                    for t in np.linspace(0.0, np.pi / 2, 24)[1:]]
-            outline = [(eps, z_top), (R, z_top), (R, z_bottom), *arc]  # close() returns up the axis
+            outline = [(eps, z_bottom), (R, z_bottom), (R, z_top), *arc]  # close() returns down the axis
             wp = cq.Workplane("XZ").polyline(outline).close().revolve(360, (0, 0, 0), (0, 1, 0))
             return wp.val()
     except Exception:  # noqa: BLE001 - a kernel hiccup on the nose shouldn't kill the build

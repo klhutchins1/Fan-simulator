@@ -9,15 +9,14 @@ Layout (axis = Z, flow **+Z**):
                            duct radius = tip + tip_gap
 
 Blade sections put the LE on the lower-Z side of the chord, so oncoming flow is +Z.
-``spin=-1`` is CCW viewed from the −Z intake (looking toward +Z); with this blade handedness
-it pumps +Z.
+``spin=-1`` is CCW when looking along −Z (toward +Z / looking at the outlet face); with this
+blade handedness it pumps +Z.
 
 Hub/motor: volume-flow from velocity uses the **annulus** (duct − hub). The solid hub in the
 STL already blocks the core in CFD; schematic glyphs stay outside the hub too.
 
-Real-fan orientation (matches a Noctua): the **motor cup + hub boss are on the +Z exhaust face**
-(air exits past the motor), and the smooth closed hub face + blade LE are on the −Z intake, so
-oncoming air hits the LE first. Intake = −Z, exhaust = +Z; the default glyph arrows point +Z.
+Geometry authoring still places the motor cup on the −Z face and the hub nose toward +Z —
+that is the print/mount convention; duct inlet is the −Z end so flow hits the LE first.
 """
 
 from __future__ import annotations
@@ -63,7 +62,7 @@ class TestRig:
     mrf_z_max: float
     rpm: float
     inlet_velocity: float  # uniform |axial| inlet speed (m/s); signed U_z is +this
-    spin: int = -1  # −1 pumps +Z with this blade handedness (CCW viewed from the −Z intake)
+    spin: int = -1  # −1 pumps +Z with this blade handedness (CCW looking toward +Z)
     hub_radius: float = 0.0  # m; excluded from flow_area (motor blocks the core)
 
     @property

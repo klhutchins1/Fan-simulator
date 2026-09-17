@@ -45,10 +45,9 @@ def _estimate_cavity(
     """Estimate cup cavity dia/depth and rear bore from a Z-up mesh.
 
     ``expected_cavity_r`` should be the *cut* radius (nominal + radial clearance).
-    Samples near the +Z exhaust face for the cup wall (that is the face the cup opens on),
-    and forward of the cup depth (toward −Z) for the smaller through-bore (mid-hub still sits
-    inside the cavity). Anchors on the expected cut radius so grip pads do not pull the
-    estimate inward.
+    Samples near the rear (−Z) face for the cup wall, and forward of the cup
+    depth for the smaller through-bore (mid-hub still sits inside the cavity).
+    Anchors on the expected cut radius so grip pads do not pull the estimate inward.
     """
     v = np.asarray(mesh.vertices, dtype=float)
     if len(v) < 50:
@@ -56,38 +55,37 @@ def _estimate_cavity(
     z = v[:, 2]
     zmin, zmax = float(z.min()), float(z.max())
     span = max(zmax - zmin, 1e-6)
-    cup = z >= (zmax - 0.08 * span)  # cup opens on the +Z exhaust face
+    rear = z <= (zmin + 0.08 * span)
     r = _radial_xy(v)
 
     # Prefer vertices near the *expected* cut wall (grips sit well inside; hub OD sits outside).
     # Keep the band tight — ±1.8 mm reaches the hub outer shell on A12x25 and over-reads.
     cav_r = None
     for half_w in (0.55, 0.90, 1.25):
-        near = cup & (np.abs(r - expected_cavity_r) <= half_w)
+        near = rear & (np.abs(r - expected_cavity_r) <= half_w)
         if int(np.count_nonzero(near)) >= 25:
             cav_r = float(np.median(r[near]))
             break
     if cav_r is None:
-        wall = cup & (r > expected_cavity_r * 0.94) & (r < expected_cavity_r * 1.06)
+        wall = rear & (r > expected_cavity_r * 0.94) & (r < expected_cavity_r * 1.06)
         if int(np.count_nonzero(wall)) >= 20:
             cav_r = float(np.percentile(r[wall], 40))
         else:
-            cup_inner = cup & (r < expected_cavity_r * 1.08)
-            if int(np.count_nonzero(cup_inner)) < 20:
-                cup_inner = cup & (r < np.percentile(r, 35))
-            cav_r = float(np.percentile(r[cup_inner], 75)) if np.any(cup_inner) else None
+            rear_inner = rear & (r < expected_cavity_r * 1.08)
+            if int(np.count_nonzero(rear_inner)) < 20:
+                rear_inner = rear & (r < np.percentile(r, 35))
+            cav_r = float(np.percentile(r[rear_inner], 75)) if np.any(rear_inner) else None
 
     cav_depth = None
     if cav_r is not None and cav_r > 1.0:
         band = (r > 0.85 * cav_r) & (r < 1.05 * cav_r)
         if np.any(band):
-            cav_depth = float(zmax - np.percentile(z[band], 10))
+            cav_depth = float(np.percentile(z[band], 90) - zmin)
 
-    # Through-bore lives forward of the cup (toward −Z); avoid the cavity band. Keep the −Z
-    # intake end face in range — the bore ring is densely tessellated there (a smooth cylinder
-    # wall is sparse in the middle), so excluding it drops the bore verts and over-reads.
+    # Through-bore lives forward of the cup; avoid the cavity band.
     depth_guess = float(expected_cavity_depth) if expected_cavity_depth > 0 else (cav_depth or 0.4 * span)
-    forward = z <= (zmax - depth_guess - 0.5)
+    forward = z >= (zmin + depth_guess + 0.5)
+    forward &= z <= (zmax - 0.05 * span)
     bore_r = None
     if np.any(forward):
         # Bore wall = small-r cluster inside the cup radius.

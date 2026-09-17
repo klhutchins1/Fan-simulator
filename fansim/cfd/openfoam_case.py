@@ -168,7 +168,7 @@ def build_case(
 
     # --- Derived flow / turbulence quantities ---
     u_in = abs(float(rig.inlet_velocity))
-    u_axial = float(rig.u_axial)  # +Z flow (intake −Z → exhaust +Z)
+    u_axial = float(rig.u_axial)  # −Z flow (intake +Z → exhaust −Z)
     k = 1.5 * (TURB_INTENSITY * max(u_in, 1e-3)) ** 2
     length_scale = 0.07 * (2.0 * rig.duct_radius)
     omega_turb = math.sqrt(k) / (CMU**0.25 * length_scale)

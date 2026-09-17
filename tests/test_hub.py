@@ -65,8 +65,7 @@ def test_nose_profiles_watertight_and_add_height(profile, nose):
 
 
 def test_blade_hub_z_shifts_hub_relative_to_roots():
-    """Positive blade_hub_z_mm grows the hub toward the +Z exhaust (motor-boss/cup side), so the
-    blades sit lower toward the −Z intake."""
+    """Positive blade_hub_z_mm puts more hub below the roots (blades sit higher)."""
     p = _swept(sweep_tip=2.0)
     r_lo, r_hi = _root_axial_span(p)
     root_h = r_hi - r_lo
@@ -76,8 +75,8 @@ def test_blade_hub_z_shifts_hub_relative_to_roots():
     high = dataclasses.replace(tall, blade_hub_z_mm=4.0)
     z0b, z1b = _hub_axial_range(high)
     mid_b = 0.5 * (z0b + z1b)
-    # Hub shifts up (+Z exhaust) → midpoint above root center → blades sit lower on hub
-    assert mid_b > mid0 + 3.0
+    # Hub shifts down → midpoint below root center → blades sit higher on hub
+    assert mid_b < mid0 - 3.0
     assert z0b <= r_lo + 1e-6
     assert z1b >= r_hi - 1e-6
 

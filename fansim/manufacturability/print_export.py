@@ -75,9 +75,8 @@ def bore_hub(model: cq.Workplane, bore: BoreSpec) -> cq.Workplane:
 
 
 def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float):
-    """Hollow the hub into a CUP that slips over the fan's motor: a cavity from the +Z EXHAUST face
-    (the motor inserts from downstream, past the blade trailing edges) + a central through-bore
-    (bearing/shaft passage), optionally with axial grip cylinders.
+    """Hollow the hub into a CUP that slips over the fan's motor: a cavity from the REAR (-Z) face + a
+    central through-bore (bearing/shaft passage), optionally with axial grip cylinders.
 
     Returns (model, fits, msg). Does NOT widen the hub — if the hub is too narrow to house the motor
     with a wall, it returns fits=False and the model unchanged.
@@ -107,10 +106,8 @@ def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float):
     eps = 0.5
     cav_r = float(mount.cavity_dia_mm) / 2.0 + clear
     cav_h = float(mount.cavity_depth_mm) + eps
-    # Cup opens on the +Z EXHAUST face (motor inserts from downstream); carve inward toward −Z.
-    z0 = bb.zmax + eps
-    axis_in = cq.Vector(0, 0, -1)
-    cutter = cq.Solid.makeCylinder(cav_r, cav_h, cq.Vector(0, 0, z0), axis_in)
+    z0 = bb.zmin - eps
+    cutter = cq.Solid.makeCylinder(cav_r, cav_h, cq.Vector(0, 0, z0), cq.Vector(0, 0, 1))
     result = shape.cut(cutter)
     grip_msg = ""
     if layout is not None:
@@ -132,7 +129,7 @@ def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float):
                 y = r_center * math.sin(a)
                 pad = cq.Solid.makeCylinder(
                     grip_r, cav_h,
-                    cq.Vector(x, y, z0), axis_in,
+                    cq.Vector(x, y, z0), cq.Vector(0, 0, 1),
                 )
                 pads = pad if pads is None else pads.fuse(pad)
             result = result.fuse(pads)
