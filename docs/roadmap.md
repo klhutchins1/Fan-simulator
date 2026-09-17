@@ -512,6 +512,24 @@ visual, and error-handling that hides failure.
 **Rollup:** §15.1–15.6 all closed 2026-09-16 (15.5 binder split done). Geometry-perf:
 ~~13.22~~ / ~~13.23~~ / ~~13.24~~ done.
 
+## 16. Real-fan orientation + fan-model prune (2026-09-17)
+
+- [x] **16.1 Fix the upside-down a12x25 (motor on the intake). DONE 2026-09-17.**
+  Measurement (blade LE at z=−4.66, TE at +4.66; `spin=-1` = CCW from the −Z intake) showed the
+  blades, rotation, and +Z airflow were already correct — the only bug was that the motor boss +
+  carved cup sat on the **−Z intake** face. Fix relocates just the motor to the **+Z exhaust**
+  face (confirmed against a real Noctua via mockups): flipped the `blade_hub_z_mm` bias sign in
+  `_hub_axial_range` so a positive bias grows the hub on +Z; moved the `build_hub` nose/dome to the
+  −Z intake end; carved the cup from the +Z face and gauged it there (`carve_motor_mount` /
+  `mount_gauge._estimate_cavity`, incl. a bore-detection fix for the sparse cylinder-wall middle).
+  Blades, `spin`, and +Z flow untouched, so this is **not** a mirror/turn-over — catalog CFD scores
+  shift only by the small hub-boss relocation. Reconciled `domain.py` + `openfoam_case.py` convention
+  docstrings (intake −Z / exhaust +Z / motor +Z). Regenerated `a12x25_blade_golden.json`.
+- [x] **16.2 Prune mis-calibrated axial fan model. DONE 2026-09-17.** Removed `generic_120` (the
+  deprecated loose 120 mm envelope predating the real-frame measurement; no code/test depended on
+  it). Kept `a12x25` and `delta_afc1212de` (the latter is the CROR envelope — a real datasheet fan,
+  not bad data). No `config/fan_models/*.yaml` user models existed.
+
 ---
 
 ## Recently shipped (context, so we don't re-add)

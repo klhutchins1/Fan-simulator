@@ -276,15 +276,6 @@ _REGISTRY: dict[str, FanSpec] = {
             shaft_dia_mm=3.0, min_hub_height_mm=15.0,
             grip_count=20, grip_dia_mm=2.4, grip_clearance_mm=0.35, grip_protrude_mm=0.7,
         )),
-    # GENERIC 120 mm axial fan — the LOOSE exploratory envelope our early optimizer runs used, BEFORE
-    # the real a12x25 frame was measured to 110 mm. The old designs (e.g. opt_extended2_t36 ~118 mm)
-    # are good aero DATA; they just target a generic 120 mm slot, not the tighter real Noctua frame, so
-    # they belong here rather than reading as 'over-spec a12x25'. No motor_mount (generic aero, no real
-    # motor to fit). Same RPM/power as a12x25 so numbers stay comparable; no ref specs (not a real fan).
-    "generic_120": FanSpec(
-        name="Generic 120 mm axial (exploratory)", tip_dia_mm=(95.0, 119.0), hub_dia_mm=(30.0, 60.0),
-        depth_mm=(10.0, 25.0), rpm=2000.0, voltage_v=12.0, max_current_a=0.14,
-        motor_efficiency=0.40, max_weight_g=65.0, material="PETG"),
     # A very different company + regime: Delta high-power industrial 120x38 mm fan. ~11x the power
     # budget, ~2x RPM, 38 mm thick -> a genuinely different constraint envelope (proves generality).
     # Specs from the AFC1212DE datasheet; 12.5 mmH2O = 122.6 Pa. Weight cap generous for a 38 mm solid.
