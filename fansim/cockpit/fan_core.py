@@ -81,6 +81,7 @@ def apply_state_defaults(session) -> None:
     state.stale_msg = ""
     state.highlight_spec = True
     state.show_envelope = False
+    state.show_dir_cues = True  # rotation (CCW) + airflow (−Z) direction cues in the 3-D view
     state.fan_subtab = "design"
     state.airflow_img_uri = ""
     state.airflow_caption = "Select a scored design to load duct airflow (midplane)."

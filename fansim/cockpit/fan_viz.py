@@ -97,6 +97,45 @@ def bind(session) -> None:
         except Exception as exc:  # noqa: BLE001 - feature edges optional
             log_caught(_log, "frame cylinder edges", exc, level=logging.DEBUG)
 
+    def _add_direction_cues(mesh):
+        """Fixed cues for the real-fan sense so the view is never ambiguous:
+        - AIRFLOW (blue): bold −Z arrows just outside the tip — air enters the open +Z intake
+          and exits the −Z face past the motor cup (matches the schematic glyph flow).
+        - ROTATION (orange): tangent arrows around a ring, CCW viewed from the +Z intake (spin −1).
+        """
+        import numpy as np
+
+        pv = fan_runtime.pv
+        pts = mesh.points
+        z = pts[:, 2]
+        r = np.hypot(pts[:, 0], pts[:, 1])
+        zmin, zmax = float(z.min()), float(z.max())
+        span = max(zmax - zmin, 1.0)
+        tip = float(np.percentile(r, 99.0))
+        # Airflow: a few bold −Z arrows just outside the tip (air exits the −Z exhaust).
+        for ang in np.linspace(0.0, 2.0 * np.pi, 4, endpoint=False):
+            x, y = (tip * 1.18) * np.cos(ang), (tip * 1.18) * np.sin(ang)
+            try:
+                arr = pv.Arrow(start=(x, y, zmax + 0.25 * span),
+                               direction=(0, 0, -1), scale=1.4 * span)
+                plotter.add_mesh(arr, color="royalblue")
+            except Exception as exc:  # noqa: BLE001 - cue is optional
+                log_caught(_log, "airflow cue", exc, level=logging.DEBUG)
+                break
+        # Rotation: tangent arrows around a ring, CCW viewed from the +Z intake.
+        zc = 0.5 * (zmin + zmax)
+        rr = tip * 0.72
+        for k in range(8):
+            a = 2.0 * np.pi * k / 8.0
+            x, y = rr * np.cos(a), rr * np.sin(a)
+            tang = (-np.sin(a), np.cos(a), 0.0)  # CCW looking from +Z toward −Z
+            try:
+                arr = pv.Arrow(start=(x, y, zc), direction=tang, scale=tip * 0.30)
+                plotter.add_mesh(arr, color="darkorange")
+            except Exception as exc:  # noqa: BLE001 - cue is optional
+                log_caught(_log, "rotation cue", exc, level=logging.DEBUG)
+                break
+
     def _apply_render(reset: bool = False):
         """(Re)draw the current model with the active highlight/envelope/glyph options."""
         plotter.clear_actors()
@@ -128,6 +167,8 @@ def bind(session) -> None:
                 plotter.add_mesh(mesh, color=base, smooth_shading=True)
             if state.show_envelope:
                 _add_envelope(mesh)
+            if getattr(state, "show_dir_cues", True):
+                _add_direction_cues(mesh)
         if state.show_glyphs and render_state.get("glyph_arrows") is not None:
             try:
                 plotter.add_mesh(
@@ -154,7 +195,7 @@ def bind(session) -> None:
         render_state["color"] = color
         _apply_render(reset=True)
 
-    @state.change("highlight_spec", "show_envelope", "fan_model", "show_glyphs")
+    @state.change("highlight_spec", "show_envelope", "fan_model", "show_glyphs", "show_dir_cues")
     def _on_viz_toggle(**_):
         _apply_render(reset=False)
         try:

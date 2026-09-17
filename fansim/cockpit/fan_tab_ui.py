@@ -1022,6 +1022,16 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     inset=True,
                                     label="Case envelope",
                                 )
+                        with v3.VRow(no_gutters=True, classes="align-center"):
+                            with v3.VCol(cols=12):
+                                v3.VSwitch(
+                                    v_model=("show_dir_cues",),
+                                    density="compact",
+                                    hide_details=True,
+                                    color="primary",
+                                    inset=True,
+                                    label="Rotation (CCW) + airflow (−Z) cues",
+                                )
                         with v3.VRow(no_gutters=True, classes="align-center mt-1"):
                             with v3.VCol(cols=5, classes="pr-1"):
                                 with v3.VBtnToggle(
