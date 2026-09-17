@@ -168,7 +168,13 @@ def frame_gap_note(tip_dia_mm: float, spec: FanSpec) -> str:
     )
 
 
-def fit_envelope(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
+def fit_envelope(
+    flat: dict,
+    spec: FanSpec,
+    features=None,
+    *,
+    preserve_tip: bool = False,
+) -> PlaceResult:
     from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
     from fansim.geometry.features import features_from_flat
     from fansim.optimize.search_space import blade_from_flat
@@ -198,24 +204,26 @@ def fit_envelope(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
         set_mm("hub_radius", float(need))
 
     # 2) tip: shrink until built tip leaves OPTIMIZER_TIP_GAP_MM to the frame ID
-    max_dia = float(spec.tip_dia_mm[1])
-    target_dia = max_dia - 2.0 * OPTIMIZER_TIP_GAP_MM
-    tr0 = float(work.get("tip_radius", 0.0))
-    tr = tr0
-    for _ in range(12):
-        work["tip_radius"] = tr
-        try:
-            dia = blade_max_dia(blade_from_flat(work, feat))
-        except Exception:  # noqa: BLE001
-            break
-        if dia <= target_dia:
-            break
-        tr -= (dia - target_dia) / 2.0 + 0.15
-        if tr < 20.0:
-            break
-    work["tip_radius"] = round(tr, 2)
-    if abs(work["tip_radius"] - tr0) > 1e-9:
-        changes.append(PlaceChange("tip_radius", before=tr0, after=float(work["tip_radius"])))
+    # Gold ✕ / close-ref overlay: preserve recipe tip_radius (silhouette match).
+    if not preserve_tip:
+        max_dia = float(spec.tip_dia_mm[1])
+        target_dia = max_dia - 2.0 * OPTIMIZER_TIP_GAP_MM
+        tr0 = float(work.get("tip_radius", 0.0))
+        tr = tr0
+        for _ in range(12):
+            work["tip_radius"] = tr
+            try:
+                dia = blade_max_dia(blade_from_flat(work, feat))
+            except Exception:  # noqa: BLE001
+                break
+            if dia <= target_dia:
+                break
+            tr -= (dia - target_dia) / 2.0 + 0.15
+            if tr < 20.0:
+                break
+        work["tip_radius"] = round(tr, 2)
+        if abs(work["tip_radius"] - tr0) > 1e-9:
+            changes.append(PlaceChange("tip_radius", before=tr0, after=float(work["tip_radius"])))
 
     # 3) depth: flatten sweep + LE; if still over, gently reduce stagger
     max_d = float(spec.depth_mm[1])

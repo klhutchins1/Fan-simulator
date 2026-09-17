@@ -9,11 +9,22 @@ import sys
 
 def main() -> int:
     job = json.loads(open(sys.argv[1], encoding="utf-8").read())
-    from fansim.centrifugal.geometry import export_mixed_flow_stl
     from fansim.centrifugal.params_io import mixed_params_from_flat
 
     params = mixed_params_from_flat(job["flat"])
-    export_mixed_flow_stl(params, job["out"])
+    if job.get("preview"):
+        # FAST path: non-fused visual mesh (§13.23). No motor-cup carve.
+        from fansim.centrifugal.geometry import build_mixed_flow_preview
+
+        mesh, volume_mm3 = build_mixed_flow_preview(params)
+        mesh.export(job["out"])
+        open(job["out"] + ".meta.json", "w", encoding="utf-8").write(
+            json.dumps({"volume_mm3": volume_mm3})
+        )
+    else:
+        from fansim.centrifugal.geometry import export_mixed_flow_stl
+
+        export_mixed_flow_stl(params, job["out"])
     sys.stdout.flush()
     os._exit(0)
 

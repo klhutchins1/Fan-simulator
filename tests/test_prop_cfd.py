@@ -29,7 +29,6 @@ def test_prop_open_air_extents():
     assert d.z_max == pytest.approx(0.01 + 4.0 * R)
     assert d.mrf_z_min < -0.01 and d.mrf_z_max > 0.01
     # Default spin=-1 (same handedness as ducted-fan MRF → +z thrust).
-    # Default spin=-1 (same handedness as ducted-fan MRF → +z thrust).
     assert d.omega_signed == pytest.approx(-21000.0 * 2.0 * math.pi / 60.0)
     assert d.u_freestream == pytest.approx(1.0)
 

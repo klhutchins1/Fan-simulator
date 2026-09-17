@@ -18,11 +18,24 @@ def test_mixed_to_blade_params_maps_core_fields():
     assert bp.hub_radius == pytest.approx(mf.r_back_mm)
     assert bp.tip_radius == pytest.approx(_loft_tip_radius_mm(mf))
     assert len(bp.stations) == 3
-    for st in bp.stations:
-        assert st.chord == pytest.approx(mf.chord_mm)
-        assert st.stagger_deg == pytest.approx(mf.stagger_deg)
+    for st, ch, sg in zip(bp.stations, mf.chord_triplet(), mf.stagger_triplet()):
+        assert st.chord == pytest.approx(ch)
+        assert st.stagger_deg == pytest.approx(sg)
         assert st.thickness == pytest.approx(mf.thickness)
         assert st.max_camber == pytest.approx(mf.max_camber)
+
+
+def test_mixed_to_blade_params_honors_span_planform():
+    mf = MixedFlowParams(
+        chord_root=18.0, chord_mm=22.0, chord_tip=16.0,
+        stagger_root=40.0, stagger_deg=35.0, stagger_tip=28.0,
+    )
+    bp = mixed_to_blade_params(mf)
+    assert bp.stations[0].chord == pytest.approx(18.0)
+    assert bp.stations[1].chord == pytest.approx(22.0)
+    assert bp.stations[2].chord == pytest.approx(16.0)
+    assert bp.stations[0].stagger_deg == pytest.approx(40.0)
+    assert bp.stations[2].stagger_deg == pytest.approx(28.0)
 
 
 def test_adapted_pq_curve_finite_free_cfm():

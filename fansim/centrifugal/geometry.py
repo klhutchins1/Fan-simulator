@@ -33,8 +33,14 @@ class MixedFlowParams:
     r_back_mm: float = 28.0
     r_tip_mm: float = 54.5
     z_span_mm: float = 18.0
+    # Span planform (§14.3b): root / mid / tip. ``chord_mm`` / ``stagger_deg`` are the mid
+    # stations (legacy single-value flats still round-trip via params_io).
     chord_mm: float = 22.0
     stagger_deg: float = 35.0
+    chord_root: float = 22.0
+    chord_tip: float = 22.0
+    stagger_root: float = 35.0
+    stagger_tip: float = 35.0
     thickness: float = 0.08
     max_camber: float = 0.04
     camber_pos: float = 0.4
@@ -50,6 +56,12 @@ class MixedFlowParams:
             raise ValueError(
                 f"back hub {self.r_back_mm:.1f} mm below A12x25 mount minimum {need:.1f} mm")
 
+    def chord_triplet(self) -> tuple[float, float, float]:
+        return (float(self.chord_root), float(self.chord_mm), float(self.chord_tip))
+
+    def stagger_triplet(self) -> tuple[float, float, float]:
+        return (float(self.stagger_root), float(self.stagger_deg), float(self.stagger_tip))
+
 
 def _hub_z_range(params: MixedFlowParams) -> tuple[float, float]:
     half = 0.5 * params.z_span_mm
@@ -57,9 +69,15 @@ def _hub_z_range(params: MixedFlowParams) -> tuple[float, float]:
 
 
 def _section_hang_mm(params: MixedFlowParams) -> float:
-    """Half axial extent of one staggered section beyond its mid-chord."""
-    beta = math.radians(params.stagger_deg)
-    return 0.5 * params.chord_mm * abs(math.sin(beta)) + params.thickness * params.chord_mm
+    """Half axial extent of the fattest staggered section beyond its mid-chord."""
+    hang = 0.0
+    for chord, stag in zip(params.chord_triplet(), params.stagger_triplet()):
+        beta = math.radians(stag)
+        hang = max(
+            hang,
+            0.5 * chord * abs(math.sin(beta)) + params.thickness * chord,
+        )
+    return hang
 
 
 def _loft_z_range(params: MixedFlowParams) -> tuple[float, float]:
@@ -76,8 +94,10 @@ def _loft_z_range(params: MixedFlowParams) -> tuple[float, float]:
 
 def _loft_tip_radius_mm(params: MixedFlowParams) -> float:
     """Section radius at the tip so the built hypot clears the 110 mm frame by 0.5 mm."""
-    beta = math.radians(params.stagger_deg)
-    t_max = 0.5 * params.chord_mm * abs(math.cos(beta)) + params.thickness * params.chord_mm
+    tip_chord = float(params.chord_tip)
+    tip_stag = float(params.stagger_tip)
+    beta = math.radians(tip_stag)
+    t_max = 0.5 * tip_chord * abs(math.cos(beta)) + params.thickness * tip_chord
     cap = FRAME_HALF_MM - TIP_CLEARANCE_MM
     inner = cap * cap - t_max * t_max
     if inner <= 0:
@@ -104,21 +124,28 @@ def _hub_solid(params: MixedFlowParams) -> cq.Solid:
 
 
 def _blade_solid(params: MixedFlowParams) -> cq.Solid:
+    import numpy as np
+
     z_root, z_tip = _loft_z_range(params)
     r_root = params.r_eye_mm - ROOT_EMBED_MM
     r_tip = _loft_tip_radius_mm(params)
     n_span = max(3, int(params.n_span))
+    chords = params.chord_triplet()
+    staggers = params.stagger_triplet()
+    r_knots = np.array([0.0, 0.5, 1.0], dtype=float)
     wires: list[cq.Wire] = []
     blank = Features()
     for i in range(n_span):
         rf = i / (n_span - 1)
         r = r_root + rf * (r_tip - r_root)
         z = z_root + rf * (z_tip - z_root)
+        chord = float(np.interp(rf, r_knots, chords))
+        stagger = float(np.interp(rf, r_knots, staggers))
         pts = _section_points_3d(
             r=r,
             r_frac=rf,
-            chord=params.chord_mm,
-            stagger_deg=params.stagger_deg,
+            chord=chord,
+            stagger_deg=stagger,
             thickness=params.thickness,
             max_camber=params.max_camber,
             camber_pos=params.camber_pos,
@@ -147,6 +174,39 @@ def build_mixed_flow(params: MixedFlowParams | None = None) -> cq.Workplane:
     if len(solids) != 1:
         raise ValueError(f"Mixed-flow fuse produced {len(solids)} solids; expected 1")
     return cq.Workplane(obj=solids[0])
+
+
+def build_mixed_flow_preview(
+    params: MixedFlowParams | None = None, tol: float = 0.15,
+):
+    """Fast visual mixed-flow mesh: tessellate one blade + hub, rotate-copy (no N-blade fuse).
+
+    Cockpit Preview only needs to look right (§13.23). Export/Assess still use
+    ``build_mixed_flow`` / ``export_mixed_flow_stl`` (fused + motor-cup carve).
+    Returns ``(trimesh.Trimesh, volume_mm3)``.
+    """
+    import numpy as np
+    import trimesh
+
+    params = params or MixedFlowParams()
+    hub = _hub_solid(params)
+    blade = _blade_solid(params)
+
+    def _tm(shape: cq.Solid) -> "trimesh.Trimesh":
+        verts, faces = shape.tessellate(tol)
+        v = np.array([[p.x, p.y, p.z] for p in verts], dtype=float)
+        return trimesh.Trimesh(vertices=v, faces=np.array(faces, dtype=int), process=False)
+
+    blade_mesh, hub_mesh = _tm(blade), _tm(hub)
+    angles = [k * 360.0 / params.n_blades for k in range(params.n_blades)]
+    parts = [hub_mesh]
+    for a in angles:
+        m = blade_mesh.copy()
+        m.apply_transform(trimesh.transformations.rotation_matrix(np.radians(a), (0, 0, 1)))
+        parts.append(m)
+    mesh = trimesh.util.concatenate(parts)
+    volume_mm3 = float(blade.Volume()) * len(angles) + float(hub.Volume())
+    return mesh, volume_mm3
 
 
 def export_mixed_flow_stl(

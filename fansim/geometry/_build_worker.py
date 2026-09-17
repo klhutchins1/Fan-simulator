@@ -23,7 +23,10 @@ def main() -> int:
         # FAST path: non-fused visual mesh (skips the ~140s boolean fuse). Write an accurate volume
         # sidecar so the caller's weight/spec check doesn't rely on the overlapping mesh's own volume.
         from fansim.geometry.blade import build_impeller_preview
-        mesh, volume_mm3 = build_impeller_preview(params)
+        dense = bool(job.get("preview_dense"))
+        # Dense = recipe loft + finer tessellation (gold ✕ / LE overlay); default stays screen loft.
+        mesh, volume_mm3 = build_impeller_preview(
+            params, tol=(0.05 if dense else 0.15), screen=not dense)
         mesh.export(job["out"])
         open(job["out"] + ".meta.json", "w").write(json.dumps({"volume_mm3": volume_mm3}))
     elif mount_dict:

@@ -15,16 +15,18 @@ from fansim.geometry.blade import BladeParams, RadialStation
 def mixed_to_blade_params(params: MixedFlowParams) -> BladeParams:
     """Synthetic axial blade with the mixed-flow annulus / section recipe."""
     tip = float(_loft_tip_radius_mm(params))
+    chords = params.chord_triplet()
+    staggers = params.stagger_triplet()
     stations = [
         RadialStation(
             r_frac=rf,
-            chord=float(params.chord_mm),
-            stagger_deg=float(params.stagger_deg),
+            chord=float(ch),
+            stagger_deg=float(st),
             thickness=float(params.thickness),
             max_camber=float(params.max_camber),
             camber_pos=float(params.camber_pos),
         )
-        for rf in (0.0, 0.5, 1.0)
+        for rf, ch, st in zip((0.0, 0.5, 1.0), chords, staggers)
     ]
     return BladeParams(
         n_blades=int(params.n_blades),

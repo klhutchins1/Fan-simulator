@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fansim.prop_spec import get_prop_spec
 from fansim.propeller import build_prop, prop_blade_params
 
@@ -34,3 +36,24 @@ def test_build_prop_watertight_with_bore(tmp_path):
     assert r.ok and r.n_bodies == 1
     solid = build_prop(get_prop_spec("fpv_5inch"), tmp_path / "solid.stl", bore=False)
     assert r.volume_mm3 < solid.volume_mm3      # the shaft bore removed material
+
+
+def test_build_prop_preview_writes_stl_and_volume_sidecar(tmp_path):
+    import json
+
+    from fansim.propeller.geometry import build_prop_preview
+
+    out = tmp_path / "preview.stl"
+    path = build_prop_preview(get_prop_spec("fpv_5inch"), out)
+    assert path.exists() and path.stat().st_size > 0
+    meta = Path(str(out) + ".meta.json")
+    assert meta.exists()
+    assert json.loads(meta.read_text())["volume_mm3"] > 0
+
+
+def test_prop_cockpit_analyze_uses_preview_path():
+    text = Path("fansim/cockpit/prop_tab.py").read_text(encoding="utf-8")
+    assert "build_prop_preview" in text
+    # Export still uses the fused printable path.
+    assert "lambda: build_prop(" in text or "build_prop(spec, out" in text
+

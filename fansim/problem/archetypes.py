@@ -151,6 +151,10 @@ _register_optional()
 
 def get_archetype(name: str) -> Archetype:
     """Look up an archetype by registry key (e.g. 'axial_fan'). Raises KeyError with the valid set."""
+    # Re-run optional registration: a first-pass import can hit a circular load
+    # (centrifugal.archetype → problem.archetypes mid-_register_optional) and leave a stub.
+    # Once the package finishes importing, this overwrites the stub with the real class.
+    _register_optional()
     try:
         return _REGISTRY[name]
     except KeyError:

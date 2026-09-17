@@ -7,11 +7,10 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-09-16**. **§12** + **§13** + **§7.6** + **§14.1–14.5** closed in code.
-  §14 leftovers: **14.3b** / **14.4b**. Stock close-ref fidelity (§2.7–2.8) + camber scoop
-  range. **§13.22** / **§13.24** / **§14.6** / **§15.1–15.4** / **§15.6** landed 2026-09-16
-  (incl. tip-notch span floor 48→28 after fuse profile). Still **not shippable** until
-  Validation P–Q / print+measure — see `a12x25_pq_report.md`
+- Last reviewed: **2026-09-16**. **§12** + **§13** + **§7.6** + **§14.1–14.6** closed in code.
+  Stock close-ref fidelity (§2.7–2.8). **§13.22–13.24** / **§14.3b** /
+  **§14.6** / **§15.1–15.6** landed 2026-09-16. Still **not shippable** until Validation P–Q /
+  print+measure — see `a12x25_pq_report.md`
 - Tags: **[impact]** how much it changes results · **[effort]** rough build cost · owner *me* unless noted.
 - Related: `docs/known-issues.md` (historical cockpit fixes — **stale**, see §13.4), `docs/high-accuracy-plan.md` (fidelity
   ladder), `docs/design-rules.md` (extracted levers), the memory index.
@@ -22,7 +21,7 @@ session.**
 ## ★ Recommended sequence
 
 1. ~~**§13 hygiene**~~ — parse/CI/ruff critical/fan_tab UI split/mypy/MIT — closed 2026-09-15.
-   Leftover geometry perf: ~~**13.22**~~ / ~~**13.24**~~ (2026-09-16); still open **13.23**.
+   Leftover geometry perf: ~~**13.22**~~ / ~~**13.23**~~ / ~~**13.24**~~ (2026-09-16).
 2. ~~Math audit / §12~~ — cockpit thickness, Fit, scoring honesty closed 2026-09-15.
 3. ~~Noctua reference geometry (Phase 2)~~ — envelope + Stock yaml; close-ref STL under `validation/reference/`.
    Stock gold ✕ cylinder-sliced to the close-ref (plate wall, tip ~33 mm chord, `blade_hub_z`); not OEM CAD.
@@ -31,11 +30,11 @@ session.**
 4. **Validation P–Q (Phase 3 remainder)** — close-ref STL free-air **−17%**. Screening levers exhausted. See `a12x25_pq_report.md`.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
-   Leftovers: **14.3b** / **14.4b** below (parallel with §5; Design UI only — not archetype CFD).
+   Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
 
-§8 / §9 / §10 / §12 / §13 stage-1 are **closed in code**. §13.23 remains (Mixed/Prop preview fuse). Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
+§8 / §9 / §10 / §12 / §13 stage-1 are **closed in code**. Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
 Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 **Do NOT** re-optimize tip-round or bio-features — tested null on flow AND noise.
 **Do NOT** datasheet-tune Stock from BEM (stagger candidate CFD +0.6 CFM only).
@@ -109,7 +108,9 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   `tests/test_rounded_plate.py`.
 - [x] **2.8 Plate sharp TE + Stock close-ref defaults. DONE 2026-09-15** **[impact: med]** **[effort: low]**
   Plate TE roundness via `te_thick_scale` (1 = bullnose, ~0.2 = sharp); Stock
-  `a12x25_reference.yaml`: hub **16.5**, `span_interp=pchip`, `te_thick_scale=0.2`, tip notches on.
+  `a12x25_reference.yaml`: hub **16.5**, `span_interp=pchip`, `te_thick_scale=0.2`, tip notches **off**,
+  tip chord **36**, tip stagger **15°**, `blade_hub_z` **5**, skew mid/tip **6/13** (mid raised
+  from 3 to ease mid-span LE bump under PCHIP; tip wrap kept).
 
 ## 3. Objectives, constraints & settings to revisit
 
@@ -411,7 +412,11 @@ F811 name-collision duplicates are **gone**. Axial Fan preview already skips the
 - [x] **13.22 Preview must not bump loft to 30. DONE 2026-09-16.** `build_blade_solid` skips the
   `len(stations)>3 → max(n_span,30)` bump when `n_span <= SCREEN_N_SPAN` (screen/preview). Tip-notch
   preview floor stays at `NOTCH_SPAN_SECTIONS_PREVIEW`. Tests: `tests/test_screen_loft.py`.
-- [ ] **13.23 Mixed / Prop cockpit Preview still fuses.** Axial uses non-fused tessellate copies. Mixed `export_mixed_flow_stl` and Prop `build_prop` still boolean-union for Preview. Same pattern (one blade + rotate-copy mesh) if the viewer only needs to look right. CROR has no Preview yet (§14.6).
+- [x] **13.23 Mixed / Prop cockpit Preview non-fused. DONE 2026-09-16.** Mixed Preview uses
+  `build_mixed_flow_preview` via `build_mixed_stl_isolated(..., preview=True)` (rotate-copy;
+  Export still fused + cup). Prop Analyze 3-D uses `build_prop_preview` (axial
+  `build_impeller_preview`; Export still `build_prop` + bore). CROR Preview still fused (ok for now).
+  Tests: `tests/test_mixed_flow.py`, `tests/test_propeller.py`, `tests/test_mixed_flow_cockpit.py`.
 - [x] **13.24 Do not coarsen CFD STL — measured. DONE 2026-09-16 (§15.6).** Fused CFD path stays
   full-resolution. One-`.clean()` micro only saves **~4 s (~8%)** — fuse dominates, leave the
   double-clean. Real regression was tip-notch `n_span` floor 48 (see §15.6 / `perf_baseline.md` §5);
@@ -437,11 +442,17 @@ Bring Prop / Mixed / Volute / CROR editors up toward Fan blade vocabulary. Spec:
   CROR mounts two prefixes.
 - [x] **14.3 Mixed Design + Optimize (stage a). DONE 2026-09-15.** Expose `thickness` / `max_camber` / `camber_pos`
   in UI + `suggest_mixed`.
-- [ ] **14.3b Mixed span-varying chord/stagger.** **[impact: med]** **[effort: med]** Diagonal loft today uses
-  one chord + one stagger; root/mid/tip stations need geometry changes in `centrifugal/geometry.py` + UI/Optuna.
+- [x] **14.3b Mixed span-varying chord/stagger. DONE 2026-09-16.** Diagonal loft interpolates
+  root/mid/tip chord + stagger (`MixedFlowParams.chord_*` / `stagger_*`; mid aliases
+  `chord_mm` / `stagger_deg`). Legacy single-value flats broadcast. Cockpit R/M/T sliders +
+  `suggest_mixed` Optuna keys. BEM adapter maps the triplet. Tests: `test_mixed_flow`,
+  `test_mixed_flow_bem`, `test_mixed_optimize`, `test_mixed_flow_cockpit`.
 - [x] **14.4 Volute Design depth. DONE 2026-09-15.** Expose dormant `VoluteParams` (blade/backplate/tongue/outlet/wall).
-- [ ] **14.4b Volute cheap Optimize.** **[impact: med]** **[effort: med]** No BEM screen yet — Design-only for now.
-  Add NSGA over volute flats (or a thin proxy) + cockpit Optimize; CFD Assess stays top-N refine.
+- [x] **14.4b Volute cheap Optimize. DONE 2026-09-16.** NSGA over Design flats via a
+  geometry proxy (`capacity_proxy`, `head_proxy`; stamp `volute_proxy=geometry`) —
+  ranking only, not CFM. `fansim/volute/optimize.py` + `persist.py`; cockpit Optimize /
+  scatter / click-to-load. CFD Assess remains the honest score (no top-N refine yet).
+  Tests: `tests/test_volute_optimize.py`.
 - [x] **14.5 CROR dual BladeParams Design + expanded `suggest_cror`. DONE 2026-09-15.** Front/rear editors,
   thin/export on edited flats; Optimize searches prefixed chords/stagger/thickness/camber/sickle.
 - [x] **14.6 CROR 3-D Preview. DONE 2026-09-16.** Preview button builds thinned stack STL via
@@ -499,7 +510,7 @@ visual, and error-handling that hides failure.
   Write-up: `docs/validation/perf_baseline.md` §5.
 
 **Rollup:** §15.1–15.6 all closed 2026-09-16 (15.5 binder split done). Geometry-perf:
-~~13.22~~ / ~~13.24~~; still **13.23** Mixed/Prop preview fuse.
+~~13.22~~ / ~~13.23~~ / ~~13.24~~ done.
 
 ---
 

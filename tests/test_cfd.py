@@ -13,11 +13,22 @@ from fansim.geometry import BladeParams
 
 
 def test_rig_dimensions_and_operating_point():
+    import math
+
     rig = rig_for_impeller(BladeParams(), tip_gap_mm=1.0, inlet_velocity=2.0)
     assert rig.duct_radius == pytest.approx((56.5 + 1.0) / 1000.0)
     assert rig.omega_rad_s == pytest.approx(2000.0 * 2 * 3.141592653589793 / 60.0)
     assert rig.domain_z_max > rig.impeller_z_max > rig.impeller_z_min > rig.domain_z_min
+    assert (rig.impeller_z_min - rig.domain_z_min) == pytest.approx(rig.inlet_length)
+    assert (rig.domain_z_max - rig.impeller_z_max) == pytest.approx(rig.outlet_length)
     assert rig.mrf_z_min < rig.impeller_z_min and rig.mrf_z_max > rig.impeller_z_max
+    assert rig.u_axial > 0.0
+    assert rig.spin == -1
+    assert rig.hub_radius > 0.0
+    # CFM from velocity uses annulus (duct − hub), not the full disk.
+    annulus = math.pi * (rig.duct_radius**2 - rig.hub_radius**2)
+    assert rig.flow_area == pytest.approx(annulus)
+    assert rig.flow_area < rig.frontal_area
     assert rig.inlet_flow_cfm > 0
 
 

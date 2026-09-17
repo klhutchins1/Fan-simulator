@@ -156,12 +156,12 @@ class BladeParams:
     cylindrical_tip: bool = True
     # Chordwise thickness bias (global):
     #   NACA — scale local thickness near LE / TE (1 = stock; typical 0.5–1.5).
-    #   plate — LE stays full bullnose; ``te_thick_scale`` is TE roundness in [0, 1]
-    #   (1 = full TE bullnose, ~0.2 = sharp printable TE). ``le_thick_scale`` unused.
+    #   plate — ``le_thick_scale`` / ``te_thick_scale`` are LE/TE roundness in [0, 1]
+    #   (1 = full bullnose, ~0.2 = sharp printable edge).
     le_thick_scale: float = 1.0
     te_thick_scale: float = 1.0
     # Airfoil family: "naca" (default) or "plate" (constant-t; camber bows the face;
-    # TE radius from te_thick_scale).
+    # LE/TE radius from le/te_thick_scale).
     section_family: str = SECTION_NACA
     # Span loft between control stations: "linear" (default, can kink at mid) or "pchip"
     # (shape-preserving cubic — smooth through hub/mid/tip). Stage 1 optional smooth curves.
@@ -334,11 +334,16 @@ def _section_loop(
     fam = str(section_family or SECTION_NACA).lower().strip()
     if fam not in SECTION_FAMILIES:
         fam = SECTION_NACA
-    # Plate: te_thick_scale → TE roundness (1=full bullnose, 0=sharp). NACA ignores this path.
-    te_radius_frac = float(np.clip(te_thick_scale, 0.0, 1.0)) if fam == SECTION_PLATE else 1.0
+    # Plate: le/te_thick_scale → edge roundness (1=full bullnose, 0=sharp). NACA ignores.
+    if fam == SECTION_PLATE:
+        le_radius_frac = float(np.clip(le_thick_scale, 0.0, 1.0))
+        te_radius_frac = float(np.clip(te_thick_scale, 0.0, 1.0))
+    else:
+        le_radius_frac = te_radius_frac = 1.0
     loop, x_param = section_loop_2d(
         fam, max_camber=max_camber, camber_pos=camber_pos, thickness=thickness,
-        n_points=n_chord, te_radius_frac=te_radius_frac, return_chord_param=True,
+        n_points=n_chord, te_radius_frac=te_radius_frac, le_radius_frac=le_radius_frac,
+        return_chord_param=True,
     )
     # Drop the explicit closing duplicate; the wire is closed by makePolygon(close=True).
     if np.allclose(loop[0], loop[-1]):
@@ -414,7 +419,7 @@ def _section_points_3d(
     is rotated about Z to ``lean_deg``. Varying lean along the span wraps the planform so
     blades can overlap — a straight radial stack (lean=0) cannot. ``cylindrical_tip`` later
     clips the lofted solid to a cylinder of ``tip_radius``. Optional ``le_thick_scale`` /
-    ``te_thick_scale`` biases NACA LE/TE thickness; on plate it sets TE roundness (0–1).
+    ``te_thick_scale`` biases NACA LE/TE thickness; on plate they set LE/TE roundness (0–1).
     """
     _, pts = _section_loop(
         r=r, r_frac=r_frac, chord=chord, stagger_deg=stagger_deg, thickness=thickness,
@@ -748,20 +753,30 @@ def build_impeller_screen(params: BladeParams | None = None) -> cq.Workplane:
     return build_impeller(with_screen_loft(params or BladeParams()))
 
 
-def build_impeller_preview(params: BladeParams | None = None, tol: float = 0.15):
+def build_impeller_preview(
+    params: BladeParams | None = None,
+    tol: float = 0.15,
+    *,
+    screen: bool = True,
+):
     """FAST visual impeller for the live preview: tessellate ONE lofted blade + the hub, then
     rotate-copy the blade mesh around the axis — with NO boolean fuse.
 
     The boolean union in ``build_impeller`` dominates featured builds (a fuse of 11 featured blades
     onto the hub is ~140 s and blows the preview timeout), yet a preview only needs to LOOK right, not
-    be watertight. Skipping the fuse turns ~160 s into ~6 s. Uses ``with_screen_loft`` so the single
-    blade loft is also cheap. Returns ``(trimesh.Trimesh, volume_mm3)``
+    be watertight. Skipping the fuse turns ~160 s into ~6 s. Default ``screen=True`` uses
+    ``with_screen_loft`` so the single blade loft is also cheap. Pass ``screen=False`` to keep
+    ``params.n_span`` / ``n_chord`` (smoother LE for gold-✕ overlay / fit checks).
+
+    Returns ``(trimesh.Trimesh, volume_mm3)``
     where volume is the accurate sum of the solids' own volumes (the meshes overlap at the blade roots,
     so the concatenated mesh's own volume would be wrong for the weight check). NOT watertight — use
     ``build_impeller`` for CFD/export where a single sealed solid is required."""
     import trimesh
 
-    params = with_screen_loft(params or BladeParams())
+    params = params or BladeParams()
+    if screen:
+        params = with_screen_loft(params)
     blade = build_blade_solid(params)
     z_bottom, z_top = _hub_axial_range(params, blade)
     hub = build_hub(params, z_bottom, z_top)
@@ -857,13 +872,20 @@ def _section_family(params: BladeParams) -> str:
 def _thick_scale_kw(params: BladeParams) -> dict[str, float | str]:
     fam = _section_family(params)
     te_raw = float(getattr(params, "te_thick_scale", 1.0) or 1.0)
+    le_raw = float(getattr(params, "le_thick_scale", 1.0) or 1.0)
     if fam == SECTION_PLATE:
-        # Plate TE roundness is 0–1 (sharp→bullnose); do not apply NACA 0.5 floor.
+        # Plate LE/TE roundness is 0–1 (sharp→bullnose); do not apply NACA 0.5 floor.
         te = float(min(max(te_raw, 0.0), 1.0))
-        le = 1.0
+        # Full LE bullnose (legacy default 1.0) with uniform wall is a ~t/2 bead the
+        # length of the blade — it fights constant thickness. When LE was left at that
+        # unused default, follow TE roundness (stock sharpens both to ~0.2).
+        if abs(le_raw - 1.0) < 1e-9:
+            le = te
+        else:
+            le = float(min(max(le_raw, 0.0), 1.0))
     else:
         te = _clamp_thick_scale(te_raw)
-        le = _clamp_thick_scale(getattr(params, "le_thick_scale", 1.0) or 1.0)
+        le = _clamp_thick_scale(le_raw)
     return dict(le_thick_scale=le, te_thick_scale=te, section_family=fam)
 
 

@@ -99,6 +99,8 @@ def test_schematic_axial_flow_cloud_is_plus_z_in_annulus():
     arrows = make_glyph_arrows(cloud, factor=1.0, max_arrows=50)
     assert arrows is not None and arrows.n_points > 0
 
+
+def test_make_glyph_arrows_subsamples():
     pv = pytest.importorskip("pyvista")
     pts = np.random.default_rng(0).uniform(-20, 20, size=(200, 3))
     cloud = pv.PolyData(pts)

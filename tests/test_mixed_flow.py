@@ -11,6 +11,7 @@ import pytest
 from fansim.centrifugal.geometry import (
     MixedFlowParams,
     build_mixed_flow,
+    build_mixed_flow_preview,
     export_mixed_flow_stl,
 )
 from fansim.fan_spec import A12X25, mount_min_hub_radius
@@ -56,6 +57,18 @@ def test_mixed_flow_is_one_solid_in_a12_envelope():
     solid = _solid(p)
     bb = solid.BoundingBox()
     assert 2.0 * max(abs(bb.xmax), abs(bb.xmin), abs(bb.ymax), abs(bb.ymin)) <= 110.0 + 0.2
+
+
+def test_mixed_span_planform_builds():
+    """Root/mid/tip chord+stagger loft stays a single solid in the frame (§14.3b)."""
+    p = MixedFlowParams(
+        chord_root=24.0, chord_mm=20.0, chord_tip=16.0,
+        stagger_root=42.0, stagger_deg=35.0, stagger_tip=28.0,
+    )
+    solid = _solid(p)
+    bb = solid.BoundingBox()
+    assert bb.zmax - bb.zmin <= 25.0 + 0.2
+    assert 2.0 * max(abs(bb.xmax), abs(bb.xmin), abs(bb.ymax), abs(bb.ymin)) <= 110.0 + 0.2
     assert bb.zmax - bb.zmin <= 25.0 + 0.2
 
     zmin, zmax = bb.zmin, bb.zmax
@@ -76,6 +89,21 @@ def test_export_mixed_flow_stl_writes_file(tmp_path):
     out = tmp_path / "mixed.stl"
     export_mixed_flow_stl(MixedFlowParams(), out)
     assert out.exists() and out.stat().st_size > 1000
+
+
+def test_mixed_flow_preview_matches_fused_bounds(tmp_path):
+    """Non-fused preview (§13.23) should share overall envelope with the fused solid."""
+    import trimesh
+
+    params = MixedFlowParams()
+    mesh, vol = build_mixed_flow_preview(params)
+    assert vol > 0
+    assert mesh.vertices.shape[0] > 0
+    fused = tmp_path / "fused.stl"
+    export_mixed_flow_stl(params, fused)
+    fused_m = trimesh.load(str(fused), force="mesh")
+    for a, b in zip(mesh.bounds.ravel(), fused_m.bounds.ravel()):
+        assert abs(float(a) - float(b)) < 2.0
 
 
 def test_centrifugal_archetype_builds_and_evaluates(tmp_path):

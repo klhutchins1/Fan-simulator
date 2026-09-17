@@ -63,10 +63,19 @@ def test_mixed_flow_tab_in_cockpit():
     assert 'state.mf_assess_preset = "case"' in src
     for key in (
         "mf_n_blades", "mf_r_eye", "mf_r_back", "mf_r_tip",
-        "mf_z_span", "mf_chord", "mf_stagger",
+        "mf_z_span", "mf_chord", "mf_chord_root", "mf_chord_tip",
+        "mf_stagger", "mf_stagger_root", "mf_stagger_tip",
     ):
         assert key in src
     assert "evaluate_mixed_flow_isolated" in src or "mixed_eval" in src
     assert "export_mixed_flow_stl" in src
+    assert "preview=True" in src or "build_mixed_flow_preview" in src
     m = re.search(r"def mf_assess\b|def assess_mixed|async def mf_assess", src)
     assert m is not None or "mf_assess" in src
+
+
+def test_mixed_preview_path_declared_in_isolated():
+    iso = Path("fansim/centrifugal/isolated.py").read_text(encoding="utf-8")
+    assert "preview: bool" in iso
+    worker = Path("fansim/centrifugal/_build_worker.py").read_text(encoding="utf-8")
+    assert "build_mixed_flow_preview" in worker

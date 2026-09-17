@@ -3,13 +3,20 @@
 All CFD works in SI meters; the impeller design is authored in millimeters, so this module
 also carries the mm->m scale used when placing the STL into an OpenFOAM case.
 
-Layout (axis = Z, flow +Z):
+Layout (axis = Z, flow **+Z**):
 
-    inlet ──[ L_in ]──┤ impeller (MRF zone) ├──[ L_out ]── outlet
-                      duct radius = tip + tip_gap
+    inlet (−Z) ──[ L_in ]──┤ impeller (MRF zone) ├──[ L_out ]── outlet (+Z)
+                           duct radius = tip + tip_gap
 
-The MRF (Multiple Reference Frame) zone is a cylinder spanning the impeller axially and
-enclosing the full duct cross-section; cells inside it get the rotational source term.
+Blade sections put the LE on the lower-Z side of the chord, so oncoming flow is +Z.
+``spin=-1`` is CCW when looking along −Z (toward +Z / looking at the outlet face); with this
+blade handedness it pumps +Z.
+
+Hub/motor: volume-flow from velocity uses the **annulus** (duct − hub). The solid hub in the
+STL already blocks the core in CFD; schematic glyphs stay outside the hub too.
+
+Geometry authoring still places the motor cup on the −Z face and the hub nose toward +Z —
+that is the print/mount convention; duct inlet is the −Z end so flow hits the LE first.
 """
 
 from __future__ import annotations
@@ -54,8 +61,9 @@ class TestRig:
     mrf_z_min: float
     mrf_z_max: float
     rpm: float
-    inlet_velocity: float  # uniform axial inlet velocity that sets the operating flow
-    spin: int = -1  # rotation sign about +z; -1 makes this blade handedness pump +z (flow)
+    inlet_velocity: float  # uniform |axial| inlet speed (m/s); signed U_z is +this
+    spin: int = -1  # −1 pumps +Z with this blade handedness (CCW looking toward +Z)
+    hub_radius: float = 0.0  # m; excluded from flow_area (motor blocks the core)
 
     @property
     def omega_rad_s(self) -> float:
@@ -68,25 +76,40 @@ class TestRig:
         return self.spin * self.omega_rad_s
 
     @property
+    def flow_sign(self) -> int:
+        """Axial velocity sign: +1 (inlet −Z → outlet +Z), matching blade LE on low-Z."""
+        return 1
+
+    @property
+    def u_axial(self) -> float:
+        """Signed axial freestream / inlet BC velocity (m/s)."""
+        return float(self.flow_sign) * abs(float(self.inlet_velocity))
+
+    @property
     def domain_z_min(self) -> float:
+        """Inlet end (−Z)."""
         return self.impeller_z_min - self.inlet_length
 
     @property
     def domain_z_max(self) -> float:
+        """Outlet end (+Z)."""
         return self.impeller_z_max + self.outlet_length
 
     @property
     def frontal_area(self) -> float:
-        """Duct cross-sectional area (m²) used to convert velocity <-> volume flow.
+        """Full duct disk πR² (legacy name). Prefer :attr:`flow_area` for CFM from velocity."""
+        return math.pi * self.duct_radius ** 2
 
-        The Phase-1 skeleton uses a *square* box duct of side ``2*duct_radius`` (robust
-        blockMesh), so this is a square area. Phase-2 fidelity switches to a circular duct.
-        """
-        return (2.0 * self.duct_radius) ** 2
+    @property
+    def flow_area(self) -> float:
+        """Annulus area (m²): duct minus hub — motor blocks the core."""
+        r_duct = float(self.duct_radius)
+        r_hub = min(max(float(self.hub_radius), 0.0), r_duct * 0.95)
+        return math.pi * (r_duct ** 2 - r_hub ** 2)
 
     @property
     def inlet_flow_m3s(self) -> float:
-        return self.inlet_velocity * self.frontal_area
+        return abs(self.inlet_velocity) * self.flow_area
 
     @property
     def inlet_flow_cfm(self) -> float:
@@ -118,7 +141,7 @@ def rig_for_impeller(
         axial_margin_mm: Assumed blade half-extent margin about z=0 when the STL axial span
             is not yet known (refined later from the actual mesh bounds).
         mrf_margin_mm: Axial padding of the MRF zone beyond the impeller extent.
-        inlet_velocity: Uniform inlet axial velocity (m/s) defining the operating point.
+        inlet_velocity: Uniform inlet |axial| speed (m/s); BC uses +Z.
     """
     tip_gap_m = tip_gap_mm * MM_TO_M
     if casing_id_mm is not None:
@@ -146,4 +169,5 @@ def rig_for_impeller(
         mrf_z_max=z_hi + mrf_margin_mm * MM_TO_M,
         rpm=params.rpm,
         inlet_velocity=inlet_velocity,
+        hub_radius=float(params.hub_radius) * MM_TO_M,
     )

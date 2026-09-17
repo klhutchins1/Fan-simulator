@@ -20,7 +20,7 @@ STACK_GAP_MM = 2.0
 
 
 def default_frame_z_start_mm(rig: TestRig) -> float:
-    """Axial LE of the four-bar frame (mm): just downstream of the MRF zone."""
+    """Axial LE of the four-bar frame (mm): just downstream of the MRF zone (+Z outlet)."""
     return rig.mrf_z_max / MM_TO_M + STRUT_AFTER_MRF_MM
 
 

@@ -61,11 +61,14 @@ CONTROL_DESC = {
     "e_thick_root": "Wall t/c at the hub (fraction of chord). Tapered mode only. Through-blade thickness, not LE→TE width.",
     "e_thick_mid": "Wall t/c at mid-span. Tapered mode only.",
     "e_thick_tip": "Wall t/c at the tip. Tapered mode only.",
-    "e_thick_mm": "Wall thickness through the blade (mm), held constant root→tip. This is the thin dimension — not chord/width. Typical printed fan ~1.8–2.8 mm. Use Rounded plate so LE/TE stay bullnose instead of knife edges.",
+    "e_thick_mm": "Wall thickness through the blade (mm), held constant root→tip. This is the thin dimension — not chord/width. Typical printed fan ~1.8–2.8 mm. Use Rounded plate; set LE/TE roundness ~0.2 (full LE bullnose fights uniform wall).",
     "e_thick_mode": "Uniform wall = same mm through the blade at every station. Tapered = independent t/c. Does not set LE→TE width — that is Chord.",
-    "e_le_thick": "LEADING-EDGE thickness scale (NACA only). 1 = stock; >1 fattens the nose; mid-chord stays near the span thickness. Click Preview after changing.",
-    "e_te_thick": "TRAILING-EDGE control. NACA: thickness scale (1 = stock; <1 thins aft; >1 fattens). Plate: TE roundness 0–1 (1 = full bullnose, ~0.2 = sharp TE like the stock STL; LE stays round).",
-    "e_section_family": "NACA = cambered airfoil with sharp LE/TE. Rounded plate = constant wall, round LE, tunable TE + camber (bows the blade face — the slight tip→hub curve). Wrap/lean still set the spanwise vortex planform.",
+    "e_le_thick": "LEADING-EDGE control. NACA: thickness scale (1 = stock; >1 fattens the nose). "
+        "Plate: LE roundness 0–1 (1 = full bullnose bead — fights uniform wall; ~0.2 = sharp). "
+        "If left at 1 with plate, LE follows TE roundness. Click Preview after changing.",
+    "e_te_thick": "TRAILING-EDGE control. NACA: thickness scale (1 = stock; <1 thins aft; >1 fattens). "
+        "Plate: TE roundness 0–1 (1 = full bullnose, ~0.2 = sharp printable TE).",
+    "e_section_family": "NACA = cambered airfoil with sharp LE/TE. Rounded plate = constant wall, tunable LE/TE roundness + camber (bows the blade face — the slight tip→hub curve). Wrap/lean still set the spanwise vortex planform.",
     "e_tip_notched": "Three boxy / skewed-rectangle bites cut into the outer trailing edge (close-ref A12x25 tip TE steps). Not spanwise owl serrations and not LE tubercles. Slows Preview — wait for it to finish after changing Sickle/Wrap.",
     "e_tip_notch_depth": "How deep each tip TE notch cuts toward mid-chord (mm). Stock ≈ 1.5 mm. Deeper = more staircase on the TE.",
     "e_spacing": "Uneven-but-balanced blade spacing to spread the blade-pass tone. 0 = evenly spaced.",

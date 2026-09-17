@@ -11,14 +11,14 @@ from fansim.geometry.export import export_stl
 
 CASING_WALL_MM = 2.4  # same as frame barrel; fluid radius stays duct_radius
 STEP_DEPTH_MM = 1.2  # radial enlargement of the inlet bore (roadmap 2.6)
-STEP_LEN_MM = 6.0  # axial length of the larger bore from domain_z_min
+STEP_LEN_MM = 6.0  # axial length of the larger bore from domain_z_min (inlet)
 
 
 def build_casing_solid(rig: TestRig, stepped: bool = False) -> cq.Solid:
     """Full-length tube whose inner radius is the fluid duct radius.
 
-    When ``stepped`` is True the inlet has a short larger bore, then a sudden
-    contraction back to ``duct_radius``. Outer radius is constant.
+    When ``stepped`` is True the inlet (−Z / ``domain_z_min``) has a short larger bore,
+    then a sudden contraction back to ``duct_radius``. Outer radius is constant.
     """
     inner_r = rig.duct_radius / MM_TO_M
     zmin = rig.domain_z_min / MM_TO_M

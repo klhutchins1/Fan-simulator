@@ -106,3 +106,31 @@ def build_prop(spec: PropSpec, out_path: str | Path, *, bore: bool = True,
     out_path = Path(out_path)
     export_stl(model, out_path, tolerance=0.02, angular_tolerance=0.1)
     return watertight_report(out_path)
+
+
+def build_prop_preview(
+    spec: PropSpec,
+    out_path: str | Path,
+    *,
+    params: BladeParams | None = None,
+    **kw,
+) -> Path:
+    """Fast visual prop STL: non-fused impeller preview (no boolean fuse, no shaft bore).
+
+    Cockpit Analyze 3-D uses this (§13.23). Printable Export still calls ``build_prop``
+    (fused + bore). Writes ``<out>.meta.json`` with accurate solid volume sum.
+    """
+    import json
+
+    from fansim.geometry.blade import build_impeller_preview
+
+    if params is None:
+        params = prop_blade_params(spec, **kw)
+    mesh, volume_mm3 = build_impeller_preview(params)
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    mesh.export(str(out_path))
+    Path(str(out_path) + ".meta.json").write_text(
+        json.dumps({"volume_mm3": volume_mm3}), encoding="utf-8",
+    )
+    return out_path

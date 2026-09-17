@@ -122,47 +122,62 @@ def rounded_plate(
     max_camber: float = 0.0,
     camber_pos: float = 0.4,
     te_radius_frac: float = 1.0,
+    le_radius_frac: float = 1.0,
     return_chord_param: bool = False,
 ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
-    """Constant-thickness plate: round LE, tunable TE, optional camber (slight face curve).
+    """Constant-thickness plate: tunable LE/TE roundness, optional camber (slight face curve).
 
-    LE radius is always ``t/2`` (full bullnose). TE radius is
-    ``te_radius_frac * t/2`` (1 = stadium / full round, ~0 = sharp knife TE). Flat faces
-    sit at ±``t/2`` before camber. Camber uses the NACA 4-digit meanline so the blade
-    face bows chordwise (the tip→hub “slight curve” on printed PC fans) — wrap/lean still
-    handle the spanwise vortex/planform twist.
+    ``{le,te}_radius_frac`` scales the *chordwise* semi-axis of an ellipse that always
+    meets the flat faces at ±``t/2`` (1 = circular bullnose, ~0 = sharp knife). A circle
+    of radius ``< t/2`` would leave a shoulder step at the face/nose join — that ridge is
+    the false “LE bead” along the blade. Camber uses the NACA 4-digit meanline so the
+    blade face bows chordwise; wrap/lean still handle spanwise planform.
     """
     t = max(float(thickness), 1e-6)
     half_t = 0.5 * t
-    R_le = min(half_t, 0.49)
+    le_frac = float(np.clip(le_radius_frac, 0.0, 1.0))
     te_frac = float(np.clip(te_radius_frac, 0.0, 1.0))
-    # Keep a tiny TE radius so the loft wire stays manifold when "sharp".
-    R_te = max(te_frac * half_t, min(0.02 * half_t, 0.004))
-    R_te = min(R_te, 0.49)
+    # Keep a tiny chordwise axis so the loft wire stays manifold when "sharp".
+    _min_a = min(0.02 * half_t, 0.004)
+    a_le = min(max(le_frac * half_t, _min_a), 0.49)
+    a_te = min(max(te_frac * half_t, _min_a), 0.49)
 
     n_arc = max(int(n_points) // 2, 8)
     n_flat = max(int(n_points) // 2, 4)
 
+    # Ellipse LE/TE: center (a_le,0) / (1-a_te,0); y always spans ±half_t so faces meet flush.
     # Upper TE→LE: TE tip → TE arc → flat → LE arc → LE tip
     th_te_u = np.linspace(0.0, 0.5 * np.pi, n_arc, endpoint=False)
-    te_u = np.column_stack([(1.0 - R_te) + R_te * np.cos(th_te_u), R_te * np.sin(th_te_u)])
+    te_u = np.column_stack([
+        (1.0 - a_te) + a_te * np.cos(th_te_u),
+        half_t * np.sin(th_te_u),
+    ])
 
-    x_flat_u = np.linspace(1.0 - R_te, R_le, n_flat, endpoint=False)
+    x_flat_u = np.linspace(1.0 - a_te, a_le, n_flat, endpoint=False)
     flat_u = np.column_stack([x_flat_u, np.full_like(x_flat_u, half_t)])
 
     th_le_u = np.linspace(0.5 * np.pi, np.pi, n_arc, endpoint=True)
-    le_u = np.column_stack([R_le + R_le * np.cos(th_le_u), R_le * np.sin(th_le_u)])
+    le_u = np.column_stack([
+        a_le + a_le * np.cos(th_le_u),
+        half_t * np.sin(th_le_u),
+    ])
     upper = np.vstack([te_u, flat_u, le_u])
 
     # Lower LE→TE (skip LE tip duplicate)
     th_le_l = np.linspace(np.pi, 1.5 * np.pi, n_arc, endpoint=False)[1:]
-    le_l = np.column_stack([R_le + R_le * np.cos(th_le_l), R_le * np.sin(th_le_l)])
+    le_l = np.column_stack([
+        a_le + a_le * np.cos(th_le_l),
+        half_t * np.sin(th_le_l),
+    ])
 
-    x_flat_l = np.linspace(R_le, 1.0 - R_te, n_flat, endpoint=False)
+    x_flat_l = np.linspace(a_le, 1.0 - a_te, n_flat, endpoint=False)
     flat_l = np.column_stack([x_flat_l, np.full_like(x_flat_l, -half_t)])
 
     th_te_l = np.linspace(-0.5 * np.pi, 0.0, n_arc, endpoint=True)
-    te_l = np.column_stack([(1.0 - R_te) + R_te * np.cos(th_te_l), R_te * np.sin(th_te_l)])
+    te_l = np.column_stack([
+        (1.0 - a_te) + a_te * np.cos(th_te_l),
+        half_t * np.sin(th_te_l),
+    ])
     lower = np.vstack([le_l, flat_l, te_l])
 
     loop = np.vstack([upper, lower])
@@ -194,6 +209,7 @@ def section_loop_2d(
     thickness: float,
     n_points: int = 60,
     te_radius_frac: float = 1.0,
+    le_radius_frac: float = 1.0,
     return_chord_param: bool = False,
 ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """Dispatch to NACA or rounded-plate generator."""
@@ -205,6 +221,7 @@ def section_loop_2d(
             max_camber=max_camber,
             camber_pos=camber_pos,
             te_radius_frac=te_radius_frac,
+            le_radius_frac=le_radius_frac,
             return_chord_param=return_chord_param,
         )
     return naca4(

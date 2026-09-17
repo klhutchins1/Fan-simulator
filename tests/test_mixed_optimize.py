@@ -37,12 +37,45 @@ def test_mixed_flat_includes_section_aero():
     from fansim.centrifugal.params_io import CORE_FLAT_KEYS, mixed_flat_from_params, mixed_params_from_flat
 
     assert "thickness" in CORE_FLAT_KEYS
+    assert "chord_root" in CORE_FLAT_KEYS
+    assert "stagger_tip" in CORE_FLAT_KEYS
     p = MixedFlowParams(thickness=0.09, max_camber=0.05, camber_pos=0.35)
     flat = mixed_flat_from_params(p)
     assert flat["thickness"] == pytest.approx(0.09)
     q = mixed_params_from_flat(flat)
     assert q.max_camber == pytest.approx(0.05)
     assert q.camber_pos == pytest.approx(0.35)
+
+
+def test_mixed_flat_legacy_chord_broadcasts_to_span():
+    from fansim.centrifugal.params_io import mixed_params_from_flat
+
+    p = mixed_params_from_flat({"chord_mm": 20.0, "stagger_deg": 32.0})
+    assert p.chord_root == pytest.approx(20.0)
+    assert p.chord_tip == pytest.approx(20.0)
+    assert p.stagger_root == pytest.approx(32.0)
+    assert p.stagger_tip == pytest.approx(32.0)
+
+
+def test_suggest_mixed_emits_span_planform_keys():
+    class _T:
+        def __init__(self):
+            self.params = {}
+
+        def suggest_int(self, name, lo, hi):
+            self.params[name] = lo
+            return lo
+
+        def suggest_float(self, name, lo, hi):
+            self.params[name] = lo
+            return lo
+
+    t = _T()
+    p = suggest_mixed(t)
+    assert "chord_root" in t.params and "chord_tip" in t.params
+    assert "stagger_root" in t.params and "stagger_tip" in t.params
+    assert p.chord_root == pytest.approx(t.params["chord_root"])
+
 
 
 def test_evaluate_mixed_bem_returns_positive_cfm():

@@ -1,11 +1,17 @@
 """Mixed-flow (centrifugal registry) geometry + archetype + evaluate."""
 
-from fansim.centrifugal.geometry import MixedFlowParams, build_mixed_flow, export_mixed_flow_stl
+from fansim.centrifugal.geometry import (
+    MixedFlowParams,
+    build_mixed_flow,
+    build_mixed_flow_preview,
+    export_mixed_flow_stl,
+)
 
 __all__ = [
     "MixedFlowArchetype",
     "MixedFlowParams",
     "build_mixed_flow",
+    "build_mixed_flow_preview",
     "evaluate_mixed_flow",
     "export_mixed_flow_stl",
 ]

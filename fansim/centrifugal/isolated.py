@@ -41,15 +41,23 @@ def build_mixed_stl_isolated(
     flat: dict,
     out_path: str | Path,
     timeout: float = 300.0,
+    *,
+    preview: bool = False,
 ) -> Path:
-    """Export mixed-flow STL in a subprocess (CadQuery crash isolation)."""
+    """Export mixed-flow STL in a subprocess (CadQuery crash isolation).
+
+    ``preview=True`` builds the non-fused rotate-copy mesh (§13.23) and writes a
+    ``<out>.meta.json`` volume sidecar. ``preview=False`` builds the fused + cup carve solid.
+    """
     out_path = Path(out_path)
+    job = {"flat": flat, "out": str(out_path), "preview": bool(preview)}
+    require = [out_path]
     run_worker_module(
         "fansim.centrifugal._build_worker",
-        {"flat": flat, "out": str(out_path)},
+        job,
         timeout=timeout,
-        label="mixed-flow build",
-        require_paths=[out_path],
+        label="mixed-flow preview" if preview else "mixed-flow build",
+        require_paths=require,
     )
     return out_path
 

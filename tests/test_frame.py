@@ -1,6 +1,7 @@
 import math
 
 import cadquery as cq
+import pytest
 
 from fansim.cfd.domain import MM_TO_M, rig_for_impeller
 from fansim.cfd.frame import (

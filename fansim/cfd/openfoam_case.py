@@ -167,7 +167,8 @@ def build_case(
         stator_mesh.export(str(case_dir / "constant/triSurface/stator.stl"))
 
     # --- Derived flow / turbulence quantities ---
-    u_in = rig.inlet_velocity
+    u_in = abs(float(rig.inlet_velocity))
+    u_axial = float(rig.u_axial)  # −Z flow (intake +Z → exhaust −Z)
     k = 1.5 * (TURB_INTENSITY * max(u_in, 1e-3)) ** 2
     length_scale = 0.07 * (2.0 * rig.duct_radius)
     omega_turb = math.sqrt(k) / (CMU**0.25 * length_scale)
@@ -268,14 +269,15 @@ def build_case(
     if back_pressure_pa is not None:
         # u_guess seeds the pressure-driven initial field; sweeping it probes whether the
         # steady solve has multiple solution branches (bistability).
-        k = 1.5 * (TURB_INTENSITY * u_guess) ** 2
+        u_guess_axial = abs(float(u_guess))
+        k = 1.5 * (TURB_INTENSITY * abs(u_guess)) ** 2
         omega_turb = math.sqrt(k) / (CMU**0.25 * length_scale)
         pback_kin = back_pressure_pa / RHO_AIR
         frame_k, frame_omega = _k_omega_bc(frame, k, omega_turb)
         casing_k, casing_omega = _k_omega_bc(casing, k, omega_turb)
         stator_k, stator_omega = _k_omega_bc(stator, k, omega_turb)
         _write(case_dir / "0/U", T.FIELD_U_PDRIVEN, "volVectorField", "U",
-               {"UGUESS": u_guess, "FRAME_U": frame["U"], "CASING_U": casing["U"],
+               {"UGUESS": u_guess_axial, "FRAME_U": frame["U"], "CASING_U": casing["U"],
                 "STATOR_U": stator["U"]})
         _write(case_dir / "0/p", T.FIELD_P_PDRIVEN, "volScalarField", "p",
                {"PBACK": pback_kin, "FRAME_P": frame["P"], "CASING_P": casing["P"],
@@ -290,7 +292,7 @@ def build_case(
         casing_k, casing_omega = _k_omega_bc(casing, k, omega_turb)
         stator_k, stator_omega = _k_omega_bc(stator, k, omega_turb)
         _write(case_dir / "0/U", T.FIELD_U, "volVectorField", "U",
-               {"UIN": u_in, "FRAME_U": frame["U"], "CASING_U": casing["U"],
+               {"UIN": u_axial, "FRAME_U": frame["U"], "CASING_U": casing["U"],
                 "STATOR_U": stator["U"]})
         _write(case_dir / "0/p", T.FIELD_P, "volScalarField", "p",
                {"FRAME_P": frame["P"], "CASING_P": casing["P"], "STATOR_P": stator["P"]})

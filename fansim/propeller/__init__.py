@@ -5,6 +5,6 @@ with propeller twist (blade angle set by geometric pitch: high at the root, low 
 shaft-mount hub instead of a big motor cup. See fansim/prop_spec.py for the sizes/mounts.
 """
 
-from fansim.propeller.geometry import build_prop, prop_blade_params
+from fansim.propeller.geometry import build_prop, build_prop_preview, prop_blade_params
 
-__all__ = ["prop_blade_params", "build_prop"]
+__all__ = ["prop_blade_params", "build_prop", "build_prop_preview"]

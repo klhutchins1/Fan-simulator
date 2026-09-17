@@ -266,6 +266,10 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
         bp.le_thick_scale = float(p["le_thick_scale"])
     if "te_thick_scale" in p:
         bp.te_thick_scale = float(p["te_thick_scale"])
+    if "n_span" in p:
+        bp.n_span = max(4, int(p["n_span"]))
+    if "n_chord" in p:
+        bp.n_chord = max(8, int(p["n_chord"]))
     if "cylindrical_tip" in p:
         bp.cylindrical_tip = bool(p["cylindrical_tip"])
     if (
@@ -358,6 +362,8 @@ def blade_to_flat(params: BladeParams) -> dict:
         shroud_height_frac=float(params.shroud_height_frac or 1.0),
         span_interp=str(getattr(params, "span_interp", "linear") or "linear"),
         section_family=str(getattr(params, "section_family", "naca") or "naca"),
+        n_span=int(getattr(params, "n_span", 18) or 18),
+        n_chord=int(getattr(params, "n_chord", 60) or 60),
         tip_notch_count=int(getattr(params, "tip_notch_count", 0) or 0),
         tip_notch_depth_mm=float(getattr(params, "tip_notch_depth_mm", 0.0) or 0.0),
         notched_tips=bool(int(getattr(params, "tip_notch_count", 0) or 0) > 0),

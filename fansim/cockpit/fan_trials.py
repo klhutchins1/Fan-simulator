@@ -200,7 +200,7 @@ def bind(session) -> None:
         )
 
         spec = session.active_spec()
-        # Bake frame/mount fit into the editor so gold ✕ does not need a manual Fit.
+        # Bake frame/mount fit so gold ✕ lands inside the housing (tip gap 0.5 mm).
         fitted = fit_envelope(flat, spec, features=Features())
         flat = fitted.flat
         load_pa, hose = assess_load(str(state.assess_preset or "case"))
@@ -243,8 +243,9 @@ def bind(session) -> None:
             from fansim.geometry.isolated import build_stl_isolated
 
             cache_stl.parent.mkdir(parents=True, exist_ok=True)
-            # Fast fused-free preview mesh for gold ✕ (Export / Assess still do full solids).
-            build_stl_isolated(flat_s, feat_s, cache_stl, timeout=300.0, preview=True)
+            # Dense non-fused mesh for gold ✕ (full n_span — LE isn't a 10-section polyline).
+            build_stl_isolated(
+                flat_s, feat_s, cache_stl, timeout=300.0, preview=True, preview_dense=True)
             write_stock_cache_meta(key, flat_s, preview=True)
             return cache_stl
 
@@ -272,7 +273,8 @@ def bind(session) -> None:
                     z_span_mm=max(z_span, 20.0),
                 )
                 state.glyph_caption = (
-                    "Schematic axial flow (stock has no CFD case — Assess for real velocity arrows)"
+                    "Schematic +Z annulus flow (stock has no CFD — Assess for real arrows; "
+                    "hub/motor core is blocked)"
                 )
                 session._rebuild_glyph_arrows()
                 session._apply_render(reset=False)

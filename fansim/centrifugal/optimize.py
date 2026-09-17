@@ -35,15 +35,25 @@ _CAMBER_POS = (0.30, 0.50)
 
 
 def suggest_mixed(trial) -> MixedFlowParams:
-    """Sample core mixed-flow knobs within the cockpit slider envelope (§14.3a)."""
+    """Sample mixed-flow knobs within the cockpit slider envelope (§14.3 / §14.3b)."""
+    chord_root = float(trial.suggest_float("chord_root", *_CHORD))
+    chord_mid = float(trial.suggest_float("chord_mm", *_CHORD))
+    chord_tip = float(trial.suggest_float("chord_tip", *_CHORD))
+    stagger_root = float(trial.suggest_float("stagger_root", *_STAGGER))
+    stagger_mid = float(trial.suggest_float("stagger_deg", *_STAGGER))
+    stagger_tip = float(trial.suggest_float("stagger_tip", *_STAGGER))
     return MixedFlowParams(
         n_blades=int(trial.suggest_int("n_blades", *_N_BLADES)),
         r_eye_mm=float(trial.suggest_float("r_eye_mm", *_R_EYE)),
         r_back_mm=float(trial.suggest_float("r_back_mm", *_R_BACK)),
         r_tip_mm=float(trial.suggest_float("r_tip_mm", *_R_TIP)),
         z_span_mm=float(trial.suggest_float("z_span_mm", *_Z_SPAN)),
-        chord_mm=float(trial.suggest_float("chord_mm", *_CHORD)),
-        stagger_deg=float(trial.suggest_float("stagger_deg", *_STAGGER)),
+        chord_root=chord_root,
+        chord_mm=chord_mid,
+        chord_tip=chord_tip,
+        stagger_root=stagger_root,
+        stagger_deg=stagger_mid,
+        stagger_tip=stagger_tip,
         thickness=float(trial.suggest_float("thickness", *_THICKNESS)),
         max_camber=float(trial.suggest_float("max_camber", *_CAMBER)),
         camber_pos=float(trial.suggest_float("camber_pos", *_CAMBER_POS)),

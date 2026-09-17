@@ -367,10 +367,18 @@ def evaluate_candidate(
             p_free_pa=p_free_pa,
         )
     except SystemCurveError as exc:
+        hint = ""
+        if float(cfm_free) <= 0.0:
+            hint = (
+                f" — free outletFlow was {float(m_free.cfm):+.1f} CFM (signed); "
+                "reverse/zero flow usually means spin or axial BC fought the blades. "
+                "Re-Assess with current +Z duct (inlet −Z → outlet +Z, spin=-1)."
+            )
         return _infeasible(
-            f"system-curve: {exc} (free {p_free_pa:.1f} Pa, probe {p_probe_pa:.1f} Pa)",
+            f"system-curve: {exc} (free {p_free_pa:.1f} Pa, probe {p_probe_pa:.1f} Pa){hint}",
             t0,
-            raw={**gap_raw, "p_free_pa": p_free_pa, "p_probe_pa": p_probe_pa},
+            raw={**gap_raw, "p_free_pa": p_free_pa, "p_probe_pa": p_probe_pa,
+                 "cfm_free_signed": float(m_free.cfm), "cfm_probe_signed": float(m_load.cfm)},
         )
     cfm_load = op.q_op_cfm
     efficiency = max(op.eta * 100.0, 0.0)

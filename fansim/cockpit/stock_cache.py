@@ -34,6 +34,7 @@ def stock_fingerprint(flat: dict, *, preview: bool = True) -> str:
         "max_camber", "camber_root", "camber_mid", "camber_tip", "camber_pos",
         "thickness_root", "thickness_mid", "thickness_tip", "thick_mode", "thick_mm",
         "le_thick_scale", "te_thick_scale", "section_family", "span_interp",
+        "n_span", "n_chord",
         "shroud_thick_mm", "shroud_height_frac",
         "tip_round", "tip_round_start", "cylindrical_tip",
         "tip_notch_count", "tip_notch_depth_mm", "notched_tips",
@@ -41,6 +42,8 @@ def stock_fingerprint(flat: dict, *, preview: bool = True) -> str:
     )
     payload = {k: flat.get(k) for k in keys}
     payload["_preview"] = bool(preview)
+    # Dense stock preview (full loft) must not hit a coarse screen-loft cache entry.
+    payload["_preview_dense"] = True
     blob = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
     return hashlib.sha256(blob).hexdigest()[:16]
 

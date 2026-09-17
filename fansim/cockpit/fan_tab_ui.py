@@ -764,13 +764,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     html.Div(
                                         "Wall = the thin dimension through the blade (not LE→TE width). "
                                         "Uniform = same mm root→tip. Rounded plate keeps wall through "
-                                        "the section (LE round; TE from the roundness slider); NACA knives the TE.",
+                                        "the section (LE/TE from the roundness sliders); NACA knives the TE.",
                                         classes="text-caption mb-2",
                                     )
                                     _slider(
-                                        "LE thick scale", "e_le_thick", 0.5, 2.0, 0.05,
+                                        "LE thick / roundness", "e_le_thick", 0.0, 2.0, 0.05,
                                         unit="×",
-                                        disabled=("e_section_family === 'plate'",),
                                     )
                                     _slider(
                                         "TE thick / roundness", "e_te_thick", 0.0, 2.0, 0.05,
@@ -778,8 +777,8 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     )
                                     html.Div(
                                         "NACA: LE/TE scales reshape nose/tail (1 = stock). TE>1 fattens "
-                                        "the aft section. Plate: TE slider is trailing-edge roundness "
-                                        "(1 = full bullnose, ~0.2 = sharp TE; LE stays round). "
+                                        "the aft section. Plate: both sliders are edge roundness "
+                                        "(1 = full bullnose, ~0.2 = sharp). "
                                         "Camber bows the plate face (slight tip→hub curve). Preview after changes.",
                                         classes="text-caption text-medium-emphasis mb-2",
                                     )

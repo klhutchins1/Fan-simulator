@@ -110,8 +110,8 @@ def schematic_axial_flow_cloud(
 ):
     """Build a non-CFD axial through-flow sample cloud for stock / no-case previews.
 
-    Flow is +Z (outlet), matching the cockpit midplane convention (FRONT −Z → OUTLET +Z).
-    Points and arrow lengths use the same units as CFD glyphs (points in mm, ``U`` in m/s).
+    Flow is **+Z** through the annulus (hub/motor core excluded). Matches blade LE on the
+    lower-Z side of the section (oncoming flow from −Z → +Z). Units: points mm, ``U`` m/s.
     """
     import pyvista as pv
 
@@ -132,10 +132,11 @@ def schematic_axial_flow_cloud(
                 pts.append((r * np.cos(th), r * np.sin(th), z))
     pts_a = np.asarray(pts, dtype=float)
     u = np.zeros_like(pts_a)
-    u[:, 2] = float(u_axial_ms)
+    u_ax = abs(float(u_axial_ms))  # +Z (toward LE→TE axial sense on stock blades)
+    u[:, 2] = u_ax
     cloud = pv.PolyData(pts_a)
     cloud["U"] = u
-    cloud["U_mag"] = np.full(pts_a.shape[0], float(u_axial_ms), dtype=float)
+    cloud["U_mag"] = np.full(pts_a.shape[0], u_ax, dtype=float)
     return cloud
 
 

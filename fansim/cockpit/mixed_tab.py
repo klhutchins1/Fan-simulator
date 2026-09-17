@@ -83,7 +83,11 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
     state.mf_r_tip = float(_mf0.r_tip_mm)
     state.mf_z_span = float(_mf0.z_span_mm)
     state.mf_chord = float(_mf0.chord_mm)
+    state.mf_chord_root = float(_mf0.chord_root)
+    state.mf_chord_tip = float(_mf0.chord_tip)
     state.mf_stagger = float(_mf0.stagger_deg)
+    state.mf_stagger_root = float(_mf0.stagger_root)
+    state.mf_stagger_tip = float(_mf0.stagger_tip)
     state.mf_thickness = float(_mf0.thickness)
     state.mf_camber = float(_mf0.max_camber)
     state.mf_camber_pos = float(_mf0.camber_pos)
@@ -129,8 +133,12 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             "r_back_mm": float(state.mf_r_back),
             "r_tip_mm": float(state.mf_r_tip),
             "z_span_mm": float(state.mf_z_span),
+            "chord_root": float(state.mf_chord_root),
             "chord_mm": float(state.mf_chord),
+            "chord_tip": float(state.mf_chord_tip),
+            "stagger_root": float(state.mf_stagger_root),
             "stagger_deg": float(state.mf_stagger),
+            "stagger_tip": float(state.mf_stagger_tip),
             "thickness": float(state.mf_thickness),
             "max_camber": float(state.mf_camber),
             "camber_pos": float(state.mf_camber_pos),
@@ -178,11 +186,13 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
         try:
             await loop.run_in_executor(
                 None,
-                lambda: build_mixed_stl_isolated(flat, mf_preview_stl, timeout=300.0),
+                lambda: build_mixed_stl_isolated(
+                    flat, mf_preview_stl, timeout=300.0, preview=True,
+                ),
             )
             _show_mf_stl(mf_preview_stl)
             state.mf_geo_ready = True
-            state.mf_msg = "✓ Preview ready (axial-envelope mixed-flow)."
+            state.mf_msg = "✓ Preview ready (non-fused visual mesh)."
         except Exception as exc:  # noqa: BLE001
             state.mf_msg = f"⚠ Preview failed: {type(exc).__name__}: {exc}"
         finally:
@@ -486,10 +496,16 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             state.mf_r_tip = float(p["r_tip_mm"])
         if "z_span_mm" in p:
             state.mf_z_span = float(p["z_span_mm"])
-        if "chord_mm" in p:
-            state.mf_chord = float(p["chord_mm"])
-        if "stagger_deg" in p:
-            state.mf_stagger = float(p["stagger_deg"])
+        if "chord_mm" in p or "chord_root" in p or "chord_tip" in p:
+            mid = float(p.get("chord_mm", state.mf_chord))
+            state.mf_chord = mid
+            state.mf_chord_root = float(p.get("chord_root", mid))
+            state.mf_chord_tip = float(p.get("chord_tip", mid))
+        if "stagger_deg" in p or "stagger_root" in p or "stagger_tip" in p:
+            mid_s = float(p.get("stagger_deg", state.mf_stagger))
+            state.mf_stagger = mid_s
+            state.mf_stagger_root = float(p.get("stagger_root", mid_s))
+            state.mf_stagger_tip = float(p.get("stagger_tip", mid_s))
         if "thickness" in p:
             state.mf_thickness = float(p["thickness"])
         if "max_camber" in p:
@@ -554,8 +570,13 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                     _slider("Back hub R (mm)", "mf_r_back", 20.0, 35.0, 0.5)
                     _slider("Tip R (mm)", "mf_r_tip", 48.0, 54.5, 0.5)
                     _slider("Z span (mm)", "mf_z_span", 12.0, 22.0, 0.5)
-                    _slider("Chord (mm)", "mf_chord", 14.0, 28.0, 0.5)
-                    _slider("Stagger (°)", "mf_stagger", 20.0, 50.0, 1.0)
+                    html.Div("Planform (root → tip)", classes="text-subtitle-2 mt-3 mb-1")
+                    _slider("Chord root (mm)", "mf_chord_root", 14.0, 28.0, 0.5)
+                    _slider("Chord mid (mm)", "mf_chord", 14.0, 28.0, 0.5)
+                    _slider("Chord tip (mm)", "mf_chord_tip", 14.0, 28.0, 0.5)
+                    _slider("Stagger root (°)", "mf_stagger_root", 20.0, 50.0, 1.0)
+                    _slider("Stagger mid (°)", "mf_stagger", 20.0, 50.0, 1.0)
+                    _slider("Stagger tip (°)", "mf_stagger_tip", 20.0, 50.0, 1.0)
                     html.Div("Section aero", classes="text-subtitle-2 mt-3 mb-1")
                     _slider("Thickness t/c", "mf_thickness", 0.04, 0.14, 0.005)
                     _slider("Camber", "mf_camber", 0.0, 0.08, 0.005)

@@ -4,20 +4,14 @@
 # Published targets (docs/a12x25-reference.md): 60.1 CFM, 22.9 Pa, 22.6 dB(A), 2000 RPM, 0.5 mm tip.
 # Prior wide-chord recipe: config/problems/a12x25_approx.yaml.
 #
-# 2026-09-15 STL slice fit (9-blade median at cylinder stations):
-#   root≈r27: chord~18 wall~2.6 stag~38
-#   mid≈r37:  chord~23 wall~2.7 stag~30
-#   tip≈r53:  chord~33 wall~2.8 stag~21; mid→tip wrap ~19° (~18 mm arc)
-# Wrap is carried by lean_deg only — large tip skew + cylindrical_tip clipped the tip
-# chord (rho=sqrt(r^2+t^2) with t+=skew). section_family=plate for printable wall;
-# camber bows the plate face (the tip-on "scoop"); te_thick_scale~0.2 sharpens TE vs full
-# bullnose; tip notches = three boxy outer-TE bites. span_interp=pchip for smooth hub→mid→tip.
-# Hub 16.5 mm matches STL axial depth; blade_hub_z keeps roots toward the intake face.
+# Base: committed tip_radius 54.5 (fits housing). User planform overlay knobs:
+#   notches off; skew mid/tip 3/13; tip chord 36; tip stagger 15°; blade_hub_z 5.
+# Plate LE/TE roundness 0.2 (elliptic nose flush with ±t/2 faces — not a t/2 bullnose).
 n_blades: 9
 hub_radius: 21.5
 tip_radius: 54.5
 hub_height_mm: 16.5
-blade_hub_z_mm: 2.5
+blade_hub_z_mm: 5.0
 root_embed: 2.0
 hub_axial_margin: 1.5
 rpm: 2000.0
@@ -25,11 +19,12 @@ n_span: 18
 n_chord: 60
 section_family: plate
 span_interp: pchip
+le_thick_scale: 0.2
 te_thick_scale: 0.2
-tip_notch_count: 3
-tip_notch_depth_mm: 1.5
+tip_notch_count: 0
+tip_notch_depth_mm: 0.0
 stations:
   # thickness = wall_mm / chord (uniform ~2.7 mm)
   - {r_frac: 0.0, chord: 18.0, stagger_deg: 38.0, thickness: 0.150, max_camber: 0.08, camber_pos: 0.4, sweep: 0.0, skew: 0.0, lean_deg: 0.0}
-  - {r_frac: 0.5, chord: 24.0, stagger_deg: 30.0, thickness: 0.112, max_camber: 0.10, camber_pos: 0.4, sweep: 0.0, skew: 0.0, lean_deg: 14.0}
-  - {r_frac: 1.0, chord: 35.0, stagger_deg: 20.5, thickness: 0.077, max_camber: 0.12, camber_pos: 0.4, sweep: 0.0, skew: 0.0, lean_deg: 33.0}
+  - {r_frac: 0.5, chord: 24.0, stagger_deg: 30.0, thickness: 0.112, max_camber: 0.10, camber_pos: 0.4, sweep: 0.0, skew: 3.0, lean_deg: 14.0}
+  - {r_frac: 1.0, chord: 36.0, stagger_deg: 15.0, thickness: 0.075, max_camber: 0.12, camber_pos: 0.4, sweep: 0.0, skew: 13.0, lean_deg: 33.0}

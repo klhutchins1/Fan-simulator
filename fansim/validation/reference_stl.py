@@ -120,4 +120,5 @@ def rig_for_reference_stl(
         mrf_z_max=z_hi + mrf_margin_mm * MM_TO_M,
         rpm=float(rpm),
         inlet_velocity=inlet_velocity,
+        hub_radius=float(np.percentile(np.sqrt(v[:, 0] ** 2 + v[:, 1] ** 2), 5.0)) * MM_TO_M,
     )

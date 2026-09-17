@@ -319,11 +319,11 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
             loop = asyncio.get_running_loop()
             try:
                 # Lazy import: geometry touches CadQuery/OCCT in solid-build paths.
-                from fansim.propeller.geometry import build_prop
+                from fansim.propeller.geometry import build_prop_preview
 
                 await loop.run_in_executor(
                     None,
-                    lambda: build_prop(spec, prop_preview_stl, params=params),
+                    lambda: build_prop_preview(spec, prop_preview_stl, params=params),
                 )
                 _draw_prop(prop_preview_stl)
                 state.prop_geo_ready = True

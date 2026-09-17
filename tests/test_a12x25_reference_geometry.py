@@ -15,22 +15,24 @@ def test_reference_blade_count_and_envelope():
 
     flat = stock_blade_flat("a12x25")
     assert flat["n_blades"] == 9
-    assert 54.0 <= flat["tip_radius"] <= 55.0
+    assert flat["tip_radius"] == pytest.approx(54.5)
     assert 20.0 <= flat["hub_radius"] <= 23.0
     assert float(flat.get("hub_height") or 0.0) == pytest.approx(16.5)
-    assert float(flat.get("blade_hub_z") or 0.0) == pytest.approx(2.5)
+    assert float(flat.get("blade_hub_z") or 0.0) == pytest.approx(5.0)
     assert flat.get("span_interp") == "pchip"
+    assert float(flat.get("le_thick_scale") or 1.0) == pytest.approx(0.2)
     assert float(flat.get("te_thick_scale") or 1.0) == pytest.approx(0.2)
-    assert int(flat.get("tip_notch_count") or 0) == 3
-    assert float(flat.get("tip_notch_depth_mm") or 0.0) == pytest.approx(1.5)
-    # STL cylinder-slice eye-fit (2026-09-15): mid~23/30°, tip~33/21°, wrap via lean.
+    assert int(flat.get("tip_notch_count") or 0) == 0
+    assert float(flat.get("tip_notch_depth_mm") or 0.0) == pytest.approx(0.0)
+    # User planform on frame-fit tip: chord tip 36 / stag 15 / hub z 5 / skew 3/13.
     assert flat["chord_root"] == pytest.approx(18.0)
     assert flat["chord_mid"] == pytest.approx(24.0)
-    assert flat["chord_tip"] == pytest.approx(35.0)
+    assert flat["chord_tip"] == pytest.approx(36.0)
     assert flat["stagger_root"] == pytest.approx(38.0)
     assert flat["stagger_mid"] == pytest.approx(30.0)
-    assert flat["stagger_tip"] == pytest.approx(20.5)
-    assert flat["skew_tip"] == pytest.approx(0.0)
+    assert flat["stagger_tip"] == pytest.approx(15.0)
+    assert flat["skew_mid"] == pytest.approx(3.0)
+    assert flat["skew_tip"] == pytest.approx(13.0)
     assert flat["lean_tip"] == pytest.approx(33.0)
     assert flat["thick_mode"] == "uniform"
     assert float(flat["thick_mm"]) == pytest.approx(2.7, abs=0.08)
@@ -94,18 +96,33 @@ def test_approx_alias_still_loads():
     assert flat["n_blades"] == 9
 
 
-def test_reference_stock_fits_a12x25_frame():
-    from fansim.cockpit.placement import fit_envelope, nominal_fits_spec
+def test_fit_envelope_preserve_tip_keeps_recipe_radius():
+    from fansim.cockpit.placement import fit_envelope
     from fansim.fan_spec import get_fan_spec
     from fansim.geometry.features import Features
     from fansim.optimize.search_space import stock_blade_flat
 
     spec = get_fan_spec("a12x25")
     flat = stock_blade_flat("a12x25")
-    assert nominal_fits_spec(flat, spec)
+    tip0 = float(flat["tip_radius"])
+    kept = fit_envelope(flat, spec, features=Features(), preserve_tip=True)
+    assert float(kept.flat["tip_radius"]) == pytest.approx(tip0)
+    assert all(c.field != "tip_radius" for c in kept.changes)
+
+
+def test_reference_stock_fits_a12x25_frame():
+    """Committed tip 54.5 is frame-fit; Fit keeps it in the housing band."""
+    from fansim.cockpit.placement import fit_envelope
+    from fansim.fan_spec import get_fan_spec
+    from fansim.geometry.features import Features
+    from fansim.optimize.search_space import stock_blade_flat
+
+    spec = get_fan_spec("a12x25")
+    flat = stock_blade_flat("a12x25")
+    assert flat["tip_radius"] == pytest.approx(54.5)
     fitted = fit_envelope(flat, spec, features=Features())
     assert fitted.fit_status == "fits"
-    assert all(c.field == "hub_height" for c in fitted.changes) or not fitted.changes
+    assert 54.3 <= float(fitted.flat["tip_radius"]) <= 54.5
 
 
 @pytest.mark.skipif(not STL_PATH.is_file(), reason="trusted STL not present")
@@ -127,11 +144,14 @@ def test_stock_cylinder_slices_near_reference():
     from fansim.optimize.search_space import stock_blade_flat
 
     flat = stock_blade_flat("a12x25")
-    # Recipe targets from cylinder-slice medians of a12x25_impeller.stl
+    # Recipe targets (gold ✕ 2026-09-16 planform + earlier slice fit for mid/stagger).
     assert flat["chord_mid"] == pytest.approx(24.0, abs=2.0)
-    assert flat["chord_tip"] == pytest.approx(33.0, abs=3.0)
+    assert flat["chord_tip"] == pytest.approx(36.0, abs=2.0)
     assert flat["stagger_mid"] == pytest.approx(30.0, abs=2.0)
-    assert flat["stagger_tip"] == pytest.approx(21.0, abs=2.0)
+    assert flat["stagger_tip"] == pytest.approx(15.0, abs=2.0)
     assert float(flat["thick_mm"]) == pytest.approx(2.7, abs=0.3)
     assert flat["section_family"] == "plate"
     assert flat["lean_tip"] - flat.get("lean_mid", 0.0) == pytest.approx(19.0, abs=3.0)
+    assert flat["skew_mid"] == pytest.approx(3.0)
+    assert flat["skew_tip"] == pytest.approx(13.0)
+    assert int(flat.get("tip_notch_count") or 0) == 0

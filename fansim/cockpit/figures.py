@@ -123,6 +123,44 @@ def mf_scatter_figure(designs) -> go.Figure:
     return fig
 
 
+def volute_scatter_figure(designs) -> go.Figure:
+    """Volute Optimize scatter: capacity_proxy vs head_proxy (§14.4b). Ranking-only."""
+    fig = go.Figure()
+    rows = [d for d in (designs or []) if d.get("objectives")]
+    if not rows:
+        fig.update_layout(
+            title="Volute — run Optimize (geometry proxy)",
+            xaxis_title="capacity proxy",
+            yaxis_title="head proxy",
+            margin=dict(l=50, r=10, t=30, b=45), height=340,
+            template="plotly_white",
+        )
+        return fig
+    fig.add_trace(go.Scatter(
+        x=[float(d["objectives"]["capacity_proxy"]) for d in rows],
+        y=[float(d["objectives"]["head_proxy"]) for d in rows],
+        mode="markers",
+        name="optimize (proxy)",
+        marker=dict(
+            size=14, symbol="circle",
+            color=[float(d["objectives"]["capacity_proxy"]) for d in rows],
+            colorscale="Viridis", showscale=True, colorbar=dict(title="cap"),
+            line=dict(width=1, color="rgba(0,0,0,0.4)"),
+        ),
+        customdata=[d["trial"] for d in rows],
+        hovertemplate="#%{customdata}<br>cap %{x:.1f}<br>head %{y:.2f}"
+                      "<extra>proxy</extra>",
+    ))
+    fig.update_layout(
+        margin=dict(l=50, r=10, t=30, b=45),
+        xaxis_title="capacity proxy (relative)",
+        yaxis_title="head proxy (relative)",
+        title="Volute — ● geometry proxy Optimize — click a point (not CFM)",
+        height=340, template="plotly_white", showlegend=False,
+    )
+    return fig
+
+
 def scatter_figure(study_designs, user_designs=(), stock_ref: dict | None = None) -> go.Figure:
     effs = [d.objectives["efficiency"] for d in study_designs] + [d.objectives["efficiency"] for d in user_designs]
     cmax = max([45.0] + [e for e in effs if e is not None])
