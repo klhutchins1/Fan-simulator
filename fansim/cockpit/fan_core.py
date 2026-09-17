@@ -14,10 +14,11 @@ from pathlib import Path
 
 from fansim.catalog import load_catalog, results_for_hub
 from fansim.cockpit.data import Design, feasible_designs, load_designs
+from fansim.cockpit.errors import log_caught
 from fansim.cockpit.fan_helpers import _has_real_cfm
 from fansim.cockpit.figures import filter_fitting_designs, scatter_figure
 from fansim.cockpit.library_view import library_list_items
-from fansim.cockpit.placement import nominal_fits_spec
+from fansim.cockpit.placement import fit_envelope, nominal_fits_spec
 from fansim.fan_spec import (
     fan_spec_names,
     get_fan_spec,
@@ -27,6 +28,10 @@ from fansim.fan_spec import (
 from fansim.optimize.presets import assess_load, assess_preset_items
 
 _log = logging.getLogger(__name__)
+
+# Reserved trial id for the synthetic published-reference entry in the runs dropdown
+# (well above user-assessed ids, which start at 9000). Selectable, but never scored/saved.
+A12X25_REF_TRIAL = 100000
 
 
 def apply_state_defaults(session) -> None:
@@ -252,6 +257,43 @@ def bind(session) -> None:
             by_trial.update(keep_users)
         return len(study_designs)
 
+    def _register_reference_design():
+        """Synthetic published-reference entry for the runs dropdown (a12x25 only).
+
+        Registered in ``by_trial`` so it is selectable/loadable (drops the parametric stock
+        recipe into the editor), but NOT added to study/user designs, so it does not duplicate
+        the published scatter star. Returns the dropdown item, or None when not applicable.
+        """
+        if str(state.fan_model) != "a12x25":
+            by_trial.pop(A12X25_REF_TRIAL, None)
+            return None
+        try:
+            spec = get_fan_spec("a12x25")
+            if not spec.ref_cfm:
+                return None
+            from fansim.geometry.features import Features
+            from fansim.optimize.search_space import stock_blade_flat
+
+            flat = fit_envelope(stock_blade_flat("a12x25"), spec, features=Features()).flat
+            load_pa, _hose = assess_load(str(state.assess_preset or "case"))
+            pub = published_scatter_point(spec, load_pa)
+            cfm_free = float(spec.ref_cfm)
+            cfm_load = float(pub["cfm_load"]) if pub else cfm_free
+        except Exception as exc:  # noqa: BLE001 - reference entry is best-effort
+            log_caught(_log, "reference dropdown entry", exc, level=logging.DEBUG)
+            return None
+        by_trial[A12X25_REF_TRIAL] = Design(
+            trial=A12X25_REF_TRIAL,
+            params=dict(flat),
+            objectives={"cfm_free": cfm_free, "cfm_load": cfm_load, "efficiency": 0.0},
+            feasible=True,
+            is_pareto=False,
+            stl_path=None,
+            extra={"n_blades": flat.get("n_blades"), "fan_model": "a12x25",
+                   "source": "reference", "is_reference": True},
+        )
+        return {"title": "◆ Reference · Noctua A12x25 (published)", "value": A12X25_REF_TRIAL}
+
     def refresh_items():
         hub_all = _hub_designs()
         scored = [d for d in hub_all if not d.extra.get("cfd_stale")]
@@ -262,6 +304,9 @@ def bind(session) -> None:
         if stale:
             items.append({"title": "— Unscored on this hub —", "value": None, "disabled": True})
             items += [_label(d) for d in stale]
+        ref_item = _register_reference_design()
+        if ref_item is not None:
+            items.insert(0, ref_item)
         state.trial_items = items
 
     def refresh_library():

@@ -48,6 +48,20 @@ def bind(session) -> None:
             plotter.clear_actors()
         o, p = d.objectives, d.params
         state.selected_trial = int(trial)
+        if d.extra.get("is_reference"):
+            state.info_lines = [
+                "Reference · Noctua NF-A12x25 (published datasheet)",
+                f"Published free {o['cfm_free']:.1f} CFM   ·   hose-est load {o['cfm_load']:.1f} CFM",
+                "Parametric stock recipe loaded — press Preview/Assess to compare CFD vs published.",
+            ]
+            session._init_editor(p)
+            session._set_baseline()
+            state.preview_msg = "Reference stock loaded. Preview geometry, or Assess to run CFD."
+            try:
+                ctrl.view_update()
+            except Exception as exc:  # noqa: BLE001
+                log_caught(_log, "view_update (reference select)", exc, level=logging.DEBUG)
+            return
         state.info_lines = [
             f"Trial {d.trial}   {d.extra.get('n_blades')} blades" + ("   ★ Pareto" if d.is_pareto else ""),
             f"CFM free {o['cfm_free']:.1f}   CFM load {o['cfm_load']:.1f}"
