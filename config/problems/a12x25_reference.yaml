@@ -1,17 +1,21 @@
-# Provenance: reference-parametric — cylinder-sliced eye-fit to validation/reference/a12x25_impeller.stl
-# (NOT OEM CAD). Cockpit Stock / gold ✕ loads this via stock_blade_flat("a12x25").
+# Provenance: reference-parametric — reverse-engineered per-span geometry from
+# validation/reference/a12x25_impeller.stl (NOT OEM CAD). Cockpit Stock / gold ✕ loads this
+# via stock_blade_flat("a12x25").
 # tip_radius / hub_height frame+mount fitted (110 mm ID − 0.5 mm gap; STL axial ~16.7 mm).
 # Published targets (docs/a12x25-reference.md): 60.1 CFM, 22.9 Pa, 22.6 dB(A), 2000 RPM, 0.5 mm tip.
 # Prior wide-chord recipe: config/problems/a12x25_approx.yaml.
 #
-# Base: committed tip_radius 54.5 (fits housing). User planform overlay knobs:
-#   notches off; skew mid/tip 3/13; tip chord 36; tip stagger 15°; blade_hub_z 5.
+# V3-faithful fit (2026-09): extracted the real blade's per-span chord/stagger from the STL
+#   (chord 10/16/28 mm, stagger hump 30/52/23°) and dropped blade_hub_z to 0 so the built
+#   axial depth is 16.5 mm ≈ measured 16.7 mm. CFD free-air 44.7 CFM at tip_gap 0.5 mm
+#   (up from 39.0 for the prior wide-chord recipe; matches the measured STL at load, 10 Pa).
+#   Residual to the datasheet/STL free-air is the 3-station plate model's fidelity limit.
 # Plate LE/TE roundness 0.2 (elliptic nose flush with ±t/2 faces — not a t/2 bullnose).
 n_blades: 9
 hub_radius: 21.5
 tip_radius: 54.5
 hub_height_mm: 16.5
-blade_hub_z_mm: 5.0
+blade_hub_z_mm: 0.0
 root_embed: 2.0
 hub_axial_margin: 1.5
 rpm: 2000.0
@@ -24,7 +28,8 @@ te_thick_scale: 0.2
 tip_notch_count: 0
 tip_notch_depth_mm: 0.0
 stations:
-  # thickness = wall_mm / chord (uniform ~2.7 mm)
-  - {r_frac: 0.0, chord: 18.0, stagger_deg: 38.0, thickness: 0.150, max_camber: 0.08, camber_pos: 0.4, sweep: 0.0, skew: 0.0, lean_deg: 0.0}
-  - {r_frac: 0.5, chord: 24.0, stagger_deg: 30.0, thickness: 0.112, max_camber: 0.10, camber_pos: 0.4, sweep: 0.0, skew: 3.0, lean_deg: 14.0}
-  - {r_frac: 1.0, chord: 36.0, stagger_deg: 15.0, thickness: 0.075, max_camber: 0.12, camber_pos: 0.4, sweep: 0.0, skew: 13.0, lean_deg: 33.0}
+  # chord/stagger from STL extraction; thickness ratio unchanged from the prior recipe
+  # (resulting walls taper ~1.5 mm root → 2.1 mm tip on the smaller chords).
+  - {r_frac: 0.0, chord: 10.0, stagger_deg: 30.0, thickness: 0.150, max_camber: 0.08, camber_pos: 0.4, sweep: 0.0, skew: 0.0, lean_deg: 0.0}
+  - {r_frac: 0.5, chord: 16.0, stagger_deg: 52.0, thickness: 0.112, max_camber: 0.10, camber_pos: 0.4, sweep: 0.0, skew: 3.0, lean_deg: 14.0}
+  - {r_frac: 1.0, chord: 28.0, stagger_deg: 23.0, thickness: 0.075, max_camber: 0.12, camber_pos: 0.4, sweep: 0.0, skew: 13.0, lean_deg: 33.0}

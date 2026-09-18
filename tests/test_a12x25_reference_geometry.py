@@ -18,26 +18,29 @@ def test_reference_blade_count_and_envelope():
     assert flat["tip_radius"] == pytest.approx(54.5)
     assert 20.0 <= flat["hub_radius"] <= 23.0
     assert float(flat.get("hub_height") or 0.0) == pytest.approx(16.5)
-    assert float(flat.get("blade_hub_z") or 0.0) == pytest.approx(5.0)
+    assert float(flat.get("blade_hub_z") or 0.0) == pytest.approx(0.0)
     assert flat.get("span_interp") == "pchip"
     assert float(flat.get("le_thick_scale") or 1.0) == pytest.approx(0.2)
     assert float(flat.get("te_thick_scale") or 1.0) == pytest.approx(0.2)
     assert int(flat.get("tip_notch_count") or 0) == 0
     assert float(flat.get("tip_notch_depth_mm") or 0.0) == pytest.approx(0.0)
-    # User planform on frame-fit tip: chord tip 36 / stag 15 / hub z 5 / skew 3/13.
-    assert flat["chord_root"] == pytest.approx(18.0)
-    assert flat["chord_mid"] == pytest.approx(24.0)
-    assert flat["chord_tip"] == pytest.approx(36.0)
-    assert flat["stagger_root"] == pytest.approx(38.0)
-    assert flat["stagger_mid"] == pytest.approx(30.0)
-    assert flat["stagger_tip"] == pytest.approx(15.0)
+    # V3-faithful fit: STL-extracted chord/stagger (10/16/28 mm, 30/52/23°), hub z 0 so
+    # the built depth lands on the measured 16.7 mm; skew/lean planform unchanged.
+    assert flat["chord_root"] == pytest.approx(10.0)
+    assert flat["chord_mid"] == pytest.approx(16.0)
+    assert flat["chord_tip"] == pytest.approx(28.0)
+    assert flat["stagger_root"] == pytest.approx(30.0)
+    assert flat["stagger_mid"] == pytest.approx(52.0)
+    assert flat["stagger_tip"] == pytest.approx(23.0)
     assert flat["skew_mid"] == pytest.approx(3.0)
     assert flat["skew_tip"] == pytest.approx(13.0)
     assert flat["lean_tip"] == pytest.approx(33.0)
-    assert flat["thick_mode"] == "uniform"
-    assert float(flat["thick_mm"]) == pytest.approx(2.7, abs=0.08)
+    # Same thickness ratios on smaller chords -> a spanwise wall taper (~1.5 -> 2.1 mm),
+    # thinner than the prior uniform 2.7 mm and closer to a real tapered blade.
+    assert flat["thick_mode"] == "tapered"
+    assert float(flat["thick_mm"]) == pytest.approx(1.8, abs=0.15)
     tip_wall = float(flat["thickness_tip"]) * float(flat["chord_tip"])
-    assert tip_wall == pytest.approx(2.7, abs=0.08)
+    assert tip_wall == pytest.approx(2.1, abs=0.1)
     assert flat["section_family"] == "plate"
 
 
@@ -85,7 +88,9 @@ def test_stock_plate_section_holds_constant_wall():
         - 0.1036 * x**4
     )
     naca_mid = 2.0 * float(yt) * c
-    assert plate_wall == pytest.approx(float(flat["thick_mm"]), abs=0.08)
+    # Plate holds constant wall across the chord: tip wall ~= thickness_tip * chord_tip
+    # (walls now taper spanwise, so compare to the tip station, not the span-average thick_mm).
+    assert plate_wall == pytest.approx(t * c, abs=0.08)
     assert plate_wall > naca_mid
 
 
@@ -144,12 +149,12 @@ def test_stock_cylinder_slices_near_reference():
     from fansim.optimize.search_space import stock_blade_flat
 
     flat = stock_blade_flat("a12x25")
-    # Recipe targets (gold ✕ 2026-09-16 planform + earlier slice fit for mid/stagger).
-    assert flat["chord_mid"] == pytest.approx(24.0, abs=2.0)
-    assert flat["chord_tip"] == pytest.approx(36.0, abs=2.0)
-    assert flat["stagger_mid"] == pytest.approx(30.0, abs=2.0)
-    assert flat["stagger_tip"] == pytest.approx(15.0, abs=2.0)
-    assert float(flat["thick_mm"]) == pytest.approx(2.7, abs=0.3)
+    # Recipe targets (V3-faithful fit 2026-09-17: per-span chord/stagger extracted from the STL).
+    assert flat["chord_mid"] == pytest.approx(16.0, abs=2.0)
+    assert flat["chord_tip"] == pytest.approx(28.0, abs=2.0)
+    assert flat["stagger_mid"] == pytest.approx(52.0, abs=2.0)
+    assert flat["stagger_tip"] == pytest.approx(23.0, abs=2.0)
+    assert float(flat["thick_mm"]) == pytest.approx(1.8, abs=0.3)
     assert flat["section_family"] == "plate"
     assert flat["lean_tip"] - flat.get("lean_mid", 0.0) == pytest.approx(19.0, abs=3.0)
     assert flat["skew_mid"] == pytest.approx(3.0)
