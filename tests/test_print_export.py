@@ -107,6 +107,30 @@ def test_motor_mount_grips_add_back_vs_smooth_cup(tmp_path):
     assert v_grip < solid_v
 
 
+def test_motor_mount_grips_do_not_protrude_below_rear_face():
+    """Fused grip pads must stay flush with the hub rear (−Z) face, not poke out the back.
+
+    They reuse the cavity *cutter's* z-range, which overshoots the face by ``eps`` for a clean
+    subtractive break — correct for a cut, but the *fused* pads must not inherit that overshoot
+    (it would leave a ring of little nubs sticking below the hub).
+    """
+    from fansim.fan_spec import get_fan_spec
+    from fansim.manufacturability.print_export import build_impeller_with_mount
+
+    mount = get_fan_spec("a12x25").motor_mount
+    p = dataclasses.replace(_simple_params(), hub_radius=30.0)  # wide enough for the cup
+    aero = build_impeller(p)
+    carved, fits, _msg = build_impeller_with_mount(p, mount)
+    assert fits
+    zmin_aero = aero.val().BoundingBox().zmin
+    zmin_carved = carved.val().BoundingBox().zmin
+    # The cup cut/bore only remove material; the only thing that can extend the model below the
+    # aero rear face is a fused grip pad. It must not.
+    assert zmin_carved >= zmin_aero - 0.05, (
+        f"grip pads protrude {zmin_aero - zmin_carved:.3f} mm below the hub rear face"
+    )
+
+
 def test_motor_mount_refuses_small_hub(tmp_path):
     from fansim.fan_spec import get_fan_spec
     mount = get_fan_spec("a12x25").motor_mount

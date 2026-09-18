@@ -127,9 +127,13 @@ def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float):
                 a = 2.0 * math.pi * k / n_grip
                 x = r_center * math.cos(a)
                 y = r_center * math.sin(a)
+                # Start the FUSED pad flush at the rear face (bb.zmin), not at the cutter's
+                # z0 = bb.zmin - eps: the cut may overshoot the face for a clean break, but a
+                # fused pad inheriting that overshoot leaves a nub sticking out the back. Height
+                # cav_h keeps the top embedded just past the cavity floor for a clean fuse.
                 pad = cq.Solid.makeCylinder(
                     grip_r, cav_h,
-                    cq.Vector(x, y, z0), cq.Vector(0, 0, 1),
+                    cq.Vector(x, y, bb.zmin), cq.Vector(0, 0, 1),
                 )
                 pads = pad if pads is None else pads.fuse(pad)
             result = result.fuse(pads)
