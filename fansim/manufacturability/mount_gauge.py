@@ -82,10 +82,16 @@ def _estimate_cavity(
         if np.any(band):
             cav_depth = float(np.percentile(z[band], 90) - zmin)
 
-    # Through-bore lives forward of the cup; avoid the cavity band.
+    # The through-bore lives forward of the cup. Its wall is an extruded cylinder,
+    # so the mesh tessellates it only at the two ends — the cavity-floor ring
+    # (z ≈ zmin + cavity_depth) and the front face (z ≈ zmax) — never along its
+    # length. Sample from the cavity floor through the front face so at least one
+    # of those r≈bore rings is captured; the r < cap filter below keeps the wider
+    # cup wall out. (A narrow mid-hub band would fall between both rings and miss
+    # the bore entirely.)
     depth_guess = float(expected_cavity_depth) if expected_cavity_depth > 0 else (cav_depth or 0.4 * span)
-    forward = z >= (zmin + depth_guess + 0.5)
-    forward &= z <= (zmax - 0.05 * span)
+    forward = z >= (zmin + depth_guess - 0.5)
+    forward &= z <= (zmax + 1e-6)
     bore_r = None
     if np.any(forward):
         # Bore wall = small-r cluster inside the cup radius.
