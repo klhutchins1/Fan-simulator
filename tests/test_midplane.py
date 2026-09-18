@@ -8,14 +8,18 @@ import numpy as np
 import pytest
 
 from fansim.cfd.midplane import (
+    AxialSliceArtifact,
     MidplaneArtifacts,
     artifact_paths,
+    axial_artifact_path,
     case_has_flow_fields,
+    ensure_axial_uz_artifact,
     ensure_midplane_artifacts,
     ensure_reconstructed,
     find_cached_midplane,
     has_decomposed_fields,
     has_reconstructed_fields,
+    render_axial_uz_png,
     render_midplane_pngs,
 )
 
@@ -146,6 +150,49 @@ def test_render_midplane_pngs_synthetic_mesh(tmp_path: Path):
     assert "FRONT" in art.caption
     assert "LEFT" in art.caption
     assert art.u_png.name == "U_midplane_v7.png"
+
+
+@pytest.mark.slow
+def test_render_axial_uz_png_synthetic_mesh(tmp_path: Path):
+    pv = pytest.importorskip("pyvista")
+    case = tmp_path / "case"
+    case.mkdir()
+    # Cube spanning z=0 with mixed axial flow: forward (+Z) on one half, reverse (−Z) on the
+    # other, so the diverging slice has both signs.
+    grid = pv.ImageData(dimensions=(8, 8, 8), spacing=(0.02, 0.02, 0.02),
+                        origin=(-0.07, -0.07, -0.07))
+    n = grid.n_cells
+    u = np.zeros((n, 3), dtype=float)
+    cc = grid.cell_centers().points
+    u[:, 2] = np.where(cc[:, 0] >= 0.0, 2.0, -1.5)  # +Z one side, reverse the other
+    grid.cell_data["U"] = u
+
+    art = render_axial_uz_png(case, mesh=grid)
+    assert art.available
+    assert art.png is not None and art.png.is_file()
+    assert art.png.stat().st_size > 100
+    assert art.png.name == "U_axial_slice_v1.png"
+    assert "reverse" in art.caption
+
+
+def test_ensure_axial_uz_uses_cache(tmp_path: Path):
+    case = tmp_path / "case"
+    case.mkdir()
+    png = axial_artifact_path(case)
+    png.parent.mkdir(parents=True)
+    png.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 20)
+    art = ensure_axial_uz_artifact(case, force=False)
+    assert isinstance(art, AxialSliceArtifact)
+    assert art.available
+    assert art.png == png
+
+
+def test_ensure_axial_uz_unavailable_without_fields(tmp_path: Path):
+    case = tmp_path / "case"
+    case.mkdir()
+    art = ensure_axial_uz_artifact(case, force=False)
+    assert not art.available
+    assert art.png is None
 
 
 def test_ensure_midplane_uses_cache(tmp_path: Path):
