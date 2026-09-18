@@ -88,6 +88,49 @@ def _infeasible(reason: str, t0: float, raw: dict | None = None) -> ObjectiveRes
                            raw=raw or {})
 
 
+def _operating_point_reason(
+    exc: Exception,
+    *,
+    free_signed: float,
+    probe_signed: float,
+    derate: float,
+    p_free_pa: float,
+    p_probe_pa: float,
+    converged: bool,
+    free_drift_pct: float,
+    load_drift_pct: float,
+) -> str:
+    """Human-readable reason when the system-curve intersection fails, degrading gracefully.
+
+    Rather than surface the raw ``probe CFM must be positive``, report the free-air delivery and
+    *why* there is no loaded operating point. Two physical cases, distinguished by the SIGNED CFD
+    flow (metrics.py: negative reads as reverse flow, never masked by abs):
+
+    * free delivery itself reversed -> almost always a duct/spin sign problem (actionable hint);
+    * free delivery is fine but the hose probe reversed -> the fan's CFD static ceiling is below
+      the hose, so it stalls at this load (CFD also under-predicts static ~2x). Suggest a lighter
+      hose instead of a cryptic reject.
+    """
+    conv = "" if converged else (
+        f"; steady solve UNCONVERGED (free drift {free_drift_pct:.1f}%, "
+        f"load drift {load_drift_pct:.1f}%) — number is a solver artifact near stall")
+    if free_signed <= 0.0:
+        return (
+            f"system-curve: {exc} — free outletFlow {free_signed:+.1f} CFM (signed); "
+            "reverse/zero flow usually means spin or axial BC fought the blades. "
+            f"Re-Assess with current +Z duct (inlet −Z → outlet +Z, spin=-1).{conv}"
+        )
+    if probe_signed <= 0.0:
+        return (
+            f"stalls at this hose — free delivery {free_signed * derate:.1f} CFM, but the "
+            f"{p_probe_pa:.1f} Pa probe reverses to {probe_signed:+.1f} CFM (CFD static ceiling "
+            f"is below the hose; CFD under-predicts static ~2×). Try a lighter hose.{conv}"
+        )
+    return (
+        f"system-curve: {exc} (free {p_free_pa:.1f} Pa, probe {p_probe_pa:.1f} Pa)"
+    )
+
+
 def evaluate_candidate(
     params: BladeParams,
     workdir: str | Path,
@@ -367,18 +410,27 @@ def evaluate_candidate(
             p_free_pa=p_free_pa,
         )
     except SystemCurveError as exc:
-        hint = ""
-        if float(cfm_free) <= 0.0:
-            hint = (
-                f" — free outletFlow was {float(m_free.cfm):+.1f} CFM (signed); "
-                "reverse/zero flow usually means spin or axial BC fought the blades. "
-                "Re-Assess with current +Z duct (inlet −Z → outlet +Z, spin=-1)."
-            )
+        free_signed = float(m_free.cfm)
+        probe_signed = float(m_load.cfm)
+        reason = _operating_point_reason(
+            exc,
+            free_signed=free_signed,
+            probe_signed=probe_signed,
+            derate=derate,
+            p_free_pa=p_free_pa,
+            p_probe_pa=p_probe_pa,
+            converged=bool(m_free.converged and m_load.converged),
+            free_drift_pct=float(m_free.flow_drift_pct),
+            load_drift_pct=float(m_load.flow_drift_pct),
+        )
         return _infeasible(
-            f"system-curve: {exc} (free {p_free_pa:.1f} Pa, probe {p_probe_pa:.1f} Pa){hint}",
+            reason,
             t0,
             raw={**gap_raw, "p_free_pa": p_free_pa, "p_probe_pa": p_probe_pa,
-                 "cfm_free_signed": float(m_free.cfm), "cfm_probe_signed": float(m_load.cfm)},
+                 "cfm_free_signed": free_signed, "cfm_probe_signed": probe_signed,
+                 # free-air delivery (derated) so the UI can still report it on a stalled hose
+                 "cfm_free": free_signed * derate,
+                 "converged": bool(m_free.converged and m_load.converged)},
         )
     cfm_load = op.q_op_cfm
     efficiency = max(op.eta * 100.0, 0.0)

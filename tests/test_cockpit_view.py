@@ -26,6 +26,16 @@ def test_reject_hint_frame_gap_not_confused_with_tip_dia():
     assert "tip diameter" in hint.lower()
 
 
+def test_reject_hint_stalled_hose_points_to_lighter_preset():
+    # a fan whose CFD static ceiling is below the hose reverses at load; guide to a lighter preset
+    hint = reject_hint(
+        "stalls at this hose — free delivery 30.8 CFM, but the 7.3 Pa probe reverses to -22.0 CFM"
+    )
+    assert hint
+    assert "application" in hint.lower() or "preset" in hint.lower()
+    assert "hose" in hint.lower() or "load" in hint.lower()
+
+
 def test_reject_hint_explains_resonance():
     hint = reject_hint(
         "blade vibration risk (PETG): bend 384 Hz too close to BPF 333 Hz. Fix: drop Blades to <=9"
