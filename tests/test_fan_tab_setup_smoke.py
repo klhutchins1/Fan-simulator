@@ -110,6 +110,37 @@ def test_readonly_handlers_run(bound_ctx):
     bound_ctx.fan_on_plotly_click(None)
 
 
+def test_randomize_geometry_touches_every_intended_dof(bound_ctx):
+    """randomize_geometry must actually vary every editable blade DOF, not just a subset.
+
+    Regression for the bug where section family, LE/TE thickness, span smoothing, cylindrical
+    tip, tip notches, the shroud ring, hub placement and uneven spacing were never randomized.
+    We drive the randomizer under a fixed seed and require each field to take >= 2 distinct
+    values across the runs (continuous fields vary trivially; on/off DOFs must show both states).
+    """
+    import random
+
+    state = bound_ctx.state
+    # Fields that MUST vary — the core geometry knobs plus every one previously omitted.
+    fields = (
+        "e_n_blades", "e_stagger_mid", "e_chord_tip", "e_camber_mid", "e_lean_tip",
+        "e_hub_radius", "e_tip_radius", "e_hub_profile", "e_thick_mm",
+        # Previously omitted DOFs:
+        "e_section_family", "e_le_thick", "e_te_thick", "e_smooth_span",
+        "e_cylindrical_tip", "e_tip_notched", "e_tip_notch_depth",
+        "e_shroud_thick", "e_shroud_height", "e_hub_height", "e_blade_hub_z", "e_spacing",
+    )
+    seen: dict[str, set] = {k: set() for k in fields}
+    random.seed(20260918)
+    for _ in range(60):
+        bound_ctx.fan_randomize_geometry()
+        for k in fields:
+            seen[k].add(getattr(state, k))
+
+    stuck = sorted(k for k, vals in seen.items() if len(vals) < 2)
+    assert not stuck, f"randomize_geometry left these DOFs unchanged: {stuck}"
+
+
 def test_cancel_handlers_are_safe_when_idle(bound_ctx):
     bound_ctx.fan_cancel_assess()
     bound_ctx.fan_cancel_sweep()

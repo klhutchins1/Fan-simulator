@@ -409,6 +409,31 @@ def bind(session) -> None:
         state.e_hub_nose = (
             round(_r.uniform(3, 12), 1) if state.e_hub_profile != "cylinder" else 0.0
         )
+        # Section shaping (previously left untouched — kept whatever was loaded).
+        state.e_section_family = _r.choice(["naca", "naca", "plate"])
+        state.e_le_thick = round(_r.uniform(0.6, 1.6), 2)
+        state.e_te_thick = round(_r.uniform(0.6, 1.6), 2)
+        state.e_smooth_span = _r.random() < 0.5
+        state.e_cylindrical_tip = _r.random() < 0.65
+        # Tip TE notches (on/off feature + its depth; depth stays at the 1.5 mm default when off).
+        notched = _r.random() < 0.4
+        state.e_tip_notched = notched
+        state.e_tip_notch_depth = round(_r.uniform(0.8, 2.5), 1) if notched else 1.5
+        # Tip shroud ring (off most of the time). Thickness snaps to the UI's 0.8 mm wall steps;
+        # a full ring auto-disables the winglet downstream in blade_from_flat (§7.5).
+        shroud = _r.random() < 0.3
+        state.e_shroud_thick = _r.choice([0.8, 1.6]) if shroud else 0.0
+        state.e_shroud_height = round(_r.uniform(0.3, 1.0), 1) if shroud else 1.0
+        # Hub placement (0 hub height = auto sizing; blade_hub_z is clamped to fit by the builder,
+        # so give it real room roughly half the time by setting an explicit taller hub).
+        if _r.random() < 0.5:
+            state.e_hub_height = round(_r.uniform(6, 16), 1)
+            state.e_blade_hub_z = round(_r.uniform(-5, 5), 1)
+        else:
+            state.e_hub_height = 0.0
+            state.e_blade_hub_z = round(_r.uniform(-4, 4), 1)
+        # Uneven blade spacing (tonal-noise DOF; search-space band is 0.0–0.6).
+        state.e_spacing = round(_r.uniform(0.0, 0.5), 2)
         state.preview_msg = (
             "🎲 Randomized geometry. Press Preview geometry to see it (may be out-of-spec)."
         )
