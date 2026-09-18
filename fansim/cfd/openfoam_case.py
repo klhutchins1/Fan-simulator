@@ -20,6 +20,35 @@ TURB_INTENSITY = 0.05
 BOX_SCALE = 1.12  # hex half-side / duct_radius when a circular casing is present
 
 
+SURF_LEVEL_MIN = 2  # baseline snappy surface refinement (thick blades keep this)
+SURF_LEVEL_MAX = 4  # cap so a knife-thin wall can't demand an unbounded mesh
+WALL_CELLS_ACROSS = 3  # target cells through the thinnest blade wall (finest cell <= wall/3)
+
+
+def surface_level_for_wall(
+    base_cell_m: float,
+    min_wall_mm: float,
+    *,
+    cells_across: int = WALL_CELLS_ACROSS,
+    min_level: int = SURF_LEVEL_MIN,
+    max_level: int = SURF_LEVEL_MAX,
+) -> int:
+    """snappy surface-refinement level that resolves a thin blade wall.
+
+    snappy halves the background cell once per level, so the finest surface cell is
+    ``base_cell / 2**level``. Return the smallest level whose finest cell is <=
+    ``min_wall_mm / cells_across``, clamped to ``[min_level, max_level]``. Thin plates
+    (the a12x25 refit's ~1.5 mm wall) need more levels; thick blades keep the cheap baseline.
+    Under-resolving to ~1 cell suppresses blade loading (see the a12x25 CFD investigation).
+    """
+    if min_wall_mm <= 0:
+        return max_level
+    target_mm = min_wall_mm / cells_across
+    base_mm = base_cell_m * 1000.0
+    level = math.ceil(math.log2(base_mm / target_mm)) if base_mm > target_mm else min_level
+    return int(max(min_level, min(max_level, level)))
+
+
 @dataclass
 class MeshResolution:
     base_cell: float = 0.003  # m, background hex size
@@ -28,6 +57,25 @@ class MeshResolution:
     feature_level: int = 2
     add_layers: bool = False
     n_surface_layers: int = 3
+
+    @classmethod
+    def for_blade(
+        cls,
+        base_cell: float,
+        min_wall_mm: float,
+        *,
+        cells_across: int = WALL_CELLS_ACROSS,
+        add_layers: bool = False,
+    ) -> "MeshResolution":
+        """Resolution whose surface refinement resolves ``min_wall_mm`` (>= ~3 cells).
+
+        Adapts snappy surface + feature levels to the blade's thinnest wall so thin plates
+        are meshed properly without over-refining thick blades. surf_min trails surf_max by
+        one so the whole impeller surface carries at least the coarser level.
+        """
+        lvl = surface_level_for_wall(base_cell, min_wall_mm, cells_across=cells_across)
+        return cls(base_cell=base_cell, surf_min=max(1, lvl - 1), surf_max=lvl,
+                   feature_level=lvl, add_layers=add_layers)
 
 
 def snappy_layers_mapping(mesh: MeshResolution) -> dict[str, str]:

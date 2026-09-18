@@ -14,9 +14,12 @@ CFM_PER_M3S = 2118.882  # ft^3/min per m^3/s
 RHO_AIR = 1.2
 
 
-def _last_data_row(path: Path) -> list[float]:
-    """Return the numeric fields of the last non-comment row of an OpenFOAM .dat file."""
-    last: list[float] | None = None
+TAIL_FRAC = 0.25  # fraction of the run treated as the converged tail (see convergence())
+
+
+def _all_data_rows(path: Path) -> list[list[float]]:
+    """Every fully-numeric row of an OpenFOAM .dat file (vector parens stripped)."""
+    rows: list[list[float]] = []
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
@@ -24,12 +27,34 @@ def _last_data_row(path: Path) -> list[float]:
         # Strip any OpenFOAM vector parentheses, then split on whitespace.
         fields = line.replace("(", " ").replace(")", " ").split()
         try:
-            last = [float(x) for x in fields]
+            rows.append([float(x) for x in fields])
         except ValueError:
             continue
-    if last is None:
+    if not rows:
         raise ValueError(f"no data rows in {path}")
-    return last
+    return rows
+
+
+def _last_data_row(path: Path) -> list[float]:
+    """Return the numeric fields of the last non-comment row of an OpenFOAM .dat file."""
+    return _all_data_rows(path)[-1]
+
+
+def _tail_mean_row(path: Path, tail_frac: float = TAIL_FRAC) -> list[float]:
+    """Column-wise mean of the converged tail (last ``tail_frac``) of a .dat file.
+
+    A steady RANS solve near stall settles into a small limit cycle rather than a fixed
+    point; its meaningful value is the time-mean over that cycle, not the final-iteration
+    phase sample. Reporting the tail mean makes oscillating solves reproducible run-to-run
+    (two runs stopping at different cycle phases otherwise report different numbers). Uses
+    the same tail window as :func:`convergence`. Rows whose column count differs from the
+    last row are dropped defensively.
+    """
+    rows = _all_data_rows(path)
+    ncol = len(rows[-1])
+    rows = [r for r in rows if len(r) == ncol]
+    tail = rows[max(1, int(len(rows) * (1.0 - tail_frac))):] or rows[-1:]
+    return [sum(r[i] for r in tail) / len(tail) for i in range(ncol)]
 
 
 def _pp_file(case_dir: Path, fo_name: str, filename: str) -> Path:
@@ -103,15 +128,17 @@ def parse_fan_metrics(
 ) -> FanMetrics:
     case_dir = Path(case_dir)
 
-    moment = _last_data_row(_pp_file(case_dir, "forces", "moment.dat"))
-    force = _last_data_row(_pp_file(case_dir, "forces", "force.dat"))
+    # Report the converged-tail MEAN of every metric, not the final-iteration sample:
+    # near stall the steady solve limit-cycles, so a phase snapshot is not reproducible.
+    moment = _tail_mean_row(_pp_file(case_dir, "forces", "moment.dat"))
+    force = _tail_mean_row(_pp_file(case_dir, "forces", "force.dat"))
     # Layout: time, total(x,y,z), pressure(x,y,z), viscous(x,y,z).
     torque = abs(moment[3])  # total moment about z
     thrust = force[3]  # total force z
 
-    flow = _last_data_row(_pp_file(case_dir, "outletFlow", "surfaceFieldValue.dat"))[-1]
-    p_in = _last_data_row(_pp_file(case_dir, "inletP", "surfaceFieldValue.dat"))[-1]
-    p_out = _last_data_row(_pp_file(case_dir, "outletP", "surfaceFieldValue.dat"))[-1]
+    flow = _tail_mean_row(_pp_file(case_dir, "outletFlow", "surfaceFieldValue.dat"))[-1]
+    p_in = _tail_mean_row(_pp_file(case_dir, "inletP", "surfaceFieldValue.dat"))[-1]
+    p_out = _tail_mean_row(_pp_file(case_dir, "outletP", "surfaceFieldValue.dat"))[-1]
 
     # Keep flow SIGNED: under a back-pressure beyond the fan's capability the flow reverses
     # (negative), which must read as a failure, not be masked by abs().

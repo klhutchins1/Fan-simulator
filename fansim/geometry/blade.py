@@ -276,6 +276,18 @@ def blade_solidity(params: BladeParams) -> dict[str, float]:
     return out
 
 
+def min_blade_wall_mm(params: BladeParams) -> float:
+    """Thinnest body-wall thickness across the control stations, in mm.
+
+    Each station's wall is ``thickness`` (a fraction of chord) × ``chord`` (mm). The thinnest
+    such wall sets how fine the CFD surface mesh must be to resolve the blade (see
+    ``openfoam_case.surface_level_for_wall``): a thin plate under-resolved to ~1 cell loses
+    blade loading. Excludes the LE/TE ``*_thick_scale`` knife edges, which are sub-features no
+    practical mesh resolves.
+    """
+    return min(float(s.thickness) * float(s.chord) for s in params.stations)
+
+
 SPAN_INTERP_LINEAR = "linear"
 SPAN_INTERP_PCHIP = "pchip"
 SPAN_INTERP_MODES = (SPAN_INTERP_LINEAR, SPAN_INTERP_PCHIP)

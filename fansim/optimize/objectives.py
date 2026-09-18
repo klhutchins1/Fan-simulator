@@ -36,7 +36,7 @@ from fansim.fan_spec import (
     mount_min_hub_radius,
     over_spec_flags,
 )
-from fansim.geometry.blade import BladeParams, blade_solidity
+from fansim.geometry.blade import BladeParams, blade_solidity, min_blade_wall_mm
 from fansim.manufacturability.fdm_rules import check_printability
 from fansim.optimize.system_curve import (
     REF_CFM,
@@ -323,8 +323,12 @@ def evaluate_candidate(
             return _infeasible(f"casing failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
     runner = OpenFOAMRunner(workdir)
+    # Adapt surface refinement to the blade's thinnest wall: a thin plate meshed to ~1 cell
+    # loses ~30% of its loading and reads an artificially low, mesh-sensitive CFM (the a12x25
+    # refit investigation). Thick blades keep the cheap baseline level.
+    mesh0 = MeshResolution.for_blade(base_cell, min_blade_wall_mm(params))
     try:
-        build_case(workdir, stl, rig0, mesh=MeshResolution(base_cell=base_cell),
+        build_case(workdir, stl, rig0, mesh=mesh0,
                    n_iters=iters, n_subdomains=procs, back_pressure_pa=0.0,
                    frame_stl_mm=frame_path, casing_stl_mm=casing_path,
                    stator_stl_mm=stator_path, wall_ks_mm=wall_ks_mm)
@@ -333,7 +337,7 @@ def evaluate_candidate(
         return _infeasible(f"mesh failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
     def solve_at(back_pa: float):
-        build_case(workdir, stl, rig0, mesh=MeshResolution(base_cell=base_cell),
+        build_case(workdir, stl, rig0, mesh=mesh0,
                    n_iters=iters, n_subdomains=procs, back_pressure_pa=back_pa,
                    frame_stl_mm=frame_path, casing_stl_mm=casing_path,
                    stator_stl_mm=stator_path, wall_ks_mm=wall_ks_mm)

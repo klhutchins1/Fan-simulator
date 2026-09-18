@@ -39,6 +39,7 @@ from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_s
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.cfd.wall_roughness import FDM_WALL_KS_MM  # noqa: E402
 from fansim.geometry import build_impeller, export_stl  # noqa: E402
+from fansim.geometry.blade import min_blade_wall_mm  # noqa: E402
 from fansim.geometry.config import load_blade_params  # noqa: E402
 from fansim.validation.reference_stl import (  # noqa: E402
     DEFAULT_REFERENCE_STL,
@@ -93,12 +94,42 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ap.add_argument("--layers", action="store_true",
                     help="grow prism layers on the impeller (snappy addLayers; off by default)")
+    ap.add_argument("--surf-max", type=int, default=None,
+                    help="snappy surface refinement level on the impeller. Default: auto from "
+                         "the recipe's thinnest wall (finest cell <= wall/3) so thin blades are "
+                         "resolved -- surf 2 at 5 mm under-reads the a12x25 refit ~30%")
+    ap.add_argument("--feature-level", type=int, default=None,
+                    help="snappy feature (edge) refinement level; default follows --surf-max/auto")
     ap.add_argument("--procs", type=int, default=8)
     ap.add_argument("--out", default="runs/validate_a12x25_phase3")
     return ap
 
 
-def _mesh(base_cell: float, add_layers: bool = False) -> MeshResolution:
+def _mesh(
+    base_cell: float,
+    add_layers: bool = False,
+    *,
+    min_wall_mm: float | None = None,
+    surf_max: int | None = None,
+    feature_level: int | None = None,
+) -> MeshResolution:
+    """Mesh resolution for a run.
+
+    ``surf_max`` (CLI override) forces the snappy surface level; otherwise, when
+    ``min_wall_mm`` is known, the surface level is auto-picked to resolve the thin blade
+    (finest cell <= wall/3, see openfoam_case.surface_level_for_wall) so validation reads the
+    true CFM instead of an under-resolved one. ``feature_level`` overrides edge refinement.
+    """
+    if surf_max is not None:
+        return MeshResolution(
+            base_cell=base_cell, surf_min=max(1, int(surf_max) - 1), surf_max=int(surf_max),
+            feature_level=int(feature_level) if feature_level is not None else int(surf_max),
+            add_layers=bool(add_layers))
+    if min_wall_mm is not None:
+        m = MeshResolution.for_blade(base_cell, min_wall_mm, add_layers=bool(add_layers))
+        if feature_level is not None:
+            m.feature_level = int(feature_level)
+        return m
     return MeshResolution(base_cell=base_cell, add_layers=bool(add_layers))
 
 
@@ -147,12 +178,16 @@ def _run_free_air_at_cell(
     frame_stl: Path | None = None,
     wall_ks_mm: float | None = None,
     add_layers: bool = False,
+    min_wall_mm: float | None = None,
+    surf_max: int | None = None,
+    feature_level: int | None = None,
 ) -> dict[str, Any]:
     """Mesh + solve at 0 Pa back-pressure for one base_cell size."""
     runner = OpenFOAMRunner(out)
     build_case(
         out, stl, rig,
-        mesh=_mesh(base_cell, add_layers),
+        mesh=_mesh(base_cell, add_layers, min_wall_mm=min_wall_mm,
+                   surf_max=surf_max, feature_level=feature_level),
         n_iters=n_iters,
         n_subdomains=n_procs,
         back_pressure_pa=0.0,
@@ -185,9 +220,12 @@ def run_mesh_ladder(
     tip_gap_mm: float = 0.5,
     stl_src: Path | None = None,
     add_layers: bool = False,
+    surf_max: int | None = None,
+    feature_level: int | None = None,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     params = load_blade_params(params_path)
+    min_wall = min_blade_wall_mm(params)
     stl_shared = _resolve_impeller_stl(out_root, params, stl_src)
     rig = _rig_for_case(params, tip_gap_mm, stl_shared if stl_src else None)
     for bc in cells:
@@ -205,6 +243,9 @@ def run_mesh_ladder(
             n_iters=n_iters,
             n_procs=n_procs,
             add_layers=add_layers,
+            min_wall_mm=min_wall,
+            surf_max=surf_max,
+            feature_level=feature_level,
         )
         row["tip_gap_mm"] = float(tip_gap_mm)
         print(
@@ -227,10 +268,13 @@ def run_free_air_tip_gap_study(
     n_procs: int,
     stl_src: Path | None = None,
     add_layers: bool = False,
+    surf_max: int | None = None,
+    feature_level: int | None = None,
 ) -> list[dict[str, Any]]:
     """Free-air A/B at fixed mesh for several tip clearances."""
     rows: list[dict[str, Any]] = []
     params = load_blade_params(params_path)
+    min_wall = min_blade_wall_mm(params)
     stl_shared = _resolve_impeller_stl(out_root, params, stl_src)
     for gap in tip_gaps_mm:
         gap_out = out_root / f"tipgap_{gap:g}mm"
@@ -244,6 +288,7 @@ def run_free_air_tip_gap_study(
             out=gap_out, stl=stl, rig=rig,
             base_cell=base_cell, n_iters=n_iters, n_procs=n_procs,
             add_layers=add_layers,
+            min_wall_mm=min_wall, surf_max=surf_max, feature_level=feature_level,
         )
         row["tip_gap_mm"] = float(gap)
         print(
@@ -267,6 +312,8 @@ def run_free_air_physics_study(
     wall_ks_mm: float = FDM_WALL_KS_MM,
     stl_src: Path | None = None,
     add_layers: bool = False,
+    surf_max: int | None = None,
+    feature_level: int | None = None,
 ) -> list[dict[str, Any]]:
     """Free-air A/B for open duct vs frame / wall_ks idealizations."""
     configs: list[tuple[str, bool, float | None]] = [
@@ -277,6 +324,7 @@ def run_free_air_physics_study(
     ]
     rows: list[dict[str, Any]] = []
     params = load_blade_params(params_path)
+    min_wall = min_blade_wall_mm(params)
     stl_shared = _resolve_impeller_stl(out_root, params, stl_src)
     rig = _rig_for_case(params, tip_gap_mm, stl_shared if stl_src else None)
 
@@ -297,6 +345,7 @@ def run_free_air_physics_study(
             base_cell=base_cell, n_iters=n_iters, n_procs=n_procs,
             frame_stl=frame_path, wall_ks_mm=ks,
             add_layers=add_layers,
+            min_wall_mm=min_wall, surf_max=surf_max, feature_level=feature_level,
         )
         row["label"] = label
         row["tip_gap_mm"] = float(tip_gap_mm)
@@ -347,8 +396,11 @@ def run_pq_sweep(
     wall_ks_mm: float | None = None,
     stl_src: Path | None = None,
     add_layers: bool = False,
+    surf_max: int | None = None,
+    feature_level: int | None = None,
 ) -> list[dict[str, Any]]:
     params = load_blade_params(params_path)
+    min_wall = min_blade_wall_mm(params)
     stl = _resolve_impeller_stl(out, params, stl_src)
     rig = _rig_for_case(params, tip_gap_mm, stl if stl_src else None)
     frame_path: Path | None = None
@@ -356,10 +408,12 @@ def run_pq_sweep(
         frame_path = out / "frame.stl"
         export_frame_stl(params, rig, frame_path)
     runner = OpenFOAMRunner(out)
+    mesh_res = _mesh(base_cell, add_layers, min_wall_mm=min_wall,
+                     surf_max=surf_max, feature_level=feature_level)
 
     build_case(
         out, stl, rig,
-        mesh=_mesh(base_cell, add_layers),
+        mesh=mesh_res,
         n_iters=n_iters,
         n_subdomains=n_procs,
         back_pressure_pa=backs[0],
@@ -372,7 +426,7 @@ def run_pq_sweep(
     for b in backs:
         build_case(
             out, stl, rig,
-            mesh=_mesh(base_cell, add_layers),
+            mesh=mesh_res,
             n_iters=n_iters,
             n_subdomains=n_procs,
             back_pressure_pa=b,
@@ -558,6 +612,8 @@ def main() -> int:
             tip_gap_mm=tip_gap_mm,
             stl_src=stl_src,
             add_layers=add_layers,
+            surf_max=args.surf_max,
+            feature_level=args.feature_level,
         )
         gci = maybe_stamp_gci(ladder_rows)
 
@@ -576,6 +632,8 @@ def main() -> int:
             n_procs=args.procs,
             stl_src=stl_src,
             add_layers=add_layers,
+            surf_max=args.surf_max,
+            feature_level=args.feature_level,
         )
 
     if args.physics_study:
@@ -595,6 +653,8 @@ def main() -> int:
             wall_ks_mm=ks,
             stl_src=stl_src,
             add_layers=add_layers,
+            surf_max=args.surf_max,
+            feature_level=args.feature_level,
         )
 
     skip_pq = bool(args.ladder_only or args.physics_only)
@@ -620,6 +680,8 @@ def main() -> int:
             wall_ks_mm=args.wall_ks_mm,
             stl_src=stl_src,
             add_layers=add_layers,
+            surf_max=args.surf_max,
+            feature_level=args.feature_level,
         )
     write_outputs(
         out=out,
