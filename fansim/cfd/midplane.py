@@ -489,8 +489,8 @@ def render_streamlines_png(
     case_dir: str | Path,
     *,
     mesh=None,
-    window_size: tuple[int, int] = (1280, 800),
-    n_seed: int = 36,
+    window_size: tuple[int, int] = (1000, 1000),
+    n_seed: int = 48,
     clim: tuple[float, float] | None = None,
 ) -> StreamlineArtifact:
     """Seed a disc upstream of the rotor and trace streamlines colored by ``|U|``.
@@ -530,15 +530,14 @@ def render_streamlines_png(
     z0, z1 = float(b[4]), float(b[5])
     r_tip = 0.5 * max(float(b[1]) - float(b[0]), float(b[3]) - float(b[2]))
     z_fan = 0.0 if z0 < 0.0 < z1 else 0.5 * (z0 + z1)
-    # Focus tightly on the rotor + near wake — that's where the blades TURN the flow and the
-    # swirl is visible. A long straight duct wake just collimates the lines into a featureless
-    # jet, which reads as "nothing happening" (the earlier complaint).
-    zlo = max(z0, z_fan - 2.5 * r_tip)
-    zhi = min(z1, z_fan + 7.0 * r_tip)
+    # Keep a wide radial window so lines are free to SPIRAL outward (a tight radial clip
+    # truncates the swirl into short arcs), and a long wake so the corkscrew develops.
+    zlo = max(z0, z_fan - 1.0 * r_tip)
+    zhi = min(z1, z_fan + 10.0 * r_tip)
     try:
         focused = mesh.clip_box(
-            [cx - 1.2 * r_tip, cx + 1.2 * r_tip,
-             cy - 1.2 * r_tip, cy + 1.2 * r_tip, zlo, zhi],
+            [cx - 5.0 * r_tip, cx + 5.0 * r_tip,
+             cy - 5.0 * r_tip, cy + 5.0 * r_tip, zlo, zhi],
             invert=False,
         )
         if focused.n_points > 0:
@@ -546,19 +545,18 @@ def render_streamlines_png(
     except Exception:  # noqa: BLE001 — keep full mesh if clip fails
         pass
 
-    r_seed = max(0.90 * r_tip, 1e-4)
-    z_seed = max(zlo, z_fan - 1.5 * r_tip)  # just upstream of the rotor
-    # Seed the blade-swept ANNULUS, not the hub axis (a centre seed traces one straight axial
-    # line that reads as an odd thick tube). Fewer seeds so individual spiral paths are legible.
+    r_seed = max(0.95 * r_tip, 1e-4)
+    # Seed the wake DOWNSTREAM of the blades, not upstream: an upstream line integrated forward
+    # dies the instant it hits a blade surface (the 9 blades fill the annulus) and reads as a
+    # short dash. Seeding past the trailing edges lets the swirling wake trace long spirals.
+    z_seed = min(zhi - 0.1 * r_tip, z_fan + 1.5 * r_tip)
     seed = pv.Disc(center=(cx, cy, z_seed), normal=(0.0, 0.0, 1.0),
-                   inner=0.30 * r_tip, outer=r_seed, r_res=1, c_res=max(8, n_seed))
+                   inner=0.15 * r_tip, outer=r_seed, r_res=1, c_res=max(8, n_seed))
     try:
-        # Forward only: seed upstream and follow the air through the rotor into the wake.
-        # (Both-direction from a near-rotor seed wraps in the MRF swirl and reads as a disc.)
         streams = mesh.streamlines_from_source(
             seed, vectors="U", integration_direction="forward",
-            max_steps=6000, initial_step_length=0.2, max_step_length=1.0,
-            terminal_speed=1e-6,
+            max_steps=12000, initial_step_length=0.2, max_step_length=1.0,
+            terminal_speed=1e-8,
         )
     except Exception:  # noqa: BLE001
         streams = None
@@ -606,15 +604,15 @@ def render_streamlines_png(
                                     show_scalar_bar=False)
                 except Exception:  # noqa: BLE001 — context body is optional
                     pass
-            # Look mostly DOWN the axis from the inlet side (slightly off-axis), toward the wake:
-            # the rotor's swirl then reads as the streamlines curving tangentially, instead of a
-            # side view that flattens the spiral into straight lines.
+            # Look down the axis from DOWNSTREAM (slightly off-axis) back at the rotor: the wake
+            # swirl then reads as a corkscrew. A side view would flatten it into straight lines.
             pl.camera_position = [
-                (cx + 1.2 * r_tip, cy + 0.8 * r_tip, z_fan - 4.0 * r_tip),
-                (cx, cy, z_fan + 3.0 * r_tip),
+                (cx + 0.5 * r_tip, cy + 0.4 * r_tip, zhi + 3.0 * r_tip),
+                (cx, cy, z_fan),
                 (0.0, 1.0, 0.0),
             ]
             pl.reset_camera()
+            pl.camera.zoom(1.9)  # fill the frame — reset_camera fits the wide clip / stray lines
             pl.add_text("streamlines — |U| through the rotor", font_size=11,
                         color="black", position="upper_edge")
             pl.screenshot(str(out))

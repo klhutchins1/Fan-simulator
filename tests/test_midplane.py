@@ -206,9 +206,10 @@ def test_render_streamlines_png_synthetic_mesh(tmp_path: Path):
     pv = pytest.importorskip("pyvista")
     case = tmp_path / "case"
     case.mkdir()
-    # Uniform +Z flow → straight streamlines seeded on the inlet disc.
-    grid = pv.ImageData(dimensions=(12, 12, 20), spacing=(0.01, 0.01, 0.01),
-                        origin=(-0.055, -0.055, -0.095))
+    # Uniform +Z flow in a domain with a long wake (the renderer seeds downstream of the rotor
+    # and integrates into the wake, so it needs Z room past the seed plane).
+    grid = pv.ImageData(dimensions=(10, 10, 40), spacing=(0.01, 0.01, 0.01),
+                        origin=(-0.045, -0.045, -0.2))
     n = grid.n_cells
     u = np.zeros((n, 3), dtype=float)
     u[:, 2] = 2.0
