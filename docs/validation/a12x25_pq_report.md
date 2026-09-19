@@ -2,6 +2,16 @@
 
 **Status:** Task 3.2 + mesh/tip + frame/wall_ks + recipe + tip_gap 0.5 P–Q + close-reference STL free-air/P–Q + **prism layers**. **CFD interim:** free-air **fail** (−17% / layers −16%); shut-off **proxy fail** on STL (~14.6 Pa) vs **proxy pass** on parametric Stock (~24 Pa). Screening free-air levers exhausted.
 
+> **⚠ CORRECTION (2026-09-18) — free-air numbers below are superseded.** §2's verdict ("free-air is
+> mesh-insensitive ~44.7 CFM; the gap is **not** a coarse-mesh artifact") was wrong. That ladder
+> varied `base_cell` only while the snappy **surface** refinement stayed coarse, so the ~1.5 mm blade
+> wall was meshed to ~1 cell at every rung — the result was pinned by *wall* under-resolution, not
+> `base_cell`. Resolving the wall to ≥3 cells (`MeshResolution.for_blade`, surf3) with tail-mean
+> metrics gives a GCI ladder of **6 mm→37.4, 4 mm→45.2, 2.7 mm→48.4 CFM, Richardson ≈50.8 CFM
+> (GCI_fine 6.2%)**. The true grid-converged free-air is **~48–51 CFM (−15…−20% vs 60.1)**, just under
+> the measured STL — the residual is the 3-station plate-model fidelity limit, not a solver artifact.
+> The ~44.6/44.7 tables below are retained as historical (under-resolved) measurements.
+
 **Published reference:** [a12x25-reference.md](../a12x25-reference.md) — 60.1 CFM free-air @ 0 Pa, 22.9 Pa shut-off @ 2000 RPM, **9** blades.
 
 **Campaign artifacts (local, not in git):**
@@ -52,7 +62,12 @@ Follow-on campaign (~754 s wall, 800 iters, 8 procs, `--ladder-only`):
 | Asymptotic ratio | **~1.004** (≈1 ⇒ asymptotic) |
 | Grid-converged **claim** (full P–Q) | **No** — free-air ladder only |
 
-**Verdict:** Free-air is **mesh-insensitive** over this ladder (~0.8 CFM from coarse→fine). The Task 3.2 **−32%** gap was **not** a coarse-mesh artifact. Best mesh-resolved free-air at published tip gap is still **~44.7 CFM (0.74× published, −26%)** — outside the interim ±10% band (54.1–66.1 CFM).
+**Verdict (SUPERSEDED — see correction banner at top):** This ladder varied `base_cell` only and
+held the snappy surface level fixed, so the thin blade wall stayed under-resolved (~1 cell) at every
+rung — the "mesh-insensitive ~44.7 CFM" reading was an artifact of that, **not** evidence the gap is
+real. Resolving the wall (surf3) + tail-mean gives a grid-converged **~48–51 CFM** (Richardson ≈50.8,
+GCI 6.2%), still below the interim ±10% band but ~6 CFM higher than reported here. See the 2026-09-18
+convergence investigation and `fansim/cfd/openfoam_case.MeshResolution.for_blade`.
 
 ---
 
@@ -159,6 +174,8 @@ BEM table: [a12x25_recipe_sensitivity.md](a12x25_recipe_sensitivity.md).
 
 **BEM (screening):** Stock free-air **65.0 CFM** (already above published 60.1; CFD Stock is ~44.6). Largest lever is **mid stagger** (+9 to +13 CFM at 38–44°). Tip stagger next; chord/lean barely move BEM free-air.
 
+> **NOTE (2026-09-18):** this section predates both the V3-faithful recipe refit (2026-09-17, commit 5caa070) and the wall-resolution fix — its CFD ~44.6 CFM is for the earlier recipe at the coarse (under-resolved) surface level. The current Stock's grid-converged free-air is ~48–51 CFM (see the correction banner at top).
+
 **Experimental yaml:** `config/problems/a12x25_flow_candidate.yaml` — mid stagger **38°**, tip stagger **28°** (Stock 26° / 22°). **Not** Stock; **not** OEM.
 
 | Recipe | BEM free-air [CFM] | CFD free-air [CFM] (tip 0.5 mm, cell 0.006) |
@@ -195,7 +212,7 @@ Linear fit of last two **converged** points (**14 Pa / 11.41 CFM**, **16 Pa / 9.
 |--------|-----------|-------------------|-------|----------------------|---------------|
 | Shut-off ΔP [Pa] | 22.9 | **~24.0** | **+1.1 Pa** | **17.9–27.9 Pa** | **Yes (proxy only)** |
 
-Compared with Phase 3.2 at ~1.0 mm tip (proxy ~20.1 Pa; **20 Pa** heavily diverged), the published tip gap yields a **stronger loading branch** and a shut-off proxy **inside** the interim band. Free-air remains **outside** ±10% (44.6 vs 54.1–66.1 CFM).
+Compared with Phase 3.2 at ~1.0 mm tip (proxy ~20.1 Pa; **20 Pa** heavily diverged), the published tip gap yields a **stronger loading branch** and a shut-off proxy **inside** the interim band. Free-air remains **outside** ±10% even after the wall-resolution correction (grid-converged ~48–51 CFM vs 54.1–66.1 CFM; the 44.6 here is the under-resolved figure — see the correction banner at top).
 
 **Caveat:** **18 Pa** did not meet convergence (3.5% drift). Do not treat shut-off as validated at the same confidence as a converged Q=0 solve.
 
@@ -214,6 +231,12 @@ Committed summary: [a12x25_shutoff_05_validation_summary.json](a12x25_shutoff_05
 | Published | 60.1 | — | — |
 
 **Verdict:** The close-reference mesh recovers **~+5.2 CFM** vs the parametric Stock at the same tip gap and cell size — largest single free-air gain since tip-gap 0.5 mm. Still **~10 CFM** short of published and outside interim ±10%. Do **not** claim OEM CAD fidelity; do prefer `--stl` for absolute CFD claims going forward. Next: P–Q / shut-off on this mesh; Phase 5 hardware.
+
+> **CORRECTION (2026-09-18):** both rows here used the coarse surface level, which under-resolves the
+> parametric Stock's thinner ~1.5 mm wall more than the STL's — so much of the "+5.2 CFM STL
+> advantage" is a resolution artifact. With the wall resolved (surf3 + tail-mean) the parametric
+> Stock's grid-converged free-air is **~48–51 CFM** (Richardson ≈50.8), i.e. it largely closes to the
+> STL. Prefer `--stl` for absolute claims, but the parametric gap is smaller than this table implies.
 
 Committed summary: [a12x25_ref_stl_validation_summary.json](a12x25_ref_stl_validation_summary.json). Local run: `runs/validate_a12x25_ref_stl/`.
 

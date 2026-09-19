@@ -27,7 +27,7 @@ This board records what we **keep** in the product, what we **park** until hones
 | Phase | What we learned | Effect on this board |
 |-------|-----------------|----------------------|
 | **Phase 2** (reference geometry) | Stock recipe is **reference-parametric** with envelope pytest pass (blade count, tip/hub bands) — **not** watertight OEM STL. | KEEP stator/sickle/notch work at stage-1; do not sell “matches Noctua CAD” without `validation/reference/` STL or print/measure. |
-| **Phase 3** (CFD vs published) | Free-air **~44.6 CFM (−26%)** mesh-resolved at tip 0.5 mm; shut-off **proxy ~24 Pa** (interim pass). Frame/ks/stagger A/Bs small. | PARK absolute aeroacoustics / “validated stock” until free-air band closes (STL or Phase 5). Shut-off proxy alone is not enough. |
+| **Phase 3** (CFD vs published) | Free-air grid-converged **~48–51 CFM (−15…−20%)** at tip 0.5 mm (Richardson ≈50.8; the earlier ~44.6 was thin-wall under-resolved — corrected 2026-09-18); shut-off **proxy ~24 Pa** (interim pass). Frame/ks/stagger A/Bs small. | PARK absolute aeroacoustics / “validated stock” until free-air band closes (STL or Phase 5). Shut-off proxy alone is not enough. |
 | **Phase 4** (perf / deps) | Screening speed and dependency hygiene help scale trials; they **do not** close the CFM gap. | KEEP perf work as throughput; do not reinterpret speedups as validation. |
 | **Phase 5** (print → measure) | **Hardware-gated** — see [north-star-staged.md](north-star-staged.md) and [.superpowers/sdd/task-5.1-blocked.md](../../.superpowers/sdd/task-5.1-blocked.md). | No absolute calibration or “§5.1 done” until a commercial A12x25 hub/frame + printed impeller yields at least one real CFM/static (preferably noise/weight/RPM) point in `validation/measurements/`. |
 
