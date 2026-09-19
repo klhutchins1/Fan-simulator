@@ -547,8 +547,10 @@ def render_streamlines_png(
 
     r_seed = max(0.85 * r_tip, 1e-4)
     z_seed = zlo + 0.04 * (zhi - zlo)  # well upstream in the stationary inlet
+    # Seed the blade-swept ANNULUS, not the hub axis: a centre seed traces one fast straight
+    # line down the axis that reads as an odd thick tube through the plot.
     seed = pv.Disc(center=(cx, cy, z_seed), normal=(0.0, 0.0, 1.0),
-                   inner=0.04 * r_tip, outer=r_seed, r_res=1, c_res=max(8, n_seed))
+                   inner=0.38 * r_tip, outer=r_seed, r_res=1, c_res=max(8, n_seed))
     try:
         # Forward only: seed upstream and follow the air through the rotor into the wake.
         # (Both-direction from a near-rotor seed wraps in the MRF swirl and reads as a disc.)
@@ -573,7 +575,7 @@ def render_streamlines_png(
         hi = float(np.percentile(vals, 95.0)) if vals.size else 5.0
         hi = min(max(hi, 2.0), 8.0)
         clim = (0.0, hi)
-    tubes = streams.tube(radius=0.004 * r_tip)
+    tubes = streams.tube(radius=0.0028 * r_tip)
 
     with _RENDER_LOCK:
         pl = pv.Plotter(off_screen=True, window_size=list(window_size))
@@ -603,10 +605,11 @@ def render_streamlines_png(
                                     show_scalar_bar=False)
                 except Exception:  # noqa: BLE001 — context body is optional
                     pass
-            # Side-quarter view of the approach → rotor → wake; reset_camera fits the extent.
+            # Three-quarter view from the inlet/side looking down the wake, so the swirl in the
+            # jet reads; reset_camera fits the approach → rotor → wake extent.
             pl.camera_position = [
-                (cx + 4.0 * r_tip, cy + 2.5 * r_tip, z_fan + 2.0 * r_tip),
-                (cx, cy, z_fan + 3.5 * r_tip),
+                (cx + 3.5 * r_tip, cy + 2.2 * r_tip, z_fan - 2.5 * r_tip),
+                (cx, cy, z_fan + 4.0 * r_tip),
                 (0.0, 1.0, 0.0),
             ]
             pl.reset_camera()
