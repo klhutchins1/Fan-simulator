@@ -151,8 +151,9 @@ def run(out_path: Path) -> dict[str, Any]:
         "",
         "## Honesty",
         "",
-        "- BEM is a **screening** model; CFD free-air for Stock is ~44.6 CFM at tip_gap 0.5 mm "
-        "(see `a12x25_pq_report.md`). Use this table only to pick an experimental yaml sibling.",
+        "- BEM is a **screening** model; grid-converged CFD free-air for Stock is ~48–51 CFM at "
+        "tip_gap 0.5 mm (surf3 + tail-mean; Richardson ≈50.8, GCI 6.2% — the earlier ~44.6 was an "
+        "under-resolved thin-wall measurement). Use this table only to pick an experimental sibling.",
         "- Do **not** promote a datasheet-tuned recipe to Stock without a trusted STL or Phase 5 "
         "measurement.",
         "",

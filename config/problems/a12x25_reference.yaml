@@ -7,9 +7,13 @@
 #
 # V3-faithful fit (2026-09): extracted the real blade's per-span chord/stagger from the STL
 #   (chord 10/16/28 mm, stagger hump 30/52/23°) and dropped blade_hub_z to 0 so the built
-#   axial depth is 16.5 mm ≈ measured 16.7 mm. CFD free-air 44.7 CFM at tip_gap 0.5 mm
-#   (up from 39.0 for the prior wide-chord recipe; matches the measured STL at load, 10 Pa).
-#   Residual to the datasheet/STL free-air is the 3-station plate model's fidelity limit.
+#   axial depth is 16.5 mm ≈ measured 16.7 mm.
+#   CFD free-air (grid-converged, surf3 pinned + tail-mean, tip_gap 0.5 mm): 6 mm→37.4,
+#   4 mm→45.2, 2.7 mm→48.4 CFM; Richardson extrap ≈50.8 CFM (GCI_fine 6.2%). So true
+#   free-air is ~48–51 CFM (−15…−20% vs datasheet 60.1), just under the measured STL.
+#   NOTE: the earlier "44.7 CFM" figure was an under-resolved thin-wall measurement — the
+#   ~1.5 mm blade wall must be meshed to ≥3 cells (see MeshResolution.for_blade / the
+#   2026-09-18 convergence investigation). Residual to datasheet is the plate-model limit.
 # Plate LE/TE roundness 0.2 (elliptic nose flush with ±t/2 faces — not a t/2 bullnose).
 n_blades: 9
 hub_radius: 21.5
