@@ -535,6 +535,42 @@ visual, and error-handling that hides failure.
   it). Kept `a12x25` and `delta_afc1212de` (the latter is the CROR envelope — a real datasheet fan,
   not bad data). No `config/fan_models/*.yaml` user models existed.
 
+## 17. Archetype tab parity — Results / Assess / airflow (2026-09-18)
+
+§14 brought Prop/Mixed/Volute/CROR **Design** depth to parity; the **Results / Assess / viz** side
+still lags the Fan tab (feature counts: fan ~25 vs mixed/prop ~6, volute ~5, cror ~3). Bring each
+archetype tab up to the Fan tab's post-run workflow **where the physics makes sense**.
+
+- [ ] **17.1 Results scatter + previous-runs dropdown.** **[impact: high]** **[effort: med]** A
+  per-archetype results graph (objective scatter; gold ✕ / stock reference where one exists) and a
+  "load a previous scored design" dropdown from that archetype's study catalog — generalize the Fan
+  tab's `load_study_designs` / `data.py` / `fan_trials` path per engine.
+- [ ] **17.2 Assess / run a single design from the tab.** **[impact: high]** **[effort: med]** Score
+  one edited design (CFD, or the engine's screening tier) from the archetype tab, land it in
+  `cockpit_assess`, and plot it — the Fan tab's Assess flow for Mixed/Prop/Volute/CROR.
+- [ ] **17.3 Airflow viz where applicable.** **[impact: med]** **[effort: med]** Reuse the
+  `fansim/cfd/midplane.py` renderers (|U|/p midplane, axial-Uz cut-plane, streamlines) for engines
+  with a duct/rotor CFD case (Mixed, CROR). Prop is open-air → streamlines yes, duct cut-plane no;
+  Volute is a scroll → its own meridional/scroll slice, not the axial cut-plane. Skip BEMT-only tiers
+  (no volume field).
+- [ ] **17.4 Shared binder.** **[impact: med]** **[effort: med]** Factor the Fan tab's results/airflow
+  binders (`fan_trials` / `fan_viz`) into an engine-agnostic helper so each tab wires the same behavior
+  instead of copy-paste (extends the §15.5 binder split).
+
+## 18. Catalog data hygiene — stale CFD results (2026-09-18)
+
+- [ ] **18.1 Stamp + quarantine stale CFD scores.** **[impact: high]** **[effort: med]** The tail-mean
+  metrics + adaptive-mesh fixes (bf3fd6a) and the a12x25 recipe refit (5caa070) changed the CFD numbers;
+  trials already in `runs/*/study.db` were scored with the **old under-resolved / final-sample** solver,
+  so their stored CFM / efficiency are systematically wrong (free-air under-read ~30 vs ~45+ CFM). There
+  is **no solver-version stamp** to tell old from new.
+  - Add a `cfd_version` `user_attr` when a trial is scored (`optimize/study.py` + the cockpit Assess
+    path) so future results are distinguishable.
+  - A cleanup/migration script (`scripts/`) scans a study.db, marks pre-stamp trials **stale**, and
+    reports them — **do not** silently delete the user's optimization history.
+  - Cockpit Results **flags / filters** stale designs (don't present wrong numbers as truth) and offers
+    re-Assess. Same treatment for the archetype catalogs once §17 lands.
+
 ---
 
 ## Recently shipped (context, so we don't re-add)
