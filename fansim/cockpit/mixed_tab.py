@@ -15,6 +15,7 @@ from pathlib import Path
 _log = logging.getLogger(__name__)
 
 from fansim.cockpit.context import CockpitCtx
+from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
 from fansim.cockpit.figures import mf_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
 from fansim.fan_spec import A12X25
@@ -102,6 +103,11 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
     state.mf_resume = False
     state.mf_cfd_top = 0
     state.mf_geo_ready = False
+    # Duct-airflow viz (shared with the Fan tab; §17.3): |U|/p midplane + axial-Uz + streamlines
+    state.mf_airflow_field = "U"
+    state.mf_airflow_img_uri = ""
+    state.mf_airflow_caption = "Assess or load a mixed design to see duct airflow."
+    state.mf_airflow_busy = False
     _mf_runs = runs_root if runs_root.exists() else Path("runs")
     _mf_last = latest_mixed_opt_dir(_mf_runs)
     state.mf_last_opt = str(_mf_last) if _mf_last else ""
@@ -125,6 +131,64 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
     def _refresh_mf_figure():
         if hasattr(ctrl, "mf_fig_update"):
             ctrl.mf_fig_update(mf_scatter_figure(mf_design_store))
+
+    # --- Duct-airflow viz (§17.3): render a solved mixed case with the shared renderers -------
+    _mf_airflow = {"uris": {}, "gen": 0}
+
+    def _apply_mf_airflow_field():
+        uri, cap = pick_airflow_uri(_mf_airflow["uris"], state.mf_airflow_field or "U")
+        state.mf_airflow_img_uri = uri
+        if uri:
+            state.mf_airflow_caption = cap
+        elif not state.mf_airflow_busy:
+            state.mf_airflow_caption = "Airflow not available for this design"
+
+    def _render_mf_airflow(case_dir):
+        """Render the four airflow views from a solved mixed case dir (off-screen, fail-soft)."""
+        if not case_dir or asynchronous is None:
+            _mf_airflow["uris"] = {}
+            state.mf_airflow_img_uri = ""
+            state.mf_airflow_caption = "Airflow not available for this design"
+            return
+        _mf_airflow["gen"] += 1
+        gen = _mf_airflow["gen"]
+        state.mf_airflow_busy = True
+        state.mf_airflow_img_uri = ""
+        state.mf_airflow_caption = "Rendering duct airflow…"
+        state.flush()
+
+        async def task():
+            try:
+                loop = asyncio.get_running_loop()
+                pack = await loop.run_in_executor(
+                    None, lambda: render_airflow_pack(str(case_dir)))
+                if _mf_airflow["gen"] != gen:
+                    return
+                _mf_airflow["uris"] = pack["uris"]
+                state.mf_airflow_busy = False
+                _apply_mf_airflow_field()
+            except Exception:  # noqa: BLE001 — viz must never break the tab
+                if _mf_airflow["gen"] == gen:
+                    _mf_airflow["uris"] = {}
+                    state.mf_airflow_busy = False
+                    state.mf_airflow_img_uri = ""
+                    state.mf_airflow_caption = "Airflow not available for this design"
+            finally:
+                try:
+                    state.flush()
+                    ctrl.mf_view_update()
+                except Exception:  # noqa: BLE001
+                    pass
+
+        asynchronous.create_task(task())
+
+    @state.change("mf_airflow_field")
+    def _on_mf_airflow_field(**_):
+        _apply_mf_airflow_field()
+        try:
+            state.flush()
+        except Exception:  # noqa: BLE001
+            pass
 
     def _mf_flat_from_state() -> dict:
         return {
@@ -326,6 +390,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                 }
                 mf_design_store.append(row)
                 _refresh_mf_figure()
+                _render_mf_airflow(workdir)  # duct-airflow viz from the just-solved case
                 state.mf_msg = (
                     f"✓ free {result.cfm_free:.1f} CFM  ·  load {result.cfm_load:.1f} CFM  ·  "
                     f"η {result.efficiency:.1f}%  ({workdir.name}) — saved to scatter"
@@ -525,6 +590,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             except Exception:  # noqa: BLE001
                 pass
         state.mf_msg = f"Loaded Assess #{tid} into the editor."
+        _render_mf_airflow(row.get("workdir"))  # duct-airflow viz from the loaded case (if kept)
         state.flush()
 
     # Expose callbacks for the UI renderer.
@@ -732,3 +798,27 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                         style="width:100%;",
                     )
                     ctrl.mf_fig_update = mf_fig_widget.update
+                with v3.VCard(classes="mb-2 pa-2"):
+                    html.Div("Duct airflow — slices & streamlines", classes="text-subtitle-2 mb-1")
+                    html.Div(
+                        "From the last Assess (axial MRF duct, approximate for mixed-flow). "
+                        "|U|/pressure midplane; axial Uz (blue = delivery, red = reverse); "
+                        "streamlines colored by |U|.",
+                        classes="text-caption text-medium-emphasis mb-2",
+                    )
+                    with v3.VBtnToggle(
+                        v_model=("mf_airflow_field",),
+                        density="compact", color="primary", classes="mb-2", mandatory=True,
+                    ):
+                        v3.VBtn("|U| midplane", value="U", size="small")
+                        v3.VBtn("pressure midplane", value="p", size="small")
+                        v3.VBtn("axial Uz", value="uz", size="small")
+                        v3.VBtn("streamlines", value="stream", size="small")
+                    html.Div("{{ mf_airflow_caption }}",
+                             classes="text-caption text-medium-emphasis mb-1")
+                    html.Img(
+                        src=("mf_airflow_img_uri",),
+                        v_show="mf_airflow_img_uri",
+                        style="width:100%;max-height:520px;object-fit:contain;"
+                        "display:block;background:#fafafa;border-radius:4px;",
+                    )
