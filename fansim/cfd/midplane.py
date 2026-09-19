@@ -490,7 +490,7 @@ def render_streamlines_png(
     *,
     mesh=None,
     window_size: tuple[int, int] = (1280, 800),
-    n_seed: int = 240,
+    n_seed: int = 90,
     clim: tuple[float, float] | None = None,
 ) -> StreamlineArtifact:
     """Seed a disc upstream of the rotor and trace streamlines colored by ``|U|``.
@@ -529,16 +529,32 @@ def render_streamlines_png(
     cx, cy = float(mesh.center[0]), float(mesh.center[1])
     z0, z1 = float(b[4]), float(b[5])
     r_tip = 0.5 * max(float(b[1]) - float(b[0]), float(b[3]) - float(b[2]))
-    r_seed = max(0.85 * r_tip, 1e-4)
-    span = max(z1 - z0, 1e-4)
-    z_seed = z0 + 0.15 * span  # just inside the inlet (−Z) side
+    z_fan = 0.0 if z0 < 0.0 < z1 else 0.5 * (z0 + z1)
+    # Keep a short approach (so lines enter axially) and a long wake (so the through-flow and
+    # fan-out read), but crop the far far-field so slow lines don't wander to the boundaries.
+    zlo = max(z0, z_fan - 3.0 * r_tip)
+    zhi = min(z1, z_fan + 12.0 * r_tip)
+    try:
+        focused = mesh.clip_box(
+            [cx - 1.2 * r_tip, cx + 1.2 * r_tip,
+             cy - 1.2 * r_tip, cy + 1.2 * r_tip, zlo, zhi],
+            invert=False,
+        )
+        if focused.n_points > 0:
+            mesh = focused
+    except Exception:  # noqa: BLE001 — keep full mesh if clip fails
+        pass
 
+    r_seed = max(0.85 * r_tip, 1e-4)
+    z_seed = zlo + 0.04 * (zhi - zlo)  # well upstream in the stationary inlet
     seed = pv.Disc(center=(cx, cy, z_seed), normal=(0.0, 0.0, 1.0),
                    inner=0.04 * r_tip, outer=r_seed, r_res=1, c_res=max(8, n_seed))
     try:
+        # Forward only: seed upstream and follow the air through the rotor into the wake.
+        # (Both-direction from a near-rotor seed wraps in the MRF swirl and reads as a disc.)
         streams = mesh.streamlines_from_source(
-            seed, vectors="U", integration_direction="both",
-            max_steps=4000, initial_step_length=0.2, max_step_length=1.0,
+            seed, vectors="U", integration_direction="forward",
+            max_steps=6000, initial_step_length=0.2, max_step_length=1.0,
             terminal_speed=1e-6,
         )
     except Exception:  # noqa: BLE001
@@ -552,10 +568,11 @@ def render_streamlines_png(
     src = streams.point_data if "U_mag" in streams.point_data else streams.cell_data
     vals = np.asarray(src.get("U_mag", []), dtype=float)
     if clim is None:
-        # Scale to the through-flow, not the blade-tip speed: the 85th percentile keeps the
-        # freestream lines colored (tip outliers just saturate warm).
-        hi = float(np.percentile(vals, 85.0)) if vals.size else 5.0
-        clim = (0.0, max(hi, 0.5))
+        # Scale to the through-flow, not the blade-tip speed. The 95th percentile spans the wake
+        # jet; clamp into [2, 8] m/s so mid-range lines show color instead of saturating warm.
+        hi = float(np.percentile(vals, 95.0)) if vals.size else 5.0
+        hi = min(max(hi, 2.0), 8.0)
+        clim = (0.0, hi)
     tubes = streams.tube(radius=0.004 * r_tip)
 
     with _RENDER_LOCK:
@@ -586,13 +603,13 @@ def render_streamlines_png(
                                     show_scalar_bar=False)
                 except Exception:  # noqa: BLE001 — context body is optional
                     pass
-            # Three-quarter view: off the +Z/outlet quarter, looking back at the rotor.
-            diag = 2.4 * max(r_tip, 0.05)
+            # Side-quarter view of the approach → rotor → wake; reset_camera fits the extent.
             pl.camera_position = [
-                (cx + diag, cy + 0.7 * diag, z1 + 0.8 * diag),
-                (cx, cy, 0.5 * (z0 + z1)),
+                (cx + 4.0 * r_tip, cy + 2.5 * r_tip, z_fan + 2.0 * r_tip),
+                (cx, cy, z_fan + 3.5 * r_tip),
                 (0.0, 1.0, 0.0),
             ]
+            pl.reset_camera()
             pl.add_text("streamlines — |U| through the rotor", font_size=11,
                         color="black", position="upper_edge")
             pl.screenshot(str(out))
