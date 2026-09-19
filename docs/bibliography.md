@@ -31,6 +31,12 @@ Legend: **→ code** points at the module/script that implements or relies on th
 - **Blake, W. K. (1986).** *Mechanics of Flow-Induced Sound and Vibration.* Academic Press. —
   Reference text tying the analogies to real flow-noise mechanisms (loading vs. thickness vs.
   broadband). Context for interpreting the dipole spectra.
+- **Sharland, I. J. (1964).** *Sources of noise in axial flow fans.* J. Sound and Vibration
+  **1**(3), 302–322. — The classic breakdown of axial-fan noise sources (incidence/turbulence
+  ingestion, boundary-layer/vortex-shedding self-noise, tip effects); the physical companion to
+  Curle's compact-dipole model for the **broadband** side our proxies approximate. **→ code:**
+  context for the loading/Curle proxies in `fansim/acoustics/` (broadband still coarse-grid-limited,
+  roadmap §1.4).
 
 ## 2. Fan noise & UNEVEN blade spacing (the tonal lever)
 
@@ -99,6 +105,49 @@ Legend: **→ code** points at the module/script that implements or relies on th
 - **Lu, L. et al. (2021).** *Learning nonlinear operators via DeepONet.* Nature Machine Intelligence
   **3**, 218–229. — Operator-learning alternative. Frontier: transformer / neural-field aero
   surrogates (see the plan's arXiv scan; re-verify IDs before relying on them).
+
+## 7. Fan & propeller aerodynamics — BEM, losses, low-Re polars, tip geometry
+
+- **Axial-fan blade-element / free-vortex design & optimization** — Winterberg et al.,
+  [FAN2018](https://www.fan2025.org/archives/fan2018/papers/FAN2018-7-WINTERBERG.pdf);
+  [model-based low-pressure axial-fan blade design (Elsevier 2024)](https://www.sciencedirect.com/science/article/abs/pii/S0140700724003116);
+  [ducted counter-rotating axial fans, design + validation (arXiv:1208.6396)](https://arxiv.org/pdf/1208.6396).
+  — Euler turbomachinery pressure rise + blade-element lift/drag + slip/endwall losses give a
+  fan's CFM / static rise / efficiency **analytically, in milliseconds**. **→ code:** the analytic
+  screening tier `fansim/fan_bem.py` + `--bem-prescreen` (roadmap §7.1; ranking Spearman ~0.62 vs CFD).
+- **Lissaman, P. B. S. (1983).** *Low-Reynolds-number airfoils.* Annu. Rev. Fluid Mech. **15**,
+  223–239. — Foundational review of the low-Re regime (early separation, reduced lift slope, earlier
+  stall, steep profile-drag rise) that the polar model reproduces. Tabulated data: the
+  [UIUC/Selig low-speed airfoil database](https://m-selig.ae.illinois.edu/ads.html). **→ code:** the
+  Re-aware `_cl_cd` polar + `fansim/data/polars/` CSVs (roadmap §7.2, §1.6).
+- **Storer, J. A. & Cumpsty, N. A. (1991).** *Tip leakage flow in axial compressors.*
+  J. Turbomachinery **113**(2), 252–259. — Canonical tip-leakage mechanism. **Denton, J. D. (1993).**
+  *Loss mechanisms in turbomachines* (IGTI Scholar Lecture). J. Turbomachinery **115**(4), 621–656.
+  — The comprehensive loss taxonomy (endwall / tip-leakage / mixing) behind a design-dependent
+  knockdown. Applied: [tip-gap analysis](https://www.sciencedirect.com/science/article/abs/pii/S0045793019300088),
+  [energy dissipation in the blade-tip region](https://www.sciencedirect.com/science/article/abs/pii/S0022460X16302772).
+  **→ code:** the Prandtl finite-blade tip-loss + gap-leakage knockdown in `fansim/fan_bem.py`
+  (roadmap §7.3, §1.1 — the lever that moved fan ranking 0.52→0.62).
+- **Tip geometry — shroud/ring, optimal clearance, winglets, casing treatment / recirculation for
+  stall margin:** [tip geometry on a low-speed axial fan](https://www.sciencedirect.com/science/article/abs/pii/S0140700721003273);
+  [winglet designs for small axial fans (exp+num, 2024)](https://www.sciencedirect.com/science/article/abs/pii/S0003682X24005991);
+  [tip clearance, winglets & shroud height on tip leakage](https://www.sciencedirect.com/science/article/abs/pii/S0140700718302470).
+  — Max static efficiency at a shroud height ≈30% of axial chord (not zero gap); winglets help a
+  partially-shrouded fan but hurt a fully-shrouded one. **→ code:** the winglet×shroud policy in
+  `suggest_params` / `blade_from_flat` (roadmap §2.1, §7.5).
+- **Sim→print penalty — printed-impeller performance & blade-thickness effects:**
+  [tip-vortex manipulators, num vs experimental on a printed condenser fan (arXiv:2309.13195)](https://arxiv.org/pdf/2309.13195);
+  [experimental blade-thickness effects on axial-fan performance](https://www.academia.edu/70824092/Experimental_study_of_blade_thickness_effects_on_the_global_and_the_local_performances_of_axial_flow_fans).
+  **→ code:** `fansim/optimize/print_penalty.py` (CFM/η knockdown; provisional until §5 hardware, §1.3/§7.6).
+- **Swept / sickle (forward-swept) cooling-fan noise** — automotive cooling-fan studies motivating the
+  sickle planform's noise trade (URANS-LES+FW-H serrated/swept fans; see the §3 applied list and the
+  plan history for the specific DOIs — re-verify before publication). **→ code:** `apply_sickle` /
+  `--sickle` (roadmap §2.3).
+- **Propeller / open-rotor BEMT & noise** — **Drela, M. (2006).** *QPROP Formulation* (MIT) —
+  prop/windmill blade-element method with Reynolds and Mach corrections; **Hepperle, M.** *JavaProp*
+  (BEMT with compressibility/Re corrections); **Hanson, D. B. (1985).** *Noise of counter-rotation
+  propellers.* J. Aircraft **22**(7), 609–617. **→ code:** the prop BEMT + relative noise proxy
+  (`fansim/propeller/`) and the CROR tier (`fansim/cror/`); compressible open-air prop CFD is roadmap §4.3.
 
 ---
 

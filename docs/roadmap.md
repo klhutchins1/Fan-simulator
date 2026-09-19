@@ -83,11 +83,13 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   `apply_sickle` + Optuna `--sickle` (`tests/test_sickle.py`). Cockpit Design LE sickle mid/tip
   sliders (`e_le_skew_*`) landed 2026-09-15. Remaining: Optuna mid-band search (independent mid
   vs tip) beyond tip-only `--sickle`.
-  - [ ] **2.3b Sickle UX / semantics review.** **[impact: low]** **[effort: med]** Keep stage-1
-    sliders for now, but they feel odd to edit (LE-only tangential skew; Preview not live;
-    tip-notch builds can time out and leave the old mesh so sickle looks like a no-op). Review
-    whether Design should keep mid/tip sickle, collapse to one tip control, rename, or park behind
-    Optimize `--sickle` only. Do not remove until that review — note only.
+  - [x] **2.3b Sickle UX / semantics review. REVIEWED 2026-09-18 → keep.** **[impact: low]**
+    The "odd to edit" concern is already mitigated: the `slider()` widget surfaces the detailed
+    `CONTROL_DESC` tooltips for `e_le_skew_mid`/`e_le_skew_tip`, which explain the LE-only tangential
+    skew and both caveats (not live — press Preview; a timed-out tip-notch build keeps the old mesh
+    so sickle can look like a no-op). Keeping independent **mid + tip** sliders gives more planform
+    control than the tip-only Optimize `--sickle` at no cost, so **not** collapsed/parked. Labels
+    ("Sickle" vs the separate "Skew") stay — distinct words, and the tooltips disambiguate.
 - [x] **2.4 Infill-aware weight (stage 1). DONE 2026-09-14** **[impact: low]** **[effort: low]**
   `estimate_weight_g(..., infill_frac=)` defaults to ``DEFAULT_PRINT_INFILL=0.20`` for FDM filaments
   (resin stays solid). Build gate no longer assumes 100% fill. Override with ``infill_frac=1.0`` for
@@ -151,14 +153,17 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 
 ## 6. Research / papers to fold into `docs/bibliography.md`
 
-- [ ] Tip leakage physics — **Storer & Cumpsty (1991)**, Denton loss mechanisms (→ §1.1, §2.1).
-- [ ] Low-Re airfoils — **UIUC/Selig low-Reynolds-number database**, Lissaman review (→ §1.6).
-- [ ] Shrouded/ducted fans; casing treatments / recirculation for stall margin (→ §2.1).
-- [ ] Fan broadband noise — **Sharland (1964)** (complements Curle/FW-H).
-- [ ] Swept/sickle automotive cooling-fan noise studies (→ §2.3).
+All folded into `docs/bibliography.md` (2026-09-18): §7 "Fan & propeller aerodynamics" (BEM, tip
+leakage, low-Re polars, shroud/winglet, sim→print, prop BEMT) + §1 (Sharland fan-noise sources).
+
+- [x] Tip leakage physics — **Storer & Cumpsty (1991)**, **Denton (1993)** loss mechanisms (→ bib §7; §1.1, §2.1).
+- [x] Low-Re airfoils — **UIUC/Selig low-Reynolds-number database**, **Lissaman (1983)** review (→ bib §7; §1.6).
+- [x] Shrouded/ducted fans; casing treatments / recirculation for stall margin (→ bib §7; §2.1).
+- [x] Fan broadband noise — **Sharland (1964)** (complements Curle/FW-H) (→ bib §1).
+- [x] Swept/sickle automotive cooling-fan noise studies (→ bib §7; §2.3 — specific DOIs to re-verify).
 - [x] 3D-printed impeller performance — FDM surface-roughness & anisotropy (→ §1.3, sim→print penalty §7.6).
   Structural anisotropy + sim→print knockdown landed; absolute printed CFM still waits on §5 measure.
-- [ ] Props — **Hanson** open-rotor/CROR noise; QProp/JavaProp Re + compressibility BEMT corrections.
+- [x] Props — **Hanson (1985)** open-rotor/CROR noise; **QProp**/**JavaProp** Re + compressibility BEMT corrections (→ bib §7).
 
 ---
 
