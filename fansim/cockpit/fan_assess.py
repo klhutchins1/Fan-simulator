@@ -16,6 +16,7 @@ import sys
 import time
 from pathlib import Path
 
+from fansim.cfd.metrics import CFD_VERSION
 from fansim.cfd.runner import kill_cfd_containers
 from fansim.cockpit import fan_runtime
 from fansim.cockpit.busy import busy_caption, cfd_stage_hint
@@ -171,6 +172,7 @@ def bind(session) -> None:
             preset=str(state.assess_preset or "case"),
             refine_op=bool(state.assess_refine_op),
         )
+        extra["cfd_version"] = CFD_VERSION  # tag the solver generation (stale-result detection)
 
     async def _assess(params, flat, label, workdir_holder=None):
         tid = next_id[0]

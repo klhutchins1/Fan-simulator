@@ -13,6 +13,14 @@ from pathlib import Path
 CFM_PER_M3S = 2118.882  # ft^3/min per m^3/s
 RHO_AIR = 1.2
 
+# Solver/metrics generation stamped on every scored trial (optimize/study.py + cockpit Assess),
+# so the catalog can tell which results are trustworthy. Bump when a change makes previously stored
+# CFD numbers non-comparable; results with a lower/absent version are STALE (needs re-Assess).
+#   1 (implicit / unstamped) — original: final-iteration-sample metrics + fixed coarse surface mesh.
+#   2 (2026-09-18) — converged-tail-MEAN metrics (_tail_mean_row) + adaptive blade-wall mesh
+#                    (openfoam_case.MeshResolution.for_blade). Free-air on the a12x25 refit moved
+#                    from an under-read ~30 CFM to ~45+ CFM, so v1 objectives are not comparable.
+CFD_VERSION = 2
 
 TAIL_FRAC = 0.25  # fraction of the run treated as the converged tail (see convergence())
 

@@ -7,12 +7,24 @@ from pathlib import Path
 import optuna
 
 # Canonical Design lives in optimize/ (Cursor 09-11 move). Re-export for cockpit callers.
+from fansim.cfd.metrics import CFD_VERSION
 from fansim.optimize.design import Design
 from fansim.optimize.search_space import OBJECTIVE_NAMES
 
 
 def _study_storage(out_dir: Path) -> str:
     return f"sqlite:///{(out_dir / 'study.db').as_posix()}"
+
+
+def cfd_is_stale(cfd_version) -> bool:
+    """True when a stored score predates the current solver generation (CFD_VERSION).
+
+    Unstamped (None) trials are pre-2026-09-18 (final-sample metrics + coarse mesh) → stale.
+    """
+    try:
+        return int(cfd_version) < CFD_VERSION
+    except (TypeError, ValueError):
+        return True
 
 
 def load_designs(out_dir: str | Path, study_name: str | None = None) -> list[Design]:
@@ -49,7 +61,9 @@ def load_designs(out_dir: str | Path, study_name: str | None = None) -> list[Des
             stl_path=stl if stl.exists() else None,
             reason=t.user_attrs.get("reason", ""),
             extra={"n_blades": t.user_attrs.get("n_blades"),
-                   "runtime_s": t.user_attrs.get("runtime_s")},
+                   "runtime_s": t.user_attrs.get("runtime_s"),
+                   "cfd_version": t.user_attrs.get("cfd_version"),
+                   "cfd_stale": cfd_is_stale(t.user_attrs.get("cfd_version"))},
         ))
     return designs
 

@@ -167,6 +167,8 @@ def _load_assessed_designs(assess_dirs) -> list[Design]:
                     used.add(tid)
                 extra = dict(d.get("extra", {}))
                 extra.setdefault("source_run", run_name)
+                from fansim.cockpit.data import cfd_is_stale
+                extra["cfd_stale"] = cfd_is_stale(extra.get("cfd_version"))
                 if tid != orig:
                     extra["orig_trial"] = orig
                 out.append(

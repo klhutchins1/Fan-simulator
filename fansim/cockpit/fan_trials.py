@@ -93,10 +93,17 @@ def bind(session) -> None:
         if d.extra.get("cfd_stale"):
             parent_id = d.extra.get("parent_id") or ""
             op = d.extra.get("place_op") or ""
-            state.info_lines.append("⧗ CFD stale — press Assess to score this hub.")
-            if parent_id:
+            if parent_id:  # placed onto a hub — geometry moved, CFD not yet re-run
+                state.info_lines.append("⧗ CFD stale — press Assess to score this hub.")
                 state.info_lines.append(f"↳ placed from {parent_id}" + (f" ({op})" if op else ""))
-            state.preview_msg = "Placed onto this hub. CFD is stale until you press Assess."
+                state.preview_msg = "Placed onto this hub. CFD is stale until you press Assess."
+            else:  # scored by an older solver generation — numbers not comparable
+                state.info_lines.append(
+                    "⧗ CFD stale — scored by an older solver; CFM/efficiency unreliable. "
+                    "Press Assess to re-score.")
+                state.preview_msg = (
+                    "This design was scored by an older CFD solver (pre-2026-09-18 tail-mean + "
+                    "adaptive-mesh fix). Its numbers are unreliable — press Assess to re-score.")
         else:
             state.preview_msg = "Edit the sliders below, then press Preview geometry."
         session._schedule_airflow(d)

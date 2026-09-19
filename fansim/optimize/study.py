@@ -13,6 +13,7 @@ from pathlib import Path
 
 import optuna
 
+from fansim.cfd.metrics import CFD_VERSION
 from fansim.geometry.blade import BladeParams, SHROUD_DEFAULT_MM, apply_notched_tips, apply_sickle
 from fansim.optimize.objectives import evaluate_candidate
 from fansim.optimize.search_space import (
@@ -215,6 +216,7 @@ def run_study(
         trial.set_user_attr("reason", result.reason)
         trial.set_user_attr("n_blades", params.n_blades)
         trial.set_user_attr("runtime_s", result.runtime_s)
+        trial.set_user_attr("cfd_version", CFD_VERSION)  # so stale (pre-fix) scores are detectable
         if with_noise:
             trial.set_user_attr("noise_swl", result.noise_swl)
         if result.raw:
