@@ -490,7 +490,7 @@ def render_streamlines_png(
     *,
     mesh=None,
     window_size: tuple[int, int] = (1280, 800),
-    n_seed: int = 90,
+    n_seed: int = 36,
     clim: tuple[float, float] | None = None,
 ) -> StreamlineArtifact:
     """Seed a disc upstream of the rotor and trace streamlines colored by ``|U|``.
@@ -530,10 +530,11 @@ def render_streamlines_png(
     z0, z1 = float(b[4]), float(b[5])
     r_tip = 0.5 * max(float(b[1]) - float(b[0]), float(b[3]) - float(b[2]))
     z_fan = 0.0 if z0 < 0.0 < z1 else 0.5 * (z0 + z1)
-    # Keep a short approach (so lines enter axially) and a long wake (so the through-flow and
-    # fan-out read), but crop the far far-field so slow lines don't wander to the boundaries.
-    zlo = max(z0, z_fan - 3.0 * r_tip)
-    zhi = min(z1, z_fan + 12.0 * r_tip)
+    # Focus tightly on the rotor + near wake — that's where the blades TURN the flow and the
+    # swirl is visible. A long straight duct wake just collimates the lines into a featureless
+    # jet, which reads as "nothing happening" (the earlier complaint).
+    zlo = max(z0, z_fan - 2.5 * r_tip)
+    zhi = min(z1, z_fan + 7.0 * r_tip)
     try:
         focused = mesh.clip_box(
             [cx - 1.2 * r_tip, cx + 1.2 * r_tip,
@@ -545,12 +546,12 @@ def render_streamlines_png(
     except Exception:  # noqa: BLE001 — keep full mesh if clip fails
         pass
 
-    r_seed = max(0.85 * r_tip, 1e-4)
-    z_seed = zlo + 0.04 * (zhi - zlo)  # well upstream in the stationary inlet
-    # Seed the blade-swept ANNULUS, not the hub axis: a centre seed traces one fast straight
-    # line down the axis that reads as an odd thick tube through the plot.
+    r_seed = max(0.90 * r_tip, 1e-4)
+    z_seed = max(zlo, z_fan - 1.5 * r_tip)  # just upstream of the rotor
+    # Seed the blade-swept ANNULUS, not the hub axis (a centre seed traces one straight axial
+    # line that reads as an odd thick tube). Fewer seeds so individual spiral paths are legible.
     seed = pv.Disc(center=(cx, cy, z_seed), normal=(0.0, 0.0, 1.0),
-                   inner=0.38 * r_tip, outer=r_seed, r_res=1, c_res=max(8, n_seed))
+                   inner=0.30 * r_tip, outer=r_seed, r_res=1, c_res=max(8, n_seed))
     try:
         # Forward only: seed upstream and follow the air through the rotor into the wake.
         # (Both-direction from a near-rotor seed wraps in the MRF swirl and reads as a disc.)
@@ -575,7 +576,7 @@ def render_streamlines_png(
         hi = float(np.percentile(vals, 95.0)) if vals.size else 5.0
         hi = min(max(hi, 2.0), 8.0)
         clim = (0.0, hi)
-    tubes = streams.tube(radius=0.0028 * r_tip)
+    tubes = streams.tube(radius=0.006 * r_tip)
 
     with _RENDER_LOCK:
         pl = pv.Plotter(off_screen=True, window_size=list(window_size))
@@ -605,11 +606,12 @@ def render_streamlines_png(
                                     show_scalar_bar=False)
                 except Exception:  # noqa: BLE001 — context body is optional
                     pass
-            # Three-quarter view from the inlet/side looking down the wake, so the swirl in the
-            # jet reads; reset_camera fits the approach → rotor → wake extent.
+            # Look mostly DOWN the axis from the inlet side (slightly off-axis), toward the wake:
+            # the rotor's swirl then reads as the streamlines curving tangentially, instead of a
+            # side view that flattens the spiral into straight lines.
             pl.camera_position = [
-                (cx + 3.5 * r_tip, cy + 2.2 * r_tip, z_fan - 2.5 * r_tip),
-                (cx, cy, z_fan + 4.0 * r_tip),
+                (cx + 1.2 * r_tip, cy + 0.8 * r_tip, z_fan - 4.0 * r_tip),
+                (cx, cy, z_fan + 3.0 * r_tip),
                 (0.0, 1.0, 0.0),
             ]
             pl.reset_camera()
