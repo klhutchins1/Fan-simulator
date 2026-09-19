@@ -21,6 +21,12 @@ from fansim.cfd.midplane import (
     has_reconstructed_fields,
     render_axial_uz_png,
     render_midplane_pngs,
+    render_streamlines_png,
+    streamline_artifact_path,
+)
+from fansim.cfd.midplane import (
+    StreamlineArtifact,
+    ensure_streamlines_artifact,
 )
 
 
@@ -193,6 +199,45 @@ def test_ensure_axial_uz_unavailable_without_fields(tmp_path: Path):
     art = ensure_axial_uz_artifact(case, force=False)
     assert not art.available
     assert art.png is None
+
+
+@pytest.mark.slow
+def test_render_streamlines_png_synthetic_mesh(tmp_path: Path):
+    pv = pytest.importorskip("pyvista")
+    case = tmp_path / "case"
+    case.mkdir()
+    # Uniform +Z flow → straight streamlines seeded on the inlet disc.
+    grid = pv.ImageData(dimensions=(12, 12, 20), spacing=(0.01, 0.01, 0.01),
+                        origin=(-0.055, -0.055, -0.095))
+    n = grid.n_cells
+    u = np.zeros((n, 3), dtype=float)
+    u[:, 2] = 2.0
+    grid.cell_data["U"] = u
+
+    art = render_streamlines_png(case, mesh=grid, n_seed=48)
+    assert art.available
+    assert art.png is not None and art.png.is_file()
+    assert art.png.stat().st_size > 100
+    assert art.png.name == "streamlines_v1.png"
+    assert "streamlines" in art.caption
+
+
+def test_ensure_streamlines_uses_cache(tmp_path: Path):
+    case = tmp_path / "case"
+    case.mkdir()
+    png = streamline_artifact_path(case)
+    png.parent.mkdir(parents=True)
+    png.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 20)
+    art = ensure_streamlines_artifact(case, force=False)
+    assert isinstance(art, StreamlineArtifact)
+    assert art.available and art.png == png
+
+
+def test_ensure_streamlines_unavailable_without_fields(tmp_path: Path):
+    case = tmp_path / "case"
+    case.mkdir()
+    art = ensure_streamlines_artifact(case, force=False)
+    assert not art.available and art.png is None
 
 
 def test_ensure_midplane_uses_cache(tmp_path: Path):

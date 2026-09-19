@@ -467,6 +467,189 @@ def render_axial_uz_png(
     )
 
 
+_STREAM_NAME = "streamlines_v1.png"
+
+
+@dataclass(frozen=True)
+class StreamlineArtifact:
+    """Path to the cached streamline PNG (may be missing)."""
+
+    case_dir: Path
+    png: Path | None
+    caption: str
+    available: bool
+
+
+def streamline_artifact_path(case_dir: str | Path) -> Path:
+    """Canonical cache location for the streamline PNG."""
+    return Path(case_dir) / _VIZ_SUBDIR / _STREAM_NAME
+
+
+def render_streamlines_png(
+    case_dir: str | Path,
+    *,
+    mesh=None,
+    window_size: tuple[int, int] = (1280, 800),
+    n_seed: int = 240,
+    clim: tuple[float, float] | None = None,
+) -> StreamlineArtifact:
+    """Seed a disc upstream of the rotor and trace streamlines colored by ``|U|``.
+
+    A STAR-CCM+-style hero shot: streamlines enter along the axis, accelerate through the
+    blade rows (warm colors), and fan out into the wake. Seeds a disc of ~tip radius just
+    inside the −Z (inlet) side and integrates both directions so the approach and the wake
+    both show. The impeller STL, if present in the case, is drawn as a light-grey body for
+    context. Fail-soft; ``mesh`` may be injected for tests.
+    """
+    import pyvista as pv
+
+    case_dir = Path(case_dir)
+    out = streamline_artifact_path(case_dir)
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    if mesh is None:
+        from fansim.acoustics.case import read_case
+
+        mesh = read_case(case_dir)
+
+    # Streamline integration interpolates POINT data along the lines, so U (and the U_mag
+    # used for coloring) must live on points — else the traced tubes carry no scalar.
+    if "U" not in mesh.point_data:
+        mesh = mesh.cell_data_to_point_data()
+    if "U" not in mesh.point_data:
+        return StreamlineArtifact(
+            case_dir=case_dir, png=None,
+            caption="Streamlines not available for this design", available=False,
+        )
+    uvec = np.asarray(mesh.point_data["U"], dtype=float)
+    mesh.point_data["U_mag"] = (
+        np.linalg.norm(uvec, axis=1) if uvec.ndim > 1 else np.abs(uvec))
+
+    b = mesh.bounds
+    cx, cy = float(mesh.center[0]), float(mesh.center[1])
+    z0, z1 = float(b[4]), float(b[5])
+    r_tip = 0.5 * max(float(b[1]) - float(b[0]), float(b[3]) - float(b[2]))
+    r_seed = max(0.85 * r_tip, 1e-4)
+    span = max(z1 - z0, 1e-4)
+    z_seed = z0 + 0.15 * span  # just inside the inlet (−Z) side
+
+    seed = pv.Disc(center=(cx, cy, z_seed), normal=(0.0, 0.0, 1.0),
+                   inner=0.04 * r_tip, outer=r_seed, r_res=1, c_res=max(8, n_seed))
+    try:
+        streams = mesh.streamlines_from_source(
+            seed, vectors="U", integration_direction="both",
+            max_steps=4000, initial_step_length=0.2, max_step_length=1.0,
+            terminal_speed=1e-6,
+        )
+    except Exception:  # noqa: BLE001
+        streams = None
+    if streams is None or streams.n_points == 0:
+        return StreamlineArtifact(
+            case_dir=case_dir, png=None,
+            caption="Streamlines not available for this design", available=False,
+        )
+
+    src = streams.point_data if "U_mag" in streams.point_data else streams.cell_data
+    vals = np.asarray(src.get("U_mag", []), dtype=float)
+    if clim is None:
+        # Scale to the through-flow, not the blade-tip speed: the 85th percentile keeps the
+        # freestream lines colored (tip outliers just saturate warm).
+        hi = float(np.percentile(vals, 85.0)) if vals.size else 5.0
+        clim = (0.0, max(hi, 0.5))
+    tubes = streams.tube(radius=0.004 * r_tip)
+
+    with _RENDER_LOCK:
+        pl = pv.Plotter(off_screen=True, window_size=list(window_size))
+        try:
+            pl.background_color = "white"
+            pl.add_mesh(
+                tubes, scalars="U_mag", cmap="turbo", clim=list(clim),
+                show_scalar_bar=True,
+                scalar_bar_args={
+                    "title": "Velocity |U| (m/s)",
+                    "n_labels": 5, "fmt": "%.1f",
+                    "title_font_size": 12, "label_font_size": 10,
+                    "width": 0.12, "height": 0.55, "position_x": 0.86, "position_y": 0.2,
+                },
+            )
+            stl = case_dir / "impeller.stl"
+            if stl.is_file():
+                try:
+                    body = pv.read(str(stl))
+                    # The snappy STL is in mm; the OpenFOAM mesh is in m. Scale it down when it
+                    # dwarfs the flow domain, else skip (a mis-scaled body swamps the scene).
+                    bl = body.length
+                    if bl > 5.0 * max(r_tip, 1e-6):
+                        body = body.scale(0.001, inplace=False)
+                    if body.length <= 5.0 * max(r_tip, 1e-6):
+                        pl.add_mesh(body, color="lightgrey", opacity=0.35,
+                                    show_scalar_bar=False)
+                except Exception:  # noqa: BLE001 — context body is optional
+                    pass
+            # Three-quarter view: off the +Z/outlet quarter, looking back at the rotor.
+            diag = 2.4 * max(r_tip, 0.05)
+            pl.camera_position = [
+                (cx + diag, cy + 0.7 * diag, z1 + 0.8 * diag),
+                (cx, cy, 0.5 * (z0 + z1)),
+                (0.0, 1.0, 0.0),
+            ]
+            pl.add_text("streamlines — |U| through the rotor", font_size=11,
+                        color="black", position="upper_edge")
+            pl.screenshot(str(out))
+        finally:
+            pl.close()
+
+    if not out.is_file():
+        return StreamlineArtifact(
+            case_dir=case_dir, png=None,
+            caption="Streamlines not available for this design", available=False,
+        )
+    return StreamlineArtifact(
+        case_dir=case_dir, png=out,
+        caption="streamlines colored by |U| — inlet (−Z) → wake (+Z)", available=True,
+    )
+
+
+def ensure_streamlines_artifact(
+    case_dir: str | Path | None,
+    *,
+    runner_factory=None,
+    image_ok=None,
+    mesh=None,
+    force: bool = False,
+) -> StreamlineArtifact:
+    """Find or build the streamline PNG for a case (fail-soft, mirrors midplane)."""
+    unavailable = StreamlineArtifact(
+        case_dir=Path(case_dir) if case_dir else Path("."),
+        png=None, caption="Streamlines not available for this design", available=False,
+    )
+    if case_dir is None:
+        return unavailable
+    case_dir = Path(case_dir)
+    if not case_dir.is_dir():
+        return unavailable
+
+    if not force:
+        cached = streamline_artifact_path(case_dir)
+        if cached.is_file():
+            return StreamlineArtifact(
+                case_dir=case_dir, png=cached,
+                caption="streamlines colored by |U| — inlet (−Z) → wake (+Z)",
+                available=True,
+            )
+
+    if mesh is None:
+        if not case_has_flow_fields(case_dir):
+            return unavailable
+        if not ensure_reconstructed(case_dir, runner_factory=runner_factory, image_ok=image_ok):
+            return unavailable
+
+    try:
+        return render_streamlines_png(case_dir, mesh=mesh)
+    except Exception:  # noqa: BLE001 — viz must never break Assess
+        return unavailable
+
+
 def ensure_axial_uz_artifact(
     case_dir: str | Path | None,
     *,
