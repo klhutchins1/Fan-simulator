@@ -94,6 +94,8 @@ def apply_state_defaults(session) -> None:
     state.airflow_busy = False
     state._airflow_u_uri = ""
     state._airflow_p_uri = ""
+    state._airflow_uz_uri = ""       # axial-velocity (Uz) cut-plane
+    state._airflow_stream_uri = ""   # streamlines colored by |U|
     state.show_glyphs = True
     state.glyph_mode = "on"
     state.glyph_density = "medium"

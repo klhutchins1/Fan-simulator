@@ -1079,13 +1079,13 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                     with v3.VCard(style="height:560px;", classes="mb-2"):
                         view = plotter_ui(plotter)
                     with v3.VCard(classes="mb-2 pa-2", v_show="fan_subtab === 'results'"):
-                        html.Div("Duct airflow — midplane slice", classes="text-subtitle-2 mb-1")
+                        html.Div("Duct airflow — slices & streamlines", classes="text-subtitle-2 mb-1")
                         html.Div(
-                            "Cut through the duct center. Flow is left → right: "
-                            "FRONT / inlet on the LEFT, OUTLET on the RIGHT "
-                            "(air moves toward the outlet). Brighter |U| = faster. "
-                            "Wide crop: short FRONT approach, long OUTLET wake "
-                            "(hub dead-zone and tip jets).",
+                            "|U| / pressure midplane: cut through the duct center, flow left → "
+                            "right (FRONT/inlet LEFT, OUTLET RIGHT); brighter = faster. "
+                            "axial Uz: fan-face cut colored by axial velocity — blue = forward "
+                            "delivery, red = reverse/recirculation (a stalled fan reads red). "
+                            "streamlines: lines through the rotor colored by |U|.",
                             classes="text-caption text-medium-emphasis mb-2",
                         )
                         with v3.VBtnToggle(
@@ -1097,6 +1097,8 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         ):
                             v3.VBtn("|U| midplane", value="U", size="small")
                             v3.VBtn("pressure midplane", value="p", size="small")
+                            v3.VBtn("axial Uz", value="uz", size="small")
+                            v3.VBtn("streamlines", value="stream", size="small")
                         html.Div(
                             "{{ airflow_caption }}",
                             classes="text-caption text-medium-emphasis mb-1",

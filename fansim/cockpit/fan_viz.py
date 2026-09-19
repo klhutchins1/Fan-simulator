@@ -12,7 +12,11 @@ import asyncio
 import logging
 
 from fansim.cfd.glyphs import ensure_velocity_glyphs, make_glyph_arrows
-from fansim.cfd.midplane import ensure_midplane_artifacts
+from fansim.cfd.midplane import (
+    ensure_axial_uz_artifact,
+    ensure_midplane_artifacts,
+    ensure_streamlines_artifact,
+)
 from fansim.cockpit import fan_runtime
 from fansim.cockpit.data import Design
 from fansim.cockpit.errors import log_caught
@@ -335,17 +339,31 @@ def bind(session) -> None:
         except Exception:  # noqa: BLE001
             return ""
 
+    _AIRFLOW_CAPTIONS = {
+        "U": "Umag midplane — FRONT LEFT -> OUTLET RIGHT",
+        "p": "pressure midplane — FRONT LEFT -> OUTLET RIGHT",
+        "uz": "axial Uz cut-plane — blue = delivery (+Z), red = reverse (−Z)",
+        "stream": "streamlines colored by |U| — inlet (−Z) → wake (+Z)",
+    }
+
     def _apply_airflow_field():
         field = getattr(state, "airflow_field", "U") or "U"
-        if field == "p" and state._airflow_p_uri:
-            state.airflow_img_uri = state._airflow_p_uri
-            state.airflow_caption = "pressure midplane — FRONT LEFT -> OUTLET RIGHT"
-        elif state._airflow_u_uri:
-            state.airflow_img_uri = state._airflow_u_uri
-            state.airflow_caption = "Umag midplane — FRONT LEFT -> OUTLET RIGHT"
-        elif state._airflow_p_uri:
-            state.airflow_img_uri = state._airflow_p_uri
-            state.airflow_caption = "pressure midplane — FRONT LEFT -> OUTLET RIGHT"
+        uris = {
+            "U": state._airflow_u_uri,
+            "p": state._airflow_p_uri,
+            "uz": state._airflow_uz_uri,
+            "stream": state._airflow_stream_uri,
+        }
+        uri = uris.get(field, "")
+        shown = field
+        if not uri:  # picked field unavailable — fall back to |U|, then pressure
+            if state._airflow_u_uri:
+                uri, shown = state._airflow_u_uri, "U"
+            elif state._airflow_p_uri:
+                uri, shown = state._airflow_p_uri, "p"
+        if uri:
+            state.airflow_img_uri = uri
+            state.airflow_caption = _AIRFLOW_CAPTIONS.get(shown, "")
         else:
             state.airflow_img_uri = ""
             if not state.airflow_busy:
@@ -355,6 +373,8 @@ def bind(session) -> None:
         state.airflow_busy = False
         state._airflow_u_uri = ""
         state._airflow_p_uri = ""
+        state._airflow_uz_uri = ""
+        state._airflow_stream_uri = ""
         state.airflow_img_uri = ""
         state.airflow_caption = msg
         _clear_glyphs("Velocity arrows not available for this design")
@@ -370,6 +390,8 @@ def bind(session) -> None:
         state.airflow_caption = "Loading duct airflow midplane…"
         state._airflow_u_uri = ""
         state._airflow_p_uri = ""
+        state._airflow_uz_uri = ""
+        state._airflow_stream_uri = ""
         _clear_glyphs("Loading 3-D velocity arrows…")
         _apply_render(reset=False)
         token = int(d.trial)
@@ -379,23 +401,41 @@ def bind(session) -> None:
         def _load_airflow_pack():
             with airflow_lock:
                 if airflow_gen[0] != gen:
-                    return None, None
+                    return None
                 mid = ensure_midplane_artifacts(case)
                 if airflow_gen[0] != gen:
-                    return None, None
+                    return None
+                # Reconstruct is shared: midplane already ran it, so these just slice + render.
+                uz = ensure_axial_uz_artifact(case)
+                if airflow_gen[0] != gen:
+                    return None
+                stream = ensure_streamlines_artifact(case)
+                if airflow_gen[0] != gen:
+                    return None
                 gly = ensure_velocity_glyphs(case)
-                return mid, gly
+                return mid, gly, uz, stream
 
         async def task():
             try:
                 loop = asyncio.get_running_loop()
-                art, gly = await loop.run_in_executor(None, _load_airflow_pack)
-                if state.selected_trial != token or art is None:
+                pack = await loop.run_in_executor(None, _load_airflow_pack)
+                if state.selected_trial != token or pack is None:
                     return
+                art, gly, uz, stream = pack
+                state._airflow_uz_uri = (
+                    _png_data_uri(uz.png) if uz is not None and uz.available else "")
+                state._airflow_stream_uri = (
+                    _png_data_uri(stream.png) if stream is not None and stream.available else "")
                 if art.available:
                     state._airflow_u_uri = _png_data_uri(art.u_png)
                     state._airflow_p_uri = _png_data_uri(art.p_png)
                     state.airflow_busy = False
+                    _apply_airflow_field()
+                elif state._airflow_uz_uri or state._airflow_stream_uri:
+                    # midplane failed but a slice/streamline rendered — still show something
+                    state.airflow_busy = False
+                    state._airflow_u_uri = ""
+                    state._airflow_p_uri = ""
                     _apply_airflow_field()
                 else:
                     state.airflow_busy = False
@@ -415,6 +455,8 @@ def bind(session) -> None:
                     state.airflow_busy = False
                     state._airflow_u_uri = ""
                     state._airflow_p_uri = ""
+                    state._airflow_uz_uri = ""
+                    state._airflow_stream_uri = ""
                     state.airflow_img_uri = ""
                     state.airflow_caption = "Airflow not available for this design"
                     _clear_glyphs()
