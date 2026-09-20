@@ -17,6 +17,7 @@ from fansim.cfd.midplane import (
     ensure_midplane_artifacts,
     ensure_streamlines_artifact,
 )
+from fansim.cockpit.airflow_panel import pick_airflow_uri, png_data_uri
 from fansim.cockpit import fan_runtime
 from fansim.cockpit.data import Design
 from fansim.cockpit.errors import log_caught
@@ -30,7 +31,6 @@ _GLYPH_MAX = {"coarse": 250, "medium": 500, "fine": 800}
 
 
 def bind(session) -> None:
-    import base64
     from pathlib import Path
 
     state, ctrl = session.state, session.ctrl
@@ -331,39 +331,19 @@ def bind(session) -> None:
 
         fan_runtime.asynchronous.create_task(task())
 
-    def _png_data_uri(path) -> str:
-        if path is None or not Path(path).is_file():
-            return ""
-        try:
-            return "data:image/png;base64," + base64.b64encode(Path(path).read_bytes()).decode()
-        except Exception:  # noqa: BLE001
-            return ""
-
-    _AIRFLOW_CAPTIONS = {
-        "U": "Umag midplane — FRONT LEFT -> OUTLET RIGHT",
-        "p": "pressure midplane — FRONT LEFT -> OUTLET RIGHT",
-        "uz": "axial Uz cut-plane — blue = delivery (+Z), red = reverse (−Z)",
-        "stream": "streamlines colored by |U| — inlet (−Z) → wake (+Z)",
-    }
+    _png_data_uri = png_data_uri  # shared with the archetype tabs (airflow_panel)
 
     def _apply_airflow_field():
-        field = getattr(state, "airflow_field", "U") or "U"
         uris = {
             "U": state._airflow_u_uri,
             "p": state._airflow_p_uri,
             "uz": state._airflow_uz_uri,
             "stream": state._airflow_stream_uri,
         }
-        uri = uris.get(field, "")
-        shown = field
-        if not uri:  # picked field unavailable — fall back to |U|, then pressure
-            if state._airflow_u_uri:
-                uri, shown = state._airflow_u_uri, "U"
-            elif state._airflow_p_uri:
-                uri, shown = state._airflow_p_uri, "p"
+        uri, caption = pick_airflow_uri(uris, getattr(state, "airflow_field", "U") or "U")
         if uri:
             state.airflow_img_uri = uri
-            state.airflow_caption = _AIRFLOW_CAPTIONS.get(shown, "")
+            state.airflow_caption = caption
         else:
             state.airflow_img_uri = ""
             if not state.airflow_busy:
