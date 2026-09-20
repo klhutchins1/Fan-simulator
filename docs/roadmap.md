@@ -545,9 +545,10 @@ Update 2026-09-19/20: on audit, Prop/Mixed/Volute/CROR **already** have a result
 Optimize, Assess/Analyze, reload-prior-runs, and click-to-load — so 17.1/17.2 were largely
 present. The real Fan-only gap was the **airflow viz**, now the focus of 17.3.
 
-- [~] **17.1 Results scatter + previous-runs dropdown.** **[impact: high]** **[effort: med]**
-  Mostly already present per archetype (scatter + reload). A dedicated previous-runs *dropdown*
-  (vs scatter-click) + gold-✕ reference is the only remainder, low priority.
+- [x] **17.1 Results scatter + previous-runs dropdown.** DONE 2026-09-20. Scatter + reload were
+  already present; added a shared `data.design_dropdown_items` + a "Previous runs" VSelect to all
+  four archetype tabs (Mixed/Volute by trial, CROR/Prop by click index). gold-✕ reference is
+  fan-only (no published archetype reference), so N/A.
 - [~] **17.2 Assess / run a single design from the tab.** Already present (Mixed/Volute Assess,
   Prop Analyze, CROR Optimize+CFD-refine).
 - [~] **17.3 Airflow viz where applicable.** **[impact: med]** **[effort: med]**
