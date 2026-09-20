@@ -541,21 +541,26 @@ visual, and error-handling that hides failure.
 still lags the Fan tab (feature counts: fan ~25 vs mixed/prop ~6, volute ~5, cror ~3). Bring each
 archetype tab up to the Fan tab's post-run workflow **where the physics makes sense**.
 
-- [ ] **17.1 Results scatter + previous-runs dropdown.** **[impact: high]** **[effort: med]** A
-  per-archetype results graph (objective scatter; gold ✕ / stock reference where one exists) and a
-  "load a previous scored design" dropdown from that archetype's study catalog — generalize the Fan
-  tab's `load_study_designs` / `data.py` / `fan_trials` path per engine.
-- [ ] **17.2 Assess / run a single design from the tab.** **[impact: high]** **[effort: med]** Score
-  one edited design (CFD, or the engine's screening tier) from the archetype tab, land it in
-  `cockpit_assess`, and plot it — the Fan tab's Assess flow for Mixed/Prop/Volute/CROR.
-- [ ] **17.3 Airflow viz where applicable.** **[impact: med]** **[effort: med]** Reuse the
-  `fansim/cfd/midplane.py` renderers (|U|/p midplane, axial-Uz cut-plane, streamlines) for engines
-  with a duct/rotor CFD case (Mixed, CROR). Prop is open-air → streamlines yes, duct cut-plane no;
-  Volute is a scroll → its own meridional/scroll slice, not the axial cut-plane. Skip BEMT-only tiers
-  (no volume field).
-- [ ] **17.4 Shared binder.** **[impact: med]** **[effort: med]** Factor the Fan tab's results/airflow
-  binders (`fan_trials` / `fan_viz`) into an engine-agnostic helper so each tab wires the same behavior
-  instead of copy-paste (extends the §15.5 binder split).
+Update 2026-09-19/20: on audit, Prop/Mixed/Volute/CROR **already** have a results scatter,
+Optimize, Assess/Analyze, reload-prior-runs, and click-to-load — so 17.1/17.2 were largely
+present. The real Fan-only gap was the **airflow viz**, now the focus of 17.3.
+
+- [~] **17.1 Results scatter + previous-runs dropdown.** **[impact: high]** **[effort: med]**
+  Mostly already present per archetype (scatter + reload). A dedicated previous-runs *dropdown*
+  (vs scatter-click) + gold-✕ reference is the only remainder, low priority.
+- [~] **17.2 Assess / run a single design from the tab.** Already present (Mixed/Volute Assess,
+  Prop Analyze, CROR Optimize+CFD-refine).
+- [~] **17.3 Airflow viz where applicable.** **[impact: med]** **[effort: med]**
+  - [x] **Mixed** (2026-09-19) — full |U|/p + axial-Uz + streamlines, verified on a real MRF case.
+  - [x] **CROR** (2026-09-20) — rendered for the best CFD-refined design (dual AXIAL rotors).
+  - [ ] **Volute** — radial scroll: the fan slices don't fit; needs |U|/p + a scroll/meridional
+    view (not the axial-Uz cut-plane). Its z=0 Z-normal slice + downstream-wake seed assume an
+    axial machine, so the renderers need geometry-aware slice/seed before reuse.
+  - [ ] **Prop** — open-air (no duct): streamlines only; the midplane/cut-plane assume a duct.
+- [x] **17.4 Shared binder.** **[impact: med]** **[effort: med]** DONE 2026-09-19/20:
+  `fansim/cockpit/airflow_panel.py` (render_airflow_pack / pick_airflow_uri / png_data_uri);
+  Fan tab deduped onto it (ae00cd2); Mixed + CROR wire it. Fuller results/binder unification
+  (`fan_trials`) still optional.
 
 ## 18. Catalog data hygiene — stale CFD results (2026-09-18)
 
