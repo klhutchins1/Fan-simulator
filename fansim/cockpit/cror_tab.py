@@ -11,6 +11,7 @@ import tempfile
 import time
 from pathlib import Path
 
+from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.figures import cror_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
@@ -72,6 +73,12 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
     state.cror_export_busy = False
     state.cror_preview_busy = False
     state.cror_geo_ready = False
+    # Duct-airflow viz (§17.3): rendered from the top CFD-refined design (dual counter-rotating
+    # AXIAL rotors, so the axial slices apply). |U|/p midplane + axial-Uz + streamlines.
+    state.cror_airflow_field = "U"
+    state.cror_airflow_img_uri = ""
+    state.cror_airflow_caption = "Run CFD refine to see duct airflow for the top design."
+    state.cror_airflow_busy = False
     state.cror_msg = ""
     state.cror_readout = [
         "CROR: edit front/rear blades, Preview the stack, Thin to ≤25 mm, Optimize (BEMT proxy), "
@@ -108,6 +115,63 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
     def _refresh_cror_figure():
         if hasattr(ctrl, "cror_fig_update"):
             ctrl.cror_fig_update(cror_scatter_figure(cror_pareto_store))
+
+    # --- Duct-airflow viz (§17.3): render a CFD-refined CROR case (shared renderers) ---------
+    _cror_airflow = {"uris": {}, "gen": 0}
+
+    def _apply_cror_airflow_field():
+        uri, cap = pick_airflow_uri(_cror_airflow["uris"], state.cror_airflow_field or "U")
+        state.cror_airflow_img_uri = uri
+        if uri:
+            state.cror_airflow_caption = cap
+        elif not state.cror_airflow_busy:
+            state.cror_airflow_caption = "Airflow not available for this design"
+
+    def _render_cror_airflow(case_dir):
+        if not case_dir or asynchronous is None:
+            _cror_airflow["uris"] = {}
+            state.cror_airflow_img_uri = ""
+            state.cror_airflow_caption = "Airflow not available for this design"
+            return
+        _cror_airflow["gen"] += 1
+        gen = _cror_airflow["gen"]
+        state.cror_airflow_busy = True
+        state.cror_airflow_img_uri = ""
+        state.cror_airflow_caption = "Rendering duct airflow…"
+        state.flush()
+
+        async def task():
+            try:
+                loop = asyncio.get_running_loop()
+                pack = await loop.run_in_executor(
+                    None, lambda: render_airflow_pack(str(case_dir)))
+                if _cror_airflow["gen"] != gen:
+                    return
+                _cror_airflow["uris"] = pack["uris"]
+                state.cror_airflow_busy = False
+                _apply_cror_airflow_field()
+            except Exception:  # noqa: BLE001 — viz must never break the tab
+                if _cror_airflow["gen"] == gen:
+                    _cror_airflow["uris"] = {}
+                    state.cror_airflow_busy = False
+                    state.cror_airflow_img_uri = ""
+                    state.cror_airflow_caption = "Airflow not available for this design"
+            finally:
+                try:
+                    state.flush()
+                    ctrl.cror_view_update()
+                except Exception:  # noqa: BLE001
+                    pass
+
+        asynchronous.create_task(task())
+
+    @state.change("cror_airflow_field")
+    def _on_cror_airflow_field(**_):
+        _apply_cror_airflow_field()
+        try:
+            state.flush()
+        except Exception:  # noqa: BLE001
+            pass
 
     def _cror_busy():
         return bool(
@@ -379,6 +443,10 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
             )
             state.cror_refine_busy = False
             ticker.cancel()
+            # Show the airflow for the best refined (feasible) design.
+            best = next((r for r in rows if r.get("feasible")), rows[0] if rows else None)
+            if best and best.get("workdir"):
+                _render_cror_airflow(best["workdir"])
             state.flush()
 
         asynchronous.create_task(task())
@@ -667,3 +735,28 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                         style="width:100%;",
                     )
                     ctrl.cror_fig_update = cror_fig_widget.update
+                with v3.VCard(classes="mb-2 pa-2"):
+                    html.Div("Duct airflow — top CFD-refined design",
+                             classes="text-subtitle-2 mb-1")
+                    html.Div(
+                        "From the best design of the last CFD refine (dual-MRF). |U|/pressure "
+                        "midplane; axial Uz (blue = delivery, red = reverse); streamlines by |U|. "
+                        "Counter-rotating rotors cancel much of the net swirl.",
+                        classes="text-caption text-medium-emphasis mb-2",
+                    )
+                    with v3.VBtnToggle(
+                        v_model=("cror_airflow_field",),
+                        density="compact", color="primary", classes="mb-2", mandatory=True,
+                    ):
+                        v3.VBtn("|U| midplane", value="U", size="small")
+                        v3.VBtn("pressure midplane", value="p", size="small")
+                        v3.VBtn("axial Uz", value="uz", size="small")
+                        v3.VBtn("streamlines", value="stream", size="small")
+                    html.Div("{{ cror_airflow_caption }}",
+                             classes="text-caption text-medium-emphasis mb-1")
+                    html.Img(
+                        src=("cror_airflow_img_uri",),
+                        v_show="cror_airflow_img_uri",
+                        style="width:100%;max-height:520px;object-fit:contain;"
+                        "display:block;background:#fafafa;border-radius:4px;",
+                    )
