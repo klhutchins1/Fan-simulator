@@ -70,3 +70,28 @@ def load_designs(out_dir: str | Path, study_name: str | None = None) -> list[Des
 
 def feasible_designs(designs: list[Design]) -> list[Design]:
     return [d for d in designs if d.feasible and d.objectives[OBJECTIVE_NAMES[0]] > -1e5]
+
+
+def design_dropdown_items(rows, *, by_index: bool = False) -> list[dict]:
+    """Build ``[{title, value}]`` for an archetype Results "previous runs" dropdown.
+
+    ``rows`` are the tab's design-store dicts (``trial`` + ``objectives`` + optional ``extra``).
+    ``value`` is the trial number (mixed/volute load by trial) or the list index when
+    ``by_index`` (cror/prop load by click index). Marks stale (old-solver) scores with ⧗.
+    """
+    items: list[dict] = []
+    for i, r in enumerate(rows or []):
+        obj = r.get("objectives") or {}
+        bits = []
+        for key, lab in (("cfm_free", "free"), ("cfm_load", "load"), ("efficiency", "η"),
+                         ("fm", "FM"), ("thrust_n", "T"), ("swl_dba", "dBA")):
+            v = obj.get(key)
+            if isinstance(v, (int, float)):
+                bits.append(f"{lab} {v:.1f}")
+        t = r.get("trial")
+        head = f"#{t}" if t is not None else f"#{i}"
+        stale = " ⧗" if (r.get("extra") or {}).get("cfd_stale") else ""
+        title = head + stale + (" · " + " · ".join(bits) if bits else "")
+        value = i if by_index else (int(t) if t is not None else i)
+        items.append({"title": title, "value": value})
+    return items

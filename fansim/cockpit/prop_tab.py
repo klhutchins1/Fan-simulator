@@ -16,6 +16,7 @@ from pathlib import Path
 _log = logging.getLogger(__name__)
 
 from fansim.cockpit.context import CockpitCtx
+from fansim.cockpit.data import design_dropdown_items
 from fansim.cockpit.figures import prop_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
 
@@ -121,6 +122,9 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     def _prop_click_store() -> list[dict]:
         return list(prop_pareto_store) + list(prop_user_store)
 
+    state.prop_sel_idx = None  # previous-runs dropdown (loads by click index)
+    state.prop_trial_items = design_dropdown_items(_prop_click_store(), by_index=True)
+
     def _prop_table_rows(store: list[dict], limit: int = 14) -> list[dict]:
         rows = []
         for i, r in enumerate(store[:limit]):
@@ -142,6 +146,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     def _refresh_prop_figure():
         if hasattr(ctrl, "prop_fig_update"):
             ctrl.prop_fig_update(prop_scatter_figure(prop_pareto_store, prop_user_store))
+        state.prop_trial_items = design_dropdown_items(_prop_click_store(), by_index=True)
 
     def _reload_prop_from_disk():
         """Load Optimize + Analyze points from runs/ into the in-memory stores."""
@@ -764,6 +769,14 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                 with v3.VCard(style="height:360px;", classes="mb-2"):
                     prop_view = plotter_ui(prop_plotter)
                     ctrl.prop_view_update = prop_view.update
+                with v3.VCard(classes="pa-2 mb-2"):
+                    v3.VSelect(
+                        label="Previous runs",
+                        v_model=("prop_sel_idx",),
+                        items=("prop_trial_items",),
+                        density="compact", variant="outlined", hide_details=True,
+                        update_modelValue=(getattr(ctx, "load_prop_row"), "[$event]"),
+                    )
                 with v3.VCard(style="height:360px;", classes="pa-1 mb-2"):
                     prop_fig_widget = plotly_widgets.Figure(
                         figure=prop_scatter_figure(prop_pareto_store, prop_user_store),

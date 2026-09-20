@@ -13,6 +13,7 @@ from pathlib import Path
 
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
 from fansim.cockpit.context import CockpitCtx
+from fansim.cockpit.data import design_dropdown_items
 from fansim.cockpit.figures import cror_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
 from fansim.cror.geometry import CrorParams, export_cror_stl
@@ -79,6 +80,8 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
     state.cror_airflow_img_uri = ""
     state.cror_airflow_caption = "Run CFD refine to see duct airflow for the top design."
     state.cror_airflow_busy = False
+    state.cror_sel_idx = None  # previous-runs dropdown (loads by click index)
+    state.cror_trial_items = design_dropdown_items(cror_pareto_store, by_index=True)
     state.cror_msg = ""
     state.cror_readout = [
         "CROR: edit front/rear blades, Preview the stack, Thin to ≤25 mm, Optimize (BEMT proxy), "
@@ -115,6 +118,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
     def _refresh_cror_figure():
         if hasattr(ctrl, "cror_fig_update"):
             ctrl.cror_fig_update(cror_scatter_figure(cror_pareto_store))
+        state.cror_trial_items = design_dropdown_items(cror_pareto_store, by_index=True)
 
     # --- Duct-airflow viz (§17.3): render a CFD-refined CROR case (shared renderers) ---------
     _cror_airflow = {"uris": {}, "gen": 0}
@@ -725,6 +729,14 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                 with v3.VCard(style="height:360px;", classes="mb-2"):
                     cror_view = plotter_ui(cror_plotter)
                     ctrl.cror_view_update = cror_view.update
+                with v3.VCard(classes="pa-2 mb-2"):
+                    v3.VSelect(
+                        label="Previous runs",
+                        v_model=("cror_sel_idx",),
+                        items=("cror_trial_items",),
+                        density="compact", variant="outlined", hide_details=True,
+                        update_modelValue=(getattr(ctx, "load_cror_row"), "[$event]"),
+                    )
                 with v3.VCard(style="height:360px;", classes="pa-1 mb-2"):
                     cror_fig_widget = plotly_widgets.Figure(
                         figure=cror_scatter_figure(cror_pareto_store),

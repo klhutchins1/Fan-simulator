@@ -13,6 +13,7 @@ from pathlib import Path
 
 from fansim.cockpit.busy import cfd_stage_hint
 from fansim.cockpit.context import CockpitCtx
+from fansim.cockpit.data import design_dropdown_items
 from fansim.cockpit.figures import volute_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
 from fansim.volute.optimize import run_volute_study
@@ -106,7 +107,11 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
             f"Loaded {len(volute_design_store)} Optimize proxy point(s) onto the volute scatter."
         )
 
+    state.volute_sel_trial = None  # previous-runs dropdown (loads by trial)
+    state.volute_trial_items = design_dropdown_items(volute_design_store)
+
     def _refresh_volute_figure():
+        state.volute_trial_items = design_dropdown_items(volute_design_store)
         if hasattr(ctrl, "volute_fig_update"):
             ctrl.volute_fig_update(volute_scatter_figure(volute_design_store))
 
@@ -573,6 +578,14 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                 with v3.VCard(style="height:400px;", classes="mb-2"):
                     volute_view = plotter_ui(volute_plotter)
                     ctrl.volute_view_update = volute_view.update
+                with v3.VCard(classes="pa-2 mb-2"):
+                    v3.VSelect(
+                        label="Previous runs",
+                        v_model=("volute_sel_trial",),
+                        items=("volute_trial_items",),
+                        density="compact", variant="outlined", hide_details=True,
+                        update_modelValue=(getattr(ctx, "load_volute_trial"), "[$event]"),
+                    )
                 with v3.VCard(style="height:360px;", classes="pa-1 mb-2"):
                     volute_fig_widget = plotly_widgets.Figure(
                         figure=volute_scatter_figure(

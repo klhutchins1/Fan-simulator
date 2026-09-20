@@ -16,6 +16,7 @@ _log = logging.getLogger(__name__)
 
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
+from fansim.cockpit.data import design_dropdown_items
 from fansim.cockpit.figures import mf_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
 from fansim.fan_spec import A12X25
@@ -108,6 +109,8 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
     state.mf_airflow_img_uri = ""
     state.mf_airflow_caption = "Assess or load a mixed design to see duct airflow."
     state.mf_airflow_busy = False
+    state.mf_sel_trial = None  # previous-runs dropdown selection (loads by trial)
+    state.mf_trial_items = design_dropdown_items(mf_design_store)
     _mf_runs = runs_root if runs_root.exists() else Path("runs")
     _mf_last = latest_mixed_opt_dir(_mf_runs)
     state.mf_last_opt = str(_mf_last) if _mf_last else ""
@@ -131,6 +134,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
     def _refresh_mf_figure():
         if hasattr(ctrl, "mf_fig_update"):
             ctrl.mf_fig_update(mf_scatter_figure(mf_design_store))
+        state.mf_trial_items = design_dropdown_items(mf_design_store)
 
     # --- Duct-airflow viz (§17.3): render a solved mixed case with the shared renderers -------
     _mf_airflow = {"uris": {}, "gen": 0}
@@ -791,6 +795,14 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                 with v3.VCard(style="height:400px;", classes="mb-2"):
                     mf_view = plotter_ui(mf_plotter)
                     ctrl.mf_view_update = mf_view.update
+                with v3.VCard(classes="pa-2 mb-2"):
+                    v3.VSelect(
+                        label="Previous runs",
+                        v_model=("mf_sel_trial",),
+                        items=("mf_trial_items",),
+                        density="compact", variant="outlined", hide_details=True,
+                        update_modelValue=(getattr(ctx, "load_mf_trial"), "[$event]"),
+                    )
                 with v3.VCard(style="height:360px;", classes="pa-1 mb-2"):
                     mf_fig_widget = plotly_widgets.Figure(
                         figure=mf_scatter_figure(mf_design_store),
