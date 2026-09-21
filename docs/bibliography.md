@@ -152,8 +152,11 @@ Legend: **→ code** points at the module/script that implements or relies on th
   catalogs; Apache-2.0; pin **0.2.3**. [GitHub](https://github.com/Setuav/PyThrust) ·
   [docs](https://setuav.github.io/PyThrust/) · [PyPI](https://pypi.org/project/setuav-pythrust/).
   **→ code:** optional adapter in `fansim/propeller/power.py` (`uv sync --extra propulsion`); quorum
-  Q3–Q5 behind `@pytest.mark.propulsion`; spec
-  `docs/superpowers/specs/2026-09-21-prop-pythrust-power-design.md`.
+  Q3–Q5 behind `@pytest.mark.propulsion`; custom-blade BEMT→CSV bridge in
+  `fansim/propeller/pythrust_export.py` (Analyze **Export CT/CP (PyThrust)** +
+  `scripts/export_prop_pythrust_csv.py`); specs
+  `docs/superpowers/specs/2026-09-21-prop-pythrust-power-design.md`,
+  `docs/superpowers/specs/2026-09-21-prop-pythrust-bemt-export-design.md`.
 - **Drela first-order DC brushless motor model (MIT / QPROP lineage)** — Kv, winding resistance, and
   no-load current in the propulsion equilibrium PyThrust uses; full equations and Drela pointers in
   [Propulsion and Battery Theory](https://setuav.github.io/PyThrust/theory/). **→ code:** adapter

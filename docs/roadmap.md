@@ -144,6 +144,9 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   quorum cross-checks in `fansim/propeller/power.py` — complements BEMT screening; **not** a substitute
   for §4.3 CFD (spec/plan: `docs/superpowers/specs/2026-09-21-prop-pythrust-power-design.md`,
   `docs/superpowers/plans/2026-09-21-prop-pythrust-power.md`).
+  **Track A stage 2 (2026-09-21):** BEMT→PyThrust CSV export (Analyze + CLI); not a substitute for §4.3 CFD
+  (spec/plan: `docs/superpowers/specs/2026-09-21-prop-pythrust-bemt-export-design.md`,
+  `docs/superpowers/plans/2026-09-21-prop-pythrust-bemt-export.md`).
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 

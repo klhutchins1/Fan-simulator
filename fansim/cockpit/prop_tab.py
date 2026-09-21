@@ -554,12 +554,66 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
 
         asynchronous.create_task(task())
 
+    def export_prop_pythrust_csv():
+        """Export BEMT CT/CP table as PyThrust JSON+CSV under exports/pythrust/."""
+        if state.prop_busy or state.prop_refine_busy or state.prop_export_busy:
+            return
+        spec = prop_editor_spec()
+        out_dir = Path("exports") / "pythrust"
+        from fansim.propeller.pythrust_export import prop_id_for_export
+
+        prop_id = prop_id_for_export(state.prop_model)
+
+        async def task():
+            state.prop_export_busy = True
+            ticker, _t0 = spawn_busy_ticker(
+                action="Export CT/CP",
+                msg_attr="prop_export_msg",
+                busy_attr="prop_export_busy",
+                note="BEMT → PyThrust CSV",
+            )
+            state.flush()
+            loop = asyncio.get_running_loop()
+            try:
+                from fansim.propeller.pythrust_export import export_bemt_pythrust_catalog
+
+                result = await loop.run_in_executor(
+                    None,
+                    lambda: export_bemt_pythrust_catalog(
+                        prop_editor_params(),
+                        prop_id=prop_id,
+                        diameter_in=spec.diameter_in,
+                        pitch_in=spec.pitch_in,
+                        blade_count=spec.n_blades,
+                        out_dir=out_dir,
+                        geometry_match="design_blade",
+                        model=spec.name,
+                    ),
+                )
+            except Exception as exc:  # noqa: BLE001
+                state.prop_export_msg = (
+                    f"⚠ CT/CP export failed: {type(exc).__name__}: {exc}"
+                )
+                state.prop_export_busy = False
+                ticker.cancel()
+                state.flush()
+                return
+            state.prop_export_msg = (
+                f"✓ PyThrust CT/CP → {result['csv']}  ({result['n_rows']} rows)"
+            )
+            state.prop_export_busy = False
+            ticker.cancel()
+            state.flush()
+
+        asynchronous.create_task(task())
+
     # Expose callbacks for the UI renderer.
     ctx.analyze_prop = analyze_prop  # type: ignore[attr-defined]
     ctx.optimize_prop = optimize_prop  # type: ignore[attr-defined]
     ctx.refine_prop_cfd = refine_prop_cfd  # type: ignore[attr-defined]
     ctx.load_prop_row = load_prop_row  # type: ignore[attr-defined]
     ctx.export_prop_stl = export_prop_stl  # type: ignore[attr-defined]
+    ctx.export_prop_pythrust_csv = export_prop_pythrust_csv  # type: ignore[attr-defined]
 
 
 def render_prop_tab(ctx: CockpitCtx) -> None:
@@ -656,6 +710,18 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                             loading=("prop_export_busy",),
                             disabled=(
                                 "prop_busy || prop_refine_busy || prop_export_busy || !prop_geo_ready",
+                            ),
+                        )
+                        v3.VBtn(
+                            "Export CT/CP (PyThrust)",
+                            size="small",
+                            variant="tonal",
+                            color="primary",
+                            click=(getattr(ctx, "export_prop_pythrust_csv"),),
+                            classes="mr-2",
+                            loading=("prop_export_busy",),
+                            disabled=(
+                                "prop_busy || prop_refine_busy || prop_export_busy",
                             ),
                         )
                         v3.VBtn(
