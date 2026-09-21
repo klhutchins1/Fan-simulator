@@ -29,3 +29,12 @@ def test_catalog_solve_apc_5x45_feasible():
     assert out["thrust_n"] > 0.0
     assert out["rpm"] > 1000.0
     assert out["prop_id"]
+
+
+def test_quorum_q3_q4_q5_apc_5x45():
+    from fansim.propeller.power import run_propulsion_quorum
+
+    report = run_propulsion_quorum(prop_id="APC_5x4.5E", rpm_static=10000.0)
+    assert report["all_pass"] is True
+    by_id = {c["id"]: c for c in report["checks"]}
+    assert by_id["Q3"]["pass"] and by_id["Q4"]["pass"] and by_id["Q5"]["pass"]

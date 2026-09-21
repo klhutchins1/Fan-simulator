@@ -197,3 +197,170 @@ def solve_catalog_operating_point(
         "throttle": float(throttle),
         "airspeed_mps": float(airspeed_mps),
     }
+
+
+_QUORUM_MOTOR: dict[str, float] = {
+    "kv_rpm_per_v": 1900.0,
+    "resistance_ohm": 0.05,
+    "no_load_current_a": 1.0,
+    "current_max_a": 40.0,
+}
+_QUORUM_BATTERY_V = 22.2
+_QUORUM_THROTTLE = 0.7
+_Q4_POWER_BAND = 0.15
+_Q5_FM_LO = 0.50
+_Q5_FM_HI = 0.85
+_Q3_FIELD_TOL = 1e-9
+
+
+def _apc_static_coefficients(entry: Any, rpm_static: float) -> tuple[float, float, float]:
+    rpm_keys = list(entry.data_by_rpm.keys())
+    if not rpm_keys:
+        raise ValueError("APC entry has no RPM tables")
+    rpm_key = min(rpm_keys, key=lambda k: abs(float(k) - float(rpm_static)))
+    points = entry.data_by_rpm[rpm_key]
+    static = next((p for p in points if float(getattr(p, "j", 1.0)) == 0.0), None)
+    if static is None:
+        static = min(points, key=lambda p: float(getattr(p, "j", 0.0)))
+    return float(rpm_key), float(static.ct), float(static.cp)
+
+
+def _pythrust_native_operating_point(
+    *,
+    prop_id: str,
+    motor: dict[str, Any],
+    battery_voltage_v: float,
+    throttle: float,
+    airspeed_mps: float = 0.0,
+    rho: float = RHO_AIR,
+    system_resistance_ohm: float = 0.02,
+) -> dict[str, float]:
+    from pythrust.propulsion.models.battery import FixedVoltageBattery
+    from pythrust.propulsion.models.motor import MotorSpec
+    from pythrust.propulsion.models.propeller import PropellerSpec
+    from pythrust.propulsion.models.system import SystemSpec
+    from pythrust.propulsion.solver import PropulsionSolver
+
+    db = _load_apc_db()
+    entry = db.get(prop_id)
+    meta = entry.metadata
+    prop = PropellerSpec(diameter_m=float(meta.diameter_in) * 0.0254)
+    m = MotorSpec(
+        kv_rpm_per_v=float(motor["kv_rpm_per_v"]),
+        resistance_ohm=float(motor["resistance_ohm"]),
+        no_load_current_a=float(motor["no_load_current_a"]),
+        current_max_a=float(motor["current_max_a"]),
+    )
+    batt = FixedVoltageBattery(voltage_v=float(battery_voltage_v))
+    sys = SystemSpec(resistance_ohm=float(system_resistance_ohm))
+    pt = PropulsionSolver().solve_operating_point(
+        motor=m,
+        battery=batt,
+        system=sys,
+        propeller=prop,
+        prop_entry=entry,
+        rho=float(rho),
+        airspeed_mps=float(airspeed_mps),
+        throttle=float(throttle),
+    )
+    return {
+        "rpm": float(pt.rpm),
+        "thrust_n": float(pt.thrust_n),
+        "shaft_power_w": float(pt.shaft_power_w),
+        "motor_current_a": float(pt.motor_current_a),
+    }
+
+
+def _fields_close(a: float, b: float, *, rel: float = _Q3_FIELD_TOL, abs_tol: float = _Q3_FIELD_TOL) -> bool:
+    return math.isclose(float(a), float(b), rel_tol=rel, abs_tol=abs_tol)
+
+
+def run_propulsion_quorum(*, prop_id: str = "APC_5x4.5E", rpm_static: float = 10000.0) -> dict[str, Any]:
+    _require_pythrust()
+    checks: list[dict[str, Any]] = []
+
+    adapter = solve_catalog_operating_point(
+        motor=_QUORUM_MOTOR,
+        battery_voltage_v=_QUORUM_BATTERY_V,
+        prop_id=prop_id,
+        throttle=_QUORUM_THROTTLE,
+        airspeed_mps=0.0,
+    )
+    native = _pythrust_native_operating_point(
+        prop_id=prop_id,
+        motor=_QUORUM_MOTOR,
+        battery_voltage_v=_QUORUM_BATTERY_V,
+        throttle=_QUORUM_THROTTLE,
+    )
+    q3_fields = ("rpm", "thrust_n", "shaft_power_w", "motor_current_a")
+    q3_mismatches = [
+        f"{name}: adapter={adapter[name]!r} native={native[name]!r}"
+        for name in q3_fields
+        if not _fields_close(adapter[name], native[name])
+    ]
+    checks.append(
+        {
+            "id": "Q3",
+            "pass": not q3_mismatches,
+            "detail": "PyThrust adapter matches native solver"
+            if not q3_mismatches
+            else "; ".join(q3_mismatches),
+        }
+    )
+
+    db = _load_apc_db()
+    entry = db.get(prop_id)
+    dia_m = float(entry.metadata.diameter_in) * 0.0254
+    rpm_used, ct, cp = _apc_static_coefficients(entry, rpm_static)
+    n = rpm_used / 60.0
+    rho = RHO_AIR
+    thrust_n = ct * rho * (n**2) * (dia_m**4)
+    shaft_power_w = cp * rho * (n**3) * (dia_m**5)
+    disk_area_m2 = math.pi * (dia_m / 2.0) ** 2
+    ideal_power_w = (thrust_n**1.5) / math.sqrt(2.0 * rho * disk_area_m2)
+    figure_of_merit = ideal_power_w / shaft_power_w if shaft_power_w > 0.0 else 0.0
+    momentum_shaft_w = ideal_power_w / figure_of_merit if figure_of_merit > 0.0 else 0.0
+    identity_ok = _fields_close(shaft_power_w, momentum_shaft_w)
+    budget = hover_power_budget(
+        all_up_weight_n=thrust_n,
+        n_rotors=1,
+        tip_radius_m=dia_m / 2.0,
+        figure_of_merit=figure_of_merit,
+    )
+    budget_shaft_w = float(budget["shaft_power_w"])
+    rel_err = abs(budget_shaft_w - shaft_power_w) / shaft_power_w if shaft_power_w > 0.0 else float("inf")
+    band_ok = rel_err <= _Q4_POWER_BAND
+    q4_pass = identity_ok and band_ok
+    checks.append(
+        {
+            "id": "Q4",
+            "pass": q4_pass,
+            "detail": (
+                f"rpm={rpm_used} static ct={ct} cp={cp}; "
+                f"P_catalog={shaft_power_w:.4f}W P_hover_budget={budget_shaft_w:.4f}W "
+                f"rel_err={rel_err:.4f} FM={figure_of_merit:.4f}"
+            ),
+            "rpm_used": rpm_used,
+            "shaft_power_w": shaft_power_w,
+            "hover_budget_shaft_w": budget_shaft_w,
+            "relative_error": rel_err,
+            "figure_of_merit": figure_of_merit,
+        }
+    )
+
+    fm_ok = _Q5_FM_LO <= figure_of_merit <= _Q5_FM_HI
+    checks.append(
+        {
+            "id": "Q5",
+            "pass": fm_ok,
+            "detail": (
+                f"catalog static FoM={figure_of_merit:.4f} "
+                f"expected [{_Q5_FM_LO}, {_Q5_FM_HI}] at rpm={rpm_used}"
+            ),
+            "figure_of_merit": figure_of_merit,
+            "rpm_used": rpm_used,
+        }
+    )
+
+    all_pass = all(c["pass"] for c in checks)
+    return {"checks": checks, "all_pass": all_pass, "prop_id": prop_id, "rpm_static": float(rpm_static)}
