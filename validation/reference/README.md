@@ -23,6 +23,23 @@ parametric Stock yaml alone, with tip gap **0.5 mm** and a documented mesh budge
 
 Geometry envelope checks and CFD performance checks remain separate gates.
 
+## Drone radial / impeller STL batch
+
+`validation/reference/drone_radial/` — prepared millimeter STLs from the
+`radial+impeller_stls` Downloads dump (≈60 mm “impeller” and ≈90 mm open rotors,
+CW/CCW pairs). Prep via `scripts/import_prop_stls.py`: XY-centered on +Z, inverted
+normals fixed, `manifest.json` + per-file `.meta.json`.
+
+Open-air prop CFD (no BEMT):
+
+```bash
+uv run python scripts/evaluate_prop_cfd.py \
+  --stl validation/reference/drone_radial/obj_1_ccw_impeller.stl \
+  --spec cine_3inch --rpm 25000 --dry-run
+```
+
+Spin defaults from the filename (`CCW` → `-1`, `CW` → `+1`); override with `--spin`.
+
 ## Blade geometry golden (§15.2)
 
 `a12x25_blade_golden.json` — parametric Stock volume / bounds / tip-section sample from

@@ -5,6 +5,7 @@ Default spec is fpv_5inch (5-inch FPV freestyle). RPM defaults to 0.7 × rpm_max
 
 Usage:
     uv run python scripts/evaluate_prop_cfd.py [--out runs/prop_cfd_smoke] [--dry-run]
+    uv run python scripts/evaluate_prop_cfd.py --stl validation/reference/drone_radial/obj_1_ccw_impeller.stl --dry-run
 """
 
 from __future__ import annotations
@@ -33,16 +34,27 @@ def build_parser() -> argparse.ArgumentParser:
         "--bemt-floor",
         type=float,
         default=0.0,
-        help="skip CFD if BEMT thrust_g < this floor (default 0 = off)",
+        help="skip CFD if BEMT thrust_g < this floor (default 0 = off; ignored with --stl)",
     )
     ap.add_argument("--spec", default="fpv_5inch", help="prop spec key (default fpv_5inch)")
     ap.add_argument("--rpm", type=float, default=None, help="RPM (default 0.7 * rpm_max)")
     ap.add_argument(
+        "--stl",
+        type=Path,
+        default=None,
+        help="external millimeter STL (centered/normal-fixed unless --no-prepare-stl)",
+    )
+    ap.add_argument(
+        "--no-prepare-stl",
+        action="store_true",
+        help="use --stl as-is (must already be Z-up, XY-centered, positive volume)",
+    )
+    ap.add_argument(
         "--spin",
         type=int,
-        default=-1,
+        default=None,
         choices=(-1, 1),
-        help="MRF rotation sign about +z (default -1, same as ducted fans → +Fz)",
+        help="MRF rotation sign about +z (default: -1, or CCW/CW hint from --stl name)",
     )
     ap.add_argument(
         "--dry-run",
@@ -52,11 +64,24 @@ def build_parser() -> argparse.ArgumentParser:
     return ap
 
 
+def _resolve_spin(args) -> int:
+    if args.spin is not None:
+        return int(args.spin)
+    if args.stl is not None:
+        from fansim.propeller.stl_import import spin_hint_from_name
+
+        hint = spin_hint_from_name(Path(args.stl).name)
+        if hint is not None:
+            return hint
+    return -1
+
+
 def main() -> int:
     args = build_parser().parse_args()
 
     spec = get_prop_spec(args.spec)
     rpm = float(0.7 * spec.rpm_max if args.rpm is None else args.rpm)
+    spin = _resolve_spin(args)
     args.out.mkdir(parents=True, exist_ok=True)
 
     if args.dry_run:
@@ -64,13 +89,34 @@ def main() -> int:
         from fansim.geometry import watertight_report
         from fansim.propeller.cfd import build_prop_case, prop_open_air
         from fansim.propeller.geometry import build_prop
+        from fansim.propeller.stl_import import measure_prop_stl, prepare_prop_stl
 
         stl = args.out / "prop.stl"
-        build_prop(spec, stl)
+        if args.stl is not None:
+            src = Path(args.stl)
+            if not src.is_file():
+                print(f"ERROR: --stl not found: {src}", file=sys.stderr)
+                return 2
+            if args.no_prepare_stl:
+                import shutil
+
+                shutil.copy2(src, stl)
+            else:
+                prepare_prop_stl(src, stl)
+            metrics = measure_prop_stl(stl)
+            tip_radius_m = metrics.tip_radius_m
+            import math
+
+            tip_mach = (math.pi * 2.0 * tip_radius_m * rpm / 60.0) / 343.0
+        else:
+            build_prop(spec, stl)
+            tip_radius_m = float(spec.diameter_mm) / 2000.0
+            tip_mach = float(spec.tip_mach(rpm))
+            metrics = None
+
         rep = watertight_report(stl)
         (_, _, z0), (_, _, z1) = rep.bounds_mm
-        tip_radius_m = float(spec.diameter_mm) / 2000.0
-        dom = prop_open_air(tip_radius_m, z0 / 1000.0, z1 / 1000.0, rpm=rpm, spin=int(args.spin))
+        dom = prop_open_air(tip_radius_m, z0 / 1000.0, z1 / 1000.0, rpm=rpm, spin=spin)
 
         case_dir = args.out / "case"
         build_prop_case(
@@ -86,8 +132,11 @@ def main() -> int:
             "dry_run": True,
             "spec": args.spec,
             "rpm": rpm,
-            "spin": int(args.spin),
-            "tip_mach": spec.tip_mach(rpm),
+            "spin": spin,
+            "tip_mach": tip_mach,
+            "tip_radius_mm": tip_radius_m * 1000.0,
+            "stl": str(args.stl) if args.stl is not None else None,
+            "stl_metrics": None if metrics is None else asdict(metrics),
             "case": str(case_dir),
             "domain_extents": asdict(dom),
             "solver": "rhoSimpleFoam",
@@ -102,7 +151,7 @@ def main() -> int:
 
     if not image_available():
         # If the BEMT floor would skip, still return 0 and write result.json.
-        if float(args.bemt_floor) > 0.0:
+        if args.stl is None and float(args.bemt_floor) > 0.0:
             from fansim.propeller.geometry import prop_blade_params
             from fansim.propeller.optimize import bemt_thrust_g
 
@@ -119,7 +168,7 @@ def main() -> int:
                     base_cell=args.base_cell,
                     spec_key=args.spec,
                     bemt_floor_g=args.bemt_floor,
-                    spin=int(args.spin),
+                    spin=spin,
                 )
                 (args.out / "result.json").write_text(
                     json.dumps(out, indent=2) + "\n", encoding="utf-8"
@@ -141,7 +190,9 @@ def main() -> int:
         base_cell=args.base_cell,
         spec_key=args.spec,
         bemt_floor_g=args.bemt_floor,
-        spin=int(args.spin),
+        spin=spin,
+        stl_mm=args.stl,
+        prepare_stl=not args.no_prepare_stl,
     )
     (args.out / "result.json").write_text(json.dumps(out, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(out, indent=2))

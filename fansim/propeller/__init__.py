@@ -14,6 +14,12 @@ from fansim.propeller.power import (
     pythrust_available,
     solve_catalog_operating_point,
 )
+from fansim.propeller.stl_import import (
+    PropStlMetrics,
+    measure_prop_stl,
+    prepare_prop_stl,
+    spin_hint_from_name,
+)
 
 __all__ = [
     "prop_blade_params",
@@ -25,4 +31,8 @@ __all__ = [
     "list_catalog_props",
     "find_catalog_prop",
     "solve_catalog_operating_point",
+    "PropStlMetrics",
+    "prepare_prop_stl",
+    "measure_prop_stl",
+    "spin_hint_from_name",
 ]

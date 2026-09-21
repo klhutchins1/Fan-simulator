@@ -1,0 +1,110 @@
+{
+  "source_dir": "C:\\Users\\Kimball\\Downloads\\radial+impeller_stls",
+  "n": 8,
+  "items": [
+    {
+      "source": "C:\\Users\\Kimball\\Downloads\\radial+impeller_stls\\obj_1_CCW impeller.stl",
+      "prepared": "T:/Projects/Fan Simulator/validation/reference/drone_radial/obj_1_ccw_impeller.stl",
+      "name": "obj_1_ccw_impeller",
+      "spin_hint": -1,
+      "tip_radius_mm": 30.089105501735073,
+      "hub_radius_mm": 11.466659086523316,
+      "axial_depth_mm": 12.0,
+      "watertight": true,
+      "volume_mm3": 3346.957600216347,
+      "n_faces": 99018,
+      "diameter_mm": 60.178211003470146
+    },
+    {
+      "source": "C:\\Users\\Kimball\\Downloads\\radial+impeller_stls\\obj_2_CCW.stl",
+      "prepared": "T:/Projects/Fan Simulator/validation/reference/drone_radial/obj_2_ccw.stl",
+      "name": "obj_2_ccw",
+      "spin_hint": -1,
+      "tip_radius_mm": 45.38854474432168,
+      "hub_radius_mm": 30.44896267215567,
+      "axial_depth_mm": 27.81131935119629,
+      "watertight": true,
+      "volume_mm3": 8723.515106617177,
+      "n_faces": 190972,
+      "diameter_mm": 90.77708948864336
+    },
+    {
+      "source": "C:\\Users\\Kimball\\Downloads\\radial+impeller_stls\\obj_3_CW impeller.stl",
+      "prepared": "T:/Projects/Fan Simulator/validation/reference/drone_radial/obj_3_cw_impeller.stl",
+      "name": "obj_3_cw_impeller",
+      "spin_hint": 1,
+      "tip_radius_mm": 30.089105658759816,
+      "hub_radius_mm": 11.46666696952392,
+      "axial_depth_mm": 12.0,
+      "watertight": true,
+      "volume_mm3": 3346.957178124367,
+      "n_faces": 99018,
+      "diameter_mm": 60.17821131751963
+    },
+    {
+      "source": "C:\\Users\\Kimball\\Downloads\\radial+impeller_stls\\obj_4_CCW impeller.stl",
+      "prepared": "T:/Projects/Fan Simulator/validation/reference/drone_radial/obj_4_ccw_impeller.stl",
+      "name": "obj_4_ccw_impeller",
+      "spin_hint": -1,
+      "tip_radius_mm": 30.089107908829718,
+      "hub_radius_mm": 11.466660425590057,
+      "axial_depth_mm": 12.0,
+      "watertight": true,
+      "volume_mm3": 3346.9571198140598,
+      "n_faces": 99018,
+      "diameter_mm": 60.178215817659435
+    },
+    {
+      "source": "C:\\Users\\Kimball\\Downloads\\radial+impeller_stls\\obj_5_CW impeller.stl",
+      "prepared": "T:/Projects/Fan Simulator/validation/reference/drone_radial/obj_5_cw_impeller.stl",
+      "name": "obj_5_cw_impeller",
+      "spin_hint": 1,
+      "tip_radius_mm": 30.08910645851802,
+      "hub_radius_mm": 11.466665964873105,
+      "axial_depth_mm": 12.0,
+      "watertight": true,
+      "volume_mm3": 3346.956982817004,
+      "n_faces": 99018,
+      "diameter_mm": 60.17821291703604
+    },
+    {
+      "source": "C:\\Users\\Kimball\\Downloads\\radial+impeller_stls\\obj_6_CW.stl",
+      "prepared": "T:/Projects/Fan Simulator/validation/reference/drone_radial/obj_6_cw.stl",
+      "name": "obj_6_cw",
+      "spin_hint": 1,
+      "tip_radius_mm": 45.38857771112827,
+      "hub_radius_mm": 30.448964438283486,
+      "axial_depth_mm": 27.81131935119629,
+      "watertight": true,
+      "volume_mm3": 8723.5177372157,
+      "n_faces": 190972,
+      "diameter_mm": 90.77715542225654
+    },
+    {
+      "source": "C:\\Users\\Kimball\\Downloads\\radial+impeller_stls\\obj_7_CCW.stl",
+      "prepared": "T:/Projects/Fan Simulator/validation/reference/drone_radial/obj_7_ccw.stl",
+      "name": "obj_7_ccw",
+      "spin_hint": -1,
+      "tip_radius_mm": 45.388559424197375,
+      "hub_radius_mm": 30.448949649809318,
+      "axial_depth_mm": 27.81131935119629,
+      "watertight": true,
+      "volume_mm3": 8723.511446695653,
+      "n_faces": 190972,
+      "diameter_mm": 90.77711884839475
+    },
+    {
+      "source": "C:\\Users\\Kimball\\Downloads\\radial+impeller_stls\\obj_8_CW.stl",
+      "prepared": "T:/Projects/Fan Simulator/validation/reference/drone_radial/obj_8_cw.stl",
+      "name": "obj_8_cw",
+      "spin_hint": 1,
+      "tip_radius_mm": 45.38856234973672,
+      "hub_radius_mm": 30.448945477869962,
+      "axial_depth_mm": 27.81131935119629,
+      "watertight": true,
+      "volume_mm3": 8723.5114203332,
+      "n_faces": 190972,
+      "diameter_mm": 90.77712469947345
+    }
+  ]
+}

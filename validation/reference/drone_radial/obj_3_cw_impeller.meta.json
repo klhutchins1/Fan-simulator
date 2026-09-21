@@ -1,0 +1,13 @@
+{
+  "source": "C:\\Users\\Kimball\\Downloads\\radial+impeller_stls\\obj_3_CW impeller.stl",
+  "prepared": "T:/Projects/Fan Simulator/validation/reference/drone_radial/obj_3_cw_impeller.stl",
+  "name": "obj_3_cw_impeller",
+  "spin_hint": 1,
+  "tip_radius_mm": 30.089105658759816,
+  "hub_radius_mm": 11.46666696952392,
+  "axial_depth_mm": 12.0,
+  "watertight": true,
+  "volume_mm3": 3346.957178124367,
+  "n_faces": 99018,
+  "diameter_mm": 60.17821131751963
+}
