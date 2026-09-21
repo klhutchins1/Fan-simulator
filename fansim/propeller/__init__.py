@@ -22,6 +22,12 @@ from fansim.propeller.power import (
     pythrust_available,
     solve_catalog_operating_point,
 )
+from fansim.propeller.pythrust_export import (
+    CSV_HEADER,
+    default_export_grid,
+    export_bemt_pythrust_catalog,
+    prop_id_for_export,
+)
 from fansim.propeller.stl_import import (
     PropStlMetrics,
     measure_prop_stl,
@@ -45,6 +51,10 @@ __all__ = [
     "list_catalog_props",
     "find_catalog_prop",
     "solve_catalog_operating_point",
+    "CSV_HEADER",
+    "default_export_grid",
+    "export_bemt_pythrust_catalog",
+    "prop_id_for_export",
     "PropStlMetrics",
     "prepare_prop_stl",
     "measure_prop_stl",
