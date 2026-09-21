@@ -7,19 +7,11 @@ shaft-mount hub instead of a big motor cup. See fansim/prop_spec.py for the size
 
 from fansim.propeller.geometry import build_prop, build_prop_preview, prop_blade_params
 from fansim.propeller.power import PropulsionExtraMissing, hover_power_budget
-from fansim.propeller.stl_import import (
-    import_prop_stl_dir,
-    measure_prop_stl,
-    prepare_prop_stl,
-)
 
 __all__ = [
     "prop_blade_params",
     "build_prop",
     "build_prop_preview",
-    "prepare_prop_stl",
-    "measure_prop_stl",
-    "import_prop_stl_dir",
     "hover_power_budget",
     "PropulsionExtraMissing",
 ]
