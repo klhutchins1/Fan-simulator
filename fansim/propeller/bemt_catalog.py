@@ -134,8 +134,30 @@ def compare_bemt_to_static_witness(
 
 
 def _quorum_q6_apc() -> dict[str, Any] | None:
-    """Task 3: BEMT vs PyThrust APC static CT/CP."""
-    return None
+    from fansim.propeller.power import (
+        _apc_static_coefficients,
+        _load_apc_db,
+        pythrust_available,
+    )
+
+    if not pythrust_available():
+        return None
+    prop_id = "APC_9x4.7SF"
+    db = _load_apc_db()
+    entry = db.get(prop_id)
+    rpm_used, ct_w, cp_w = _apc_static_coefficients(entry, 6026.0)
+    meta = entry.metadata
+    cmp_ = compare_bemt_to_static_witness(
+        diameter_in=float(meta.diameter_in),
+        pitch_in=float(meta.pitch_in),
+        rpm=float(rpm_used),
+        ct_w=float(ct_w),
+        cp_w=float(cp_w),
+        source="pythrust_apc",
+        prop_id=prop_id,
+        blade_count=int(getattr(meta, "blade_count", 2) or 2),
+    )
+    return {"id": "Q6", **cmp_}
 
 
 def run_bemt_catalog_quorum(*, include_apc: bool = True) -> dict[str, Any]:

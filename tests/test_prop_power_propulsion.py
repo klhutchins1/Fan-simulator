@@ -38,3 +38,13 @@ def test_quorum_q3_q4_q5_apc_5x45():
     assert report["all_pass"] is True
     by_id = {c["id"]: c for c in report["checks"]}
     assert by_id["Q3"]["pass"] and by_id["Q4"]["pass"] and by_id["Q5"]["pass"]
+
+
+def test_quorum_q6_bemt_vs_apc():
+    from fansim.propeller.bemt_catalog import run_bemt_catalog_quorum
+
+    report = run_bemt_catalog_quorum(include_apc=True)
+    by_id = {c["id"]: c for c in report["checks"]}
+    assert by_id["Q6"]["pass"] is True
+    assert by_id["Q7"]["pass"] is True
+    assert report["all_pass"] is True
