@@ -24,3 +24,14 @@ def test_load_uiuc_fixture_apcsf_9x47():
     assert fx["rpm"] == pytest.approx(6026)
     assert fx["ct"] == pytest.approx(0.1192)
     assert fx["cp"] == pytest.approx(0.0484)
+
+
+def test_quorum_q7_bemt_vs_uiuc_fixture():
+    from fansim.propeller.bemt_catalog import run_bemt_catalog_quorum
+
+    report = run_bemt_catalog_quorum(include_apc=False)
+    by_id = {c["id"]: c for c in report["checks"]}
+    assert "Q7" in by_id
+    assert by_id["Q7"]["pass"] is True
+    assert by_id["Q7"]["geometry_match"] == "approximate"
+    assert report["all_pass"] is True

@@ -87,3 +87,74 @@ def load_uiuc_static_fixture(path_or_id: str | Path | None = None) -> dict[str, 
         if key not in data or data[key] is None:
             raise ValueError(f"UIUC fixture missing {key}: {path}")
     return data
+
+
+def compare_bemt_to_static_witness(
+    *,
+    diameter_in: float,
+    pitch_in: float,
+    rpm: float,
+    ct_w: float,
+    cp_w: float,
+    band_rel: float = BAND_REL_A3,
+    source: str,
+    prop_id: str,
+    blade_count: int = 2,
+) -> dict[str, Any]:
+    bemt = bemt_static_ct_cp(
+        diameter_in, pitch_in, rpm=rpm, blade_count=blade_count
+    )
+    ct_b, cp_b = float(bemt["ct"]), float(bemt["cp"])
+    ct_w, cp_w = float(ct_w), float(cp_w)
+    if ct_w <= 0.0 or cp_w <= 0.0:
+        raise ValueError("witness ct/cp must be > 0")
+    rel_ct = abs(ct_b - ct_w) / ct_w
+    rel_cp = abs(cp_b - cp_w) / cp_w
+    ok = rel_ct <= float(band_rel) and rel_cp <= float(band_rel)
+    return {
+        "pass": ok,
+        "ct_bemt": ct_b,
+        "cp_bemt": cp_b,
+        "ct_w": ct_w,
+        "cp_w": cp_w,
+        "rel_err_ct": rel_ct,
+        "rel_err_cp": rel_cp,
+        "band_rel": float(band_rel),
+        "geometry_match": "approximate",
+        "source": source,
+        "prop_id": prop_id,
+        "rpm": float(rpm),
+        "diameter_in": float(diameter_in),
+        "pitch_in": float(pitch_in),
+        "detail": (
+            f"CT rel_err={rel_ct:.4f} CP rel_err={rel_cp:.4f} "
+            f"band={band_rel} ({'PASS' if ok else 'FAIL'})"
+        ),
+    }
+
+
+def _quorum_q6_apc() -> dict[str, Any] | None:
+    """Task 3: BEMT vs PyThrust APC static CT/CP."""
+    return None
+
+
+def run_bemt_catalog_quorum(*, include_apc: bool = True) -> dict[str, Any]:
+    checks: list[dict[str, Any]] = []
+    fx = load_uiuc_static_fixture()
+    q7 = compare_bemt_to_static_witness(
+        diameter_in=float(fx["diameter_in"]),
+        pitch_in=float(fx["pitch_in"]),
+        rpm=float(fx["rpm"]),
+        ct_w=float(fx["ct"]),
+        cp_w=float(fx["cp"]),
+        source="uiuc_fixture",
+        prop_id=str(fx["prop_id"]),
+        blade_count=int(fx.get("blade_count", 2)),
+    )
+    checks.append({"id": "Q7", **q7})
+    if include_apc:
+        q6 = _quorum_q6_apc()
+        if q6 is not None:
+            checks.append(q6)
+    all_pass = all(c.get("pass") is True for c in checks)
+    return {"checks": checks, "all_pass": all_pass}

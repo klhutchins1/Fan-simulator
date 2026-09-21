@@ -9,7 +9,9 @@ from fansim.propeller.bemt_catalog import (
     BAND_REL_A3,
     approximate_prop_blade,
     bemt_static_ct_cp,
+    compare_bemt_to_static_witness,
     load_uiuc_static_fixture,
+    run_bemt_catalog_quorum,
 )
 from fansim.propeller.geometry import build_prop, build_prop_preview, prop_blade_params
 from fansim.propeller.power import (
@@ -32,6 +34,8 @@ __all__ = [
     "approximate_prop_blade",
     "bemt_static_ct_cp",
     "load_uiuc_static_fixture",
+    "compare_bemt_to_static_witness",
+    "run_bemt_catalog_quorum",
     "prop_blade_params",
     "build_prop",
     "build_prop_preview",
