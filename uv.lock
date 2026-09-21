@@ -450,6 +450,9 @@ optim = [
     { name = "matplotlib" },
     { name = "optuna" },
 ]
+propulsion = [
+    { name = "setuav-pythrust" },
+]
 surrogate = [
     { name = "scikit-learn" },
 ]
@@ -486,6 +489,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
     { name = "scikit-learn", marker = "extra == 'surrogate'", specifier = ">=1.4" },
     { name = "scipy", specifier = ">=1.11" },
+    { name = "setuav-pythrust", marker = "extra == 'propulsion'", specifier = "==0.2.3" },
     { name = "trame", specifier = ">=3.6,<4" },
     { name = "trame", marker = "extra == 'viz'", specifier = ">=3.6,<4" },
     { name = "trame-plotly", specifier = ">=3.1" },
@@ -498,7 +502,7 @@ requires-dist = [
     { name = "uvicorn", specifier = ">=0.29" },
     { name = "uvicorn", marker = "extra == 'viz'", specifier = ">=0.29" },
 ]
-provides-extras = ["optim", "viz", "surrogate", "dev"]
+provides-extras = ["optim", "viz", "surrogate", "propulsion", "dev"]
 
 [[package]]
 name = "fastapi"
@@ -1306,6 +1310,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/71/43/945c26345e126b96488d52afa7e40e6ea4997129ba6c0ffe9223e7c85c3f/scooby-0.12.0.tar.gz", hash = "sha256:e1eff64727b60b68634719326e220cd1ddbb299f8c073421c2abaa4f59ca5f20", size = 246208, upload-time = "2026-09-11T03:38:11.726Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5b/32/e263e888bec1c30b40dd834ca8ea6227a9ca9d5c8091986ea0c8746f0305/scooby-0.12.0-py3-none-any.whl", hash = "sha256:65dea5b32006ef554aea9e945032c0c448eaacada96078187681e24f0a2fe8fa", size = 21732, upload-time = "2026-09-11T03:38:10.246Z" },
+]
+
+[[package]]
+name = "setuav-pythrust"
+version = "0.2.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cc/46/91b29f4ea3b24565b8164754fbc3e9d9704941e830995322d539a5af0b8e/setuav_pythrust-0.2.3.tar.gz", hash = "sha256:187369612a9a82541b556d51b2b4f3ac435b770b90fd1b46629cc526d72b4f60", size = 12833221, upload-time = "2026-09-08T18:53:12.387Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4c/cf/083ea0c7d6e4036f08673036fcdb2733ba7233f94a01a8cc593e00ffb773/setuav_pythrust-0.2.3-py3-none-any.whl", hash = "sha256:d51185c4939996d8d5248d6a1b7abe30656caaf22095ade9bddbebd063014e41", size = 15633157, upload-time = "2026-09-08T18:53:09.45Z" },
 ]
 
 [[package]]
