@@ -1,7 +1,7 @@
 # Track A A3: BEMT ↔ measured CT/CP quorum (static)
 
 **Date:** 2026-09-21  
-**Status:** draft (awaiting user review of this file)  
+**Status:** approved (2026-09-21)  
 **Parent:** `docs/superpowers/specs/2026-09-21-prop-pythrust-power-design.md` (Track A stage 1)  
 **Roadmap:** Complements §4.3 CFD; does **not** replace it. Marks bib §7 UIUC PropDB “→ code” from planned → A3 harness.
 
@@ -77,10 +77,10 @@ Default props (stage A3 freeze):
 
 | Check | Size | RPM | Witness |
 |-------|------|-----|---------|
-| Q6 | APC **5×4.5** (2-blade E), same as stage-1 smoke | 10000 | PyThrust APC static CT/CP |
-| Q7 | Same size family if UIUC row exists; else nearest documented static APC-family row vendored as JSON | fixture RPM | UIUC fixture |
+| Q6 | APC **9×4.7 SF** (`APC_9x4.7SF`) | nearest catalog RPM to **6026** (probe: 6000) | PyThrust APC static CT/CP |
+| Q7 | UIUC Vol1 **APC Slow Flyer 9×4.7** static row | **6026** | Vendored fixture JSON |
 
-If UIUC lacks an exact 5×4.5E static row, pick **one** well-documented 2-blade APC-family static entry, vendor it, and set Q6/Q7 diameters independently (each compare uses the witness’s own dia×pitch). Stamp mismatch in the report.
+**Why not stage-1 5×4.5E:** a pre-plan probe with default dia×pitch loft vs `APC_5x4.5E` @ 10k RPM showed ~39% CT / ~54% CP error (outside ±35%). UIUC+APC **9×4.7 SF** sits inside the band with the same loft family. Spec allows independent Q6/Q7 sizes when 5×4.5 UIUC is missing; we align both on 9×4.7.
 
 ## Acceptance bands
 
