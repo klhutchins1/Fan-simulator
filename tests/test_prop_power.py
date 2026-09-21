@@ -63,6 +63,14 @@ def test_quorum_q1_fom_identity():
     assert fm_back == pytest.approx(FM, rel=1e-9)
 
 
+def test_cli_evaluate_prop_power_declares_modes():
+    from tests._cli_parsers import load_build_parser
+
+    ap = load_build_parser("evaluate_prop_power.py")()
+    help_text = ap.format_help()
+    assert "hover-budget" in help_text or "hover_budget" in help_text or "--mode" in help_text
+
+
 def test_pythrust_available_false_when_missing(monkeypatch):
     import fansim.propeller.power as power
     import builtins
