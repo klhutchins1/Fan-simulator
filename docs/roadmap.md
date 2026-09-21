@@ -554,10 +554,17 @@ present. The real Fan-only gap was the **airflow viz**, now the focus of 17.3.
 - [~] **17.3 Airflow viz where applicable.** **[impact: med]** **[effort: med]**
   - [x] **Mixed** (2026-09-19) — full |U|/p + axial-Uz + streamlines, verified on a real MRF case.
   - [x] **CROR** (2026-09-20) — rendered for the best CFD-refined design (dual AXIAL rotors).
-  - [ ] **Volute** — radial scroll: the fan slices don't fit; needs |U|/p + a scroll/meridional
-    view (not the axial-Uz cut-plane). Its z=0 Z-normal slice + downstream-wake seed assume an
-    axial machine, so the renderers need geometry-aware slice/seed before reuse.
-  - [ ] **Prop** — open-air (no duct): streamlines only; the midplane/cut-plane assume a duct.
+  - [ ] **Volute** — radial scroll: reuse ATTEMPTED and reverted 2026-09-20 (verified on a real
+    volute Assess). Two concrete blockers: (a) the impeller-anchored midplane crop is framed for an
+    axial duct → renders a thin off-centre strip of the scroll; (b) the |U| clim auto-scales to the
+    full range and the high-RPM MRF tip speed (~200 m/s) swamps the through-flow → all dark blue.
+    Needs a scroll-appropriate slice plane + a through-flow clim clamp (like the streamline clim).
+  - [ ] **Prop** — open-air axial rotor: axial-Uz (disk loading) + streamlines should fit (they
+    already clamp clim), but the |U| midplane needs the same clim clamp (prop tip speed is high).
+    Not yet verified; wire only after adding the clim clamp so the |U| view isn't blown out.
+  - [ ] **Shared fix — midplane |U| clim clamp.** `render_midplane_pngs` uses full-range clim; add a
+    through-flow percentile clamp so high-tip-speed machines (volute/prop) don't blow out. Prereq
+    for both above.
 - [x] **17.4 Shared binder.** **[impact: med]** **[effort: med]** DONE 2026-09-19/20:
   `fansim/cockpit/airflow_panel.py` (render_airflow_pack / pick_airflow_uri / png_data_uri);
   Fan tab deduped onto it (ae00cd2); Mixed + CROR wire it. Fuller results/binder unification
