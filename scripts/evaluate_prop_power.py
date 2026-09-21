@@ -3,6 +3,7 @@
 Usage:
     uv run python scripts/evaluate_prop_power.py --mode hover-budget --auw-n 19.6 --tip-radius-m 0.0635
     uv run --extra propulsion python scripts/evaluate_prop_power.py --mode catalog --dia-in 5 --pitch-in 4.5
+    uv run python scripts/evaluate_prop_power.py --mode quorum
     uv run --extra propulsion python scripts/evaluate_prop_power.py --mode quorum
 """
 
@@ -19,7 +20,6 @@ sys.path.insert(0, str(PROJECT))
 from fansim.propeller.power import (  # noqa: E402
     PropulsionExtraMissing,
     hover_power_budget,
-    run_propulsion_quorum,
     solve_catalog_operating_point,
 )
 
@@ -84,8 +84,23 @@ def main() -> int:
                 throttle=float(args.throttle),
                 system_resistance_ohm=float(args.rsys),
             )
-        else:
-            out = run_propulsion_quorum()
+        elif args.mode == "quorum":
+            from fansim.propeller.bemt_catalog import run_bemt_catalog_quorum
+            from fansim.propeller.power import pythrust_available, run_propulsion_quorum
+
+            checks: list = []
+            if pythrust_available():
+                checks.extend(run_propulsion_quorum()["checks"])
+                a3 = run_bemt_catalog_quorum(include_apc=True)
+            else:
+                a3 = run_bemt_catalog_quorum(include_apc=False)
+            checks.extend(a3["checks"])
+            out = {
+                "mode": "quorum",
+                "checks": checks,
+                "all_pass": all(c.get("pass") is True for c in checks),
+                "propulsion_extra": bool(pythrust_available()),
+            }
     except PropulsionExtraMissing as exc:
         print(str(exc), file=sys.stderr)
         return 2

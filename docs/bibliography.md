@@ -161,9 +161,8 @@ Legend: **→ code** points at the module/script that implements or relies on th
   solver in-tree).
 - **UIUC Propeller Data Site** — measured static/wind-tunnel CT/CP for many propellers; witness
   corpus for geometry-honest BEMT cross-check (Track A **A3**).
-  [propDB](https://m-selig.ae.illinois.edu/props/propDB.html). **→ code (planned):** UIUC/APC quorum
-  harness vs BEMT once geometry match is honest; stage 1 uses bundled APC via PyThrust for catalog FoM
-  sanity (Q5) only.
+  [propDB](https://m-selig.ae.illinois.edu/props/propDB.html). **→ code:** `fansim/propeller/bemt_catalog.py`
+  (A3 Q7 fixture `validation/reference/uiuc_propdb/apcsf_9x4.7_static.json`; Q6 via PyThrust APC).
 
 ---
 
