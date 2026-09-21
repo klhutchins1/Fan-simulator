@@ -40,6 +40,12 @@ uv run python scripts/evaluate_prop_cfd.py \
 
 Spin defaults from the filename (`CCW` → `-1`, `CW` → `+1`); override with `--spin`.
 
+## UIUC PropDB fixture
+
+`validation/reference/uiuc_propdb/apcsf_9x4.7_static.json` — vendored static CT/CP row for
+APC Slow Flyer 9×4.7 @ 6026 RPM (Track A A3 Q7). Source catalog:
+[UIUC PropDB](https://m-selig.ae.illinois.edu/props/propDB.html) (`volume-1/data/apcsf_9x4.7_static_kt1032.txt`).
+
 ## Blade geometry golden (§15.2)
 
 `a12x25_blade_golden.json` — parametric Stock volume / bounds / tip-section sample from

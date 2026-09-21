@@ -5,6 +5,12 @@ with propeller twist (blade angle set by geometric pitch: high at the root, low 
 shaft-mount hub instead of a big motor cup. See fansim/prop_spec.py for the sizes/mounts.
 """
 
+from fansim.propeller.bemt_catalog import (
+    BAND_REL_A3,
+    approximate_prop_blade,
+    bemt_static_ct_cp,
+    load_uiuc_static_fixture,
+)
 from fansim.propeller.geometry import build_prop, build_prop_preview, prop_blade_params
 from fansim.propeller.power import (
     PropulsionExtraMissing,
@@ -22,6 +28,10 @@ from fansim.propeller.stl_import import (
 )
 
 __all__ = [
+    "BAND_REL_A3",
+    "approximate_prop_blade",
+    "bemt_static_ct_cp",
+    "load_uiuc_static_fixture",
     "prop_blade_params",
     "build_prop",
     "build_prop_preview",

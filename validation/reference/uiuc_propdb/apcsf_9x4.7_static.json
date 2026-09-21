@@ -1,0 +1,17 @@
+{
+  "prop_id": "UIUC_APC_SF_9x4.7_STATIC",
+  "manufacturer": "APC",
+  "diameter_in": 9.0,
+  "pitch_in": 4.7,
+  "blade_count": 2,
+  "rpm": 6026,
+  "j": 0.0,
+  "ct": 0.1192,
+  "cp": 0.0484,
+  "provenance": {
+    "site": "https://m-selig.ae.illinois.edu/props/propDB.html",
+    "file_or_table": "volume-1/data/apcsf_9x4.7_static_kt1032.txt",
+    "retrieved": "2026-09-21",
+    "notes": "Vol1 APC Slow Flyer 9x4.7; row RPM=6026 CT=0.1192 CP=0.0484; vendored for A3 Q7"
+  }
+}
