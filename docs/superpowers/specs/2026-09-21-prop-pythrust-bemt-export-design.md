@@ -1,7 +1,7 @@
 # Track A Stage 2: BEMT → PyThrust CT/CP CSV export (+ Prop Analyze)
 
 **Date:** 2026-09-21  
-**Status:** draft (awaiting user review of this file)  
+**Status:** approved (2026-09-21)  
 **Parent:** `docs/superpowers/specs/2026-09-21-prop-pythrust-power-design.md`  
 **Related:** A3 (`2026-09-21-prop-bemt-uiuc-a3-design.md`) — static quorum; this slice is the **catalog bridge** for custom lofts.  
 **Roadmap:** Complements §4.3 CFD; does **not** replace BEMT product path or bundled APC.
