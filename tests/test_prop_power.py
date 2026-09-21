@@ -61,3 +61,32 @@ def test_quorum_q1_fom_identity():
     # recover FM from T, P, A
     fm_back = (T ** 1.5 / math.sqrt(2.0 * RHO_AIR * A)) / out["shaft_power_w"]
     assert fm_back == pytest.approx(FM, rel=1e-9)
+
+
+def test_pythrust_available_false_when_missing(monkeypatch):
+    import fansim.propeller.power as power
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "pythrust" or name.startswith("pythrust."):
+            raise ImportError("blocked")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    if hasattr(power, "_pythrust_ok"):
+        monkeypatch.setattr(power, "_pythrust_ok", None)
+    assert power.pythrust_available() is False
+    with pytest.raises(power.PropulsionExtraMissing):
+        power.solve_catalog_operating_point(
+            motor={
+                "kv_rpm_per_v": 1900,
+                "resistance_ohm": 0.05,
+                "no_load_current_a": 1.0,
+                "current_max_a": 40,
+            },
+            battery_voltage_v=22.2,
+            diameter_in=5.0,
+            pitch_in=4.5,
+        )

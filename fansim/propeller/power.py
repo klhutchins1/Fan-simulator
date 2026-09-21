@@ -59,3 +59,141 @@ def hover_power_budget(
         ),
         "rho": float(rho),
     }
+
+
+_pythrust_ok: bool | None = None
+
+
+def pythrust_available() -> bool:
+    global _pythrust_ok
+    if _pythrust_ok is not None:
+        return _pythrust_ok
+    try:
+        import pythrust  # noqa: F401
+        _pythrust_ok = True
+    except ImportError:
+        _pythrust_ok = False
+    return _pythrust_ok
+
+
+def _require_pythrust() -> None:
+    if not pythrust_available():
+        raise PropulsionExtraMissing(
+            "Catalog propulsion requires optional extra: "
+            "uv sync --extra propulsion  (setuav-pythrust==0.2.3)"
+        )
+
+
+def _load_apc_db() -> Any:
+    from pathlib import Path
+
+    from pythrust import dataset_dir
+    from pythrust.propellers.database import PropellerDatabase
+
+    db = PropellerDatabase()
+    db.load(Path(dataset_dir()) / "propellers" / "apc_202602")
+    return db
+
+
+def list_catalog_props(*, manufacturer: str = "APC") -> list[dict[str, Any]]:
+    _require_pythrust()
+    db = _load_apc_db()
+    rows: list[dict[str, Any]] = []
+    for pid in db.list_propellers():
+        meta = db.get(pid).metadata
+        if manufacturer and manufacturer.upper() not in (meta.manufacturer or "").upper():
+            if manufacturer.upper() != "APC":
+                continue
+        rows.append(
+            {
+                "prop_id": meta.id,
+                "manufacturer": meta.manufacturer,
+                "diameter_in": meta.diameter_in,
+                "pitch_in": meta.pitch_in,
+                "blade_count": meta.blade_count,
+            }
+        )
+    return rows
+
+
+def find_catalog_prop(diameter_in: float, pitch_in: float, *, blade_count: int = 2) -> dict[str, Any]:
+    _require_pythrust()
+    db = _load_apc_db()
+    entry = db.find_by_size(float(diameter_in), float(pitch_in), blade_count=int(blade_count))
+    meta = entry.metadata
+    return {
+        "prop_id": meta.id,
+        "manufacturer": meta.manufacturer,
+        "diameter_in": meta.diameter_in,
+        "pitch_in": meta.pitch_in,
+        "blade_count": meta.blade_count,
+    }
+
+
+def solve_catalog_operating_point(
+    *,
+    motor: dict[str, Any],
+    battery_voltage_v: float,
+    prop_id: str | None = None,
+    diameter_in: float | None = None,
+    pitch_in: float | None = None,
+    blade_count: int = 2,
+    throttle: float = 0.7,
+    airspeed_mps: float = 0.0,
+    rho: float = RHO_AIR,
+    system_resistance_ohm: float = 0.02,
+) -> dict[str, Any]:
+    _require_pythrust()
+    import pythrust
+    from pythrust.propulsion.models.battery import FixedVoltageBattery
+    from pythrust.propulsion.models.motor import MotorSpec
+    from pythrust.propulsion.models.propeller import PropellerSpec
+    from pythrust.propulsion.models.system import SystemSpec
+    from pythrust.propulsion.solver import PropulsionSolver
+
+    db = _load_apc_db()
+    if prop_id:
+        entry = db.get(prop_id)
+    else:
+        if diameter_in is None or pitch_in is None:
+            raise ValueError("provide prop_id or diameter_in+pitch_in")
+        entry = db.find_by_size(float(diameter_in), float(pitch_in), blade_count=int(blade_count))
+    meta = entry.metadata
+    prop = PropellerSpec(diameter_m=float(meta.diameter_in) * 0.0254)
+    m = MotorSpec(
+        kv_rpm_per_v=float(motor["kv_rpm_per_v"]),
+        resistance_ohm=float(motor["resistance_ohm"]),
+        no_load_current_a=float(motor["no_load_current_a"]),
+        current_max_a=float(motor["current_max_a"]),
+    )
+    batt = FixedVoltageBattery(voltage_v=float(battery_voltage_v))
+    sys = SystemSpec(resistance_ohm=float(system_resistance_ohm))
+    pt = PropulsionSolver().solve_operating_point(
+        motor=m,
+        battery=batt,
+        system=sys,
+        propeller=prop,
+        prop_entry=entry,
+        rho=float(rho),
+        airspeed_mps=float(airspeed_mps),
+        throttle=float(throttle),
+    )
+    return {
+        "rpm": float(pt.rpm),
+        "thrust_n": float(pt.thrust_n),
+        "thrust_g": float(pt.thrust_n) / 9.80665 * 1000.0,
+        "torque_nm": float(pt.torque_nm),
+        "shaft_power_w": float(pt.shaft_power_w),
+        "motor_power_w": float(pt.motor_power_w),
+        "battery_power_w": float(pt.battery_power_w),
+        "motor_current_a": float(pt.motor_current_a),
+        "battery_current_a": float(pt.battery_current_a),
+        "motor_efficiency": float(pt.motor_efficiency),
+        "is_feasible": bool(pt.is_feasible),
+        "infeasible_reason": pt.infeasible_reason,
+        "source": "pythrust",
+        "pythrust_version": getattr(pythrust, "__version__", "0.2.3"),
+        "prop_id": meta.id,
+        "throttle": float(throttle),
+        "airspeed_mps": float(airspeed_mps),
+    }
