@@ -148,6 +148,22 @@ Legend: **→ code** points at the module/script that implements or relies on th
   (BEMT with compressibility/Re corrections); **Hanson, D. B. (1985).** *Noise of counter-rotation
   propellers.* J. Aircraft **22**(7), 609–617. **→ code:** the prop BEMT + relative noise proxy
   (`fansim/propeller/`) and the CROR tier (`fansim/cror/`); compressible open-air prop CFD is roadmap §4.3.
+- **PyThrust (`setuav-pythrust`)** — optional motor–prop–battery equilibrium against bundled APC
+  catalogs; Apache-2.0; pin **0.2.3**. [GitHub](https://github.com/Setuav/PyThrust) ·
+  [docs](https://setuav.github.io/PyThrust/) · [PyPI](https://pypi.org/project/setuav-pythrust/).
+  **→ code:** optional adapter in `fansim/propeller/power.py` (`uv sync --extra propulsion`); quorum
+  Q3–Q5 behind `@pytest.mark.propulsion`; spec
+  `docs/superpowers/specs/2026-09-21-prop-pythrust-power-design.md`.
+- **Drela first-order DC brushless motor model (MIT / QPROP lineage)** — Kv, winding resistance, and
+  no-load current in the propulsion equilibrium PyThrust uses; full equations and Drela pointers in
+  [Propulsion and Battery Theory](https://setuav.github.io/PyThrust/theory/). **→ code:** adapter
+  `MotorSpec` mapping in `solve_catalog_operating_point` (quorum Q2 — witness, not a second motor
+  solver in-tree).
+- **UIUC Propeller Data Site** — measured static/wind-tunnel CT/CP for many propellers; witness
+  corpus for geometry-honest BEMT cross-check (Track A **A3**).
+  [propDB](https://m-selig.ae.illinois.edu/props/propDB.html). **→ code (planned):** UIUC/APC quorum
+  harness vs BEMT once geometry match is honest; stage 1 uses bundled APC via PyThrust for catalog FoM
+  sanity (Q5) only.
 
 ---
 

@@ -140,6 +140,10 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   `CrorArchetype` + dual-MRF evaluate (`tests/test_cror.py`). Remaining: noise + measured static gain.
 - [ ] **4.3 Prop compressible open-air CFD tier.** **[impact: med]** **[effort: high]** BEMT screens
   props; a real CFD pass refines finalists (tips run Mach 0.4–0.58, where BEMT/incompressible is weak).
+  **Track A stage 1 (2026-09-21):** hover Wh/power budget + optional PyThrust (`--extra propulsion`) +
+  quorum cross-checks in `fansim/propeller/power.py` — complements BEMT screening; **not** a substitute
+  for §4.3 CFD (spec/plan: `docs/superpowers/specs/2026-09-21-prop-pythrust-power-design.md`,
+  `docs/superpowers/plans/2026-09-21-prop-pythrust-power.md`).
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 
