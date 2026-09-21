@@ -139,7 +139,7 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
         layout.title.set_text("Fan-simulator Cockpit")
         state.trame__title = "Fan-simulator Cockpit"
         with layout.content:
-            with v3.VContainer(fluid=True, classes="pa-2"):
+            with v3.VContainer(fluid=True, classes="pa-2") as _tabs_box:
                 with v3.VTabs(v_model=("active_tab",), color="primary", classes="mb-3"):
                     with v3.VTooltip(text="Fan — CFD design"):
                         with v3.Template(v_slot_activator="{ props }"):
@@ -162,17 +162,22 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                 @state.change("active_tab")
                 def _lazy_tab_ui(active_tab=None, **_):
                     tab = str(active_tab or state.active_tab or "fan")
-                    if tab == "mixed" and not _lazy_ui["mixed"]:
-                        render_mixed_tab(ctx)
-                        _lazy_ui["mixed"] = True
-                    elif tab == "volute" and not _lazy_ui["volute"]:
-                        render_volute_tab(ctx)
-                        _lazy_ui["volute"] = True
-                    elif tab == "propeller" and not _lazy_ui["propeller"]:
-                        render_prop_tab(ctx)
-                        _lazy_ui["propeller"] = True
-                    elif tab == "cror" and not _lazy_ui["cror"]:
-                        render_cror_tab(ctx)
-                        _lazy_ui["cror"] = True
+                    lazy = {
+                        "mixed": render_mixed_tab,
+                        "volute": render_volute_tab,
+                        "propeller": render_prop_tab,
+                        "cror": render_cror_tab,
+                    }
+                    render = lazy.get(tab)
+                    if render is None or _lazy_ui.get(tab):
+                        return
+                    # The archetype tabs render lazily on first visit — but this callback fires long
+                    # after the SinglePageLayout `with` blocks have closed, so the new widgets have no
+                    # active parent and never reach the client (blank tab). Re-enter the tab container
+                    # so they attach, then flush the regenerated layout to the browser.
+                    with _tabs_box:
+                        render(ctx)
+                    _lazy_ui[tab] = True
+                    layout.flush_content()
 
     return server

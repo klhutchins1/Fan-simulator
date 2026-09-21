@@ -549,6 +549,14 @@ present. The real Fan-only gap was the **airflow viz**, now the focus of 17.3.
   already present; added a shared `data.design_dropdown_items` + a "Previous runs" VSelect to all
   four archetype tabs (Mixed/Volute by trial, CROR/Prop by click index). gold-✕ reference is
   fan-only (no published archetype reference), so N/A.
+- [x] **17.1b Archetype tabs actually render live.** FIXED 2026-09-21. On first live open all four
+  archetype tabs were **blank** and the console spammed `'dict' object has no attribute 'startswith'`.
+  Two pre-existing bugs (from the a31d2fc recovery): (a) the lazy `@state.change` tab render created
+  widgets after the layout `with` blocks closed, so nothing attached to the client — fixed by
+  re-entering the tab container + `layout.flush_content()`; (b) prop's "Wall mode" VSelect passed a
+  list literal to `items=`, which trame reads as a state binding and crashes — fixed by binding
+  `items=("p_thick_mode_items",)`. Guarded by `tests/test_cockpit_items_binding.py`; verified in the
+  browser (Fan/Mixed/Volute/Prop/CROR all render, no errors). See [[cockpit-trame-gotchas]].
 - [~] **17.2 Assess / run a single design from the tab.** Already present (Mixed/Volute Assess,
   Prop Analyze, CROR Optimize+CFD-refine).
 - [~] **17.3 Airflow viz where applicable.** **[impact: med]** **[effort: med]**

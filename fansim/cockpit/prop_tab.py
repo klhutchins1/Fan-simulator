@@ -86,6 +86,13 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     state.prop_refine_busy = False
     state.prop_polar_v = "0,5,10,15,20"
     state.prop_geo_ready = False
+    # VSelect items must be bound through a state var: trame treats a raw list passed to
+    # ``items=[...]`` as a ``(state_var, default)`` binding and calls ``.startswith`` on the first
+    # element (a dict) -> the whole select renders as an html-error. Bind by name instead.
+    state.p_thick_mode_items = [
+        {"title": "Tapered t/c", "value": "tapered"},
+        {"title": "Uniform wall mm", "value": "uniform"},
+    ]
     _prop_runs = runs_root if runs_root.exists() else Path("runs")
     _prop_last = latest_prop_study_dir(_prop_runs)
     state.prop_last_opt = str(_prop_last) if _prop_last else ""
@@ -610,10 +617,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                     v3.VSelect(
                         label="Wall mode",
                         v_model=("p_thick_mode",),
-                        items=[
-                            {"title": "Tapered t/c", "value": "tapered"},
-                            {"title": "Uniform wall mm", "value": "uniform"},
-                        ],
+                        items=("p_thick_mode_items",),
                         density="compact",
                         variant="outlined",
                         hide_details=True,
