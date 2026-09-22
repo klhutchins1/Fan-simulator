@@ -133,3 +133,24 @@ def test_freeze_cli_parser_has_required_flags():
     names = {a.dest for a in ap._actions}
     for need in ("result", "out", "id", "stl", "require_gate", "allow_no_case"):
         assert need in names
+
+
+def test_committed_smoke_fixtures_if_present():
+    import json
+    import math
+    from pathlib import Path
+
+    from fansim.propeller.cfd_fixture import REQUIRED_FIXTURE_KEYS
+
+    cfd_dir = Path("validation/reference/drone_radial/cfd")
+    paths = sorted(cfd_dir.glob("*_smoke.json")) if cfd_dir.is_dir() else []
+    if not paths:
+        pytest.skip("no committed smoke fixtures yet")
+    for path in paths:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        assert REQUIRED_FIXTURE_KEYS <= set(data.keys())
+        assert data["solver"] == "rhoSimpleFoam"
+        assert data["domain"] == "open_air"
+        assert data["regime"] == "compressible-MRF"
+        for k, v in data["metrics"].items():
+            assert math.isfinite(float(v)), f"{path.name} metrics.{k}"

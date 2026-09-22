@@ -1,7 +1,7 @@
 # §4.3 stage: drone_radial open-air CFD (documented smoke)
 
 **Date:** 2026-09-21  
-**Status:** approved (2026-09-21)  
+**Status:** implemented-partial (2026-09-21) — tooling + obj_1 campaign recorded; gate blocked obj_2 / fixtures  
 **Approach:** A — campaign via existing `evaluate_prop_cfd.py --stl` + fixture freezer + validation doc  
 **Parent:** `docs/superpowers/specs/2026-09-07-prop-compressible-cfd-design.md` (stage-1 smoke path already shipped)  
 **Roadmap:** §4.3 — real-geometry proof on prepared drone radial STLs; does **not** replace BEMT screening or claim datasheet accuracy.
