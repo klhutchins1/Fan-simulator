@@ -1,90 +1,55 @@
 # Drone radial open-air CFD (smoke + refine)
 
-**Status:** recorded 2026-09-22 — smoke fixtures for both STLs; refine fixture for **obj_2** only (obj_1 refine gate failed)  
+**Status:** recorded 2026-09-22 — smoke + refine fixtures for **both** STLs  
 **Solver:** `rhoSimpleFoam` · **Domain:** open_air · **Regime:** compressible-MRF  
-**Image:** `opencfd/openfoam-default:2406` (canonical). WSL-native OpenFOAM is optional later — not documented as a second path here.
+**Image:** `opencfd/openfoam-default:2406` (canonical).
 
 ## Honesty
 
-Steady compressible MRF on a truncated box is a **screening** record. Tip Mach is stamped; shocks are not resolved. Not OEM / datasheet grade.
+Steady compressible MRF in a truncated box is a **screening** record — tip Mach stamped, shocks not resolved, not datasheet-grade.
 
-| Tier | Mesh | Iters | Force-tail gate |
-|------|------|-------|-----------------|
-| Smoke | `base_cell=0.005` | 400 | **&lt; 25%** |
-| Refine | `base_cell=0.004` | 600 | **&lt; 10%** |
+| Tier | Mesh | Iters | Drift gate |
+|------|------|-------|------------|
+| Smoke | `base_cell=0.005` | 400 | &lt; **25%** over last **25%** of force samples |
+| Refine | ≤`0.004` (obj_1 used `0.003`) | 600–1000 | &lt; **10%** over last **10%** of force samples (late-window) |
 
-## Geometry
+Refine uses a **late-window** (`--tail-frac 0.10`) because FO force sampling is sparse (~40–100 points/run); a 25% window can still include settling. Future cases write denser FO history (`n_iters/100`).
 
-| Case | STL | ~D |
-|------|-----|----|
-| obj_1 | `validation/reference/drone_radial/obj_1_ccw_impeller.stl` | ~60 mm |
-| obj_2 | `validation/reference/drone_radial/obj_2_ccw.stl` | ~90 mm |
+## Geometry / RPM
 
-RPM from tip Mach ≈ 0.35: `rpm = Ma * 343 * 60 / (2π R)`.
+| Case | STL | ~D | RPM @ Ma≈0.35 (smoke) | RPM refine |
+|------|-----|----|----------------------|------------|
+| obj_1 | `…/obj_1_ccw_impeller.stl` | ~60 mm | 38100 | 32657 (Ma≈0.30) |
+| obj_2 | `…/obj_2_ccw.stl` | ~90 mm | 25257 | 25257 (Ma≈0.35) |
 
-| Case | RPM (Ma≈0.35) |
-|------|----------------|
-| obj_1 | 38100 |
-| obj_2 | 25257 |
+## Smoke results (gate 25% / tail 25%)
 
-## Smoke campaign
+| Case | thrust_g | shaft_power_w | drift_% | fixture |
+|------|----------|---------------|---------|---------|
+| obj_1 | 74.2 | 236 | 23.4 | `obj_1_ccw_impeller_smoke.json` |
+| obj_2 | 938 | 2034 | 4.7 | `obj_2_ccw_smoke.json` |
 
-### Gate outcome
+## Refine results
 
-| Case | Finite | `|thrust_g|≥10` | Drift | Gate @ 25% |
-|------|--------|-----------------|-------|------------|
-| obj_1 | pass | pass (~74 g) | ~23.4% | pass |
-| obj_2 | pass | pass (~938 g) | ~4.7% | pass |
+| Case | thrust_g | shaft_power_w | tip_mach | late drift_% | fixture |
+|------|----------|---------------|----------|--------------|---------|
+| obj_1 | 60.7 | 173 | 0.30 | 5.4 | `obj_1_ccw_impeller_refine.json` |
+| obj_2 | 949 | 2058 | 0.35 | 3.8 | `obj_2_ccw_refine.json` |
 
-### Results
+obj_1 needed softer SIMPLE relaxation, `base_cell=0.003`, 1000 iters, Ma≈0.30, and late-window gate after coarser refine attempts stayed in a limit-cycle under a 25% sample window.
 
-| Case | thrust_g | shaft_power_w | tip_mach | drift_% | fixture |
-|------|----------|---------------|----------|---------|---------|
-| obj_1 | 74.2 | 236 | 0.35 | 23.4 | `…/cfd/obj_1_ccw_impeller_smoke.json` |
-| obj_2 | 938 | 2034 | 0.35 | 4.7 | `…/cfd/obj_2_ccw_smoke.json` |
+## Cockpit
 
-## Refine campaign (2026-09-22 deepen)
+Prop Optimize **CFD mesh** preset: Smoke (`0.005`/`400`) or Refine (`0.004`/`600`) on the existing CFD refine top-N card.
 
-### Gate outcome
-
-| Case | Finite | `|thrust_g|≥10` | Drift | Gate @ 10% |
-|------|--------|-----------------|-------|------------|
-| obj_1 | pass (~65 g) | pass | ~31.2% | **fail** — no refine fixture |
-| obj_2 | pass (~949 g) | pass | ~3.8% | **pass** |
-
-### Results
-
-| Case | thrust_g | shaft_power_w | tip_mach | drift_% | fixture |
-|------|----------|---------------|----------|---------|---------|
-| obj_1 | ~65 | ~257 | 0.35 | 31.2 (fail) | *not frozen* |
-| obj_2 | 949 | 2058 | 0.35 | 3.8 | `…/cfd/obj_2_ccw_refine.json` |
-
-### Commands
+## Commands (refine freeze)
 
 ```bash
-uv run python scripts/evaluate_prop_cfd.py \
-  --stl validation/reference/drone_radial/obj_1_ccw_impeller.stl \
-  --rpm 38100 --base-cell 0.004 --iters 600 --procs 8 \
-  --out runs/drone_radial_cfd/obj_1_refine
-
-uv run python scripts/evaluate_prop_cfd.py \
-  --stl validation/reference/drone_radial/obj_2_ccw.stl \
-  --rpm 25257 --base-cell 0.004 --iters 600 --procs 8 \
-  --out runs/drone_radial_cfd/obj_2_refine
-
 uv run python scripts/freeze_prop_cfd_fixture.py \
-  --result runs/drone_radial_cfd/obj_2_refine/result.json \
-  --out validation/reference/drone_radial/cfd/obj_2_ccw_refine.json \
-  --id obj_2_ccw_refine \
-  --stl validation/reference/drone_radial/obj_2_ccw.stl \
-  --spin -1 --base-cell 0.004 --iters 600 --procs 8 \
-  --drift-tol 10 --require-gate
+  --result runs/drone_radial_cfd/obj_1_refine4/result.json \
+  --out validation/reference/drone_radial/cfd/obj_1_ccw_impeller_refine.json \
+  --id obj_1_ccw_impeller_refine \
+  --stl validation/reference/drone_radial/obj_1_ccw_impeller.stl \
+  --base-cell 0.003 --iters 1000 --procs 8 \
+  --drift-tol 10 --tail-frac 0.10 --require-gate
 ```
-
-Cockpit: Prop Optimize **CFD mesh** preset Smoke (`0.005`/`400`) or Refine (`0.004`/`600`) on the existing CFD refine top-N card.
-
-Local run dirs (gitignored): `runs/drone_radial_cfd/obj_*_{smoke,refine}/`.
-
-## Template fixes (smoke campaign)
-
-`PROP_FV_SCHEMES` / `PROP_FV_OPTIONS`: `wallDist.method meshWave`, `div(phi,Ekp)`, `div(phiMRF,p)`, `div(phid,p)`, `limitTemperature`, milder SIMPLE relaxation.

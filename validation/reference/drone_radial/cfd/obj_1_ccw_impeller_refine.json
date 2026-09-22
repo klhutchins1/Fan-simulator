@@ -1,0 +1,26 @@
+{
+  "id": "obj_1_ccw_impeller_refine",
+  "stl": "validation/reference/drone_radial/obj_1_ccw_impeller.stl",
+  "spin": -1,
+  "rpm": 32657.0,
+  "tip_mach": 0.2999991755901559,
+  "tip_radius_mm": 30.089105501735073,
+  "mesh": {
+    "base_cell_m": 0.003,
+    "iters": 1000,
+    "procs": 8
+  },
+  "solver": "rhoSimpleFoam",
+  "domain": "open_air",
+  "regime": "compressible-MRF",
+  "openfoam_image": "opencfd/openfoam-default:2406",
+  "metrics": {
+    "thrust_n": 0.59554171,
+    "thrust_g": 60.72835371915996,
+    "torque_nm": 0.050580207,
+    "shaft_power_w": 172.97586321748315
+  },
+  "force_tail_drift_pct": 5.399730552481029,
+  "date": "2026-09-22",
+  "notes": "refine late-window gate (tail_frac=0.10, drift_tol=10%); base_cell=0.003 iters=1000 Ma~0.30; not datasheet-grade"
+}

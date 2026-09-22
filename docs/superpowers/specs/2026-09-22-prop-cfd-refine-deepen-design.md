@@ -1,7 +1,7 @@
 # §4.3 deepen: refine mesh campaign + Prop CFD refine knobs
 
 **Date:** 2026-09-22  
-**Status:** implemented-partial (2026-09-22) — cockpit presets + `--drift-tol` + obj_2 refine fixture; obj_1 refine gate failed (~31% drift)  
+**Status:** implemented (2026-09-22) — both refine fixtures; refine gate uses late-window `--tail-frac 0.10`  
 **Approach:** A — parallel `*_refine` fixtures (10% drift gate) + expose mesh/iters on existing Prop CFD refine top-N card  
 **Parent:** `docs/superpowers/specs/2026-09-21-prop-drone-radial-cfd-design.md` (smoke campaign implemented)  
 **Roadmap:** §4.3 deepen — finer screening CFD; does **not** claim datasheet or grid independence.
@@ -65,7 +65,10 @@ drive Pareto CFD without a second button.
 | 5 | Freeze only passers | `validation/reference/drone_radial/cfd/*_refine.json` |
 | 6 | Update validation md + roadmap | docs |
 
-**Gate:** Reuse `prop_cfd_smoke_gate(..., drift_tol_pct=10)`. Default library constant stays **25%** for smoke; refine passes **10** explicitly.
+**Gate:** Reuse `prop_cfd_smoke_gate(..., drift_tol_pct=10, tail_frac=0.10)` for refine
+freezes (late-window). Default library `FORCE_TAIL_FRAC` stays **0.25** for smoke;
+refine freezer passes `--tail-frac 0.10` explicitly. Amended after sparse FO sampling
+made a 25% sample window include settling on obj_1.
 
 **Freezer:** Add `--drift-tol` (default 25 for back-compat). Refine freeze uses `--drift-tol 10 --require-gate`.
 

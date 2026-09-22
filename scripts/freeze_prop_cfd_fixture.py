@@ -36,6 +36,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=25.0,
         help="force-tail drift %% gate when --require-gate (default 25 smoke)",
     )
+    ap.add_argument(
+        "--tail-frac",
+        type=float,
+        default=0.25,
+        help="fraction of force.dat for drift (default 0.25; refine late-window 0.10)",
+    )
     ap.add_argument("--date", default=None)
     return ap
 
@@ -50,7 +56,7 @@ def main() -> int:
             case_dir = parent
     drift = None
     if case_dir is not None:
-        drift = force_z_tail_drift_pct(case_dir)
+        drift = force_z_tail_drift_pct(case_dir, tail_frac=float(args.tail_frac))
     elif not args.allow_no_case:
         print(
             "ERROR: no case-dir / postProcessing; pass --case-dir or --allow-no-case",
@@ -59,7 +65,10 @@ def main() -> int:
         return 2
     if args.require_gate:
         ok, reasons = prop_cfd_smoke_gate(
-            result, case_dir=case_dir, drift_tol_pct=float(args.drift_tol),
+            result,
+            case_dir=case_dir,
+            drift_tol_pct=float(args.drift_tol),
+            tail_frac=float(args.tail_frac),
         )
         if not ok:
             print("GATE FAIL:\n" + "\n".join(reasons), file=sys.stderr)

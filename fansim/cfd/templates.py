@@ -652,14 +652,14 @@ solvers
 potentialFlow { nNonOrthogonalCorrectors 5; }
 SIMPLE
 {
-    nNonOrthogonalCorrectors 1;
+    nNonOrthogonalCorrectors 2;
     consistent      no;
     residualControl { p 1e-4; U 1e-4; "(k|omega|h|e)" 1e-4; }
 }
 relaxationFactors
 {
-    fields    { p 0.2; }
-    equations { U 0.5; "(k|omega|h|e)" 0.5; }
+    fields    { p 0.15; }
+    equations { U 0.35; "(k|omega|h|e)" 0.35; }
 }
 """
 

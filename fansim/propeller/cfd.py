@@ -135,7 +135,7 @@ def build_prop_case(
     nx = max(10, round(2 * H / mesh.base_cell))
     nz = max(20, round((zmax - zmin) / mesh.base_cell))
     write_int = max(1, n_iters // 2)  # field snapshots (kept small via purgeWrite)
-    fo_int = max(1, n_iters // 40)  # function-object sampling for convergence tracking
+    fo_int = max(1, n_iters // 100)  # denser FO history for force-tail gate
 
     # locationInMesh must be inside the domain but outside the impeller surface.
     locx = 0.9 * H

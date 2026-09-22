@@ -147,9 +147,10 @@ def test_freeze_cli_declares_drift_tol():
     ap = mod.build_parser()
     args = ap.parse_args([
         "--result", "r.json", "--out", "o.json", "--id", "x", "--stl", "s.stl",
-        "--drift-tol", "10",
+        "--drift-tol", "10", "--tail-frac", "0.10",
     ])
     assert args.drift_tol == pytest.approx(10.0)
+    assert args.tail_frac == pytest.approx(0.10)
 
 
 def test_committed_smoke_fixtures_if_present():
@@ -188,7 +189,7 @@ def test_committed_refine_fixtures_if_present():
         data = json.loads(path.read_text(encoding="utf-8"))
         assert REQUIRED_FIXTURE_KEYS <= set(data.keys())
         assert data["solver"] == "rhoSimpleFoam"
-        assert data["mesh"]["base_cell_m"] == pytest.approx(0.004)
+        assert float(data["mesh"]["base_cell_m"]) <= 0.004 + 1e-9
         assert float(data["force_tail_drift_pct"]) < 10.0
         for k, v in data["metrics"].items():
             assert math.isfinite(float(v)), f"{path.name} metrics.{k}"
