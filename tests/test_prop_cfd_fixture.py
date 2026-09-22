@@ -118,3 +118,18 @@ def test_build_and_write_prop_cfd_fixture(tmp_path: Path):
     loaded = json.loads(out.read_text(encoding="utf-8"))
     assert loaded["id"] == "obj_1_ccw_impeller_smoke"
     assert loaded["openfoam_image"] == "opencfd/openfoam-default:2406"
+
+
+def test_freeze_cli_parser_has_required_flags():
+    import importlib.util
+    from pathlib import Path
+
+    path = Path("scripts/freeze_prop_cfd_fixture.py")
+    spec = importlib.util.spec_from_file_location("freeze_prop_cfd_fixture", path)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    ap = mod.build_parser()
+    names = {a.dest for a in ap._actions}
+    for need in ("result", "out", "id", "stl", "require_gate", "allow_no_case"):
+        assert need in names
