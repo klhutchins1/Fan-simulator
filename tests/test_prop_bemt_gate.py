@@ -94,3 +94,36 @@ def test_refine_pareto_cfd_respects_floor(tmp_path, monkeypatch):
     rows = po.refine_pareto_cfd(spec, pareto, tmp_path, n_top=1, bemt_floor_g=50.0)
     assert len(rows) == 1
     assert calls == [50.0]
+
+
+def test_refine_pareto_cfd_forwards_mesh_knobs(tmp_path, monkeypatch):
+    import fansim.propeller.optimize as po
+
+    captured = {}
+
+    def fake_eval(spec, workdir, **kw):
+        captured.update(kw)
+        return {"thrust_g": 100.0, "bemt_thrust_g": 80.0, "skipped": False}
+
+    monkeypatch.setattr("fansim.propeller.cfd.evaluate_prop_cfd", fake_eval)
+    spec = get_prop_spec("fpv_5inch")
+    pareto = [
+        {
+            "thrust_g": 100.0,
+            "params": {
+                "n_blades": 3,
+                "pitch_in": 4.3,
+                "chord_root": 0.2,
+                "chord_mid": 0.26,
+                "chord_tip": 0.1,
+                "camber": 0.04,
+            },
+        }
+    ]
+    rows = po.refine_pareto_cfd(
+        spec, pareto, tmp_path, n_top=1, bemt_floor_g=0.0,
+        base_cell=0.004, iters=600,
+    )
+    assert not rows[0]["skipped"]
+    assert captured.get("base_cell") == pytest.approx(0.004)
+    assert captured.get("iters") == 600
