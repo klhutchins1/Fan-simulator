@@ -135,6 +135,23 @@ def test_freeze_cli_parser_has_required_flags():
         assert need in names
 
 
+def test_freeze_cli_declares_drift_tol():
+    import importlib.util
+    from pathlib import Path
+
+    path = Path("scripts/freeze_prop_cfd_fixture.py")
+    spec = importlib.util.spec_from_file_location("freeze_prop_cfd_fixture", path)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    ap = mod.build_parser()
+    args = ap.parse_args([
+        "--result", "r.json", "--out", "o.json", "--id", "x", "--stl", "s.stl",
+        "--drift-tol", "10",
+    ])
+    assert args.drift_tol == pytest.approx(10.0)
+
+
 def test_committed_smoke_fixtures_if_present():
     import json
     import math

@@ -30,6 +30,12 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--case-dir", type=Path, default=None)
     ap.add_argument("--allow-no-case", action="store_true")
     ap.add_argument("--require-gate", action="store_true")
+    ap.add_argument(
+        "--drift-tol",
+        type=float,
+        default=25.0,
+        help="force-tail drift %% gate when --require-gate (default 25 smoke)",
+    )
     ap.add_argument("--date", default=None)
     return ap
 
@@ -52,7 +58,9 @@ def main() -> int:
         )
         return 2
     if args.require_gate:
-        ok, reasons = prop_cfd_smoke_gate(result, case_dir=case_dir)
+        ok, reasons = prop_cfd_smoke_gate(
+            result, case_dir=case_dir, drift_tol_pct=float(args.drift_tol),
+        )
         if not ok:
             print("GATE FAIL:\n" + "\n".join(reasons), file=sys.stderr)
             return 2
