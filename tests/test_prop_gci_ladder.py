@@ -56,3 +56,23 @@ def test_build_gci_summary_null_when_flat():
     s = build_gci_summary(stl="x.stl", rpm=1.0, iters=800, levels=levels)
     assert s["gci"] is None
     assert s["gci_reason"]
+
+
+def test_cli_parser_defaults_and_cells():
+    import importlib.util
+    from pathlib import Path
+
+    path = Path("scripts/run_prop_grid_convergence.py")
+    spec = importlib.util.spec_from_file_location("run_prop_grid_convergence", path)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    ap = mod.build_parser()
+    args = ap.parse_args([
+        "--stl", "validation/reference/drone_radial/obj_1_ccw_impeller.stl",
+        "--rpm", "38100",
+        "--out", "runs/drone_radial_cfd/gci/obj_1",
+    ])
+    assert args.rpm == pytest.approx(38100.0)
+    assert args.iters == 800
+    assert args.cells == "0.005,0.0035,0.0025"
