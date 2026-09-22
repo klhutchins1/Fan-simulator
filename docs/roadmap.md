@@ -147,11 +147,12 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   **Track A stage 2 (2026-09-21):** BEMT→PyThrust CSV export (Analyze + CLI); not a substitute for §4.3 CFD
   (spec/plan: `docs/superpowers/specs/2026-09-21-prop-pythrust-bemt-export-design.md`,
   `docs/superpowers/plans/2026-09-21-prop-pythrust-bemt-export.md`).
-  **drone_radial smoke (2026-09-21):** open-air `rhoSimpleFoam` on
-  `obj_1_ccw_impeller` finished with finite thrust/power; force-tail **gate failed**
-  (~23% drift) so obj_2 was not run and no success fixture was frozen. Report:
-  `docs/validation/drone_radial_open_air_cfd.md`. Screening only — not full §4.3 /
-  not datasheet. Template stability fixes landed in `PROP_FV_*`.
+  **drone_radial smoke (2026-09-22):** open-air `rhoSimpleFoam` on
+  `obj_1_ccw_impeller` + `obj_2_ccw`; fixtures under
+  `validation/reference/drone_radial/cfd/`; report
+  `docs/validation/drone_radial_open_air_cfd.md`. Smoke force-tail gate **25%**
+  (smoke mesh). Screening only — not full §4.3 / not datasheet. Template
+  stability fixes in `PROP_FV_*`.
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 

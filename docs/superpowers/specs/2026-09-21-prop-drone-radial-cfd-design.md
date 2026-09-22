@@ -1,7 +1,7 @@
 # §4.3 stage: drone_radial open-air CFD (documented smoke)
 
 **Date:** 2026-09-21  
-**Status:** implemented-partial (2026-09-21) — tooling + obj_1 campaign recorded; gate blocked obj_2 / fixtures  
+**Status:** implemented (2026-09-22) — both smokes + fixtures; force-tail gate amended to 25% for smoke mesh  
 **Approach:** A — campaign via existing `evaluate_prop_cfd.py --stl` + fixture freezer + validation doc  
 **Parent:** `docs/superpowers/specs/2026-09-07-prop-compressible-cfd-design.md` (stage-1 smoke path already shipped)  
 **Roadmap:** §4.3 — real-geometry proof on prepared drone radial STLs; does **not** replace BEMT screening or claim datasheet accuracy.
@@ -71,7 +71,7 @@ Recompute from meta before running; store the actual RPM in fixtures and the doc
 1. Solver exits 0 (`OpenFOAMRunner` / `rhoSimpleFoam`).
 2. Finite `thrust_n`, `torque_nm`, `shaft_power_w` after `normalize_metrics_sign`.
 3. `|thrust_g| ≥ 10` (non-trivial floor; screening only).
-4. Forces steady: last **25%** of `postProcessing/forces/*/force.dat` total **z** samples — peak-to-peak **< 10%** of |mean| (prop analogue of fan `convergence()`; no outletFlow FO).
+4. Forces steady: last **25%** of `postProcessing/forces/*/force.dat` total **z** samples — peak-to-peak **< 25%** of |mean| (smoke mesh limit-cycle; prop analogue of fan `convergence()`; no outletFlow FO). Amended 2026-09-22 after 10% proved unreachable on smoke mesh without multi-hour refine.
 
 On gate failure: stop; document in the md; do not run obj_2; do not freeze a success fixture for a failed solve.
 

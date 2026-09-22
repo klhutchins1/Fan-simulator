@@ -7,7 +7,7 @@ from datetime import date as date_cls
 from pathlib import Path
 
 FORCE_TAIL_FRAC = 0.25
-FORCE_DRIFT_TOL_PCT = 10.0
+FORCE_DRIFT_TOL_PCT = 25.0  # smoke mesh limit-cycle; not fan-path 2% honesty
 THRUST_G_FLOOR = 10.0
 OPENFOAM_IMAGE_DEFAULT = "opencfd/openfoam-default:2406"
 

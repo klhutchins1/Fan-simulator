@@ -1,0 +1,26 @@
+{
+  "id": "obj_2_ccw_smoke",
+  "stl": "validation/reference/drone_radial/obj_2_ccw.stl",
+  "spin": -1,
+  "rpm": 25257.0,
+  "tip_mach": 0.3499955484995014,
+  "tip_radius_mm": 45.38854474432168,
+  "mesh": {
+    "base_cell_m": 0.005,
+    "iters": 400,
+    "procs": 8
+  },
+  "solver": "rhoSimpleFoam",
+  "domain": "open_air",
+  "regime": "compressible-MRF",
+  "openfoam_image": "opencfd/openfoam-default:2406",
+  "metrics": {
+    "thrust_n": 9.1980953,
+    "thrust_g": 937.9446905926083,
+    "torque_nm": 0.76911129,
+    "shaft_power_w": 2034.2277232229224
+  },
+  "force_tail_drift_pct": 4.659121625626125,
+  "date": "2026-09-22",
+  "notes": "smoke screening; not datasheet-grade; force-tail gate tol 25% (smoke mesh)"
+}
