@@ -614,6 +614,8 @@ divSchemes
     div(phi,Ekp)    bounded Gauss upwind;
     div(phi,k)      bounded Gauss upwind;
     div(phi,omega)  bounded Gauss upwind;
+    div(phiMRF,p)   Gauss upwind;
+    div(phid,p)     Gauss upwind;
     div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
 }
 laplacianSchemes { default Gauss linear corrected; }
