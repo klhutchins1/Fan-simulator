@@ -53,6 +53,13 @@ else:
     from trame.widgets import vuetify3 as v3
 
 
+def prop_cfd_mesh_knobs(preset: str) -> tuple[float, int]:
+    p = (preset or "smoke").strip().lower()
+    if p == "refine":
+        return (0.004, 600)
+    return (0.005, 400)
+
+
 def setup_prop_tab(ctx: CockpitCtx) -> None:
     """Init prop_* state and controllers (call before SinglePageLayout)."""
     state, ctrl = ctx.state, ctx.ctrl
@@ -82,6 +89,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     state.prop_pareto = []  # display rows for the optimizer front table
     state.prop_resume = False
     state.prop_cfd_top = 0
+    state.prop_cfd_mesh_preset = "smoke"
     state.prop_bemt_floor = 0.0
     state.prop_refine_busy = False
     state.prop_polar_v = "0,5,10,15,20"
@@ -459,6 +467,8 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
             return
         base = get_prop_spec(state.prop_model)
         out = pareto_dir / "cfd_refine"
+        mesh_preset = str(state.prop_cfd_mesh_preset)
+        base_cell, iters = prop_cfd_mesh_knobs(mesh_preset)
 
         async def task():
             state.prop_refine_busy = True
@@ -466,7 +476,10 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                 action="CFD refine",
                 msg_attr="prop_msg",
                 busy_attr="prop_refine_busy",
-                note=f"top {n_top}, BEMT floor {floor:g} g → {out.name}",
+                note=(
+                    f"top {n_top}, BEMT floor {floor:g} g, "
+                    f"mesh {mesh_preset} (cell={base_cell}, iters={iters}) → {out.name}"
+                ),
                 interval=2.0,
             )
             state.flush()
@@ -481,6 +494,8 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                         n_top=n_top,
                         bemt_floor_g=floor,
                         spec_key=str(state.prop_model),
+                        base_cell=base_cell,
+                        iters=iters,
                     ),
                 )
             except Exception as exc:  # noqa: BLE001
@@ -789,12 +804,14 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                     )
                     html.Div(
                         "CFD refine scores top-N BEMT finalists (Docker). "
-                        "BEMT floor skips hopeless CFD. Polar V∞ list feeds Analyze.",
+                        "BEMT floor skips hopeless CFD. "
+                        "Smoke mesh is fast sanity-check; Refine is denser for ranking. "
+                        "Polar V∞ list feeds Analyze.",
                         classes="text-caption mt-3 mb-1",
                         style="white-space: pre-line",
                     )
                     with v3.VRow(no_gutters=True, classes="align-center"):
-                        with v3.VCol(cols=4, classes="pr-1"):
+                        with v3.VCol(cols=3, classes="pr-1"):
                             v3.VTextField(
                                 label="CFD top N",
                                 v_model=("prop_cfd_top",),
@@ -803,7 +820,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                 variant="outlined",
                                 hide_details=True,
                             )
-                        with v3.VCol(cols=4, classes="px-1"):
+                        with v3.VCol(cols=3, classes="px-1"):
                             v3.VTextField(
                                 label="BEMT floor g",
                                 v_model=("prop_bemt_floor",),
@@ -812,7 +829,16 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                 variant="outlined",
                                 hide_details=True,
                             )
-                        with v3.VCol(cols=4, classes="pl-1"):
+                        with v3.VCol(cols=3, classes="px-1"):
+                            v3.VSelect(
+                                label="CFD mesh",
+                                v_model=("prop_cfd_mesh_preset",),
+                                items=["smoke", "refine"],
+                                density="compact",
+                                variant="outlined",
+                                hide_details=True,
+                            )
+                        with v3.VCol(cols=3, classes="pl-1"):
                             v3.VBtn(
                                 "CFD refine",
                                 color="warning",

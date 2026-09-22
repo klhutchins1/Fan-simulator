@@ -7,6 +7,14 @@ import pytest
 from fansim.prop_spec import get_prop_spec
 
 
+def test_prop_cfd_mesh_knobs():
+    from fansim.cockpit.prop_tab import prop_cfd_mesh_knobs
+
+    assert prop_cfd_mesh_knobs("smoke") == (0.005, 400)
+    assert prop_cfd_mesh_knobs("refine") == (0.004, 600)
+    assert prop_cfd_mesh_knobs("unknown") == (0.005, 400)
+
+
 def test_bemt_thrust_g_finite():
     from fansim.propeller.geometry import prop_blade_params
     from fansim.propeller.optimize import bemt_thrust_g
