@@ -658,12 +658,19 @@ SIMPLE
 }
 relaxationFactors
 {
-    fields    { p 0.3; }
-    equations { U 0.7; "(k|omega|h|e)" 0.7; }
+    fields    { p 0.2; }
+    equations { U 0.5; "(k|omega|h|e)" 0.5; }
 }
 """
 
 PROP_FV_OPTIONS = """@HEADER@
+limitT
+{
+    type            limitTemperature;
+    min             101;
+    max             1000;
+    selectionMode   all;
+}
 """
 
 PROP_T = """@HEADER@
