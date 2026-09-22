@@ -40,6 +40,7 @@ def test_prop_templates_declare_rhosimple():
     assert "forces" in T.PROP_CONTROL_DICT
     assert "alphatWallFunction" in T.PROP_ALPHAT or "compressible::alphatWallFunction" in T.PROP_ALPHAT
     assert "alphatWallFunction" in T.PROP_ALPHAT or "compressible::alphatWallFunction" in T.PROP_ALPHAT
+    assert "wallDist" in T.PROP_FV_SCHEMES and "meshWave" in T.PROP_FV_SCHEMES
 
 
 def test_cli_evaluate_prop_cfd_declares_flags():
