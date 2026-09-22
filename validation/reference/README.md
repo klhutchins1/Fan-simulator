@@ -40,6 +40,9 @@ uv run python scripts/evaluate_prop_cfd.py \
 
 Spin defaults from the filename (`CCW` → `-1`, `CW` → `+1`); override with `--spin`.
 
+Documented smoke CFD (after campaign): `docs/validation/drone_radial_open_air_cfd.md`
+and fixtures under `validation/reference/drone_radial/cfd/`.
+
 ## UIUC PropDB fixture
 
 `validation/reference/uiuc_propdb/apcsf_9x4.7_static.json` — vendored static CT/CP row for
