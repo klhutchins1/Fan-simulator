@@ -76,3 +76,32 @@ def test_cli_parser_defaults_and_cells():
     assert args.rpm == pytest.approx(38100.0)
     assert args.iters == 800
     assert args.cells == "0.005,0.0035,0.0025"
+
+
+def test_cli_main_rejects_bad_cells(monkeypatch, capsys):
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    path = Path("scripts/run_prop_grid_convergence.py")
+    spec = importlib.util.spec_from_file_location("run_prop_grid_convergence_bad_cells", path)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_prop_grid_convergence.py",
+            "--cells",
+            "0.005,0.0035",
+            "--stl",
+            "validation/reference/drone_radial/obj_1_ccw_impeller.stl",
+            "--rpm",
+            "38100",
+            "--out",
+            "runs/drone_radial_cfd/gci/obj_1",
+        ],
+    )
+    assert mod.main() == 2
+    assert "ERROR" in capsys.readouterr().err

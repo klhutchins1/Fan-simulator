@@ -136,7 +136,11 @@ def run_ladder(
 
 def main() -> int:
     args = build_parser().parse_args()
-    cells = parse_cells(args.cells)
+    try:
+        cells = parse_cells(args.cells)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
 
     jobs = []
     if args.both:
