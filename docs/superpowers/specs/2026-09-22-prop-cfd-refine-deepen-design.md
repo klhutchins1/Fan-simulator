@@ -1,7 +1,7 @@
 # §4.3 deepen: refine mesh campaign + Prop CFD refine knobs
 
 **Date:** 2026-09-22  
-**Status:** approved (2026-09-22)  
+**Status:** implemented-partial (2026-09-22) — cockpit presets + `--drift-tol` + obj_2 refine fixture; obj_1 refine gate failed (~31% drift)  
 **Approach:** A — parallel `*_refine` fixtures (10% drift gate) + expose mesh/iters on existing Prop CFD refine top-N card  
 **Parent:** `docs/superpowers/specs/2026-09-21-prop-drone-radial-cfd-design.md` (smoke campaign implemented)  
 **Roadmap:** §4.3 deepen — finer screening CFD; does **not** claim datasheet or grid independence.

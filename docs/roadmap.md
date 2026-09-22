@@ -153,6 +153,11 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   `docs/validation/drone_radial_open_air_cfd.md`. Smoke force-tail gate **25%**
   (smoke mesh). Screening only — not full §4.3 / not datasheet. Template
   stability fixes in `PROP_FV_*`.
+  **drone_radial refine (2026-09-22):** `base_cell=0.004` / 600 iters; gate **10%**.
+  obj_2 refine frozen; obj_1 refine still limit-cycles (~31% drift) — no fixture.
+  Prop CFD refine card: Smoke/Refine mesh preset. Spec/plan:
+  `docs/superpowers/specs/2026-09-22-prop-cfd-refine-deepen-design.md`,
+  `docs/superpowers/plans/2026-09-22-prop-cfd-refine-deepen.md`.
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 

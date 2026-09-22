@@ -171,3 +171,24 @@ def test_committed_smoke_fixtures_if_present():
         assert data["regime"] == "compressible-MRF"
         for k, v in data["metrics"].items():
             assert math.isfinite(float(v)), f"{path.name} metrics.{k}"
+
+
+def test_committed_refine_fixtures_if_present():
+    import json
+    import math
+    from pathlib import Path
+
+    from fansim.propeller.cfd_fixture import REQUIRED_FIXTURE_KEYS
+
+    cfd_dir = Path("validation/reference/drone_radial/cfd")
+    paths = sorted(cfd_dir.glob("*_refine.json")) if cfd_dir.is_dir() else []
+    if not paths:
+        pytest.skip("no committed refine fixtures yet")
+    for path in paths:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        assert REQUIRED_FIXTURE_KEYS <= set(data.keys())
+        assert data["solver"] == "rhoSimpleFoam"
+        assert data["mesh"]["base_cell_m"] == pytest.approx(0.004)
+        assert float(data["force_tail_drift_pct"]) < 10.0
+        for k, v in data["metrics"].items():
+            assert math.isfinite(float(v)), f"{path.name} metrics.{k}"

@@ -1,0 +1,26 @@
+{
+  "id": "obj_2_ccw_refine",
+  "stl": "validation/reference/drone_radial/obj_2_ccw.stl",
+  "spin": -1,
+  "rpm": 25257.0,
+  "tip_mach": 0.3499955484995014,
+  "tip_radius_mm": 45.38854474432168,
+  "mesh": {
+    "base_cell_m": 0.004,
+    "iters": 600,
+    "procs": 8
+  },
+  "solver": "rhoSimpleFoam",
+  "domain": "open_air",
+  "regime": "compressible-MRF",
+  "openfoam_image": "opencfd/openfoam-default:2406",
+  "metrics": {
+    "thrust_n": 9.3059429,
+    "thrust_g": 948.9420852176839,
+    "torque_nm": 0.77823393,
+    "shaft_power_w": 2058.3562562951415
+  },
+  "force_tail_drift_pct": 3.838691001680882,
+  "date": "2026-09-22",
+  "notes": "refine screening; base_cell=0.004 iters=600; force-tail gate tol 10%; not datasheet-grade"
+}
