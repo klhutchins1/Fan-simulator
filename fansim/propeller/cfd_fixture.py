@@ -1,12 +1,21 @@
 """Freeze / gate helpers for prop open-air CFD smoke fixtures (roadmap §4.3)."""
 from __future__ import annotations
 
+import json
 import math
+from datetime import date as date_cls
 from pathlib import Path
 
 FORCE_TAIL_FRAC = 0.25
 FORCE_DRIFT_TOL_PCT = 10.0
 THRUST_G_FLOOR = 10.0
+OPENFOAM_IMAGE_DEFAULT = "opencfd/openfoam-default:2406"
+
+REQUIRED_FIXTURE_KEYS = frozenset({
+    "id", "stl", "spin", "rpm", "tip_mach", "tip_radius_mm", "mesh",
+    "solver", "domain", "regime", "openfoam_image", "metrics",
+    "force_tail_drift_pct", "date", "notes",
+})
 
 
 def force_z_tail_drift_pct(
@@ -67,3 +76,53 @@ def prop_cfd_smoke_gate(
                     f"force_z_tail_drift_pct={drift:.4g} >= {float(drift_tol_pct):.4g}"
                 )
     return (len(reasons) == 0, reasons)
+
+
+def build_prop_cfd_fixture(
+    *,
+    result: dict,
+    fixture_id: str,
+    stl: str,
+    spin: int,
+    mesh: dict,
+    openfoam_image: str = OPENFOAM_IMAGE_DEFAULT,
+    force_tail_drift_pct: float | None = None,
+    date: str | None = None,
+    notes: str = "smoke screening; not datasheet-grade",
+) -> dict:
+    metrics = {
+        "thrust_n": float(result["thrust_n"]),
+        "thrust_g": float(result["thrust_g"]),
+        "torque_nm": float(result["torque_nm"]),
+        "shaft_power_w": float(result["shaft_power_w"]),
+    }
+    return {
+        "id": str(fixture_id),
+        "stl": str(stl),
+        "spin": int(spin),
+        "rpm": float(result["rpm"]),
+        "tip_mach": float(result["tip_mach"]),
+        "tip_radius_mm": float(result["tip_radius_mm"]),
+        "mesh": {
+            "base_cell_m": float(mesh["base_cell_m"]),
+            "iters": int(mesh["iters"]),
+            "procs": int(mesh["procs"]),
+        },
+        "solver": str(result.get("solver") or "rhoSimpleFoam"),
+        "domain": str(result.get("domain") or "open_air"),
+        "regime": str(result.get("regime") or "compressible-MRF"),
+        "openfoam_image": str(openfoam_image),
+        "metrics": metrics,
+        "force_tail_drift_pct": (
+            None if force_tail_drift_pct is None else float(force_tail_drift_pct)
+        ),
+        "date": date or date_cls.today().isoformat(),
+        "notes": str(notes),
+    }
+
+
+def write_prop_cfd_fixture(fixture: dict, path: str | Path) -> Path:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(fixture, indent=2) + "\n", encoding="utf-8")
+    return path

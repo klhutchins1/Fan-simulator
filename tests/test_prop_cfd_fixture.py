@@ -75,3 +75,46 @@ def test_prop_cfd_smoke_gate_fails_nonfinite():
     }
     ok, reasons = prop_cfd_smoke_gate(result, case_dir=None)
     assert not ok
+
+
+def test_build_and_write_prop_cfd_fixture(tmp_path: Path):
+    import json
+
+    from fansim.propeller.cfd_fixture import (
+        REQUIRED_FIXTURE_KEYS,
+        build_prop_cfd_fixture,
+        write_prop_cfd_fixture,
+    )
+
+    result = {
+        "thrust_n": 1.23,
+        "thrust_g": 125.4,
+        "torque_nm": 0.04,
+        "shaft_power_w": 150.0,
+        "rpm": 41000.0,
+        "tip_mach": 0.38,
+        "tip_radius_mm": 30.089,
+        "solver": "rhoSimpleFoam",
+        "domain": "open_air",
+        "regime": "compressible-MRF",
+    }
+    fixture = build_prop_cfd_fixture(
+        result=result,
+        fixture_id="obj_1_ccw_impeller_smoke",
+        stl="validation/reference/drone_radial/obj_1_ccw_impeller.stl",
+        spin=-1,
+        mesh={"base_cell_m": 0.005, "iters": 400, "procs": 8},
+        force_tail_drift_pct=2.5,
+        date="2026-09-21",
+    )
+    assert REQUIRED_FIXTURE_KEYS <= set(fixture.keys())
+    assert fixture["solver"] == "rhoSimpleFoam"
+    assert fixture["domain"] == "open_air"
+    assert fixture["regime"] == "compressible-MRF"
+    assert fixture["metrics"]["thrust_g"] == pytest.approx(125.4)
+    assert fixture["force_tail_drift_pct"] == pytest.approx(2.5)
+
+    out = write_prop_cfd_fixture(fixture, tmp_path / "cfd" / "obj_1.json")
+    loaded = json.loads(out.read_text(encoding="utf-8"))
+    assert loaded["id"] == "obj_1_ccw_impeller_smoke"
+    assert loaded["openfoam_image"] == "opencfd/openfoam-default:2406"
