@@ -73,17 +73,17 @@ GCI here is **discretization uncertainty** for steady compressible-MRF open-air 
 
 ## AMI smoke (obj_2)
 
-**Status:** recorded 2026-09-23  
+**Status:** attempted 2026-09-23 — unstamped (`mean_thrust_g` null)  
 **Case:** `obj_2_ccw.stl` · RPM 25257 · `base_cell` 0.005 · 2 revolutions · `deltaT` 4e-5 s  
 **Solver:** `rhoPimpleFoam` + cylindrical `cyclicAMI` (`regime` compressible-AMI)  
 **Script:** `scripts/run_prop_ami_smoke.py`  
-**Stamp:** `validation/reference/drone_radial/cfd/obj_2_ccw_ami_smoke.json`  
+**Stamp:** none. `validation/reference/drone_radial/cfd/obj_2_ccw_ami_smoke.json` was not written.  
 **Reference:** obj_2 MRF smoke thrust **938 g**. Band **703.5–1172.5 g**. Floor **10 g**.
 
 | mean_thrust_g | samples | band_pass | band |
 |---------------|---------|-----------|------|
 | null | 0 | false | 703.5–1172.5 g |
 
-**Interpretation:** Attempted. No finite mean. Reason: OpenFOAM command failed (136): `rhoPimpleFoam` (SIGFPE) during thermo init; no force samples were collected. Not stamped as a pass.
+**Interpretation:** Attempted. No finite mean. Reason: OpenFOAM command failed (136): `rhoPimpleFoam` (SIGFPE) during thermo init; no force samples were collected. No stamp file was written.
 
 AMI here is one short sliding-mesh smoke — not datasheet-grade. Forward-flight polars and bench calibration remain out of scope.
