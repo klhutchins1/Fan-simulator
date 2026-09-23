@@ -169,9 +169,27 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   `docs/superpowers/specs/2026-09-23-prop-cfd-ami-smoke-design.md`,
   `docs/superpowers/plans/2026-09-23-prop-cfd-ami-smoke.md`.
   **§4.3 screening stages** (parametric smoke + drone_radial smoke/refine/GCI + cockpit knobs)
-  are in place. Remaining for a full tier: AMI/sliding (obj_2 attempt produced no finite mean),
-  forward-flight polars, datasheet calibration.
+  are in place. Next CFD work is **§4.4** (why obj_2 shaft power is ~2 kW). After that:
+  AMI/sliding (obj_2 attempt produced no finite mean), forward-flight polars, datasheet calibration.
   AMI is one obj_2 smoke, not a sliding-mesh campaign (GCI remains a screening stamp only).
+- [ ] **4.4 Make obj_2 thrust and power believable before more AMI.** **[impact: high]** **[effort: med]**
+  Physics review 2026-09-23. obj_2 smoke is arithmetically consistent (0.769 N·m × 2644 rad/s = 2034 W,
+  938 g) and a poor hover propeller: figure of merit **0.11** at the solver density 1.174 kg/m³
+  (ideal momentum power 226 W). Power stays ~2.0–2.2 kW across the GCI ladder while thrust climbs
+  924 → 1038 → 1109 g (fine GCI 16%, order p = 1.21). `converged=true` only means the asymptotic
+  ratio is near 1. obj_1 thrust falls on the fine mesh and the medium rung drifts 55% — do not quote it.
+  Do this before another AMI campaign or a datasheet claim:
+  1. **Done.** `bemt.analyze` calls `_compressibility_cl_cd` with local Mach
+     (`sqrt(W2) / C_AIR`, 343 m/s) inside the element loop. Spec/plan:
+     `docs/superpowers/specs/2026-09-23-prop-bemt-compressibility-design.md`,
+     `docs/superpowers/plans/2026-09-23-prop-bemt-compressibility.md`.
+  2. One obj_2 diagnostic solve with `MeshResolution.for_blade` and prism layers on. Report thrust,
+     shaft power, and figure of merit next to the smoke fixture. State whether the STL is an axial
+     rotor or a radial impeller. The ~2 kW result is either the geometry or a wall the smoke mesh
+     cannot see (`surf` level 2, `add_layers` false, `nutkWallFunction`, no y+ check).
+  3. Leave AMI parked. A retry needs a single-rank thermo init that does not SIGFPE, a step of about
+     **1° or less** (today 4e-5 s is 6.1° at 2644 rad/s), and a **signed** thrust mean. The comparison
+     target stays the same-mesh MRF smoke (938 g), not the 1249 g extrapolation.
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 
@@ -495,6 +513,26 @@ Bring Prop / Mixed / Volute / CROR editors up toward Fan blade vocabulary. Spec:
 - [x] **14.6 CROR 3-D Preview. DONE 2026-09-16.** Preview button builds thinned stack STL via
   `export_cror_stl` into a lazy CROR plotter (Prop/Mixed pattern). Placeholder card removed;
   CROR tab UI deferred until first visit like Prop.
+- [ ] **14.7 Prop missions: thrust, quiet, endurance, range.** **[impact: high]** **[effort: med]**
+  One search. A mission chooses which two things are objectives and which quantities are constraints
+  or labels. Do not add a second optimizer that can disagree with the first.
+  Today `run_prop_study` maximizes `(thrust_g, g/W)` only. `estimate_prop_noise` already stamps
+  `rel_dba` (relative, not dB(A) — absolute levels stay §1.4). The cockpit already plots
+  **thrust vs that noise score**, colored by g/W (`prop_scatter_figure`). Noise is a spectator.
+  `hover_power_budget` already turns all-up weight, rotor count, battery Wh, and shaft power into
+  hover minutes. Printed prop mass is a small part of all-up weight; the mission knob is vehicle
+  weight plus battery, not a fourth equal objective.
+  Presets:
+  - **Quiet thrust.** Maximize thrust, minimize `rel_dba`. Battery size and hover minutes are
+    constraints the user can relax (a few minutes on a larger pack is allowed).
+  - **Hover endurance.** Maximize hover minutes at a given all-up weight and battery. Noise is shown,
+    not optimized.
+  - **Range.** Maximize distance at a chosen cruise speed from BEMT `v_forward` power and the same
+    battery. Thrust must still hold the weight in hover. This is a screening range, not a CFD polar.
+    Noise is shown, not optimized.
+  Keep the existing thrust–noise plot for Quiet thrust. Endurance and Range get their own plot of
+  the thing that was optimized (minutes or km) against thrust, with noise and power on the point.
+  Relative noise stays the ranking score until a bench mic or §1.4 says otherwise.
 
 ---
 
