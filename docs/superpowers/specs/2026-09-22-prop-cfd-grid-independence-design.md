@@ -5,7 +5,7 @@
 **Approach:** A — prop ladder CLI around `evaluate_prop_cfd` + existing Roache helper  
 **Parent:** `docs/superpowers/specs/2026-09-21-prop-drone-radial-cfd-design.md`  
 **Related:** `docs/superpowers/specs/2026-09-22-prop-cfd-refine-deepen-design.md` (screening refine; not a GCI ladder)  
-**Roadmap:** §4.3 remaining — grid-independence on drone_radial open-air CFD
+**Roadmap:** §4.3 — drone_radial open-air GCI screening stamp recorded (AMI / polars / datasheet still remaining)
 
 ## Plain language
 
