@@ -126,7 +126,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     try:
         payload = run_case(stl, float(args.rpm), out, int(args.procs), float(args.base_cell))
-    except Exception as exc:
+    except RuntimeError as exc:
         payload = summary_from_rows(
             [],
             stl=str(stl),

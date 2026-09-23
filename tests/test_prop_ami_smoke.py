@@ -211,3 +211,31 @@ def test_cli_missing_stl(tmp_path: Path, capsys):
     ])
     assert code == 1
     assert "ERROR" in capsys.readouterr().err
+
+
+def test_cli_runtime_error_writes_failed_result(tmp_path: Path, monkeypatch):
+    mod = _load_cli()
+    stl = Path("validation/reference/drone_radial/obj_2_ccw.stl")
+    out = tmp_path / "out"
+
+    def _fail(*_args, **_kwargs):
+        raise RuntimeError("solver failed")
+
+    monkeypatch.setattr(mod, "run_case", _fail)
+    code = mod.main(["--stl", str(stl), "--out", str(out)])
+    assert code == 1
+    payload = json.loads((out / "result.json").read_text(encoding="utf-8"))
+    assert payload["mean_thrust_g"] is None
+
+
+def test_cli_non_runtime_error_propagates(tmp_path: Path, monkeypatch):
+    mod = _load_cli()
+    stl = Path("validation/reference/drone_radial/obj_2_ccw.stl")
+    out = tmp_path / "out"
+
+    def _bug(*_args, **_kwargs):
+        raise ValueError("bug")
+
+    monkeypatch.setattr(mod, "run_case", _bug)
+    with pytest.raises(ValueError, match="bug"):
+        mod.main(["--stl", str(stl), "--out", str(out)])
