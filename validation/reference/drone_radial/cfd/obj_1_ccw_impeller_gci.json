@@ -40,5 +40,5 @@
     "converged": false,
     "metric": "thrust_g"
   },
-  "gci_reason": null
+  "gci_reason": "not in asymptotic range (asymptotic_ratio=0.0166)"
 }
