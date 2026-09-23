@@ -168,8 +168,9 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   no stamp. Report `docs/validation/drone_radial_open_air_cfd.md`. Spec/plan:
   `docs/superpowers/specs/2026-09-23-prop-cfd-ami-smoke-design.md`,
   `docs/superpowers/plans/2026-09-23-prop-cfd-ami-smoke.md`.
-  **§4.3 screening stages** (parametric smoke + drone_radial smoke/refine/GCI + AMI smoke + cockpit
-  knobs) are in place. Remaining for a full tier: forward-flight polars, datasheet calibration.
+  **§4.3 screening stages** (parametric smoke + drone_radial smoke/refine/GCI + cockpit knobs)
+  are in place. Remaining for a full tier: AMI/sliding (obj_2 attempt produced no finite mean),
+  forward-flight polars, datasheet calibration.
   AMI is one obj_2 smoke, not a sliding-mesh campaign (GCI remains a screening stamp only).
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)

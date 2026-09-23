@@ -102,7 +102,10 @@ def run_case(stl: Path, rpm: float, out: Path, procs: int, base_cell: float) -> 
     runner = OpenFOAMRunner(out)
     run_mesh_ami(runner)
     run_solve_ami(runner, n_procs=int(procs))
-    rows = read_force_rows(out)
+    try:
+        rows = read_force_rows(out)
+    except (FileNotFoundError, ValueError) as exc:
+        raise RuntimeError(f"force extraction failed: {exc}") from exc
     return summary_from_rows(
         rows,
         stl=str(stl),

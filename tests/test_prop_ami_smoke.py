@@ -239,3 +239,64 @@ def test_cli_non_runtime_error_propagates(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(mod, "run_case", _bug)
     with pytest.raises(ValueError, match="bug"):
         mod.main(["--stl", str(stl), "--out", str(out)])
+
+
+def test_cli_stamp_not_written_for_null_mean(tmp_path: Path, monkeypatch):
+    mod = _load_cli()
+    stamp = tmp_path / "stamp.json"
+    monkeypatch.setattr(mod, "STAMP", stamp)
+    mod._maybe_stamp(
+        Path("validation/reference/drone_radial/obj_2_ccw.stl"),
+        25257.0,
+        {"mean_thrust_g": None},
+    )
+    assert not stamp.exists()
+
+
+def test_cli_stamp_written_for_obj2_at_target_rpm(tmp_path: Path, monkeypatch):
+    mod = _load_cli()
+    stamp = tmp_path / "stamp.json"
+    monkeypatch.setattr(mod, "STAMP", stamp)
+    mod._maybe_stamp(
+        Path("validation/reference/drone_radial/obj_2_ccw.stl"),
+        25257.0,
+        {"mean_thrust_g": 938.0, "band_pass": True},
+    )
+    assert stamp.is_file()
+    payload = json.loads(stamp.read_text(encoding="utf-8"))
+    assert payload["mean_thrust_g"] == pytest.approx(938.0)
+
+
+def test_cli_stamp_not_written_for_non_target_identity(tmp_path: Path, monkeypatch):
+    mod = _load_cli()
+    stamp = tmp_path / "stamp.json"
+    monkeypatch.setattr(mod, "STAMP", stamp)
+    mod._maybe_stamp(
+        Path("validation/reference/drone_radial/other.stl"),
+        25257.0,
+        {"mean_thrust_g": 938.0},
+    )
+    assert not stamp.exists()
+    mod._maybe_stamp(
+        Path("validation/reference/drone_radial/obj_2_ccw.stl"),
+        25000.0,
+        {"mean_thrust_g": 938.0},
+    )
+    assert not stamp.exists()
+
+
+def test_cli_main_resume_skips_run_case(tmp_path: Path, monkeypatch):
+    mod = _load_cli()
+    out = tmp_path / "out"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "result.json").write_text(
+        json.dumps({"mean_thrust_g": 938.0, "band_pass": True}),
+        encoding="utf-8",
+    )
+
+    def _must_not_run(*_args, **_kwargs):
+        raise AssertionError("run_case should not be called on resumable result")
+
+    monkeypatch.setattr(mod, "run_case", _must_not_run)
+    code = mod.main(["--out", str(out)])
+    assert code == 0
