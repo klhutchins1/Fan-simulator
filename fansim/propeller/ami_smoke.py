@@ -1,6 +1,7 @@
 """obj_2 compressible AMI smoke helpers (roadmap §4.3)."""
 from __future__ import annotations
 
+import json
 import math
 from pathlib import Path
 
@@ -120,3 +121,73 @@ def apply_ami_overlay(
     mrf = case_dir / "constant/MRFProperties"
     if mrf.is_file():
         mrf.unlink()
+
+
+AMI_MESH_PIPELINE = [
+    "surfaceFeatureExtract",
+    "blockMesh",
+    "snappyHexMesh -overwrite",
+    "createBaffles -overwrite",
+    "topoSet",
+    "renumberMesh -overwrite",
+    "checkMesh -allTopology",
+]
+
+
+def run_mesh_ami(runner) -> None:
+    for cmd in AMI_MESH_PIPELINE:
+        runner.run(cmd)
+
+
+def run_solve_ami(runner, n_procs: int = 8) -> None:
+    runner.run("rm -rf processor* postProcessing", check=False)
+    if n_procs and int(n_procs) > 1:
+        runner.run("decomposePar -force")
+        mpi = f"mpirun --allow-run-as-root --oversubscribe -np {int(n_procs)}"
+        runner.run(f"{mpi} rhoPimpleFoam -parallel")
+    else:
+        runner.run("rhoPimpleFoam")
+
+
+def read_force_rows(case_dir) -> list[list[float]]:
+    from fansim.cfd.metrics import _all_data_rows, _pp_file
+
+    path = _pp_file(Path(case_dir), "forces", "force.dat")
+    return _all_data_rows(path)
+
+
+def summary_from_rows(
+    rows: list[list[float]],
+    *,
+    stl: str,
+    rpm: float,
+    base_cell: float,
+    reason: str | None = None,
+) -> dict:
+    end = end_time_s(rpm)
+    mean, count = window_thrust_g(rows, end_time=end, rpm=rpm)
+    summary = assess_band(mean)
+    summary.update({
+        "thrust_g_samples": count,
+        "regime": "compressible-AMI",
+        "solver": "rhoPimpleFoam",
+        "rpm": float(rpm),
+        "end_time": end,
+        "delta_t": DELTA_T,
+        "stl": stl,
+        "base_cell": float(base_cell),
+    })
+    if mean is None:
+        summary["reason"] = reason or "non-finite mean thrust"
+    return summary
+
+
+def result_is_resumable(path) -> bool:
+    path = Path(path)
+    if not path.is_file():
+        return False
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return math.isfinite(float(data["mean_thrust_g"]))
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return False

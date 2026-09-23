@@ -1,7 +1,11 @@
 # tests/test_prop_ami_smoke.py
 from __future__ import annotations
 
+import importlib.util
+import json
 from pathlib import Path
+
+import pytest
 
 from fansim.cfd import templates as T
 from fansim.propeller.ami_smoke import (
@@ -13,6 +17,8 @@ from fansim.propeller.ami_smoke import (
     band_limits,
     end_time_s,
     rev_period_s,
+    result_is_resumable,
+    summary_from_rows,
     window_thrust_g,
 )
 from fansim.propeller.cfd import PropOpenAir, build_prop_case
@@ -133,3 +139,75 @@ def test_apply_ami_overlay_writes_sliding_case(tmp_path: Path):
         assert "AMI1" in text and "AMI2" in text
     assert "limitTemperature" in (tmp_path / "system/fvOptions").read_text(encoding="utf-8")
     assert "hePsiThermo" in (tmp_path / "constant/thermophysicalProperties").read_text(encoding="utf-8")
+
+
+def test_summary_from_rows_band_pass():
+    end = end_time_s(25257.0)
+    period = rev_period_s(25257.0)
+    fz = 938.0 / (1000.0 / 9.80665)  # newtons for 938 g
+    rows = [[end - period, 0.0, 0.0, fz], [end, 0.0, 0.0, fz]]
+    summary = summary_from_rows(
+        rows, stl="obj_2_ccw.stl", rpm=25257.0, base_cell=0.005,
+    )
+    assert summary["regime"] == "compressible-AMI"
+    assert summary["solver"] == "rhoPimpleFoam"
+    assert summary["thrust_g_samples"] == 2
+    assert summary["mean_thrust_g"] == pytest.approx(938.0, rel=1e-6)
+    assert summary["band_pass"] is True
+    assert summary["delta_t"] == 4e-5
+    assert "reason" not in summary
+    assert ami_exit_code(summary) == 0
+
+
+def test_summary_from_rows_empty_window():
+    summary = summary_from_rows(
+        [[0.0, 0.0, 0.0, 1.0]],
+        stl="obj_2_ccw.stl",
+        rpm=25257.0,
+        base_cell=0.005,
+        reason="mean window has zero samples",
+    )
+    assert summary["mean_thrust_g"] is None
+    assert summary["band_pass"] is False
+    assert summary["thrust_g_samples"] == 0
+    assert summary["reason"] == "mean window has zero samples"
+    assert ami_exit_code(summary) == 1
+
+
+def test_result_is_resumable(tmp_path: Path):
+    path = tmp_path / "result.json"
+    assert result_is_resumable(path) is False
+    path.write_text(json.dumps({"mean_thrust_g": None}), encoding="utf-8")
+    assert result_is_resumable(path) is False
+    path.write_text(json.dumps({"mean_thrust_g": 900.0}), encoding="utf-8")
+    assert result_is_resumable(path) is True
+
+
+def _load_cli():
+    path = Path("scripts/run_prop_ami_smoke.py")
+    spec = importlib.util.spec_from_file_location("run_prop_ami_smoke", path)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_cli_parser_defaults():
+    mod = _load_cli()
+    args = mod.build_parser().parse_args([])
+    assert args.stl.name == "obj_2_ccw.stl"
+    assert args.rpm == pytest.approx(25257.0)
+    assert args.procs == 8
+    assert args.base_cell == pytest.approx(0.005)
+    assert args.force is False
+    assert args.out.as_posix().endswith("runs/drone_radial_cfd/ami/obj_2")
+
+
+def test_cli_missing_stl(tmp_path: Path, capsys):
+    mod = _load_cli()
+    code = mod.main([
+        "--stl", str(tmp_path / "missing.stl"),
+        "--out", str(tmp_path / "out"),
+    ])
+    assert code == 1
+    assert "ERROR" in capsys.readouterr().err
