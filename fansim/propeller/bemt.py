@@ -4,7 +4,9 @@ The standard way props are analysed/designed (QProp/JavaProp-class): slice the b
 elements, and at each one balance the LIFT/DRAG the element makes against the MOMENTUM it imparts to
 the air, solving for the induced inflow. Integrate the elements -> total thrust, torque, power, and
 efficiency. No CFD/mesh — deterministic and quick, so it screens propeller designs the way the RANS
-proxy screens fans. (A compressible open-air CFD tier can refine finalists later; tips run ~Mach 0.5.)
+proxy screens fans. analyze applies _compressibility_cl_cd (Prandtl-Glauert on Cl,
+wave drag past Mach 0.7) using local relative speed over C_AIR. A compressible CFD tier
+can still refine finalists.
 
 Static thrust (V=0) is the headline drone number: thrust in grams + hover efficiency in grams-per-watt.
 """
@@ -17,6 +19,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from fansim.geometry.blade import BladeParams
+from fansim.prop_spec import C_AIR
 
 RHO_AIR = 1.225   # kg/m^3
 NU_AIR = 1.5e-5   # kinematic viscosity (m^2/s) -> local blade Reynolds number
@@ -100,6 +103,8 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
             W2 = Vax * Vax + Vt * Vt
             alpha = beta - phi
             cl, cd = _cl_cd(alpha, camber, re=math.sqrt(W2) * c / NU_AIR)   # Re-aware polar (§7.2)
+            mach = math.sqrt(W2) / C_AIR
+            cl, cd = _compressibility_cl_cd(cl, cd, mach)
             # Prandtl tip-loss factor (open propeller only)
             f = (B / 2.0) * (R - r) / max(r * math.sin(phi), 1e-4)
             F = max(0.15, (2.0 / math.pi) * math.acos(math.exp(-min(f, 20.0))))

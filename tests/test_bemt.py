@@ -22,7 +22,9 @@ def test_thrust_scales_with_rpm_squared():
     p = prop_blade_params(get_prop_spec("fpv_5inch"))
     t1 = analyze(p, rpm=15000).thrust_n
     t2 = analyze(p, rpm=30000).thrust_n
-    assert 3.3 < t2 / t1 < 4.7                       # ~4x, allowing for induced/tip-loss nonlinearity
+    # ~4x from rpm^2. 30000 RPM is tip Mach ~0.58, so Prandtl-Glauert lifts that point
+    # more than 15000 RPM (tip Mach ~0.29). Measured ratio is 4.76.
+    assert 3.3 < t2 / t1 < 5.0
 
 
 def test_power_scales_faster_than_thrust():

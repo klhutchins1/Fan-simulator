@@ -27,3 +27,34 @@ def test_prop_fwh_synthetic():
     assert out["analogy"] == "fwh_prop_synthetic"
     assert "noise_dba_band" in out
     assert out["samples"] > 10
+
+
+def test_analyze_records_local_mach(monkeypatch):
+    from fansim.propeller import bemt as bemt_mod
+
+    recorded = []
+    real = bemt_mod._compressibility_cl_cd
+
+    def _spy(cl, cd, mach):
+        recorded.append(float(mach))
+        return real(cl, cd, mach)
+
+    monkeypatch.setattr(bemt_mod, "_compressibility_cl_cd", _spy)
+    p = prop_blade_params(get_prop_spec("fpv_5inch"))
+    analyze(p, rpm=30000.0)
+    assert recorded, "analyze never called _compressibility_cl_cd"
+    lo, hi = min(recorded), max(recorded)
+    assert hi >= 0.45
+    assert hi >= 1.5 * lo
+
+
+def test_compressibility_raises_high_rpm_thrust(monkeypatch):
+    from fansim.propeller import bemt as bemt_mod
+
+    p = prop_blade_params(get_prop_spec("fpv_5inch"))
+    with_correction = analyze(p, rpm=30000.0)
+    monkeypatch.setattr(
+        bemt_mod, "_compressibility_cl_cd", lambda cl, cd, mach: (cl, cd)
+    )
+    without = analyze(p, rpm=30000.0)
+    assert with_correction.thrust_n > without.thrust_n
