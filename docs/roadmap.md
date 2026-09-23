@@ -158,9 +158,13 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   Prop CFD refine card: Smoke/Refine mesh preset. Spec/plan:
   `docs/superpowers/specs/2026-09-22-prop-cfd-refine-deepen-design.md`,
   `docs/superpowers/plans/2026-09-22-prop-cfd-refine-deepen.md`.
-  **§4.3 screening stages** (parametric smoke + drone_radial smoke/refine + cockpit
-  knobs) are in place. Remaining for a full tier: grid-independence, AMI/sliding,
-  forward-flight polars, datasheet calibration — not claimed here.
+  **drone_radial GCI (2026-09-22):** honest ladder 0.005/0.0035/0.0025 on both STLs;
+  Roache on thrust_g; report `docs/validation/drone_radial_open_air_cfd.md`.
+  Spec/plan: `docs/superpowers/specs/2026-09-22-prop-cfd-grid-independence-design.md`,
+  `docs/superpowers/plans/2026-09-22-prop-cfd-grid-independence.md`.
+  **§4.3 screening stages** (parametric smoke + drone_radial smoke/refine/GCI + cockpit
+  knobs) are in place. Remaining for a full tier: AMI/sliding,
+  forward-flight polars, datasheet calibration — not claimed here (GCI is a screening stamp only).
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 

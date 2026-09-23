@@ -1,6 +1,6 @@
 # Drone radial open-air CFD (smoke + refine)
 
-**Status:** recorded 2026-09-22 — smoke + refine fixtures for **both** STLs  
+**Status:** recorded 2026-09-22 — smoke + refine + **GCI ladder** for **both** STLs  
 **Solver:** `rhoSimpleFoam` · **Domain:** open_air · **Regime:** compressible-MRF  
 **Image:** `opencfd/openfoam-default:2406` (canonical).
 
@@ -53,3 +53,20 @@ uv run python scripts/freeze_prop_cfd_fixture.py \
   --base-cell 0.003 --iters 1000 --procs 8 \
   --drift-tol 10 --tail-frac 0.10 --require-gate
 ```
+
+## Grid independence (GCI)
+
+**Status:** recorded 2026-09-22  
+**Ladder:** `base_cell` 0.005 / 0.0035 / 0.0025 · **iters** 800 · same RPM as smoke Ma≈0.35  
+**Metric:** `thrust_g` (Roache GCI via `fansim.analyze.grid_convergence`)  
+**Script:** `scripts/run_prop_grid_convergence.py`  
+**Stamps:** `obj_1_ccw_impeller_gci.json`, `obj_2_ccw_gci.json` under `validation/reference/drone_radial/cfd/`.
+
+| Case | RPM | thrust @0.005 | @0.0035 | @0.0025 | Richardson | GCI_fine % | asymptotic | converged |
+|------|-----|---------------|---------|---------|------------|------------|------------|-----------|
+| obj_1 | 38100 | 61.52 g | 59.06 g | 44.54 g | 42.01 g | 7.10 | 0.017 | no |
+| obj_2 | 25257 | 923.9 g | 1037.9 g | 1108.5 g | 1248.8 g | 15.82 | 1.068 | yes |
+
+**Interpretation:** obj_2 is in the asymptotic range (thrust rises monotonically coarse→fine; `converged=true`) but fine-level GCI is still ~16% — a screening band, not a datasheet claim. obj_1 is **not** asymptotic: thrust **drops** on the finest mesh (`asymptotic_ratio≈0.017`, `converged=false`), so the Roache extrapolation is not trustworthy; treat obj_1 thrust as unsettled discretization / force-tail behavior (see `force_tail_drift_pct` on the medium rung in the stamp JSON).
+
+GCI here is **discretization uncertainty** for steady compressible-MRF open-air — not datasheet-grade. AMI/sliding mesh, forward-flight polars, and bench calibration remain out of scope.

@@ -1,7 +1,7 @@
 # §4.3: Prop open-air grid independence (GCI)
 
 **Date:** 2026-09-22  
-**Status:** approved design — pending implementation  
+**Status:** implemented (2026-09-22) — obj_1 ladder complete but **not** asymptotic (fine thrust drop); obj_2 asymptotic with ~16% fine GCI; screening only  
 **Approach:** A — prop ladder CLI around `evaluate_prop_cfd` + existing Roache helper  
 **Parent:** `docs/superpowers/specs/2026-09-21-prop-drone-radial-cfd-design.md`  
 **Related:** `docs/superpowers/specs/2026-09-22-prop-cfd-refine-deepen-design.md` (screening refine; not a GCI ladder)  
