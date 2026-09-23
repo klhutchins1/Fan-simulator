@@ -90,8 +90,10 @@ AMI here is one short sliding-mesh smoke — not datasheet-grade. Forward-flight
 
 ## Wall mesh (obj_2)
 
-**Status:** attempted 2026-09-23 — unstamped (`thrust_g` null or `shaft_power_w` null).
+**Status:** attempted 2026-09-23 — wall sampling failed before meshing.
 
-**Stamp:** none. `validation/reference/drone_radial/cfd/obj_2_ccw_wall.json` was not written.
+`wall_sample` raised a numpy memory error while trying to allocate about 69 GiB during STL wall-thickness sampling. OpenFOAM never started.
 
-No stamp file was written. BEMT Prandtl-Glauert also raises lift past stall, so this CFD result is not a BEMT comparison.
+No `result.json` and no OpenFOAM log were produced for this attempt. No stamp file was written.
+
+BEMT Prandtl-Glauert also raises lift past stall, so this is not a BEMT comparison.

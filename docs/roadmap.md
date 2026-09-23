@@ -187,7 +187,7 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
      shaft power, and figure of merit next to the smoke fixture. State whether the STL is an axial
      rotor or a radial impeller. The ~2 kW result is either the geometry or a wall the smoke mesh
      cannot see (`surf` level 2, `add_layers` false, `nutkWallFunction`, no y+ check).
-  Attempted 2026-09-23: solve failed, no stamp.
+  Attempted 2026-09-23: wall sampling ran out of memory (~69 GiB numpy allocation) before OpenFOAM; no solve, no stamp. Ray queries are now batched. The solve has not been retried.
   3. Leave AMI parked. A retry needs a single-rank thermo init that does not SIGFPE, a step of about
      **1° or less** (today 4e-5 s is 6.1° at 2644 rad/s), and a **signed** thrust mean. The comparison
      target stays the same-mesh MRF smoke (938 g), not the 1249 g extrapolation.
