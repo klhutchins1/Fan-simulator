@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from fansim.prop_spec import get_prop_spec
 from fansim.propeller.bemt import _compressibility_cl_cd, analyze
 from fansim.propeller.geometry import prop_blade_params
@@ -58,3 +60,20 @@ def test_compressibility_raises_high_rpm_thrust(monkeypatch):
     )
     without = analyze(p, rpm=30000.0)
     assert with_correction.thrust_n > without.thrust_n
+
+
+def test_stalled_lift_is_unchanged_and_wave_drag_remains():
+    cl, cd = _compressibility_cl_cd(1.0, 0.02, 0.5, stalled=True)
+    assert cl == 1.0
+    assert cd == 0.02
+    cl_w, cd_w = _compressibility_cl_cd(1.0, 0.02, 0.85, stalled=True, cl_cap=0.1)
+    assert cl_w == 1.0
+    assert cd_w == pytest.approx(0.0272)
+
+
+def test_attached_lift_respects_cap():
+    cl, cd = _compressibility_cl_cd(1.0, 0.02, 0.5, stalled=False, cl_cap=1.05)
+    assert cl == pytest.approx(1.05)
+    assert cd == 0.02
+    neg, _ = _compressibility_cl_cd(-0.5, 0.02, 0.5, cl_cap=0.4)
+    assert neg == pytest.approx(-0.4)

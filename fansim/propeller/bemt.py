@@ -144,11 +144,27 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
 
 
 # --- spliced from transcript edit-history (recovery 2026-09-12) ---
-def _compressibility_cl_cd(cl: float, cd: float, mach: float) -> tuple[float, float]:
-    """Stage-1 compressibility: Prandtl–Glauert on Cl; soft wave-drag rise past M≈0.7."""
+def _compressibility_cl_cd(
+    cl: float,
+    cd: float,
+    mach: float,
+    *,
+    stalled: bool = False,
+    cl_cap: float | None = None,
+) -> tuple[float, float]:
+    """Prandtl–Glauert on attached Cl, capped at the polar peak; stalled Cl unchanged.
+
+    Soft wave-drag rise past M≈0.7 applies either way. Mach is clamped to [0, 0.95].
+    """
     m = max(0.0, min(float(mach), 0.95))
     beta = math.sqrt(max(1e-6, 1.0 - m * m))
-    cl_c = float(cl) / beta
+    if stalled:
+        cl_c = float(cl)
+    else:
+        cl_c = float(cl) / beta
+        if cl_cap is not None:
+            limit = abs(float(cl_cap))
+            cl_c = math.copysign(min(abs(cl_c), limit), cl_c)
     cd_c = float(cd)
     if m > 0.70:
         cd_c = cd_c + 0.02 * ((m - 0.70) / 0.25) ** 2
