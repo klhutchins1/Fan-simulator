@@ -1,0 +1,44 @@
+{
+  "stl": "T:\\Projects\\Fan Simulator\\validation\\reference\\drone_radial\\obj_2_ccw.stl",
+  "rpm": 25257.0,
+  "iters": 800,
+  "levels": [
+    {
+      "base_cell": 0.005,
+      "workdir": "T:\\Projects\\Fan Simulator\\runs\\drone_radial_cfd\\gci\\obj_2\\0.005",
+      "thrust_g": 923.9402956157302,
+      "shaft_power_w": 2042.4397358227782,
+      "tip_mach": 0.3499955484995014,
+      "force_tail_drift_pct": 3.71011448859834,
+      "ok": true
+    },
+    {
+      "base_cell": 0.0035,
+      "workdir": "T:\\Projects\\Fan Simulator\\runs\\drone_radial_cfd\\gci\\obj_2\\0.0035",
+      "thrust_g": 1037.935788470069,
+      "shaft_power_w": 2108.455685207608,
+      "tip_mach": 0.3499955484995014,
+      "force_tail_drift_pct": 2.2179373114069154,
+      "ok": true
+    },
+    {
+      "base_cell": 0.0025,
+      "workdir": "T:\\Projects\\Fan Simulator\\runs\\drone_radial_cfd\\gci\\obj_2\\0.0025",
+      "thrust_g": 1108.5403272269327,
+      "shaft_power_w": 2181.5807739318716,
+      "tip_mach": 0.3499955484995014,
+      "force_tail_drift_pct": 9.070021649874228,
+      "ok": true
+    }
+  ],
+  "gci": {
+    "p": 1.211578996499885,
+    "f_extrapolated": 1248.8235342482787,
+    "gci_fine_pct": 15.818460047848601,
+    "gci_medium_pct": 25.39749425263479,
+    "asymptotic_ratio": 1.068023994876196,
+    "converged": true,
+    "metric": "thrust_g"
+  },
+  "gci_reason": null
+}
