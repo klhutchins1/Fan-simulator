@@ -757,6 +757,258 @@ boundaryField
 }
 """
 
+AMI_CYCLIC = """
+    AMI1 { type cyclicAMI; }
+    AMI2 { type cyclicAMI; }
+"""
+
+PROP_AMI_CONTROL_DICT = """@HEADER@
+application     rhoPimpleFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         @ENDTIME@;
+deltaT          @DELTAT@;
+writeControl    timeStep;
+writeInterval   @WRITEINT@;
+purgeWrite      2;
+writeFormat     ascii;
+writePrecision  7;
+writeCompression off;
+timeFormat      general;
+runTimeModifiable true;
+
+functions
+{
+    forces
+    {
+        type            forces;
+        libs            (forces);
+        patches         (impeller);
+        rho             rho;
+        CofR            (0 0 0);
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+}
+"""
+
+PROP_AMI_FV_SCHEMES = """@HEADER@
+ddtSchemes { default backward; }
+gradSchemes { default Gauss linear; }
+divSchemes
+{
+    default         none;
+    div(phi,U)      Gauss linearUpwind grad(U);
+    div(phi,K)      Gauss upwind;
+    div(phi,h)      Gauss upwind;
+    div(phi,e)      Gauss upwind;
+    div(phi,Ekp)    Gauss upwind;
+    div(phi,k)      Gauss upwind;
+    div(phi,omega)  Gauss upwind;
+    div(phid,p)     Gauss upwind;
+    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
+}
+laplacianSchemes { default Gauss linear corrected; }
+interpolationSchemes { default linear; }
+snGradSchemes { default corrected; }
+wallDist        { method meshWave; }
+"""
+
+PROP_AMI_FV_SOLUTION = """@HEADER@
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        tolerance       1e-7;
+        relTol          0.01;
+        smoother        GaussSeidel;
+    }
+    pFinal
+    {
+        $p;
+        relTol          0;
+    }
+    "(rho|U|h|e|k|omega)"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-8;
+        relTol          0.1;
+    }
+    "(rho|U|h|e|k|omega)Final"
+    {
+        $U;
+        relTol          0;
+    }
+}
+PIMPLE
+{
+    nOuterCorrectors 1;
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 1;
+    momentumPredictor yes;
+    transonic       no;
+}
+"""
+
+PROP_AMI_DYNAMIC_MESH = """@HEADER@
+dynamicFvMesh   dynamicMotionSolverFvMesh;
+motionSolverLibs (fvMotionSolvers);
+motionSolver    solidBody;
+cellZone        rotor;
+solidBodyMotionFunction  rotatingMotion;
+origin      (0 0 0);
+axis        (0 0 1);
+omega       @OMEGA@;
+"""
+
+PROP_AMI_CREATE_BAFFLES = """@HEADER@
+internalFacesOnly true;
+
+baffles
+{
+    AMI
+    {
+        type        searchableSurface;
+        surface
+        {
+            type            searchableCylinder;
+            point1          (0 0 @ZMIN@);
+            point2          (0 0 @ZMAX@);
+            radius          @RADIUS@;
+        }
+        patches
+        {
+            master
+            {
+                name            AMI1;
+                type            cyclicAMI;
+                neighbourPatch  AMI2;
+                transform       rotational;
+                rotationAxis    (0 0 1);
+                rotationCentre  (0 0 0);
+            }
+            slave
+            {
+                name            AMI2;
+                type            cyclicAMI;
+                neighbourPatch  AMI1;
+                transform       rotational;
+                rotationAxis    (0 0 1);
+                rotationCentre  (0 0 0);
+            }
+        }
+    }
+}
+"""
+
+PROP_AMI_U = """@HEADER@
+dimensions [0 1 -1 0 0 0 0];
+internalField uniform (0 0 @U_EPS@);
+boundaryField
+{
+    inlet    { type freestreamVelocity; freestreamValue uniform (0 0 @U_EPS@); value uniform (0 0 @U_EPS@); }
+    outlet   { type freestreamVelocity; freestreamValue uniform (0 0 @U_EPS@); value uniform (0 0 @U_EPS@); }
+    walls    { type freestreamVelocity; freestreamValue uniform (0 0 @U_EPS@); value uniform (0 0 @U_EPS@); }
+    impeller { type movingWallVelocity; value uniform (0 0 0); }
+@AMI_CYCLIC@
+}
+"""
+
+PROP_AMI_T = """@HEADER@
+dimensions [0 0 0 1 0 0 0];
+internalField uniform @T_INF@;
+boundaryField
+{
+    inlet    { type fixedValue; value uniform @T_INF@; }
+    outlet   { type inletOutlet; inletValue uniform @T_INF@; value uniform @T_INF@; }
+    walls    { type zeroGradient; }
+    impeller { type zeroGradient; }
+@AMI_CYCLIC@
+}
+"""
+
+PROP_AMI_P = """@HEADER@
+dimensions [1 -1 -2 0 0 0 0];
+internalField uniform @P_INF@;
+boundaryField
+{
+    inlet    { type freestreamPressure; freestreamValue uniform @P_INF@; value uniform @P_INF@; }
+    outlet   { type freestreamPressure; freestreamValue uniform @P_INF@; value uniform @P_INF@; }
+    walls    { type zeroGradient; }
+    impeller { type zeroGradient; }
+@AMI_CYCLIC@
+}
+"""
+
+PROP_AMI_K = """@HEADER@
+dimensions [0 2 -2 0 0 0 0];
+internalField uniform @K@;
+boundaryField
+{
+    inlet    { type inletOutlet; inletValue uniform @K@; value uniform @K@; }
+    outlet   { type inletOutlet; inletValue uniform @K@; value uniform @K@; }
+    walls    { type inletOutlet; inletValue uniform @K@; value uniform @K@; }
+    impeller { type kqRWallFunction; value uniform @K@; }
+@AMI_CYCLIC@
+}
+"""
+
+PROP_AMI_OMEGA = """@HEADER@
+dimensions [0 0 -1 0 0 0 0];
+internalField uniform @OMEGAT@;
+boundaryField
+{
+    inlet    { type inletOutlet; inletValue uniform @OMEGAT@; value uniform @OMEGAT@; }
+    outlet   { type inletOutlet; inletValue uniform @OMEGAT@; value uniform @OMEGAT@; }
+    walls    { type inletOutlet; inletValue uniform @OMEGAT@; value uniform @OMEGAT@; }
+    impeller { type omegaWallFunction; value uniform @OMEGAT@; }
+@AMI_CYCLIC@
+}
+"""
+
+PROP_AMI_NUT = """@HEADER@
+dimensions [0 2 -1 0 0 0 0];
+internalField uniform 0;
+boundaryField
+{
+    inlet    { type calculated; value uniform 0; }
+    outlet   { type calculated; value uniform 0; }
+    walls    { type calculated; value uniform 0; }
+    impeller { type nutkWallFunction; value uniform 0; }
+@AMI_CYCLIC@
+}
+"""
+
+PROP_AMI_ALPHAT = """@HEADER@
+dimensions [1 -1 -1 0 0 0 0];
+internalField uniform 0;
+boundaryField
+{
+    inlet    { type calculated; value uniform 0; }
+    outlet   { type calculated; value uniform 0; }
+    walls    { type calculated; value uniform 0; }
+    impeller { type compressible::alphatWallFunction; value uniform 0; }
+@AMI_CYCLIC@
+}
+"""
+
+PROP_AMI_POINT_DISPLACEMENT = """@HEADER@
+dimensions      [0 1 0 0 0 0 0];
+internalField   uniform (0 0 0);
+boundaryField
+{
+    inlet    { type fixedValue; value uniform (0 0 0); }
+    outlet   { type fixedValue; value uniform (0 0 0); }
+    walls    { type fixedValue; value uniform (0 0 0); }
+    impeller { type fixedValue; value uniform (0 0 0); }
+    AMI1     { type fixedValue; value uniform (0 0 0); }
+    AMI2     { type fixedValue; value uniform (0 0 0); }
+}
+"""
+
 
 # --- DES / pimpleFoam overlay (roadmap §1.4 stage A; parked for absolute claims) ---
 

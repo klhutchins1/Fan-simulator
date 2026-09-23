@@ -2,6 +2,11 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
+
+from fansim.cfd import templates as T
+from fansim.cfd.openfoam_case import _write
+from fansim.propeller.cfd import P_INF, T_INF
 
 MRF_REF_THRUST_G = 938.0
 BAND_FRAC = 0.25
@@ -66,3 +71,52 @@ def ami_exit_code(summary: dict) -> int:
     if not math.isfinite(value):
         return 1
     return 0 if summary.get("band_pass") else 2
+
+
+def apply_ami_overlay(
+    case_dir,
+    *,
+    omega_signed: float,
+    ami_radius: float,
+    ami_z_min: float,
+    ami_z_max: float,
+    end_time: float,
+    delta_t: float,
+    u_freestream: float,
+    k: float,
+    omega_turb: float,
+) -> None:
+    case_dir = Path(case_dir)
+    cyclic = {"AMI_CYCLIC": T.AMI_CYCLIC}
+    _write(case_dir / "system/controlDict", T.PROP_AMI_CONTROL_DICT, "dictionary", "controlDict", {
+        "ENDTIME": end_time,
+        "DELTAT": delta_t,
+        "WRITEINT": 50,
+    })
+    _write(case_dir / "system/fvSchemes", T.PROP_AMI_FV_SCHEMES, "dictionary", "fvSchemes", {})
+    _write(case_dir / "system/fvSolution", T.PROP_AMI_FV_SOLUTION, "dictionary", "fvSolution", {})
+    _write(case_dir / "system/dynamicMeshDict", T.PROP_AMI_DYNAMIC_MESH, "dictionary", "dynamicMeshDict", {
+        "OMEGA": omega_signed,
+    })
+    _write(case_dir / "system/createBafflesDict", T.PROP_AMI_CREATE_BAFFLES, "dictionary", "createBafflesDict", {
+        "ZMIN": ami_z_min,
+        "ZMAX": ami_z_max,
+        "RADIUS": ami_radius,
+    })
+    _write(case_dir / "0/U", T.PROP_AMI_U, "volVectorField", "U", {"U_EPS": u_freestream, **cyclic})
+    _write(case_dir / "0/T", T.PROP_AMI_T, "volScalarField", "T", {"T_INF": T_INF, **cyclic})
+    _write(case_dir / "0/p", T.PROP_AMI_P, "volScalarField", "p", {"P_INF": P_INF, **cyclic})
+    _write(case_dir / "0/k", T.PROP_AMI_K, "volScalarField", "k", {"K": k, **cyclic})
+    _write(case_dir / "0/omega", T.PROP_AMI_OMEGA, "volScalarField", "omega", {"OMEGAT": omega_turb, **cyclic})
+    _write(case_dir / "0/nut", T.PROP_AMI_NUT, "volScalarField", "nut", cyclic)
+    _write(case_dir / "0/alphat", T.PROP_AMI_ALPHAT, "volScalarField", "alphat", cyclic)
+    _write(
+        case_dir / "0/pointDisplacement",
+        T.PROP_AMI_POINT_DISPLACEMENT,
+        "pointVectorField",
+        "pointDisplacement",
+        {},
+    )
+    mrf = case_dir / "constant/MRFProperties"
+    if mrf.is_file():
+        mrf.unlink()
