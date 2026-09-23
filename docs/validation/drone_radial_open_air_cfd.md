@@ -69,4 +69,21 @@ uv run python scripts/freeze_prop_cfd_fixture.py \
 
 **Interpretation:** obj_2 is in the asymptotic range (thrust rises monotonically coarse→fine; `converged=true`) but fine-level GCI is still ~16% — a screening band, not a datasheet claim. obj_1 is **not** asymptotic: thrust **drops** on the finest mesh (`asymptotic_ratio≈0.017`, `converged=false`), so the Roache extrapolation is not trustworthy; treat obj_1 thrust as unsettled discretization / force-tail behavior (see `force_tail_drift_pct` on the medium rung in the stamp JSON).
 
-GCI here is **discretization uncertainty** for steady compressible-MRF open-air — not datasheet-grade. AMI/sliding mesh, forward-flight polars, and bench calibration remain out of scope.
+GCI here is **discretization uncertainty** for steady compressible-MRF open-air — not datasheet-grade. Forward-flight polars and bench calibration remain out of scope. The obj_2 AMI smoke is a separate section below.
+
+## AMI smoke (obj_2)
+
+**Status:** recorded 2026-09-23  
+**Case:** `obj_2_ccw.stl` · RPM 25257 · `base_cell` 0.005 · 2 revolutions · `deltaT` 4e-5 s  
+**Solver:** `rhoPimpleFoam` + cylindrical `cyclicAMI` (`regime` compressible-AMI)  
+**Script:** `scripts/run_prop_ami_smoke.py`  
+**Stamp:** `validation/reference/drone_radial/cfd/obj_2_ccw_ami_smoke.json`  
+**Reference:** obj_2 MRF smoke thrust **938 g**. Band **703.5–1172.5 g**. Floor **10 g**.
+
+| mean_thrust_g | samples | band_pass | band |
+|---------------|---------|-----------|------|
+| null | 0 | false | 703.5–1172.5 g |
+
+**Interpretation:** Attempted. No finite mean. Reason: OpenFOAM command failed (134): createBaffles -overwrite. Not stamped as a pass.
+
+AMI here is one short sliding-mesh smoke — not datasheet-grade. Forward-flight polars and bench calibration remain out of scope.
