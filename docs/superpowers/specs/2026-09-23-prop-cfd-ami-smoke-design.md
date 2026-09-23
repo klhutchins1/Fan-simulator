@@ -1,7 +1,7 @@
 # §4.3: Prop open-air AMI smoke (obj_2)
 
 **Date:** 2026-09-23  
-**Status:** attempted (2026-09-23) — obj_2 AMI smoke produced no finite mean  
+**Status:** attempted (2026-09-23) — createBaffles fixed; `rhoPimpleFoam` SIGFPE before forces sampled (mean still null)  
 **Approach:** A — one `rhoPimpleFoam` sliding-mesh smoke on `obj_2`, new case overlay, existing open-air mesh  
 **Parent:** `docs/superpowers/specs/2026-09-21-prop-drone-radial-cfd-design.md`  
 **Related:** `docs/superpowers/specs/2026-09-07-prop-compressible-cfd-design.md` (MRF; AMI was a non-goal there), `docs/superpowers/specs/2026-09-22-prop-cfd-grid-independence-design.md`  

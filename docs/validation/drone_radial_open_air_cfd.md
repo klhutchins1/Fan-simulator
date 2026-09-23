@@ -84,6 +84,6 @@ GCI here is **discretization uncertainty** for steady compressible-MRF open-air 
 |---------------|---------|-----------|------|
 | null | 0 | false | 703.5–1172.5 g |
 
-**Interpretation:** Attempted. No finite mean. Reason: OpenFOAM command failed (134): createBaffles -overwrite. Not stamped as a pass.
+**Interpretation:** Attempted. No finite mean. Reason: OpenFOAM command failed (136): `rhoPimpleFoam` (SIGFPE) during thermo init; no force samples were collected. Not stamped as a pass.
 
 AMI here is one short sliding-mesh smoke — not datasheet-grade. Forward-flight polars and bench calibration remain out of scope.
