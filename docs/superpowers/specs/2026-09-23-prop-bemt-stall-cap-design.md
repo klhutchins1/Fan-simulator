@@ -1,7 +1,7 @@
 # BEMT stall cap on Prandtl–Glauert lift
 
 **Date:** 2026-09-23  
-**Status:** approved in chat (2026-09-23); written spec awaiting review  
+**Status:** approved (2026-09-23)  
 **Approach:** A — skip the lift factor at or past stall, and cap attached lift at the polar peak  
 **Parent:** roadmap §4.4 step 1 follow-up. Unblocks §14.7. Does not close §4.4.  
 **Related:** `fansim/propeller/bemt.py` (`_compressibility_cl_cd`, `_cl_cd`), `fansim/propeller/polars.py`
