@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math
-
 import pytest
 
 from fansim.propeller.gci_ladder import build_gci_summary, parse_cells
@@ -56,6 +54,21 @@ def test_build_gci_summary_null_when_flat():
     s = build_gci_summary(stl="x.stl", rpm=1.0, iters=800, levels=levels)
     assert s["gci"] is None
     assert s["gci_reason"]
+
+
+def test_build_gci_summary_warns_when_not_asymptotic():
+    # Recorded obj_1 ladder: Roache succeeds but thrust drops on finest mesh.
+    levels = [
+        {"base_cell": 0.005, "thrust_g": 61.5187938796633, "ok": True},
+        {"base_cell": 0.0035, "thrust_g": 59.05759969000627, "ok": True},
+        {"base_cell": 0.0025, "thrust_g": 44.543758571989414, "ok": True},
+    ]
+    s = build_gci_summary(stl="x.stl", rpm=38100.0, iters=800, levels=levels)
+    assert s["gci"] is not None
+    assert s["gci"]["converged"] is False
+    assert s["gci_reason"] is not None
+    assert "not in asymptotic range" in s["gci_reason"]
+    assert "asymptotic_ratio=" in s["gci_reason"]
 
 
 def test_cli_parser_defaults_and_cells():

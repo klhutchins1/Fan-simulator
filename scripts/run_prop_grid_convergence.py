@@ -57,6 +57,21 @@ def _spin_for(stl: Path) -> int:
     return int(hint if hint is not None else -1)
 
 
+def _cell_count(case_dir: Path) -> int:
+    """Read mesh cell count from checkMesh log (best effort)."""
+    log = case_dir / "logs" / "checkMesh.log"
+    if not log.is_file():
+        return 0
+    for line in log.read_text(encoding="utf-8", errors="ignore").splitlines():
+        s = line.strip()
+        if s.startswith("cells:"):
+            try:
+                return int(s.split(":")[1])
+            except (ValueError, IndexError):
+                return 0
+    return 0
+
+
 def _rung_done(result_path: Path) -> bool:
     if not result_path.is_file():
         return False
@@ -117,6 +132,9 @@ def run_ladder(
             except (OSError, ValueError, FileNotFoundError):
                 level["force_tail_drift_pct"] = None
             level["ok"] = math.isfinite(float(level["thrust_g"]))
+            if level["ok"]:
+                ncells = _cell_count(rung)
+                level["cell_count"] = ncells if ncells > 0 else None
             if not level["ok"]:
                 level["error"] = "non-finite thrust_g"
         except Exception as exc:  # noqa: BLE001 — rung isolation

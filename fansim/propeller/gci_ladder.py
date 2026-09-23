@@ -70,4 +70,8 @@ def build_gci_summary(
         "converged": r.converged,
         "metric": "thrust_g",
     }
+    if not r.converged:
+        out["gci_reason"] = (
+            f"not in asymptotic range (asymptotic_ratio={r.asymptotic_ratio:.3g})"
+        )
     return out
