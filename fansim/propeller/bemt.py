@@ -4,9 +4,9 @@ The standard way props are analysed/designed (QProp/JavaProp-class): slice the b
 elements, and at each one balance the LIFT/DRAG the element makes against the MOMENTUM it imparts to
 the air, solving for the induced inflow. Integrate the elements -> total thrust, torque, power, and
 efficiency. No CFD/mesh — deterministic and quick, so it screens propeller designs the way the RANS
-proxy screens fans. analyze applies _compressibility_cl_cd (Prandtl-Glauert on Cl,
-wave drag past Mach 0.7) using local relative speed over C_AIR. A compressible CFD tier
-can still refine finalists.
+proxy screens fans. analyze applies _compressibility_cl_cd (Prandtl-Glauert on attached Cl, capped at
+the polar peak; stalled Cl unchanged; wave drag past Mach 0.7) using local
+relative speed over C_AIR. A compressible CFD tier can still refine finalists.
 
 Static thrust (V=0) is the headline drone number: thrust in grams + hover efficiency in grams-per-watt.
 """
@@ -52,12 +52,24 @@ def _cl_cd(
     table path is unavailable, use the analytic low-Re trends. ``re=None`` keeps the
     original high-Re analytic (back-compat).
     """
+    cl, cd, _stalled, _cap = _section_aero(alpha_rad, camber, re=re, thickness=thickness)
+    return cl, cd
+
+
+def _section_aero(
+    alpha_rad: float,
+    camber: float,
+    re: float | None = None,
+    thickness: float = 0.12,
+) -> tuple[float, float, bool, float]:
+    """Incompressible `(cl, cd, stalled, cl_cap)` from the same branch as `_cl_cd`."""
     if re is not None:
-        from fansim.propeller.polars import cl_cd_table
-        tab = cl_cd_table(alpha_rad, camber, re, thickness=thickness)
+        from fansim.propeller.polars import section_table
+
+        tab = section_table(alpha_rad, camber, re, thickness=thickness)
         if tab is not None:
             return tab
-    return _cl_cd_analytic(alpha_rad, camber, re)
+    return _analytic_section(alpha_rad, camber, re)
 
 
 def _interp_geom(params: BladeParams):
@@ -102,9 +114,13 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
             phi = math.atan2(Vax, Vt)
             W2 = Vax * Vax + Vt * Vt
             alpha = beta - phi
-            cl, cd = _cl_cd(alpha, camber, re=math.sqrt(W2) * c / NU_AIR)   # Re-aware polar (§7.2)
+            cl, cd, stalled, cl_cap = _section_aero(
+                alpha, camber, re=math.sqrt(W2) * c / NU_AIR
+            )
             mach = math.sqrt(W2) / C_AIR
-            cl, cd = _compressibility_cl_cd(cl, cd, mach)
+            cl, cd = _compressibility_cl_cd(
+                cl, cd, mach, stalled=stalled, cl_cap=cl_cap
+            )
             # Prandtl tip-loss factor (open propeller only)
             f = (B / 2.0) * (R - r) / max(r * math.sin(phi), 1e-4)
             F = max(0.15, (2.0 / math.pi) * math.acos(math.exp(-min(f, 20.0))))
@@ -173,21 +189,25 @@ def _compressibility_cl_cd(
 
 def _cl_cd_analytic(alpha_rad: float, camber: float, re: float | None = None):
     """Analytic cambered-airfoil polar (high-Re or Re-aware trends)."""
+    cl, cd, _stalled, _cap = _analytic_section(alpha_rad, camber, re)
+    return cl, cd
+
+
+def _analytic_section(
+    alpha_rad: float, camber: float, re: float | None = None
+) -> tuple[float, float, bool, float]:
     a_deg = math.degrees(alpha_rad)
     cl_max, cd0, stall_deg, slope = 1.4, 0.012, 14.0, 2.0 * math.pi
     if re is not None:
         r = max(float(re), 5000.0)
-        f = math.log10(r / 20000.0)               # 0 at Re 20k, 1 at 200k, 2 at 2M
-        cl_max = max(0.80, min(1.5, 0.95 + 0.30 * f))     # low Re -> lower max lift
-        stall_deg = max(8.0, min(15.0, 10.0 + 3.0 * f))   # low Re -> earlier stall
-        cd0 = max(0.010, 0.008 + 5.0 / math.sqrt(r))      # low Re -> much higher profile drag
+        f = math.log10(r / 20000.0)
+        cl_max = max(0.80, min(1.5, 0.95 + 0.30 * f))
+        stall_deg = max(8.0, min(15.0, 10.0 + 3.0 * f))
+        cd0 = max(0.010, 0.008 + 5.0 / math.sqrt(r))
         slope = 2.0 * math.pi * max(0.75, min(1.0, 0.88 + 0.12 * f))
-    cl0 = slope * camber                          # zero-alpha lift from camber (thin-airfoil approx)
-    cl = cl0 + slope * alpha_rad
-    cl = max(-cl_max, min(cl_max, cl))            # clamp near max lift
-    if a_deg > stall_deg:                         # post-stall soft drop
+    cl_lin = slope * camber + slope * alpha_rad
+    cl = max(-cl_max, min(cl_max, cl_lin))
+    if a_deg > stall_deg:
         cl *= max(0.55, 1.0 - (a_deg - stall_deg) * 0.03)
-    # Analytic polar: use only profile drag (cd0). Do not include an induced-drag term here;
-    # BEM/BEMT already accounts for induced power via momentum coupling.
-    cd = cd0
-    return cl, cd
+    stalled = a_deg > stall_deg or abs(cl_lin) >= cl_max
+    return cl, cd0, stalled, cl_max
