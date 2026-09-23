@@ -93,6 +93,35 @@ def _fake_solve(work):
     (fo / "moment.dat").write_text("#\n10  (0 0 -0.1) (0 0 -0.1) (0 0 0)\n", encoding="utf-8")
 
 
+def test_evaluate_same_stl_path_skips_self_copy(tmp_path, monkeypatch):
+    import trimesh
+
+    from fansim.prop_spec import get_prop_spec
+    from fansim.propeller import cfd as prop_cfd
+
+    work = tmp_path / "case"
+    work.mkdir()
+    src = work / "prop.stl"
+    trimesh.creation.cylinder(radius=30.0, height=12.0, sections=32).export(str(src))
+    monkeypatch.setattr(prop_cfd, "run_mesh", lambda *_a, **_k: None)
+    monkeypatch.setattr(prop_cfd, "run_solve_prop", lambda *_a, **_k: _fake_solve(work))
+    import fansim.cfd.runner as runner_mod
+
+    monkeypatch.setattr(
+        runner_mod,
+        "OpenFOAMRunner",
+        lambda workdir: type("R", (), {"run": staticmethod(lambda *a, **k: None)})(),
+    )
+    out = prop_cfd.evaluate_prop_cfd(
+        get_prop_spec("cine_3inch"),
+        work,
+        rpm=20000.0,
+        stl_mm=src,
+        prepare_stl=False,
+    )
+    assert out["thrust_n"] > 0
+
+
 def test_default_mesh_stays_coarse(tmp_path, monkeypatch):
     import trimesh
 

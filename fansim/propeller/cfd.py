@@ -296,7 +296,7 @@ def evaluate_prop_cfd(
             raise FileNotFoundError(f"prop STL not found: {src}")
         if prepare_stl:
             prepare_prop_stl(src, stl)
-        else:
+        elif src.resolve() != stl.resolve():
             shutil.copy2(src, stl)
         metrics = measure_prop_stl(stl)
         tip_radius_m = metrics.tip_radius_m
