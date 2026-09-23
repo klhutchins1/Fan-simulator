@@ -872,13 +872,10 @@ baffles
     AMI
     {
         type        searchableSurface;
-        surface
-        {
-            type            searchableCylinder;
-            point1          (0 0 @ZMIN@);
-            point2          (0 0 @ZMAX@);
-            radius          @RADIUS@;
-        }
+        surface     searchableCylinder;
+        point1      (0 0 @ZMIN@);
+        point2      (0 0 @ZMAX@);
+        radius      @RADIUS@;
         patches
         {
             master
