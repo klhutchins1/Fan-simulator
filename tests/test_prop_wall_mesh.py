@@ -42,6 +42,17 @@ def test_slab_is_axial_and_not_outward():
     assert sample["mean_abs_nz"] > sample["mean_abs_nr"]
 
 
+def test_wall_sample_chunking_matches_default(monkeypatch):
+    sample_default = wall_sample(_slab())
+    import fansim.propeller.wall_mesh as wall_mesh
+
+    monkeypatch.setattr(wall_mesh, "RAY_CHUNK", 7)
+    sample_chunked = wall_sample(_slab())
+    assert sample_chunked["min_wall_mm"] == pytest.approx(sample_default["min_wall_mm"])
+    assert sample_chunked["layout"] == sample_default["layout"]
+    assert sample_chunked["faces_outward"] is sample_default["faces_outward"]
+
+
 def test_tall_cylinder_is_radial_and_outward():
     mesh = trimesh.creation.cylinder(radius=5.0, height=30.0, sections=24)
     sample = wall_sample(mesh)

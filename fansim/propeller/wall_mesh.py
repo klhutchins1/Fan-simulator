@@ -14,6 +14,7 @@ MOL_WEIGHT = 28.9
 R_UNIV = 8314.462618
 HIT_MIN_MM = 0.05
 MIN_HITS = 20
+RAY_CHUNK = 2000
 
 
 def rho_cfd() -> float:
@@ -25,15 +26,24 @@ def _thicknesses_mm(mesh: trimesh.Trimesh) -> np.ndarray:
     normals = np.asarray(mesh.face_normals, dtype=float)
     inward = -normals
     origins = centers + inward * (HIT_MIN_MM * 0.4)
-    locs, ray_idx, _tri = mesh.ray.intersects_location(
-        ray_origins=origins,
-        ray_directions=inward,
-        multiple_hits=False,
-    )
-    if len(locs) == 0:
+    dist_chunks: list[np.ndarray] = []
+    for start in range(0, len(origins), RAY_CHUNK):
+        stop = min(start + RAY_CHUNK, len(origins))
+        locs, ray_idx, _tri = mesh.ray.intersects_location(
+            ray_origins=origins[start:stop],
+            ray_directions=inward[start:stop],
+            multiple_hits=False,
+        )
+        if len(locs) == 0:
+            continue
+        chunk_centers = centers[start:stop]
+        dist = np.linalg.norm(locs - chunk_centers[ray_idx], axis=1)
+        keep = dist[dist >= HIT_MIN_MM]
+        if keep.size:
+            dist_chunks.append(keep)
+    if not dist_chunks:
         return np.array([], dtype=float)
-    dist = np.linalg.norm(locs - centers[ray_idx], axis=1)
-    return dist[dist >= HIT_MIN_MM]
+    return np.concatenate(dist_chunks)
 
 
 def wall_sample(mesh: trimesh.Trimesh) -> dict:
