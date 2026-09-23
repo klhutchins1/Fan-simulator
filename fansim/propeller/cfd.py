@@ -240,6 +240,7 @@ def evaluate_prop_cfd(
     iters: int = 400,
     procs: int = 8,
     base_cell: float = 0.005,
+    mesh: MeshResolution | None = None,
     spec_key: str | None = None,
     params: BladeParams | None = None,
     bemt_floor_g: float = 0.0,
@@ -319,11 +320,12 @@ def evaluate_prop_cfd(
     )
 
     runner = OpenFOAMRunner(workdir)
+    mesh_used = mesh if mesh is not None else MeshResolution(base_cell=float(base_cell))
     build_prop_case(
         workdir,
         stl,
         dom,
-        mesh=MeshResolution(base_cell=float(base_cell)),
+        mesh=mesh_used,
         n_iters=int(iters),
         n_subdomains=int(procs),
     )

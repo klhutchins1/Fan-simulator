@@ -71,3 +71,77 @@ def test_mesh_for_wall_enables_layers():
     assert mesh.n_surface_layers == 3
     assert mesh.surf_max == 3
     assert mesh.surf_min == 2
+
+
+def _fake_solve(work):
+    fo = work / "postProcessing" / "forces" / "10"
+    fo.mkdir(parents=True)
+    (fo / "force.dat").write_text("#\n10  (0 0 2.0) (0 0 2) (0 0 0)\n", encoding="utf-8")
+    (fo / "moment.dat").write_text("#\n10  (0 0 -0.1) (0 0 -0.1) (0 0 0)\n", encoding="utf-8")
+
+
+def test_default_mesh_stays_coarse(tmp_path, monkeypatch):
+    import trimesh
+
+    from fansim.prop_spec import get_prop_spec
+    from fansim.propeller import cfd as prop_cfd
+
+    mesh = trimesh.creation.cylinder(radius=30.0, height=12.0, sections=32)
+    src = tmp_path / "impeller.stl"
+    mesh.export(str(src))
+    work = tmp_path / "case"
+
+    monkeypatch.setattr(prop_cfd, "run_mesh", lambda *_a, **_k: None)
+    monkeypatch.setattr(prop_cfd, "run_solve_prop", lambda *_a, **_k: _fake_solve(work))
+    import fansim.cfd.runner as runner_mod
+
+    monkeypatch.setattr(
+        runner_mod,
+        "OpenFOAMRunner",
+        lambda workdir: type("R", (), {"run": staticmethod(lambda *a, **k: None)})(),
+    )
+    prop_cfd.evaluate_prop_cfd(
+        get_prop_spec("cine_3inch"),
+        work,
+        rpm=20000.0,
+        base_cell=0.005,
+        stl_mm=src,
+        prepare_stl=False,
+    )
+    text = (work / "system" / "snappyHexMeshDict").read_text(encoding="utf-8")
+    assert "addLayers       false;" in text
+    assert "level (1 2);" in text
+
+
+def test_passed_mesh_writes_layers(tmp_path, monkeypatch):
+    import trimesh
+
+    from fansim.prop_spec import get_prop_spec
+    from fansim.propeller import cfd as prop_cfd
+    from fansim.propeller.wall_mesh import mesh_for_wall
+
+    mesh = trimesh.creation.cylinder(radius=30.0, height=12.0, sections=32)
+    src = tmp_path / "impeller.stl"
+    mesh.export(str(src))
+    work = tmp_path / "layered"
+    monkeypatch.setattr(prop_cfd, "run_mesh", lambda *_a, **_k: None)
+    monkeypatch.setattr(prop_cfd, "run_solve_prop", lambda *_a, **_k: _fake_solve(work))
+    import fansim.cfd.runner as runner_mod
+
+    monkeypatch.setattr(
+        runner_mod,
+        "OpenFOAMRunner",
+        lambda workdir: type("R", (), {"run": staticmethod(lambda *a, **k: None)})(),
+    )
+    prop_cfd.evaluate_prop_cfd(
+        get_prop_spec("cine_3inch"),
+        work,
+        rpm=20000.0,
+        stl_mm=src,
+        prepare_stl=False,
+        mesh=mesh_for_wall(0.005, 2.0),
+    )
+    text = (work / "system" / "snappyHexMeshDict").read_text(encoding="utf-8")
+    assert "addLayers       true;" in text
+    assert "nSurfaceLayers 3;" in text
+    assert "level (2 3);" in text
