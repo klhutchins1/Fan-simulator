@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -127,7 +128,7 @@ def main(argv: list[str] | None = None) -> int:
     (args.out / "result.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     thrust = payload.get("thrust_g")
     power = payload.get("shaft_power_w")
-    if thrust is not None and power is not None and thrust == thrust and power == power:
+    if thrust is not None and power is not None and math.isfinite(thrust) and math.isfinite(power):
         STAMP.parent.mkdir(parents=True, exist_ok=True)
         STAMP.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(payload, indent=2))

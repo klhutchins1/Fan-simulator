@@ -205,3 +205,29 @@ def test_cli_finite_result_stamps(tmp_path, monkeypatch):
     payload = json.loads(stamp.read_text(encoding="utf-8"))
     assert payload["thrust_g"] == pytest.approx(938.0)
     assert payload["shaft_power_w"] == pytest.approx(2034.0)
+
+
+def test_cli_nonfinite_result_skips_stamp(tmp_path, monkeypatch):
+    import scripts.run_prop_obj2_wall as wall_cli
+
+    stamp = tmp_path / "obj_2_ccw_wall.json"
+    monkeypatch.setattr(wall_cli, "STAMP", stamp)
+
+    def fake_run_case(**_k):
+        return {
+            "thrust_n": float("inf"),
+            "thrust_g": float("inf"),
+            "shaft_power_w": 2034.0,
+            "torque_nm": 0.77,
+            "figure_of_merit": 0.11,
+            "layout": "axial",
+            "faces_outward": False,
+            "wall_resolved": False,
+            "min_wall_mm": 0.4,
+        }
+
+    monkeypatch.setattr(wall_cli, "run_case", fake_run_case)
+    out = tmp_path / "run"
+    code = wall_cli.main(["--out", str(out), "--stl", str(tmp_path / "missing.stl")])
+    assert code == 0
+    assert not stamp.exists()
