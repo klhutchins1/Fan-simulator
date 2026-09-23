@@ -15,6 +15,7 @@ from fansim.propeller.polars import (
     cl_cd_table,
     family_for_camber,
     load_polar_family,
+    section_table,
 )
 
 
@@ -107,3 +108,59 @@ def test_fallback_when_polar_dir_missing(monkeypatch, tmp_path):
 def test_no_star_in_polars_module():
     text = Path("fansim/propeller/polars.py").read_text(encoding="utf-8")
     assert "★" not in text
+
+
+def test_naca4412_stall_gate_at_table_re():
+    clear_polar_cache()
+    attached = section_table(math.radians(4.0), 0.04, 80000.0)
+    assert attached is not None
+    cl, _cd, stalled, cap = attached
+    assert stalled is False
+    assert cl == pytest.approx(0.65703, abs=1e-5)
+    assert cap == pytest.approx(1.04017, abs=1e-5)
+    stalled_row = section_table(math.radians(16.0), 0.04, 80000.0)
+    assert stalled_row is not None
+    cl_s, _cd_s, stalled_s, cap_s = stalled_row
+    assert stalled_s is True
+    assert cl_s == pytest.approx(0.89370, abs=1e-5)
+    assert cap_s == pytest.approx(1.04017, abs=1e-5)
+    past = section_table(math.radians(64.0), 0.04, 80000.0)
+    assert past is not None
+    cl_p, _cd_p, stalled_p, cap_p = past
+    assert stalled_p is True
+    assert cl_p == pytest.approx(0.83129, abs=1e-5)
+    assert cap_p == pytest.approx(1.04017, abs=1e-5)
+    neg = section_table(math.radians(-5.0), 0.04, 80000.0)
+    assert neg is not None
+    cl_n, _cd_n, stalled_n, cap_n = neg
+    assert stalled_n is True
+    assert cl_n == pytest.approx(-0.28280, abs=1e-5)
+    assert cap_n == pytest.approx(0.28280, abs=1e-5)
+    near = section_table(math.radians(-4.0), 0.04, 80000.0)
+    assert near is not None
+    cl_a, _cd_a, stalled_a, cap_a = near
+    assert stalled_a is False
+    assert cl_a == pytest.approx(-0.17838, abs=1e-5)
+    assert cap_a == pytest.approx(0.28280, abs=1e-5)
+
+
+def test_stall_gate_blends_neighbor_tables():
+    clear_polar_cache()
+    re_mid = 10 ** (0.5 * (math.log10(40000.0) + math.log10(80000.0)))
+    row = section_table(math.radians(16.0), 0.04, re_mid)
+    assert row is not None
+    cl, _cd, stalled, cap = row
+    assert stalled is True
+    assert cl == pytest.approx((0.79638 + 0.89370) / 2.0, abs=1e-5)
+    assert cap == pytest.approx((0.95708 + 1.04017) / 2.0, abs=1e-5)
+    attached = section_table(math.radians(4.0), 0.04, re_mid)
+    assert attached is not None
+    cl_a, _cd_a, stalled_a, cap_a = attached
+    assert stalled_a is False
+    assert cl_a == pytest.approx((0.63210 + 0.65703) / 2.0, abs=1e-5)
+    assert cap_a == pytest.approx((0.95708 + 1.04017) / 2.0, abs=1e-5)
+
+
+def test_section_table_misses_when_cl_cd_table_misses():
+    clear_polar_cache()
+    assert section_table(math.radians(4.0), 0.04, 16000.0) is None

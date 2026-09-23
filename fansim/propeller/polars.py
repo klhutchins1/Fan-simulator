@@ -86,13 +86,59 @@ def _interp_alpha(alpha_deg: float, a: np.ndarray, cl: np.ndarray, cd: np.ndarra
     )
 
 
-def cl_cd_table(
+_STALL_TOL = 1e-4
+
+
+def _curve_limits(alphas: np.ndarray, cls: np.ndarray) -> tuple[float, float | None, float, float]:
+    """Positive stall angle, negative stall angle or None, peak Cl, trough Cl."""
+    cl_peak = float(np.max(cls))
+    cl_trough = float(np.min(cls))
+    pos = np.flatnonzero(cls >= cl_peak - _STALL_TOL)
+    a_pos = float(alphas[int(pos[0])])
+    a_neg: float | None = None
+    if cl_trough < 0.0:
+        neg = np.flatnonzero(cls <= cl_trough + _STALL_TOL)
+        a_neg = float(alphas[int(neg[-1])])
+    return a_pos, a_neg, cl_peak, cl_trough
+
+
+def _blend_limits(
+    lo: tuple[float, float | None, float, float],
+    hi: tuple[float, float | None, float, float],
+    w: float,
+) -> tuple[float, float | None, float, float]:
+    a_pos = (1.0 - w) * lo[0] + w * hi[0]
+    if lo[1] is None or hi[1] is None:
+        a_neg = None
+    else:
+        a_neg = (1.0 - w) * lo[1] + w * hi[1]
+    cl_peak = (1.0 - w) * lo[2] + w * hi[2]
+    cl_trough = (1.0 - w) * lo[3] + w * hi[3]
+    return a_pos, a_neg, cl_peak, cl_trough
+
+
+def _stall_from_limits(
+    alpha_deg: float,
+    cl: float,
+    a_pos: float,
+    a_neg: float | None,
+    cl_peak: float,
+    cl_trough: float,
+) -> tuple[bool, float]:
+    stalled = float(alpha_deg) >= a_pos or (
+        a_neg is not None and float(alpha_deg) <= a_neg
+    )
+    cap = abs(cl_trough) if cl < 0.0 else cl_peak
+    return stalled, float(cap)
+
+
+def section_table(
     alpha_rad: float,
     camber: float,
     re: float,
     thickness: float = _DEFAULT_THICKNESS,
-) -> tuple[float, float] | None:
-    """Table Cl, Cd at (α, Re) for the camber+thickness-mapped family, or None if unavailable."""
+) -> tuple[float, float, bool, float] | None:
+    """Table `(cl, cd, stalled, cl_cap)` or None when `cl_cd_table` would miss."""
     if re is None or not math.isfinite(float(re)):
         return None
     fam = family_for_camber(camber, thickness)
@@ -102,16 +148,15 @@ def cl_cd_table(
     a_deg = math.degrees(float(alpha_rad))
     res = _polar_re_levels(fam)
     r = float(re)
-    # Below the lowest table Re: do NOT clamp up (fan chord Re is often ~1–3e4). Caller falls back.
     if r < res[0]:
         return None
-    if r <= res[0]:
-        a, cl, cd = tables[res[0]]
-        return _interp_alpha(a_deg, a, cl, cd)
-    if r >= res[-1]:
-        a, cl, cd = tables[res[-1]]
-        return _interp_alpha(a_deg, a, cl, cd)
-    # log10 Re blend between neighbors
+    if r <= res[0] or r >= res[-1]:
+        key = res[0] if r <= res[0] else res[-1]
+        alphas, cls, cds = tables[key]
+        cl, cd = _interp_alpha(a_deg, alphas, cls, cds)
+        a_pos, a_neg, cl_peak, cl_trough = _curve_limits(alphas, cls)
+        stalled, cap = _stall_from_limits(a_deg, cl, a_pos, a_neg, cl_peak, cl_trough)
+        return cl, cd, stalled, cap
     for lo, hi in zip(res[:-1], res[1:]):
         if lo <= r <= hi:
             w = (math.log10(r) - math.log10(lo)) / (math.log10(hi) - math.log10(lo))
@@ -119,8 +164,25 @@ def cl_cd_table(
             a1, cl1, cd1 = tables[hi]
             c0, d0 = _interp_alpha(a_deg, a0, cl0, cd0)
             c1, d1 = _interp_alpha(a_deg, a1, cl1, cd1)
-            return c0 * (1.0 - w) + c1 * w, d0 * (1.0 - w) + d1 * w
+            cl = c0 * (1.0 - w) + c1 * w
+            cd = d0 * (1.0 - w) + d1 * w
+            limits = _blend_limits(_curve_limits(a0, cl0), _curve_limits(a1, cl1), w)
+            stalled, cap = _stall_from_limits(a_deg, cl, *limits)
+            return cl, cd, stalled, cap
     return None
+
+
+def cl_cd_table(
+    alpha_rad: float,
+    camber: float,
+    re: float,
+    thickness: float = _DEFAULT_THICKNESS,
+) -> tuple[float, float] | None:
+    """Table Cl, Cd at (α, Re) for the camber+thickness-mapped family, or None if unavailable."""
+    row = section_table(alpha_rad, camber, re, thickness=thickness)
+    if row is None:
+        return None
+    return row[0], row[1]
 
 
 def clear_polar_cache() -> None:
