@@ -90,10 +90,15 @@ AMI here is one short sliding-mesh smoke — not datasheet-grade. Forward-flight
 
 ## Wall mesh (obj_2)
 
-**Status:** attempted 2026-09-23 — wall sampling failed before meshing.
+**Status:** recorded 2026-09-23.
 
-`wall_sample` raised a numpy memory error while trying to allocate about 69 GiB during STL wall-thickness sampling. OpenFOAM never started.
+**Case:** `obj_2_ccw.stl` · RPM 25257 · `base_cell` 0.005 · `MeshResolution.for_blade` · prism layers 3 · `rhoSimpleFoam`.
 
-No `result.json` and no OpenFOAM log were produced for this attempt. No stamp file was written.
+**Stamp:** `validation/reference/drone_radial/cfd/obj_2_ccw_wall.json`.
 
-BEMT Prandtl-Glauert also raises lift past stall, so this is not a BEMT comparison.
+| | thrust_g | shaft_power_w | figure_of_merit | min_wall_mm | surf_max | wall_resolved | layout |
+|---|---:|---:|---:|---:|---:|---|---|
+| wall mesh | 1131.17 | 2163.27 | 0.1385 | 0.359 | 4 | false | axial |
+| smoke fixture | 937.94 | 2034.23 | 0.1112 |  |  |  |  |
+
+layout=axial; outer surfaces face outward. This is not a pass band. Thrust rose against the smoke fixture while shaft power stayed near 2.2 kW, so figure of merit rose from 0.11 to 0.14. `wall_resolved` is false: level 4 on a 0.005 m base cell is 0.31 mm, and three cells across a 0.36 mm wall need about 0.12 mm. BEMT Prandtl-Glauert also raises lift past stall, so this CFD result is not a BEMT comparison.
