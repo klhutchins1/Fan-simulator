@@ -87,3 +87,11 @@ GCI here is **discretization uncertainty** for steady compressible-MRF open-air 
 **Interpretation:** Attempted. No finite mean. Reason: OpenFOAM command failed (136): `rhoPimpleFoam` (SIGFPE) during thermo init; no force samples were collected. No stamp file was written.
 
 AMI here is one short sliding-mesh smoke — not datasheet-grade. Forward-flight polars and bench calibration remain out of scope.
+
+## Wall mesh (obj_2)
+
+**Status:** attempted 2026-09-23 — unstamped (`thrust_g` null or `shaft_power_w` null).
+
+**Stamp:** none. `validation/reference/drone_radial/cfd/obj_2_ccw_wall.json` was not written.
+
+No stamp file was written. BEMT Prandtl-Glauert also raises lift past stall, so this CFD result is not a BEMT comparison.
