@@ -183,12 +183,16 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
      (`sqrt(W2) / C_AIR`, 343 m/s) inside the element loop. Spec/plan:
      `docs/superpowers/specs/2026-09-23-prop-bemt-compressibility-design.md`,
      `docs/superpowers/plans/2026-09-23-prop-bemt-compressibility.md`.
+     Stall cap: attached Cl is divided by `sqrt(1 - M²)` and limited to the polar peak; Cl at or past stall is unchanged. Spec/plan:
+     `docs/superpowers/specs/2026-09-23-prop-bemt-stall-cap-design.md`,
+     `docs/superpowers/plans/2026-09-23-prop-bemt-stall-cap.md`.
   2. **Done.** obj_2 wall mesh (`for_blade`, prism layers) is stamped at
      `validation/reference/drone_radial/cfd/obj_2_ccw_wall.json`: 1131 g,
      2163 W, figure of merit 0.139, layout axial,
      wall_resolved false. Spec/plan:
      `docs/superpowers/specs/2026-09-23-prop-obj2-wall-mesh-design.md`,
      `docs/superpowers/plans/2026-09-23-prop-obj2-wall-mesh.md`.
+     At iteration 400 the shaft moment is 0.818 N·m, of which 0.812 N·m is pressure and 0.006 N·m is viscous.
   3. Leave AMI parked. A retry needs a single-rank thermo init that does not SIGFPE, a step of about
      **1° or less** (today 4e-5 s is 6.1° at 2644 rad/s), and a **signed** thrust mean. The comparison
      target stays the same-mesh MRF smoke (938 g), not the 1249 g extrapolation.

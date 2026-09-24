@@ -101,4 +101,4 @@ AMI here is one short sliding-mesh smoke — not datasheet-grade. Forward-flight
 | wall mesh | 1131.17 | 2163.27 | 0.1385 | 0.359 | 4 | false | axial |
 | smoke fixture | 937.94 | 2034.23 | 0.1112 |  |  |  |  |
 
-layout=axial; outer surfaces face outward. This is not a pass band. Thrust rose against the smoke fixture while shaft power stayed near 2.2 kW, so figure of merit rose from 0.11 to 0.14. `wall_resolved` is false: level 4 on a 0.005 m base cell is 0.31 mm, and three cells across a 0.36 mm wall need about 0.12 mm. BEMT Prandtl-Glauert also raises lift past stall, so this CFD result is not a BEMT comparison.
+layout=axial; outer surfaces face outward. This is not a pass band. Thrust rose against the smoke fixture while shaft power stayed near 2.2 kW, so figure of merit rose from 0.11 to 0.14. `wall_resolved` is false: level 4 on a 0.005 m base cell is 0.31 mm, and three cells across a 0.36 mm wall need about 0.12 mm. At iteration 400 the shaft moment is 0.818 N·m, of which 0.812 N·m is pressure and 0.006 N·m is viscous. This CFD result is not a BEMT comparison.
