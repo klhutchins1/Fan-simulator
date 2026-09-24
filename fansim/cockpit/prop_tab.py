@@ -17,7 +17,7 @@ _log = logging.getLogger(__name__)
 
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.data import design_dropdown_items
-from fansim.cockpit.figures import prop_scatter_figure
+from fansim.cockpit.figures import prop_mission_figure, prop_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
 
 from fansim.prop_spec import get_prop_spec, prop_spec_names
@@ -143,6 +143,18 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     state.prop_maxpower = 700.0
     state.prop_pareto = []  # display rows for the optimizer front table
     state.prop_resume = False
+    state.prop_mission = "thrust_efficiency"
+    state.prop_mission_items = [
+        {"title": "thrust_efficiency", "value": "thrust_efficiency"},
+        {"title": "quiet_thrust", "value": "quiet_thrust"},
+        {"title": "hover_endurance", "value": "hover_endurance"},
+        {"title": "range", "value": "range"},
+    ]
+    state.prop_weight_n = 5.0
+    state.prop_n_rotors = 4
+    state.prop_battery_wh = 50.0
+    state.prop_cruise_mps = 15.0
+    state.prop_min_minutes = ""
     state.prop_cfd_top = 0
     state.prop_cfd_mesh_preset = "smoke"
     state.prop_bemt_floor = 0.0
@@ -215,7 +227,20 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
 
     def _refresh_prop_figure():
         if hasattr(ctrl, "prop_fig_update"):
-            ctrl.prop_fig_update(prop_scatter_figure(prop_pareto_store, prop_user_store))
+            mission = str(state.prop_mission)
+            if mission == "hover_endurance":
+                fig = prop_mission_figure(
+                    prop_pareto_store, prop_user_store,
+                    y_key="hover_minutes", y_title="hover (min)",
+                )
+            elif mission == "range":
+                fig = prop_mission_figure(
+                    prop_pareto_store, prop_user_store,
+                    y_key="range_km", y_title="range (km)",
+                )
+            else:
+                fig = prop_scatter_figure(prop_pareto_store, prop_user_store)
+            ctrl.prop_fig_update(fig)
         state.prop_trial_items = design_dropdown_items(_prop_click_store(), by_index=True)
 
     def _reload_prop_from_disk():
@@ -438,6 +463,17 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         stamp = time.strftime("%Y%m%d_%H%M%S")
         out_dir = prop_out_path(resume=resume, last_dir=last, stamp=stamp, runs_root=root)
         mode = "resume" if resume and last and out_dir == Path(last) else "new"
+        mission_call = prop_mission_kwargs(
+            state.prop_mission, state.prop_weight_n, state.prop_n_rotors,
+            state.prop_battery_wh, state.prop_cruise_mps, state.prop_min_minutes,
+        )
+        if not mission_call["ok"]:
+            state.prop_msg = mission_call["message"]
+            return
+        if str(state.prop_mission) != "thrust_efficiency":
+            resume = False
+            out_dir = prop_out_path(resume=False, last_dir=None, stamp=stamp, runs_root=root)
+            mode = "new"
 
         async def task():
             state.prop_busy = True
@@ -458,6 +494,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                         max_power_w=cap,
                         out_dir=out_dir,
                         prop_model=str(state.prop_model),
+                        **mission_call["kwargs"],
                     ),
                 )
             except Exception as exc:  # noqa: BLE001
@@ -820,7 +857,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                     )
                 with v3.VCard(classes="mb-2 pa-3"):
                     html.Div(
-                        "Auto-optimize the blade (thrust ↔ efficiency, ~1 s)",
+                        "Auto-optimize the blade (mission presets: thrust/efficiency, quiet, endurance, range, ~1 s)",
                         classes="text-subtitle-2 mb-1",
                     )
                     html.Div(
@@ -844,6 +881,61 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                 label="Max power W (0=any)",
                                 v_model=("prop_maxpower",),
                                 type="number",
+                                density="compact",
+                                variant="outlined",
+                                hide_details=True,
+                            )
+                    v3.VSelect(
+                        label="Mission",
+                        v_model=("prop_mission",),
+                        items=("prop_mission_items",),
+                        density="compact",
+                        variant="outlined",
+                        hide_details=True,
+                        classes="mt-2",
+                    )
+                    with v3.VRow(no_gutters=True, classes="align-center mt-1"):
+                        with v3.VCol(cols=4, classes="pr-1"):
+                            v3.VTextField(
+                                label="Weight (N)",
+                                v_model=("prop_weight_n",),
+                                type="number",
+                                density="compact",
+                                variant="outlined",
+                                hide_details=True,
+                            )
+                        with v3.VCol(cols=4, classes="px-1"):
+                            v3.VTextField(
+                                label="Rotors",
+                                v_model=("prop_n_rotors",),
+                                type="number",
+                                density="compact",
+                                variant="outlined",
+                                hide_details=True,
+                            )
+                        with v3.VCol(cols=4, classes="pl-1"):
+                            v3.VTextField(
+                                label="Battery (Wh)",
+                                v_model=("prop_battery_wh",),
+                                type="number",
+                                density="compact",
+                                variant="outlined",
+                                hide_details=True,
+                            )
+                    with v3.VRow(no_gutters=True, classes="align-center mt-1"):
+                        with v3.VCol(cols=6, classes="pr-1"):
+                            v3.VTextField(
+                                label="Cruise (m/s)",
+                                v_model=("prop_cruise_mps",),
+                                type="number",
+                                density="compact",
+                                variant="outlined",
+                                hide_details=True,
+                            )
+                        with v3.VCol(cols=6, classes="pl-1"):
+                            v3.VTextField(
+                                label="Min hover (min)",
+                                v_model=("prop_min_minutes",),
                                 density="compact",
                                 variant="outlined",
                                 hide_details=True,
