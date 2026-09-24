@@ -169,7 +169,7 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   `docs/superpowers/specs/2026-09-23-prop-cfd-ami-smoke-design.md`,
   `docs/superpowers/plans/2026-09-23-prop-cfd-ami-smoke.md`.
   **§4.3 screening stages** (parametric smoke + drone_radial smoke/refine/GCI + cockpit knobs)
-  are in place. Next CFD work is **§4.4** (why obj_2 shaft power is ~2 kW). After that:
+  are in place. The obj_2 ~2 kW figure is explained in **§4.4** step 4 (radial impeller versus the FPV 5″ datasheet). After that:
   AMI/sliding (obj_2 attempt produced no finite mean), forward-flight polars, datasheet calibration.
   AMI is one obj_2 smoke, not a sliding-mesh campaign (GCI remains a screening stamp only).
 - [ ] **4.4 Make obj_2 thrust and power believable before more AMI.** **[impact: high]** **[effort: med]**
@@ -196,6 +196,8 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   3. Leave AMI parked. A retry needs a single-rank thermo init that does not SIGFPE, a step of about
      **1° or less** (today 4e-5 s is 6.1° at 2644 rad/s), and a **signed** thrust mean. The comparison
      target stays the same-mesh MRF smoke (938 g), not the 1249 g extrapolation.
+  4. **Done.** The 2163 W versus 388 W gap is the FPV 5×4.3×3 datasheet (650 W at 30 000 rpm, rpm³) applied to a radial impeller (hub 30.4 mm, tip 45.4 mm). Pressure moment is 0.812 N·m of 0.818 N·m. Do not retune the mesh to 388 W. Spec:
+     `docs/superpowers/specs/2026-09-23-prop-obj2-power-gap-design.md`.
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 
@@ -528,7 +530,7 @@ Bring Prop / Mixed / Volute / CROR editors up toward Fan blade vocabulary. Spec:
   Cockpit mission select and the minutes/km plots are in. Spec/plan:
   `docs/superpowers/specs/2026-09-23-prop-mission-cockpit-design.md`,
   `docs/superpowers/plans/2026-09-23-prop-mission-cockpit.md`.
-  Today `run_prop_study` maximizes `(thrust_g, g/W)` only. `estimate_prop_noise` already stamps
+  Default mission `thrust_efficiency` maximizes thrust and g/W. The other three missions are on `run_prop_study` and on the Optimize card. `estimate_prop_noise` already stamps
   `rel_dba` (relative, not dB(A) — absolute levels stay §1.4). The cockpit already plots
   **thrust vs that noise score**, colored by g/W (`prop_scatter_figure`). Noise is a spectator.
   `hover_power_budget` already turns all-up weight, rotor count, battery Wh, and shaft power into
@@ -545,6 +547,13 @@ Bring Prop / Mixed / Volute / CROR editors up toward Fan blade vocabulary. Spec:
   Keep the existing thrust–noise plot for Quiet thrust. Endurance and Range get their own plot of
   the thing that was optimized (minutes or km) against thrust, with noise and power on the point.
   Relative noise stays the ranking score until a bench mic or §1.4 says otherwise.
+
+- [ ] **14.8 Prop cockpit: stop, disk, random, wiring.** **[impact: high]** **[effort: med]**
+  Reported 2026-09-23. Optimize was left running and had to be killed by closing the terminal.
+  1. **Stop.** The prop Optimize button has no stop or cancel. `prop_busy` stays on until the study finishes or throws.
+  2. **Project drive.** A prop Optimize pegs the T: drive (the drive that holds this repo) at 100% utilization and the drive gets loud. Find what each trial writes under `runs/` before changing the search.
+  3. **Randomize.** The fan tab has Randomize geometry and Randomize features. The prop tab has neither. Useful for poking the design, secondary to a real search.
+  4. **Wiring audit.** Confirm recent prop work is reachable from the prop tab. Missions and the minutes/km plots are on the Optimize card (43f8191). Compressibility and the stall cap sit inside `analyze`. Record anything that still exists only as a script.
 
 ---
 

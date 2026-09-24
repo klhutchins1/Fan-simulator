@@ -102,3 +102,5 @@ AMI here is one short sliding-mesh smoke — not datasheet-grade. Forward-flight
 | smoke fixture | 937.94 | 2034.23 | 0.1112 |  |  |  |  |
 
 layout=axial; outer surfaces face outward. This is not a pass band. Thrust rose against the smoke fixture while shaft power stayed near 2.2 kW, so figure of merit rose from 0.11 to 0.14. `wall_resolved` is false: level 4 on a 0.005 m base cell is 0.31 mm, and three cells across a 0.36 mm wall need about 0.12 mm. At iteration 400 the shaft moment is 0.818 N·m, of which 0.812 N·m is pressure and 0.006 N·m is viscous. This CFD result is not a BEMT comparison.
+
+The 2163 W versus 388 W gap is a mismatched reference. obj_2 is a radial impeller (hub 30.4 mm, tip 45.4 mm, hub/tip 0.67). The 388 W figure is the FPV 5×4.3×3 datasheet (650 W at 30 000 rpm) scaled with rpm³, because `scripts/run_prop_obj2_wall.py` passes `get_prop_spec("fpv_5inch")` into `datasheet_compare`. `within_2x` checks thrust only. Viscous moment is 0.006 N·m, so a finer wall cannot close that ratio. Spec: `docs/superpowers/specs/2026-09-23-prop-obj2-power-gap-design.md`.
