@@ -10,6 +10,7 @@ import sys
 
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.fan_copy import CONTROL_DESC, OPT_SEARCH_HELP
+from fansim.cockpit.tab_shell import VTK_HEIGHT_PX, render_action_row
 from fansim.cockpit.fan_widgets import help_select, help_switch, opt_section, slider
 from fansim.cockpit.figures import filter_fitting_designs, scatter_figure
 from fansim.fan_spec import published_scatter_point
@@ -69,6 +70,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
 
     hub_designs = getattr(ctx, "fan_hub_designs")
     active_spec = getattr(ctx, "fan_active_spec")
+
+    _action_busy = (
+        "preview_busy || assess_busy || export_busy || opt_running || e_tip_radius == null"
+    )
 
     with v3.VRow(no_gutters=True, v_show="active_tab === 'fan'"):
         with v3.VCol(cols=12):
@@ -436,74 +441,71 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
 
                     with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):
                         html.Div("Actions", classes="text-subtitle-2 mb-1")
-                        with v3.VRow(no_gutters=True, classes="mb-2"):
-                            v3.VBtn(
-                                "Preview",
-                                color="primary",
-                                size="small",
-                                click=(do_preview,),
-                                classes="mr-2",
-                                loading=("preview_busy",),
-                                disabled=(
-                                    "preview_busy || assess_busy || export_busy || opt_running || e_tip_radius == null",
-                                ),
-                            )
-                            v3.VBtn(
-                                "Assess",
-                                color="success",
-                                size="small",
-                                click=(on_assess,),
-                                classes="mr-2",
-                                loading=("assess_busy",),
-                                disabled=(
-                                    "preview_busy || assess_busy || export_busy || opt_running || e_tip_radius == null",
-                                ),
-                            )
-                            v3.VBtn(
-                                "Export print STL",
-                                size="small",
-                                variant="tonal",
-                                color="primary",
-                                click=(export_stl_current,),
-                                classes="mr-2",
-                                loading=("export_busy",),
-                                disabled=(
-                                    "preview_busy || assess_busy || export_busy || opt_running || e_tip_radius == null",
-                                ),
-                            )
-                            v3.VBtn(
-                                "Optimize",
-                                color="success",
-                                size="small",
-                                click=(on_optimize_fan,),
-                                classes="mr-2",
-                                loading=("opt_running",),
-                                disabled=("preview_busy || assess_busy || export_busy || opt_running",),
-                            )
-                            v3.VBtn(
-                                "Reset",
-                                size="small",
-                                variant="tonal",
-                                click=(select, "[selected_trial]"),
-                                classes="mr-2",
-                            )
-                            v3.VBtn(
-                                "⏹ Cancel opt",
-                                size="small",
-                                color="error",
-                                variant="tonal",
-                                click=(cancel_optimize,),
-                                disabled=("!opt_running",),
-                            )
-                            v3.VBtn(
-                                "⏹ Cancel Assess",
-                                size="small",
-                                color="error",
-                                variant="tonal",
-                                click=(cancel_assess,),
-                                classes="ml-2",
-                                disabled=("!assess_busy || opt_running",),
-                            )
+                        render_action_row(
+                            v3,
+                            {
+                                "preview": {
+                                    "label": "Preview",
+                                    "color": "primary",
+                                    "size": "small",
+                                    "click": (do_preview,),
+                                    "loading": ("preview_busy",),
+                                    "disabled": (_action_busy,),
+                                },
+                                "score": {
+                                    "label": "Assess",
+                                    "color": "success",
+                                    "size": "small",
+                                    "click": (on_assess,),
+                                    "loading": ("assess_busy",),
+                                    "disabled": (_action_busy,),
+                                },
+                                "export": {
+                                    "label": "Export print STL",
+                                    "size": "small",
+                                    "variant": "tonal",
+                                    "color": "primary",
+                                    "click": (export_stl_current,),
+                                    "loading": ("export_busy",),
+                                    "disabled": (_action_busy,),
+                                },
+                                "optimize": {
+                                    "label": "Optimize",
+                                    "color": "success",
+                                    "size": "small",
+                                    "click": (on_optimize_fan,),
+                                    "loading": ("opt_running",),
+                                    "disabled": (
+                                        "preview_busy || assess_busy || export_busy || opt_running",
+                                    ),
+                                },
+                                "stop": [
+                                    {
+                                        "label": "⏹ Cancel opt",
+                                        "size": "small",
+                                        "color": "error",
+                                        "variant": "tonal",
+                                        "click": (cancel_optimize,),
+                                        "disabled": ("!opt_running",),
+                                    },
+                                    {
+                                        "label": "⏹ Cancel Assess",
+                                        "size": "small",
+                                        "color": "error",
+                                        "variant": "tonal",
+                                        "click": (cancel_assess,),
+                                        "disabled": ("!assess_busy || opt_running",),
+                                    },
+                                ],
+                                "randomize": {
+                                    "label": "Randomize geometry",
+                                    "size": "small",
+                                    "variant": "tonal",
+                                    "color": "secondary",
+                                    "click": (randomize_geometry,),
+                                },
+                            },
+                        )
                         html.Div("{{ preview_msg }}", classes="text-caption", style="white-space: pre-line")
                         html.Div("{{ assess_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
                         html.Div("{{ export_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
@@ -646,6 +648,110 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 )
 
                     with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):
+                        html.Div("Optimize", classes="text-subtitle-2 mb-1")
+                        html.Div(
+                            "Multi-objective CFD search (NSGA-II). Reuses Application hose plus "
+                            "Honesty / fidelity above (refine-op, wall roughness). Defaults: "
+                            "8 trials, guided space, mountable hubs, new runs/cockpit_opt_* "
+                            "folder — ◆ diamonds merge onto the plot. Hover any switch for "
+                            "when-to-use / cost / risk. No bio-feature search.",
+                            classes="text-caption mb-2",
+                            style="white-space: pre-line",
+                        )
+                        with v3.VTooltip(location="end", open_delay=150, max_width=420):
+                            with v3.Template(v_slot_activator="{ props }"):
+                                v3.VTextField(
+                                    v_bind="props",
+                                    label="Trials",
+                                    v_model=("opt_trials",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                    classes="mb-2",
+                                )
+                            html.Div(OPT_SEARCH_HELP["opt_trials"], classes="text-caption")
+                        _help_switch("opt_resume", "Continue the opened run", classes="mb-2")
+                        _opt_section(
+                            "Geometry stamps",
+                            "Optional part shapes stamped onto every trial "
+                            "(not free-form search knobs).",
+                        )
+                        _help_switch("opt_shroud", "Tip ring / shroud (--shroud)")
+                        _help_switch("opt_stator", "Stator vanes (--stator)")
+                        _help_switch("opt_stator_stack", "Stator + frame stack (--stator-stack)")
+                        _help_switch("opt_sickle", "Sickle leading edge (--sickle)")
+                        _help_switch("opt_stepped", "Stepped inlet casing (--stepped-inlet)")
+                        _help_switch("opt_notched", "Notched tip trailing edge (--notched-tips)")
+                        _opt_section(
+                            "Speed-ups",
+                            "Skip hopeless CFD early. Faster campaigns; can miss "
+                            "borderline winners if floors are aggressive.",
+                        )
+                        _help_switch(
+                            "opt_bem",
+                            "BEM ranking screen — skip CFD below ~32 CFM (--bem-prescreen)",
+                        )
+                        _help_switch(
+                            "opt_gp",
+                            "Catalog GP skip below ~40 CFM free (--surrogate-prescreen)",
+                        )
+                        _help_switch(
+                            "opt_gp_boost",
+                            "Boost + GP mean (--surrogate-boost)",
+                        )
+                        _help_switch(
+                            "opt_gp_nn",
+                            "NN + GP mean (--surrogate-nn)",
+                        )
+                        _opt_section(
+                            "Operating point",
+                            "Fixed nameplate RPM unless you open the PWM band.",
+                        )
+                        _help_switch("opt_search_rpm", "Search RPM in PWM band (--search-rpm)")
+                        with v3.VRow(
+                            v_show="opt_search_rpm", no_gutters=True, classes="mt-1 align-center"
+                        ):
+                            with v3.VCol(cols=6, classes="pr-1"):
+                                with v3.VTooltip(location="end", open_delay=150, max_width=420):
+                                    with v3.Template(v_slot_activator="{ props }"):
+                                        v3.VTextField(
+                                            v_bind="props",
+                                            label="PWM RPM min",
+                                            v_model=("opt_rpm_min",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                    html.Div(OPT_SEARCH_HELP["opt_rpm_min"], classes="text-caption")
+                            with v3.VCol(cols=6, classes="pl-1"):
+                                with v3.VTooltip(location="end", open_delay=150, max_width=420):
+                                    with v3.Template(v_slot_activator="{ props }"):
+                                        v3.VTextField(
+                                            v_bind="props",
+                                            label="PWM RPM max",
+                                            v_model=("opt_rpm_max",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                    html.Div(OPT_SEARCH_HELP["opt_rpm_max"], classes="text-caption")
+                        html.Div(
+                            "{{ opt_pwm_caption }}",
+                            v_show="opt_search_rpm",
+                            classes="text-caption mt-1 mb-1",
+                        )
+                        html.Div(
+                            "Acoustics CLI (not in-cockpit CFD): "
+                            "scripts/evaluate_noise.py --fwh | --permeable | "
+                            "--patches --patch-n 2|4. Ranking only until mic cal.",
+                            classes="text-caption mt-2 text-medium-emphasis",
+                            style="white-space: pre-line",
+                        )
+
+                    with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):
                         html.Div(
                             "Fit to the selected fan model — run these before Preview/Assess "
                             "when tip or depth is out of spec. They only change Design sliders; "
@@ -681,15 +787,6 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         html.Div(
                             "Modify design — hover any slider for a min/max picture + what it does",
                             classes="text-caption mb-1",
-                        )
-                        v3.VBtn(
-                            "🎲 Randomize geometry",
-                            size="x-small",
-                            variant="tonal",
-                            color="secondary",
-                            block=True,
-                            click=(randomize_geometry,),
-                            classes="mb-2",
                         )
                         with v3.VExpansionPanels(variant="accordion", multiple=True):
                             with v3.VExpansionPanel(title="Planform — blades & chord"):
@@ -891,115 +988,6 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     _slider("Dimple rows", "e_dim_rows", 0, 6, 1)
                                     _slider("Dimple cols", "e_dim_cols", 0, 6, 1)
 
-                    with v3.VExpansionPanels(classes="mb-2", v_show="fan_subtab === 'design'"):
-                        with v3.VExpansionPanel(title="Advanced search (Optimize flags)"):
-                            with v3.VExpansionPanelText():
-                                html.Div(
-                                    "Optimize runs multi-objective CFD search (NSGA-II). "
-                                    "It reuses Application hose plus Honesty / fidelity "
-                                    "above (refine-op, wall roughness). Defaults: 8 trials, "
-                                    "guided space, mountable hubs, new runs/cockpit_opt_* "
-                                    "folder — ◆ diamonds merge onto the plot. Hover any "
-                                    "switch for when-to-use / cost / risk. No bio-feature search.",
-                                    classes="text-caption mb-2",
-                                )
-                                _opt_section(
-                                    "Campaign",
-                                    "How big the run is and where results go.",
-                                )
-                                with v3.VTooltip(location="end", open_delay=150, max_width=420):
-                                    with v3.Template(v_slot_activator="{ props }"):
-                                        v3.VTextField(
-                                            v_bind="props",
-                                            label="Trials",
-                                            v_model=("opt_trials",),
-                                            type="number",
-                                            density="compact",
-                                            variant="outlined",
-                                            hide_details=True,
-                                            classes="mb-2",
-                                        )
-                                    html.Div(OPT_SEARCH_HELP["opt_trials"], classes="text-caption")
-                                _help_switch("opt_resume", "Continue the opened run")
-                                _opt_section(
-                                    "Geometry stamps",
-                                    "Optional part shapes stamped onto every trial "
-                                    "(not free-form search knobs).",
-                                )
-                                _help_switch("opt_shroud", "Tip ring / shroud (--shroud)")
-                                _help_switch("opt_stator", "Stator vanes (--stator)")
-                                _help_switch("opt_stator_stack", "Stator + frame stack (--stator-stack)")
-                                _help_switch("opt_sickle", "Sickle leading edge (--sickle)")
-                                _help_switch("opt_stepped", "Stepped inlet casing (--stepped-inlet)")
-                                _help_switch("opt_notched", "Notched tip trailing edge (--notched-tips)")
-                                _opt_section(
-                                    "Speed-ups",
-                                    "Skip hopeless CFD early. Faster campaigns; can miss "
-                                    "borderline winners if floors are aggressive.",
-                                )
-                                _help_switch(
-                                    "opt_bem",
-                                    "BEM ranking screen — skip CFD below ~32 CFM (--bem-prescreen)",
-                                )
-                                _help_switch(
-                                    "opt_gp",
-                                    "Catalog GP skip below ~40 CFM free (--surrogate-prescreen)",
-                                )
-                                _help_switch(
-                                    "opt_gp_boost",
-                                    "Boost + GP mean (--surrogate-boost)",
-                                )
-                                _help_switch(
-                                    "opt_gp_nn",
-                                    "NN + GP mean (--surrogate-nn)",
-                                )
-                                _opt_section(
-                                    "Operating point",
-                                    "Fixed nameplate RPM unless you open the PWM band.",
-                                )
-                                _help_switch("opt_search_rpm", "Search RPM in PWM band (--search-rpm)")
-                                with v3.VRow(
-                                    v_show="opt_search_rpm", no_gutters=True, classes="mt-1 align-center"
-                                ):
-                                    with v3.VCol(cols=6, classes="pr-1"):
-                                        with v3.VTooltip(location="end", open_delay=150, max_width=420):
-                                            with v3.Template(v_slot_activator="{ props }"):
-                                                v3.VTextField(
-                                                    v_bind="props",
-                                                    label="PWM RPM min",
-                                                    v_model=("opt_rpm_min",),
-                                                    type="number",
-                                                    density="compact",
-                                                    variant="outlined",
-                                                    hide_details=True,
-                                                )
-                                            html.Div(OPT_SEARCH_HELP["opt_rpm_min"], classes="text-caption")
-                                    with v3.VCol(cols=6, classes="pl-1"):
-                                        with v3.VTooltip(location="end", open_delay=150, max_width=420):
-                                            with v3.Template(v_slot_activator="{ props }"):
-                                                v3.VTextField(
-                                                    v_bind="props",
-                                                    label="PWM RPM max",
-                                                    v_model=("opt_rpm_max",),
-                                                    type="number",
-                                                    density="compact",
-                                                    variant="outlined",
-                                                    hide_details=True,
-                                                )
-                                            html.Div(OPT_SEARCH_HELP["opt_rpm_max"], classes="text-caption")
-                                html.Div(
-                                    "{{ opt_pwm_caption }}",
-                                    v_show="opt_search_rpm",
-                                    classes="text-caption mt-1 mb-1",
-                                )
-                                html.Div(
-                                    "Acoustics CLI (not in-cockpit CFD): "
-                                    "scripts/evaluate_noise.py --fwh | --permeable | "
-                                    "--patches --patch-n 2|4. Ranking only until mic cal.",
-                                    classes="text-caption mt-2 text-medium-emphasis",
-                                    style="white-space: pre-line",
-                                )
-
                 # RIGHT — viz
                 with v3.VCol(cols=7):
                     with v3.VCard(classes="pa-2 mb-2"):
@@ -1076,7 +1064,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             classes="text-caption text-medium-emphasis",
                         )
                         html.Div("{{ glyph_caption }}", classes="text-caption text-medium-emphasis mt-1")
-                    with v3.VCard(style="height:560px;", classes="mb-2"):
+                    with v3.VCard(style=f"height:{VTK_HEIGHT_PX}px;", classes="mb-2"):
                         view = plotter_ui(plotter)
                     with v3.VCard(classes="mb-2 pa-2", v_show="fan_subtab === 'results'"):
                         html.Div("Duct airflow — slices & streamlines", classes="text-subtitle-2 mb-1")
