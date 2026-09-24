@@ -94,11 +94,60 @@ def refine_pareto_cfd(spec: PropSpec, pareto: list[dict], out_dir,
     return rows
 
 
+_MISSIONS = ("thrust_efficiency", "quiet_thrust", "hover_endurance", "range")
+_WORST_MIN = 1.0e6
+
+
+def _mission_directions(mission: str) -> list[str]:
+    if mission == "quiet_thrust":
+        return ["maximize", "minimize"]
+    if mission in ("thrust_efficiency", "hover_endurance", "range"):
+        return ["maximize", "maximize"]
+    raise ValueError(
+        f"unknown mission {mission!r}; known: {', '.join(_MISSIONS)}"
+    )
+
+
+def _require_vehicle(mission: str, all_up_weight_n, n_rotors, battery_wh, cruise_mps, min_hover_minutes):
+    if min_hover_minutes is not None and mission != "quiet_thrust":
+        raise ValueError("min_hover_minutes is only valid for quiet_thrust")
+    needs_vehicle = mission in ("hover_endurance", "range") or (
+        mission == "quiet_thrust" and min_hover_minutes is not None
+    )
+    if not needs_vehicle:
+        return
+    if all_up_weight_n is None or float(all_up_weight_n) <= 0.0:
+        raise ValueError(f"{mission} requires all_up_weight_n > 0")
+    if n_rotors is None or int(n_rotors) < 1:
+        raise ValueError(f"{mission} requires n_rotors >= 1")
+    if battery_wh is None or float(battery_wh) <= 0.0:
+        raise ValueError(f"{mission} requires battery_wh > 0")
+    if mission == "range" and (cruise_mps is None or float(cruise_mps) <= 0.0):
+        raise ValueError("range requires cruise_mps > 0")
+
+
+def _worst(directions: list[str]) -> tuple[float, float]:
+    return tuple(_WORST_MIN if d == "minimize" else 0.0 for d in directions)
+
+
 def run_prop_study(spec: PropSpec, n_trials: int = 200, seed: int = 0,
                    max_power_w: float | None = None,
-                   out_dir=None, prop_model: str | None = None):
-    """NSGA-II over the prop blade, maximizing (thrust_g, efficiency_g_per_w)."""
+                   out_dir=None, prop_model: str | None = None,
+                   mission: str = "thrust_efficiency",
+                   all_up_weight_n: float | None = None,
+                   n_rotors: int | None = None,
+                   battery_wh: float | None = None,
+                   cruise_mps: float | None = None,
+                   min_hover_minutes: float | None = None):
+    """NSGA-II over the prop blade. ``mission`` picks the two objectives."""
     from pathlib import Path
+
+    from fansim.propeller.persist import pareto_rows_from_study
+
+    _require_vehicle(mission, all_up_weight_n, n_rotors, battery_wh, cruise_mps, min_hover_minutes)
+    directions = _mission_directions(mission)
+    study_name = "prop" if mission == "thrust_efficiency" else f"prop_{mission}"
+    worst = _worst(directions)
 
     storage = None
     if out_dir is not None:
@@ -106,38 +155,72 @@ def run_prop_study(spec: PropSpec, n_trials: int = 200, seed: int = 0,
         out.mkdir(parents=True, exist_ok=True)
         storage = f"sqlite:///{(out / 'study.db').as_posix()}"
         study = optuna.create_study(
-            directions=["maximize", "maximize"],
+            directions=directions,
             sampler=optuna.samplers.NSGAIISampler(seed=seed),
             storage=storage,
-            study_name="prop",
+            study_name=study_name,
             load_if_exists=True,
         )
     else:
-        study = optuna.create_study(directions=["maximize", "maximize"],
-                                    sampler=optuna.samplers.NSGAIISampler(seed=seed))
+        study = optuna.create_study(
+            directions=directions, sampler=optuna.samplers.NSGAIISampler(seed=seed))
+
+    def _budget_minutes(shaft_power_w: float, tip_radius_mm: float) -> float:
+        from fansim.propeller.power import hover_power_budget
+        budget = hover_power_budget(
+            all_up_weight_n=float(all_up_weight_n),
+            n_rotors=int(n_rotors),
+            tip_radius_m=float(tip_radius_mm) / 1000.0,
+            figure_of_merit=0.7,
+            battery_wh=float(battery_wh),
+            shaft_power_w=float(shaft_power_w),
+        )
+        return float(budget["hover_minutes"])
 
     def objective(trial):
         params = suggest_prop(trial, spec)
         perf = evaluate_prop(params, spec)
+        noise = estimate_prop_noise(params, spec.rpm_max, perf)
+        hover_minutes = None
+        range_km = None
+        feasible = True
         if max_power_w is not None and perf.power_w > max_power_w:
-            return 0.0, 0.0
+            feasible = False
+        lifts = True
+        if mission in ("hover_endurance", "range") or min_hover_minutes is not None:
+            lifts = perf.thrust_n * int(n_rotors) >= float(all_up_weight_n)
+            if not lifts:
+                feasible = False
+            else:
+                hover_minutes = _budget_minutes(perf.power_w, params.tip_radius)
+                if min_hover_minutes is not None and hover_minutes < float(min_hover_minutes):
+                    feasible = False
+        if feasible and mission == "range":
+            cruise = analyze(params, rpm=spec.rpm_max, v_forward=float(cruise_mps))
+            range_km = float(cruise_mps) * _budget_minutes(cruise.power_w, params.tip_radius) * 0.06
+        trial.set_user_attr("feasible", feasible)
         trial.set_user_attr("thrust_g", perf.thrust_g)
         trial.set_user_attr("eff", perf.efficiency_g_per_w)
         trial.set_user_attr("power_w", perf.power_w)
         trial.set_user_attr("fm", perf.figure_of_merit)
         trial.set_user_attr("n_blades", params.n_blades)
-        noise = estimate_prop_noise(params, spec.rpm_max, perf)
         trial.set_user_attr("rel_dba", noise["rel_dba"])
         trial.set_user_attr("tip_mach", noise["tip_mach"])
+        trial.set_user_attr("hover_minutes", hover_minutes)
+        trial.set_user_attr("range_km", range_km)
+        trial.set_user_attr("mission", mission)
+        if not feasible:
+            return worst
+        if mission == "quiet_thrust":
+            return perf.thrust_g, noise["rel_dba"]
+        if mission == "hover_endurance":
+            return hover_minutes, perf.thrust_g
+        if mission == "range":
+            return range_km, perf.thrust_g
         return perf.thrust_g, perf.efficiency_g_per_w
 
     study.optimize(objective, n_trials=n_trials)
-    pareto = [{"thrust_g": t.values[0], "eff_g_per_w": t.values[1],
-               "power_w": t.user_attrs.get("power_w"), "fm": t.user_attrs.get("fm"),
-               "n_blades": t.user_attrs.get("n_blades"), "rel_dba": t.user_attrs.get("rel_dba"),
-               "tip_mach": t.user_attrs.get("tip_mach"), "params": t.params}
-              for t in study.best_trials]
-    pareto.sort(key=lambda r: -r["thrust_g"])
+    pareto = pareto_rows_from_study(study)
     if out_dir is not None:
         from fansim.propeller.persist import save_prop_pareto
         save_prop_pareto(Path(out_dir), pareto, prop_model=prop_model or getattr(spec, "name", None))
