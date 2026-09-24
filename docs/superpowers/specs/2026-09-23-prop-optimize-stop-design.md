@@ -1,7 +1,7 @@
 # Prop Optimize stop
 
 **Date:** 2026-09-23  
-**Status:** approved (2026-09-23)  
+**Status:** approved (2026-09-23). Plan: `docs/superpowers/plans/2026-09-23-prop-optimize-stop.md`.  
 **Approach:** A `threading.Event` plus Optuna `Study.stop()` after the current trial  
 **Parent:** roadmap §14.8 item 1. Items 2–4 stay open.
 
