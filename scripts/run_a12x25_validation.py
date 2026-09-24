@@ -41,12 +41,16 @@ from fansim.cfd.wall_roughness import FDM_WALL_KS_MM  # noqa: E402
 from fansim.geometry import build_impeller, export_stl  # noqa: E402
 from fansim.geometry.blade import min_blade_wall_mm  # noqa: E402
 from fansim.geometry.config import load_blade_params  # noqa: E402
+from fansim.validation.pq_shutoff import shutoff_report_from_pq_rows  # noqa: E402
 from fansim.validation.reference_stl import (  # noqa: E402
     DEFAULT_REFERENCE_STL,
     rig_for_reference_stl,
 )
 
 DEFAULT_PARAMS = "config/problems/a12x25_reference.yaml"
+DEFAULT_BACKS = "0,5,10,15,20"
+NEAR_SHUTOFF_BACKS = "0,5,10,12,14,15,16,17,18,20,22,24,26"
+NEAR_SHUTOFF_ITERS = 1200
 
 # Published NF-A12x25 PWM (docs/a12x25-reference.md).
 PUB_FREE_AIR_CFM = 60.1
@@ -58,9 +62,17 @@ def build_parser() -> argparse.ArgumentParser:
         description="A12x25 reference-stock CFD validation (P–Q vs published)")
     ap.add_argument("--params", default=DEFAULT_PARAMS,
                     help="blade recipe YAML (default: cockpit reference stock)")
-    ap.add_argument("--backs", default="0,5,10,15,20",
+    ap.add_argument("--backs", default=DEFAULT_BACKS,
                     help="back-pressure sweep [Pa], comma-separated")
     ap.add_argument("--iters", type=int, default=1000)
+    ap.add_argument(
+        "--near-shutoff",
+        action="store_true",
+        help=(
+            f"§1.5 dense near-stall campaign: backs={NEAR_SHUTOFF_BACKS} "
+            f"and iters={NEAR_SHUTOFF_ITERS} when those flags are left at defaults"
+        ),
+    )
     ap.add_argument("--base-cell", type=float, default=0.005,
                     help="base_cell [m] for the multi-back P–Q sweep")
     ap.add_argument("--mesh-ladder", default=None, metavar="SIZES",
@@ -103,6 +115,16 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--procs", type=int, default=8)
     ap.add_argument("--out", default="runs/validate_a12x25_phase3")
     return ap
+
+
+def apply_near_shutoff_defaults(args) -> None:
+    """Apply dense near-stall backs/iters when ``--near-shutoff`` and defaults remain."""
+    if not getattr(args, "near_shutoff", False):
+        return
+    if args.backs == DEFAULT_BACKS:
+        args.backs = NEAR_SHUTOFF_BACKS
+    if int(args.iters) == 1000:
+        args.iters = NEAR_SHUTOFF_ITERS
 
 
 def _mesh(
@@ -494,6 +516,10 @@ def write_outputs(
         payload["physics_study"] = physics_rows
     if gci is not None:
         payload["gci"] = gci
+    if pq_rows:
+        payload["shutoff"] = shutoff_report_from_pq_rows(
+            pq_rows, published_pa=PUB_SHUTOFF_PA,
+        )
 
     (out / "validation.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
@@ -574,11 +600,19 @@ def write_outputs(
         )
     elif gci:
         print(f"  GCI: not computed ({gci.get('reason', 'n/a')})")
+    shut = payload.get("shutoff") if pq_rows else None
+    if shut and shut.get("shutoff_pa") is not None:
+        flag = "PASS" if shut.get("interim_pass") else "FAIL"
+        print(
+            f"  shut-off: {shut['shutoff_pa']:.1f} Pa "
+            f"(published {shut['published_pa']:.1f}; interim {flag}; {shut['method']})"
+        )
     print(f"-> {out / 'validation.png'} , {out / 'validation.json'}")
 
 
 def main() -> int:
     args = build_parser().parse_args()
+    apply_near_shutoff_defaults(args)
 
     if not image_available():
         print("ERROR: OpenFOAM image not found.")
