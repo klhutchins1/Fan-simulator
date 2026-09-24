@@ -1,7 +1,7 @@
 # fpv_5inch BEMT versus its own datasheet
 
 **Date:** 2026-09-23  
-**Status:** approved (2026-09-23)  
+**Status:** approved (2026-09-23). Plan: `docs/superpowers/plans/2026-09-23-prop-fpv-datasheet.md`.  
 **Approach:** Record the existing static check. Do not retune BEMT.
 
 ## Plain language
