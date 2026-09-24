@@ -1,7 +1,7 @@
 # §14.7 search: prop mission presets
 
 **Date:** 2026-09-23  
-**Status:** approved in chat (2026-09-23); written spec awaiting review  
+**Status:** approved (2026-09-23)  
 **Approach:** A — one `mission` argument on `run_prop_study`  
 **Parent:** roadmap §14.7 (the checkbox stays open; cockpit plots are the next slice)  
 **Related:** `fansim/propeller/optimize.py` (`run_prop_study`), `fansim/propeller/power.py` (`hover_power_budget`), `fansim/propeller/noise.py` (`estimate_prop_noise`), `fansim/propeller/persist.py` (`pareto_rows_from_study`)
