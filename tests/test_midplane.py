@@ -21,6 +21,7 @@ from fansim.cfd.midplane import (
     has_reconstructed_fields,
     render_axial_uz_png,
     render_midplane_pngs,
+    throughflow_umag_clim,
     render_streamlines_png,
     streamline_artifact_path,
 )
@@ -119,6 +120,14 @@ def test_ensure_reconstructed_false_when_docker_down(tmp_path: Path):
     assert not ensure_reconstructed(case, image_ok=lambda: False)
 
 
+def test_throughflow_umag_clim_ignores_the_tip_spike():
+    values = np.array([1.0] * 95 + [200.0] * 5)
+    lo, hi = throughflow_umag_clim(values)
+    assert lo == 0.0
+    assert hi < 50.0
+    assert throughflow_umag_clim([]) == (0.0, 0.5)
+
+
 def test_ensure_midplane_unavailable_without_fields(tmp_path: Path):
     case = tmp_path / "empty"
     case.mkdir()
@@ -155,7 +164,7 @@ def test_render_midplane_pngs_synthetic_mesh(tmp_path: Path):
     assert "Umag" in art.caption
     assert "FRONT" in art.caption
     assert "LEFT" in art.caption
-    assert art.u_png.name == "U_midplane_v7.png"
+    assert art.u_png.name == "U_midplane_v8.png"
 
 
 @pytest.mark.slow

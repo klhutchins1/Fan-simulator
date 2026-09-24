@@ -352,7 +352,7 @@ Windows OCCT shutdown may exit `0xC0000374` after a green pytest summary — not
 - [x] **11.5 CROR/prop Optimize: no `(0,0)` gated trials** — `TrialPruned` + `feasible=False`.
 - [x] **11.6 Roadmap encoding repair** (UTF-8 §8–§11 restored 2026-09-14).
 - Hardware print + measure: **§5** — staged; see `docs/validation/north-star-staged.md`.
-- [ ] **11.7 claim superseded:** “no new must-fix equations” was wrong — see **§12** (2026-09-15 audit).
+- [x] **11.7 claim superseded.** The 2026-09-11 “no new must-fix equations” line was wrong. **§12** (closed) is the record of what was actually fixed.
 
 ---
 
@@ -658,17 +658,10 @@ present. The real Fan-only gap was the **airflow viz**, now the focus of 17.3.
 - [~] **17.3 Airflow viz where applicable.** **[impact: med]** **[effort: med]**
   - [x] **Mixed** (2026-09-19) — full |U|/p + axial-Uz + streamlines, verified on a real MRF case.
   - [x] **CROR** (2026-09-20) — rendered for the best CFD-refined design (dual AXIAL rotors).
+  - [x] **Shared fix — midplane |U| clim clamp.** `throughflow_umag_clim` scales the |U| midplane to the 95th percentile (floor 0.5 m/s). Cached PNG name is `U_midplane_v8.png`.
   - [ ] **Volute** — radial scroll: reuse ATTEMPTED and reverted 2026-09-20 (verified on a real
-    volute Assess). Two concrete blockers: (a) the impeller-anchored midplane crop is framed for an
-    axial duct → renders a thin off-centre strip of the scroll; (b) the |U| clim auto-scales to the
-    full range and the high-RPM MRF tip speed (~200 m/s) swamps the through-flow → all dark blue.
-    Needs a scroll-appropriate slice plane + a through-flow clim clamp (like the streamline clim).
-  - [ ] **Prop** — open-air axial rotor: axial-Uz (disk loading) + streamlines should fit (they
-    already clamp clim), but the |U| midplane needs the same clim clamp (prop tip speed is high).
-    Not yet verified; wire only after adding the clim clamp so the |U| view isn't blown out.
-  - [ ] **Shared fix — midplane |U| clim clamp.** `render_midplane_pngs` uses full-range clim; add a
-    through-flow percentile clamp so high-tip-speed machines (volute/prop) don't blow out. Prereq
-    for both above.
+    volute Assess). The |U| color scale is now clamped. Still open: a scroll-appropriate slice plane. The impeller-anchored crop renders a thin off-centre strip of the scroll.
+  - [ ] **Prop** — open-air axial rotor: the |U| clamp is in. Axial-Uz and streamlines already clamp. Live prop wiring is still unverified.
 - [x] **17.4 Shared binder.** **[impact: med]** **[effort: med]** DONE 2026-09-19/20:
   `fansim/cockpit/airflow_panel.py` (render_airflow_pack / pick_airflow_uri / png_data_uri);
   Fan tab deduped onto it (ae00cd2); Mixed + CROR wire it. Fuller results/binder unification
@@ -676,17 +669,11 @@ present. The real Fan-only gap was the **airflow viz**, now the focus of 17.3.
 
 ## 18. Catalog data hygiene — stale CFD results (2026-09-18)
 
-- [ ] **18.1 Stamp + quarantine stale CFD scores.** **[impact: high]** **[effort: med]** The tail-mean
-  metrics + adaptive-mesh fixes (bf3fd6a) and the a12x25 recipe refit (5caa070) changed the CFD numbers;
-  trials already in `runs/*/study.db` were scored with the **old under-resolved / final-sample** solver,
-  so their stored CFM / efficiency are systematically wrong (free-air under-read ~30 vs ~45+ CFM). There
-  is **no solver-version stamp** to tell old from new.
-  - Add a `cfd_version` `user_attr` when a trial is scored (`optimize/study.py` + the cockpit Assess
-    path) so future results are distinguishable.
-  - A cleanup/migration script (`scripts/`) scans a study.db, marks pre-stamp trials **stale**, and
-    reports them — **do not** silently delete the user's optimization history.
-  - Cockpit Results **flags / filters** stale designs (don't present wrong numbers as truth) and offers
-    re-Assess. Same treatment for the archetype catalogs once §17 lands.
+- [x] **18.1 Stamp + quarantine stale CFD scores. DONE 2026-09-23.** **[impact: high]** **[effort: med]**
+  `cfd_version` is stamped in `fansim/optimize/study.py` and `fansim/cockpit/fan_assess.py`.
+  `cfd_is_stale` flags missing or older versions. Results marks them with ⧗ and tells you to re-Assess.
+  `scripts/clean_stale_cfd.py` audits `runs/*/study.db` and can persist the marker. It does not delete trials.
+  Tests: `tests/test_cfd_stale.py`.
 
 ---
 

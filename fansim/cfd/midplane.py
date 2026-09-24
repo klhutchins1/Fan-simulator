@@ -19,8 +19,8 @@ import numpy as np
 # Meridional cut through the duct axis (Z). Flow is +Z: inlet (−Z) → outlet (+Z).
 _MIDPLANE_NORMAL = (0.0, 1.0, 0.0)
 _VIZ_SUBDIR = Path("postProcessing") / "cockpit_viz"
-# v7: wake-biased crop + VTK-safe labels (no ``|U|`` mathtext) + render lock.
-_U_NAME = "U_midplane_v7.png"
+# v8: |U| color scale is the 95th-percentile through-flow, not the tip-speed spike.
+_U_NAME = "U_midplane_v8.png"
 _P_NAME = "p_midplane_v7.png"
 # Off-screen Plotter + matplotlib mathtext is not thread-safe (Windows hard crash).
 _RENDER_LOCK = threading.Lock()
@@ -194,6 +194,20 @@ def _grid_with_uaxial(grid):
     return g
 
 
+def throughflow_umag_clim(values) -> tuple[float, float]:
+    """Color scale for |U| from the through-flow, not the tip-speed spike.
+
+    The 95th percentile matches the streamline clamp. A floor of 0.5 m/s keeps a
+    quiet slice from collapsing to a black bar.
+    """
+    arr = np.asarray(values, dtype=float)
+    arr = arr[np.isfinite(arr)]
+    if arr.size == 0:
+        return (0.0, 0.5)
+    hi = float(np.percentile(arr, 95.0))
+    return (0.0, max(hi, 0.5))
+
+
 def render_midplane_pngs(
     case_dir: str | Path,
     *,
@@ -277,6 +291,10 @@ def render_midplane_pngs(
             pl = pv.Plotter(off_screen=True, window_size=list(window_size))
             try:
                 pl.background_color = "white"
+                mesh_kw = {}
+                if scalars == "U_mag":
+                    src = slc.point_data if "U_mag" in slc.point_data else slc.cell_data
+                    mesh_kw["clim"] = list(throughflow_umag_clim(src["U_mag"]))
                 pl.add_mesh(
                     slc, scalars=scalars, cmap="turbo", show_edges=False,
                     scalar_bar_args={
@@ -290,6 +308,7 @@ def render_midplane_pngs(
                         "position_x": 0.86,
                         "position_y": 0.2,
                     },
+                    **mesh_kw,
                 )
                 # Look from +Y, up = +X → screen-right = +Z (OUTLET), screen-left = −Z (FRONT).
                 bb = slc.bounds
