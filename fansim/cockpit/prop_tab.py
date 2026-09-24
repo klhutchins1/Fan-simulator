@@ -10,6 +10,7 @@ import dataclasses
 import logging
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -136,6 +137,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     state.prop_info = "Pick a size, tune the blade, then Analyze (instant) or Optimize."
     state.prop_readout = ["Analyze a prop to see thrust, efficiency, and figure of merit."]
     state.prop_busy = False
+    state.prop_opt_running = False
     state.prop_msg = ""
     state.prop_export_msg = ""
     state.prop_export_busy = False
@@ -439,6 +441,15 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
 
         asynchronous.create_task(task())
 
+    opt_stop = threading.Event()
+
+    def stop_prop_optimize():
+        if not state.prop_opt_running:
+            return
+        opt_stop.set()
+        state.prop_msg = "⏹ Stopping after the current trial…"
+        state.flush()
+
     def optimize_prop():
         """Auto-design the blade front (thrust vs efficiency) with BEMT — fast enough to run live."""
         if state.prop_busy:
@@ -475,6 +486,9 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
             out_dir = prop_out_path(resume=False, last_dir=None, stamp=stamp, runs_root=root)
             mode = "new"
 
+        opt_stop.clear()
+        state.prop_opt_running = True
+
         async def task():
             state.prop_busy = True
             ticker, _t0 = spawn_busy_ticker(
@@ -486,7 +500,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
             state.flush()
             loop = asyncio.get_running_loop()
             try:
-                _, pareto = await loop.run_in_executor(
+                study, pareto = await loop.run_in_executor(
                     None,
                     lambda: run_prop_study(
                         base,
@@ -494,12 +508,14 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                         max_power_w=cap,
                         out_dir=out_dir,
                         prop_model=str(state.prop_model),
+                        stop_event=opt_stop,
                         **mission_call["kwargs"],
                     ),
                 )
             except Exception as exc:  # noqa: BLE001
                 state.prop_msg = f"⚠ Optimize failed: {type(exc).__name__}: {exc}"
                 state.prop_busy = False
+                state.prop_opt_running = False
                 ticker.cancel()
                 state.flush()
                 return
@@ -512,12 +528,19 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                 prop_pareto_store[:] = merge_prop_rows(list(pareto) + list(prop_pareto_store))
                 state.prop_pareto = _prop_table_rows(_prop_click_store())
             _refresh_prop_figure()
-            cap_txt = f" ≤{cap:.0f} W" if cap else ""
-            state.prop_msg = (
-                f"✓ {len(pareto)} designs on the thrust↔efficiency front{cap_txt} "
-                f"({mode} → {out_dir.name}). Click a point (or row) to load it."
-            )
+            if opt_stop.is_set():
+                state.prop_msg = (
+                    f"⏹ Stopped after {len(study.trials)} trials "
+                    f"({mode} → {out_dir.name})."
+                )
+            else:
+                cap_txt = f" ≤{cap:.0f} W" if cap else ""
+                state.prop_msg = (
+                    f"✓ {len(pareto)} designs on the thrust↔efficiency front{cap_txt} "
+                    f"({mode} → {out_dir.name}). Click a point (or row) to load it."
+                )
             state.prop_busy = False
+            state.prop_opt_running = False
             ticker.cancel()
             state.flush()
 
@@ -717,6 +740,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     # Expose callbacks for the UI renderer.
     ctx.analyze_prop = analyze_prop  # type: ignore[attr-defined]
     ctx.optimize_prop = optimize_prop  # type: ignore[attr-defined]
+    ctx.stop_prop_optimize = stop_prop_optimize  # type: ignore[attr-defined]
     ctx.refine_prop_cfd = refine_prop_cfd  # type: ignore[attr-defined]
     ctx.load_prop_row = load_prop_row  # type: ignore[attr-defined]
     ctx.export_prop_stl = export_prop_stl  # type: ignore[attr-defined]
@@ -838,6 +862,14 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                             click=(getattr(ctx, "optimize_prop"),),
                             loading=("prop_busy",),
                             disabled=("prop_busy || prop_refine_busy",),
+                        )
+                        v3.VBtn(
+                            "Stop",
+                            color="error",
+                            size="small",
+                            click=(getattr(ctx, "stop_prop_optimize"),),
+                            disabled=("!prop_opt_running",),
+                            classes="ml-2",
                         )
                     html.Div(
                         "{{ prop_msg }}",
