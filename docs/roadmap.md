@@ -522,6 +522,10 @@ Bring Prop / Mixed / Volute / CROR editors up toward Fan blade vocabulary. Spec:
 - [ ] **14.7 Prop missions: thrust, quiet, endurance, range.** **[impact: high]** **[effort: med]**
   One search. A mission chooses which two things are objectives and which quantities are constraints
   or labels. Do not add a second optimizer that can disagree with the first.
+  Search presets are on `run_prop_study`: `thrust_efficiency` (default), `quiet_thrust`, `hover_endurance`, and `range`. Spec/plan:
+  `docs/superpowers/specs/2026-09-23-prop-missions-design.md`,
+  `docs/superpowers/plans/2026-09-23-prop-missions.md`.
+  Cockpit mission controls and the minutes/km plots are still open.
   Today `run_prop_study` maximizes `(thrust_g, g/W)` only. `estimate_prop_noise` already stamps
   `rel_dba` (relative, not dB(A) — absolute levels stay §1.4). The cockpit already plots
   **thrust vs that noise score**, colored by g/W (`prop_scatter_figure`). Noise is a spectator.
