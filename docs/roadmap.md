@@ -519,13 +519,15 @@ Bring Prop / Mixed / Volute / CROR editors up toward Fan blade vocabulary. Spec:
 - [x] **14.6 CROR 3-D Preview. DONE 2026-09-16.** Preview button builds thinned stack STL via
   `export_cror_stl` into a lazy CROR plotter (Prop/Mixed pattern). Placeholder card removed;
   CROR tab UI deferred until first visit like Prop.
-- [ ] **14.7 Prop missions: thrust, quiet, endurance, range.** **[impact: high]** **[effort: med]**
+- [x] **14.7 Prop missions: thrust, quiet, endurance, range.** **[impact: high]** **[effort: med]**
   One search. A mission chooses which two things are objectives and which quantities are constraints
   or labels. Do not add a second optimizer that can disagree with the first.
   Search presets are on `run_prop_study`: `thrust_efficiency` (default), `quiet_thrust`, `hover_endurance`, and `range`. Spec/plan:
   `docs/superpowers/specs/2026-09-23-prop-missions-design.md`,
   `docs/superpowers/plans/2026-09-23-prop-missions.md`.
-  Cockpit mission controls and the minutes/km plots are still open.
+  Cockpit mission select and the minutes/km plots are in. Spec/plan:
+  `docs/superpowers/specs/2026-09-23-prop-mission-cockpit-design.md`,
+  `docs/superpowers/plans/2026-09-23-prop-mission-cockpit.md`.
   Today `run_prop_study` maximizes `(thrust_g, g/W)` only. `estimate_prop_noise` already stamps
   `rel_dba` (relative, not dB(A) — absolute levels stay §1.4). The cockpit already plots
   **thrust vs that noise score**, colored by g/W (`prop_scatter_figure`). Noise is a spectator.
