@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import logging
+import random
 import sys
 import tempfile
 import threading
@@ -24,7 +25,11 @@ from fansim.cockpit.plotters import ensure_plotter
 from fansim.prop_spec import get_prop_spec, prop_spec_names
 from fansim.propeller.bemt import analyze as bemt_analyze
 from fansim.propeller.noise import estimate_prop_noise
-from fansim.propeller.optimize import refine_pareto_cfd as refine_prop_pareto_cfd, run_prop_study
+from fansim.propeller.optimize import (
+    random_prop_flat,
+    refine_pareto_cfd as refine_prop_pareto_cfd,
+    run_prop_study,
+)
 from fansim.propeller.persist import (
     PROP_ASSESS_DIRNAME,
     latest_prop_study_dir,
@@ -746,6 +751,15 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     ctx.export_prop_stl = export_prop_stl  # type: ignore[attr-defined]
     ctx.export_prop_pythrust_csv = export_prop_pythrust_csv  # type: ignore[attr-defined]
 
+    def randomize_prop():
+        spec = get_prop_spec(state.prop_model)
+        flat = random_prop_flat(spec, random.Random())
+        _init_prop_editor(spec, flat)
+        state.prop_msg = "🎲 Randomized the blade. Analyze to score it."
+        state.flush()
+
+    ctx.randomize_prop = randomize_prop  # type: ignore[attr-defined]
+
 
 def render_prop_tab(ctx: CockpitCtx) -> None:
     """Build Prop UI (call inside layout content)."""
@@ -822,6 +836,14 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                         html=html,
                     )
                     with v3.VRow(no_gutters=True, classes="mt-2"):
+                        v3.VBtn(
+                            "Randomize",
+                            size="small",
+                            variant="tonal",
+                            click=(getattr(ctx, "randomize_prop"),),
+                            disabled=("prop_busy || prop_refine_busy",),
+                            classes="mr-2",
+                        )
                         v3.VBtn(
                             "Analyze",
                             color="primary",

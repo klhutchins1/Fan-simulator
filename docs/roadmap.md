@@ -551,14 +551,14 @@ Bring Prop / Mixed / Volute / CROR editors up toward Fan blade vocabulary. Spec:
   the thing that was optimized (minutes or km) against thrust, with noise and power on the point.
   Relative noise stays the ranking score until a bench mic or §1.4 says otherwise.
 
-- [ ] **14.8 Prop cockpit: stop, disk, random, wiring.** **[impact: high]** **[effort: med]**
+- [x] **14.8 Prop cockpit: stop, disk, random, wiring.** **[impact: high]** **[effort: med]**
   Reported 2026-09-23. Optimize was left running and had to be killed by closing the terminal.
   1. **Done.** Stop sits beside Optimize and ends the study after the current trial (`9d80380`). Spec/plan:
      `docs/superpowers/specs/2026-09-23-prop-optimize-stop-design.md`,
      `docs/superpowers/plans/2026-09-23-prop-optimize-stop.md`.
   2. **Done.** Each trial was committing `study.db` with SQLite's default full flush, which pegs the project disk. Prop studies now use `make_sqlite_storage`: WAL and `synchronous=NORMAL`, so a trial does not fsync the whole file. Resume still reads that database.
-  3. **Randomize.** The fan tab has Randomize geometry and Randomize features. The prop tab has neither. Useful for poking the design, secondary to a real search.
-  4. **Wiring audit.** Confirm recent prop work is reachable from the prop tab. Missions and the minutes/km plots are on the Optimize card (43f8191). Compressibility and the stall cap sit inside `analyze`. Record anything that still exists only as a script.
+  3. **Done.** Randomize fills the blade sliders inside the same bounds `suggest_prop` searches. It does not start a study.
+  4. **Done.** On the prop tab: mission select and minutes/km plots, Stop, Randomize, the BEMT polar speed list, PyThrust export, and CFD refine. Compressibility and the stall cap run inside `analyze`, so Analyze and Optimize already use them. The datasheet CLI and the obj_2 CFD stamps stay scripts.
 
 ---
 

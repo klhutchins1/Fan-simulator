@@ -8,6 +8,7 @@ blade count, camber, thickness, and light 3-D shape — maximizing THRUST and EF
 from __future__ import annotations
 
 import dataclasses
+import random
 import threading
 
 import optuna
@@ -50,6 +51,33 @@ def suggest_prop(trial, spec: PropSpec) -> BladeParams:
     flat["camber"] = flat["camber_mid"]
     s2 = dataclasses.replace(spec, n_blades=n_blades, pitch_in=pitch_in)
     return prop_params_from_flat(s2, flat)
+
+
+def random_prop_flat(spec: PropSpec, rng: random.Random) -> dict:
+    """One blade inside the same bounds ``suggest_prop`` searches. Does not start a study."""
+    flat = {
+        "n_blades": rng.randint(2, 4),
+        "pitch_in": rng.uniform(spec.pitch_in * 0.6, spec.pitch_in * 1.4),
+        "chord_root": rng.uniform(0.10, 0.26),
+        "chord_mid": rng.uniform(0.14, 0.30),
+        "chord_tip": rng.uniform(0.05, 0.16),
+        "camber_root": rng.uniform(0.02, 0.055),
+        "camber_mid": rng.uniform(0.02, 0.055),
+        "camber_tip": rng.uniform(0.02, 0.055),
+        "thickness_root": rng.uniform(0.06, 0.12),
+        "thickness_mid": rng.uniform(0.04, 0.09),
+        "thickness_tip": rng.uniform(0.03, 0.07),
+        "sweep_mid": rng.uniform(0.0, 6.0),
+        "sweep_tip": rng.uniform(0.0, 10.0),
+        "le_skew_mid": rng.uniform(0.0, 6.0),
+        "le_skew_tip": rng.uniform(0.0, 12.0),
+        "lean_tip": rng.uniform(0.0, 15.0),
+        "tip_round": rng.uniform(0.0, 0.6),
+        "cylindrical_tip": True,
+        "thick_mode": "tapered",
+    }
+    flat["camber"] = flat["camber_mid"]
+    return flat
 
 
 def evaluate_prop(params: BladeParams, spec: PropSpec) -> PropPerf:

@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
+import random
 import threading
 
 import pytest
 
 from fansim.prop_spec import get_prop_spec
-from fansim.propeller.optimize import run_prop_study
+from fansim.propeller.optimize import random_prop_flat, run_prop_study
 
 
 def test_pareto_is_populated_and_ordered():
@@ -104,3 +105,16 @@ def test_stop_event_ends_the_study_early():
     event.set()
     study, _pareto = run_prop_study(spec, n_trials=20, seed=0, stop_event=event)
     assert len(study.trials) < 20
+
+
+def test_random_prop_flat_stays_in_search_bounds():
+    spec = get_prop_spec("fpv_5inch")
+    flat = random_prop_flat(spec, random.Random(0))
+    assert flat["n_blades"] in (2, 3, 4)
+    lo, hi = spec.pitch_in * 0.6, spec.pitch_in * 1.4
+    assert lo <= flat["pitch_in"] <= hi
+    assert 0.10 <= flat["chord_root"] <= 0.26
+    assert 0.14 <= flat["chord_mid"] <= 0.30
+    assert 0.05 <= flat["chord_tip"] <= 0.16
+    assert flat["thick_mode"] == "tapered"
+    assert flat["camber"] == flat["camber_mid"]
