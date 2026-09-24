@@ -560,6 +560,8 @@ Bring Prop / Mixed / Volute / CROR editors up toward Fan blade vocabulary. Spec:
   3. **Done.** Randomize fills the blade sliders inside the same bounds `suggest_prop` searches. It does not start a study.
   4. **Done.** On the prop tab: mission select and minutes/km plots, Stop, Randomize, the BEMT polar speed list, PyThrust export, and CFD refine. Compressibility and the stall cap run inside `analyze`, so Analyze and Optimize already use them. The datasheet CLI and the obj_2 CFD stamps stay scripts.
 
+- [x] **14.9 Cockpit tab shell. DONE 2026-09-24.** Design / Results / Library on Prop / Mixed / Volute / CROR; Fan Actions and Optimize aligned. Shared helper `fansim/cockpit/tab_shell.py`. Spec: `docs/superpowers/specs/2026-09-24-cockpit-tab-shell-design.md`.
+
 ---
 
 ## 15. Adversarial review — new findings (2026-09-15 evening)

@@ -506,6 +506,13 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 },
                             },
                         )
+                        v3.VBtn(
+                            "Reset",
+                            size="small",
+                            variant="tonal",
+                            click=(select, "[selected_trial]"),
+                            classes="mt-1 mb-1",
+                        )
                         html.Div("{{ preview_msg }}", classes="text-caption", style="white-space: pre-line")
                         html.Div("{{ assess_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
                         html.Div("{{ export_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
