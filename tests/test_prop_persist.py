@@ -166,14 +166,14 @@ def test_pareto_rows_drop_infeasible_and_fall_back_when_thrust_missing():
     import optuna
     from fansim.propeller.persist import pareto_rows_from_study
 
-    study = optuna.create_study(directions=["maximize", "maximize"])
+    study = optuna.create_study(directions=["maximize", "minimize"])
 
     def objective(trial):
         if trial.number == 0:
             trial.set_user_attr("feasible", False)
-            trial.set_user_attr("thrust_g", 1.0)
-            trial.set_user_attr("eff", 1.0)
-            return 0.0, 0.0
+            trial.set_user_attr("thrust_g", 500.0)
+            trial.set_user_attr("eff", 6.0)
+            return 500.0, 6.0
         return 400.0, 5.0
 
     study.optimize(objective, n_trials=2)
