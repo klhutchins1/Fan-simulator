@@ -172,6 +172,9 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   are in place. The obj_2 ~2 kW figure is explained in **§4.4** step 4 (radial impeller versus the FPV 5″ datasheet). After that:
   AMI/sliding (obj_2 attempt produced no finite mean), forward-flight polars, datasheet calibration.
   AMI is one obj_2 smoke, not a sliding-mesh campaign (GCI remains a screening stamp only).
+  **fpv_5inch BEMT datasheet (2026-09-23):** static check at 30000 rpm is 1654 g (ratio 0.894) and 572.6 W (ratio 0.881) versus 1850 g and 650 W. Figure of merit 0.648. `within_2x` is thrust only. Spec/plan:
+  `docs/superpowers/specs/2026-09-23-prop-fpv-datasheet-design.md`,
+  `docs/superpowers/plans/2026-09-23-prop-fpv-datasheet.md`.
 - [ ] **4.4 Make obj_2 thrust and power believable before more AMI.** **[impact: high]** **[effort: med]**
   Physics review 2026-09-23. obj_2 smoke is arithmetically consistent (0.769 N·m × 2644 rad/s = 2034 W,
   938 g) and a poor hover propeller: figure of merit **0.11** at the solver density 1.174 kg/m³
