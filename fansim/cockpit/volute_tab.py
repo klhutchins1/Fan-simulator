@@ -16,6 +16,12 @@ from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.data import design_dropdown_items
 from fansim.cockpit.figures import volute_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
+from fansim.cockpit.tab_shell import (
+    SCATTER_HEIGHT_PX,
+    VTK_HEIGHT_PX,
+    render_action_row,
+    render_left_shell,
+)
 from fansim.volute.optimize import run_volute_study
 from fansim.volute.persist import (
     latest_volute_opt_dir,
@@ -83,6 +89,8 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
     state.volute_out_h = float(_v0.outlet_height_mm)
     state.volute_rpm = float(_VOLUTE_RPM)
     state.volute_load_pa = 50.0
+    state.volute_subtab = "design"
+    state.volute_export_items = []
     state.volute_preview_busy = False
     state.volute_export_busy = False
     state.volute_assess_busy = False
@@ -114,6 +122,34 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
         state.volute_trial_items = design_dropdown_items(volute_design_store)
         if hasattr(ctrl, "volute_fig_update"):
             ctrl.volute_fig_update(volute_scatter_figure(volute_design_store))
+
+    def _refresh_volute_export_items():
+        rows: list[dict] = []
+        exports = Path("exports")
+        if exports.is_dir():
+            candidates: list[Path] = []
+            for path in exports.rglob("*.stl"):
+                if not path.is_file():
+                    continue
+                try:
+                    rel = path.relative_to(exports)
+                except ValueError:
+                    continue
+                if path.name.lower().startswith("volute") or (
+                    rel.parts and rel.parts[0].lower().startswith("volute")
+                ):
+                    candidates.append(path)
+            for path in sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True):
+                if len(rel := path.relative_to(exports)).parts > 1:
+                    title = f"{rel.parts[0]}/{path.name}"
+                else:
+                    title = path.name
+                rows.append({"title": title, "value": str(path.resolve())})
+                if len(rows) >= 24:
+                    break
+        state.volute_export_items = rows
+
+    _refresh_volute_export_items()
 
     def _volute_flat_from_state() -> dict:
         return {
@@ -216,6 +252,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
                 lambda: build_volute_stls_isolated(flat, out_dir, timeout=300.0),
             )
             state.volute_msg = f"✓ Saved {imp.resolve()}\n✓ Saved {cas.resolve()}"
+            _refresh_volute_export_items()
         except Exception as exc:  # noqa: BLE001
             state.volute_msg = f"⚠ Export failed: {type(exc).__name__}: {exc}"
         finally:
@@ -416,6 +453,7 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
     """Build Volute UI (call inside layout content)."""
     state, ctrl = ctx.state, ctx.ctrl
     volute_plotter = ensure_plotter(ctx, "volute_plotter")
+    volute_design_store = getattr(ctx, "volute_design_store", [])
 
     def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None):
         extra = {}
@@ -434,140 +472,200 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
             **extra,
         )
 
+    _volute_busy_expr = (
+        "volute_preview_busy || volute_export_busy || volute_assess_busy || volute_opt_busy"
+    )
+
     # ---- VOLUTE TAB ---------------------------------------------------------------
     with html.Div(v_show="active_tab === 'volute'"):
         with v3.VRow(no_gutters=True):
             with v3.VCol(cols=5, classes="pr-2"):
-                with v3.VCard(classes="mb-2 pa-3"):
-                    html.Div(
-                        "Radial impeller + sealed volute (radial MRF Assess)",
-                        classes="text-subtitle-2 mb-1",
-                    )
-                    html.Div(
-                        "90° discharge collector — not an A12x25 drop-in. "
-                        "Assess uses sealed-enclosure radial MRF (+Z inlet / +X outlet). "
-                        "Optimize is a geometry proxy (ranking only — not CFM).",
-                        classes="text-caption mb-2",
-                        style="white-space: pre-line",
-                    )
-                    _slider("Blades", "volute_n_blades", 5, 11, 1)
-                    _slider("Hub R (mm)", "volute_r_hub", 12.0, 28.0, 0.5)
-                    _slider("Tip R (mm)", "volute_r_tip", 35.0, 60.0, 0.5)
-                    _slider("Blade height (mm)", "volute_blade_h", 12.0, 32.0, 0.5)
-                    _slider("Blade thick (mm)", "volute_blade_thick", 0.6, 2.5, 0.1)
-                    _slider("Backplate (mm)", "volute_backplate", 1.0, 4.0, 0.1)
-                    with v3.VExpansionPanels(variant="accordion", class_="mb-2"):
-                        with v3.VExpansionPanel(title="Scroll & tongue"):
-                            with v3.VExpansionPanelText():
-                                _slider("Spiral growth (mm)", "volute_spiral", 10.0, 40.0, 1.0)
-                                _slider("Tip clearance (mm)", "volute_clearance", 1.0, 8.0, 0.5)
-                                _slider("Wall (mm)", "volute_wall", 1.0, 4.0, 0.1)
-                                _slider("Tongue angle (°)", "volute_tongue_angle", 2.0, 15.0, 0.5)
-                                _slider("Tongue clear (mm)", "volute_tongue_clear", 0.5, 4.0, 0.1)
-                                _slider("Tongue fillet (mm)", "volute_tongue_fillet", 0.0, 4.0, 0.1)
-                        with v3.VExpansionPanel(title="Outlet"):
-                            with v3.VExpansionPanelText():
-                                _slider("Outlet width (mm)", "volute_out_w", 20.0, 50.0, 1.0)
-                                _slider("Outlet length (mm)", "volute_out_l", 20.0, 60.0, 1.0)
-                                _slider("Outlet height (mm)", "volute_out_h", 12.0, 40.0, 1.0)
-                    with v3.VRow(no_gutters=True, classes="mt-1"):
-                        with v3.VCol(cols=6, classes="pr-1"):
-                            v3.VTextField(
-                                label="RPM",
-                                v_model=("volute_rpm",),
-                                type="number",
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                        with v3.VCol(cols=6, classes="pl-1"):
-                            v3.VTextField(
-                                label="Load Pa@50CFM",
-                                v_model=("volute_load_pa",),
-                                type="number",
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                with v3.VCard(classes="mb-2 pa-3"):
-                    with v3.VRow(no_gutters=True):
-                        v3.VBtn(
-                            "Preview",
-                            color="primary",
-                            size="small",
-                            click=(getattr(ctx, "volute_preview"),),
-                            classes="mr-2",
-                            loading=("volute_preview_busy",),
-                            disabled=(
-                                "volute_preview_busy || volute_export_busy || volute_assess_busy || "
-                                "volute_opt_busy",
-                            ),
+
+                def _volute_design():
+                    with v3.VCard(classes="mb-2 pa-3"):
+                        html.Div(
+                            "Radial impeller + sealed volute (radial MRF Assess)",
+                            classes="text-subtitle-2 mb-1",
                         )
-                        v3.VBtn(
-                            "Assess",
+                        html.Div(
+                            "90° discharge collector — not an A12x25 drop-in. "
+                            "Assess uses sealed-enclosure radial MRF (+Z inlet / +X outlet). "
+                            "Optimize is a geometry proxy (ranking only — not CFM).",
+                            classes="text-caption mb-2",
+                            style="white-space: pre-line",
+                        )
+                        _slider("Blades", "volute_n_blades", 5, 11, 1)
+                        _slider("Hub R (mm)", "volute_r_hub", 12.0, 28.0, 0.5)
+                        _slider("Tip R (mm)", "volute_r_tip", 35.0, 60.0, 0.5)
+                        _slider("Blade height (mm)", "volute_blade_h", 12.0, 32.0, 0.5)
+                        _slider("Blade thick (mm)", "volute_blade_thick", 0.6, 2.5, 0.1)
+                        _slider("Backplate (mm)", "volute_backplate", 1.0, 4.0, 0.1)
+                        with v3.VExpansionPanels(variant="accordion", class_="mb-2"):
+                            with v3.VExpansionPanel(title="Scroll & tongue"):
+                                with v3.VExpansionPanelText():
+                                    _slider("Spiral growth (mm)", "volute_spiral", 10.0, 40.0, 1.0)
+                                    _slider("Tip clearance (mm)", "volute_clearance", 1.0, 8.0, 0.5)
+                                    _slider("Wall (mm)", "volute_wall", 1.0, 4.0, 0.1)
+                                    _slider("Tongue angle (°)", "volute_tongue_angle", 2.0, 15.0, 0.5)
+                                    _slider("Tongue clear (mm)", "volute_tongue_clear", 0.5, 4.0, 0.1)
+                                    _slider("Tongue fillet (mm)", "volute_tongue_fillet", 0.0, 4.0, 0.1)
+                            with v3.VExpansionPanel(title="Outlet"):
+                                with v3.VExpansionPanelText():
+                                    _slider("Outlet width (mm)", "volute_out_w", 20.0, 50.0, 1.0)
+                                    _slider("Outlet length (mm)", "volute_out_l", 20.0, 60.0, 1.0)
+                                    _slider("Outlet height (mm)", "volute_out_h", 12.0, 40.0, 1.0)
+                        with v3.VRow(no_gutters=True, classes="mt-1"):
+                            with v3.VCol(cols=6, classes="pr-1"):
+                                v3.VTextField(
+                                    label="RPM",
+                                    v_model=("volute_rpm",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                            with v3.VCol(cols=6, classes="pl-1"):
+                                v3.VTextField(
+                                    label="Load Pa@50CFM",
+                                    v_model=("volute_load_pa",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                    with v3.VCard(classes="mb-2 pa-3"):
+                        render_action_row(
+                            v3,
+                            {
+                                "preview": {
+                                    "label": "Preview",
+                                    "color": "primary",
+                                    "size": "small",
+                                    "click": (getattr(ctx, "volute_preview"),),
+                                    "loading": ("volute_preview_busy",),
+                                    "disabled": (_volute_busy_expr,),
+                                },
+                                "score": {
+                                    "label": "Assess",
+                                    "color": "success",
+                                    "size": "small",
+                                    "click": (getattr(ctx, "volute_assess"),),
+                                    "loading": ("volute_assess_busy",),
+                                    "disabled": (f"{_volute_busy_expr} || !volute_geo_ready",),
+                                },
+                                "export": {
+                                    "label": "Export STLs",
+                                    "size": "small",
+                                    "variant": "tonal",
+                                    "color": "primary",
+                                    "click": (getattr(ctx, "volute_export"),),
+                                    "loading": ("volute_export_busy",),
+                                    "disabled": (f"{_volute_busy_expr} || !volute_geo_ready",),
+                                },
+                                "optimize": {
+                                    "label": "Optimize",
+                                    "color": "success",
+                                    "size": "small",
+                                    "click": (getattr(ctx, "optimize_volute"),),
+                                    "loading": ("volute_opt_busy",),
+                                    "disabled": (_volute_busy_expr,),
+                                },
+                            },
+                        )
+                        html.Div(
+                            "{{ volute_msg }}",
+                            classes="text-caption mt-2",
+                            style="white-space: pre-line",
+                        )
+                        ctx.busy_bar(
+                            "volute_preview_busy",
+                            "volute_export_busy",
+                            "volute_assess_busy",
+                            "volute_opt_busy",
                             color="success",
-                            size="small",
-                            click=(getattr(ctx, "volute_assess"),),
-                            classes="mr-2",
-                            loading=("volute_assess_busy",),
-                            disabled=(
-                                "volute_preview_busy || volute_export_busy || volute_assess_busy || "
-                                "volute_opt_busy || !volute_geo_ready",
-                            ),
                         )
-                        v3.VBtn(
-                            "Export STLs",
-                            size="small",
-                            variant="tonal",
-                            color="primary",
-                            click=(getattr(ctx, "volute_export"),),
-                            loading=("volute_export_busy",),
-                            disabled=(
-                                "volute_preview_busy || volute_export_busy || volute_assess_busy || "
-                                "volute_opt_busy || !volute_geo_ready",
-                            ),
+                    with v3.VCard(classes="mb-2 pa-3"):
+                        html.Div(
+                            "Optimize (geometry proxy) — not CFM",
+                            classes="text-subtitle-2 mb-1",
                         )
-                        v3.VBtn(
-                            "Optimize",
-                            color="secondary",
-                            size="small",
-                            click=(getattr(ctx, "optimize_volute"),),
-                            classes="ml-2",
-                            loading=("volute_opt_busy",),
-                            disabled=(
-                                "volute_preview_busy || volute_export_busy || volute_assess_busy || "
-                                "volute_opt_busy",
-                            ),
+                        html.Div(
+                            "NSGA ranks impeller + scroll geometry. Assess for honest radial MRF CFD. "
+                            "Resume continues the last cockpit_volute_opt_* study.",
+                            classes="text-caption mb-2",
+                            style="white-space: pre-line",
                         )
-                    with v3.VRow(no_gutters=True, classes="mt-2"):
-                        with v3.VCol(cols=4, classes="pr-1"):
-                            v3.VTextField(
-                                label="Trials",
-                                v_model=("volute_trials",),
-                                type="number",
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                        with v3.VCol(cols=8, classes="pl-1 d-flex align-center"):
-                            v3.VCheckbox(
-                                label="Resume last Optimize front",
-                                v_model=("volute_resume",),
-                                density="compact",
-                                hide_details=True,
-                            )
-                    html.Div(
-                        "{{ volute_msg }}",
-                        classes="text-caption mt-2",
-                        style="white-space: pre-line",
-                    )
-                    ctx.busy_bar(
-                        "volute_preview_busy",
-                        "volute_export_busy",
-                        "volute_assess_busy",
-                        "volute_opt_busy",
-                        color="success",
-                    )
+                        v3.VTextField(
+                            label="Trials",
+                            v_model=("volute_trials",),
+                            type="number",
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            classes="mb-2",
+                        )
+                        v3.VCheckbox(
+                            label="Resume last Optimize front",
+                            v_model=("volute_resume",),
+                            density="compact",
+                            hide_details=True,
+                        )
+
+                def _volute_results():
+                    with v3.VCard(classes="pa-2 mb-2"):
+                        v3.VSelect(
+                            label="Previous runs",
+                            v_model=("volute_sel_trial",),
+                            items=("volute_trial_items",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            update_modelValue=(getattr(ctx, "load_volute_trial"), "[$event]"),
+                        )
+                    with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
+                        volute_fig_widget = plotly_widgets.Figure(
+                            figure=volute_scatter_figure(volute_design_store),
+                            click=(
+                                getattr(ctx, "load_volute_trial"),
+                                "[$event?.points?.[0]?.customdata]",
+                            ),
+                            style="width:100%;",
+                        )
+                        ctrl.volute_fig_update = volute_fig_widget.update
+
+                def _volute_library():
+                    with v3.VCard(classes="pa-2 mb-2"):
+                        v3.VSelect(
+                            label="Previous runs",
+                            v_model=("volute_sel_trial",),
+                            items=("volute_trial_items",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            update_modelValue=(getattr(ctx, "load_volute_trial"), "[$event]"),
+                        )
+                    with v3.VCard(classes="pa-2"):
+                        html.Div(
+                            "Exported volute STLs under exports/ (volute_* folders).",
+                            classes="text-caption mb-2",
+                        )
+                        with v3.VList(density="compact", lines="one"):
+                            with v3.VListItem(v_for="it in volute_export_items", key="it.value"):
+                                v3.VListItemTitle("{{ it.title }}")
+                        html.Div(
+                            "No exports yet — use Export STLs on Design.",
+                            classes="text-caption text-medium-emphasis",
+                            v_if="!volute_export_items.length",
+                        )
+
+                render_left_shell(
+                    v3,
+                    html,
+                    state_key="volute_subtab",
+                    design=_volute_design,
+                    results=_volute_results,
+                    library=_volute_library,
+                )
             with v3.VCol(cols=7):
                 with v3.VCard(classes="mb-2 pa-3"):
                     html.Div(
@@ -575,25 +673,6 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                         v_for="line in volute_readout",
                         classes="text-body-2",
                     )
-                with v3.VCard(style="height:400px;", classes="mb-2"):
+                with v3.VCard(style=f"height:{VTK_HEIGHT_PX}px;", classes="mb-2"):
                     volute_view = plotter_ui(volute_plotter)
                     ctrl.volute_view_update = volute_view.update
-                with v3.VCard(classes="pa-2 mb-2"):
-                    v3.VSelect(
-                        label="Previous runs",
-                        v_model=("volute_sel_trial",),
-                        items=("volute_trial_items",),
-                        density="compact", variant="outlined", hide_details=True,
-                        update_modelValue=(getattr(ctx, "load_volute_trial"), "[$event]"),
-                    )
-                with v3.VCard(style="height:360px;", classes="pa-1 mb-2"):
-                    volute_fig_widget = plotly_widgets.Figure(
-                        figure=volute_scatter_figure(
-                            getattr(ctx, "volute_design_store", [])),
-                        click=(
-                            getattr(ctx, "load_volute_trial"),
-                            "[$event?.points?.[0]?.customdata]",
-                        ),
-                        style="width:100%;",
-                    )
-                    ctrl.volute_fig_update = volute_fig_widget.update
