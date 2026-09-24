@@ -661,9 +661,11 @@ present. The real Fan-only gap was the **airflow viz**, now the focus of 17.3.
   - [x] **Mixed** (2026-09-19) — full |U|/p + axial-Uz + streamlines, verified on a real MRF case.
   - [x] **CROR** (2026-09-20) — rendered for the best CFD-refined design (dual AXIAL rotors).
   - [x] **Shared fix — midplane |U| clim clamp.** `throughflow_umag_clim` scales the |U| midplane to the 95th percentile (floor 0.5 m/s). Cached PNG name is `U_midplane_v8.png`.
+  - [x] **Prop** (2026-09-24) — open-air axial rotor: Results panel wires the shared
+    airflow pack after CFD refine (and on Library load when a `cfd_refine` case exists).
+    |U|/p midplane + axial Uz + streamlines; same clim clamp as Mixed/CROR.
   - [ ] **Volute** — radial scroll: reuse ATTEMPTED and reverted 2026-09-20 (verified on a real
     volute Assess). The |U| color scale is now clamped. Still open: a scroll-appropriate slice plane. The impeller-anchored crop renders a thin off-centre strip of the scroll.
-  - [ ] **Prop** — open-air axial rotor: the |U| clamp is in. Axial-Uz and streamlines already clamp. Live prop wiring is still unverified.
 - [x] **17.4 Shared binder.** **[impact: med]** **[effort: med]** DONE 2026-09-19/20:
   `fansim/cockpit/airflow_panel.py` (render_airflow_pack / pick_airflow_uri / png_data_uri);
   Fan tab deduped onto it (ae00cd2); Mixed + CROR wire it. Fuller results/binder unification

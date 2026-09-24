@@ -17,6 +17,7 @@ from pathlib import Path
 
 _log = logging.getLogger(__name__)
 
+from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.data import design_dropdown_items
 from fansim.cockpit.figures import prop_mission_figure, prop_scatter_figure
@@ -29,6 +30,7 @@ from fansim.cockpit.tab_shell import (
 )
 
 from fansim.prop_spec import get_prop_spec, prop_spec_names
+from fansim.propeller.airflow_case import first_prop_cfd_workdir, prop_cfd_workdir_from_study
 from fansim.propeller.bemt import analyze as bemt_analyze
 from fansim.propeller.noise import estimate_prop_noise
 from fansim.propeller.optimize import (
@@ -188,6 +190,10 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     _prop_last = latest_prop_study_dir(_prop_runs)
     state.prop_last_opt = str(_prop_last) if _prop_last else ""
     state.prop_has_front = False  # set True after load / Optimize
+    state.prop_airflow_field = "U"
+    state.prop_airflow_img_uri = ""
+    state.prop_airflow_caption = "Run CFD refine to see open-air airflow for a scored case."
+    state.prop_airflow_busy = False
 
     def _init_prop_editor(spec, flat: dict | None = None):
         """Load prop sliders from a spec (+ optional Pareto/Analyze flat)."""
@@ -269,6 +275,63 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         prop_user_store.clear()
         prop_user_store.extend(user)
         state.prop_pareto = _prop_table_rows(_prop_click_store())
+
+    # --- Open-air airflow viz (§17.3 Prop): same pack as Mixed/CROR, axial freestream ----------
+    _prop_airflow = {"uris": {}, "gen": 0}
+
+    def _apply_prop_airflow_field():
+        uri, cap = pick_airflow_uri(_prop_airflow["uris"], state.prop_airflow_field or "U")
+        state.prop_airflow_img_uri = uri
+        if uri:
+            state.prop_airflow_caption = cap
+        elif not state.prop_airflow_busy:
+            state.prop_airflow_caption = "Run CFD refine to see open-air airflow for a scored case."
+
+    def _render_prop_airflow(case_dir):
+        if not case_dir or asynchronous is None:
+            _prop_airflow["uris"] = {}
+            state.prop_airflow_img_uri = ""
+            state.prop_airflow_caption = "Run CFD refine to see open-air airflow for a scored case."
+            return
+        _prop_airflow["gen"] += 1
+        gen = _prop_airflow["gen"]
+        state.prop_airflow_busy = True
+        state.prop_airflow_img_uri = ""
+        state.prop_airflow_caption = "Rendering open-air airflow…"
+        state.flush()
+
+        async def task():
+            try:
+                loop = asyncio.get_running_loop()
+                pack = await loop.run_in_executor(
+                    None, lambda: render_airflow_pack(str(case_dir)))
+                if _prop_airflow["gen"] != gen:
+                    return
+                _prop_airflow["uris"] = pack["uris"]
+                state.prop_airflow_busy = False
+                _apply_prop_airflow_field()
+            except Exception:  # noqa: BLE001 — viz must never break the tab
+                if _prop_airflow["gen"] == gen:
+                    _prop_airflow["uris"] = {}
+                    state.prop_airflow_busy = False
+                    state.prop_airflow_img_uri = ""
+                    state.prop_airflow_caption = "Airflow not available for this design"
+            finally:
+                try:
+                    state.flush()
+                    ctrl.prop_view_update()
+                except Exception:  # noqa: BLE001
+                    pass
+
+        asynchronous.create_task(task())
+
+    @state.change("prop_airflow_field")
+    def _on_prop_airflow_field(**_):
+        _apply_prop_airflow_field()
+        try:
+            state.flush()
+        except Exception:  # noqa: BLE001
+            pass
 
     _init_prop_editor(get_prop_spec(state.prop_model))
     _reload_prop_from_disk()
@@ -638,6 +701,9 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
             state.prop_msg = f"✓ Prop CFD refine {ran} ran / {skip} skipped → {out} (see summary.json)"
             state.prop_refine_busy = False
             ticker.cancel()
+            workdir = first_prop_cfd_workdir(rows)
+            if workdir:
+                _render_prop_airflow(workdir)
             state.flush()
 
         asynchronous.create_task(task())
@@ -656,6 +722,10 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         _init_prop_editor(get_prop_spec(state.prop_model), flat=p)
         state.flush()
         analyze_prop(persist=False)
+        row = store[int(idx)]
+        workdir = row.get("workdir") or prop_cfd_workdir_from_study(state.prop_last_opt or None)
+        if workdir:
+            _render_prop_airflow(workdir)
 
     def _refresh_prop_export_items():
         rows: list[dict] = []
@@ -1104,7 +1174,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_prop_row"), "[]"),
+                            update_modelValue=(getattr(ctx, "load_prop_row"), "[$event]"),
                         )
                     with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
                         prop_fig_widget = plotly_widgets.Figure(
@@ -1147,7 +1217,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_prop_row"), "[]"),
+                            update_modelValue=(getattr(ctx, "load_prop_row"), "[$event]"),
                         )
                     with v3.VCard(classes="pa-2"):
                         html.Div(
@@ -1177,3 +1247,36 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                 with v3.VCard(style=f"height:{VTK_HEIGHT_PX}px;", classes="mb-2"):
                     prop_view = plotter_ui(prop_plotter)
                     ctrl.prop_view_update = prop_view.update
+                with v3.VCard(classes="mb-2 pa-2", v_show="prop_subtab === 'results'"):
+                    html.Div(
+                        "Open-air airflow — top CFD-refined design",
+                        classes="text-subtitle-2 mb-1",
+                    )
+                    html.Div(
+                        "From the best design of the last CFD refine (open-air MRF). |U|/pressure "
+                        "midplane; axial Uz (blue = thrust wake, red = reverse); streamlines by |U|.",
+                        classes="text-caption text-medium-emphasis mb-2",
+                    )
+                    with v3.VBtnToggle(
+                        v_model=("prop_airflow_field",),
+                        density="compact",
+                        color="primary",
+                        classes="mb-2",
+                        mandatory=True,
+                    ):
+                        v3.VBtn("|U| midplane", value="U", size="small")
+                        v3.VBtn("pressure midplane", value="p", size="small")
+                        v3.VBtn("axial Uz", value="uz", size="small")
+                        v3.VBtn("streamlines", value="stream", size="small")
+                    html.Div(
+                        "{{ prop_airflow_caption }}",
+                        classes="text-caption text-medium-emphasis mb-1",
+                    )
+                    html.Img(
+                        src=("prop_airflow_img_uri",),
+                        v_show="prop_airflow_img_uri",
+                        style=(
+                            "width:100%;max-height:520px;object-fit:contain;"
+                            "display:block;background:#fafafa;border-radius:4px;"
+                        ),
+                    )
