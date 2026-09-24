@@ -1,7 +1,7 @@
 # §14.7 cockpit: mission control and mission plots
 
 **Date:** 2026-09-23  
-**Status:** approved in chat (2026-09-23); written spec awaiting review  
+**Status:** approved (2026-09-23)  
 **Approach:** A — one mission select on the existing Optimize button, two new figures  
 **Parent:** roadmap §14.7 (checkbox stays open until this slice lands, then it is checked)  
 **Related:** `fansim/cockpit/prop_tab.py`, `fansim/cockpit/figures.py` (`prop_scatter_figure`), `fansim/propeller/optimize.py` (`run_prop_study`)
