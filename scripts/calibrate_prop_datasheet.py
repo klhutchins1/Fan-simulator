@@ -52,6 +52,8 @@ def main() -> int:
 
 if __name__ == "__main__":
     code = main()
-    sys.stdout.flush()
-    sys.stderr.flush()
-    os._exit(code)
+    if sys.platform == "win32":
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(code)
+    raise SystemExit(code)
