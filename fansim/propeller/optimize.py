@@ -155,7 +155,9 @@ def run_prop_study(spec: PropSpec, n_trials: int = 200, seed: int = 0,
     if out_dir is not None:
         out = Path(out_dir)
         out.mkdir(parents=True, exist_ok=True)
-        storage = f"sqlite:///{(out / 'study.db').as_posix()}"
+        from fansim.optimize.storage import make_sqlite_storage
+
+        storage = make_sqlite_storage(out)
         study = optuna.create_study(
             directions=directions,
             sampler=optuna.samplers.NSGAIISampler(seed=seed),

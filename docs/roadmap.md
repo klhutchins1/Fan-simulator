@@ -553,8 +553,10 @@ Bring Prop / Mixed / Volute / CROR editors up toward Fan blade vocabulary. Spec:
 
 - [ ] **14.8 Prop cockpit: stop, disk, random, wiring.** **[impact: high]** **[effort: med]**
   Reported 2026-09-23. Optimize was left running and had to be killed by closing the terminal.
-  1. **Stop.** The prop Optimize button has no stop or cancel. `prop_busy` stays on until the study finishes or throws.
-  2. **Project drive.** A prop Optimize pegs the T: drive (the drive that holds this repo) at 100% utilization and the drive gets loud. Find what each trial writes under `runs/` before changing the search.
+  1. **Done.** Stop sits beside Optimize and ends the study after the current trial (`9d80380`). Spec/plan:
+     `docs/superpowers/specs/2026-09-23-prop-optimize-stop-design.md`,
+     `docs/superpowers/plans/2026-09-23-prop-optimize-stop.md`.
+  2. **Done.** Each trial was committing `study.db` with SQLite's default full flush, which pegs the project disk. Prop studies now use `make_sqlite_storage`: WAL and `synchronous=NORMAL`, so a trial does not fsync the whole file. Resume still reads that database.
   3. **Randomize.** The fan tab has Randomize geometry and Randomize features. The prop tab has neither. Useful for poking the design, secondary to a real search.
   4. **Wiring audit.** Confirm recent prop work is reachable from the prop tab. Missions and the minutes/km plots are on the Optimize card (43f8191). Compressibility and the stall cap sit inside `analyze`. Record anything that still exists only as a script.
 

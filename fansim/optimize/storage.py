@@ -26,17 +26,29 @@ def make_sqlite_storage(out_dir: str | Path, *, timeout_s: float = 120.0) -> RDB
         url=url,
         engine_kwargs={"connect_args": {"timeout": float(timeout_s), "check_same_thread": False}},
     )
-    # Best-effort WAL: concurrent reader (cockpit) + writer (Optimize) on Windows.
-    try:
-        import sqlite3
-
-        con = sqlite3.connect(str(db), timeout=float(timeout_s))
-        try:
-            con.execute("PRAGMA journal_mode=WAL")
-            con.execute("PRAGMA busy_timeout=%d" % int(float(timeout_s) * 1000))
-            con.commit()
-        finally:
-            con.close()
-    except Exception:  # noqa: BLE001 — storage still usable without WAL
-        pass
+    _listen_sqlite_pragmas(storage, timeout_s=timeout_s)
     return storage
+
+
+def _listen_sqlite_pragmas(storage: RDBStorage, *, timeout_s: float) -> None:
+    """WAL plus synchronous=NORMAL on every Optuna connection.
+
+    The default SQLite mode flushes the whole database on each trial commit. A fast
+    BEMT study then pegs the project disk. NORMAL still checkpoints the WAL; it does
+    not fsync every trial.
+    """
+    from sqlalchemy import event
+
+    busy_ms = int(float(timeout_s) * 1000)
+
+    def _on_connect(dbapi_connection, _record):
+        cur = dbapi_connection.cursor()
+        try:
+            cur.execute("PRAGMA journal_mode=WAL")
+            cur.execute("PRAGMA synchronous=NORMAL")
+            cur.execute(f"PRAGMA busy_timeout={busy_ms}")
+        finally:
+            cur.close()
+
+    event.listen(storage.engine, "connect", _on_connect)
+    storage.engine.dispose()
