@@ -21,6 +21,12 @@ from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.data import design_dropdown_items
 from fansim.cockpit.figures import prop_mission_figure, prop_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
+from fansim.cockpit.tab_shell import (
+    SCATTER_HEIGHT_PX,
+    VTK_HEIGHT_PX,
+    render_action_row,
+    render_left_shell,
+)
 
 from fansim.prop_spec import get_prop_spec, prop_spec_names
 from fansim.propeller.bemt import analyze as bemt_analyze
@@ -143,6 +149,9 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     state.prop_readout = ["Analyze a prop to see thrust, efficiency, and figure of merit."]
     state.prop_busy = False
     state.prop_opt_running = False
+    state.prop_subtab = "design"
+    state.prop_cfd_mesh_items = ["smoke", "refine"]
+    state.prop_export_items = []
     state.prop_msg = ""
     state.prop_export_msg = ""
     state.prop_export_busy = False
@@ -648,6 +657,27 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         state.flush()
         analyze_prop(persist=False)
 
+    def _refresh_prop_export_items():
+        rows: list[dict] = []
+        for folder, kind in ((Path("exports"), "STL"), (Path("exports") / "pythrust", "PyThrust")):
+            if not folder.is_dir():
+                continue
+            for path in sorted(folder.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True):
+                if not path.is_file():
+                    continue
+                if kind == "STL" and path.suffix.lower() != ".stl":
+                    continue
+                if kind == "PyThrust" and path.suffix.lower() not in (".csv", ".json"):
+                    continue
+                rows.append({"title": f"{kind} · {path.name}", "value": str(path.resolve())})
+                if len(rows) >= 24:
+                    break
+            if len(rows) >= 24:
+                break
+        state.prop_export_items = rows
+
+    _refresh_prop_export_items()
+
     def export_prop_stl():
         """Save the current prop as a printable, shaft-bored STL into exports/."""
         if state.prop_busy or state.prop_refine_busy or state.prop_export_busy:
@@ -684,6 +714,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
             wt = "watertight" if rep.ok else "⚠ NON-manifold"
             state.prop_export_msg = f"✓ Saved {out.resolve()}  ({wt})"
             state.prop_export_busy = False
+            _refresh_prop_export_items()
             ticker.cancel()
             state.flush()
 
@@ -737,6 +768,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                 f"✓ PyThrust CT/CP → {result['csv']}  ({result['n_rows']} rows)"
             )
             state.prop_export_busy = False
+            _refresh_prop_export_items()
             ticker.cancel()
             state.flush()
 
@@ -789,315 +821,359 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
     with html.Div(v_show="active_tab === 'propeller'"):
         with v3.VRow(no_gutters=True):
             with v3.VCol(cols=5, classes="pr-2"):
-                with v3.VCard(classes="mb-2 pa-3"):
-                    v3.VSelect(
-                        label="Propeller size",
-                        v_model=("prop_model",),
-                        items=("prop_models",),
-                        density="compact",
-                        variant="outlined",
-                        hide_details=True,
-                    )
-                    html.Div(
-                        "{{ prop_info }}",
-                        classes="text-caption mt-2",
-                        style="white-space: pre-line",
-                    )
-                with v3.VCard(classes="mb-2 pa-3"):
-                    html.Div(
-                        "Blade — pitch drives the twist; expand panels for thickness / 3-D / tip",
-                        classes="text-subtitle-2 mb-2",
-                    )
-                    _slider("Blades", "p_n_blades", 2, 4, 1)
-                    _slider("Pitch (in)", "p_pitch", 1.5, 8.0, 0.1)
-                    _slider("Chord root (×tip R)", "p_chord_root", 0.08, 0.30, 0.01)
-                    _slider("Chord mid (×tip R)", "p_chord_mid", 0.10, 0.32, 0.01)
-                    _slider("Chord tip (×tip R)", "p_chord_tip", 0.04, 0.18, 0.01)
-                    v3.VSelect(
-                        label="Wall mode",
-                        v_model=("p_thick_mode",),
-                        items=("p_thick_mode_items",),
-                        density="compact",
-                        variant="outlined",
-                        hide_details=True,
-                        classes="mb-2",
-                    )
-                    from fansim.cockpit.blade_editor import render_shape_panels
-                    from fansim.cockpit.fan_widgets import help_switch as _help_switch
+                def _prop_design():
+                    with v3.VCard(classes="mb-2 pa-3"):
+                        v3.VSelect(
+                            label="Propeller size",
+                            v_model=("prop_model",),
+                            items=("prop_models",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                        )
+                        html.Div(
+                            "{{ prop_info }}",
+                            classes="text-caption mt-2",
+                            style="white-space: pre-line",
+                        )
+                    with v3.VCard(classes="mb-2 pa-3"):
+                        html.Div(
+                            "Blade — pitch drives the twist; expand panels for thickness / 3-D / tip",
+                            classes="text-subtitle-2 mb-2",
+                        )
+                        _slider("Blades", "p_n_blades", 2, 4, 1)
+                        _slider("Pitch (in)", "p_pitch", 1.5, 8.0, 0.1)
+                        _slider("Chord root (×tip R)", "p_chord_root", 0.08, 0.30, 0.01)
+                        _slider("Chord mid (×tip R)", "p_chord_mid", 0.10, 0.32, 0.01)
+                        _slider("Chord tip (×tip R)", "p_chord_tip", 0.04, 0.18, 0.01)
+                        v3.VSelect(
+                            label="Wall mode",
+                            v_model=("p_thick_mode",),
+                            items=("p_thick_mode_items",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            classes="mb-2",
+                        )
+                        from fansim.cockpit.blade_editor import render_shape_panels
+                        from fansim.cockpit.fan_widgets import help_switch as _help_switch
 
-                    def _pslider(label, model, mn, mx, step, unit="", disabled=None, **_kw):
-                        _slider(label, model, mn, mx, step, disabled=disabled)
+                        def _pslider(label, model, mn, mx, step, unit="", disabled=None, **_kw):
+                            _slider(label, model, mn, mx, step, disabled=disabled)
 
-                    render_shape_panels(
-                        prefix="p_",
-                        slider=_pslider,
-                        help_switch=_help_switch,
-                        v3=v3,
-                        html=html,
-                    )
-                    with v3.VRow(no_gutters=True, classes="mt-2"):
-                        v3.VBtn(
-                            "Randomize",
-                            size="small",
-                            variant="tonal",
-                            click=(getattr(ctx, "randomize_prop"),),
-                            disabled=("prop_busy || prop_refine_busy",),
-                            classes="mr-2",
+                        render_shape_panels(
+                            prefix="p_",
+                            slider=_pslider,
+                            help_switch=_help_switch,
+                            v3=v3,
+                            html=html,
                         )
-                        v3.VBtn(
-                            "Analyze",
-                            color="primary",
-                            size="small",
-                            click=(getattr(ctx, "analyze_prop"),),
-                            classes="mr-2",
-                            loading=("prop_busy",),
-                            disabled=("prop_busy || prop_refine_busy",),
+                        render_action_row(
+                            v3,
+                            {
+                                "score": {
+                                    "label": "Analyze",
+                                    "color": "primary",
+                                    "size": "small",
+                                    "click": (getattr(ctx, "analyze_prop"),),
+                                    "loading": ("prop_busy",),
+                                    "disabled": ("prop_busy || prop_refine_busy",),
+                                },
+                                "export": [
+                                    {
+                                        "label": "Export STL",
+                                        "size": "small",
+                                        "variant": "tonal",
+                                        "color": "primary",
+                                        "click": (getattr(ctx, "export_prop_stl"),),
+                                        "loading": ("prop_export_busy",),
+                                        "disabled": (
+                                            "prop_busy || prop_refine_busy || prop_export_busy || !prop_geo_ready",
+                                        ),
+                                    },
+                                    {
+                                        "label": "Export CT/CP (PyThrust)",
+                                        "size": "small",
+                                        "variant": "tonal",
+                                        "color": "primary",
+                                        "click": (getattr(ctx, "export_prop_pythrust_csv"),),
+                                        "loading": ("prop_export_busy",),
+                                        "disabled": (
+                                            "prop_busy || prop_refine_busy || prop_export_busy",
+                                        ),
+                                    },
+                                ],
+                                "optimize": {
+                                    "label": "Optimize",
+                                    "color": "success",
+                                    "size": "small",
+                                    "click": (getattr(ctx, "optimize_prop"),),
+                                    "loading": ("prop_busy",),
+                                    "disabled": ("prop_busy || prop_refine_busy",),
+                                },
+                                "stop": {
+                                    "label": "Stop",
+                                    "color": "error",
+                                    "size": "small",
+                                    "click": (getattr(ctx, "stop_prop_optimize"),),
+                                    "disabled": ("!prop_opt_running",),
+                                },
+                                "randomize": {
+                                    "label": "Randomize",
+                                    "size": "small",
+                                    "variant": "tonal",
+                                    "click": (getattr(ctx, "randomize_prop"),),
+                                    "disabled": ("prop_busy || prop_refine_busy",),
+                                },
+                            },
                         )
-                        v3.VBtn(
-                            "Export STL",
-                            size="small",
-                            variant="tonal",
-                            color="primary",
-                            click=(getattr(ctx, "export_prop_stl"),),
-                            classes="mr-2",
-                            loading=("prop_export_busy",),
-                            disabled=(
-                                "prop_busy || prop_refine_busy || prop_export_busy || !prop_geo_ready",
-                            ),
+                        html.Div(
+                            "{{ prop_msg }}",
+                            classes="text-caption mt-2",
+                            style="white-space: pre-line",
                         )
-                        v3.VBtn(
-                            "Export CT/CP (PyThrust)",
-                            size="small",
-                            variant="tonal",
-                            color="primary",
-                            click=(getattr(ctx, "export_prop_pythrust_csv"),),
-                            classes="mr-2",
-                            loading=("prop_export_busy",),
-                            disabled=(
-                                "prop_busy || prop_refine_busy || prop_export_busy",
-                            ),
+                        html.Div(
+                            "{{ prop_export_msg }}",
+                            classes="text-caption mt-1",
+                            style="white-space: pre-line",
                         )
-                        v3.VBtn(
-                            "Optimize",
+                        ctx.busy_bar(
+                            "prop_busy",
+                            "prop_refine_busy",
+                            "prop_export_busy",
                             color="success",
-                            size="small",
-                            click=(getattr(ctx, "optimize_prop"),),
-                            loading=("prop_busy",),
-                            disabled=("prop_busy || prop_refine_busy",),
                         )
-                        v3.VBtn(
-                            "Stop",
-                            color="error",
-                            size="small",
-                            click=(getattr(ctx, "stop_prop_optimize"),),
-                            disabled=("!prop_opt_running",),
-                            classes="ml-2",
+                    with v3.VCard(classes="mb-2 pa-3"):
+                        html.Div(
+                            "Auto-optimize the blade (mission presets: thrust/efficiency, quiet, endurance, range, ~1 s)",
+                            classes="text-subtitle-2 mb-1",
                         )
-                    html.Div(
-                        "{{ prop_msg }}",
-                        classes="text-caption mt-2",
-                        style="white-space: pre-line",
-                    )
-                    html.Div(
-                        "{{ prop_export_msg }}",
-                        classes="text-caption mt-1",
-                        style="white-space: pre-line",
-                    )
-                    ctx.busy_bar(
-                        "prop_busy",
-                        "prop_refine_busy",
-                        "prop_export_busy",
-                        color="success",
-                    )
-                with v3.VCard(classes="mb-2 pa-3"):
-                    html.Div(
-                        "Auto-optimize the blade (mission presets: thrust/efficiency, quiet, endurance, range, ~1 s)",
-                        classes="text-subtitle-2 mb-1",
-                    )
-                    html.Div(
-                        "Turn on Continue last prop study to append trials into the "
-                        "most recent cockpit_prop_* Optuna DB (same as Fan resume).",
-                        classes="text-caption mb-2",
-                        style="white-space: pre-line",
-                    )
-                    with v3.VRow(no_gutters=True, classes="align-center"):
-                        with v3.VCol(cols=6, classes="pr-1"):
-                            v3.VTextField(
-                                label="Trials",
-                                v_model=("prop_trials",),
-                                type="number",
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                        with v3.VCol(cols=6, classes="pl-1"):
-                            v3.VTextField(
-                                label="Max power W (0=any)",
-                                v_model=("prop_maxpower",),
-                                type="number",
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                    v3.VSelect(
-                        label="Mission",
-                        v_model=("prop_mission",),
-                        items=("prop_mission_items",),
-                        density="compact",
-                        variant="outlined",
-                        hide_details=True,
-                        classes="mt-2",
-                    )
-                    with v3.VRow(no_gutters=True, classes="align-center mt-1"):
-                        with v3.VCol(cols=4, classes="pr-1"):
-                            v3.VTextField(
-                                label="Weight (N)",
-                                v_model=("prop_weight_n",),
-                                type="number",
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                        with v3.VCol(cols=4, classes="px-1"):
-                            v3.VTextField(
-                                label="Rotors",
-                                v_model=("prop_n_rotors",),
-                                type="number",
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                        with v3.VCol(cols=4, classes="pl-1"):
-                            v3.VTextField(
-                                label="Battery (Wh)",
-                                v_model=("prop_battery_wh",),
-                                type="number",
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                    with v3.VRow(no_gutters=True, classes="align-center mt-1"):
-                        with v3.VCol(cols=6, classes="pr-1"):
-                            v3.VTextField(
-                                label="Cruise (m/s)",
-                                v_model=("prop_cruise_mps",),
-                                type="number",
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                        with v3.VCol(cols=6, classes="pl-1"):
-                            v3.VTextField(
-                                label="Min hover (min)",
-                                v_model=("prop_min_minutes",),
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                    v3.VSwitch(
-                        v_model=("prop_resume",),
-                        density="compact",
-                        hide_details=True,
-                        color="primary",
-                        inset=True,
-                        label="Continue last prop study",
-                        classes="mt-2",
-                    )
-                    html.Div(
-                        "CFD refine scores top-N BEMT finalists (Docker). "
-                        "BEMT floor skips hopeless CFD. "
-                        "Smoke mesh is fast sanity-check; Refine is denser for ranking. "
-                        "Polar V∞ list feeds Analyze.",
-                        classes="text-caption mt-3 mb-1",
-                        style="white-space: pre-line",
-                    )
-                    with v3.VRow(no_gutters=True, classes="align-center"):
-                        with v3.VCol(cols=3, classes="pr-1"):
-                            v3.VTextField(
-                                label="CFD top N",
-                                v_model=("prop_cfd_top",),
-                                type="number",
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                        with v3.VCol(cols=3, classes="px-1"):
-                            v3.VTextField(
-                                label="BEMT floor g",
-                                v_model=("prop_bemt_floor",),
-                                type="number",
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                        with v3.VCol(cols=3, classes="px-1"):
-                            v3.VSelect(
-                                label="CFD mesh",
-                                v_model=("prop_cfd_mesh_preset",),
-                                items=["smoke", "refine"],
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                        with v3.VCol(cols=3, classes="pl-1"):
-                            v3.VBtn(
-                                "CFD refine",
-                                color="warning",
-                                size="small",
-                                block=True,
-                                click=(getattr(ctx, "refine_prop_cfd"),),
-                                loading=("prop_refine_busy",),
-                                disabled=(
-                                    "prop_busy || prop_refine_busy || !prop_has_front || !(prop_cfd_top > 0)",
-                                ),
-                            )
-                    v3.VTextField(
-                        label="Polar V∞ (m/s, comma)",
-                        v_model=("prop_polar_v",),
-                        density="compact",
-                        variant="outlined",
-                        hide_details=True,
-                        classes="mt-2",
-                        hint="BEMT forward-flight sweep on Analyze",
-                    )
+                        html.Div(
+                            "Turn on Continue last prop study to append trials into the "
+                            "most recent cockpit_prop_* Optuna DB (same as Fan resume).",
+                            classes="text-caption mb-2",
+                            style="white-space: pre-line",
+                        )
+                        with v3.VRow(no_gutters=True, classes="align-center"):
+                            with v3.VCol(cols=6, classes="pr-1"):
+                                v3.VTextField(
+                                    label="Trials",
+                                    v_model=("prop_trials",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                            with v3.VCol(cols=6, classes="pl-1"):
+                                v3.VTextField(
+                                    label="Max power W (0=any)",
+                                    v_model=("prop_maxpower",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                        v3.VSelect(
+                            label="Mission",
+                            v_model=("prop_mission",),
+                            items=("prop_mission_items",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            classes="mt-2",
+                        )
+                        with v3.VRow(no_gutters=True, classes="align-center mt-1"):
+                            with v3.VCol(cols=4, classes="pr-1"):
+                                v3.VTextField(
+                                    label="Weight (N)",
+                                    v_model=("prop_weight_n",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                            with v3.VCol(cols=4, classes="px-1"):
+                                v3.VTextField(
+                                    label="Rotors",
+                                    v_model=("prop_n_rotors",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                            with v3.VCol(cols=4, classes="pl-1"):
+                                v3.VTextField(
+                                    label="Battery (Wh)",
+                                    v_model=("prop_battery_wh",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                        with v3.VRow(no_gutters=True, classes="align-center mt-1"):
+                            with v3.VCol(cols=6, classes="pr-1"):
+                                v3.VTextField(
+                                    label="Cruise (m/s)",
+                                    v_model=("prop_cruise_mps",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                            with v3.VCol(cols=6, classes="pl-1"):
+                                v3.VTextField(
+                                    label="Min hover (min)",
+                                    v_model=("prop_min_minutes",),
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                        v3.VSwitch(
+                            v_model=("prop_resume",),
+                            density="compact",
+                            hide_details=True,
+                            color="primary",
+                            inset=True,
+                            label="Continue last prop study",
+                            classes="mt-2",
+                        )
+                        html.Div(
+                            "CFD refine scores top-N BEMT finalists (Docker). "
+                            "BEMT floor skips hopeless CFD. "
+                            "Smoke mesh is fast sanity-check; Refine is denser for ranking. "
+                            "Polar V∞ list feeds Analyze.",
+                            classes="text-caption mt-3 mb-1",
+                            style="white-space: pre-line",
+                        )
+                        with v3.VRow(no_gutters=True, classes="align-center"):
+                            with v3.VCol(cols=3, classes="pr-1"):
+                                v3.VTextField(
+                                    label="CFD top N",
+                                    v_model=("prop_cfd_top",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                            with v3.VCol(cols=3, classes="px-1"):
+                                v3.VTextField(
+                                    label="BEMT floor g",
+                                    v_model=("prop_bemt_floor",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                            with v3.VCol(cols=3, classes="px-1"):
+                                v3.VSelect(
+                                    label="CFD mesh",
+                                    v_model=("prop_cfd_mesh_preset",),
+                                    items=("prop_cfd_mesh_items",),
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                            with v3.VCol(cols=3, classes="pl-1"):
+                                v3.VBtn(
+                                    "CFD refine",
+                                    color="warning",
+                                    size="small",
+                                    block=True,
+                                    click=(getattr(ctx, "refine_prop_cfd"),),
+                                    loading=("prop_refine_busy",),
+                                    disabled=(
+                                        "prop_busy || prop_refine_busy || !prop_has_front || !(prop_cfd_top > 0)",
+                                    ),
+                                )
+                        v3.VTextField(
+                            label="Polar V∞ (m/s, comma)",
+                            v_model=("prop_polar_v",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            classes="mt-2",
+                            hint="BEMT forward-flight sweep on Analyze",
+                        )
+
+                def _prop_results():
+                    with v3.VCard(classes="pa-2 mb-2"):
+                        v3.VSelect(
+                            label="Previous runs",
+                            v_model=("prop_sel_idx",),
+                            items=("prop_trial_items",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            update_modelValue=(getattr(ctx, "load_prop_row"), "[]"),
+                        )
+                    with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
+                        prop_fig_widget = plotly_widgets.Figure(
+                            figure=prop_scatter_figure(prop_pareto_store, prop_user_store),
+                            click=(
+                                getattr(ctx, "load_prop_row"),
+                                "[.points?.[0]?.customdata]",
+                            ),
+                            style="width:100%;",
+                        )
+                        ctrl.prop_fig_update = prop_fig_widget.update
+                    with v3.VCard(classes="pa-2", v_if="prop_pareto.length"):
+                        html.Div(
+                            "Optimizer / Analyze front — click a point above or a row here "
+                            "(top = most thrust; ◆ = Analyze saves)",
+                            classes="text-subtitle-2 mb-1",
+                        )
+                        with v3.VList(density="compact", lines=False):
+                            with v3.VListItem(
+                                v_for="row in prop_pareto",
+                                key="row.idx",
+                                click=(getattr(ctx, "load_prop_row"), "[row.idx]"),
+                            ):
+                                v3.VListItemTitle(
+                                    "{{ row.thrust }} g  ·  {{ row.eff }} g/W  "
+                                    "·  🔉 {{ row.noise }}  ·  {{ row.power }} W  "
+                                    "·  {{ row.nb }}-blade  {{ row.pitch }} in"
+                                )
+
+                def _prop_library():
+                    with v3.VCard(classes="pa-2 mb-2"):
+                        html.Div(
+                            "Load a previous Optimize / Analyze front into Design.",
+                            classes="text-caption mb-2",
+                        )
+                        v3.VSelect(
+                            label="Previous runs",
+                            v_model=("prop_sel_idx",),
+                            items=("prop_trial_items",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            update_modelValue=(getattr(ctx, "load_prop_row"), "[]"),
+                        )
+                    with v3.VCard(classes="pa-2"):
+                        html.Div(
+                            "Exported STL and PyThrust files under exports/.",
+                            classes="text-caption mb-2",
+                        )
+                        with v3.VList(density="compact", lines="one"):
+                            with v3.VListItem(v_for="it in prop_export_items", key="it.value"):
+                                v3.VListItemTitle("{{ it.title }}")
+                        html.Div(
+                            "No exports yet — use Export STL or Export CT/CP on Design.",
+                            classes="text-caption text-medium-emphasis",
+                            v_if="!prop_export_items.length",
+                        )
+
+                render_left_shell(
+                    v3,
+                    html,
+                    state_key="prop_subtab",
+                    design=_prop_design,
+                    results=_prop_results,
+                    library=_prop_library,
+                )
             with v3.VCol(cols=7):
                 with v3.VCard(classes="mb-2 pa-3"):
                     html.Div("{{ line }}", v_for="line in prop_readout", classes="text-body-2")
-                with v3.VCard(style="height:360px;", classes="mb-2"):
+                with v3.VCard(style=f"height:{VTK_HEIGHT_PX}px;", classes="mb-2"):
                     prop_view = plotter_ui(prop_plotter)
                     ctrl.prop_view_update = prop_view.update
-                with v3.VCard(classes="pa-2 mb-2"):
-                    v3.VSelect(
-                        label="Previous runs",
-                        v_model=("prop_sel_idx",),
-                        items=("prop_trial_items",),
-                        density="compact", variant="outlined", hide_details=True,
-                        update_modelValue=(getattr(ctx, "load_prop_row"), "[$event]"),
-                    )
-                with v3.VCard(style="height:360px;", classes="pa-1 mb-2"):
-                    prop_fig_widget = plotly_widgets.Figure(
-                        figure=prop_scatter_figure(prop_pareto_store, prop_user_store),
-                        click=(
-                            getattr(ctx, "load_prop_row"),
-                            "[$event?.points?.[0]?.customdata]",
-                        ),
-                        style="width:100%;",
-                    )
-                    ctrl.prop_fig_update = prop_fig_widget.update
-                with v3.VCard(classes="pa-2", v_if="prop_pareto.length"):
-                    html.Div(
-                        "Optimizer / Analyze front — click a point above or a row here "
-                        "(top = most thrust; ◆ = Analyze saves)",
-                        classes="text-subtitle-2 mb-1",
-                    )
-                    with v3.VList(density="compact", lines=False):
-                        with v3.VListItem(
-                            v_for="row in prop_pareto",
-                            key="row.idx",
-                            click=(getattr(ctx, "load_prop_row"), "[row.idx]"),
-                        ):
-                            v3.VListItemTitle(
-                                "{{ row.thrust }} g  ·  {{ row.eff }} g/W  "
-                                "·  🔉 {{ row.noise }}  ·  {{ row.power }} W  "
-                                "·  {{ row.nb }}-blade  {{ row.pitch }} in"
-                            )
