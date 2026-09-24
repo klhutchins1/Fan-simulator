@@ -45,6 +45,15 @@ def test_unknown_mission_names_the_legal_four():
         assert name in text
 
 
+def test_unknown_mission_wins_over_minutes_flag():
+    spec = get_prop_spec("fpv_5inch")
+    with pytest.raises(ValueError, match="thrust_efficiency") as exc:
+        run_prop_study(spec, n_trials=1, seed=0, mission="louder", min_hover_minutes=1.0)
+    text = str(exc.value)
+    assert "quiet_thrust" in text and "hover_endurance" in text and "range" in text
+    assert "min_hover_minutes" not in text
+
+
 def test_endurance_and_range_require_vehicle_inputs():
     spec = get_prop_spec("fpv_5inch")
     with pytest.raises(ValueError):

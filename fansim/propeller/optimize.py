@@ -144,8 +144,8 @@ def run_prop_study(spec: PropSpec, n_trials: int = 200, seed: int = 0,
 
     from fansim.propeller.persist import pareto_rows_from_study
 
-    _require_vehicle(mission, all_up_weight_n, n_rotors, battery_wh, cruise_mps, min_hover_minutes)
     directions = _mission_directions(mission)
+    _require_vehicle(mission, all_up_weight_n, n_rotors, battery_wh, cruise_mps, min_hover_minutes)
     study_name = "prop" if mission == "thrust_efficiency" else f"prop_{mission}"
     worst = _worst(directions)
 
