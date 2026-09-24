@@ -19,6 +19,12 @@ from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
 from fansim.cockpit.data import design_dropdown_items
 from fansim.cockpit.figures import mf_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
+from fansim.cockpit.tab_shell import (
+    SCATTER_HEIGHT_PX,
+    VTK_HEIGHT_PX,
+    render_action_row,
+    render_left_shell,
+)
 from fansim.fan_spec import A12X25
 from fansim.optimize.isolated_eval import cfd_eval_timeout
 from fansim.optimize.presets import assess_load
@@ -95,6 +101,8 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
     state.mf_camber_pos = float(_mf0.camber_pos)
     state.mf_assess_preset = "case"
     state.mf_refine_op = False
+    state.mf_subtab = "design"
+    state.mf_export_items = []
     state.mf_preview_busy = False
     state.mf_export_busy = False
     state.mf_assess_busy = False
@@ -135,6 +143,28 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
         if hasattr(ctrl, "mf_fig_update"):
             ctrl.mf_fig_update(mf_scatter_figure(mf_design_store))
         state.mf_trial_items = design_dropdown_items(mf_design_store)
+
+    def _refresh_mf_export_items():
+        rows: list[dict] = []
+        exports = Path("exports")
+        if exports.is_dir():
+            candidates = [
+                p
+                for p in exports.iterdir()
+                if p.is_file()
+                and p.suffix.lower() == ".stl"
+                and (
+                    p.name.lower().startswith("mixed")
+                    or "mixed" in p.name.lower()
+                )
+            ]
+            for path in sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True):
+                rows.append({"title": path.name, "value": str(path.resolve())})
+                if len(rows) >= 24:
+                    break
+        state.mf_export_items = rows
+
+    _refresh_mf_export_items()
 
     # --- Duct-airflow viz (§17.3): render a solved mixed case with the shared renderers -------
     _mf_airflow = {"uris": {}, "gen": 0}
@@ -299,6 +329,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
 
             path = await loop.run_in_executor(None, _do)
             state.mf_msg = f"✓ Saved {Path(path).resolve()}"
+            _refresh_mf_export_items()
         except Exception as exc:  # noqa: BLE001
             state.mf_msg = f"⚠ Export failed: {type(exc).__name__}: {exc}"
         finally:
@@ -629,188 +660,222 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
             **extra,
         )
 
+    _mf_busy_expr = (
+        "mf_preview_busy || mf_export_busy || mf_assess_busy || "
+        "mf_opt_busy || mf_refine_busy"
+    )
+
     # ---- MIXED-FLOW TAB -----------------------------------------------------------
     with html.Div(v_show="active_tab === 'mixed'"):
         with v3.VRow(no_gutters=True):
             with v3.VCol(cols=5, classes="pr-2"):
-                with v3.VCard(classes="mb-2 pa-3"):
-                    html.Div("Core geometry (A12x25 envelope)", classes="text-subtitle-2 mb-2")
-                    _slider("Blades", "mf_n_blades", 5, 13, 1)
-                    _slider("Eye hub R (mm)", "mf_r_eye", 12.0, 24.0, 0.5)
-                    _slider("Back hub R (mm)", "mf_r_back", 20.0, 35.0, 0.5)
-                    _slider("Tip R (mm)", "mf_r_tip", 48.0, 54.5, 0.5)
-                    _slider("Z span (mm)", "mf_z_span", 12.0, 22.0, 0.5)
-                    html.Div("Planform (root → tip)", classes="text-subtitle-2 mt-3 mb-1")
-                    _slider("Chord root (mm)", "mf_chord_root", 14.0, 28.0, 0.5)
-                    _slider("Chord mid (mm)", "mf_chord", 14.0, 28.0, 0.5)
-                    _slider("Chord tip (mm)", "mf_chord_tip", 14.0, 28.0, 0.5)
-                    _slider("Stagger root (°)", "mf_stagger_root", 20.0, 50.0, 1.0)
-                    _slider("Stagger mid (°)", "mf_stagger", 20.0, 50.0, 1.0)
-                    _slider("Stagger tip (°)", "mf_stagger_tip", 20.0, 50.0, 1.0)
-                    html.Div("Section aero", classes="text-subtitle-2 mt-3 mb-1")
-                    _slider("Thickness t/c", "mf_thickness", 0.04, 0.14, 0.005)
-                    _slider("Camber", "mf_camber", 0.0, 0.08, 0.005)
-                    _slider("Camber pos", "mf_camber_pos", 0.25, 0.55, 0.01)
-                with v3.VCard(classes="mb-2 pa-3"):
-                    v3.VSelect(
-                        label="Application",
-                        v_model=("mf_assess_preset",),
-                        items=("assess_preset_items",),
-                        density="compact",
-                        variant="outlined",
-                        hide_details=True,
-                        classes="mb-2",
-                    )
-                    v3.VSwitch(
-                        v_model=("mf_refine_op",),
-                        density="compact",
-                        hide_details=True,
-                        color="primary",
-                        inset=True,
-                        label="Third CFD at operating point",
-                        classes="mb-2",
-                    )
-                    with v3.VRow(no_gutters=True, classes="mt-1"):
-                        v3.VBtn(
-                            "Preview",
+
+                def _mf_design():
+                    with v3.VCard(classes="mb-2 pa-3"):
+                        html.Div("Core geometry (A12x25 envelope)", classes="text-subtitle-2 mb-2")
+                        _slider("Blades", "mf_n_blades", 5, 13, 1)
+                        _slider("Eye hub R (mm)", "mf_r_eye", 12.0, 24.0, 0.5)
+                        _slider("Back hub R (mm)", "mf_r_back", 20.0, 35.0, 0.5)
+                        _slider("Tip R (mm)", "mf_r_tip", 48.0, 54.5, 0.5)
+                        _slider("Z span (mm)", "mf_z_span", 12.0, 22.0, 0.5)
+                        html.Div("Planform (root → tip)", classes="text-subtitle-2 mt-3 mb-1")
+                        _slider("Chord root (mm)", "mf_chord_root", 14.0, 28.0, 0.5)
+                        _slider("Chord mid (mm)", "mf_chord", 14.0, 28.0, 0.5)
+                        _slider("Chord tip (mm)", "mf_chord_tip", 14.0, 28.0, 0.5)
+                        _slider("Stagger root (°)", "mf_stagger_root", 20.0, 50.0, 1.0)
+                        _slider("Stagger mid (°)", "mf_stagger", 20.0, 50.0, 1.0)
+                        _slider("Stagger tip (°)", "mf_stagger_tip", 20.0, 50.0, 1.0)
+                        html.Div("Section aero", classes="text-subtitle-2 mt-3 mb-1")
+                        _slider("Thickness t/c", "mf_thickness", 0.04, 0.14, 0.005)
+                        _slider("Camber", "mf_camber", 0.0, 0.08, 0.005)
+                        _slider("Camber pos", "mf_camber_pos", 0.25, 0.55, 0.01)
+                    with v3.VCard(classes="mb-2 pa-3"):
+                        v3.VSelect(
+                            label="Application",
+                            v_model=("mf_assess_preset",),
+                            items=("assess_preset_items",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            classes="mb-2",
+                        )
+                        v3.VSwitch(
+                            v_model=("mf_refine_op",),
+                            density="compact",
+                            hide_details=True,
                             color="primary",
-                            size="small",
-                            click=(getattr(ctx, "mf_preview"),),
-                            classes="mr-2",
-                            loading=("mf_preview_busy",),
-                            disabled=(
-                                "mf_preview_busy || mf_export_busy || mf_assess_busy || "
-                                "mf_opt_busy || mf_refine_busy",
-                            ),
+                            inset=True,
+                            label="Third CFD at operating point",
+                            classes="mb-2",
                         )
-                        v3.VBtn(
-                            "Assess",
+                        render_action_row(
+                            v3,
+                            {
+                                "preview": {
+                                    "label": "Preview",
+                                    "color": "primary",
+                                    "size": "small",
+                                    "click": (getattr(ctx, "mf_preview"),),
+                                    "loading": ("mf_preview_busy",),
+                                    "disabled": (_mf_busy_expr,),
+                                },
+                                "score": {
+                                    "label": "Assess",
+                                    "color": "success",
+                                    "size": "small",
+                                    "click": (getattr(ctx, "mf_assess"),),
+                                    "loading": ("mf_assess_busy",),
+                                    "disabled": (f"{_mf_busy_expr} || !mf_geo_ready",),
+                                },
+                                "export": {
+                                    "label": "Export STL",
+                                    "size": "small",
+                                    "variant": "tonal",
+                                    "color": "primary",
+                                    "click": (getattr(ctx, "mf_export"),),
+                                    "loading": ("mf_export_busy",),
+                                    "disabled": (f"{_mf_busy_expr} || !mf_geo_ready",),
+                                },
+                                "optimize": {
+                                    "label": "Optimize",
+                                    "color": "success",
+                                    "size": "small",
+                                    "click": (getattr(ctx, "optimize_mixed"),),
+                                    "loading": ("mf_opt_busy",),
+                                    "disabled": (_mf_busy_expr,),
+                                },
+                            },
+                        )
+                        html.Div(
+                            "{{ mf_msg }}",
+                            classes="text-caption mt-2",
+                            style="white-space: pre-line",
+                        )
+                        ctx.busy_bar(
+                            "mf_preview_busy",
+                            "mf_export_busy",
+                            "mf_assess_busy",
+                            "mf_opt_busy",
+                            "mf_refine_busy",
                             color="success",
-                            size="small",
-                            click=(getattr(ctx, "mf_assess"),),
-                            classes="mr-2",
-                            loading=("mf_assess_busy",),
-                            disabled=(
-                                "mf_preview_busy || mf_export_busy || mf_assess_busy || "
-                                "mf_opt_busy || mf_refine_busy || !mf_geo_ready",
-                            ),
                         )
-                        v3.VBtn(
-                            "Export STL",
-                            size="small",
-                            variant="tonal",
+                    with v3.VCard(classes="mb-2 pa-3"):
+                        html.Div(
+                            "Optimize (BEM screen, ~1 s) — axial adapter CFM",
+                            classes="text-subtitle-2 mb-1",
+                        )
+                        html.Div(
+                            "NSGA on free↔load CFM via the axial BEM stand-in. Not CFD. "
+                            "Assess still scores the honest MRF duct. Continue last "
+                            "appends into the newest cockpit_mf_opt_* study. "
+                            "Optional CFD refine scores the top-N BEM finalists "
+                            "(same hose as Assess; writes cfd_refine.json).",
+                            classes="text-caption mb-2",
+                            style="white-space: pre-line",
+                        )
+                        v3.VTextField(
+                            label="Trials",
+                            v_model=("mf_trials",),
+                            type="number",
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            classes="mb-2",
+                        )
+                        v3.VSwitch(
+                            v_model=("mf_resume",),
+                            density="compact",
+                            hide_details=True,
                             color="primary",
-                            click=(getattr(ctx, "mf_export"),),
-                            classes="mr-2",
-                            loading=("mf_export_busy",),
-                            disabled=(
-                                "mf_preview_busy || mf_export_busy || mf_assess_busy || "
-                                "mf_opt_busy || mf_refine_busy || !mf_geo_ready",
-                            ),
+                            inset=True,
+                            label="Continue last",
+                            classes="mb-2",
                         )
-                        v3.VBtn(
-                            "Optimize",
-                            color="success",
-                            size="small",
-                            click=(getattr(ctx, "optimize_mixed"),),
-                            loading=("mf_opt_busy",),
-                            disabled=(
-                                "mf_preview_busy || mf_export_busy || mf_assess_busy || "
-                                "mf_opt_busy || mf_refine_busy",
-                            ),
+                        with v3.VRow(no_gutters=True, classes="align-center"):
+                            with v3.VCol(cols=5, classes="pr-1"):
+                                v3.VTextField(
+                                    label="CFD refine top N",
+                                    v_model=("mf_cfd_top",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                            with v3.VCol(cols=7, classes="pl-1"):
+                                v3.VBtn(
+                                    "CFD refine",
+                                    color="warning",
+                                    size="small",
+                                    block=True,
+                                    click=(getattr(ctx, "refine_mixed_cfd"),),
+                                    loading=("mf_refine_busy",),
+                                    disabled=(
+                                        f"{_mf_busy_expr} || !mf_has_front || !(mf_cfd_top > 0)",
+                                    ),
+                                )
+
+                def _mf_results():
+                    with v3.VCard(classes="pa-2 mb-2"):
+                        v3.VSelect(
+                            label="Previous runs",
+                            v_model=("mf_sel_trial",),
+                            items=("mf_trial_items",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            update_modelValue=(getattr(ctx, "load_mf_trial"), "[$event]"),
                         )
-                    html.Div(
-                        "{{ mf_msg }}",
-                        classes="text-caption mt-2",
-                        style="white-space: pre-line",
-                    )
-                    ctx.busy_bar(
-                        "mf_preview_busy",
-                        "mf_export_busy",
-                        "mf_assess_busy",
-                        "mf_opt_busy",
-                        "mf_refine_busy",
-                        color="success",
-                    )
-                with v3.VCard(classes="mb-2 pa-3"):
-                    html.Div(
-                        "Optimize (BEM screen, ~1 s) — axial adapter CFM",
-                        classes="text-subtitle-2 mb-1",
-                    )
-                    html.Div(
-                        "NSGA on free↔load CFM via the axial BEM stand-in. Not CFD. "
-                        "Assess still scores the honest MRF duct. Continue last "
-                        "appends into the newest cockpit_mf_opt_* study. "
-                        "Optional CFD refine scores the top-N BEM finalists "
-                        "(same hose as Assess; writes cfd_refine.json).",
-                        classes="text-caption mb-2",
-                        style="white-space: pre-line",
-                    )
-                    with v3.VRow(no_gutters=True, classes="align-center"):
-                        with v3.VCol(cols=6, classes="pr-1"):
-                            v3.VTextField(
-                                label="Trials",
-                                v_model=("mf_trials",),
-                                type="number",
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                        with v3.VCol(cols=6, classes="pl-1"):
-                            v3.VSwitch(
-                                v_model=("mf_resume",),
-                                density="compact",
-                                hide_details=True,
-                                color="primary",
-                                inset=True,
-                                label="Continue last",
-                            )
-                    with v3.VRow(no_gutters=True, classes="mt-2 align-center"):
-                        with v3.VCol(cols=5, classes="pr-1"):
-                            v3.VTextField(
-                                label="CFD refine top N",
-                                v_model=("mf_cfd_top",),
-                                type="number",
-                                density="compact",
-                                variant="outlined",
-                                hide_details=True,
-                            )
-                        with v3.VCol(cols=7, classes="pl-1"):
-                            v3.VBtn(
-                                "CFD refine",
-                                color="warning",
-                                size="small",
-                                block=True,
-                                click=(getattr(ctx, "refine_mixed_cfd"),),
-                                loading=("mf_refine_busy",),
-                                disabled=(
-                                    "mf_preview_busy || mf_export_busy || mf_assess_busy || "
-                                    "mf_opt_busy || mf_refine_busy || !mf_has_front || "
-                                    "!(mf_cfd_top > 0)",
-                                ),
-                            )
+                    with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
+                        mf_fig_widget = plotly_widgets.Figure(
+                            figure=mf_scatter_figure(mf_design_store),
+                            click=(
+                                getattr(ctx, "load_mf_trial"),
+                                "[$event?.points?.[0]?.customdata]",
+                            ),
+                            style="width:100%;",
+                        )
+                        ctrl.mf_fig_update = mf_fig_widget.update
+
+                def _mf_library():
+                    with v3.VCard(classes="pa-2 mb-2"):
+                        v3.VSelect(
+                            label="Previous runs",
+                            v_model=("mf_sel_trial",),
+                            items=("mf_trial_items",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            update_modelValue=(getattr(ctx, "load_mf_trial"), "[$event]"),
+                        )
+                    with v3.VCard(classes="pa-2"):
+                        html.Div(
+                            "Exported mixed-flow STL files under exports/.",
+                            classes="text-caption mb-2",
+                        )
+                        with v3.VList(density="compact", lines="one"):
+                            with v3.VListItem(v_for="it in mf_export_items", key="it.value"):
+                                v3.VListItemTitle("{{ it.title }}")
+                        html.Div(
+                            "No exports yet — use Export STL on Design.",
+                            classes="text-caption text-medium-emphasis",
+                            v_if="!mf_export_items.length",
+                        )
+
+                render_left_shell(
+                    v3,
+                    html,
+                    state_key="mf_subtab",
+                    design=_mf_design,
+                    results=_mf_results,
+                    library=_mf_library,
+                )
             with v3.VCol(cols=7):
                 with v3.VCard(classes="mb-2 pa-3"):
                     html.Div("{{ line }}", v_for="line in mf_readout", classes="text-body-2")
-                with v3.VCard(style="height:400px;", classes="mb-2"):
+                with v3.VCard(style=f"height:{VTK_HEIGHT_PX}px;", classes="mb-2"):
                     mf_view = plotter_ui(mf_plotter)
                     ctrl.mf_view_update = mf_view.update
-                with v3.VCard(classes="pa-2 mb-2"):
-                    v3.VSelect(
-                        label="Previous runs",
-                        v_model=("mf_sel_trial",),
-                        items=("mf_trial_items",),
-                        density="compact", variant="outlined", hide_details=True,
-                        update_modelValue=(getattr(ctx, "load_mf_trial"), "[$event]"),
-                    )
-                with v3.VCard(style="height:360px;", classes="pa-1 mb-2"):
-                    mf_fig_widget = plotly_widgets.Figure(
-                        figure=mf_scatter_figure(mf_design_store),
-                        click=(getattr(ctx, "load_mf_trial"), "[$event?.points?.[0]?.customdata]"),
-                        style="width:100%;",
-                    )
-                    ctrl.mf_fig_update = mf_fig_widget.update
-                with v3.VCard(classes="mb-2 pa-2"):
+                with v3.VCard(classes="mb-2 pa-2", v_show="mf_subtab === 'results'"):
                     html.Div("Duct airflow — slices & streamlines", classes="text-subtitle-2 mb-1")
                     html.Div(
                         "From the last Assess (axial MRF duct, approximate for mixed-flow). "
@@ -820,17 +885,24 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                     )
                     with v3.VBtnToggle(
                         v_model=("mf_airflow_field",),
-                        density="compact", color="primary", classes="mb-2", mandatory=True,
+                        density="compact",
+                        color="primary",
+                        classes="mb-2",
+                        mandatory=True,
                     ):
                         v3.VBtn("|U| midplane", value="U", size="small")
                         v3.VBtn("pressure midplane", value="p", size="small")
                         v3.VBtn("axial Uz", value="uz", size="small")
                         v3.VBtn("streamlines", value="stream", size="small")
-                    html.Div("{{ mf_airflow_caption }}",
-                             classes="text-caption text-medium-emphasis mb-1")
+                    html.Div(
+                        "{{ mf_airflow_caption }}",
+                        classes="text-caption text-medium-emphasis mb-1",
+                    )
                     html.Img(
                         src=("mf_airflow_img_uri",),
                         v_show="mf_airflow_img_uri",
-                        style="width:100%;max-height:520px;object-fit:contain;"
-                        "display:block;background:#fafafa;border-radius:4px;",
+                        style=(
+                            "width:100%;max-height:520px;object-fit:contain;"
+                            "display:block;background:#fafafa;border-radius:4px;"
+                        ),
                     )
