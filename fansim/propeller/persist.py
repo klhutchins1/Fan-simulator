@@ -55,23 +55,39 @@ def latest_prop_study_dir(runs_root: str | Path) -> Path | None:
 
 
 def pareto_rows_from_study(study) -> list[dict]:
-    """Extract the NSGA front the same way ``run_prop_study`` returns it."""
-    pareto = [
-        {
-            "thrust_g": t.values[0],
-            "eff_g_per_w": t.values[1],
-            "power_w": t.user_attrs.get("power_w"),
-            "fm": t.user_attrs.get("fm"),
-            "n_blades": t.user_attrs.get("n_blades"),
-            "rel_dba": t.user_attrs.get("rel_dba"),
-            "tip_mach": t.user_attrs.get("tip_mach"),
+    """Extract the NSGA front. Physical fields come from user attributes.
+
+    When ``thrust_g`` was not stored, fall back to ``values[0]`` and ``values[1]``
+    so an older default study still reloads. Infeasible trials are omitted.
+    """
+    pareto = []
+    for t in study.best_trials:
+        if t.values is None:
+            continue
+        attrs = t.user_attrs
+        if attrs.get("feasible") is False:
+            continue
+        if "thrust_g" in attrs:
+            thrust = attrs.get("thrust_g")
+            eff = attrs.get("eff_g_per_w", attrs.get("eff"))
+        else:
+            thrust = t.values[0]
+            eff = t.values[1]
+        pareto.append({
+            "thrust_g": thrust,
+            "eff_g_per_w": eff,
+            "power_w": attrs.get("power_w"),
+            "fm": attrs.get("fm"),
+            "n_blades": attrs.get("n_blades"),
+            "rel_dba": attrs.get("rel_dba"),
+            "tip_mach": attrs.get("tip_mach"),
+            "hover_minutes": attrs.get("hover_minutes"),
+            "range_km": attrs.get("range_km"),
+            "mission": attrs.get("mission"),
             "params": dict(t.params),
             "source": "optimize",
             "trial": int(t.number),
-        }
-        for t in study.best_trials
-        if t.values is not None
-    ]
+        })
     pareto.sort(key=lambda r: -float(r["thrust_g"]))
     return pareto
 

@@ -130,3 +130,54 @@ def test_load_prop_pareto_logs_corrupt(tmp_path, caplog):
     with caplog.at_level(logging.WARNING, logger="fansim.propeller.persist"):
         assert load_prop_pareto(out) == []
     assert "skip corrupt prop pareto.json" in caplog.text
+
+
+def test_pareto_rows_prefer_user_attrs_over_values():
+    import optuna
+    from fansim.propeller.persist import pareto_rows_from_study
+
+    study = optuna.create_study(directions=["maximize", "minimize"])
+
+    def objective(trial):
+        trial.set_user_attr("thrust_g", 900.0)
+        trial.set_user_attr("eff", 3.5)
+        trial.set_user_attr("power_w", 200.0)
+        trial.set_user_attr("fm", 0.6)
+        trial.set_user_attr("n_blades", 3)
+        trial.set_user_attr("rel_dba", 70.0)
+        trial.set_user_attr("tip_mach", 0.5)
+        trial.set_user_attr("hover_minutes", None)
+        trial.set_user_attr("range_km", None)
+        trial.set_user_attr("mission", "quiet_thrust")
+        trial.set_user_attr("feasible", True)
+        return 900.0, 70.0
+
+    study.optimize(objective, n_trials=1)
+    rows = pareto_rows_from_study(study)
+    assert rows[0]["thrust_g"] == 900.0
+    assert rows[0]["eff_g_per_w"] == 3.5
+    assert rows[0]["rel_dba"] == 70.0
+    assert rows[0]["mission"] == "quiet_thrust"
+    assert rows[0]["hover_minutes"] is None
+    assert rows[0]["range_km"] is None
+
+
+def test_pareto_rows_drop_infeasible_and_fall_back_when_thrust_missing():
+    import optuna
+    from fansim.propeller.persist import pareto_rows_from_study
+
+    study = optuna.create_study(directions=["maximize", "maximize"])
+
+    def objective(trial):
+        if trial.number == 0:
+            trial.set_user_attr("feasible", False)
+            trial.set_user_attr("thrust_g", 1.0)
+            trial.set_user_attr("eff", 1.0)
+            return 0.0, 0.0
+        return 400.0, 5.0
+
+    study.optimize(objective, n_trials=2)
+    rows = pareto_rows_from_study(study)
+    assert len(rows) == 1
+    assert rows[0]["thrust_g"] == 400.0
+    assert rows[0]["eff_g_per_w"] == 5.0
