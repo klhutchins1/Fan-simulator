@@ -181,3 +181,45 @@ def test_pareto_rows_drop_infeasible_and_fall_back_when_thrust_missing():
     assert len(rows) == 1
     assert rows[0]["thrust_g"] == 400.0
     assert rows[0]["eff_g_per_w"] == 5.0
+
+
+def test_prop_mission_figure_plots_minutes_and_range():
+    from fansim.cockpit.figures import prop_mission_figure
+
+    rows = [
+        {"thrust_g": 1000.0, "eff_g_per_w": 4.0, "rel_dba": 50.0, "power_w": 200.0,
+         "hover_minutes": 12.0, "range_km": 8.0},
+        {"thrust_g": 800.0, "eff_g_per_w": 5.0, "rel_dba": 45.0, "power_w": 150.0},
+    ]
+    minutes = prop_mission_figure(rows, y_key="hover_minutes", y_title="hover (min)")
+    xs = list(minutes.data[0].x)
+    ys = list(minutes.data[0].y)
+    assert xs == [1000.0]
+    assert ys == [12.0]
+    assert "noise" in minutes.data[0].hovertext[0]
+    assert "W" in minutes.data[0].hovertext[0]
+    ranged = prop_mission_figure(rows, y_key="range_km", y_title="range (km)")
+    assert list(ranged.data[0].y) == [8.0]
+    assert ranged.layout.yaxis.title.text == "range (km)"
+
+
+def test_prop_mission_kwargs_follow_the_mission():
+    from fansim.cockpit.prop_tab import prop_mission_kwargs
+
+    default = prop_mission_kwargs("thrust_efficiency", 5, 4, 50, 15, "")
+    assert default["ok"] is True
+    assert default["kwargs"] == {"mission": "thrust_efficiency"}
+    quiet = prop_mission_kwargs("quiet_thrust", 5, 4, 50, 15, "")
+    assert quiet["kwargs"] == {"mission": "quiet_thrust"}
+    floored = prop_mission_kwargs("quiet_thrust", 5, 4, 50, 15, "2")
+    assert floored["kwargs"]["min_hover_minutes"] == 2.0
+    assert floored["kwargs"]["all_up_weight_n"] == 5.0
+    assert floored["kwargs"]["n_rotors"] == 4
+    assert floored["kwargs"]["battery_wh"] == 50.0
+    endurance = prop_mission_kwargs("hover_endurance", 5, 4, 50, 15, "")
+    assert set(endurance["kwargs"]) == {"mission", "all_up_weight_n", "n_rotors", "battery_wh"}
+    ranged = prop_mission_kwargs("range", 5, 4, 50, 15, "")
+    assert ranged["kwargs"]["cruise_mps"] == 15.0
+    bad = prop_mission_kwargs("range", 5, 4, 50, 0, "")
+    assert bad["ok"] is False
+    assert "cruise" in bad["message"]

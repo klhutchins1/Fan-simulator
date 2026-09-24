@@ -60,6 +60,61 @@ def prop_cfd_mesh_knobs(preset: str) -> tuple[float, int]:
     return (0.005, 400)
 
 
+def prop_mission_kwargs(mission, weight_n, n_rotors, battery_wh, cruise_mps, min_minutes) -> dict:
+    """Arguments for ``run_prop_study`` besides trials, power cap, directory, and model."""
+    mission = str(mission or "thrust_efficiency")
+    if mission == "thrust_efficiency":
+        return {"ok": True, "kwargs": {"mission": mission}}
+    if mission == "quiet_thrust":
+        text = str(min_minutes).strip()
+        if text == "":
+            return {"ok": True, "kwargs": {"mission": mission}}
+        try:
+            floor = float(text)
+        except (TypeError, ValueError):
+            return {"ok": False, "message": "minimum hover minutes must be a positive number"}
+        if floor <= 0.0:
+            return {"ok": False, "message": "minimum hover minutes must be a positive number"}
+        vehicle = _vehicle(weight_n, n_rotors, battery_wh)
+        if not vehicle["ok"]:
+            return vehicle
+        return {"ok": True, "kwargs": {"mission": mission, "min_hover_minutes": floor, **vehicle["fields"]}}
+    vehicle = _vehicle(weight_n, n_rotors, battery_wh)
+    if not vehicle["ok"]:
+        return vehicle
+    fields = {"mission": mission, **vehicle["fields"]}
+    if mission == "hover_endurance":
+        return {"ok": True, "kwargs": fields}
+    if mission == "range":
+        try:
+            cruise = float(cruise_mps)
+        except (TypeError, ValueError):
+            cruise = 0.0
+        if cruise <= 0.0:
+            return {"ok": False, "message": "cruise speed must be positive"}
+        fields["cruise_mps"] = cruise
+        return {"ok": True, "kwargs": fields}
+    return {"ok": False, "message": f"unknown mission {mission}"}
+
+
+def _vehicle(weight_n, n_rotors, battery_wh) -> dict:
+    try:
+        weight = float(weight_n)
+        rotors = int(float(n_rotors))
+        battery = float(battery_wh)
+    except (TypeError, ValueError):
+        return {"ok": False, "message": "weight, rotors, and battery must be numbers"}
+    if weight <= 0.0:
+        return {"ok": False, "message": "all-up weight must be positive"}
+    if rotors < 1:
+        return {"ok": False, "message": "rotor count must be at least 1"}
+    if battery <= 0.0:
+        return {"ok": False, "message": "battery watt-hours must be positive"}
+    return {"ok": True, "fields": {
+        "all_up_weight_n": weight, "n_rotors": rotors, "battery_wh": battery,
+    }}
+
+
 def setup_prop_tab(ctx: CockpitCtx) -> None:
     """Init prop_* state and controllers (call before SinglePageLayout)."""
     state, ctrl = ctx.state, ctx.ctrl

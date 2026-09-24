@@ -44,6 +44,64 @@ def prop_scatter_figure(pareto, user_points=()) -> go.Figure:
     return fig
 
 
+def prop_mission_figure(pareto, user_points=(), *, y_key: str, y_title: str) -> go.Figure:
+    """Mission front: thrust vs ``y_key`` (hover minutes or range), colored by g/W."""
+    fig = go.Figure()
+    study_all = list(pareto or [])
+    users_all = list(user_points or [])
+    off = len(study_all)
+
+    def _hover(r, y_val: float) -> str:
+        thrust = float(r.get("thrust_g") or 0)
+        rel = float(r.get("rel_dba") or 0)
+        power = float(r.get("power_w") or 0)
+        return (
+            f"{thrust:.0f} g thrust<br>{y_val:.2f}<br>noise {rel:.0f} (rel)<br>{power:.0f} W"
+        )
+
+    sx, sy, sc, sh, si = [], [], [], [], []
+    for i, r in enumerate(study_all):
+        y_val = r.get(y_key)
+        if y_val is None:
+            continue
+        y_val = float(y_val)
+        sx.append(float(r.get("thrust_g") or 0))
+        sy.append(y_val)
+        sc.append(float(r.get("eff_g_per_w") or 0))
+        sh.append(_hover(r, y_val))
+        si.append(i)
+    if sx:
+        fig.add_trace(go.Scatter(
+            x=sx, y=sy, mode="markers", name="optimize",
+            marker=dict(size=14, color=sc, colorscale="Viridis",
+                        showscale=True, colorbar=dict(title="g/W"),
+                        line=dict(width=1, color="rgba(0,0,0,0.4)")),
+            customdata=si, hovertext=sh, hoverinfo="text"))
+
+    ux, uy, uc, uh, ui = [], [], [], [], []
+    for j, r in enumerate(users_all):
+        y_val = r.get(y_key)
+        if y_val is None:
+            continue
+        y_val = float(y_val)
+        ux.append(float(r.get("thrust_g") or 0))
+        uy.append(y_val)
+        uc.append(float(r.get("eff_g_per_w") or 0))
+        uh.append(_hover(r, y_val))
+        ui.append(off + j)
+    if ux:
+        fig.add_trace(go.Scatter(
+            x=ux, y=uy, mode="markers", name="analyze",
+            marker=dict(size=16, symbol="diamond", color=uc,
+                        colorscale="Viridis", showscale=not sx, colorbar=dict(title="g/W"),
+                        line=dict(width=2, color="crimson")),
+            customdata=ui, hovertext=uh, hoverinfo="text"))
+
+    fig.update_layout(margin=dict(l=55, r=10, t=32, b=42), xaxis_title="thrust (g)",
+                      yaxis_title=y_title, height=340, template="plotly_white", showlegend=False)
+    return fig
+
+
 def cror_scatter_figure(rows) -> go.Figure:
     """CROR BEMT-proxy front: thrust vs relative noise (● Optimize)."""
     fig = go.Figure()
