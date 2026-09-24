@@ -8,6 +8,7 @@ blade count, camber, thickness, and light 3-D shape — maximizing THRUST and EF
 from __future__ import annotations
 
 import dataclasses
+import threading
 
 import optuna
 
@@ -138,7 +139,8 @@ def run_prop_study(spec: PropSpec, n_trials: int = 200, seed: int = 0,
                    n_rotors: int | None = None,
                    battery_wh: float | None = None,
                    cruise_mps: float | None = None,
-                   min_hover_minutes: float | None = None):
+                   min_hover_minutes: float | None = None,
+                   stop_event: threading.Event | None = None):
     """NSGA-II over the prop blade. ``mission`` picks the two objectives."""
     from pathlib import Path
 
@@ -219,7 +221,11 @@ def run_prop_study(spec: PropSpec, n_trials: int = 200, seed: int = 0,
             return range_km, perf.thrust_g
         return perf.thrust_g, perf.efficiency_g_per_w
 
-    study.optimize(objective, n_trials=n_trials)
+    def _stop_after_trial(study, trial):
+        if stop_event is not None and stop_event.is_set():
+            study.stop()
+
+    study.optimize(objective, n_trials=n_trials, callbacks=[_stop_after_trial])
     pareto = pareto_rows_from_study(study)
     if out_dir is not None:
         from fansim.propeller.persist import save_prop_pareto

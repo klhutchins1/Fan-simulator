@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import threading
+
 import pytest
 
 from fansim.prop_spec import get_prop_spec
@@ -94,3 +96,11 @@ def test_endurance_and_range_fronts_lift_the_weight():
     assert all(r["thrust_g"] * 9.80665 / 1000.0 >= 2.0 - 0.01 for r in ranged)
     thrusts = [r["thrust_g"] for r in ranged]
     assert thrusts == sorted(thrusts, reverse=True)
+
+
+def test_stop_event_ends_the_study_early():
+    spec = get_prop_spec("fpv_5inch")
+    event = threading.Event()
+    event.set()
+    study, _pareto = run_prop_study(spec, n_trials=20, seed=0, stop_event=event)
+    assert len(study.trials) < 20
