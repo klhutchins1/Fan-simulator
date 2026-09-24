@@ -11,6 +11,7 @@ import tempfile
 import time
 from pathlib import Path
 
+from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
 from fansim.cockpit.busy import cfd_stage_hint
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.data import design_dropdown_items
@@ -117,6 +118,11 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
 
     state.volute_sel_trial = None  # previous-runs dropdown (loads by trial)
     state.volute_trial_items = design_dropdown_items(volute_design_store)
+    state.volute_airflow_field = "U"
+    state.volute_airflow_img_uri = ""
+    state.volute_airflow_caption = "Run Assess to see scroll-section airflow for a solved case."
+    state.volute_airflow_busy = False
+    state.volute_last_assess = ""
 
     def _refresh_volute_figure():
         state.volute_trial_items = design_dropdown_items(volute_design_store)
@@ -150,6 +156,67 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
         state.volute_export_items = rows
 
     _refresh_volute_export_items()
+
+    # --- Scroll-section airflow (§17.3 Volute): Y=0 full section, not axial wake crop ------
+    _volute_airflow = {"uris": {}, "gen": 0}
+
+    def _apply_volute_airflow_field():
+        uri, cap = pick_airflow_uri(
+            _volute_airflow["uris"], state.volute_airflow_field or "U", layout="scroll",
+        )
+        state.volute_airflow_img_uri = uri
+        if uri:
+            state.volute_airflow_caption = cap
+        elif not state.volute_airflow_busy:
+            state.volute_airflow_caption = "Run Assess to see scroll-section airflow for a solved case."
+
+    def _render_volute_airflow(case_dir):
+        if not case_dir or asynchronous is None:
+            _volute_airflow["uris"] = {}
+            state.volute_airflow_img_uri = ""
+            state.volute_airflow_caption = "Run Assess to see scroll-section airflow for a solved case."
+            return
+        _volute_airflow["gen"] += 1
+        gen = _volute_airflow["gen"]
+        state.volute_airflow_busy = True
+        state.volute_airflow_img_uri = ""
+        state.volute_airflow_caption = "Rendering scroll-section airflow…"
+        state.flush()
+
+        async def task():
+            try:
+                loop = asyncio.get_running_loop()
+                pack = await loop.run_in_executor(
+                    None,
+                    lambda: render_airflow_pack(str(case_dir), layout="scroll"),
+                )
+                if _volute_airflow["gen"] != gen:
+                    return
+                _volute_airflow["uris"] = pack["uris"]
+                state.volute_airflow_busy = False
+                _apply_volute_airflow_field()
+            except Exception:  # noqa: BLE001 — viz must never break the tab
+                if _volute_airflow["gen"] == gen:
+                    _volute_airflow["uris"] = {}
+                    state.volute_airflow_busy = False
+                    state.volute_airflow_img_uri = ""
+                    state.volute_airflow_caption = "Airflow not available for this design"
+            finally:
+                try:
+                    state.flush()
+                    ctrl.volute_view_update()
+                except Exception:  # noqa: BLE001
+                    pass
+
+        asynchronous.create_task(task())
+
+    @state.change("volute_airflow_field")
+    def _on_volute_airflow_field(**_):
+        _apply_volute_airflow_field()
+        try:
+            state.flush()
+        except Exception:  # noqa: BLE001
+            pass
 
     def _volute_flat_from_state() -> dict:
         return {
@@ -312,6 +379,8 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
                     f"Domain: radial MRF stage 1 ({res.raw.get('honesty', '')}).",
                     f"Workdir: {workdir}",
                 ]
+                state.volute_last_assess = str(workdir)
+                _render_volute_airflow(workdir)
             else:
                 state.volute_msg = (
                     f"⚠ Assess infeasible: {res.reason or 'unknown'}\n"
@@ -439,6 +508,9 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
         ]
         state.volute_geo_ready = False
         state.volute_msg = f"Loaded #{tid} into Design — Preview to refresh STL."
+        workdir = row.get("workdir") or state.volute_last_assess or None
+        if workdir:
+            _render_volute_airflow(workdir)
         state.flush()
 
     # Expose callbacks for the UI renderer.
@@ -676,3 +748,35 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                 with v3.VCard(style=f"height:{VTK_HEIGHT_PX}px;", classes="mb-2"):
                     volute_view = plotter_ui(volute_plotter)
                     ctrl.volute_view_update = volute_view.update
+                with v3.VCard(classes="mb-2 pa-2", v_show="volute_subtab === 'results'"):
+                    html.Div(
+                        "Scroll-section airflow — last Assess",
+                        classes="text-subtitle-2 mb-1",
+                    )
+                    html.Div(
+                        "Y=0 meridional cut of the sealed scroll (not the axial-duct wake crop). "
+                        "|U| and pressure only — outlet is +X, inlet is +Z. Axial-Uz is omitted "
+                        "because this is a radial machine.",
+                        classes="text-caption text-medium-emphasis mb-2",
+                    )
+                    with v3.VBtnToggle(
+                        v_model=("volute_airflow_field",),
+                        density="compact",
+                        color="primary",
+                        classes="mb-2",
+                        mandatory=True,
+                    ):
+                        v3.VBtn("|U| scroll", value="U", size="small")
+                        v3.VBtn("pressure scroll", value="p", size="small")
+                    html.Div(
+                        "{{ volute_airflow_caption }}",
+                        classes="text-caption text-medium-emphasis mb-1",
+                    )
+                    html.Img(
+                        src=("volute_airflow_img_uri",),
+                        v_show="volute_airflow_img_uri",
+                        style=(
+                            "width:100%;max-height:520px;object-fit:contain;"
+                            "display:block;background:#fafafa;border-radius:4px;"
+                        ),
+                    )

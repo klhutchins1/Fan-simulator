@@ -657,15 +657,16 @@ present. The real Fan-only gap was the **airflow viz**, now the focus of 17.3.
   browser (Fan/Mixed/Volute/Prop/CROR all render, no errors). See [[cockpit-trame-gotchas]].
 - [~] **17.2 Assess / run a single design from the tab.** Already present (Mixed/Volute Assess,
   Prop Analyze, CROR Optimize+CFD-refine).
-- [~] **17.3 Airflow viz where applicable.** **[impact: med]** **[effort: med]**
+- [x] **17.3 Airflow viz where applicable.** **[impact: med]** **[effort: med]** DONE 2026-09-24.
   - [x] **Mixed** (2026-09-19) — full |U|/p + axial-Uz + streamlines, verified on a real MRF case.
   - [x] **CROR** (2026-09-20) — rendered for the best CFD-refined design (dual AXIAL rotors).
   - [x] **Shared fix — midplane |U| clim clamp.** `throughflow_umag_clim` scales the |U| midplane to the 95th percentile (floor 0.5 m/s). Cached PNG name is `U_midplane_v8.png`.
   - [x] **Prop** (2026-09-24) — open-air axial rotor: Results panel wires the shared
     airflow pack after CFD refine (and on Library load when a `cfd_refine` case exists).
     |U|/p midplane + axial Uz + streamlines; same clim clamp as Mixed/CROR.
-  - [ ] **Volute** — radial scroll: reuse ATTEMPTED and reverted 2026-09-20 (verified on a real
-    volute Assess). The |U| color scale is now clamped. Still open: a scroll-appropriate slice plane. The impeller-anchored crop renders a thin off-centre strip of the scroll.
+  - [x] **Volute** (2026-09-24) — scroll-section |U|/p: `layout="scroll"` keeps the full Y=0
+    cut (no tip-radius wake crop) and orients the camera so +X outlet is right / +Z inlet is
+    up. Axial-Uz omitted (radial machine). Clim clamp already in.
 - [x] **17.4 Shared binder.** **[impact: med]** **[effort: med]** DONE 2026-09-19/20:
   `fansim/cockpit/airflow_panel.py` (render_airflow_pack / pick_airflow_uri / png_data_uri);
   Fan tab deduped onto it (ae00cd2); Mixed + CROR wire it. Fuller results/binder unification

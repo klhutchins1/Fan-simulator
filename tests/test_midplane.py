@@ -168,6 +168,46 @@ def test_render_midplane_pngs_synthetic_mesh(tmp_path: Path):
 
 
 @pytest.mark.slow
+def test_render_midplane_scroll_layout_keeps_full_extent(tmp_path: Path):
+    """Scroll layout must not tip-crop: outlet stub lives beyond r_tip at +X."""
+    pv = pytest.importorskip("pyvista")
+    case = tmp_path / "case"
+    case.mkdir()
+    # Wide in X (scroll + outlet) and short in Z — axial crop would clip to ~r_tip.
+    grid = pv.ImageData(
+        dimensions=(20, 6, 8),
+        spacing=(0.02, 0.02, 0.02),
+        origin=(-0.05, -0.05, -0.05),
+    )
+    n = grid.n_cells
+    u = np.zeros((n, 3), dtype=float)
+    u[:, 0] = 1.2  # radial discharge toward +X
+    grid.cell_data["U"] = u
+    grid.cell_data["p"] = np.linspace(0.0, 5.0, n)
+
+    art = render_midplane_pngs(case, mesh=grid, layout="scroll")
+    assert art.available
+    assert art.u_png is not None and art.u_png.is_file()
+    assert art.u_png.name == "U_midplane_scroll_v1.png"
+    assert "scroll" in art.caption.lower()
+    assert "OUTLET" in art.caption
+
+
+def test_find_cached_midplane_scroll_uses_separate_names(tmp_path: Path):
+    case = tmp_path / "case"
+    case.mkdir()
+    assert find_cached_midplane(case, layout="scroll") is None
+    u_png, _p = artifact_paths(case, layout="scroll")
+    u_png.parent.mkdir(parents=True)
+    u_png.write_bytes(b"fake")
+    cached = find_cached_midplane(case, layout="scroll")
+    assert cached is not None and cached.available
+    assert "scroll" in cached.caption.lower()
+    # Axial cache must stay independent.
+    assert find_cached_midplane(case, layout="axial") is None
+
+
+@pytest.mark.slow
 def test_render_axial_uz_png_synthetic_mesh(tmp_path: Path):
     pv = pytest.importorskip("pyvista")
     case = tmp_path / "case"

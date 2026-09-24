@@ -25,7 +25,12 @@ AIRFLOW_CAPTIONS = {
     "uz": "axial Uz cut-plane — blue = delivery (+Z), red = reverse (−Z)",
     "stream": "streamlines colored by |U| — inlet (−Z) → wake (+Z)",
 }
+AIRFLOW_CAPTIONS_SCROLL = {
+    "U": "Umag scroll section — OUTLET RIGHT (+X), INLET UP (+Z)",
+    "p": "pressure scroll section — OUTLET RIGHT (+X), INLET UP (+Z)",
+}
 AIRFLOW_FIELDS = ("U", "p", "uz", "stream")
+AIRFLOW_FIELDS_SCROLL = ("U", "p")
 
 
 def png_data_uri(path) -> str:
@@ -38,15 +43,28 @@ def png_data_uri(path) -> str:
         return ""
 
 
-def render_airflow_pack(case_dir, *, runner_factory=None, image_ok=None) -> dict:
-    """Render all four airflow views for a solved case dir. Returns per-field data URIs.
+def render_airflow_pack(case_dir, *, runner_factory=None, image_ok=None, layout: str = "axial") -> dict:
+    """Render airflow views for a solved case dir. Returns per-field data URIs.
+
+    ``layout="axial"`` (default): |U|/p midplane + axial Uz + streamlines.
+    ``layout="scroll"``: |U|/p scroll section only (volute 90° machine — no axial-Uz).
 
     Fail-soft: a missing case / no fields / Docker down / render error yields empty URIs and
-    ``available=False`` (never raises). The midplane reconstruct is shared, so the Uz and
-    streamline passes only add a slice + a trace.
+    ``available=False`` (never raises).
     """
     case_dir = Path(case_dir) if case_dir is not None else None
-    mid = ensure_midplane_artifacts(case_dir, runner_factory=runner_factory, image_ok=image_ok)
+    mid = ensure_midplane_artifacts(
+        case_dir, runner_factory=runner_factory, image_ok=image_ok, layout=layout,
+    )
+    if layout == "scroll":
+        uris = {
+            "U": png_data_uri(mid.u_png) if mid.available else "",
+            "p": png_data_uri(mid.p_png) if mid.available else "",
+            "uz": "",
+            "stream": "",
+        }
+        return {"uris": uris, "available": any(uris.values()), "layout": "scroll"}
+
     uz = ensure_axial_uz_artifact(case_dir, runner_factory=runner_factory, image_ok=image_ok)
     stream = ensure_streamlines_artifact(case_dir, runner_factory=runner_factory, image_ok=image_ok)
     uris = {
@@ -55,11 +73,12 @@ def render_airflow_pack(case_dir, *, runner_factory=None, image_ok=None) -> dict
         "uz": png_data_uri(uz.png) if uz is not None and uz.available else "",
         "stream": png_data_uri(stream.png) if stream is not None and stream.available else "",
     }
-    return {"uris": uris, "available": any(uris.values())}
+    return {"uris": uris, "available": any(uris.values()), "layout": "axial"}
 
 
-def pick_airflow_uri(uris: dict, field: str) -> tuple[str, str]:
+def pick_airflow_uri(uris: dict, field: str, *, layout: str = "axial") -> tuple[str, str]:
     """(uri, caption) for the chosen field; fall back to |U| then pressure if it is unavailable."""
+    captions = AIRFLOW_CAPTIONS_SCROLL if layout == "scroll" else AIRFLOW_CAPTIONS
     uri = uris.get(field, "") if uris else ""
     shown = field
     if not uri and uris:
@@ -67,4 +86,4 @@ def pick_airflow_uri(uris: dict, field: str) -> tuple[str, str]:
             uri, shown = uris["U"], "U"
         elif uris.get("p"):
             uri, shown = uris["p"], "p"
-    return uri, (AIRFLOW_CAPTIONS.get(shown, "") if uri else "")
+    return uri, (captions.get(shown, "") if uri else "")

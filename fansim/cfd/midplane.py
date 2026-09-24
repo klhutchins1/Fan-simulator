@@ -22,8 +22,13 @@ _VIZ_SUBDIR = Path("postProcessing") / "cockpit_viz"
 # v8: |U| color scale is the 95th-percentile through-flow, not the tip-speed spike.
 _U_NAME = "U_midplane_v8.png"
 _P_NAME = "p_midplane_v7.png"
+# Scroll layout (volute): full Y=0 section, camera up=+Z so +X outlet is screen-right.
+_U_NAME_SCROLL = "U_midplane_scroll_v1.png"
+_P_NAME_SCROLL = "p_midplane_scroll_v1.png"
 # Off-screen Plotter + matplotlib mathtext is not thread-safe (Windows hard crash).
 _RENDER_LOCK = threading.Lock()
+
+_LAYOUTS = ("axial", "scroll")
 
 
 @dataclass(frozen=True)
@@ -92,29 +97,41 @@ def case_has_flow_fields(case_dir: str | Path) -> bool:
     return has_reconstructed_fields(case_dir) or has_decomposed_fields(case_dir)
 
 
-def artifact_paths(case_dir: str | Path) -> tuple[Path, Path]:
+def artifact_paths(case_dir: str | Path, *, layout: str = "axial") -> tuple[Path, Path]:
     """Canonical cache locations under ``postProcessing/cockpit_viz/``."""
     root = Path(case_dir) / _VIZ_SUBDIR
+    if layout == "scroll":
+        return root / _U_NAME_SCROLL, root / _P_NAME_SCROLL
     return root / _U_NAME, root / _P_NAME
 
 
-def find_cached_midplane(case_dir: str | Path) -> MidplaneArtifacts | None:
+def find_cached_midplane(
+    case_dir: str | Path, *, layout: str = "axial",
+) -> MidplaneArtifacts | None:
     """Return artifacts if both (or at least one) midplane PNGs already exist."""
     case_dir = Path(case_dir)
-    u_png, p_png = artifact_paths(case_dir)
+    u_png, p_png = artifact_paths(case_dir, layout=layout)
     u = u_png if u_png.is_file() else None
     p = p_png if p_png.is_file() else None
     if u is None and p is None:
         return None
+    if layout == "scroll":
+        cap = (
+            "Umag scroll section — OUTLET RIGHT (+X), INLET UP (+Z)"
+            if u
+            else "pressure scroll section — OUTLET RIGHT (+X), INLET UP (+Z)"
+        )
+    else:
+        cap = (
+            "Umag midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)"
+            if u
+            else "pressure midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)"
+        )
     return MidplaneArtifacts(
         case_dir=case_dir,
         u_png=u,
         p_png=p,
-        caption=(
-            "Umag midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)"
-            if u
-            else "pressure midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)"
-        ),
+        caption=cap,
         available=True,
     )
 
@@ -213,25 +230,27 @@ def render_midplane_pngs(
     *,
     mesh=None,
     window_size: tuple[int, int] = (1600, 480),
+    layout: str = "axial",
 ) -> MidplaneArtifacts:
     """Slice internal mesh on Y=0 and write ``|U|`` + ``p`` PNGs.
 
-    Orientation (v3+): look from **+Y** with +X up so world **−Z is left** (FRONT /
-    inlet) and **+Z is right** (OUTLET). VTK's view-right is ``ViewUp × ViewPlaneNormal``;
-    looking from −Y accidentally mirrored that, which v2 got wrong.
+    ``layout="axial"`` (default): impeller-anchored crop biased to the +Z wake;
+    look from +Y with up=+X so −Z is left (FRONT) and +Z is right (OUTLET).
 
-    v6 keeps the crop impeller-anchored but biases it downstream: short FRONT
-    approach, long OUTLET wake (the interesting jet / hub dead-zone develops
-    behind the blades). Camera aims at the window mid so the PNG isn't
-    left-padded with empty inlet.
+    ``layout="scroll"``: keep the full Y=0 section (no tip-radius crop); look from
+    +Y with up=+Z so +X is right (volute OUTLET) and +Z is up (INLET). Used by the
+    Volute tab — the axial crop was cutting the Archimedean scroll to a thin strip.
 
     ``mesh`` may be injected for tests (PyVista UnstructuredGrid-like). When
     omitted, loads via ``fansim.acoustics.case.read_case`` (requires reconstruct).
     """
     import pyvista as pv
 
+    if layout not in _LAYOUTS:
+        raise ValueError(f"unknown midplane layout {layout!r}; known: {_LAYOUTS}")
+
     case_dir = Path(case_dir)
-    out_u, out_p = artifact_paths(case_dir)
+    out_u, out_p = artifact_paths(case_dir, layout=layout)
     out_u.parent.mkdir(parents=True, exist_ok=True)
 
     if mesh is None:
@@ -248,34 +267,50 @@ def render_midplane_pngs(
             caption="Airflow not available for this design", available=False,
         )
 
-    # Impeller-anchored crop (rig places the rotor near Z=0). Bias +Z: short approach,
-    # long wake — uniform inlet green is boring; the jet develops behind the blades.
     b = slc.bounds
     z0, z1 = float(b[4]), float(b[5])
     x0, x1 = float(b[0]), float(b[1])
     xc = 0.5 * (x0 + x1)
     zc = 0.0 if (z0 < 0.0 < z1) else 0.5 * (z0 + z1)
-    r_tip = max(abs(x0), abs(x1), abs(x0 - xc), abs(x1 - xc), 0.03)
-    z_in = max(1.1 * r_tip, 0.04)   # −Z (FRONT) — just enough to see the LE entry
-    z_out = max(4.0 * r_tip, 0.10)  # +Z (OUTLET) — hub wake + tip jets
-    z_look = zc + 0.5 * (z_out - z_in)  # frame mid of the asymmetric window
-    x_keep = 1.08 * r_tip
-    try:
-        slc = slc.clip_box(
-            [
-                xc - x_keep, xc + x_keep,
-                float(b[2]) - 0.01, float(b[3]) + 0.01,
-                zc - z_in, zc + z_out,
-            ],
-            invert=False,
-        )
-    except Exception:  # noqa: BLE001 — keep full slice if clip fails
-        pass
-    if slc.n_points == 0:
-        return MidplaneArtifacts(
-            case_dir=case_dir, u_png=None, p_png=None,
-            caption="Airflow not available for this design", available=False,
-        )
+
+    if layout == "axial":
+        # Impeller-anchored crop (rig places the rotor near Z=0). Bias +Z: short approach,
+        # long wake — uniform inlet green is boring; the jet develops behind the blades.
+        r_tip = max(abs(x0), abs(x1), abs(x0 - xc), abs(x1 - xc), 0.03)
+        z_in = max(1.1 * r_tip, 0.04)   # −Z (FRONT) — just enough to see the LE entry
+        z_out = max(4.0 * r_tip, 0.10)  # +Z (OUTLET) — hub wake + tip jets
+        z_look = zc + 0.5 * (z_out - z_in)  # frame mid of the asymmetric window
+        x_keep = 1.08 * r_tip
+        try:
+            slc = slc.clip_box(
+                [
+                    xc - x_keep, xc + x_keep,
+                    float(b[2]) - 0.01, float(b[3]) + 0.01,
+                    zc - z_in, zc + z_out,
+                ],
+                invert=False,
+            )
+        except Exception:  # noqa: BLE001 — keep full slice if clip fails
+            pass
+        if slc.n_points == 0:
+            return MidplaneArtifacts(
+                case_dir=case_dir, u_png=None, p_png=None,
+                caption="Airflow not available for this design", available=False,
+            )
+        cam_focal = (float(xc), float(origin[1]), float(z_look))
+        view_up = (1.0, 0.0, 0.0)
+        left_label, right_label = "FRONT (inlet)", "OUTLET (flow ->)"
+        title_u, title_p = "Umag midplane (m/s)", "pressure midplane (m2/s2)"
+        cap_u = "Umag midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)"
+        cap_p = "pressure midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)"
+    else:
+        # Full scroll section — outlet stub lives at +X beyond tip radius.
+        cam_focal = (float(xc), float(origin[1]), float(zc))
+        view_up = (0.0, 0.0, 1.0)
+        left_label, right_label = "scroll / eye", "OUTLET (+X)"
+        title_u, title_p = "Umag scroll section (m/s)", "pressure scroll section (m2/s2)"
+        cap_u = "Umag scroll section — OUTLET RIGHT (+X), INLET UP (+Z)"
+        cap_p = "pressure scroll section — OUTLET RIGHT (+X), INLET UP (+Z)"
 
     u_written = p_written = None
 
@@ -310,25 +345,30 @@ def render_midplane_pngs(
                     },
                     **mesh_kw,
                 )
-                # Look from +Y, up = +X → screen-right = +Z (OUTLET), screen-left = −Z (FRONT).
                 bb = slc.bounds
                 xspan = max(abs(float(bb[1]) - float(bb[0])), 1e-6)
-                half = 0.55 * xspan  # fit duct diameter in viewport height → wide Z panorama
+                zspan = max(abs(float(bb[5]) - float(bb[4])), 1e-6)
+                if layout == "scroll":
+                    # Fit both X (outlet) and Z (inlet) extents in the viewport.
+                    half = 0.55 * max(xspan, zspan)
+                else:
+                    half = 0.55 * xspan  # fit duct diameter in viewport height → wide Z panorama
                 dist = 3.0 * max(half, 0.1)
+                fx, fy, fz = cam_focal
                 pl.camera_position = [
-                    (float(xc), float(origin[1]) + dist, float(z_look)),
-                    (float(xc), float(origin[1]), float(z_look)),
-                    (1.0, 0.0, 0.0),
+                    (fx, fy + dist, fz),
+                    (fx, fy, fz),
+                    view_up,
                 ]
                 pl.camera.parallel_projection = True
                 pl.camera.parallel_scale = half
                 # ASCII only — ``|U|`` / arrows go through matplotlib mathtext and can crash VTK.
                 pl.add_text(title, font_size=11, color="black", position="upper_edge")
                 pl.add_text(
-                    "FRONT (inlet)", font_size=11, color="black", position="lower_left",
+                    left_label, font_size=11, color="black", position="lower_left",
                 )
                 pl.add_text(
-                    "OUTLET (flow ->)", font_size=11, color="black", position="lower_right",
+                    right_label, font_size=11, color="black", position="lower_right",
                 )
                 pl.screenshot(str(path))
             finally:
@@ -336,24 +376,20 @@ def render_midplane_pngs(
         return path if path.is_file() else None
 
     try:
-        u_written = _shot("U_mag", "Umag midplane (m/s)", out_u)
+        u_written = _shot("U_mag", title_u, out_u)
     except Exception:  # noqa: BLE001
         u_written = None
     try:
         if "p" in slc.cell_data or "p" in slc.point_data or "p" in slc.array_names:
-            p_written = _shot("p", "pressure midplane (m2/s2)", out_p)
+            p_written = _shot("p", title_p, out_p)
     except Exception:  # noqa: BLE001
         p_written = None
 
     ok = u_written is not None or p_written is not None
     cap = (
-        "Umag midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)"
+        cap_u
         if u_written
-        else (
-            "pressure midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)"
-            if p_written
-            else "Airflow not available for this design"
-        )
+        else (cap_p if p_written else "Airflow not available for this design")
     )
     return MidplaneArtifacts(
         case_dir=case_dir,
@@ -738,6 +774,7 @@ def ensure_midplane_artifacts(
     image_ok=None,
     mesh=None,
     force: bool = False,
+    layout: str = "axial",
 ) -> MidplaneArtifacts:
     """Find or build midplane PNGs for a case directory.
 
@@ -758,7 +795,7 @@ def ensure_midplane_artifacts(
         return unavailable
 
     if not force:
-        cached = find_cached_midplane(case_dir)
+        cached = find_cached_midplane(case_dir, layout=layout)
         if cached is not None and cached.u_png is not None:
             return cached
 
@@ -769,6 +806,6 @@ def ensure_midplane_artifacts(
             return unavailable
 
     try:
-        return render_midplane_pngs(case_dir, mesh=mesh)
+        return render_midplane_pngs(case_dir, mesh=mesh, layout=layout)
     except Exception:  # noqa: BLE001
         return unavailable
