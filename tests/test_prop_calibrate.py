@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
+from pathlib import Path
+
 from fansim.prop_spec import get_prop_spec
 from fansim.propeller.calibrate import (
     affinity_thrust_g,
@@ -42,3 +46,19 @@ def test_bemt_datasheet_report_runs():
     assert rep["source"] == "bemt"
     assert rep["thrust_g"] > 0
     assert "thrust_ratio" in rep["datasheet"]
+
+
+def test_datasheet_cli_prints_power():
+    script = Path(__file__).resolve().parents[1] / "scripts" / "calibrate_prop_datasheet.py"
+    proc = subprocess.run(
+        [sys.executable, str(script), "--spec", "fpv_5inch"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    line = proc.stdout.splitlines()[0]
+    assert line == (
+        "fpv_5inch: BEMT 1654 g, 572.6 W @ 30000 RPM | "
+        "ref_scaled 1850.0 g, 650.0 W | "
+        "thrust_ratio 0.894 | power_ratio 0.881 | within_2x=True"
+    )

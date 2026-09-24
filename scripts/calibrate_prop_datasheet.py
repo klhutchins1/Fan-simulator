@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -31,10 +32,12 @@ def main() -> int:
         rows.append(rep)
         d = rep["datasheet"]
         ratio = d.get("thrust_ratio")
+        p_ratio = d.get("power_ratio")
         print(
-            f"{key}: BEMT {rep['thrust_g']:.0f} g @ {rep['rpm']:.0f} RPM | "
-            f"ref_scaled {d.get('thrust_ref_scaled_g')} g | "
-            f"ratio {ratio if ratio is None else round(ratio, 3)} | "
+            f"{key}: BEMT {rep['thrust_g']:.0f} g, {rep['power_w']:.1f} W @ {rep['rpm']:.0f} RPM | "
+            f"ref_scaled {d.get('thrust_ref_scaled_g')} g, {d.get('power_ref_scaled_w')} W | "
+            f"thrust_ratio {ratio if ratio is None else round(ratio, 3)} | "
+            f"power_ratio {p_ratio if p_ratio is None else round(p_ratio, 3)} | "
             f"within_2x={d.get('within_2x')}"
         )
 
@@ -48,4 +51,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    code = main()
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(code)
