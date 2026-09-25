@@ -7,7 +7,12 @@ camber, take the concave side's normal n_p, and read rotation = sign(n_p.s) (+1 
 omega_z > 0, CCW seen from +Z) and delivery = sign(n_p.z) (+1 = +Z).
 
 Cross-check: chirality chi = sign(sum A * n_theta * n_z) over the cut faces. chi is invariant under
-any proper rotation of the part and flips under mirroring; it must equal rotation * delivery.
+any proper rotation of the part and flips under mirroring. Algebraically chi always equals
+rotation * delivery (both reduce to sign(e_s . e_z) of the same section frame), so this check only
+confirms chord/normal consistency and the part's handedness -- it is not an independent proof of
+which way the part is designed to turn. The independent checks of the designed rotation are the tip
+lead (on the real fan, tips lead the rotation) and the motor side (air leaves past the motor, so
+pump = motor_side and, via chirality, omega = chi * pump).
 """
 
 from __future__ import annotations
@@ -54,6 +59,7 @@ def _section_loops(mesh: trimesh.Trimesh, r0: float):
     """Cut with the cylinder r = r0. Yields (ordered loop points (k,3), crossed face ids)."""
     v = mesh.vertices
     r = np.hypot(v[:, 0], v[:, 1]) - r0
+    r[r == 0.0] = 1e-12  # a vertex exactly on r0 must count as outside, not as a crossing
     e = mesh.edges_unique
     crossed = (r[e[:, 0]] * r[e[:, 1]]) < 0.0
     idx = np.nonzero(crossed)[0]
@@ -142,20 +148,23 @@ def prove_direction(mesh: trimesh.Trimesh,
 
 
 def motor_side(mesh: trimesh.Trimesh, n: int = 64, min_depth_mm: float = 2.0) -> int | None:
-    """Face (+1 = +Z, -1 = -Z) where the hub is an open cup: axial rays go deeper on that side."""
-    v = mesh.vertices
-    tip = _tip_radius(mesh)
-    rv = np.hypot(v[:, 0], v[:, 1])
-    hub = v[rv < 0.3 * tip]
-    if len(hub) < 10:
-        return None
-    z0, z1 = float(hub[:, 2].min()), float(hub[:, 2].max())
-    rng = np.random.default_rng(0)
-    rr = tip * (0.05 + 0.10 * rng.random(n))
-    th = 2.0 * np.pi * rng.random(n)
-    xy = np.column_stack([rr * np.cos(th), rr * np.sin(th)])
+    """Face (+1 = +Z, -1 = -Z) where the hub is an open cup: axial rays go deeper on that side.
 
-    def depth(z_face: float, direction: float) -> float | None:
+    Probes a series of radial bands near the axis rather than a single hub-vertex band, since on
+    a real mesh (extruded walls only tessellate at their z-ends, and a centre bore leaves the
+    near-axis vertex band empty) the naive "vertices with r < 0.3*tip" test can see no hub
+    material at all. The first band where both +Z and -Z rays hit solid material on at least half
+    their rays, with median depths differing by at least ``min_depth_mm``, decides; deeper from
+    -Z means the cup opens at -Z (return -1).
+    """
+    tip = _tip_radius(mesh)
+    z0, z1 = (float(b) for b in mesh.bounds[:, 2])
+    rng = np.random.default_rng(0)
+
+    def depth(z_face: float, direction: float, r_lo: float, r_hi: float) -> float | None:
+        rr = r_lo + (r_hi - r_lo) * rng.random(n)
+        th = 2.0 * np.pi * rng.random(n)
+        xy = np.column_stack([rr * np.cos(th), rr * np.sin(th)])
         origins = np.column_stack([xy, np.full(n, z_face - direction * 1.0)])
         dirs = np.tile([0.0, 0.0, direction], (n, 1))
         locs, _, _ = mesh.ray.intersects_location(origins, dirs, multiple_hits=False)
@@ -163,10 +172,16 @@ def motor_side(mesh: trimesh.Trimesh, n: int = 64, min_depth_mm: float = 2.0) ->
             return None
         return float(np.median(np.abs(locs[:, 2] - z_face)))
 
-    d_lo, d_hi = depth(z0, +1.0), depth(z1, -1.0)
-    if d_lo is None or d_hi is None or abs(d_lo - d_hi) < min_depth_mm:
-        return None
-    return -1 if d_lo > d_hi else +1
+    for f in np.linspace(0.05, 0.35, 7):
+        r_lo, r_hi = (f - 0.02) * tip, (f + 0.02) * tip
+        d_lo = depth(z0, +1.0, r_lo, r_hi)
+        d_hi = depth(z1, -1.0, r_lo, r_hi)
+        if d_lo is None or d_hi is None:
+            continue
+        if abs(d_lo - d_hi) < min_depth_mm:
+            continue
+        return -1 if d_lo > d_hi else +1
+    return None
 
 
 def tip_lead_sign(mesh: trimesh.Trimesh,
@@ -177,14 +192,23 @@ def tip_lead_sign(mesh: trimesh.Trimesh,
     Each blade is tracked outward through closely spaced cylinder cuts (nearest section centroid
     step to step, so large total sweep never jumps to a neighbour blade). The median total sweep
     across blades decides; |sweep| below ``min_sweep_deg`` is unclear (None).
+
+    The per-loop angular centroid is computed from the arc-length-resampled loop (same unwrap as
+    ``_read_section``), not a raw vertex mean: uneven chordwise vertex density would otherwise bias
+    a raw mean toward wherever vertices happen to be denser, faking a lead that isn't there.
     """
     tip = _tip_radius(mesh)
     rings = []
     for f in r_fracs:
+        r0 = f * tip
         cents = []
-        for pts, _ in _section_loops(mesh, f * tip):
-            th = np.arctan2(pts[:, 1], pts[:, 0])
-            cents.append(float(np.angle(np.mean(np.exp(1j * th)))))
+        for pts, _ in _section_loops(mesh, r0):
+            theta = np.arctan2(pts[:, 1], pts[:, 0])
+            tm = np.angle(np.mean(np.exp(1j * theta)))
+            s = r0 * np.angle(np.exp(1j * (theta - tm)))
+            p2 = _resample_closed(np.column_stack([s, pts[:, 2]]))
+            theta_r = tm + p2[:, 0] / r0
+            cents.append(float(np.angle(np.mean(np.exp(1j * theta_r)))))
         if not cents:
             return None
         rings.append(np.array(cents))

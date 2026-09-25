@@ -6,13 +6,24 @@ bulging toward +e when camber > 0, so the pressure normal is -e = (sin g, -cos g
   g=+60, camber>0 -> n_p=(+0.87,-0.5): rotation +1 (CCW from +Z), pumps -Z
   g=-60, camber>0 -> n_p=(-0.87,-0.5): rotation -1,              pumps -Z
   g=+60, camber<0 -> n_p=(-0.87,+0.5): rotation -1,              pumps +Z
+
+Note on chirality: chi = sign(sum A * n_theta * n_z) always algebraically equals
+rotation * delivery (both reduce to sign(e_s . e_z) of the same section frame), so it is not an
+independent proof of designed rotation -- it only checks chord/normal consistency and handedness.
+The independent checks used elsewhere are tip lead and motor side (see test_direction_geometry
+below and Task 6).
 """
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 import trimesh
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_A12X25_STL = _REPO_ROOT / "validation" / "reference" / "a12x25_impeller.stl"
 
 from fansim.audit.direction import (
     REAL_FAN_CHIRALITY,
@@ -43,6 +54,16 @@ def test_known_answers(stagger, camber, omega, pump):
     assert (p.omega_sign, p.pump_sign) == (omega, pump)
     assert p.chirality == omega * pump
     assert p.agreement == 1.0
+
+
+def test_known_answer_is_invariant_under_rotation_about_z():
+    # A proper rotation about the spin axis must not change the reading (same physical fan).
+    m = cambered_blade_fan(stagger_deg=60.0, camber=0.06)
+    m.apply_transform(trimesh.transformations.rotation_matrix(np.radians(37.0), [0.0, 0.0, 1.0]))
+    p = prove_direction(m)
+    assert p.verdict == "CONCLUSIVE", p.note
+    assert (p.omega_sign, p.pump_sign) == (+1, -1)
+    assert p.chirality == -1
 
 
 def test_overlapping_high_solidity_blades():
@@ -77,6 +98,14 @@ def test_tip_lead_sign(sweep, expected):
     assert tip_lead_sign(cambered_blade_fan(n_blades=9, chord=30.0, sweep_deg=sweep)) == expected
 
 
+def test_tip_lead_sign_ignores_uneven_chordwise_vertex_density():
+    # Squeezing chordwise stations toward the ends (chord_gamma != 1) skews a raw vertex-mean
+    # centroid without moving the loop's actual shape; the arc-length-resampled centroid must
+    # see through it and report no sweep at all.
+    m = cambered_blade_fan(n_blades=9, chord=30.0, sweep_deg=0.0, chord_gamma=2.5)
+    assert tip_lead_sign(m) is None
+
+
 def test_tip_lead_follows_the_part_when_turned_over():
     # Turning the fan over reverses theta, so the tip-lead sign flips together with omega.
     m = cambered_blade_fan(sweep_deg=25.0)
@@ -97,6 +126,24 @@ def test_motor_side_unclear_without_cup():
     assert motor_side(cambered_blade_fan(cup_side=None)) is None
 
 
+@pytest.mark.parametrize("side", [+1, -1])
+def test_motor_side_with_centre_bore(side):
+    # A through-bore (like the real A12x25's ~10 mm centre hole) leaves the r < 0.3*tip band
+    # empty of material near the axis; motor_side must still find the cup from other bands.
+    assert motor_side(cambered_blade_fan(cup_side=side, bore_r=5.0)) == side
+
+
 def test_synthetic_blades_are_watertight():
     for b in cambered_blade_fan().split(only_watertight=False):
         assert isinstance(b, trimesh.Trimesh) and b.is_watertight
+
+
+@pytest.mark.skipif(not _A12X25_STL.exists(), reason="reference STL not present")
+def test_real_a12x25_direction_and_motor_side():
+    # Regression pin on the real rotor mesh (read-only; never rewritten by this test).
+    mesh = trimesh.load(_A12X25_STL)  # default processing (in-memory only; never writes the file)
+    p = prove_direction(mesh)
+    assert p.verdict == "CONCLUSIVE", p.note
+    assert (p.omega_sign, p.pump_sign, p.chirality) == (+1, -1, -1)
+    assert tip_lead_sign(mesh) == +1
+    assert motor_side(mesh) == -1

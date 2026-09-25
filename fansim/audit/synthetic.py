@@ -13,11 +13,14 @@ import trimesh
 
 
 def _blade(theta0, r_hub, r_tip, chord, stagger_deg, camber, thick, sweep_deg=0.0,
-           n_chord=40, n_span=12):
+           chord_gamma=1.0, n_chord=40, n_span=12):
     g = np.radians(stagger_deg)
     c_hat = np.array([np.cos(g), np.sin(g)])
     e_hat = np.array([-np.sin(g), np.cos(g)])
-    xi = np.linspace(-chord / 2, chord / 2, n_chord)
+    u = np.linspace(-1.0, 1.0, n_chord)
+    if chord_gamma != 1.0:
+        u = np.sign(u) * np.abs(u) ** chord_gamma
+    xi = u * (chord / 2.0)
     eta_m = camber * chord * (1.0 - (2.0 * xi / chord) ** 2)
     rho = np.linspace(r_hub - 1.0, r_tip, n_span)
     layers = []
@@ -57,12 +60,18 @@ def _blade(theta0, r_hub, r_tip, chord, stagger_deg, camber, thick, sweep_deg=0.
     return mesh
 
 
-def _hub(r_hub, height, cup_side):
+def _hub(r_hub, height, cup_side, bore_r=0.0):
     if cup_side is None:
+        if bore_r > 0.0:
+            return trimesh.creation.annulus(r_min=bore_r, r_max=r_hub, height=height, sections=48)
         return trimesh.creation.cylinder(radius=r_hub, height=height, sections=48)
     cup_r, cap = 0.75 * r_hub, 1.5
     wall = trimesh.creation.annulus(r_min=cup_r, r_max=r_hub, height=height, sections=48)
-    lid = trimesh.creation.cylinder(radius=cup_r, height=cap, sections=48)
+    if bore_r > 0.0:
+        # A through-bore must pierce the lid too, or it would just be a blind cup.
+        lid = trimesh.creation.annulus(r_min=bore_r, r_max=cup_r, height=cap, sections=48)
+    else:
+        lid = trimesh.creation.cylinder(radius=cup_r, height=cap, sections=48)
     # The lid closes the face OPPOSITE the open cup.
     lid.apply_translation([0.0, 0.0, -cup_side * (height - cap) / 2.0])
     return trimesh.util.concatenate([wall, lid])
@@ -71,9 +80,10 @@ def _hub(r_hub, height, cup_side):
 def cambered_blade_fan(n_blades: int = 5, r_hub: float = 15.0, r_tip: float = 50.0,
                        chord: float = 20.0, stagger_deg: float = 60.0, camber: float = 0.06,
                        thick: float = 1.0, cup_side: int | None = None,
-                       hub_height: float = 16.0, sweep_deg: float = 0.0) -> trimesh.Trimesh:
+                       hub_height: float = 16.0, sweep_deg: float = 0.0,
+                       chord_gamma: float = 1.0, bore_r: float = 0.0) -> trimesh.Trimesh:
     parts = [_blade(2.0 * np.pi * k / n_blades, r_hub, r_tip, chord, stagger_deg, camber, thick,
-                    sweep_deg)
+                    sweep_deg, chord_gamma)
              for k in range(n_blades)]
-    parts.append(_hub(r_hub, hub_height, cup_side))
+    parts.append(_hub(r_hub, hub_height, cup_side, bore_r))
     return trimesh.util.concatenate(parts)
