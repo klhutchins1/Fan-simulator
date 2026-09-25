@@ -1,0 +1,52 @@
+# Audited physics units. Schema + states: docs/superpowers/specs/2026-09-24-physics-audit-design.md
+# targets: "pkg.module" (whole module) or "pkg.module:Name[.method]". Fingerprints ignore comments,
+# docstrings and formatting, so only logic changes invalidate a unit.
+exempt: []
+units:
+  - id: physics.air_properties
+    targets: ["fansim.physics.air"]
+    claim: "Room-temperature sea-level air: rho 1.2 (AMCA) / 1.225 (ISA), nu 1.5e-5, mu 1.81e-5, c0 343"
+    source: {kind: standard, ref: "AMCA 210 standard air; ISA sea level; ideal gas + Sutherland"}
+    regime: {fluid: air, T_K: [288, 298], p_Pa: 101325}
+    checks: [tests/audit/test_air_properties.py]
+
+  - id: audit.direction_geometry
+    targets: ["fansim.audit.direction"]
+    claim: "Designed rotation = the way the concave (pressure) face points; air leaves along that face normal"
+    source: {kind: derivation, ref: "velocity triangles, Dixon & Hall, Fluid Mechanics and Thermodynamics of Turbomachinery, ch. 1/5"}
+    checks: [tests/audit/test_direction_geometry.py]
+    libs: [trimesh, networkx]
+
+  - id: cfd.flow_direction_convention
+    targets:
+      - "fansim.cfd.domain:TestRig"
+      - "fansim.cfd.openfoam_case:build_case"
+      - "fansim.cfd.templates:MRF_PROPERTIES"
+      - "fansim.cfd.templates:BLOCK_MESH"
+      - "fansim.cfd.templates:FIELD_U_PDRIVEN"
+      - "fansim.cfd.templates:FIELD_P_PDRIVEN"
+    claim: "Duct inlet -Z / outlet +Z; MRF omega = spin*|omega| about +Z (right-hand); the solved fan pumps +Z in its designed rotation"
+    source: {kind: derivation, ref: "Audit #1 (geometry proof + CFD matrix)"}
+    checks: [tests/audit/test_cfd_direction_contract.py, "ref:a12x25_direction_matrix"]
+    depends_on: [audit.direction_geometry]
+    libs: [openfoam]
+
+  - id: cfd.cfm_from_outlet_flow
+    targets: ["fansim.cfd.metrics:parse_fan_metrics", "fansim.cfd.metrics:CFM_PER_M3S", "fansim.cfd.templates:CONTROL_DICT"]
+    claim: "CFM = sum(phi) over the +Z outlet patch * 2118.882; positive = delivery toward +Z; never abs()"
+    source: {kind: standard, ref: "unit conversion; AMCA 210 flow sign"}
+    checks: [tests/audit/test_cfd_direction_contract.py, tests/test_math_consistency.py]
+    depends_on: [cfd.flow_direction_convention, physics.air_properties]
+
+  - id: optimize.reject_dead_designs
+    targets: ["fansim.optimize.system_curve:score_operating_point"]
+    claim: "Zero/negative free delivery is rejected (SystemCurveError), never scored"
+    source: {kind: derivation, ref: "a fan that does not deliver has no operating point"}
+    checks: [tests/audit/test_dead_design_guard.py]
+
+  - id: propeller.thrust_sign
+    targets: ["fansim.propeller.calibrate:normalize_metrics_sign", "fansim.propeller.calibrate:preferred_spin_for_positive_thrust"]
+    claim: "Prop thrust sign comes from the geometry-derived rotation, not from flipping spin until thrust > 0"
+    source: {kind: derivation, ref: "Audit #1"}
+    checks: []
+    depends_on: [cfd.flow_direction_convention]
