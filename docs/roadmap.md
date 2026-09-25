@@ -210,6 +210,13 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
      target stays the same-mesh MRF smoke (938 g), not the 1249 g extrapolation.
   4. **Done.** The 2163 W versus 388 W gap is the FPV 5×4.3×3 datasheet (650 W at 30 000 rpm, rpm³) applied to a radial impeller (hub 30.4 mm, tip 45.4 mm). Pressure moment is 0.812 N·m of 0.818 N·m. Do not retune the mesh to 388 W. Spec:
      `docs/superpowers/specs/2026-09-23-prop-obj2-power-gap-design.md`.
+- [ ] **4.5 Toroidal propeller shapes — investigate then implement.** **[impact: med]** **[effort: high]**
+  Closed-loop / ring-blade (Sharrow-style) props as an alternate topology under the Prop archetype —
+  not a conventional open blade loft. **Stage 1 (investigate):** literature + printability constraints
+  (continuous toroidal surface, hub join, tip “loop”), whether BEMT is usable or CFD-first is required,
+  and a go/no-go vs the existing open-blade Prop path. **Stage 2 (implement, if go):** CadQuery
+  geometry + STL export, cockpit Design knobs, then open-air CFD smoke (reuse §4.3 MRF path). Do not
+  start Stage 2 until Stage 1 writes a short design note. Park absolute noise / AMI until geometry is real.
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 
