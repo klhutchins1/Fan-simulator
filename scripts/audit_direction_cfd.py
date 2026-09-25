@@ -1,0 +1,104 @@
+"""Audit #1, proof 3: bias-free free-air CFD matrix for one rotor STL.
+
+Meshes each orientation once ({as_built, flipped 180° about X}), then solves spin -1 and +1 at
+0 Pa back-pressure on that mesh, and writes the rows + verdict JSON.
+
+Usage:
+    uv run python scripts/audit_direction_cfd.py --rotor stock
+    uv run python scripts/audit_direction_cfd.py --rotor reference_stl --iters 1500 --procs 8
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import time
+from dataclasses import asdict, replace
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import trimesh  # noqa: E402
+
+from fansim.audit.direction import flip_about_x  # noqa: E402
+from fansim.audit.direction_verdict import MatrixRow, matrix_verdict  # noqa: E402
+from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
+from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve  # noqa: E402
+from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
+from fansim.validation.reference_stl import rig_for_reference_stl  # noqa: E402
+
+ROOT = Path(__file__).resolve().parents[1]
+ROTORS = {
+    "stock": ROOT / "runs" / "audit_direction" / "stock_impeller.stl",   # written by Task 6 script
+    "reference_stl": ROOT / "validation" / "reference" / "a12x25_impeller.stl",
+}
+GEOM_JSON = ROOT / "docs" / "validation" / "audits" / "direction_geometry.json"
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--rotor", choices=sorted(ROTORS), required=True)
+    ap.add_argument("--rpm", type=float, default=2000.0)
+    ap.add_argument("--base-cell", type=float, default=0.006)
+    ap.add_argument("--min-wall-mm", type=float, default=None,
+                    help="thinnest blade wall for mesh sizing (default: Stock recipe value)")
+    ap.add_argument("--iters", type=int, default=1500)
+    ap.add_argument("--procs", type=int, default=8)
+    ap.add_argument("--out", default="runs/audit_direction")
+    args = ap.parse_args(argv)
+    if not image_available():
+        print("SKIPPED: OpenFOAM image not available")
+        return 2
+    src = ROTORS[args.rotor]
+    if not src.is_file():
+        print(f"missing {src}; run scripts/audit_direction_geometry.py first")
+        return 2
+    geom = json.loads(GEOM_JSON.read_text(encoding="utf-8"))["rotors"][args.rotor]
+    base = Path(args.out) / args.rotor
+    min_wall = args.min_wall_mm
+    if min_wall is None:
+        from fansim.geometry.blade import min_blade_wall_mm
+        from fansim.geometry.config import load_blade_params
+        min_wall = min_blade_wall_mm(load_blade_params(
+            ROOT / "config" / "problems" / "a12x25_reference.yaml"))
+    mesh_res = MeshResolution.for_blade(float(args.base_cell), float(min_wall))
+    rows: list[MatrixRow] = []
+    for orientation in ("as_built", "flipped"):
+        case = base / orientation
+        case.mkdir(parents=True, exist_ok=True)
+        stl = case / "impeller_mm.stl"
+        mesh = trimesh.load(str(src), force="mesh")
+        (flip_about_x(mesh) if orientation == "flipped" else mesh).export(str(stl))
+        rig0 = rig_for_reference_stl(stl, rpm=args.rpm)
+        runner = OpenFOAMRunner(case)
+        build_case(case, stl, rig0, mesh=mesh_res, n_iters=args.iters,
+                   n_subdomains=args.procs, back_pressure_pa=0.0)
+        t0 = time.time()
+        run_mesh(runner)
+        print(f"[{orientation}] meshed in {time.time() - t0:.0f}s", flush=True)
+        for spin in (-1, 1):
+            rig = replace(rig0, spin=spin)
+            build_case(case, stl, rig, mesh=mesh_res, n_iters=args.iters,
+                       n_subdomains=args.procs, back_pressure_pa=0.0)
+            t0 = time.time()
+            run_solve(runner, n_procs=args.procs)
+            m = parse_fan_metrics(case, omega_rad_s=rig.omega_rad_s)
+            row = MatrixRow(orientation, spin, m.cfm, m.converged, m.shaft_power_w,
+                            m.moment_z_nm, rig.omega_signed)
+            rows.append(row)
+            print(f"[{orientation} spin {spin:+d}] CFM {m.cfm:+.1f} conv={m.converged} "
+                  f"drift={m.flow_drift_pct:.1f}% P={m.shaft_power_w:.3f} W "
+                  f"Mz={m.moment_z_nm:+.5f} ({time.time() - t0:.0f}s)", flush=True)
+    verdict = matrix_verdict(rows, geometry_omega=geom["omega_sign"])
+    payload = {"rotor": args.rotor, "rpm": args.rpm, "iters": args.iters,
+               "mesh": asdict(mesh_res), "rows": [asdict(r) for r in rows],
+               "geometry": geom, "verdict": verdict}
+    out = ROOT / "docs" / "validation" / "audits" / f"direction_cfd_{args.rotor}.json"
+    out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    print(f"\nVERDICT {verdict['verdict']}: {verdict}\n-> {out}", flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
