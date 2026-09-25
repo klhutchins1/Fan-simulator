@@ -74,8 +74,12 @@ def _write_pp(case: Path, flow: float, mz: float) -> None:
 
 
 def test_metrics_keep_flow_and_moment_signed(tmp_path):
-    _write_pp(tmp_path, flow=-0.02, mz=0.003)
+    # Negative moment_z with distinct x/y/z to prove we're reading the z-component.
+    _write_pp(tmp_path, flow=-0.02, mz=-0.003)
+    # Patch _write_pp to write distinct moment components to verify index.
+    d = tmp_path / "postProcessing" / "forces" / "0"
+    (d / "moment.dat").write_text("\n".join("1 (0.111 0.222 -0.003) (0 0 0) (0 0 0)" for _ in range(10)) + "\n", encoding="utf-8")
     m = parse_fan_metrics(tmp_path, omega_rad_s=209.4)
     assert m.flow_m3s < 0 and m.cfm < 0          # reverse flow reads negative, never abs()
-    assert m.moment_z_nm == pytest.approx(0.003)  # signed; torque stays |Mz|
-    assert m.torque_nm == pytest.approx(0.003)
+    assert m.moment_z_nm == pytest.approx(-0.003) # signed z-component
+    assert m.torque_nm == pytest.approx(0.003)    # torque is |Mz|
