@@ -1031,12 +1031,13 @@ under a mirror image.
 
 **Interfaces:**
 - Produces:
-  - `cambered_blade_fan(n_blades=5, r_hub=15.0, r_tip=50.0, chord=20.0, stagger_deg=60.0, camber=0.06, thick=1.0, cup_side: int | None = None, hub_height=16.0) -> trimesh.Trimesh`
+  - `cambered_blade_fan(n_blades=5, r_hub=15.0, r_tip=50.0, chord=20.0, stagger_deg=60.0, camber=0.06, thick=1.0, cup_side: int | None = None, hub_height=16.0, sweep_deg=0.0) -> trimesh.Trimesh`, where `sweep_deg` > 0 moves the tip ahead of the root toward +θ
   - `SectionReading(r_mm: float, omega_sign: int, pump_sign: int, chirality: int, camber_ratio: float)`
   - `DirectionProof(omega_sign: int | None, pump_sign: int | None, chirality: int | None, agreement: float, n_sections: int, readings: tuple[SectionReading, ...], verdict: str, note: str)`, where `verdict` is `"CONCLUSIVE"` or `"INCONCLUSIVE"`
   - `prove_direction(mesh: trimesh.Trimesh, r_fracs=(0.55, 0.65, 0.75, 0.85)) -> DirectionProof`
   - `motor_side(mesh: trimesh.Trimesh) -> int | None`: +1 means the open motor cup faces +Z, −1 means −Z, None means unclear
   - `flip_about_x(mesh: trimesh.Trimesh) -> trimesh.Trimesh` (proper 180° rotation, returns a copy)
+  - `tip_lead_sign(mesh: trimesh.Trimesh, r_fracs=(0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9), min_sweep_deg=3.0) -> int | None`: +1 means the tips sit ahead of the roots toward +θ, −1 toward −θ, None means unclear. The user-confirmed real fan has its tips leading the rotation, so the expected result is `tip_lead_sign == omega_sign`.
   - `REAL_FAN_CHIRALITY = -1`: the real NF-A12x25 turns CCW seen from the intake and pushes air away from the viewer. With intake at +Z that is ω_z > 0 pumping −Z, so χ = (+1)(−1) = −1.
 
 - [ ] **Step 1: Write the failing test**
@@ -1060,7 +1061,13 @@ import numpy as np
 import pytest
 import trimesh
 
-from fansim.audit.direction import REAL_FAN_CHIRALITY, flip_about_x, motor_side, prove_direction
+from fansim.audit.direction import (
+    REAL_FAN_CHIRALITY,
+    flip_about_x,
+    motor_side,
+    prove_direction,
+    tip_lead_sign,
+)
 from fansim.audit.synthetic import cambered_blade_fan
 
 
@@ -1112,6 +1119,17 @@ def test_flat_plate_is_inconclusive():
     assert p.verdict == "INCONCLUSIVE" and p.omega_sign is None
 
 
+@pytest.mark.parametrize("sweep, expected", [(25.0, +1), (-25.0, -1), (0.0, None)])
+def test_tip_lead_sign(sweep, expected):
+    assert tip_lead_sign(cambered_blade_fan(n_blades=9, chord=30.0, sweep_deg=sweep)) == expected
+
+
+def test_tip_lead_follows_the_part_when_turned_over():
+    # Turning the fan over reverses theta, so the tip-lead sign flips together with omega.
+    m = cambered_blade_fan(sweep_deg=25.0)
+    assert tip_lead_sign(flip_about_x(m)) == -1
+
+
 def test_real_fan_chirality_constant():
     # CCW seen from the intake (+Z viewer => omega_z > 0) pushing air away (-Z): (+1)*(-1).
     assert REAL_FAN_CHIRALITY == -1
@@ -1155,7 +1173,8 @@ import numpy as np
 import trimesh
 
 
-def _blade(theta0, r_hub, r_tip, chord, stagger_deg, camber, thick, n_chord=40, n_span=12):
+def _blade(theta0, r_hub, r_tip, chord, stagger_deg, camber, thick, sweep_deg=0.0,
+           n_chord=40, n_span=12):
     g = np.radians(stagger_deg)
     c_hat = np.array([np.cos(g), np.sin(g)])
     e_hat = np.array([-np.sin(g), np.cos(g)])
@@ -1167,7 +1186,8 @@ def _blade(theta0, r_hub, r_tip, chord, stagger_deg, camber, thick, n_chord=40, 
         eta = eta_m + side * thick / 2.0
         s = xi * c_hat[0] + eta * e_hat[0]
         a = xi * c_hat[1] + eta * e_hat[1]
-        th = theta0 + s[:, None] / rho[None, :]
+        sweep = np.radians(sweep_deg) * (rho - r_hub) / (r_tip - r_hub)
+        th = theta0 + sweep[None, :] + s[:, None] / rho[None, :]
         x = rho[None, :] * np.cos(th)
         y = rho[None, :] * np.sin(th)
         z = np.broadcast_to(a[:, None], th.shape)
@@ -1212,8 +1232,9 @@ def _hub(r_hub, height, cup_side):
 def cambered_blade_fan(n_blades: int = 5, r_hub: float = 15.0, r_tip: float = 50.0,
                        chord: float = 20.0, stagger_deg: float = 60.0, camber: float = 0.06,
                        thick: float = 1.0, cup_side: int | None = None,
-                       hub_height: float = 16.0) -> trimesh.Trimesh:
-    parts = [_blade(2.0 * np.pi * k / n_blades, r_hub, r_tip, chord, stagger_deg, camber, thick)
+                       hub_height: float = 16.0, sweep_deg: float = 0.0) -> trimesh.Trimesh:
+    parts = [_blade(2.0 * np.pi * k / n_blades, r_hub, r_tip, chord, stagger_deg, camber, thick,
+                    sweep_deg)
              for k in range(n_blades)]
     parts.append(_hub(r_hub, hub_height, cup_side))
     return trimesh.util.concatenate(parts)
@@ -1395,6 +1416,40 @@ def motor_side(mesh: trimesh.Trimesh, n: int = 64, min_depth_mm: float = 2.0) ->
     return -1 if d_lo > d_hi else +1
 
 
+def tip_lead_sign(mesh: trimesh.Trimesh,
+                  r_fracs: tuple[float, ...] = (0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9),
+                  min_sweep_deg: float = 3.0) -> int | None:
+    """Which way the blade tips sit ahead of the roots: +1 toward +theta, -1 toward -theta.
+
+    Each blade is tracked outward through closely spaced cylinder cuts (nearest section centroid
+    step to step, so large total sweep never jumps to a neighbour blade). The median total sweep
+    across blades decides; |sweep| below ``min_sweep_deg`` is unclear (None).
+    """
+    tip = _tip_radius(mesh)
+    rings = []
+    for f in r_fracs:
+        cents = []
+        for pts, _ in _section_loops(mesh, f * tip):
+            th = np.arctan2(pts[:, 1], pts[:, 0])
+            cents.append(float(np.angle(np.mean(np.exp(1j * th)))))
+        if not cents:
+            return None
+        rings.append(np.array(cents))
+    totals = []
+    for start in rings[0]:
+        cur, total = start, 0.0
+        for ring in rings[1:]:
+            d = np.angle(np.exp(1j * (ring - cur)))
+            k = int(np.argmin(np.abs(d)))
+            total += float(d[k])
+            cur = ring[k]
+        totals.append(total)
+    sweep = float(np.degrees(np.median(totals)))
+    if abs(sweep) < min_sweep_deg:
+        return None
+    return 1 if sweep > 0 else -1
+
+
 def flip_about_x(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     """Proper 180° rotation about X (z -> -z, y -> -y): same fan, turned over."""
     m = mesh.copy()
@@ -1405,7 +1460,7 @@ def flip_about_x(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
 - [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `uv run pytest tests/audit/test_direction_geometry.py -v`
-Expected: all PASS (13 tests)
+Expected: all PASS (17 tests)
 
 If a known-answer case fails, **do not change the oracle table to match the code**. The oracle comes
 from the physics in the test docstring. Debug `_read_section`: check the θ unwrap and the concave-side
@@ -1442,6 +1497,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 Checks (each True / False / None=unclear):
   real_handedness   chirality == REAL_FAN_CHIRALITY (model is not a mirror image of the real fan)
   motor_on_exhaust  motor_side == pump_sign (air leaves past the motor, like the real Noctua)
+  tips_lead         tip_lead_sign == omega_sign (user-confirmed: real A12x25 tips lead the rotation)
   cfd_spin_matches  TestRig default spin == designed omega_sign (CFD turns it the designed way)
   cfd_pumps_plus_z  pump_sign == +1 (designed delivery matches the duct's inlet -Z -> outlet +Z)
 
@@ -1459,7 +1515,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import trimesh  # noqa: E402
 
-from fansim.audit.direction import REAL_FAN_CHIRALITY, motor_side, prove_direction  # noqa: E402
+from fansim.audit.direction import (  # noqa: E402
+    REAL_FAN_CHIRALITY,
+    motor_side,
+    prove_direction,
+    tip_lead_sign,
+)
 from fansim.cfd.domain import TestRig  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1489,14 +1550,16 @@ def main() -> int:
         mesh = trimesh.load(str(path), force="mesh")
         p = prove_direction(mesh)
         ms = motor_side(mesh)
+        tl = tip_lead_sign(mesh)
         rotors[name] = {
             "stl": str(path.relative_to(ROOT)),
             "omega_sign": p.omega_sign, "pump_sign": p.pump_sign, "chirality": p.chirality,
             "verdict": p.verdict, "note": p.note, "agreement": p.agreement,
-            "n_sections": p.n_sections, "motor_side": ms,
+            "n_sections": p.n_sections, "motor_side": ms, "tip_lead_sign": tl,
             "checks": {
                 "real_handedness": _tri(p.chirality, REAL_FAN_CHIRALITY),
                 "motor_on_exhaust": _tri(ms, p.pump_sign),
+                "tips_lead": _tri(tl, p.omega_sign),
                 "cfd_spin_matches": _tri(spin_in_use, p.omega_sign),
                 "cfd_pumps_plus_z": _tri(p.pump_sign, 1),
             },
@@ -2095,7 +2158,7 @@ whether the motor sits on the exhaust side, and what that means for existing CFM
 
 | Unit | Claim | Method | Measured | Expected | Tolerance | Verdict | Evidence |
 |---|---|---|---|---|---|---|---|
-| audit.direction_geometry | known-answer fans read correctly | synthetic oracle | 13/13 | 13/13 | exact | PASS | tests/audit/test_direction_geometry.py |
+| audit.direction_geometry | known-answer fans read correctly | synthetic oracle | 17/17 | 17/17 | exact | PASS | tests/audit/test_direction_geometry.py |
 | cfd.flow_direction_convention | CFD solves the designed rotation pumping +Z | geometry + 2x2 CFD | <omega/pump/spin/matrix> | designed sense proper-run, spin/orientation as recommended | ≥20% CFM & CFM/W | <PASS/FAIL/INCONCLUSIVE> | direction_geometry.json, direction_cfd_*.json |
 | cfd.cfm_from_outlet_flow | signed phi sum on +Z outlet | contract tests | pinned | — | exact | <PASS if the unit it depends on passes, else AFFECTED> | test_cfd_direction_contract.py |
 | physics.air_properties | Earth air | first principles | ... | ... | 1–3% | PASS | test_air_properties.py |
@@ -2103,7 +2166,7 @@ whether the motor sits on the exhaust side, and what that means for existing CFM
 | propeller.thrust_sign | sign from geometry, not flipped | code review | flips spin until thrust>0 | derived | — | FAIL (masking) | fansim/propeller/calibrate.py |
 
 ## Evidence
-### Proof 1 — geometry (per rotor: rotation, delivery, chirality, motor side, 4 checks)
+### Proof 1 — geometry (per rotor: rotation, delivery, chirality, motor side, tip lead, 5 checks)
 ### Proof 2 — contract tests (what spin / patches / BCs / outletFlow mean today)
 ### Proof 3 — CFD matrix (all 4 rows per rotor, proper vs improper, BC bias, CFM/W, power sign)
 ### Findings list (air-constant copies, dead-design guard result, prop sign masking)

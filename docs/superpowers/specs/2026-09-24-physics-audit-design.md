@@ -136,7 +136,11 @@ it shares the same failure mode.
 
 **Proofs required (all three must agree):**
 1. **Geometric.** Measure pitch/stagger sign vs radius from both STLs and derive which rotation makes
-   the LE lead, and therefore which way the blade pumps. No CFD involved.
+   the LE lead, and therefore which way the blade pumps. No CFD involved. Also check the real-fan facts the user confirmed from a
+   photo (2026-09-24). Seen from the open intake side (hub cap toward the viewer, struts behind),
+   the rotor turns **counter-clockwise**, the **blade tips lead** the rotation, and air flows away
+   from the viewer toward the struts. So the model must show real-fan chirality, tips leading its
+   designed rotation, and the open motor cup on the exhaust side.
 2. **Contract tests.** Pin the meaning of `spin`, `flow_sign`, the inlet/outlet BCs, the
    `outletFlow` sign, the thrust/torque signs and the glyph direction against the geometric proof.
 3. **CFD both ways.** Both runs converged. The correct sense wins on |CFM| **and** efficiency
