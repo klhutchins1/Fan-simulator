@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from fansim.audit.fingerprint import fingerprint_unit  # noqa: E402
+from fansim.audit.fingerprint import FingerprintError, fingerprint_unit  # noqa: E402
 from fansim.audit.registry import load_registry  # noqa: E402
 from fansim.audit.status import State, classify, find_unregistered, load_ledger  # noqa: E402
 
@@ -27,22 +27,37 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     reg = load_registry()
-    fps = {uid: fingerprint_unit(u) for uid, u in reg.units.items()}
+    fps = {}
+    missing = {}
+    for uid, u in reg.units.items():
+        try:
+            fps[uid] = fingerprint_unit(u)
+        except FingerprintError as e:
+            fps[uid] = ""
+            missing[uid] = str(e)
     states = classify(reg, load_ledger(), fps)
     loose = find_unregistered(reg)
     if args.json:
-        print(json.dumps({"units": {k: v.value for k, v in states.items()},
-                          "unregistered": loose}, indent=2))
-        return 0
+        output = {"units": {k: v.value for k, v in states.items()}, "unregistered": loose}
+        if missing:
+            output["missing"] = missing
+        print(json.dumps(output, indent=2))
+        return 1 if missing else 0
     for uid in sorted(states):
-        print(f"{states[uid].value:<9} {uid}")
+        if uid in missing:
+            print(f"MISSING    {uid}  ({missing[uid]})")
+        else:
+            print(f"{states[uid].value:<9} {uid}")
     counts = {s.value: sum(1 for v in states.values() if v is s) for s in State}
-    print("\n" + "  ".join(f"{k}={v}" for k, v in counts.items()) + f"  UNREGISTERED={len(loose)}")
+    count_items = [(k, counts[k]) for k in ["PROVEN", "CHANGED", "AFFECTED", "NEW"]]
+    if missing:
+        count_items.append(("MISSING", len(missing)))
+    print("\n" + "  ".join(f"{k}={v}" for k, v in count_items) + f"  UNREGISTERED={len(loose)}")
     if args.unregistered:
         print("\nUnregistered physics code:")
         for name in loose:
             print(f"  {name}")
-    return 0
+    return 1 if missing else 0
 
 
 if __name__ == "__main__":

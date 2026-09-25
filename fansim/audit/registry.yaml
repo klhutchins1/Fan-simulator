@@ -4,14 +4,14 @@
 exempt: []
 units:
   - id: physics.air_properties
-    targets: ["fansim.physics.regime"]
+    targets: ["fansim.physics.air"]
     claim: "Room-temperature sea-level air: rho 1.2 (AMCA) / 1.225 (ISA), nu 1.5e-5, mu 1.81e-5, c0 343"
     source: {kind: standard, ref: "AMCA 210 standard air; ISA sea level; ideal gas + Sutherland"}
     regime: {fluid: air, T_K: [288, 298], p_Pa: 101325}
     checks: [tests/audit/test_air_properties.py]
 
   - id: audit.direction_geometry
-    targets: ["fansim.propeller.geometry"]
+    targets: ["fansim.audit.direction"]
     claim: "Designed rotation = the way the concave (pressure) face points; air leaves along that face normal"
     source: {kind: derivation, ref: "velocity triangles, Dixon & Hall, Fluid Mechanics and Thermodynamics of Turbomachinery, ch. 1/5"}
     checks: [tests/audit/test_direction_geometry.py]
