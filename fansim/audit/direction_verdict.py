@@ -114,16 +114,19 @@ def convention_verdict(matrix: dict, production_spin: int) -> dict:
     production = {"orientation": "as_built", "spin": production_spin}
     matrix_status = matrix.get("verdict")
     recommended = matrix.get("recommended")
-    if matrix_status == "INCONCLUSIVE":
-        return {
-            "verdict": "INCONCLUSIVE", "production": production, "recommended": recommended,
-            "reason": "matrix verdict is inconclusive",
-        }
     if matrix_status == "FAIL":
         reasons = "; ".join(matrix.get("reasons", ())) or "matrix verdict is FAIL"
         return {
             "verdict": "FAIL", "production": production, "recommended": recommended,
             "reason": f"matrix verdict is FAIL: {reasons}",
+        }
+    if matrix_status != "PASS":
+        # INCONCLUSIVE, missing, or any other/unrecognised status: no conclusion to gate on.
+        reason = ("matrix verdict is inconclusive" if matrix_status == "INCONCLUSIVE"
+                  else f"matrix verdict is not PASS or FAIL: {matrix_status!r}")
+        return {
+            "verdict": "INCONCLUSIVE", "production": production, "recommended": recommended,
+            "reason": reason,
         }
     if recommended == production:
         return {

@@ -128,6 +128,17 @@ def test_convention_verdict_inconclusive_when_matrix_inconclusive():
     assert cv["verdict"] == "INCONCLUSIVE"
 
 
+def test_convention_verdict_inconclusive_when_matrix_status_missing():
+    cv = convention_verdict({}, production_spin=-1)
+    assert cv["verdict"] == "INCONCLUSIVE"
+
+
+def test_convention_verdict_inconclusive_when_matrix_status_unrecognised():
+    cv = convention_verdict({"verdict": "SKIPPED", "recommended": None}, production_spin=-1)
+    assert cv["verdict"] == "INCONCLUSIVE"
+    assert "SKIPPED" in cv["reason"]
+
+
 def test_convention_verdict_fail_when_matrix_fail():
     v = matrix_verdict(ROWS, geometry_omega=-1, geometry_pump=-1)
     assert v["verdict"] == "FAIL"

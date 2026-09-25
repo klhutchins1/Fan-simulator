@@ -72,6 +72,30 @@ def test_missing_checks_path_raises(tmp_path):
         load_registry(_write(tmp_path, body))
 
 
+def test_data_target_is_accepted(tmp_path):
+    body = (
+        "units:\n"
+        "  - {id: a, targets: ['data:config/problems/a12x25_reference.yaml'], claim: c, "
+        "source: {kind: paper, ref: r}}\n"
+    )
+    reg = load_registry(_write(tmp_path, body))
+    assert reg.units["a"].targets == ("data:config/problems/a12x25_reference.yaml",)
+
+
+def test_find_unregistered_ignores_data_targets():
+    from fansim.audit.registry import Registry, Unit
+    from fansim.audit.status import find_unregistered
+
+    unit = Unit(
+        id="a", targets=("data:config/problems/a12x25_reference.yaml",), claim="c",
+        source={"kind": "paper", "ref": "r"}, regime={}, checks=(), depends_on=(), libs=(),
+    )
+    reg = Registry(units={"a": unit}, exempt=())
+    # Must not raise, and must not claim to cover any real python name.
+    names = find_unregistered(reg)
+    assert isinstance(names, list)
+
+
 def test_ref_checks_path_is_not_validated(tmp_path):
     body = (
         "units:\n"

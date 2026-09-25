@@ -18,7 +18,11 @@ units:
     libs: [trimesh, networkx]
 
   - id: geometry.stock_handedness
-    targets: ["fansim.geometry.blade:build_impeller"]
+    targets:
+      - "fansim.geometry.blade:build_impeller"
+      - "fansim.geometry.airfoil"
+      - "fansim.geometry.config:load_blade_params"
+      - "data:config/problems/a12x25_reference.yaml"
     claim: "Stock recipe rotor is designed for omega_z +1 (CCW from +Z) pumping -Z, real-fan chirality, tips leading"
     source: {kind: derivation, ref: "Audit #1 geometric proof"}
     checks: [tests/audit/test_stock_handedness.py]

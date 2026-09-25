@@ -14,7 +14,10 @@ import importlib.metadata
 import json
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[2]
+DATA_TARGET_PREFIX = "data:"
 
 
 class FingerprintError(LookupError):
@@ -119,7 +122,20 @@ def normalized_source(target: str, root: Path = ROOT) -> str:
     return "\n".join(parts)
 
 
+def _data_content(target: str, root: Path = ROOT) -> str:
+    """Canonical JSON of a ``data:<repo-relative path>`` target's YAML/JSON content."""
+    rel = target[len(DATA_TARGET_PREFIX):]
+    path = Path(root, rel)
+    if not path.is_file():
+        raise FingerprintError(f"data target {target!r}: file not found: {path}")
+    text = path.read_text(encoding="utf-8")
+    data = json.loads(text) if path.suffix == ".json" else yaml.safe_load(text)
+    return json.dumps(data, sort_keys=True, separators=(",", ":"))
+
+
 def fingerprint_target(target: str, root: Path = ROOT) -> str:
+    if target.startswith(DATA_TARGET_PREFIX):
+        return hashlib.sha256(_data_content(target, root).encode()).hexdigest()[:16]
     return hashlib.sha256(normalized_source(target, root).encode()).hexdigest()[:16]
 
 

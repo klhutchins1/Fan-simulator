@@ -182,6 +182,35 @@ def test_lib_versions_reraises_value_error_as_fingerprint_error(monkeypatch):
         lib_versions(("openfoam",))
 
 
+def test_data_target_fingerprint_changes_on_value_change(tmp_path):
+    p = tmp_path / "params.yaml"
+    p.write_text("chord_mm: 10\n# a comment\nstagger_deg: 30\n", encoding="utf-8")
+    before = fingerprint_target(f"data:{p.relative_to(tmp_path)}", tmp_path)
+    p.write_text("chord_mm: 12\n# a comment\nstagger_deg: 30\n", encoding="utf-8")
+    assert fingerprint_target(f"data:{p.relative_to(tmp_path)}", tmp_path) != before
+
+
+def test_data_target_fingerprint_ignores_comment_change(tmp_path):
+    p = tmp_path / "params.yaml"
+    p.write_text("chord_mm: 10\n# a comment\nstagger_deg: 30\n", encoding="utf-8")
+    before = fingerprint_target(f"data:{p.relative_to(tmp_path)}", tmp_path)
+    p.write_text("chord_mm: 10\n# a different comment\nstagger_deg: 30\n", encoding="utf-8")
+    assert fingerprint_target(f"data:{p.relative_to(tmp_path)}", tmp_path) == before
+
+
+def test_data_target_json_suffix_is_parsed_as_json(tmp_path):
+    p = tmp_path / "params.json"
+    p.write_text('{"a": 1}', encoding="utf-8")
+    before = fingerprint_target(f"data:{p.relative_to(tmp_path)}", tmp_path)
+    p.write_text('{"a": 2}', encoding="utf-8")
+    assert fingerprint_target(f"data:{p.relative_to(tmp_path)}", tmp_path) != before
+
+
+def test_data_target_missing_file_raises(tmp_path):
+    with pytest.raises(FingerprintError):
+        fingerprint_target("data:no/such/file.yaml", tmp_path)
+
+
 def test_openfoam_lookup_does_not_import_cfd():
     result = subprocess.run(
         [sys.executable, "-c",

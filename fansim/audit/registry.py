@@ -18,6 +18,7 @@ from fansim.audit.fingerprint import ROOT as _FINGERPRINT_ROOT
 REGISTRY_PATH = Path(__file__).with_name("registry.yaml")
 SOURCE_KINDS = frozenset({"paper", "datasheet", "standard", "derivation"})
 _TARGET_RE = re.compile(r"^[A-Za-z_][\w.]*(:[A-Za-z_][\w.]*)?$")
+_DATA_TARGET_RE = re.compile(r"^data:[\w./-]+$")
 
 
 class RegistryError(ValueError):
@@ -50,8 +51,11 @@ def _unit(raw: dict) -> Unit:
     if not targets:
         raise RegistryError(f"{uid}: needs at least one entry in targets")
     for t in targets:
-        if not _TARGET_RE.match(str(t)):
-            raise RegistryError(f"{uid}: bad target {t!r} (want 'pkg.mod' or 'pkg.mod:Name')")
+        t = str(t)
+        if not (_TARGET_RE.match(t) or _DATA_TARGET_RE.match(t)):
+            raise RegistryError(
+                f"{uid}: bad target {t!r} (want 'pkg.mod', 'pkg.mod:Name', or 'data:path')"
+            )
     source = dict(raw.get("source") or {})
     if source.get("kind") not in SOURCE_KINDS:
         raise RegistryError(f"{uid}: source kind must be one of {sorted(SOURCE_KINDS)}")
