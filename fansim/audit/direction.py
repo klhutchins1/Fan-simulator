@@ -26,6 +26,8 @@ import networkx as nx
 import numpy as np
 import trimesh
 
+from fansim.cfd.orientation import flip_about_x  # noqa: F401  (re-export; one implementation)
+
 MIN_CAMBER_RATIO = 0.01   # camber height / chord below which the concave side is not trusted
 MIN_AGREEMENT = 0.9       # fraction of sections that must agree
 REAL_FAN_CHIRALITY = -1   # NF-A12x25: CCW seen from intake, air pushed away from the viewer
@@ -270,8 +272,3 @@ def tip_lead_sign(mesh: trimesh.Trimesh,
     return 1 if sweep > 0 else -1
 
 
-def flip_about_x(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
-    """Proper 180° rotation about X (z -> -z, y -> -y): same fan, turned over."""
-    m = mesh.copy()
-    m.apply_transform(trimesh.transformations.rotation_matrix(np.pi, [1.0, 0.0, 0.0]))
-    return m
