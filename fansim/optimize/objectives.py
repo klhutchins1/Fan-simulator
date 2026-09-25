@@ -23,6 +23,7 @@ from pathlib import Path
 from fansim.cfd.casing import export_casing_stl
 from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM, remaining_tip_gap_mm, rig_for_impeller
 from fansim.cfd.frame import export_frame_stl, stack_frame_z_start_mm
+from fansim.cfd.orientation import prepare_axial_cfd
 from fansim.cfd.metrics import parse_fan_metrics
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve
 from fansim.cfd.runner import OpenFOAMRunner
@@ -298,6 +299,9 @@ def evaluate_candidate(
         inlet_diameters=2.0,
         outlet_diameters=4.0,
     )
+    # Audit #1: CFD solves the designed rotation only with the rotor flipped (spin stays −1), and
+    # the MRF zone must contain the whole rotor, so size it from the oriented STL.
+    stl, rig0 = prepare_axial_cfd(stl, rig0, workdir)
     frame_path = None
     stator_path = None
     try:

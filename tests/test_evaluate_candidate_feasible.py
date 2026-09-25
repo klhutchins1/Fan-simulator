@@ -7,6 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
+import trimesh
+
 from fansim.cfd.metrics import FanMetrics
 from fansim.geometry.blade import BladeParams
 from fansim.geometry.features import Features
@@ -14,6 +16,14 @@ from fansim.optimize import objectives as obj_mod
 from fansim.optimize.objectives import evaluate_candidate
 from fansim.optimize.print_penalty import PRINT_K_CFM
 from fansim.optimize.search_space import blade_from_flat, stock_blade_flat
+
+
+def _fake_export_stl(_shape, path):
+    """Write a real (tiny) STL so orientation/rig-fitting can load real bounds from disk."""
+    box = trimesh.creation.box(extents=(100.0, 100.0, 25.0))
+    box.apply_translation((0.0, 0.0, 7.5))  # matches _Rep.bounds_mm z-range (-5..20)
+    box.export(str(path))
+    return path
 
 
 def _metrics(*, cfm: float, dp_pa: float, shaft_w: float = 5.0) -> FanMetrics:
@@ -50,7 +60,7 @@ def test_evaluate_candidate_feasible_asserts_numeric_cfm(tmp_path, monkeypatch):
         bounds_mm = ((-50.0, -50.0, -5.0), (50.0, 50.0, 20.0))
 
     monkeypatch.setattr(obj_mod, "build_impeller", lambda _p: object())
-    monkeypatch.setattr(obj_mod, "export_stl", lambda _s, path: path)
+    monkeypatch.setattr(obj_mod, "export_stl", _fake_export_stl)
     monkeypatch.setattr(obj_mod, "watertight_report", lambda _stl: _Rep())
     monkeypatch.setattr(obj_mod, "export_frame_stl", lambda *_a, **_k: None)
     monkeypatch.setattr(obj_mod, "build_case", lambda *_a, **_k: None)
@@ -95,7 +105,7 @@ def test_evaluate_candidate_print_penalty_off(tmp_path, monkeypatch):
         bounds_mm = ((-50.0, -50.0, -5.0), (50.0, 50.0, 20.0))
 
     monkeypatch.setattr(obj_mod, "build_impeller", lambda _p: object())
-    monkeypatch.setattr(obj_mod, "export_stl", lambda _s, path: path)
+    monkeypatch.setattr(obj_mod, "export_stl", _fake_export_stl)
     monkeypatch.setattr(obj_mod, "watertight_report", lambda _stl: _Rep())
     monkeypatch.setattr(obj_mod, "export_frame_stl", lambda *_a, **_k: None)
     monkeypatch.setattr(obj_mod, "build_case", lambda *_a, **_k: None)

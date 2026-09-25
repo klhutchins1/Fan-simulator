@@ -645,7 +645,9 @@ def render_streamlines_png(
                     "width": 0.12, "height": 0.55, "position_x": 0.86, "position_y": 0.2,
                 },
             )
-            stl = case_dir / "impeller.stl"
+            stl = case_dir / "constant" / "triSurface" / "impeller.stl"
+            if not stl.is_file():
+                stl = case_dir / "impeller.stl"
             if stl.is_file():
                 try:
                     body = pv.read(str(stl))
