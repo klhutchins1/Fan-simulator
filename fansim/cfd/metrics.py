@@ -92,6 +92,9 @@ class FanMetrics:
     # Total (static+dynamic) efficiency when known; None until a caller sets it or a
     # future parse path computes ΔP_total. point_row passes this through as-is.
     eta_total: float | None = None
+    # Signed fluid moment on the impeller about +Z (N·m). A fan doing work on the air has
+    # moment_z_nm * omega_signed < 0. torque_nm stays |moment_z| for power.
+    moment_z_nm: float = 0.0
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -169,4 +172,5 @@ def parse_fan_metrics(
         p_outlet_kin=p_out,
         converged=converged,
         flow_drift_pct=drift,
+        moment_z_nm=moment[3],
     )
