@@ -143,9 +143,15 @@ it shares the same failure mode.
    designed rotation, and the open motor cup on the exhaust side.
 2. **Contract tests.** Pin the meaning of `spin`, `flow_sign`, the inlet/outlet BCs, the
    `outletFlow` sign, the thrust/torque signs and the glyph direction against the geometric proof.
-3. **CFD both ways.** Both runs converged. The correct sense wins on |CFM| **and** efficiency
-   (η = Q·Δp / (τ·ω)) by a clear margin (at least 20% more |CFM| and a higher η). Axis invariance: the whole case flipped end-for-end must give
-   the same |CFM| within 3%.
+3. **CFD matrix (bias-free).** The free-air BCs are asymmetric (total-pressure inlet at −Z, static
+   outlet at +Z), so reversed through-flow gets easier BCs. The 2026-09-24 spin A/B is therefore not
+   evidence. Run {as-built, flipped 180° about X} × {spin −1, +1} at free air on converged solves.
+   A flip about X maps body rotation ω → −ω, so each physical rotation sense appears twice: once
+   pumping +Z through the proper BCs ("proper run") and once pumping −Z ("improper run").
+   - The designed sense must win on its proper run: at least 20% more CFM **and** higher CFM per shaft
+     watt (static rise is ~0 at free air, so η is not usable).
+   - It must match the geometric proof.
+   - The report records improper − proper |CFM| per sense as the measured BC bias.
 
 **After the verdict:**
 - Make code, docs, glyphs and roadmap §16.1 agree.
