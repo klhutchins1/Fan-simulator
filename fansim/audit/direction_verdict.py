@@ -34,13 +34,8 @@ def _key(s: int) -> str:
     return f"{s:+d}"
 
 
-def _is_finite(v: float) -> bool:
-    """Check if a value is finite (not NaN or inf)."""
-    return not (math.isnan(v) or math.isinf(v))
-
-
-def matrix_verdict(rows: list[MatrixRow], geometry_omega: int | None,
-                   geometry_pump: int | None = None, margin: float = 0.20) -> dict:
+def matrix_verdict(rows: list[MatrixRow], geometry_omega: int | None, *,
+                   geometry_pump: int | None, margin: float = 0.20) -> dict:
     reasons: list[str] = []
     proper: dict[int, MatrixRow] = {}
     improper: dict[int, MatrixRow] = {}
@@ -65,7 +60,7 @@ def matrix_verdict(rows: list[MatrixRow], geometry_omega: int | None,
         return out
     # Check for non-finite values in proper runs
     for sense, row in proper.items():
-        if not (_is_finite(row.cfm) and _is_finite(row.shaft_power_w) and _is_finite(row.moment_z_nm)):
+        if not (math.isfinite(row.cfm) and math.isfinite(row.shaft_power_w) and math.isfinite(row.moment_z_nm)):
             reasons.append(f"sense {_key(sense)}: non-finite value in proper run "
                            f"(cfm={row.cfm}, power={row.shaft_power_w}, moment_z={row.moment_z_nm})")
             return out
@@ -86,20 +81,22 @@ def matrix_verdict(rows: list[MatrixRow], geometry_omega: int | None,
         return out
     out["designed_sense"] = win
     out["recommended"] = {"orientation": w.orientation, "spin": w.spin}
+    if geometry_pump is None:
+        reasons.append("geometric pump direction unknown")
+        return out
     if geometry_omega is None:
         reasons.append("geometric proof inconclusive; CFD alone is not a verdict")
         return out
     # Check orientation against geometry prediction
-    if geometry_pump is not None:
-        # As built, sense s pumps geometry_pump * geometry_omega * s in Z
-        # The designed sense pumps +Z as built iff geometry_pump * geometry_omega * win > 0
-        expected_orientation = "as_built" if geometry_pump * geometry_omega * win > 0 else "flipped"
-        if w.orientation != expected_orientation:
-            reasons.append(f"orientation mismatch: CFD says {w.orientation}, "
-                           f"geometry predicts {expected_orientation}")
-            return {"verdict": "FAIL", "designed_sense": win, "proper": out["proper"],
-                    "bc_bias_cfm": out["bc_bias_cfm"], "power_sign_ok": out["power_sign_ok"],
-                    "recommended": out["recommended"], "reasons": reasons}
+    # As built, sense s pumps geometry_pump * geometry_omega * s in Z
+    # The designed sense pumps +Z as built iff geometry_pump * geometry_omega * win > 0
+    expected_orientation = "as_built" if geometry_pump * geometry_omega * win > 0 else "flipped"
+    if w.orientation != expected_orientation:
+        reasons.append(f"orientation mismatch: CFD says {w.orientation}, "
+                       f"geometry predicts {expected_orientation}")
+        return {"verdict": "FAIL", "designed_sense": win, "proper": out["proper"],
+                "bc_bias_cfm": out["bc_bias_cfm"], "power_sign_ok": out["power_sign_ok"],
+                "recommended": out["recommended"], "reasons": reasons}
     out["verdict"] = "PASS" if geometry_omega == win else "FAIL"
     if out["verdict"] == "FAIL":
         reasons.append(f"CFD says sense {_key(win)}, geometry says {_key(geometry_omega)}")

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import math
 
+import pytest
+
 from fansim.audit.direction_verdict import MatrixRow, body_sense, matrix_verdict
 
 
@@ -18,11 +20,8 @@ def test_body_sense():
 
 def test_body_sense_rejects_invalid_orientation():
     """Invalid orientation strings must raise ValueError."""
-    try:
+    with pytest.raises(ValueError):
         body_sense(R("invalid", -1, 1))
-        assert False, "should have raised ValueError"
-    except ValueError:
-        pass
 
 
 # Hypothesis-shaped data: body sense +1 is designed (strong, pumps -Z as built, so its proper run
@@ -94,6 +93,12 @@ def test_no_geometry_is_inconclusive():
     """geometry_omega=None → INCONCLUSIVE."""
     v = matrix_verdict(ROWS, geometry_omega=None, geometry_pump=-1)
     assert v["verdict"] == "INCONCLUSIVE"
+
+
+def test_no_pump_direction_is_inconclusive():
+    """geometry_pump=None → INCONCLUSIVE."""
+    v = matrix_verdict(ROWS, geometry_omega=+1, geometry_pump=None)
+    assert v["verdict"] == "INCONCLUSIVE" and any("pump" in r for r in v["reasons"])
 
 
 def test_power_sign_ok_false_when_no_proper_runs():

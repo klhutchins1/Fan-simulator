@@ -28,12 +28,47 @@ from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_s
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.validation.reference_stl import rig_for_reference_stl  # noqa: E402
 
+import math
+
 ROOT = Path(__file__).resolve().parents[1]
 ROTORS = {
     "stock": ROOT / "runs" / "audit_direction" / "stock_impeller.stl",   # written by Task 6 script
     "reference_stl": ROOT / "validation" / "reference" / "a12x25_impeller.stl",
 }
 GEOM_JSON = ROOT / "docs" / "validation" / "audits" / "direction_geometry.json"
+
+
+def _none_for_nan(v: float) -> float | None:
+    """Convert NaN/inf to None for JSON serialization."""
+    if not math.isfinite(v):
+        return None
+    return v
+
+
+def _write_payload(out: Path, rotor: str, rpm: float, iters: int, mesh_res, rows: list[MatrixRow],
+                   errors: list[str], geometry: dict, verdict: dict) -> None:
+    """Write partial results to JSON with NaN converted to None."""
+    payload = {
+        "rotor": rotor, "rpm": rpm, "iters": iters,
+        "mesh": asdict(mesh_res),
+        "rows": [
+            {
+                "orientation": r.orientation,
+                "spin": r.spin,
+                "cfm": _none_for_nan(r.cfm),
+                "converged": r.converged,
+                "shaft_power_w": _none_for_nan(r.shaft_power_w),
+                "moment_z_nm": _none_for_nan(r.moment_z_nm),
+                "omega_signed": r.omega_signed,
+            }
+            for r in rows
+        ],
+        "errors": errors,
+        "geometry": geometry,
+        "verdict": verdict,
+    }
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -72,10 +107,12 @@ def main(argv: list[str] | None = None) -> int:
     mesh_res = MeshResolution.for_blade(float(args.base_cell), float(min_wall))
     rows: list[MatrixRow] = []
     errors: list[str] = []
+    out = ROOT / "docs" / "validation" / "audits" / f"direction_cfd_{args.rotor}.json"
     for orientation in ("as_built", "flipped"):
         case = base / orientation
         case.mkdir(parents=True, exist_ok=True)
         stl = case / "impeller_mm.stl"
+        rig0 = None
         try:
             mesh = trimesh.load(str(src), force="mesh")
             (flip_about_x(mesh) if orientation == "flipped" else mesh).export(str(stl))
@@ -90,9 +127,13 @@ def main(argv: list[str] | None = None) -> int:
             msg = f"[{orientation}] meshing failed: {e}"
             errors.append(msg)
             print(msg, flush=True)
+            omega_rad_s = args.rpm * 2 * math.pi / 60 if rig0 is None else rig0.omega_rad_s
             for spin in (-1, 1):
                 rows.append(MatrixRow(orientation, spin, float("nan"), False, float("nan"),
-                                    float("nan"), float(spin) * 209.44))
+                                    float("nan"), omega_rad_s * spin))
+                verdict = matrix_verdict(rows, geometry_omega=geom.get("omega_sign"),
+                                       geometry_pump=geom.get("pump_sign"))
+                _write_payload(out, args.rotor, args.rpm, args.iters, mesh_res, rows, errors, geom, verdict)
             continue
         for spin in (-1, 1):
             try:
@@ -113,17 +154,12 @@ def main(argv: list[str] | None = None) -> int:
                 errors.append(msg)
                 print(msg, flush=True)
                 rows.append(MatrixRow(orientation, spin, float("nan"), False, float("nan"),
-                                    float("nan"), float(spin) * 209.44))
-    verdict = matrix_verdict(rows, geometry_omega=geom.get("omega_sign"),
-                           geometry_pump=geom.get("pump_sign"))
-    payload = {"rotor": args.rotor, "rpm": args.rpm, "iters": args.iters,
-               "mesh": asdict(mesh_res), "rows": [asdict(r) for r in rows],
-               "errors": errors, "geometry": geom, "verdict": verdict}
-    out = ROOT / "docs" / "validation" / "audits" / f"direction_cfd_{args.rotor}.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+                                    float("nan"), rig0.omega_rad_s * spin))
+            verdict = matrix_verdict(rows, geometry_omega=geom.get("omega_sign"),
+                                   geometry_pump=geom.get("pump_sign"))
+            _write_payload(out, args.rotor, args.rpm, args.iters, mesh_res, rows, errors, geom, verdict)
     print(f"\nVERDICT {verdict['verdict']}: {verdict}\n-> {out}", flush=True)
-    return 0
+    return 3 if errors else 0
 
 
 if __name__ == "__main__":
