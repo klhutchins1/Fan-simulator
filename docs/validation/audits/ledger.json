@@ -1,1 +1,28 @@
-{"units": {}}
+{
+  "units": {
+    "audit.direction_geometry": {
+      "date": "2026-09-25",
+      "fingerprint": "982927988971a3b5",
+      "report": "docs/validation/audits/2026-09-25-audit-01-flow-direction.md",
+      "verdict": "PASS"
+    },
+    "geometry.stock_handedness": {
+      "date": "2026-09-25",
+      "fingerprint": "0ebfd93544ffd6c7",
+      "report": "docs/validation/audits/2026-09-25-audit-01-flow-direction.md",
+      "verdict": "PASS"
+    },
+    "optimize.reject_dead_designs": {
+      "date": "2026-09-25",
+      "fingerprint": "ed8938c92dd7d586",
+      "report": "docs/validation/audits/2026-09-25-audit-01-flow-direction.md",
+      "verdict": "PASS"
+    },
+    "physics.air_properties": {
+      "date": "2026-09-25",
+      "fingerprint": "2fde588c4fea0749",
+      "report": "docs/validation/audits/2026-09-25-audit-01-flow-direction.md",
+      "verdict": "PASS"
+    }
+  }
+}

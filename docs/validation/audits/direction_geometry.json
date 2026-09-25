@@ -1,0 +1,47 @@
+{
+  "rotors": {
+    "stock": {
+      "stl": "runs\\audit_direction\\stock_impeller.stl",
+      "stl_sha256": "76579fcff44efd867d01a7875bccce81faa7a1d348132aa41d4f154b7e3b1626",
+      "omega_sign": 1,
+      "pump_sign": -1,
+      "chirality": -1,
+      "verdict": "CONCLUSIVE",
+      "note": "36 sections, 0 flat skipped",
+      "agreement": 1.0,
+      "n_sections": 36,
+      "motor_side": null,
+      "tip_lead_sign": 1,
+      "checks": {
+        "real_handedness": true,
+        "motor_on_exhaust": null,
+        "tips_lead": true,
+        "cfd_spin_matches": false,
+        "cfd_pumps_plus_z": false,
+        "motor_rotation_consistent": null
+      }
+    },
+    "reference_stl": {
+      "stl": "validation\\reference\\a12x25_impeller.stl",
+      "stl_sha256": "da7f954fe7a3d1ca85362adf67a43130aec3d9d35c0ca5941a9ac0ea9b3c9fb6",
+      "omega_sign": 1,
+      "pump_sign": -1,
+      "chirality": -1,
+      "verdict": "CONCLUSIVE",
+      "note": "36 sections, 0 flat skipped",
+      "agreement": 1.0,
+      "n_sections": 36,
+      "motor_side": -1,
+      "tip_lead_sign": 1,
+      "checks": {
+        "real_handedness": true,
+        "motor_on_exhaust": true,
+        "tips_lead": true,
+        "cfd_spin_matches": false,
+        "cfd_pumps_plus_z": false,
+        "motor_rotation_consistent": true
+      }
+    }
+  },
+  "cfd_spin_in_use": -1
+}

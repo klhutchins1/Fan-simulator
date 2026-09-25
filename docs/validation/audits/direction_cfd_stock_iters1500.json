@@ -1,0 +1,98 @@
+{
+  "rotor": "stock",
+  "rpm": 2000.0,
+  "iters": 1500,
+  "mesh": {
+    "base_cell": 0.006,
+    "surf_min": 3,
+    "surf_max": 4,
+    "feature_level": 4,
+    "add_layers": false,
+    "n_surface_layers": 3
+  },
+  "rows": [
+    {
+      "orientation": "as_built",
+      "spin": -1,
+      "cfm": 48.9303561102054,
+      "converged": false,
+      "shaft_power_w": 0.8654793183968728,
+      "moment_z_nm": 0.00413235935,
+      "omega_signed": -209.43951023931953
+    },
+    {
+      "orientation": "as_built",
+      "spin": 1,
+      "cfm": -83.4276262548996,
+      "converged": false,
+      "shaft_power_w": 0.9797282717339219,
+      "moment_z_nm": -0.0046778579199999995,
+      "omega_signed": 209.43951023931953
+    },
+    {
+      "orientation": "flipped",
+      "spin": -1,
+      "cfm": 63.1214727436272,
+      "converged": false,
+      "shaft_power_w": 1.0362939648363256,
+      "moment_z_nm": 0.00494793921,
+      "omega_signed": -209.43951023931953
+    },
+    {
+      "orientation": "flipped",
+      "spin": 1,
+      "cfm": -62.55842519620201,
+      "converged": true,
+      "shaft_power_w": 1.022877393379706,
+      "moment_z_nm": -0.0048838798,
+      "omega_signed": 209.43951023931953
+    }
+  ],
+  "errors": [],
+  "geometry": {
+    "stl": "runs\\audit_direction\\stock_impeller.stl",
+    "omega_sign": 1,
+    "pump_sign": -1,
+    "chirality": -1,
+    "verdict": "CONCLUSIVE",
+    "note": "36 sections, 0 flat skipped",
+    "agreement": 1.0,
+    "n_sections": 36,
+    "motor_side": null,
+    "tip_lead_sign": 1,
+    "checks": {
+      "real_handedness": true,
+      "motor_on_exhaust": null,
+      "tips_lead": true,
+      "cfd_spin_matches": false,
+      "cfd_pumps_plus_z": false,
+      "motor_rotation_consistent": null
+    }
+  },
+  "verdict": {
+    "verdict": "INCONCLUSIVE",
+    "designed_sense": null,
+    "proper": {
+      "+1": 63.1214727436272,
+      "-1": 48.9303561102054
+    },
+    "bc_bias_cfm": {
+      "+1": 20.306,
+      "-1": 13.628
+    },
+    "power_sign_ok": false,
+    "recommended": null,
+    "reasons": [
+      "a proper (+Z) run did not converge"
+    ]
+  },
+  "convention_verdict": {
+    "verdict": "INCONCLUSIVE",
+    "production": {
+      "orientation": "as_built",
+      "spin": -1
+    },
+    "recommended": null,
+    "reason": "matrix verdict is inconclusive"
+  }
+}

@@ -727,6 +727,7 @@ follow under `docs/superpowers/specs/`.
   flips spin until thrust > 0 — this can hide exactly this bug). Output: a dated verdict report in
   `docs/validation/` stating the convention and its proofs; then fix code/docs/glyphs/§16.1 to match,
   bump `CFD_VERSION` so §18 quarantines every pre-verdict score, and re-run the Stock P–Q.
+  **Verdict 2026-09-25:** convention **FAIL** — production CFD solves the rotor reversed (designed ω_z +1 / pump −Z by geometry, matching the real fan; production as_built spin −1). CFD matrix INCONCLUSIVE (designed-direction solve limit-cycles; ranks designed +24% Stock / +10% close-ref). See docs/validation/audits/2026-09-25-audit-01-flow-direction.md. Freeze stays until the follow-up fix plan + CFD re-check.
 - [ ] **19.2 Direction as a derived, single-source property (after 19.1).** **[impact: high]** **[effort: med]**
   Stop hand-setting `spin`: derive pumping direction from blade geometry (19.1 proof #1) and have
   domain BCs, glyphs, metrics signs, and prop/CROR all read that one value. Makes this class of bug
