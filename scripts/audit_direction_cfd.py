@@ -54,7 +54,14 @@ def main(argv: list[str] | None = None) -> int:
     if not src.is_file():
         print(f"missing {src}; run scripts/audit_direction_geometry.py first")
         return 2
-    geom = json.loads(GEOM_JSON.read_text(encoding="utf-8"))["rotors"][args.rotor]
+    if not GEOM_JSON.is_file():
+        print(f"missing {GEOM_JSON}; run scripts/audit_direction_geometry.py first")
+        return 2
+    geom_data = json.loads(GEOM_JSON.read_text(encoding="utf-8"))
+    if "rotors" not in geom_data or args.rotor not in geom_data["rotors"]:
+        print(f"rotor '{args.rotor}' not found in {GEOM_JSON}; run scripts/audit_direction_geometry.py first")
+        return 2
+    geom = geom_data["rotors"][args.rotor]
     base = Path(args.out) / args.rotor
     min_wall = args.min_wall_mm
     if min_wall is None:
@@ -64,37 +71,56 @@ def main(argv: list[str] | None = None) -> int:
             ROOT / "config" / "problems" / "a12x25_reference.yaml"))
     mesh_res = MeshResolution.for_blade(float(args.base_cell), float(min_wall))
     rows: list[MatrixRow] = []
+    errors: list[str] = []
     for orientation in ("as_built", "flipped"):
         case = base / orientation
         case.mkdir(parents=True, exist_ok=True)
         stl = case / "impeller_mm.stl"
-        mesh = trimesh.load(str(src), force="mesh")
-        (flip_about_x(mesh) if orientation == "flipped" else mesh).export(str(stl))
-        rig0 = rig_for_reference_stl(stl, rpm=args.rpm)
-        runner = OpenFOAMRunner(case)
-        build_case(case, stl, rig0, mesh=mesh_res, n_iters=args.iters,
-                   n_subdomains=args.procs, back_pressure_pa=0.0)
-        t0 = time.time()
-        run_mesh(runner)
-        print(f"[{orientation}] meshed in {time.time() - t0:.0f}s", flush=True)
-        for spin in (-1, 1):
-            rig = replace(rig0, spin=spin)
-            build_case(case, stl, rig, mesh=mesh_res, n_iters=args.iters,
+        try:
+            mesh = trimesh.load(str(src), force="mesh")
+            (flip_about_x(mesh) if orientation == "flipped" else mesh).export(str(stl))
+            rig0 = rig_for_reference_stl(stl, rpm=args.rpm)
+            runner = OpenFOAMRunner(case)
+            build_case(case, stl, rig0, mesh=mesh_res, n_iters=args.iters,
                        n_subdomains=args.procs, back_pressure_pa=0.0)
             t0 = time.time()
-            run_solve(runner, n_procs=args.procs)
-            m = parse_fan_metrics(case, omega_rad_s=rig.omega_rad_s)
-            row = MatrixRow(orientation, spin, m.cfm, m.converged, m.shaft_power_w,
-                            m.moment_z_nm, rig.omega_signed)
-            rows.append(row)
-            print(f"[{orientation} spin {spin:+d}] CFM {m.cfm:+.1f} conv={m.converged} "
-                  f"drift={m.flow_drift_pct:.1f}% P={m.shaft_power_w:.3f} W "
-                  f"Mz={m.moment_z_nm:+.5f} ({time.time() - t0:.0f}s)", flush=True)
-    verdict = matrix_verdict(rows, geometry_omega=geom["omega_sign"])
+            run_mesh(runner)
+            print(f"[{orientation}] meshed in {time.time() - t0:.0f}s", flush=True)
+        except Exception as e:
+            msg = f"[{orientation}] meshing failed: {e}"
+            errors.append(msg)
+            print(msg, flush=True)
+            for spin in (-1, 1):
+                rows.append(MatrixRow(orientation, spin, float("nan"), False, float("nan"),
+                                    float("nan"), float(spin) * 209.44))
+            continue
+        for spin in (-1, 1):
+            try:
+                rig = replace(rig0, spin=spin)
+                build_case(case, stl, rig, mesh=mesh_res, n_iters=args.iters,
+                           n_subdomains=args.procs, back_pressure_pa=0.0)
+                t0 = time.time()
+                run_solve(runner, n_procs=args.procs)
+                m = parse_fan_metrics(case, omega_rad_s=rig.omega_rad_s)
+                row = MatrixRow(orientation, spin, m.cfm, m.converged, m.shaft_power_w,
+                                m.moment_z_nm, rig.omega_signed)
+                rows.append(row)
+                print(f"[{orientation} spin {spin:+d}] CFM {m.cfm:+.1f} conv={m.converged} "
+                      f"drift={m.flow_drift_pct:.1f}% P={m.shaft_power_w:.3f} W "
+                      f"Mz={m.moment_z_nm:+.5f} ({time.time() - t0:.0f}s)", flush=True)
+            except Exception as e:
+                msg = f"[{orientation} spin {spin:+d}] solve failed: {e}"
+                errors.append(msg)
+                print(msg, flush=True)
+                rows.append(MatrixRow(orientation, spin, float("nan"), False, float("nan"),
+                                    float("nan"), float(spin) * 209.44))
+    verdict = matrix_verdict(rows, geometry_omega=geom.get("omega_sign"),
+                           geometry_pump=geom.get("pump_sign"))
     payload = {"rotor": args.rotor, "rpm": args.rpm, "iters": args.iters,
                "mesh": asdict(mesh_res), "rows": [asdict(r) for r in rows],
-               "geometry": geom, "verdict": verdict}
+               "errors": errors, "geometry": geom, "verdict": verdict}
     out = ROOT / "docs" / "validation" / "audits" / f"direction_cfd_{args.rotor}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(f"\nVERDICT {verdict['verdict']}: {verdict}\n-> {out}", flush=True)
     return 0

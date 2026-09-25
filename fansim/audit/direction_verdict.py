@@ -9,6 +9,7 @@ the geometric proof.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 
@@ -24,6 +25,8 @@ class MatrixRow:
 
 
 def body_sense(row: MatrixRow) -> int:
+    if row.orientation not in ("as_built", "flipped"):
+        raise ValueError(f"Invalid orientation: {row.orientation!r}")
     return row.spin if row.orientation == "as_built" else -row.spin
 
 
@@ -31,8 +34,13 @@ def _key(s: int) -> str:
     return f"{s:+d}"
 
 
+def _is_finite(v: float) -> bool:
+    """Check if a value is finite (not NaN or inf)."""
+    return not (math.isnan(v) or math.isinf(v))
+
+
 def matrix_verdict(rows: list[MatrixRow], geometry_omega: int | None,
-                   margin: float = 0.20) -> dict:
+                   geometry_pump: int | None = None, margin: float = 0.20) -> dict:
     reasons: list[str] = []
     proper: dict[int, MatrixRow] = {}
     improper: dict[int, MatrixRow] = {}
@@ -50,14 +58,21 @@ def matrix_verdict(rows: list[MatrixRow], geometry_omega: int | None,
         "proper": {_key(s): r.cfm for s, r in proper.items()},
         "bc_bias_cfm": {_key(s): round(abs(improper[s].cfm) - proper[s].cfm, 3)
                         for s in proper if s in improper},
-        "power_sign_ok": all(r.moment_z_nm * r.omega_signed < 0 for r in proper.values()),
+        "power_sign_ok": False,
         "recommended": None, "reasons": reasons,
     }
     if len(proper) != 2:
         return out
+    # Check for non-finite values in proper runs
+    for sense, row in proper.items():
+        if not (_is_finite(row.cfm) and _is_finite(row.shaft_power_w) and _is_finite(row.moment_z_nm)):
+            reasons.append(f"sense {_key(sense)}: non-finite value in proper run "
+                           f"(cfm={row.cfm}, power={row.shaft_power_w}, moment_z={row.moment_z_nm})")
+            return out
     if not all(r.converged for r in proper.values()):
         reasons.append("a proper (+Z) run did not converge")
         return out
+    out["power_sign_ok"] = all(r.moment_z_nm * r.omega_signed < 0 for r in proper.values())
     if not out["power_sign_ok"]:
         reasons.append("moment_z * omega >= 0 on a delivering run: fluid driving the rotor")
         return out
@@ -74,6 +89,17 @@ def matrix_verdict(rows: list[MatrixRow], geometry_omega: int | None,
     if geometry_omega is None:
         reasons.append("geometric proof inconclusive; CFD alone is not a verdict")
         return out
+    # Check orientation against geometry prediction
+    if geometry_pump is not None:
+        # As built, sense s pumps geometry_pump * geometry_omega * s in Z
+        # The designed sense pumps +Z as built iff geometry_pump * geometry_omega * win > 0
+        expected_orientation = "as_built" if geometry_pump * geometry_omega * win > 0 else "flipped"
+        if w.orientation != expected_orientation:
+            reasons.append(f"orientation mismatch: CFD says {w.orientation}, "
+                           f"geometry predicts {expected_orientation}")
+            return {"verdict": "FAIL", "designed_sense": win, "proper": out["proper"],
+                    "bc_bias_cfm": out["bc_bias_cfm"], "power_sign_ok": out["power_sign_ok"],
+                    "recommended": out["recommended"], "reasons": reasons}
     out["verdict"] = "PASS" if geometry_omega == win else "FAIL"
     if out["verdict"] == "FAIL":
         reasons.append(f"CFD says sense {_key(win)}, geometry says {_key(geometry_omega)}")
