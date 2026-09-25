@@ -133,6 +133,29 @@ def test_motor_side_with_centre_bore(side):
     assert motor_side(cambered_blade_fan(cup_side=side, bore_r=5.0)) == side
 
 
+@pytest.mark.parametrize("side", [+1, -1])
+def test_motor_side_with_realistic_centre_bore(side):
+    # bore_r = 0.18*r_tip is closer to the real A12x25's ~10 mm bore on a 55 mm tip.
+    fan = cambered_blade_fan(cup_side=side, bore_r=0.18 * 50.0)
+    assert motor_side(fan) == side
+
+
+@pytest.mark.parametrize("offset", [+3.0, -3.0])
+def test_motor_side_none_for_offset_solid_hub(offset):
+    # E9: a solid hub (no cup) merely shifted in z relative to the blades must not look like a
+    # cup -- motor_side must measure depth relative to the hub's OWN end faces, not whole-mesh
+    # bounds (which this offset would otherwise skew).
+    fan = cambered_blade_fan(cup_side=None, hub_z_offset=offset)
+    assert motor_side(fan) is None
+
+
+def test_motor_side_none_for_low_hub_ratio_solid_hub():
+    # E8: with hub/tip ~= 0.22, naive near-axis probe bands can reach into the blades and a
+    # solid hub would misread as a cup. Bands must stay below the blade roots.
+    fan = cambered_blade_fan(r_hub=12.0, r_tip=55.0, cup_side=None)
+    assert motor_side(fan) is None
+
+
 def test_synthetic_blades_are_watertight():
     for b in cambered_blade_fan().split(only_watertight=False):
         assert isinstance(b, trimesh.Trimesh) and b.is_watertight
@@ -147,3 +170,13 @@ def test_real_a12x25_direction_and_motor_side():
     assert (p.omega_sign, p.pump_sign, p.chirality) == (+1, -1, -1)
     assert tip_lead_sign(mesh) == +1
     assert motor_side(mesh) == -1
+
+
+@pytest.mark.skipif(not _A12X25_STL.exists(), reason="reference STL not present")
+def test_real_a12x25_direction_is_robust_to_unwelded_input():
+    # The project builds process=False meshes (fansim/geometry/blade.py:799); prove_direction
+    # must weld internally rather than silently going INCONCLUSIVE on duplicate vertices.
+    mesh = trimesh.load(_A12X25_STL, process=False)
+    p = prove_direction(mesh)
+    assert p.verdict == "CONCLUSIVE", p.note
+    assert (p.omega_sign, p.pump_sign, p.chirality) == (+1, -1, -1)

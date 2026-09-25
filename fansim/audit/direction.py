@@ -120,6 +120,8 @@ def _read_section(mesh, pts, faces, r0) -> SectionReading | None:
 
 def prove_direction(mesh: trimesh.Trimesh,
                     r_fracs: tuple[float, ...] = (0.55, 0.65, 0.75, 0.85)) -> DirectionProof:
+    mesh = mesh.copy()
+    mesh.merge_vertices()
     tip = _tip_radius(mesh)
     readings: list[SectionReading] = []
     flat = 0
@@ -150,18 +152,43 @@ def prove_direction(mesh: trimesh.Trimesh,
 def motor_side(mesh: trimesh.Trimesh, n: int = 64, min_depth_mm: float = 2.0) -> int | None:
     """Face (+1 = +Z, -1 = -Z) where the hub is an open cup: axial rays go deeper on that side.
 
-    Probes a series of radial bands near the axis rather than a single hub-vertex band, since on
-    a real mesh (extruded walls only tessellate at their z-ends, and a centre bore leaves the
-    near-axis vertex band empty) the naive "vertices with r < 0.3*tip" test can see no hub
-    material at all. The first band where both +Z and -Z rays hit solid material on at least half
-    their rays, with median depths differing by at least ``min_depth_mm``, decides; deeper from
-    -Z means the cup opens at -Z (return -1).
+    Probes a series of radial bands near the axis, capped BELOW the blade roots so the probe never
+    reaches into the blades (a low hub/tip ratio previously let it do so and misread a plain solid
+    hub as a cup). ``r_root`` is the smallest radius at which cylinder cuts start yielding real
+    blade sections; only bands with r <= 0.9*r_root are probed.
+
+    For each band, rays are cast from below and from above (starting outside the whole mesh's z
+    bounds, ``multiple_hits=False``) and the median FIRST-HIT z is recorded on each side
+    (``z_lo_hit``, ``z_hi_hit``) -- not a depth relative to a face, since a plain z-shift of a
+    solid hub relative to the blades must not look like a cup. The hub's own end-face baselines
+    are ``hub_z0 = min`` over bands of ``z_lo_hit`` and ``hub_z1 = max`` over bands of
+    ``z_hi_hit`` (whichever band's rays reach the true solid end, e.g. the wall of a cup, sets the
+    baseline). A band shows a cup open at -Z when its bottom hit is recessed from that baseline by
+    at least ``min_depth_mm`` while its top hit sits at the baseline (within ``min_depth_mm``); the
+    mirror condition shows a cup open at +Z. The side is returned only if every qualifying band
+    agrees; disagreement or no qualifying band is None.
     """
+    mesh = mesh.copy()
+    mesh.merge_vertices()
     tip = _tip_radius(mesh)
+
+    r_root = None
+    for f in np.linspace(0.1, 0.6, 26):
+        r0 = f * tip
+        if sum(1 for _ in _section_loops(mesh, r0)) >= 3:
+            r_root = r0
+            break
+    if r_root is None:
+        return None
+    r_cap = 0.9 * r_root
+    bands = list(np.linspace(0.05 * tip, r_cap, 12))
+    if not bands:
+        return None
+
     z0, z1 = (float(b) for b in mesh.bounds[:, 2])
     rng = np.random.default_rng(0)
 
-    def depth(z_face: float, direction: float, r_lo: float, r_hi: float) -> float | None:
+    def first_hit(z_face: float, direction: float, r_lo: float, r_hi: float) -> float | None:
         rr = r_lo + (r_hi - r_lo) * rng.random(n)
         th = 2.0 * np.pi * rng.random(n)
         xy = np.column_stack([rr * np.cos(th), rr * np.sin(th)])
@@ -170,18 +197,30 @@ def motor_side(mesh: trimesh.Trimesh, n: int = 64, min_depth_mm: float = 2.0) ->
         locs, _, _ = mesh.ray.intersects_location(origins, dirs, multiple_hits=False)
         if len(locs) < n // 2:
             return None
-        return float(np.median(np.abs(locs[:, 2] - z_face)))
+        return float(np.median(locs[:, 2]))
 
-    for f in np.linspace(0.05, 0.35, 7):
-        r_lo, r_hi = (f - 0.02) * tip, (f + 0.02) * tip
-        d_lo = depth(z0, +1.0, r_lo, r_hi)
-        d_hi = depth(z1, -1.0, r_lo, r_hi)
-        if d_lo is None or d_hi is None:
+    band_hits = []
+    for r0 in bands:
+        r_lo, r_hi = r0 - 0.02 * tip, r0 + 0.02 * tip
+        band_hits.append((first_hit(z0, +1.0, r_lo, r_hi), first_hit(z1, -1.0, r_lo, r_hi)))
+
+    lo_hits = [z for z, _ in band_hits if z is not None]
+    hi_hits = [z for _, z in band_hits if z is not None]
+    if not lo_hits or not hi_hits:
+        return None
+    hub_z0, hub_z1 = min(lo_hits), max(hi_hits)
+
+    sides = set()
+    for z_lo_hit, z_hi_hit in band_hits:
+        if z_lo_hit is None or z_hi_hit is None:
             continue
-        if abs(d_lo - d_hi) < min_depth_mm:
-            continue
-        return -1 if d_lo > d_hi else +1
-    return None
+        open_lo = (z_lo_hit - hub_z0) >= min_depth_mm and (hub_z1 - z_hi_hit) < min_depth_mm
+        open_hi = (hub_z1 - z_hi_hit) >= min_depth_mm and (z_lo_hit - hub_z0) < min_depth_mm
+        if open_lo:
+            sides.add(-1)
+        elif open_hi:
+            sides.add(+1)
+    return sides.pop() if len(sides) == 1 else None
 
 
 def tip_lead_sign(mesh: trimesh.Trimesh,
@@ -197,6 +236,8 @@ def tip_lead_sign(mesh: trimesh.Trimesh,
     ``_read_section``), not a raw vertex mean: uneven chordwise vertex density would otherwise bias
     a raw mean toward wherever vertices happen to be denser, faking a lead that isn't there.
     """
+    mesh = mesh.copy()
+    mesh.merge_vertices()
     tip = _tip_radius(mesh)
     rings = []
     for f in r_fracs:

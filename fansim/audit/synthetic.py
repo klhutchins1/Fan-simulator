@@ -17,10 +17,10 @@ def _blade(theta0, r_hub, r_tip, chord, stagger_deg, camber, thick, sweep_deg=0.
     g = np.radians(stagger_deg)
     c_hat = np.array([np.cos(g), np.sin(g)])
     e_hat = np.array([-np.sin(g), np.cos(g)])
+    # One-sided warp: squeezes stations toward one end of the chord (not symmetric), so a
+    # raw vertex-mean centroid is actually pulled off-center by it.
     u = np.linspace(-1.0, 1.0, n_chord)
-    if chord_gamma != 1.0:
-        u = np.sign(u) * np.abs(u) ** chord_gamma
-    xi = u * (chord / 2.0)
+    xi = chord * ((u + 1.0) / 2.0) ** chord_gamma - chord / 2.0
     eta_m = camber * chord * (1.0 - (2.0 * xi / chord) ** 2)
     rho = np.linspace(r_hub - 1.0, r_tip, n_span)
     layers = []
@@ -81,9 +81,13 @@ def cambered_blade_fan(n_blades: int = 5, r_hub: float = 15.0, r_tip: float = 50
                        chord: float = 20.0, stagger_deg: float = 60.0, camber: float = 0.06,
                        thick: float = 1.0, cup_side: int | None = None,
                        hub_height: float = 16.0, sweep_deg: float = 0.0,
-                       chord_gamma: float = 1.0, bore_r: float = 0.0) -> trimesh.Trimesh:
+                       chord_gamma: float = 1.0, bore_r: float = 0.0,
+                       hub_z_offset: float = 0.0) -> trimesh.Trimesh:
     parts = [_blade(2.0 * np.pi * k / n_blades, r_hub, r_tip, chord, stagger_deg, camber, thick,
                     sweep_deg, chord_gamma)
              for k in range(n_blades)]
-    parts.append(_hub(r_hub, hub_height, cup_side, bore_r))
+    hub = _hub(r_hub, hub_height, cup_side, bore_r)
+    if hub_z_offset != 0.0:
+        hub.apply_translation([0.0, 0.0, hub_z_offset])
+    parts.append(hub)
     return trimesh.util.concatenate(parts)
