@@ -74,8 +74,8 @@ def lib_versions(libs: tuple[str, ...]) -> dict[str, str]:
     out: dict[str, str] = {}
     for lib in libs:
         if lib == "openfoam":
-            from fansim.cfd.runner import DEFAULT_IMAGE
-            out[lib] = DEFAULT_IMAGE
+            src = normalized_source("fansim.cfd.runner:DEFAULT_IMAGE")
+            out[lib] = ast.literal_eval(src.split("=", 1)[1].strip())
         else:
             try:
                 out[lib] = importlib.metadata.version(lib)

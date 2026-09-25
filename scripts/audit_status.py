@@ -48,7 +48,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"MISSING    {uid}  ({missing[uid]})")
         else:
             print(f"{states[uid].value:<9} {uid}")
-    counts = {s.value: sum(1 for v in states.values() if v is s) for s in State}
+    counts = {s.value: sum(1 for uid, v in states.items() if v is s and uid not in missing) for s in State}
     count_items = [(k, counts[k]) for k in ["PROVEN", "CHANGED", "AFFECTED", "NEW"]]
     if missing:
         count_items.append(("MISSING", len(missing)))
