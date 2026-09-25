@@ -42,6 +42,8 @@ session.**
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
+9. **§20 external feature radar** — quick wins 20.1 / 20.2 any time; 20.3 alongside item 4 (diagnoses
+   the P–Q gap); 20.7 is the hardware path for item 5; 20.4 waits on §19.1.
 
 §8 / §9 / §10 / §12 / §13 stage-1 are **closed in code**. Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
 Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
@@ -744,6 +746,46 @@ follow under `docs/superpowers/specs/`.
 - [ ] **19.5+ Later audits** (each: verification → validation → claims): axial BEM + P–Q + metrics,
   acoustics (Curle / FW-H / Proudman), prop BEMT vs. UIUC, then the other archetypes. Periodic runner
   + dated proof report; cadence set in the design spec.
+
+## 20. External feature radar (2026-09-25)
+
+Features borrowed from other fan / prop / turbomachinery tools. The survey, the reasoning, and the
+parked ideas live in the living doc **"fansim — Competitive Landscape & Feature Radar"**
+(https://claude.ai/code/artifact/58aeff6a-99b3-4b5f-9913-e10134a790c0), re-swept quarterly. An item
+lands here only when the doc marks it *Adopt*. Ordered by value for effort; none of these may touch
+the §19.1 spin / flow freeze.
+
+- [ ] **20.1 STEP export of blade + hub.** **[impact: low–med]** **[effort: low]** *(CFturbo, AxCent)*
+  The blade is already a CadQuery solid (`geometry/blade.py`) but `geometry/export.py` writes STL only.
+  Add STEP beside the STL in `export_finalists.py` and the cockpit export, so designs open cleanly in
+  Fusion / Onshape / FreeCAD for hand edits.
+- [ ] **20.2 NeuralFoil airfoil polars.** **[impact: med]** **[effort: low]** *(AeroSandbox, QBlade)*
+  Swap or back the UIUC/Selig tables (`fansim/data/polars`, `_cl_cd`) with NeuralFoil: any Re, 360°
+  angle of attack, no non-convergence, smooth for gradients. Keep UIUC as the regression reference
+  (§19.5 prop BEMT vs UIUC). Opens a later option: section shape (CST) as an optimizer variable.
+  Only improves the BEM pre-screen tier (ranking-only, Spearman ~0.62) — not absolute CFM.
+- [ ] **20.3 Spanwise + blade-to-blade CFD post-processing.** **[impact: high]** **[effort: med]** *(TCAE Turbo Blade Post)*
+  Circumferentially averaged total pressure, axial / swirl velocity, incidence and deviation vs
+  radius, plus blade-to-blade Cp at 3–5 span stations, built on `cfd/midplane.py`. Primary use:
+  locate *where* along the span the a12x25 free-air gap (−15…−20%, §1.5) is lost. Cockpit plot after.
+- [ ] **20.4 Design from the target point (meanline seed + loading gates).** **[impact: high]** **[effort: med]** *(CFturbo, AxCent)*
+  From target Q / ΔP / RPM: specific speed & diameter (Cordier) sizing, free- or forced-vortex
+  velocity triangles → per-station stagger/camber *magnitudes* as an optimizer seed, and cheap
+  Lieblein diffusion-factor / de Haller gates before CFD. **Freeze:** emit magnitudes only; handedness
+  and sign come from the existing convention until §19.1 lands (then from §19.2).
+- [ ] **20.5 Surrogate-guided search.** **[impact: high]** **[effort: med]** *(Cadence Fine Design3D)*
+  Today surrogates only *reject* designs before CFD (`--surrogate-prescreen`). Add the pro loop:
+  space-filling DoE → fit (`surrogate/` GP / boost / ensemble) → NSGA-II on the surrogate → CFD-verify
+  the top-k → refit. Use ensemble spread as the acquisition / uncertainty signal.
+- [ ] **20.6 Weighted multi-point duty + airflow at matched noise.** **[impact: med]** **[effort: low–med]** *(FanScout, FANselect)*
+  Score across 2–5 operating points (system-curve loads × PWM duty from `pwm_table`) weighted by time
+  at each. Add "CFM at matched relative dB(A)" — how PC fan reviewers compare fans; uses the relative
+  noise tier only, so no absolute-dB claim.
+- [ ] **20.7 Low-cost P–Q rig.** **[impact: critical]** **[effort: med, hardware]** *(every vendor tool's certified data)*
+  Build the `validation/rig.md` minimum rig: plenum box, swappable restriction plates, digital
+  differential-pressure sensor (e.g. Sensirion SDP810), tach, microcontroller logging straight into
+  `validation/ingest.py`. Unblocks Phase 5 / §5.1 and every absolute-number claim. User-side build;
+  code side = logger + ingest schema.
 
 ---
 
