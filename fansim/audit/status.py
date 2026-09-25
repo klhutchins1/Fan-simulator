@@ -33,6 +33,8 @@ def load_ledger(path: Path = LEDGER_PATH) -> dict:
 
 def record_pass(unit_id: str, fingerprint: str, report: str, date: str,
                 path: Path = LEDGER_PATH) -> None:
+    if not fingerprint:
+        raise ValueError("fingerprint must not be empty")
     led = load_ledger(path)
     led.setdefault("units", {})[unit_id] = {
         "fingerprint": fingerprint, "verdict": "PASS", "date": date, "report": report,

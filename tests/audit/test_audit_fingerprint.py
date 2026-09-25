@@ -83,6 +83,105 @@ def test_openfoam_lib_version_is_the_image_tag():
     assert lib_versions(("openfoam",)) == {"openfoam": DEFAULT_IMAGE}
 
 
+CLOSURE_BASE = '''
+def helper(x):
+    return x * 2
+
+def unrelated(y):
+    return y + 1
+
+def target(x):
+    return helper(x) + CONST
+
+CONST = 3
+'''
+
+
+def test_closure_includes_same_module_referenced_helper(tmp_path):
+    root = _pkg(tmp_path, CLOSURE_BASE)
+    before = fingerprint_target("pkgx.mod:target", root)
+    _pkg(tmp_path, CLOSURE_BASE.replace("return x * 2", "return x * 3"))
+    assert fingerprint_target("pkgx.mod:target", root) != before
+
+
+def test_closure_ignores_unreferenced_sibling(tmp_path):
+    root = _pkg(tmp_path, CLOSURE_BASE)
+    before = fingerprint_target("pkgx.mod:target", root)
+    _pkg(tmp_path, CLOSURE_BASE.replace("return y + 1", "return y + 2"))
+    assert fingerprint_target("pkgx.mod:target", root) == before
+
+
+def test_closure_terminates_on_cycles(tmp_path):
+    body = '''
+def a(x):
+    return b(x)
+
+def b(x):
+    return a(x) + 1
+'''
+    root = _pkg(tmp_path, body)
+    # Must not hang / recurse infinitely.
+    assert fingerprint_target("pkgx.mod:a", root)
+
+
+def test_closure_covers_dead_design_guard_via_same_module():
+    # optimize.reject_dead_designs targets score_operating_point; intersect_fan_line lives in the
+    # same module, so it must be covered by the closure without an explicit registry target.
+    src = normalized_source("fansim.optimize.system_curve:score_operating_point")
+    assert "intersect_fan_line" in src
+
+
+def test_find_returns_last_binding(tmp_path):
+    body = '''
+def dup():
+    return 1
+
+def dup():
+    return 2
+'''
+    root = _pkg(tmp_path, body)
+    assert "return 2" in normalized_source("pkgx.mod:dup", root)
+
+
+def test_unit_fingerprint_changes_when_checks_file_changes(tmp_path):
+    root = _pkg(tmp_path, BASE)
+    check = tmp_path / "check.py"
+    check.write_text("def test_x():\n    assert 1 == 1\n", encoding="utf-8")
+    u = Unit("u", ("pkgx.mod:f",), "c", {"kind": "derivation"}, {}, ("check.py",), (), ())
+    before = fingerprint_unit(u, root)
+    check.write_text("def test_x():\n    assert 1 == 2\n", encoding="utf-8")
+    assert fingerprint_unit(u, root) != before
+
+
+def test_unit_fingerprint_changes_when_claim_changes(tmp_path):
+    root = _pkg(tmp_path, BASE)
+    u1 = Unit("u", ("pkgx.mod:f",), "claim one", {"kind": "derivation"}, {}, (), (), ())
+    u2 = Unit("u", ("pkgx.mod:f",), "claim two", {"kind": "derivation"}, {}, (), (), ())
+    assert fingerprint_unit(u1, root) != fingerprint_unit(u2, root)
+
+
+def test_unit_fingerprint_ignores_ref_checks(tmp_path):
+    root = _pkg(tmp_path, BASE)
+    u = Unit("u", ("pkgx.mod:f",), "c", {"kind": "derivation"}, {}, ("ref:something",), (), ())
+    # Must not raise even though "ref:something" resolves to no real file.
+    assert fingerprint_unit(u, root)
+
+
+def test_lib_versions_reraises_value_error_as_fingerprint_error(monkeypatch):
+    import ast as _ast
+
+    import fansim.audit.fingerprint as fp
+
+    def boom(target, root=fp.ROOT):
+        class Bad:
+            value = _ast.parse("foo()", mode="eval").body  # a Call node: not a literal
+        return Bad()
+
+    monkeypatch.setattr(fp, "_resolve_node", boom)
+    with pytest.raises(FingerprintError):
+        lib_versions(("openfoam",))
+
+
 def test_openfoam_lookup_does_not_import_cfd():
     result = subprocess.run(
         [sys.executable, "-c",

@@ -13,6 +13,8 @@ from pathlib import Path
 
 import yaml
 
+from fansim.audit.fingerprint import ROOT as _FINGERPRINT_ROOT
+
 REGISTRY_PATH = Path(__file__).with_name("registry.yaml")
 SOURCE_KINDS = frozenset({"paper", "datasheet", "standard", "derivation"})
 _TARGET_RE = re.compile(r"^[A-Za-z_][\w.]*(:[A-Za-z_][\w.]*)?$")
@@ -53,6 +55,10 @@ def _unit(raw: dict) -> Unit:
     source = dict(raw.get("source") or {})
     if source.get("kind") not in SOURCE_KINDS:
         raise RegistryError(f"{uid}: source kind must be one of {sorted(SOURCE_KINDS)}")
+    for c in raw.get("checks") or ():
+        c = str(c)
+        if not c.startswith("ref:") and not (_FINGERPRINT_ROOT / c).is_file():
+            raise RegistryError(f"{uid}: checks path not found: {c!r}")
     return Unit(
         id=str(uid),
         targets=tuple(str(t) for t in targets),

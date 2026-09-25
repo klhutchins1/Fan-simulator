@@ -60,3 +60,23 @@ def test_rejects_invalid(tmp_path, body, msg):
 def test_shipped_registry_loads():
     reg = load_registry(REGISTRY_PATH)
     assert "cfd.flow_direction_convention" in reg.units
+
+
+def test_missing_checks_path_raises(tmp_path):
+    body = (
+        "units:\n"
+        "  - {id: a, targets: [m], claim: c, source: {kind: paper, ref: r}, "
+        "checks: [tests/audit/does_not_exist.py]}\n"
+    )
+    with pytest.raises(RegistryError, match="checks path not found"):
+        load_registry(_write(tmp_path, body))
+
+
+def test_ref_checks_path_is_not_validated(tmp_path):
+    body = (
+        "units:\n"
+        "  - {id: a, targets: [m], claim: c, source: {kind: paper, ref: r}, "
+        "checks: ['ref:a12x25_direction_matrix']}\n"
+    )
+    reg = load_registry(_write(tmp_path, body))
+    assert reg.units["a"].checks == ("ref:a12x25_direction_matrix",)
