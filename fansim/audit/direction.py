@@ -10,9 +10,11 @@ Cross-check: chirality chi = sign(sum A * n_theta * n_z) over the cut faces. chi
 any proper rotation of the part and flips under mirroring. Algebraically chi always equals
 rotation * delivery (both reduce to sign(e_s . e_z) of the same section frame), so this check only
 confirms chord/normal consistency and the part's handedness -- it is not an independent proof of
-which way the part is designed to turn. The independent checks of the designed rotation are the tip
-lead (on the real fan, tips lead the rotation) and the motor side (air leaves past the motor, so
-pump = motor_side and, via chirality, omega = chi * pump).
+which way the part is designed to turn. The independent check of the designed rotation is the tip
+lead (on the real fan, tips lead the rotation). The motor side (air leaves past the motor, so
+pump = motor_side and, via chirality, omega = chi * pump) is corroboration only, not an independent
+proof: it reads the cup from a face recess of 2 mm or more, which any sufficiently deep recess on
+either face -- cup or not -- would also satisfy.
 """
 
 from __future__ import annotations

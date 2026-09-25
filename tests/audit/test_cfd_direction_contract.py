@@ -9,13 +9,13 @@ from pathlib import Path
 import pytest
 import trimesh
 
-from fansim.cfd.domain import TestRig
+from fansim.cfd.domain import TestRig as _Rig
 from fansim.cfd.metrics import parse_fan_metrics
 from fansim.cfd.openfoam_case import build_case
 
 
-def _rig(spin: int) -> TestRig:
-    return TestRig(duct_radius=0.06, tip_gap=0.0005, inlet_length=0.24, outlet_length=0.48,
+def _rig(spin: int) -> _Rig:
+    return _Rig(duct_radius=0.06, tip_gap=0.0005, inlet_length=0.24, outlet_length=0.48,
                    impeller_z_min=-0.008, impeller_z_max=0.008, mrf_z_min=-0.01, mrf_z_max=0.01,
                    rpm=2000.0, inlet_velocity=2.0, spin=spin)
 
@@ -76,7 +76,6 @@ def _write_pp(case: Path, flow: float, mz: float) -> None:
 def test_metrics_keep_flow_and_moment_signed(tmp_path):
     # Negative moment_z with distinct x/y/z to prove we're reading the z-component.
     _write_pp(tmp_path, flow=-0.02, mz=-0.003)
-    # Patch _write_pp to write distinct moment components to verify index.
     d = tmp_path / "postProcessing" / "forces" / "0"
     (d / "moment.dat").write_text("\n".join("1 (0.111 0.222 -0.003) (0 0 0) (0 0 0)" for _ in range(10)) + "\n", encoding="utf-8")
     m = parse_fan_metrics(tmp_path, omega_rad_s=209.4)

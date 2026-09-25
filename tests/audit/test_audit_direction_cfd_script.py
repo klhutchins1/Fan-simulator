@@ -1,0 +1,112 @@
+"""Pure-function tests for scripts/audit_direction_cfd.py: reverdict + STL binding (C1, I4).
+
+Loaded via importlib (scripts/ is not a package). Importing it pulls in fansim.cfd transitively,
+which is known to crash CPython at *interpreter teardown* on this machine -- irrelevant here since
+we only judge the test outcomes recorded during the run, never the process exit code.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import importlib.util
+from pathlib import Path
+
+import pytest
+
+_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "audit_direction_cfd.py"
+
+
+def _load_module():
+    spec = importlib.util.spec_from_file_location("audit_direction_cfd_under_test", _SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@pytest.fixture(scope="module")
+def mod():
+    return _load_module()
+
+
+def _row(orientation, spin, cfm, converged, power, mz, omega_signed):
+    return {
+        "orientation": orientation, "spin": spin, "cfm": cfm, "converged": converged,
+        "shaft_power_w": power, "moment_z_nm": mz, "omega_signed": omega_signed,
+    }
+
+
+def test_production_spin_matches_test_rig_default(mod):
+    from fansim.cfd.domain import TestRig
+    assert mod.production_spin() == TestRig.__dataclass_fields__["spin"].default
+
+
+def test_reverdict_roundtrip_recommends_as_built(mod):
+    spin = mod.production_spin()
+    assert spin == -1
+    rows = [
+        _row("as_built", -1, 60.0, True, 0.5, 0.002, -209.44),
+        _row("as_built", 1, -30.0, True, 0.5, -0.002, 209.44),
+        _row("flipped", 1, -70.0, True, 0.5, -0.002, 209.44),
+        _row("flipped", -1, 42.0, True, 0.5, 0.002, -209.44),
+    ]
+    existing = {
+        "rotor": "stock", "rpm": 2000.0, "iters": 100, "mesh": {},
+        "rows": rows, "geometry": {"omega_sign": spin, "pump_sign": 1},
+    }
+    out = mod.reverdict_payload(existing)
+    assert out["verdict"]["verdict"] == "PASS"
+    assert out["verdict"]["recommended"] == {"orientation": "as_built", "spin": spin}
+    assert out["convention_verdict"]["verdict"] == "PASS"
+    assert out["errors"] == []
+
+
+def test_reverdict_roundtrip_flags_convention_failure(mod):
+    # Requires production's spin default to be -1 (fansim/cfd/domain.py); this is Audit #1's own
+    # convention and is pinned separately, so this test asserts the value it needs directly.
+    spin = mod.production_spin()
+    assert spin == -1
+    # Designed sense's proper run is FLIPPED: production (as_built) solves the reversed rotor.
+    rows = [
+        _row("as_built", -1, -70.0, True, 0.5, 0.002, -209.44),
+        _row("as_built", 1, -30.0, True, 0.5, -0.002, 209.44),
+        _row("flipped", 1, 42.0, True, 0.5, -0.002, 209.44),
+        _row("flipped", -1, 60.0, True, 0.5, 0.002, -209.44),
+    ]
+    existing = {
+        "rotor": "stock", "rpm": 2000.0, "iters": 100, "mesh": {},
+        "rows": rows, "geometry": {"omega_sign": 1, "pump_sign": -1},
+    }
+    out = mod.reverdict_payload(existing)
+    assert out["verdict"]["verdict"] == "PASS"
+    assert out["verdict"]["recommended"] == {"orientation": "flipped", "spin": -1}
+    assert out["convention_verdict"]["verdict"] == "FAIL"
+
+
+def test_reverdict_tolerates_missing_convention_verdict_and_errors_keys(mod):
+    spin = mod.production_spin()
+    rows = [_row("as_built", spin, None, False, None, None, spin * 209.44)]
+    existing = {"rows": rows, "geometry": {}}  # no "convention_verdict", no "errors"
+    out = mod.reverdict_payload(existing)
+    assert "convention_verdict" in out and "errors" in out
+    assert out["verdict"]["verdict"] == "INCONCLUSIVE"
+
+
+def test_stl_hash_mismatch_none_when_hash_matches(mod, tmp_path):
+    stl = tmp_path / "rotor.stl"
+    stl.write_bytes(b"some mesh bytes")
+    sha = hashlib.sha256(stl.read_bytes()).hexdigest()
+    assert mod.stl_hash_mismatch(stl, {"stl_sha256": sha}) is None
+
+
+def test_stl_hash_mismatch_reports_stale_geometry(mod, tmp_path):
+    stl = tmp_path / "rotor.stl"
+    stl.write_bytes(b"new mesh bytes")
+    msg = mod.stl_hash_mismatch(stl, {"stl_sha256": "0" * 64})
+    assert msg is not None and "mismatch" in msg.lower()
+
+
+def test_stl_hash_mismatch_reports_missing_hash_key(mod, tmp_path):
+    stl = tmp_path / "rotor.stl"
+    stl.write_bytes(b"mesh bytes")
+    msg = mod.stl_hash_mismatch(stl, {})
+    assert msg is not None and "missing stl_sha256" in msg

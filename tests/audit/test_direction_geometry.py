@@ -102,7 +102,7 @@ def test_tip_lead_sign_ignores_uneven_chordwise_vertex_density():
     # Squeezing chordwise stations toward the ends (chord_gamma != 1) skews a raw vertex-mean
     # centroid without moving the loop's actual shape; the arc-length-resampled centroid must
     # see through it and report no sweep at all.
-    m = cambered_blade_fan(n_blades=9, chord=30.0, sweep_deg=0.0, chord_gamma=2.5)
+    m = cambered_blade_fan(n_blades=9, chord=30.0, sweep_deg=0.0, chord_gamma=3.5)
     assert tip_lead_sign(m) is None
 
 

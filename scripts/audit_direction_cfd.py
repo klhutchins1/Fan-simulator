@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import time
@@ -22,7 +23,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import trimesh  # noqa: E402
 
 from fansim.audit.direction import flip_about_x  # noqa: E402
-from fansim.audit.direction_verdict import MatrixRow, matrix_verdict  # noqa: E402
+from fansim.audit.direction_verdict import MatrixRow, convention_verdict, matrix_verdict  # noqa: E402
+from fansim.cfd.domain import TestRig  # noqa: E402
 from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
@@ -45,30 +47,80 @@ def _none_for_nan(v: float) -> float | None:
     return v
 
 
+def production_spin() -> int:
+    return TestRig.__dataclass_fields__["spin"].default
+
+
+def stl_hash_mismatch(src: Path, geom: dict) -> str | None:
+    """None if ``src``'s sha256 matches ``geom["stl_sha256"]``, else a message explaining why not."""
+    if "stl_sha256" not in geom:
+        return (f"missing stl_sha256 for this rotor in {GEOM_JSON}; "
+                f"regenerate with scripts/audit_direction_geometry.py")
+    actual = hashlib.sha256(src.read_bytes()).hexdigest()
+    if actual != geom["stl_sha256"]:
+        return (f"STL mismatch: {src} sha256 {actual} != {GEOM_JSON} sha256 {geom['stl_sha256']}; "
+                f"geometry JSON is stale, regenerate with scripts/audit_direction_geometry.py")
+    return None
+
+
+def _rows_to_json(rows: list[MatrixRow]) -> list[dict]:
+    return [
+        {
+            "orientation": r.orientation,
+            "spin": r.spin,
+            "cfm": _none_for_nan(r.cfm),
+            "converged": r.converged,
+            "shaft_power_w": _none_for_nan(r.shaft_power_w),
+            "moment_z_nm": _none_for_nan(r.moment_z_nm),
+            "omega_signed": r.omega_signed,
+        }
+        for r in rows
+    ]
+
+
+def _rows_from_json(raw_rows: list[dict]) -> list[MatrixRow]:
+    def nan_if_none(v):
+        return float("nan") if v is None else v
+
+    return [
+        MatrixRow(
+            r["orientation"], r["spin"], nan_if_none(r["cfm"]), r["converged"],
+            nan_if_none(r["shaft_power_w"]), nan_if_none(r["moment_z_nm"]), r["omega_signed"],
+        )
+        for r in raw_rows
+    ]
+
+
 def _write_payload(out: Path, rotor: str, rpm: float, iters: int, mesh_res, rows: list[MatrixRow],
                    errors: list[str], geometry: dict, verdict: dict) -> None:
     """Write partial results to JSON with NaN converted to None."""
     payload = {
         "rotor": rotor, "rpm": rpm, "iters": iters,
         "mesh": asdict(mesh_res),
-        "rows": [
-            {
-                "orientation": r.orientation,
-                "spin": r.spin,
-                "cfm": _none_for_nan(r.cfm),
-                "converged": r.converged,
-                "shaft_power_w": _none_for_nan(r.shaft_power_w),
-                "moment_z_nm": _none_for_nan(r.moment_z_nm),
-                "omega_signed": r.omega_signed,
-            }
-            for r in rows
-        ],
+        "rows": _rows_to_json(rows),
         "errors": errors,
         "geometry": geometry,
         "verdict": verdict,
+        "convention_verdict": convention_verdict(verdict, production_spin()),
     }
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def reverdict_payload(existing: dict) -> dict:
+    """Recompute both verdicts from an existing JSON payload's rows, without CFD or Docker.
+
+    Tolerates a payload that predates ``convention_verdict`` or that lacks ``errors``.
+    """
+    rows = _rows_from_json(existing["rows"])
+    geometry = existing.get("geometry", {})
+    verdict = matrix_verdict(rows, geometry_omega=geometry.get("omega_sign"),
+                             geometry_pump=geometry.get("pump_sign"))
+    out = dict(existing)
+    out.setdefault("errors", [])
+    out["verdict"] = verdict
+    out["convention_verdict"] = convention_verdict(verdict, production_spin())
+    return out
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -81,7 +133,20 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--iters", type=int, default=1500)
     ap.add_argument("--procs", type=int, default=8)
     ap.add_argument("--out", default="runs/audit_direction")
+    ap.add_argument("--reverdict", action="store_true",
+                    help="recompute both verdicts from the existing JSON's rows; no CFD, no Docker")
     args = ap.parse_args(argv)
+    out = ROOT / "docs" / "validation" / "audits" / f"direction_cfd_{args.rotor}.json"
+    if args.reverdict:
+        if not out.is_file():
+            print(f"missing {out}; cannot --reverdict")
+            return 2
+        existing = json.loads(out.read_text(encoding="utf-8"))
+        payload = reverdict_payload(existing)
+        out.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+        print(f"REVERDICT matrix={payload['verdict']['verdict']} "
+              f"convention={payload['convention_verdict']['verdict']} -> {out}")
+        return 0
     if not image_available():
         print("SKIPPED: OpenFOAM image not available")
         return 2
@@ -97,6 +162,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"rotor '{args.rotor}' not found in {GEOM_JSON}; run scripts/audit_direction_geometry.py first")
         return 2
     geom = geom_data["rotors"][args.rotor]
+    mismatch = stl_hash_mismatch(src, geom)
+    if mismatch is not None:
+        print(f"rotor '{args.rotor}': {mismatch}")
+        return 2
     base = Path(args.out) / args.rotor
     min_wall = args.min_wall_mm
     if min_wall is None:
@@ -107,7 +176,6 @@ def main(argv: list[str] | None = None) -> int:
     mesh_res = MeshResolution.for_blade(float(args.base_cell), float(min_wall))
     rows: list[MatrixRow] = []
     errors: list[str] = []
-    out = ROOT / "docs" / "validation" / "audits" / f"direction_cfd_{args.rotor}.json"
     for orientation in ("as_built", "flipped"):
         case = base / orientation
         case.mkdir(parents=True, exist_ok=True)

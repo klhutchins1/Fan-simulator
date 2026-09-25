@@ -101,3 +101,39 @@ def matrix_verdict(rows: list[MatrixRow], geometry_omega: int | None, *,
     if out["verdict"] == "FAIL":
         reasons.append(f"CFD says sense {_key(win)}, geometry says {_key(geometry_omega)}")
     return out
+
+
+def convention_verdict(matrix: dict, production_spin: int) -> dict:
+    """Does PRODUCTION (as_built, ``TestRig.spin=production_spin``) solve the designed rotation?
+
+    ``matrix_verdict`` can PASS while its winning *proper* run is ``{flipped, spin}`` -- meaning
+    production, which always solves ``as_built``, is actually solving the reversed or mis-oriented
+    rotor. This is the convention check production must pass, separate from the matrix's own
+    geometry-vs-CFD agreement check.
+    """
+    production = {"orientation": "as_built", "spin": production_spin}
+    matrix_status = matrix.get("verdict")
+    recommended = matrix.get("recommended")
+    if matrix_status == "INCONCLUSIVE":
+        return {
+            "verdict": "INCONCLUSIVE", "production": production, "recommended": recommended,
+            "reason": "matrix verdict is inconclusive",
+        }
+    if matrix_status == "FAIL":
+        reasons = "; ".join(matrix.get("reasons", ())) or "matrix verdict is FAIL"
+        return {
+            "verdict": "FAIL", "production": production, "recommended": recommended,
+            "reason": f"matrix verdict is FAIL: {reasons}",
+        }
+    if recommended == production:
+        return {
+            "verdict": "PASS", "production": production, "recommended": recommended,
+            "reason": "production (as_built, spin matches) solves the CFD-recommended designed sense",
+        }
+    return {
+        "verdict": "FAIL", "production": production, "recommended": recommended,
+        "reason": (
+            f"production ({production}) solves the reversed or mis-oriented rotor: "
+            f"CFD recommends {recommended}"
+        ),
+    }

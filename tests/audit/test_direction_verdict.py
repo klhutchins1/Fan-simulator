@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from fansim.audit.direction_verdict import MatrixRow, body_sense, matrix_verdict
+from fansim.audit.direction_verdict import MatrixRow, body_sense, convention_verdict, matrix_verdict
 
 
 def R(o, s, cfm, conv=True, p=0.5, mz=None):
@@ -99,6 +99,40 @@ def test_no_pump_direction_is_inconclusive():
     """geometry_pump=None → INCONCLUSIVE."""
     v = matrix_verdict(ROWS, geometry_omega=+1, geometry_pump=None)
     assert v["verdict"] == "INCONCLUSIVE" and any("pump" in r for r in v["reasons"])
+
+
+def test_convention_verdict_fails_when_matrix_recommends_flipped_but_production_is_as_built():
+    # ROWS recommends {flipped, -1}; production always solves as_built.
+    v = matrix_verdict(ROWS, geometry_omega=+1, geometry_pump=-1)
+    assert v["verdict"] == "PASS" and v["recommended"] == {"orientation": "flipped", "spin": -1}
+    cv = convention_verdict(v, production_spin=-1)
+    assert cv["verdict"] == "FAIL"
+    assert cv["production"] == {"orientation": "as_built", "spin": -1}
+    assert "reversed" in cv["reason"] or "mis-oriented" in cv["reason"]
+
+
+def test_convention_verdict_passes_when_matrix_recommends_as_built():
+    rows = [R("as_built", +1, 60.0), R("as_built", -1, -30.0),
+            R("flipped", -1, -70.0), R("flipped", +1, 42.0)]
+    v = matrix_verdict(rows, geometry_omega=+1, geometry_pump=+1)
+    assert v["verdict"] == "PASS" and v["recommended"] == {"orientation": "as_built", "spin": +1}
+    cv = convention_verdict(v, production_spin=+1)
+    assert cv["verdict"] == "PASS"
+    assert cv["production"] == cv["recommended"] == {"orientation": "as_built", "spin": +1}
+
+
+def test_convention_verdict_inconclusive_when_matrix_inconclusive():
+    v = matrix_verdict(ROWS, geometry_omega=None, geometry_pump=-1)
+    assert v["verdict"] == "INCONCLUSIVE"
+    cv = convention_verdict(v, production_spin=-1)
+    assert cv["verdict"] == "INCONCLUSIVE"
+
+
+def test_convention_verdict_fail_when_matrix_fail():
+    v = matrix_verdict(ROWS, geometry_omega=-1, geometry_pump=-1)
+    assert v["verdict"] == "FAIL"
+    cv = convention_verdict(v, production_spin=-1)
+    assert cv["verdict"] == "FAIL"
 
 
 def test_power_sign_ok_false_when_no_proper_runs():

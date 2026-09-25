@@ -7,6 +7,10 @@ Checks (each True / False / None=unclear):
   cfd_spin_matches     TestRig default spin == designed omega_sign (CFD turns it the designed way)
   cfd_pumps_plus_z     pump_sign == +1 (designed delivery matches the duct's inlet -Z -> outlet +Z)
   motor_rotation_consistent  chirality * motor_side == omega_sign (air leaves past motor; pump=motor_side, chi*pump=omega)
+                       -- algebraically redundant with motor_on_exhaust whenever the proof is
+                       CONCLUSIVE, since pump_sign == motor_side in that case and
+                       chi == omega_sign * pump_sign identically; it adds no information beyond
+                       motor_on_exhaust and real_handedness, but is kept as a cheap cross-check.
 
 Usage:
     uv run python scripts/audit_direction_geometry.py
@@ -14,6 +18,7 @@ Usage:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -50,6 +55,10 @@ def _tri(a, b):
     return None if a is None or b is None else bool(a == b)
 
 
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def main() -> int:
     spin_in_use = TestRig.__dataclass_fields__["spin"].default
     rotors = {}
@@ -60,6 +69,7 @@ def main() -> int:
         tl = tip_lead_sign(mesh)
         rotors[name] = {
             "stl": str(path.relative_to(ROOT)),
+            "stl_sha256": _sha256(path),
             "omega_sign": p.omega_sign, "pump_sign": p.pump_sign, "chirality": p.chirality,
             "verdict": p.verdict, "note": p.note, "agreement": p.agreement,
             "n_sections": p.n_sections, "motor_side": ms, "tip_lead_sign": tl,
