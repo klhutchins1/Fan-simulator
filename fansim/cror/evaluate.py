@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from dataclasses import replace
 from pathlib import Path
 
 from fansim.cfd.casing import export_casing_stl
@@ -80,6 +81,29 @@ def rig_for_cror(
     )
 
 
+def fit_cror_to_stl(
+    rig: TestRig, dual_mrf: dict, stl_mm: str | Path, *, margin_mm: float = 2.0,
+) -> tuple[TestRig, dict]:
+    """Fit the CROR rig + dual-MRF zone to the real exported STL bounds.
+
+    Same pattern as ``fansim.cfd.orientation.fit_rig_to_stl``: ``rig_for_cror``/
+    ``dual_mrf_dict`` size the front/rear MRF bands from the analytic blade-station layout,
+    but the hub cylinder (``cror_axial_layout_mm``'s 1 mm end margin) can poke slightly past
+    those bands, leaving hub past the MRF zone. Extend the outer front/rear edges (never the
+    inner gap) to cover the actual mesh, with an extra ``margin_mm`` clearance.
+    """
+    import trimesh
+
+    mesh = trimesh.load(str(stl_mm), force="mesh")
+    z0 = float(mesh.bounds[0, 2]) * MM_TO_M
+    z1 = float(mesh.bounds[1, 2]) * MM_TO_M
+    lo = min(float(dual_mrf["front_z_min"]), z0 - margin_mm * MM_TO_M)
+    hi = max(float(dual_mrf["rear_z_max"]), z1 + margin_mm * MM_TO_M)
+    fitted_rig = replace(rig, impeller_z_min=z0, impeller_z_max=z1, mrf_z_min=lo, mrf_z_max=hi)
+    fitted_dmrf = {**dual_mrf, "front_z_min": lo, "rear_z_max": hi}
+    return fitted_rig, fitted_dmrf
+
+
 def evaluate_cror(
     params: CrorParams,
     workdir: str | Path,
@@ -146,6 +170,7 @@ def evaluate_cror(
         rpm=spec.rpm,
     )
     dmrf = dual_mrf_dict(params, rig0.omega_signed)
+    rig0, dmrf = fit_cror_to_stl(rig0, dmrf, stl)
     gap_raw["dual_mrf"] = {k: round(float(v), 6) for k, v in dmrf.items()}
 
     frame_path = workdir / "frame.stl"

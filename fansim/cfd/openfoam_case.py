@@ -155,6 +155,35 @@ def _k_omega_bc(snips: dict[str, str], k_val: float, omega_val: float) -> tuple[
     )
 
 
+_PLACEMENT_TOL_M = 1e-6
+
+
+def check_placement(impeller_mm: trimesh.Trimesh, rig: TestRig, *, dual_mrf: dict | None = None,
+                    downstream_mm: dict[str, trimesh.Trimesh] | None = None) -> None:
+    """Refuse cases whose rotor pokes out of the MRF zone, or whose frame/stator overlaps the rotor.
+
+    Blade parts outside the MRF zone are solved as stationary walls, and a frame inside the blade
+    band intersects the rotor. Both silently corrupt CFM, so fail loudly instead.
+    """
+    z0 = float(impeller_mm.bounds[0, 2]) * MM_TO_M
+    z1 = float(impeller_mm.bounds[1, 2]) * MM_TO_M
+    if dual_mrf is not None:
+        lo, hi = float(dual_mrf["front_z_min"]), float(dual_mrf["rear_z_max"])
+    else:
+        lo, hi = float(rig.mrf_z_min), float(rig.mrf_z_max)
+    if z0 < lo - _PLACEMENT_TOL_M or z1 > hi + _PLACEMENT_TOL_M:
+        raise ValueError(
+            f"impeller z [{z0 * 1e3:.2f}, {z1 * 1e3:.2f}] mm is not inside the MRF zone "
+            f"[{lo * 1e3:.2f}, {hi * 1e3:.2f}] mm — size the rig from the STL "
+            f"(fansim.cfd.orientation.fit_rig_to_stl)")
+    for name, part in (downstream_mm or {}).items():
+        pz0 = float(part.bounds[0, 2]) * MM_TO_M
+        if pz0 < z1 - _PLACEMENT_TOL_M:
+            raise ValueError(
+                f"{name} starts at z={pz0 * 1e3:.2f} mm, inside the impeller (z_max "
+                f"{z1 * 1e3:.2f} mm) — export it from the fitted rig")
+
+
 def build_case(
     case_dir: str | Path,
     impeller_stl_mm: str | Path,
@@ -195,22 +224,31 @@ def build_case(
     for sub in ("0", "constant/triSurface", "system"):
         (case_dir / sub).mkdir(parents=True, exist_ok=True)
 
-    # --- Scale the impeller STL mm -> m into the case ---
+    # --- Load all STLs (still mm-scale) before any scaling or writing ---
     surf = trimesh.load(str(impeller_stl_mm), force="mesh")
+    frame_mesh = trimesh.load(str(frame_stl_mm), force="mesh") if frame_stl_mm is not None else None
+    casing_mesh = trimesh.load(str(casing_stl_mm), force="mesh") if casing_stl_mm is not None else None
+    stator_mesh = trimesh.load(str(stator_stl_mm), force="mesh") if stator_stl_mm is not None else None
+
+    downstream_mm: dict[str, trimesh.Trimesh] = {}
+    if frame_mesh is not None:
+        downstream_mm["frame"] = frame_mesh
+    if stator_mesh is not None:
+        downstream_mm["stator"] = stator_mesh
+    check_placement(surf, rig, dual_mrf=dual_mrf, downstream_mm=downstream_mm)
+
+    # --- Scale the impeller STL mm -> m into the case ---
     surf.apply_scale(MM_TO_M)
     surf.export(str(case_dir / "constant/triSurface/impeller.stl"))
 
     # --- Optional stationary frame / casing, also mm -> m into the case ---
-    if frame_stl_mm is not None:
-        frame = trimesh.load(str(frame_stl_mm), force="mesh")
-        frame.apply_scale(MM_TO_M)
-        frame.export(str(case_dir / "constant/triSurface/frame.stl"))
-    if casing_stl_mm is not None:
-        casing_mesh = trimesh.load(str(casing_stl_mm), force="mesh")
+    if frame_mesh is not None:
+        frame_mesh.apply_scale(MM_TO_M)
+        frame_mesh.export(str(case_dir / "constant/triSurface/frame.stl"))
+    if casing_mesh is not None:
         casing_mesh.apply_scale(MM_TO_M)
         casing_mesh.export(str(case_dir / "constant/triSurface/casing.stl"))
-    if stator_stl_mm is not None:
-        stator_mesh = trimesh.load(str(stator_stl_mm), force="mesh")
+    if stator_mesh is not None:
         stator_mesh.apply_scale(MM_TO_M)
         stator_mesh.export(str(case_dir / "constant/triSurface/stator.stl"))
 
