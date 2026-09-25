@@ -11,6 +11,13 @@ session.**
   Stock close-ref fidelity (§2.7–2.8). **§13.22–13.24** / **§14.3b** /
   **§14.6** / **§15.1–15.6** landed 2026-09-16. Still **not shippable** until Validation P–Q /
   print+measure — see `a12x25_pq_report.md`
+> ⛔ **FREEZE (2026-09-24): no changes to fan spin / flow direction / blade handedness / motor-side
+> geometry** — `TestRig.spin`, `flow_sign`, `u_axial`, inlet/outlet placement, glyph/arrow direction,
+> `normalize_metrics_sign`, blade mirror/lean/stagger signs, `_hub_axial_range`. Applies to every agent
+> (Claude, Cursor). Lifted only by the Audit #1 verdict (§19.1). Reason: the convention has been
+> "fixed" both ways (a75da48 → ea96f40) and the docs now disagree with each other and with the
+> 2026-09-24 spin A/B smoke. Another flip without proof makes it worse.
+
 - Tags: **[impact]** how much it changes results · **[effort]** rough build cost · owner *me* unless noted.
 - Related: `docs/known-issues.md` (historical cockpit fixes — **stale**, see §13.4), `docs/high-accuracy-plan.md` (fidelity
   ladder), `docs/design-rules.md` (extracted levers), the memory index.
@@ -20,6 +27,8 @@ session.**
 
 ## ★ Recommended sequence
 
+0. **§19.1 Audit #1 — flow direction & sign conventions.** Blocks trusting any axial CFM,
+   the A12x25 P–Q gap (item 4), and every catalog score. Spin/flow **frozen** until it lands.
 1. ~~**§13 hygiene**~~ — parse/CI/ruff critical/fan_tab UI split/mypy/MIT — closed 2026-09-15.
    Leftover geometry perf: ~~**13.22**~~ / ~~**13.23**~~ / ~~**13.24**~~ (2026-09-16).
 2. ~~Math audit / §12~~ — cockpit thickness, Fit, scoring honesty closed 2026-09-15.
@@ -679,6 +688,54 @@ present. The real Fan-only gap was the **airflow viz**, now the focus of 17.3.
   `cfd_is_stale` flags missing or older versions. Results marks them with ⧗ and tells you to re-Assess.
   `scripts/clean_stale_cfd.py` audits `runs/*/study.db` and can persist the marker. It does not delete trials.
   Tests: `tests/test_cfd_stale.py`.
+
+
+## 19. Physics & math audit program (2026-09-24)
+
+Repeatable audits that produce **evidence** (numbers vs. tolerance, a pass/fail, and the source each
+claim traces to) — not prose someone rewrites by hand. `docs/adversarial-review.md` is the stale
+Aug snapshot of this idea; this section replaces its "living document" role. Three layers, kept
+separate: **verification** (code solves its equations right), **validation** (right equations vs.
+measured fans/props), **claims** (docs + cited papers match what the code does). Design spec to
+follow under `docs/superpowers/specs/`.
+
+- [ ] **19.1 Audit #1 — flow direction & sign conventions (axial fan).** **[impact: critical]** **[effort: med]**
+  **Evidence that it's broken:** `runs/spin_ab_smoke/spin_ab_summary.json` (Stock a12x25, 2000 rpm,
+  free air, same mesh): `spin=-1` → **+42.4 CFM (not converged)**; `spin=+1` → **−70.5 CFM
+  (converged)**. The "reversed" spin moves ~1.7× more air toward −Z (the real-fan direction), yet
+  the script picked `spin=-1` by *sign* alone. A backwards fan should move much *less* air.
+  The conventions also contradict each other: ea96f40 says blades pump **−Z**; `domain.py` says
+  `spin=-1` pumps **+Z**; §16.1 above describes the reverted a75da48 state (motor on +Z);
+  `glyphs.py` now draws +Z. Hypothesis (unproven): the rotor has been solved backwards, which would
+  also explain part of the free-air gap in item 4 / `a12x25_pq_report.md`.
+  **Required proofs — all three must agree before the freeze lifts:**
+  1. *Geometric (no CFD):* from the Stock STL and the reference STL, measure blade pitch sign vs.
+     radius; derive which rotation makes the LE lead and therefore which way the blade pumps.
+  2. *Convention contract tests:* pin what `spin`, `flow_sign`, inlet/outlet BC, `outletFlow` sign,
+     thrust/torque sign, and glyph direction each mean; a test fails if any drifts.
+  3. *CFD both-ways:* converged forward vs. reversed runs; the correct sense must win on |CFM|
+     **and** efficiency by a clear margin, not on sign. Plus an axis-invariance check (whole case
+     flipped end-for-end → same |CFM| within tolerance).
+  **Also:** audit every place that forces a sign positive (`propeller/calibrate.normalize_metrics_sign`
+  flips spin until thrust > 0 — this can hide exactly this bug). Output: a dated verdict report in
+  `docs/validation/` stating the convention and its proofs; then fix code/docs/glyphs/§16.1 to match,
+  bump `CFD_VERSION` so §18 quarantines every pre-verdict score, and re-run the Stock P–Q.
+- [ ] **19.2 Direction as a derived, single-source property (after 19.1).** **[impact: high]** **[effort: med]**
+  Stop hand-setting `spin`: derive pumping direction from blade geometry (19.1 proof #1) and have
+  domain BCs, glyphs, metrics signs, and prop/CROR all read that one value. Makes this class of bug
+  structurally impossible rather than documented-away.
+- [ ] **19.3 Reverse-rotation run as a permanent regression check.** **[impact: med]** **[effort: low]**
+  Keep a cheap forward-vs-reversed smoke in the periodic audit (not a user feature): if reversed ever
+  beats forward, the convention broke again.
+- [ ] **19.4 Handedness mirror (CW ⇄ CCW variant export).** **[impact: med]** **[effort: low–med]**
+  Real value: CROR rear rotor, push-pull / counter-rotating pairs, matching a motor that only turns
+  one way. Must mirror geometry *and* flip spin together (a mirrored blade + same spin = backwards fan).
+  **Not** planned: a "run this design in reverse" performance mode — a blade optimized one way is poor
+  reversed; only reversible fans need it, and intake-vs-exhaust mounting is a physical flip, not a
+  rotation change (same numbers).
+- [ ] **19.5+ Later audits** (each: verification → validation → claims): axial BEM + P–Q + metrics,
+  acoustics (Curle / FW-H / Proudman), prop BEMT vs. UIUC, then the other archetypes. Periodic runner
+  + dated proof report; cadence set in the design spec.
 
 ---
 
