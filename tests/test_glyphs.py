@@ -78,7 +78,7 @@ def test_build_velocity_cloud_z_clip_prefers_near_impeller():
     assert np.all(np.abs(z_mm) <= 0.05 * M_TO_MM + 1e-6)
 
 
-def test_schematic_axial_flow_cloud_is_minus_z_in_annulus():
+def test_schematic_axial_flow_cloud_is_plus_z_in_annulus():
     pv = pytest.importorskip("pyvista")
     cloud = schematic_axial_flow_cloud(
         hub_radius_mm=20.0,
@@ -93,8 +93,8 @@ def test_schematic_axial_flow_cloud_is_minus_z_in_annulus():
     assert "U" in cloud.point_data and "U_mag" in cloud.point_data
     u = np.asarray(cloud["U"])
     assert np.allclose(u[:, 0], 0.0) and np.allclose(u[:, 1], 0.0)
-    # Air flows −Z: enters the open +Z intake, exits the −Z face past the motor cup.
-    assert np.allclose(u[:, 2], -2.5)
+    # +Z matches ducted CFD (inlet −Z → outlet +Z); spin=-1 free-air smoke 2026-09-24.
+    assert np.allclose(u[:, 2], 2.5)
     r = np.hypot(cloud.points[:, 0], cloud.points[:, 1])
     assert r.min() > 20.0 and r.max() < 55.0
     arrows = make_glyph_arrows(cloud, factor=1.0, max_arrows=50)

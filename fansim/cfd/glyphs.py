@@ -110,9 +110,9 @@ def schematic_axial_flow_cloud(
 ):
     """Build a non-CFD axial through-flow sample cloud for stock / no-case previews.
 
-    Flow is **−Z** through the annulus (hub/motor core excluded): air enters the open +Z intake
-    and exits the −Z face where the motor cup sits (exhaust), matching the real fan. Units: points
-    mm, ``U`` m/s.
+    Flow is **+Z** through the annulus (hub/motor core excluded), matching the ducted CFD
+    convention (inlet −Z → outlet +Z) and ``spin=-1`` free-air smoke (2026-09-24). Units:
+    points mm, ``U`` m/s.
     """
     import pyvista as pv
 
@@ -134,7 +134,7 @@ def schematic_axial_flow_cloud(
     pts_a = np.asarray(pts, dtype=float)
     u = np.zeros_like(pts_a)
     u_ax = abs(float(u_axial_ms))
-    u[:, 2] = -u_ax  # −Z: intake +Z → exhaust −Z (air exits past the motor on the −Z face)
+    u[:, 2] = u_ax  # +Z: inlet −Z → outlet +Z (spin=-1 pumps this way)
     cloud = pv.PolyData(pts_a)
     cloud["U"] = u
     cloud["U_mag"] = np.full(pts_a.shape[0], u_ax, dtype=float)

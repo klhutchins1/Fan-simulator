@@ -1,0 +1,44 @@
+{
+  "params": "config/problems/a12x25_reference.yaml",
+  "tip_gap_mm": 0.5,
+  "base_cell": 0.006,
+  "iters": 800,
+  "mesh": {
+    "base_cell": 0.006,
+    "surf_min": 3,
+    "surf_max": 4,
+    "feature_level": 4,
+    "add_layers": false,
+    "n_surface_layers": 3
+  },
+  "rows": [
+    {
+      "spin": -1,
+      "omega_signed": -209.43951023931953,
+      "u_axial": 2.0,
+      "cfm": 42.392858234300405,
+      "flow_m3s": 0.0200071822,
+      "static_pressure_rise_pa": 1.643002404,
+      "converged": false,
+      "drift_pct": 2.19,
+      "thrust_n": -0.0422114582,
+      "torque_nm": 0.00266568699,
+      "wall_s": 419.1
+    },
+    {
+      "spin": 1,
+      "omega_signed": 209.43951023931953,
+      "u_axial": 2.0,
+      "cfm": -70.5366585831126,
+      "flow_m3s": -0.0332895643,
+      "static_pressure_rise_pa": 0.03429239796,
+      "converged": true,
+      "drift_pct": 0.8,
+      "thrust_n": 0.056286782,
+      "torque_nm": 0.00308236514,
+      "wall_s": 413.9
+    }
+  ],
+  "preferred_spin": -1,
+  "verdict": "spin=-1 pumps +Z duct (42.4 CFM); lock glyphs/domain to this sense"
+}
