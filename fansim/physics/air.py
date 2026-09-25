@@ -4,6 +4,7 @@ Two densities are deliberate. Fans and ducted CFD use AMCA 210 standard air (1.2
 101.325 kPa). Props and turbines use ISA sea level (1.225 kg/m³, 15 °C) to match the published data
 they are compared against. Import from here; do not redefine locally
 (``tests/audit/test_air_properties.py`` fails on new copies).
+The guard catches module-level literal assignments (plain, annotated, and tuple); it does not catch computed values or other names.
 """
 
 from __future__ import annotations

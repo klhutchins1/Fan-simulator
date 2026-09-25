@@ -25,8 +25,35 @@ KNOWN_COPIES = {
     ("fansim/physics/regime.py", "C0_AIR"), ("fansim/propeller/bemt.py", "RHO_AIR"),
     ("fansim/propeller/bemt.py", "NU_AIR"), ("fansim/propeller/noise.py", "C_SOUND"),
     ("fansim/propeller/power.py", "RHO_AIR"), ("fansim/wind_turbine/evaluate.py", "RHO_AIR"),
-    ("scripts/fan_noise_curle.py", "C0"), ("scripts/fan_noise_cv.py", "C0"),
+    ("scripts/evaluate_noise.py", "C0"), ("scripts/fan_noise_curle.py", "C0"), ("scripts/fan_noise_cv.py", "C0"),
 }
+
+
+def _air_constants_in(source: str) -> dict[str, float]:
+    """Parse air constants from source code (plain, annotated, and tuple assignments)."""
+    found: dict[str, float] = {}
+    for node in ast.parse(source).body:
+        # Plain assignment: RHO_AIR = 1.2
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant) \
+                and isinstance(node.value.value, (int, float)):
+            for t in node.targets:
+                if isinstance(t, ast.Name) and NAME_RE.match(t.id):
+                    found[t.id] = float(node.value.value)
+        # Annotated assignment: RHO_AIR: float = 1.2
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.value, ast.Constant) \
+                and isinstance(node.value.value, (int, float)):
+            if isinstance(node.target, ast.Name) and NAME_RE.match(node.target.id):
+                found[node.target.id] = float(node.value.value)
+        # Tuple unpacking: RHO_AIR, NU_AIR = 1.2, 1.5e-5
+        elif isinstance(node, ast.Assign) and isinstance(node.value, ast.Tuple):
+            for t in node.targets:
+                if isinstance(t, ast.Tuple) and len(t.elts) == len(node.value.elts):
+                    for name_node, val_node in zip(t.elts, node.value.elts):
+                        if isinstance(name_node, ast.Name) and NAME_RE.match(name_node.id) \
+                                and isinstance(val_node, ast.Constant) \
+                                and isinstance(val_node.value, (int, float)):
+                            found[name_node.id] = float(val_node.value)
+    return found
 
 
 def _module_level_air_constants() -> dict[tuple[str, str], float]:
@@ -36,12 +63,9 @@ def _module_level_air_constants() -> dict[tuple[str, str], float]:
             rel = f.relative_to(ROOT).as_posix()
             if rel == "fansim/physics/air.py":
                 continue
-            for node in ast.parse(f.read_text(encoding="utf-8")).body:
-                if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant) \
-                        and isinstance(node.value.value, (int, float)):
-                    for t in node.targets:
-                        if isinstance(t, ast.Name) and NAME_RE.match(t.id):
-                            found[(rel, t.id)] = float(node.value.value)
+            constants = _air_constants_in(f.read_text(encoding="utf-8"))
+            for name, val in constants.items():
+                found[(rel, name)] = val
     return found
 
 
@@ -65,6 +89,20 @@ def test_viscosity_matches_sutherland_and_nu_is_mu_over_rho():
 def test_not_water_not_mars():
     # Water: rho ~1000, nu ~1e-6, c ~1480. Mars surface: rho ~0.02, c ~240.
     assert 1.0 < air.RHO_AMCA < 1.3 and 1.0e-5 < air.NU_AIR < 2.0e-5 and 330 < air.C0_AIR < 350
+
+
+def test_detector_catches_annotated_and_tuple_forms():
+    # Test that the detector catches annotated and tuple assignment forms
+    source = """
+RHO_AIR: float = 1.2
+NU_AIR, MU_AIR = 1.5e-5, 1.81e-5
+C0_AIR = 1.2 * 2  # computed, should not be caught
+IGNORED_VAR = 5.0
+"""
+    found = _air_constants_in(source)
+    assert found == {"RHO_AIR": 1.2, "NU_AIR": 1.5e-5, "MU_AIR": 1.81e-5}
+    assert "C0_AIR" not in found, "computed values should not be caught"
+    assert "IGNORED_VAR" not in found, "non-air constants should not be caught"
 
 
 def test_no_new_local_copies():
