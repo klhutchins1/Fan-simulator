@@ -11,11 +11,17 @@ units:
     checks: [tests/audit/test_air_properties.py]
 
   - id: audit.direction_geometry
-    targets: ["fansim.audit.direction"]
+    targets: ["fansim.audit.direction", "fansim.audit.synthetic"]
     claim: "Designed rotation = the way the concave (pressure) face points; air leaves along that face normal"
     source: {kind: derivation, ref: "velocity triangles, Dixon & Hall, Fluid Mechanics and Thermodynamics of Turbomachinery, ch. 1/5"}
     checks: [tests/audit/test_direction_geometry.py]
     libs: [trimesh, networkx]
+
+  - id: geometry.stock_handedness
+    targets: ["fansim.geometry.blade:build_impeller"]
+    claim: "Stock recipe rotor is designed for omega_z +1 (CCW from +Z) pumping -Z, real-fan chirality, tips leading"
+    source: {kind: derivation, ref: "Audit #1 geometric proof"}
+    checks: [tests/audit/test_stock_handedness.py]
 
   - id: cfd.flow_direction_convention
     targets:
@@ -25,10 +31,15 @@ units:
       - "fansim.cfd.templates:BLOCK_MESH"
       - "fansim.cfd.templates:FIELD_U_PDRIVEN"
       - "fansim.cfd.templates:FIELD_P_PDRIVEN"
+      - "fansim.cfd.templates:TOPOSET"
+      - "fansim.cfd.templates:FIELD_U"
+      - "fansim.cfd.templates:FIELD_P"
+      - "fansim.audit.direction_verdict"
+      - "fansim.validation.reference_stl:rig_for_reference_stl"
     claim: "Duct inlet -Z / outlet +Z; MRF omega = spin*|omega| about +Z (right-hand); the solved fan pumps +Z in its designed rotation"
     source: {kind: derivation, ref: "Audit #1 (geometry proof + CFD matrix)"}
     checks: [tests/audit/test_cfd_direction_contract.py, "ref:a12x25_direction_matrix"]
-    depends_on: [audit.direction_geometry]
+    depends_on: [audit.direction_geometry, geometry.stock_handedness]
     libs: [openfoam]
 
   - id: cfd.cfm_from_outlet_flow
