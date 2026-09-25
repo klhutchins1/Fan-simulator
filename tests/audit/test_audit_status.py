@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import importlib.util
+from io import StringIO
 from pathlib import Path
+from unittest import mock
 
 from fansim.audit.registry import Registry, Unit
 from fansim.audit.status import State, classify, find_unregistered, load_ledger, record_pass
@@ -57,3 +60,47 @@ def test_find_unregistered(tmp_path: Path):
     reg = Registry(units={"x": _u("x", targets=("phys.m1:covered", "phys.m2"))},
                    exempt=("phys.m3:*",))
     assert find_unregistered(reg, ("phys",), tmp_path) == ["phys.m1:K", "phys.m1:loose"]
+
+
+def test_cli_missing_path():
+    """Test that CLI properly reports MISSING units when targets cannot be resolved."""
+    import json
+    # Load audit_status.py as a module
+    script_path = Path(__file__).resolve().parents[2] / "scripts" / "audit_status.py"
+    spec = importlib.util.spec_from_file_location("audit_status_test", script_path)
+    audit_status = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(audit_status)
+
+    # Create a registry with one real unit and one with missing target
+    real_unit = _u("real", targets=("fansim.audit.status",))
+    missing_unit = _u("missing", targets=("fansim.does_not_exist",))
+    test_registry = Registry(
+        units={"real": real_unit, "missing": missing_unit},
+        exempt=()
+    )
+
+    # Patch the imported functions in the audit_status module
+    with mock.patch.object(audit_status, "load_registry", return_value=test_registry):
+        with mock.patch.object(audit_status, "load_ledger", return_value={"units": {}}):
+            with mock.patch.object(audit_status, "find_unregistered", return_value=[]):
+                # Test main([])
+                output = StringIO()
+                with mock.patch("sys.stdout", output):
+                    ret = audit_status.main([])
+                stdout = output.getvalue()
+                assert ret == 1, f"Expected return code 1, got {ret}"
+                assert "MISSING" in stdout, f"Expected 'MISSING' in stdout: {stdout}"
+                assert "missing" in stdout, f"Expected unit id 'missing' in stdout: {stdout}"
+                assert "NEW=1" in stdout, f"Expected 'NEW=1' in stdout: {stdout}"
+                assert "MISSING=1" in stdout, f"Expected 'MISSING=1' in stdout: {stdout}"
+
+                # Test main(["--json"])
+                output = StringIO()
+                with mock.patch("sys.stdout", output):
+                    ret = audit_status.main(["--json"])
+                stdout = output.getvalue()
+                assert ret == 1, f"Expected return code 1 for --json, got {ret}"
+                data = json.loads(stdout)
+                assert "missing" in data, f"Expected 'missing' key in JSON: {data}"
+                assert "missing" in data["missing"], f"Expected 'missing' unit id in 'missing' dict: {data}"
+                assert "missing" not in data["units"], f"'missing' unit should not be in 'units': {data}"

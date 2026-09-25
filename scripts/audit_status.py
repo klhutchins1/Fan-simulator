@@ -38,14 +38,14 @@ def main(argv: list[str] | None = None) -> int:
     states = classify(reg, load_ledger(), fps)
     loose = find_unregistered(reg)
     if args.json:
-        output = {"units": {k: v.value for k, v in states.items()}, "unregistered": loose}
+        output = {"units": {k: v.value for k, v in states.items() if k not in missing}, "unregistered": loose}
         if missing:
             output["missing"] = missing
         print(json.dumps(output, indent=2))
         return 1 if missing else 0
     for uid in sorted(states):
         if uid in missing:
-            print(f"MISSING    {uid}  ({missing[uid]})")
+            print(f"{'MISSING':<9} {uid}  ({missing[uid]})")
         else:
             print(f"{states[uid].value:<9} {uid}")
     counts = {s.value: sum(1 for uid, v in states.items() if v is s and uid not in missing) for s in State}

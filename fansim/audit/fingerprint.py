@@ -53,7 +53,8 @@ def _find(body: list[ast.stmt], name: str) -> ast.stmt | None:
     return None
 
 
-def normalized_source(target: str, root: Path = ROOT) -> str:
+def _resolve_node(target: str, root: Path = ROOT) -> ast.AST:
+    """Resolve a target (module or module:qualifier) to its AST node."""
     module, _, qual = target.partition(":")
     tree = ast.parse(module_path(module, root).read_text(encoding="utf-8"))
     node: ast.AST = tree
@@ -63,6 +64,11 @@ def normalized_source(target: str, root: Path = ROOT) -> str:
             if found is None:
                 raise FingerprintError(f"{target!r}: {part!r} not found")
             node = found
+    return node
+
+
+def normalized_source(target: str, root: Path = ROOT) -> str:
+    node = _resolve_node(target, root)
     return ast.unparse(_strip_docstrings(node))
 
 
@@ -74,8 +80,7 @@ def lib_versions(libs: tuple[str, ...]) -> dict[str, str]:
     out: dict[str, str] = {}
     for lib in libs:
         if lib == "openfoam":
-            src = normalized_source("fansim.cfd.runner:DEFAULT_IMAGE")
-            out[lib] = ast.literal_eval(src.split("=", 1)[1].strip())
+            out[lib] = ast.literal_eval(_resolve_node("fansim.cfd.runner:DEFAULT_IMAGE").value)
         else:
             try:
                 out[lib] = importlib.metadata.version(lib)

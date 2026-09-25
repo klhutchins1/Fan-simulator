@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -79,3 +81,17 @@ def test_unit_fingerprint_includes_libs(tmp_path, monkeypatch):
 def test_openfoam_lib_version_is_the_image_tag():
     from fansim.cfd.runner import DEFAULT_IMAGE
     assert lib_versions(("openfoam",)) == {"openfoam": DEFAULT_IMAGE}
+
+
+def test_openfoam_lookup_does_not_import_cfd():
+    result = subprocess.run(
+        [sys.executable, "-c",
+         "import sys; from fansim.audit.fingerprint import lib_versions; "
+         "v = lib_versions(('openfoam',)); print(v['openfoam'], 'fansim.cfd' in sys.modules)"],
+        cwd=Path(__file__).resolve().parents[2],
+        capture_output=True,
+        text=True
+    )
+    last_line = result.stdout.strip().split('\n')[-1]
+    assert last_line.endswith("False"), f"Expected 'False' at end of: {last_line}"
+    assert last_line.split()[0].startswith("opencfd/"), f"Expected tag starting with opencfd/: {last_line}"
