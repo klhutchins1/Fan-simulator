@@ -110,7 +110,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--surf-max", type=int, default=None,
                     help="snappy surface refinement level on the impeller. Default: auto from "
                          "the recipe's thinnest wall (finest cell <= wall/3) so thin blades are "
-                         "resolved -- surf 2 at 5 mm under-reads the a12x25 refit ~30%")
+                         "resolved -- surf 2 at 5 mm under-reads the a12x25 refit ~30%%")
     ap.add_argument("--feature-level", type=int, default=None,
                     help="snappy feature (edge) refinement level; default follows --surf-max/auto")
     ap.add_argument("--procs", type=int, default=8)
