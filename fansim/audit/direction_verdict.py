@@ -112,6 +112,8 @@ def convention_verdict(matrix: dict, production_spin: int, production_orientatio
     mis-oriented rotor. This is the convention check production must pass, separate from the
     matrix's own geometry-vs-CFD agreement check.
     """
+    if production_orientation not in ("as_built", "flipped"):
+        raise ValueError(f"production_orientation must be 'as_built' or 'flipped', got {production_orientation!r}")
     production = {"orientation": production_orientation, "spin": production_spin}
     matrix_status = matrix.get("verdict")
     recommended = matrix.get("recommended")

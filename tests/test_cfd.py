@@ -23,12 +23,8 @@ def test_rig_dimensions_and_operating_point():
     assert (rig.domain_z_max - rig.impeller_z_max) == pytest.approx(rig.outlet_length)
     assert rig.mrf_z_min < rig.impeller_z_min and rig.mrf_z_max > rig.impeller_z_max
     assert rig.u_axial > 0.0
-    # Audit #1: designed ω_z = +1 as built; the CFD copy is flipped about X (body ω → −ω), so the
-    # solver spin must be −1 × (+1) = −1. Derive, don't just pin.
-    from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION
-    designed_omega_as_built = +1
-    orientation_sign = -1 if AXIAL_CFD_ORIENTATION == "flipped" else +1
-    assert rig.spin == orientation_sign * designed_omega_as_built
+    # The spin's derivation from measured geometry evidence lives in
+    # tests/audit/test_cfd_direction_contract.py::test_rig_spin_matches_geometry_derived_orientation.
     assert rig.hub_radius > 0.0
     # CFM from velocity uses annulus (duct − hub), not the full disk.
     annulus = math.pi * (rig.duct_radius**2 - rig.hub_radius**2)

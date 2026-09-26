@@ -88,3 +88,25 @@ def test_axial_convention_is_flipped_at_spin_minus_one():
     from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION
     assert AXIAL_CFD_ORIENTATION == "flipped"
     assert _Rig.__dataclass_fields__["spin"].default == -1
+
+
+def test_rig_spin_matches_geometry_derived_orientation():
+    """Derive the production spin from Audit #1's measured geometry evidence, not a literal.
+
+    docs/validation/audits/direction_geometry.json records the designed omega sign (as built) for
+    each rotor from real geometric measurement. Both rotors must agree, and the production spin
+    must equal orientation_sign * designed, where orientation_sign flips the sign iff the CFD copy
+    is oriented "flipped" relative to as-built.
+    """
+    import json
+
+    from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION
+
+    geom_path = (Path(__file__).resolve().parents[2]
+                / "docs" / "validation" / "audits" / "direction_geometry.json")
+    data = json.loads(geom_path.read_text(encoding="utf-8"))
+    designed = data["rotors"]["stock"]["omega_sign"]
+    assert designed == data["rotors"]["reference_stl"]["omega_sign"]
+    orientation_sign = -1 if AXIAL_CFD_ORIENTATION == "flipped" else +1
+    rig = _rig(_Rig.__dataclass_fields__["spin"].default)
+    assert rig.spin == orientation_sign * designed
