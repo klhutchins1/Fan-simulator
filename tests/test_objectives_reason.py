@@ -37,7 +37,7 @@ def test_reversed_free_flow_keeps_duct_sign_hint():
     """Free delivery itself reversed -> the actionable spin/BC hint (not the stall message)."""
     msg = _reason(free_signed=-5.0, probe_signed=-9.0)
     assert "free outletFlow -5.0 CFM" in msg
-    assert "spin" in msg and "+Z duct" in msg
+    assert "rotor orientation" in msg and "fansim/cfd/orientation.py" in msg
     assert "stalls at this hose" not in msg
 
 

@@ -8,9 +8,11 @@ Layout (axis = Z, flow **+Z**):
     inlet (−Z) ──[ L_in ]──┤ impeller (MRF zone) ├──[ L_out ]── outlet (+Z)
                            duct radius = tip + tip_gap
 
-Blade sections put the LE on the lower-Z side of the chord, so oncoming flow is +Z.
-``spin=-1`` is CCW when looking along −Z (toward +Z / looking at the outlet face); with this
-blade handedness it pumps +Z.
+The duct flows +Z at ``spin=-1``. As built, the rotor is designed to turn CCW seen from +Z
+(``omega_z = +1``) and pump **−Z**; the CFD copy is rotated 180° about X by
+``fansim.cfd.orientation`` (``AXIAL_CFD_ORIENTATION``), so ``spin=-1`` on the *oriented* copy
+solves for the as-built rotation. See
+``docs/validation/audits/2026-09-25-audit-01-flow-direction.md`` for the evidence.
 
 Hub/motor: volume-flow from velocity uses the **annulus** (duct − hub). The solid hub in the
 STL already blocks the core in CFD; schematic glyphs stay outside the hub too.
@@ -62,7 +64,7 @@ class TestRig:
     mrf_z_max: float
     rpm: float
     inlet_velocity: float  # uniform |axial| inlet speed (m/s); signed U_z is +this
-    spin: int = -1  # −1 pumps +Z with this blade handedness (CCW looking toward +Z)
+    spin: int = -1  # oriented-CFD-copy spin; pumps +Z on the copy fansim.cfd.orientation flips
     hub_radius: float = 0.0  # m; excluded from flow_area (motor blocks the core)
 
     @property

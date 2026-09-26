@@ -122,8 +122,8 @@ def _operating_point_reason(
     if free_signed <= 0.0:
         return (
             f"system-curve: {exc} — free outletFlow {free_signed:+.1f} CFM (signed); "
-            "reverse/zero flow usually means spin or axial BC fought the blades. "
-            f"Re-Assess with current +Z duct (inlet −Z → outlet +Z, spin=-1).{conv}"
+            "reverse/zero flow usually means the rotor orientation or axial BC fought the blades "
+            f"(see fansim/cfd/orientation.py).{conv}"
         )
     if probe_signed <= 0.0:
         return (

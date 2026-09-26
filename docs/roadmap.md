@@ -636,6 +636,9 @@ visual, and error-handling that hides failure.
 ## 16. Real-fan orientation + fan-model prune (2026-09-17)
 
 - [x] **16.1 Fix the upside-down a12x25 (motor on the intake). DONE 2026-09-17.**
+  **Correction 2026-09-25 (Audit #1):** the text above describes commit a75da48, which was
+  reverted by ea96f40. The motor cup is on −Z as built; the designed airflow is −Z as built;
+  CFD orients the rotor via fansim/cfd/orientation.py.
   Measurement (blade LE at z=−4.66, TE at +4.66; `spin=-1` = CCW from the −Z intake) showed the
   blades, rotation, and +Z airflow were already correct — the only bug was that the motor boss +
   carved cup sat on the **−Z intake** face. Fix relocates just the motor to the **+Z exhaust**
