@@ -15,6 +15,30 @@ lead (on the real fan, tips lead the rotation). The motor side (air leaves past 
 pump = motor_side and, via chirality, omega = chi * pump) is corroboration only, not an independent
 proof: it reads the cup from a face recess of 2 mm or more, which any sufficiently deep recess on
 either face -- cup or not -- would also satisfy.
+
+Section-quality guard: the concave-face reading above is only meaningful for a thin airfoil section
+(one clear pressure/suction side). A thick, non-airfoil "section" -- e.g. a cylinder cut through a
+backward-curved centrifugal (radial) blower blade -- can still fit *a* quadratic and *a* sign, but
+that sign is not evidence of anything. Two cheap, purely geometric checks reject those sections
+before they ever reach the vote:
+  (a) thickness ratio t/c: t is the full eta-range (chord-normal extent) of the resampled loop --
+      i.e. it measures suction-to-pressure-side separation *and* camber bulge together, the same
+      quantity a caliper would read across the section. A thin cambered blade keeps t/c small; a
+      thick radial blade does not (measured: A12x25 ~0.109, synthetic default ~0.077, obj_1 ~0.037,
+      the obj_2/6/7/8 "radial impeller" family ~0.475). Sections with t/c above MAX_THICKNESS_RATIO
+      are rejected.
+  (b) midline fit quality: the loop's *camber midline* is estimated by binning the resampled loop
+      by chordwise position (xi) and averaging eta within each bin -- this cancels the two surfaces
+      of a thin airfoil and leaves (approximately) the camber curve. A quadratic is fit through
+      those bin midpoints; its RMS residual is compared to the camber height (camber_ratio * chord).
+      A true thin cambered section fits a quadratic camber line almost exactly (residual ~0 on the
+      synthetic oracle, <=0.13 mm on A12x25, <=0.12 mm on obj_1); a thick/non-airfoil section does
+      not, because averaging its two very-different surfaces at each xi does not produce a smooth
+      curve (measured ~7 mm on the obj_2/6/7/8 family). Sections whose residual exceeds
+      MAX_MIDLINE_RESIDUAL_RATIO * camber_height are rejected.
+Rejected sections are counted and reported in the note, the same way flat (camber_ratio too low)
+sections are. Kept sections must also span at least MIN_SECTION_RADII distinct cut radii, or the
+proof is INCONCLUSIVE -- a single surviving radius cannot corroborate itself.
 """
 
 from __future__ import annotations
@@ -28,7 +52,10 @@ import trimesh
 
 from fansim.cfd.orientation import flip_about_x  # noqa: F401  (re-export; one implementation)
 
-MIN_CAMBER_RATIO = 0.01   # camber height / chord below which the concave side is not trusted
+MIN_CAMBER_RATIO = 0.02   # camber height / chord below which the concave side is not trusted
+MAX_THICKNESS_RATIO = 0.25       # t/c above which a "section" is not a thin airfoil (radial blade)
+MAX_MIDLINE_RESIDUAL_RATIO = 0.5  # midline-fit RMS residual, as a fraction of camber height
+MIN_SECTION_RADII = 2      # kept sections must span at least this many distinct cut radii
 MIN_AGREEMENT = 0.9       # fraction of sections that must agree
 REAL_FAN_CHIRALITY = -1   # NF-A12x25: CCW seen from intake, air pushed away from the viewer
 
@@ -40,6 +67,9 @@ class SectionReading:
     pump_sign: int
     chirality: int
     camber_ratio: float
+    thickness_ratio: float
+    midline_residual_mm: float | None
+    chord_mm: float
 
 
 @dataclass(frozen=True)
@@ -97,6 +127,38 @@ def _resample_closed(p2: np.ndarray, n: int = 400) -> np.ndarray:
     return np.column_stack([np.interp(u, cum, closed[:, 0]), np.interp(u, cum, closed[:, 1])])
 
 
+def _midline_residual_mm(xi: np.ndarray, eta: np.ndarray, n_bins: int = 20) -> float | None:
+    """RMS residual of a quadratic fit to the loop's camber midline.
+
+    The midline is estimated by binning the resampled loop's points by chordwise position
+    (``xi``) and averaging ``eta`` within each bin -- for a thin airfoil this cancels the
+    pressure/suction sides and leaves (approximately) the camber curve; for a thick/non-airfoil
+    section it does not, so the residual of a quadratic fit through the bin midpoints is a cheap
+    section-quality signal. Returns ``None`` when too few bins have points to fit (degenerate
+    loop), which callers must treat as a rejection, not as "unknown = fine".
+    """
+    lo, hi = float(xi.min()), float(xi.max())
+    if hi <= lo:
+        return None
+    edges = np.linspace(lo, hi, n_bins + 1)
+    idx = np.clip(np.digitize(xi, edges) - 1, 0, n_bins - 1)
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    mid_xi, mid_eta = [], []
+    for b in range(n_bins):
+        sel = idx == b
+        if not np.any(sel):
+            continue
+        mid_xi.append(centers[b])
+        mid_eta.append(float(np.mean(eta[sel])))
+    if len(mid_xi) < 4:
+        return None
+    mid_xi_arr = np.asarray(mid_xi)
+    mid_eta_arr = np.asarray(mid_eta)
+    coeffs = np.polyfit(mid_xi_arr, mid_eta_arr, 2)
+    fit = np.polyval(coeffs, mid_xi_arr)
+    return float(np.sqrt(np.mean((mid_eta_arr - fit) ** 2)))
+
+
 def _read_section(mesh, pts, faces, r0) -> SectionReading | None:
     theta = np.arctan2(pts[:, 1], pts[:, 0])
     tm = np.angle(np.mean(np.exp(1j * theta)))
@@ -113,13 +175,16 @@ def _read_section(mesh, pts, faces, r0) -> SectionReading | None:
     a = float(np.polyfit(xi, eta, 2)[0])
     camber_ratio = abs(a) * (chord / 2.0) ** 2 / chord
     n_p = np.sign(a) * e_hat  # a < 0: bulges +e, concave (pressure) face is -e
+    thickness_ratio = float(eta.max() - eta.min()) / chord
+    midline_residual_mm = _midline_residual_mm(xi, eta)
     fc = mesh.triangles_center[faces]
     fn = mesh.face_normals[faces]
     th = np.arctan2(fc[:, 1], fc[:, 0])
     n_theta = -np.sin(th) * fn[:, 0] + np.cos(th) * fn[:, 1]
     chi = float(np.sum(mesh.area_faces[faces] * n_theta * fn[:, 2]))
     return SectionReading(float(r0), int(np.sign(n_p[0])), int(np.sign(n_p[1])),
-                          int(np.sign(chi)), float(camber_ratio))
+                          int(np.sign(chi)), float(camber_ratio), thickness_ratio,
+                          midline_residual_mm, float(chord))
 
 
 def prove_direction(mesh: trimesh.Trimesh,
@@ -129,6 +194,7 @@ def prove_direction(mesh: trimesh.Trimesh,
     tip = _tip_radius(mesh)
     readings: list[SectionReading] = []
     flat = 0
+    rejected = 0
     for f in r_fracs:
         for pts, faces in _section_loops(mesh, f * tip):
             rd = _read_section(mesh, pts, faces, f * tip)
@@ -137,10 +203,25 @@ def prove_direction(mesh: trimesh.Trimesh,
             if rd.camber_ratio < MIN_CAMBER_RATIO:
                 flat += 1
                 continue
+            camber_height = rd.camber_ratio * rd.chord_mm
+            if (rd.thickness_ratio > MAX_THICKNESS_RATIO
+                    or rd.midline_residual_mm is None
+                    or camber_height <= 0.0
+                    or rd.midline_residual_mm > MAX_MIDLINE_RESIDUAL_RATIO * camber_height):
+                rejected += 1
+                continue
             readings.append(rd)
     if not readings:
         return DirectionProof(None, None, None, 0.0, 0, (), "INCONCLUSIVE",
-                              f"no cambered sections ({flat} flat) — concave side undefined")
+                              f"no cambered sections ({flat} flat, {rejected} low-quality skipped) "
+                              "— concave side undefined")
+    distinct_r = len({round(r.r_mm, 6) for r in readings})
+    if distinct_r < MIN_SECTION_RADII:
+        return DirectionProof(None, None, None, 0.0, len(readings), tuple(readings),
+                              "INCONCLUSIVE",
+                              f"sections span only {distinct_r} radius/radii "
+                              f"(need >= {MIN_SECTION_RADII}) — cannot confirm across span "
+                              f"({flat} flat, {rejected} low-quality skipped)")
     (om, pu), n = Counter((r.omega_sign, r.pump_sign) for r in readings).most_common(1)[0]
     agreement = n / len(readings)
     chi_ok = sum(r.chirality == r.omega_sign * r.pump_sign for r in readings) / len(readings)
@@ -150,7 +231,9 @@ def prove_direction(mesh: trimesh.Trimesh,
                               "INCONCLUSIVE",
                               f"sections disagree (agreement {agreement:.2f}, chirality check {chi_ok:.2f})")
     return DirectionProof(int(om), int(pu), int(chi), agreement, len(readings), tuple(readings),
-                          "CONCLUSIVE", f"{len(readings)} sections, {flat} flat skipped")
+                          "CONCLUSIVE",
+                          f"{len(readings)} sections, {flat} flat skipped, "
+                          f"{rejected} low-quality skipped")
 
 
 def motor_side(mesh: trimesh.Trimesh, n: int = 64, min_depth_mm: float = 2.0) -> int | None:

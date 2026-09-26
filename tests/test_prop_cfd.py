@@ -56,6 +56,83 @@ def test_cli_evaluate_prop_cfd_declares_flags():
     assert "rhoSimpleFoam" in help_text or "prop" in help_text.lower()
 
 
+def test_evaluate_prop_cfd_auto_with_explicit_spin_raises(tmp_path):
+    from fansim.prop_spec import get_prop_spec
+    from fansim.propeller.cfd import evaluate_prop_cfd
+
+    spec = get_prop_spec("fpv_5inch")
+    with pytest.raises(ValueError, match="direction='manual'"):
+        evaluate_prop_cfd(spec, tmp_path, spin=-1, direction="auto")
+
+
+def test_evaluate_prop_cfd_invalid_direction_raises(tmp_path):
+    from fansim.prop_spec import get_prop_spec
+    from fansim.propeller.cfd import evaluate_prop_cfd
+
+    spec = get_prop_spec("fpv_5inch")
+    with pytest.raises(ValueError, match="direction"):
+        evaluate_prop_cfd(spec, tmp_path, direction="sideways")
+
+
+def test_evaluate_prop_cfd_auto_direction_orients_case(tmp_path, monkeypatch):
+    import re
+
+    import trimesh
+
+    from fansim.audit.synthetic import cambered_blade_fan
+    from fansim.prop_spec import get_prop_spec
+    from fansim.propeller import cfd as prop_cfd
+
+    mesh = cambered_blade_fan(
+        n_blades=2, r_hub=6.0, r_tip=60.0, chord=15.0, stagger_deg=60.0, camber=0.06,
+    )  # geometry proof: pump_sign=-1 -> orientation "flipped", spin -1 (see test_prop_thrust_sign)
+    src = tmp_path / "prop.stl"
+    mesh.export(str(src))
+    asbuilt = trimesh.load(str(src), force="mesh")
+    z0_before, z1_before = float(asbuilt.bounds[0, 2]), float(asbuilt.bounds[1, 2])
+
+    work = tmp_path / "case"
+    monkeypatch.setattr(prop_cfd, "run_mesh", lambda *_a, **_k: None)
+    monkeypatch.setattr(prop_cfd, "run_solve_prop", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        prop_cfd,
+        "parse_prop_metrics",
+        lambda *_a, **_k: {
+            "thrust_n": -0.5, "thrust_g": 51.0, "torque_nm": 0.01, "shaft_power_w": 5.0,
+        },
+    )
+    import fansim.cfd.runner as runner_mod
+
+    monkeypatch.setattr(
+        runner_mod,
+        "OpenFOAMRunner",
+        lambda workdir: type("R", (), {"run": staticmethod(lambda *a, **k: None)})(),
+    )
+
+    out = prop_cfd.evaluate_prop_cfd(
+        get_prop_spec("cine_3inch"),
+        work,
+        rpm=20000.0,
+        stl_mm=src,
+        prepare_stl=False,
+    )
+    assert out["orientation"] == "flipped"
+    assert out["direction_source"] == "geometry"
+    assert out["spin"] == -1
+
+    mrf = (work / "constant/MRFProperties").read_text(encoding="utf-8")
+    m = re.search(r"omega\s+([-\d.eE]+);", mrf)
+    assert m is not None and float(m.group(1)) < 0.0  # spin=-1 -> negative omega_signed
+
+    toposet = (work / "system/topoSetDict").read_text(encoding="utf-8")
+    zmin_used = float(re.search(r"point1\s+\(0 0 ([-\d.eE]+)\)", toposet).group(1))
+    zmax_used = float(re.search(r"point2\s+\(0 0 ([-\d.eE]+)\)", toposet).group(1))
+    # The MRF z-range must contain the FLIPPED (mirrored) bounds, not the as-built ones.
+    z0_flipped, z1_flipped = -z1_before / 1000.0, -z0_before / 1000.0
+    assert zmin_used <= z0_flipped + 1e-9
+    assert zmax_used >= z1_flipped - 1e-9
+
+
 def test_default_rpm_tip_mach_compressible():
     from fansim.prop_spec import get_prop_spec
 

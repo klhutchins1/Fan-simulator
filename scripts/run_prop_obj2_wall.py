@@ -58,6 +58,13 @@ def run_case(*, stl: Path, rpm: float, spin: int, base_cell: float, iters: int, 
     sample = wall_sample(mesh_tm)
     metrics = measure_prop_stl(prepared)
     resolution = mesh_for_wall(base_cell, sample["min_wall_mm"])
+    # obj_2 is a radial (centrifugal) blower blade: the mesh-only geometry proof correctly calls
+    # it INCONCLUSIVE (section-quality guard in fansim.audit.direction — not a thin airfoil), so
+    # direction="auto" would raise. --spin stays label-derived and UNVERIFIED by geometry.
+    print(
+        f"WARNING: direction='manual' — spin={spin} is label-derived, not proven from geometry "
+        "(obj_2 is a radial impeller; the axial direction proof is INCONCLUSIVE for it)."
+    )
     solved = evaluate_prop_cfd(
         get_prop_spec("fpv_5inch"),
         out,
@@ -66,6 +73,7 @@ def run_case(*, stl: Path, rpm: float, spin: int, base_cell: float, iters: int, 
         procs=procs,
         base_cell=base_cell,
         spin=spin,
+        direction="manual",
         stl_mm=prepared,
         prepare_stl=False,
         mesh=resolution,

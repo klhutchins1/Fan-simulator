@@ -245,7 +245,7 @@ def evaluate_prop_cfd(
     params: BladeParams | None = None,
     bemt_floor_g: float = 0.0,
     u_freestream: float | None = None,
-    spin: int = -1,
+    spin: int | None = None,
     stl_mm: str | Path | None = None,
     prepare_stl: bool = True,
     direction: str = "auto",
@@ -262,8 +262,18 @@ def evaluate_prop_cfd(
     ``direction`` is ``"auto"`` (default) to derive orientation/spin from the mesh-only proof
     (:func:`fansim.propeller.direction.prop_direction`), orienting the CFD copy if needed and
     overriding ``spin``; or ``"manual"`` to keep the caller's ``spin``/orientation as-is (the
-    explicit override for parts whose geometry proof is INCONCLUSIVE).
+    explicit override for parts whose geometry proof is INCONCLUSIVE). ``spin`` must be left
+    ``None`` in ``"auto"`` mode -- spin is derived from geometry there, so passing an explicit
+    value that the geometry might silently override is a footgun; pass ``direction="manual"``
+    to set spin yourself.
     """
+    if direction not in ("auto", "manual"):
+        raise ValueError(f"direction must be 'auto' or 'manual', got {direction!r}")
+    if direction == "auto" and spin is not None:
+        raise ValueError(
+            "spin is derived from geometry in auto mode; use direction='manual' to set spin yourself"
+        )
+
     from fansim.cfd.orientation import orient_impeller_for_cfd
     from fansim.cfd.runner import OpenFOAMRunner
     from fansim.geometry import build_impeller, export_stl, watertight_report
@@ -278,7 +288,7 @@ def evaluate_prop_cfd(
 
     rpm = float(0.7 * float(spec.rpm_max) if rpm is None else rpm)
     omega_rad_s = rpm * 2.0 * math.pi / 60.0
-    spin_i = int(spin)
+    spin_i = -1 if spin is None else int(spin)
     external = stl_mm is not None
 
     bemt_g = None
@@ -328,7 +338,8 @@ def evaluate_prop_cfd(
     else:
         direction_source = "manual"
 
-    # The flip mirrors z, so bounds must be re-measured after orientation.
+    # 180° rotation about X (proper rotation; z-range reverses), so bounds must be re-measured
+    # after orientation.
     rep = watertight_report(stl)
     (_, _, z0), (_, _, z1) = rep.bounds_mm
 

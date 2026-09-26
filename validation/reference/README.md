@@ -38,7 +38,12 @@ uv run python scripts/evaluate_prop_cfd.py \
   --spec cine_3inch --rpm 25000 --dry-run
 ```
 
-Spin defaults from the filename (`CCW` → `-1`, `CW` → `+1`); override with `--spin`.
+Spin/orientation default to `--direction auto`, which derives them from the mesh-only geometry
+proof (`fansim.propeller.direction.prop_direction`), never from the filename. `CCW`/`CW` in the
+filename is only a chirality cross-check against that proof (mismatch raises an error); several
+of these radial-impeller STLs are correctly `INCONCLUSIVE` under the proof (backward-curved
+centrifugal blades, not thin axial airfoils) — for those, pass `--direction manual --spin ±1`
+explicitly, understanding that the label-derived spin is then unverified by geometry.
 
 Documented smoke CFD (after campaign): `docs/validation/drone_radial_open_air_cfd.md`
 and fixtures under `validation/reference/drone_radial/cfd/`.

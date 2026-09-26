@@ -54,7 +54,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _spin_for(stl: Path) -> int:
     hint = spin_hint_from_name(stl.name)
-    return int(hint if hint is not None else -1)
+    spin = int(hint if hint is not None else -1)
+    print(
+        f"WARNING: direction='manual' for {stl.name} — spin={spin} is label-derived, not proven "
+        "from geometry (the mesh-only direction proof may be INCONCLUSIVE for this part, e.g. a "
+        "radial impeller)."
+    )
+    return spin
 
 
 def _cell_count(case_dir: Path) -> int:
@@ -120,6 +126,7 @@ def run_ladder(
                     spec_key=spec_key,
                     stl_mm=stl,
                     spin=spin,
+                    direction="manual",
                 )
                 result_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
             else:

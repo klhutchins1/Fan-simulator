@@ -36,6 +36,24 @@ def chirality_hint_from_name(name: str) -> int | None:
 
 
 def prop_direction(stl_mm: Path, *, name_hint: str | None = None) -> PropDirection:
+    """Derive CFD orientation + spin for a prop from the mesh-only proof, never from thrust sign.
+
+    Identity: ``prop_direction(...).spin == prove_direction(...).chirality`` always, for both
+    branches below (``as_built``: spin = omega_sign = chirality / pump_sign = chirality * 1;
+    ``flipped``: spin = -omega_sign = -(chirality / pump_sign) = -(chirality / -1) = chirality,
+    since chirality = omega_sign * pump_sign algebraically). This is documented behaviour, not a
+    coincidence -- it is asserted as a regression in tests/audit/test_prop_thrust_sign.py.
+
+    This identity is also why the thrust-sign check in :func:`fansim.propeller.calibrate.
+    normalize_metrics_sign` CANNOT by itself catch a leading-edge-reversed prop: MRF spin is set
+    from chirality, and chirality is invariant to a mirror of chord/normal handedness that a
+    thickness/midline-fit problem in ``prove_direction`` would otherwise let through -- the prop
+    would then spin trailing-edge-first while the resulting Fz still comes out with the "right"
+    sign for that (wrong) spin. The section-quality guard in ``fansim.audit.direction`` (thickness
+    ratio, midline-fit residual, minimum distinct radii) exists precisely to keep bad sections out
+    of the vote before this function is ever called; it is not something the sign check downstream
+    can substitute for.
+    """
     proof = prove_direction(trimesh.load(str(stl_mm), force="mesh"))
     if proof.verdict != "CONCLUSIVE":
         raise ValueError(f"prop direction INCONCLUSIVE for {stl_mm}: {proof.note} — pass an explicit "

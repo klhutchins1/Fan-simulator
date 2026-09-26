@@ -65,6 +65,15 @@ def prop_cfd_smoke_gate(
         reasons.append(
             f"|thrust_g|={tg:.6g} < floor {float(thrust_g_floor):.6g}"
         )
+    # abs() above is only for the magnitude floor -- it must never stand in for an honest sign
+    # check. thrust_sign_ok (from normalize_metrics_sign) says whether Fz actually points the
+    # designed pumping way; a wrong sign fails the gate regardless of how healthy the magnitude
+    # looks, instead of being silently masked by comparing |thrust_g| to the floor.
+    if result.get("thrust_sign_ok") is False:
+        reasons.append(
+            "thrust_sign_ok is False: "
+            f"{result.get('thrust_sign_error', 'wrong-direction thrust (Fz sign)')}"
+        )
     if case_dir is not None:
         try:
             drift = force_z_tail_drift_pct(case_dir, tail_frac=tail_frac)

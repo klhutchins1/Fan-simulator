@@ -116,6 +116,59 @@ def test_purge_prop_time_dirs(tmp_path):
     assert not (tmp_path / "postProcessing").exists()
 
 
+def test_run_cfd_polar_auto_with_explicit_spin_raises(tmp_path):
+    from fansim.propeller.polar import run_cfd_polar
+
+    spec = get_prop_spec("fpv_5inch")
+    with pytest.raises(ValueError, match="direction='manual'"):
+        run_cfd_polar(spec, tmp_path, [0.0], spin=-1, direction="auto")
+
+
+def test_run_cfd_polar_invalid_direction_raises(tmp_path):
+    from fansim.propeller.polar import run_cfd_polar
+
+    spec = get_prop_spec("fpv_5inch")
+    with pytest.raises(ValueError, match="direction"):
+        run_cfd_polar(spec, tmp_path, [0.0], direction="nope")
+
+
+def test_polar_point_carries_thrust_sign_fields():
+    from fansim.propeller.polar import _point_from_forces
+
+    p_ok = _point_from_forces(
+        v_inf=0.0, rpm=20000.0, diameter_m=0.127, thrust_n=5.0, torque_nm=0.1, power_w=200.0,
+        source="cfd", thrust_sign_ok=True, thrust_sign_error=None,
+    )
+    assert p_ok.thrust_sign_ok is True and p_ok.thrust_sign_error is None
+
+    p_bad = _point_from_forces(
+        v_inf=0.0, rpm=20000.0, diameter_m=0.127, thrust_n=-5.0, torque_nm=0.1, power_w=200.0,
+        source="cfd", thrust_sign_ok=False, thrust_sign_error="Fz=+5 N pushes the wrong way",
+    )
+    assert p_bad.thrust_sign_ok is False
+    assert "wrong way" in p_bad.thrust_sign_error
+
+    # BEMT points never claim a sign verdict -- there's no raw solver Fz behind them.
+    p_bemt = _point_from_forces(
+        v_inf=0.0, rpm=20000.0, diameter_m=0.127, thrust_n=5.0, torque_nm=0.1, power_w=200.0,
+        source="bemt",
+    )
+    assert p_bemt.thrust_sign_ok is None and p_bemt.thrust_sign_error is None
+
+
+def test_write_polar_artifacts_includes_thrust_sign_columns(tmp_path):
+    from fansim.propeller.polar import _point_from_forces, write_polar_artifacts
+
+    p = _point_from_forces(
+        v_inf=0.0, rpm=20000.0, diameter_m=0.127, thrust_n=5.0, torque_nm=0.1, power_w=200.0,
+        source="cfd", thrust_sign_ok=False, thrust_sign_error="wrong direction",
+    )
+    csv_path, json_path = write_polar_artifacts(tmp_path, [p])
+    text = csv_path.read_text(encoding="utf-8")
+    assert "thrust_sign_ok" in text and "thrust_sign_error" in text
+    assert "wrong direction" in text
+
+
 def test_cli_scripts_declare_flags():
     bemt = Path("scripts/evaluate_prop_polar.py").read_text(encoding="utf-8")
     cfd = Path("scripts/evaluate_prop_cfd_polar.py").read_text(encoding="utf-8")

@@ -73,10 +73,14 @@ def build_parser() -> argparse.ArgumentParser:
     return ap
 
 
-def _resolve_spin(args) -> int:
-    if args.spin is not None:
-        return int(args.spin)
-    return -1
+def _resolve_spin(args) -> int | None:
+    """Return the user's explicit --spin, or None to let direction="auto" derive it.
+
+    Must NOT default to -1 here: evaluate_prop_cfd() raises if an explicit (non-None) spin is
+    passed together with direction="auto", since auto mode derives spin from geometry. Only
+    direction="manual" falls back to -1 when spin is None (inside evaluate_prop_cfd itself).
+    """
+    return None if args.spin is None else int(args.spin)
 
 
 def main() -> int:
@@ -89,10 +93,24 @@ def main() -> int:
 
     if args.dry_run:
         from fansim.cfd.openfoam_case import MeshResolution
+        from fansim.cfd.orientation import orient_impeller_for_cfd
         from fansim.geometry import watertight_report
         from fansim.propeller.cfd import build_prop_case, prop_open_air
+        from fansim.propeller.direction import prop_direction
         from fansim.propeller.geometry import build_prop
         from fansim.propeller.stl_import import measure_prop_stl, prepare_prop_stl
+
+        if args.direction not in ("auto", "manual"):
+            print(f"ERROR: direction must be 'auto' or 'manual', got {args.direction!r}",
+                  file=sys.stderr)
+            return 2
+        if args.direction == "auto" and spin is not None:
+            print(
+                "ERROR: spin is derived from geometry in auto mode; pass --direction manual "
+                "to set --spin yourself",
+                file=sys.stderr,
+            )
+            return 2
 
         stl = args.out / "prop.stl"
         if args.stl is not None:
@@ -117,9 +135,25 @@ def main() -> int:
             tip_mach = float(spec.tip_mach(rpm))
             metrics = None
 
+        # Apply the same mesh-only direction proof (and CFD-copy orientation) as a real run, so
+        # --dry-run builds exactly the case a real solve would.
+        orientation_used = None
+        if args.direction == "auto":
+            d = prop_direction(stl, name_hint=Path(args.stl).name if args.stl is not None else None)
+            if d.orientation == "flipped":
+                orient_impeller_for_cfd(stl, stl, "flipped")
+            spin_used = d.spin
+            direction_source = d.source
+            orientation_used = d.orientation
+        else:
+            spin_used = -1 if spin is None else int(spin)
+            direction_source = "manual"
+
+        # 180° rotation about X (proper rotation; z-range reverses), so bounds must be
+        # re-measured after orientation.
         rep = watertight_report(stl)
         (_, _, z0), (_, _, z1) = rep.bounds_mm
-        dom = prop_open_air(tip_radius_m, z0 / 1000.0, z1 / 1000.0, rpm=rpm, spin=spin)
+        dom = prop_open_air(tip_radius_m, z0 / 1000.0, z1 / 1000.0, rpm=rpm, spin=spin_used)
 
         case_dir = args.out / "case"
         build_prop_case(
@@ -135,7 +169,9 @@ def main() -> int:
             "dry_run": True,
             "spec": args.spec,
             "rpm": rpm,
-            "spin": spin,
+            "spin": spin_used,
+            "direction_source": direction_source,
+            "orientation": orientation_used,
             "tip_mach": tip_mach,
             "tip_radius_mm": tip_radius_m * 1000.0,
             "stl": str(args.stl) if args.stl is not None else None,

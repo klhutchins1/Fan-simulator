@@ -40,6 +40,13 @@ class PolarPoint:
     eta: float | None
     source: str  # "bemt" | "cfd"
     u_bc: float | None = None  # CFD boundary freestream (may differ at hover)
+    # Propagated from normalize_metrics_sign (CFD points only; None for BEMT points, which have
+    # no raw solver Fz to check). thrust_sign_ok is False when Fz >= 0 for the designed pumping
+    # direction (+Z) -- but note that at a high advance ratio a prop can genuinely windmill and
+    # produce Fz > 0 (drag, not thrust), which is physical, not a direction bug; a wrong sign at
+    # low/moderate J is the one worth investigating.
+    thrust_sign_ok: bool | None = None
+    thrust_sign_error: str | None = None
 
 
 def advance_ratio(v_inf: float, rpm: float, diameter_m: float) -> float:
@@ -119,6 +126,8 @@ def _point_from_forces(
     power_w: float,
     source: str,
     u_bc: float | None = None,
+    thrust_sign_ok: bool | None = None,
+    thrust_sign_error: str | None = None,
 ) -> PolarPoint:
     nd = nondim(thrust_n, power_w, rpm=rpm, diameter_m=diameter_m, v_inf=v_inf)
     return PolarPoint(
@@ -134,6 +143,8 @@ def _point_from_forces(
         eta=None if nd["eta"] is None else float(nd["eta"]),
         source=source,
         u_bc=u_bc,
+        thrust_sign_ok=thrust_sign_ok,
+        thrust_sign_error=thrust_sign_error,
     )
 
 
@@ -181,13 +192,23 @@ def run_cfd_polar(
     params: BladeParams | None = None,
     bemt_floor_g: float = 0.0,
     direction: str = "auto",
+    spin: int | None = None,
 ) -> dict:
     """Mesh once, re-solve at each V∞, return meta + ``points`` list of dicts.
 
     ``direction`` is ``"auto"`` (default) to derive orientation/spin from the mesh-only proof
     (:func:`fansim.propeller.direction.prop_direction`), orienting the CFD copy if needed and
-    overriding the spin used for MRF; or ``"manual"`` to keep spin=-1 as-is.
+    overriding the spin used for MRF; or ``"manual"`` to keep the caller's ``spin`` (default -1)
+    as-is. ``spin`` must be left ``None`` in ``"auto"`` mode -- pass ``direction="manual"`` to
+    set spin yourself.
     """
+    if direction not in ("auto", "manual"):
+        raise ValueError(f"direction must be 'auto' or 'manual', got {direction!r}")
+    if direction == "auto" and spin is not None:
+        raise ValueError(
+            "spin is derived from geometry in auto mode; use direction='manual' to set spin yourself"
+        )
+
     from fansim.cfd.openfoam_case import MeshResolution
     from fansim.cfd.orientation import orient_impeller_for_cfd
     from fansim.cfd.runner import OpenFOAMRunner
@@ -214,7 +235,7 @@ def run_cfd_polar(
     omega_rad_s = rpm_f * 2.0 * math.pi / 60.0
     diameter_m = float(spec.diameter_mm) / 1000.0
     tip_radius_m = diameter_m / 2.0
-    spin_i = -1
+    spin_i = -1 if spin is None else int(spin)
 
     blade = params if params is not None else prop_blade_params(spec)
     bemt_g = float(bemt_thrust_g(blade, spec, rpm=rpm_f))
@@ -248,7 +269,8 @@ def run_cfd_polar(
     else:
         direction_source = "manual"
 
-    # The flip mirrors z, so bounds must be re-measured after orientation.
+    # 180° rotation about X (proper rotation; z-range reverses), so bounds must be re-measured
+    # after orientation.
     rep = watertight_report(stl)
     (_, _, z0), (_, _, z1) = rep.bounds_mm
 
@@ -289,6 +311,8 @@ def run_cfd_polar(
                 power_w=m["shaft_power_w"],
                 source="cfd",
                 u_bc=u_bc,
+                thrust_sign_ok=m.get("thrust_sign_ok"),
+                thrust_sign_error=m.get("thrust_sign_error"),
             )
         )
 
@@ -328,7 +352,7 @@ def write_polar_artifacts(
     json_path = out_dir / "polar.json"
     fieldnames = [
         "v_inf", "J", "rpm", "thrust_n", "thrust_g", "torque_nm", "power_w",
-        "CT", "CP", "eta", "source", "u_bc",
+        "CT", "CP", "eta", "source", "u_bc", "thrust_sign_ok", "thrust_sign_error",
     ]
     with csv_path.open("w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")

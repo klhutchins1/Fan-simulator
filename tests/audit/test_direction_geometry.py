@@ -24,8 +24,15 @@ import trimesh
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _A12X25_STL = _REPO_ROOT / "validation" / "reference" / "a12x25_impeller.stl"
+_DRONE_DIR = _REPO_ROOT / "validation" / "reference" / "drone_radial"
+_OBJ_1 = _DRONE_DIR / "obj_1_ccw_impeller.stl"
+_OBJ_2 = _DRONE_DIR / "obj_2_ccw.stl"
+_OBJ_6 = _DRONE_DIR / "obj_6_cw.stl"
+_OBJ_7 = _DRONE_DIR / "obj_7_ccw.stl"
+_OBJ_8 = _DRONE_DIR / "obj_8_cw.stl"
 
 from fansim.audit.direction import (
+    MIN_CAMBER_RATIO,
     REAL_FAN_CHIRALITY,
     flip_about_x,
     motor_side,
@@ -180,3 +187,84 @@ def test_real_a12x25_direction_is_robust_to_unwelded_input():
     p = prove_direction(mesh)
     assert p.verdict == "CONCLUSIVE", p.note
     assert (p.omega_sign, p.pump_sign, p.chirality) == (+1, -1, -1)
+
+
+# --- Section-quality guard (thickness / midline-fit / min-radii rejections) ---
+#
+# A cylinder cut through a thick, non-airfoil "section" (e.g. a backward-curved centrifugal
+# blower blade) can still fit *a* quadratic and *a* sign; that sign is not evidence of the
+# designed rotation. Because the CFD spin is always derived from chirality, a wrong reading here
+# means the prop can be built/solved leading-edge-reversed while the thrust sign still comes out
+# "correct" (Fz < 0) -- see docs on fansim.propeller.direction.prop_direction.
+
+
+def test_thick_non_airfoil_section_is_rejected():
+    # A blade far thicker than any real airfoil (t/c well above MAX_THICKNESS_RATIO) must not
+    # produce a CONCLUSIVE reading even though it is technically "cambered".
+    thick_blade = cambered_blade_fan(
+        n_blades=5, r_hub=15.0, r_tip=50.0, chord=20.0, stagger_deg=60.0, camber=0.06, thick=12.0,
+    )
+    p = prove_direction(thick_blade)
+    assert p.verdict == "INCONCLUSIVE", p.note
+    assert "low-quality" in p.note
+
+
+def test_low_camber_below_raised_threshold_is_inconclusive():
+    # MIN_CAMBER_RATIO was raised from 0.01 to 0.02 specifically to reject weakly-cambered
+    # sections (like the real obj_1/3/4/5 drone impellers, which sit at 0.010-0.014) that the old
+    # threshold let through on too little evidence.
+    camber = 0.014  # inside the measured real-file band, below the new MIN_CAMBER_RATIO
+    assert camber < MIN_CAMBER_RATIO
+    weak = cambered_blade_fan(stagger_deg=60.0, camber=camber)
+    p = prove_direction(weak)
+    assert p.verdict == "INCONCLUSIVE", p.note
+    assert "flat" in p.note
+
+
+def test_single_radius_is_inconclusive_even_if_cambered():
+    # A proof that only ever sampled one cut radius cannot corroborate itself across the span.
+    good = cambered_blade_fan(stagger_deg=60.0, camber=0.06)
+    p = prove_direction(good, r_fracs=(0.7,))
+    assert p.verdict == "INCONCLUSIVE", p.note
+    assert "radius" in p.note
+
+
+def test_good_synthetic_section_survives_quality_guard():
+    # Sanity: the default synthetic oracle keeps working under the new thresholds (thin airfoil,
+    # exact parabolic camber midline -> ~0 residual, t/c well under the cap).
+    good = cambered_blade_fan(stagger_deg=60.0, camber=0.06)
+    p = prove_direction(good)
+    assert p.verdict == "CONCLUSIVE", p.note
+    assert "0 low-quality skipped" in p.note
+
+
+@pytest.mark.skipif(not _OBJ_1.exists(), reason="drone reference STL not present")
+def test_real_obj1_low_camber_is_inconclusive_under_raised_threshold():
+    # obj_1's real camber sits at ~0.010-0.014 (well documented in the review); the raised
+    # MIN_CAMBER_RATIO (0.02) must now reject it outright, rather than accept a marginal signal.
+    mesh = trimesh.load(str(_OBJ_1), force="mesh")
+    p = prove_direction(mesh)
+    assert p.verdict == "INCONCLUSIVE", p.note
+
+
+@pytest.mark.skipif(not _OBJ_2.exists(), reason="drone reference STL not present")
+def test_real_obj2_radial_impeller_is_inconclusive():
+    # obj_2 is a thin backward-curved centrifugal (radial) blower blade, not an axial airfoil:
+    # t/c ~0.475 and a midline residual ~7x the camber height. It used to read CONCLUSIVE (with
+    # ambiguous ω) purely because a quadratic can always be fit to *something*; the section
+    # quality guard must now refuse it.
+    mesh = trimesh.load(str(_OBJ_2), force="mesh")
+    p = prove_direction(mesh)
+    assert p.verdict == "INCONCLUSIVE", p.note
+    assert "low-quality" in p.note
+
+
+@pytest.mark.skipif(
+    not (_OBJ_6.exists() and _OBJ_7.exists() and _OBJ_8.exists()),
+    reason="drone reference STL not present",
+)
+@pytest.mark.parametrize("stl", [_OBJ_6, _OBJ_7, _OBJ_8])
+def test_real_obj6_7_8_radial_impellers_are_inconclusive(stl):
+    mesh = trimesh.load(str(stl), force="mesh")
+    p = prove_direction(mesh)
+    assert p.verdict == "INCONCLUSIVE", p.note

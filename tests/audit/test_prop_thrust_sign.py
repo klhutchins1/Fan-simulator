@@ -42,6 +42,16 @@ def test_direction_from_geometry(tmp_path):
     assert (d2.orientation, d2.spin) == ("as_built", -1)
 
 
+@pytest.mark.parametrize("stagger, camber", [(60.0, 0.06), (60.0, -0.06), (-60.0, 0.06)])
+def test_spin_equals_chirality_identity(tmp_path, stagger, camber):
+    # Documented behaviour (see prop_direction's docstring): spin == chirality always, in both
+    # the as_built and flipped branches. This is exactly why the thrust-sign check downstream
+    # cannot by itself catch a leading-edge-reversed prop -- spin is derived from chirality, which
+    # is blind to the kind of chord/normal mixup a bad (thick/non-airfoil) section would produce.
+    d = prop_direction(_stl(tmp_path, stagger_deg=stagger, camber=camber))
+    assert d.spin == d.chirality
+
+
 def test_label_disagreeing_with_geometry_raises(tmp_path):
     with pytest.raises(ValueError, match="chirality"):
         prop_direction(_stl(tmp_path, stagger_deg=60.0, camber=0.06), name_hint="x_cw.stl")

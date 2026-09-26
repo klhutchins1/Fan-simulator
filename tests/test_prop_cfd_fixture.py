@@ -64,6 +64,41 @@ def test_prop_cfd_smoke_gate_fails_low_thrust():
     assert any("thrust" in r.lower() for r in reasons)
 
 
+def test_prop_cfd_smoke_gate_fails_wrong_thrust_sign():
+    from fansim.propeller.cfd_fixture import prop_cfd_smoke_gate
+
+    # Healthy magnitude, but the prop pushed air the wrong way: the old abs()-based gate would
+    # have silently passed this (masking the same kind of bug normalize_metrics_sign now reports
+    # instead of hiding). The gate must fail on thrust_sign_ok=False regardless of magnitude.
+    result = {
+        "thrust_n": -1.0,
+        "thrust_g": -100.0,
+        "torque_nm": 0.05,
+        "shaft_power_w": 200.0,
+        "thrust_sign_ok": False,
+        "thrust_sign_error": "Fz=+1 N pushes the prop toward -Z: air went the wrong way",
+    }
+    ok, reasons = prop_cfd_smoke_gate(result, case_dir=None)
+    assert not ok
+    assert any("thrust_sign_ok" in r or "wrong way" in r for r in reasons)
+
+
+def test_prop_cfd_smoke_gate_passes_correct_sign_despite_negative_reported_thrust_g():
+    from fansim.propeller.cfd_fixture import prop_cfd_smoke_gate
+
+    # thrust_g is signed post-normalize_metrics_sign: a correct-sign result reports a positive
+    # thrust_g, so this also checks the floor is evaluated on magnitude, not raw sign.
+    result = {
+        "thrust_n": 1.0,
+        "thrust_g": 100.0,
+        "torque_nm": 0.05,
+        "shaft_power_w": 200.0,
+        "thrust_sign_ok": True,
+    }
+    ok, reasons = prop_cfd_smoke_gate(result, case_dir=None)
+    assert ok and reasons == []
+
+
 def test_prop_cfd_smoke_gate_fails_nonfinite():
     from fansim.propeller.cfd_fixture import prop_cfd_smoke_gate
 
