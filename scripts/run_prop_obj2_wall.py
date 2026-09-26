@@ -58,12 +58,15 @@ def run_case(*, stl: Path, rpm: float, spin: int, base_cell: float, iters: int, 
     sample = wall_sample(mesh_tm)
     metrics = measure_prop_stl(prepared)
     resolution = mesh_for_wall(base_cell, sample["min_wall_mm"])
-    # obj_2 is a radial (centrifugal) blower blade: the mesh-only geometry proof correctly calls
-    # it INCONCLUSIVE (section-quality guard in fansim.audit.direction — not a thin airfoil), so
-    # direction="auto" would raise. --spin stays label-derived and UNVERIFIED by geometry.
+    # obj_2's cylinder-cut sections are thick, highly pitched blades that fail the mesh-only
+    # proof's section-quality guard (thickness ratio / midline-fit residual, fansim.audit.
+    # direction) -- it is refused for SECTION QUALITY, not because it is "radial" per se -- so
+    # the proof is INCONCLUSIVE and direction="auto" would raise. --spin stays label-derived and
+    # UNVERIFIED by geometry.
     print(
         f"WARNING: direction='manual' — spin={spin} is label-derived, not proven from geometry "
-        "(obj_2 is a radial impeller; the axial direction proof is INCONCLUSIVE for it)."
+        "(obj_2's sections fail the direction proof's section-quality guard: thick, highly "
+        "pitched blades, not thin axial airfoils)."
     )
     solved = evaluate_prop_cfd(
         get_prop_spec("fpv_5inch"),

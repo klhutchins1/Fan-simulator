@@ -14,9 +14,11 @@ from fansim.propeller.bemt_catalog import (
     run_bemt_catalog_quorum,
 )
 from fansim.propeller.direction import (
+    BUILDER_DIRECTION,
     PropDirection,
     chirality_hint_from_name,
     prop_direction,
+    resolve_prop_direction,
 )
 from fansim.propeller.geometry import build_prop, build_prop_preview, prop_blade_params
 from fansim.propeller.power import (
@@ -48,8 +50,10 @@ __all__ = [
     "compare_bemt_to_static_witness",
     "run_bemt_catalog_quorum",
     "PropDirection",
+    "BUILDER_DIRECTION",
     "chirality_hint_from_name",
     "prop_direction",
+    "resolve_prop_direction",
     "prop_blade_params",
     "build_prop",
     "build_prop_preview",

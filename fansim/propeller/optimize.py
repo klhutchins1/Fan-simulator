@@ -21,20 +21,43 @@ from fansim.propeller.params_io import prop_params_from_flat, spec_with_flat
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
+# Search-space bounds that fix the blade's handedness (mirrors fansim.optimize.search_space's
+# stagger/max_camber convention for the axial fan — see tests/audit/test_prop_search_space_
+# handedness.py). ``pitch_in`` is sampled as spec.pitch_in * PITCH_IN_MULT_BOUNDS; keeping the
+# multiplier's lower bound > 0 (with spec.pitch_in itself always > 0) means pitch_in can never go
+# to zero or negative, i.e. can never flip the blade's designed twist direction. Camber lower
+# bounds >= 0 mean camber can never go negative, i.e. can never flip which face is concave
+# (pressure) vs convex (suction). Both are exactly the geometric preconditions
+# fansim.propeller.direction.BUILDER_DIRECTION relies on: the builders' handedness (omega +1
+# pumps -Z as built) is fixed ONLY as long as no design in this search space can be a mirror
+# image of that.
+PITCH_IN_MULT_BOUNDS = (0.6, 1.4)
+CAMBER_ROOT_BOUNDS = (0.02, 0.055)
+CAMBER_MID_BOUNDS = (0.02, 0.055)
+CAMBER_TIP_BOUNDS = (0.02, 0.055)
+PROP_SEARCH_SPACE_BOUNDS = {
+    "pitch_in_mult": PITCH_IN_MULT_BOUNDS,
+    "camber_root": CAMBER_ROOT_BOUNDS,
+    "camber_mid": CAMBER_MID_BOUNDS,
+    "camber_tip": CAMBER_TIP_BOUNDS,
+}
+
 
 def suggest_prop(trial, spec: PropSpec) -> BladeParams:
     """Sample a prop blade for ``spec``'s envelope (§14.1 Design keys)."""
     n_blades = trial.suggest_int("n_blades", 2, 4)
-    pitch_in = trial.suggest_float("pitch_in", spec.pitch_in * 0.6, spec.pitch_in * 1.4)
+    pitch_in = trial.suggest_float(
+        "pitch_in", spec.pitch_in * PITCH_IN_MULT_BOUNDS[0], spec.pitch_in * PITCH_IN_MULT_BOUNDS[1]
+    )
     flat = {
         "n_blades": n_blades,
         "pitch_in": pitch_in,
         "chord_root": trial.suggest_float("chord_root", 0.10, 0.26),
         "chord_mid": trial.suggest_float("chord_mid", 0.14, 0.30),
         "chord_tip": trial.suggest_float("chord_tip", 0.05, 0.16),
-        "camber_root": trial.suggest_float("camber_root", 0.02, 0.055),
-        "camber_mid": trial.suggest_float("camber_mid", 0.02, 0.055),
-        "camber_tip": trial.suggest_float("camber_tip", 0.02, 0.055),
+        "camber_root": trial.suggest_float("camber_root", *CAMBER_ROOT_BOUNDS),
+        "camber_mid": trial.suggest_float("camber_mid", *CAMBER_MID_BOUNDS),
+        "camber_tip": trial.suggest_float("camber_tip", *CAMBER_TIP_BOUNDS),
         "thickness_root": trial.suggest_float("thickness_root", 0.06, 0.12),
         "thickness_mid": trial.suggest_float("thickness_mid", 0.04, 0.09),
         "thickness_tip": trial.suggest_float("thickness_tip", 0.03, 0.07),
@@ -57,13 +80,15 @@ def random_prop_flat(spec: PropSpec, rng: random.Random) -> dict:
     """One blade inside the same bounds ``suggest_prop`` searches. Does not start a study."""
     flat = {
         "n_blades": rng.randint(2, 4),
-        "pitch_in": rng.uniform(spec.pitch_in * 0.6, spec.pitch_in * 1.4),
+        "pitch_in": rng.uniform(
+            spec.pitch_in * PITCH_IN_MULT_BOUNDS[0], spec.pitch_in * PITCH_IN_MULT_BOUNDS[1]
+        ),
         "chord_root": rng.uniform(0.10, 0.26),
         "chord_mid": rng.uniform(0.14, 0.30),
         "chord_tip": rng.uniform(0.05, 0.16),
-        "camber_root": rng.uniform(0.02, 0.055),
-        "camber_mid": rng.uniform(0.02, 0.055),
-        "camber_tip": rng.uniform(0.02, 0.055),
+        "camber_root": rng.uniform(*CAMBER_ROOT_BOUNDS),
+        "camber_mid": rng.uniform(*CAMBER_MID_BOUNDS),
+        "camber_tip": rng.uniform(*CAMBER_TIP_BOUNDS),
         "thickness_root": rng.uniform(0.06, 0.12),
         "thickness_mid": rng.uniform(0.04, 0.09),
         "thickness_tip": rng.uniform(0.03, 0.07),

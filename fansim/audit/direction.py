@@ -24,18 +24,22 @@ before they ever reach the vote:
   (a) thickness ratio t/c: t is the full eta-range (chord-normal extent) of the resampled loop --
       i.e. it measures suction-to-pressure-side separation *and* camber bulge together, the same
       quantity a caliper would read across the section. A thin cambered blade keeps t/c small; a
-      thick radial blade does not (measured: A12x25 ~0.109, synthetic default ~0.077, obj_1 ~0.037,
-      the obj_2/6/7/8 "radial impeller" family ~0.475). Sections with t/c above MAX_THICKNESS_RATIO
-      are rejected.
+      thick radial blade does not (measured over the default r_fracs, on sections that clear
+      MIN_CAMBER_RATIO: A12x25 ~0.12-0.14, the synthetic oracle's default blade ~0.11-0.12, the
+      obj_2/6/7/8 "radial impeller" family ~0.47-0.84). Sections with t/c above
+      MAX_THICKNESS_RATIO are rejected.
   (b) midline fit quality: the loop's *camber midline* is estimated by binning the resampled loop
       by chordwise position (xi) and averaging eta within each bin -- this cancels the two surfaces
       of a thin airfoil and leaves (approximately) the camber curve. A quadratic is fit through
-      those bin midpoints; its RMS residual is compared to the camber height (camber_ratio * chord).
-      A true thin cambered section fits a quadratic camber line almost exactly (residual ~0 on the
-      synthetic oracle, <=0.13 mm on A12x25, <=0.12 mm on obj_1); a thick/non-airfoil section does
-      not, because averaging its two very-different surfaces at each xi does not produce a smooth
-      curve (measured ~7 mm on the obj_2/6/7/8 family). Sections whose residual exceeds
-      MAX_MIDLINE_RESIDUAL_RATIO * camber_height are rejected.
+      those bin midpoints; its RMS residual is compared to the camber height (camber_ratio * chord)
+      -- the figures below are that RATIO (residual / camber height), dimensionless, not raw mm,
+      which is what MAX_MIDLINE_RESIDUAL_RATIO is actually compared against. A true thin cambered
+      section fits a quadratic camber line almost exactly (ratio ~0.02 on the synthetic oracle;
+      on A12x25 it worsens toward the root, worst ~0.18 at r=0.55*tip, well under the 0.5 cap); a
+      thick/non-airfoil section does not, because averaging its two very-different surfaces at each
+      xi does not produce a smooth curve (measured ratio order 2-20+ on the obj_2/6/7/8 family --
+      one to two orders of magnitude over the cap). Sections whose ratio exceeds
+      MAX_MIDLINE_RESIDUAL_RATIO are rejected.
 Rejected sections are counted and reported in the note, the same way flat (camber_ratio too low)
 sections are. Kept sections must also span at least MIN_SECTION_RADII distinct cut radii, or the
 proof is INCONCLUSIVE -- a single surviving radius cannot corroborate itself.

@@ -259,13 +259,21 @@ def evaluate_prop_cfd(
     prop, etc.). Tip radius and axial bounds come from the mesh; BEMT floor is skipped.
     When ``prepare_stl`` is True (default), the mesh is centered / normal-fixed first.
 
-    ``direction`` is ``"auto"`` (default) to derive orientation/spin from the mesh-only proof
-    (:func:`fansim.propeller.direction.prop_direction`), orienting the CFD copy if needed and
-    overriding ``spin``; or ``"manual"`` to keep the caller's ``spin``/orientation as-is (the
-    explicit override for parts whose geometry proof is INCONCLUSIVE). ``spin`` must be left
-    ``None`` in ``"auto"`` mode -- spin is derived from geometry there, so passing an explicit
-    value that the geometry might silently override is a footgun; pass ``direction="manual"``
-    to set spin yourself.
+    ``direction`` is ``"auto"`` (default) to derive orientation/spin via
+    :func:`fansim.propeller.direction.resolve_prop_direction`, orienting the CFD copy if needed
+    and overriding ``spin``; or ``"manual"`` to keep the caller's ``spin``/orientation as-is (the
+    explicit override for parts whose geometry proof is INCONCLUSIVE and aren't in-house). ``spin``
+    must be left ``None`` in ``"auto"`` mode -- spin is derived from geometry/the builder there, so
+    passing an explicit value that would be silently overridden is a footgun; pass
+    ``direction="manual"`` to set spin yourself.
+
+    In ``"auto"`` mode, an external STL (``stl_mm`` passed) always requires the mesh-only proof to
+    be CONCLUSIVE (raises otherwise). In-house geometry (``build_prop``/``build_impeller``, no
+    ``stl_mm``) instead uses the fixed builder convention
+    (:data:`fansim.propeller.direction.BUILDER_DIRECTION`), with the proof run only as a
+    cross-check that raises on a CONCLUSIVE disagreement -- an INCONCLUSIVE cross-check (common for
+    thin/stubby optimizer-search-space designs) is expected and is recorded in the result as
+    ``direction_crosscheck``, not raised.
     """
     if direction not in ("auto", "manual"):
         raise ValueError(f"direction must be 'auto' or 'manual', got {direction!r}")
@@ -278,7 +286,7 @@ def evaluate_prop_cfd(
     from fansim.cfd.runner import OpenFOAMRunner
     from fansim.geometry import build_impeller, export_stl, watertight_report
     from fansim.propeller.calibrate import datasheet_compare, normalize_metrics_sign
-    from fansim.propeller.direction import prop_direction
+    from fansim.propeller.direction import resolve_prop_direction
     from fansim.propeller.geometry import build_prop, prop_blade_params
     from fansim.propeller.optimize import bemt_thrust_g
     from fansim.propeller.stl_import import measure_prop_stl, prepare_prop_stl
@@ -328,8 +336,11 @@ def evaluate_prop_cfd(
         tip_mach = float(spec.tip_mach(rpm))
 
     orientation_used = None
+    direction_crosscheck = None
     if direction == "auto":
-        d = prop_direction(stl, name_hint=Path(stl_mm).name if external else None)
+        d, direction_crosscheck = resolve_prop_direction(
+            stl, external=external, name_hint=Path(stl_mm).name if external else None,
+        )
         if d.orientation == "flipped":
             orient_impeller_for_cfd(stl, stl, "flipped")
         spin_i = d.spin
@@ -375,6 +386,7 @@ def evaluate_prop_cfd(
     out["stl"] = str(stl_mm) if external else None
     out["direction_source"] = direction_source
     out["orientation"] = orientation_used
+    out["direction_crosscheck"] = direction_crosscheck
     out["datasheet"] = datasheet_compare(
         thrust_g=out["thrust_g"],
         power_w=out.get("shaft_power_w"),

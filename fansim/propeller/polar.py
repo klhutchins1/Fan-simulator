@@ -196,11 +196,17 @@ def run_cfd_polar(
 ) -> dict:
     """Mesh once, re-solve at each V∞, return meta + ``points`` list of dicts.
 
-    ``direction`` is ``"auto"`` (default) to derive orientation/spin from the mesh-only proof
-    (:func:`fansim.propeller.direction.prop_direction`), orienting the CFD copy if needed and
-    overriding the spin used for MRF; or ``"manual"`` to keep the caller's ``spin`` (default -1)
-    as-is. ``spin`` must be left ``None`` in ``"auto"`` mode -- pass ``direction="manual"`` to
+    ``direction`` is ``"auto"`` (default) to derive orientation/spin via
+    :func:`fansim.propeller.direction.resolve_prop_direction`, orienting the CFD copy if needed
+    and overriding the spin used for MRF; or ``"manual"`` to keep the caller's ``spin`` (default
+    -1) as-is. ``spin`` must be left ``None`` in ``"auto"`` mode -- pass ``direction="manual"`` to
     set spin yourself.
+
+    ``run_cfd_polar`` only ever solves in-house geometry (``build_prop``/``build_impeller``), so
+    ``"auto"`` mode always uses the fixed builder convention
+    (:data:`fansim.propeller.direction.BUILDER_DIRECTION`), with the mesh-only proof run only as a
+    cross-check (raises on a CONCLUSIVE disagreement; an INCONCLUSIVE cross-check is expected and
+    recorded in the result as ``direction_crosscheck``, not raised).
     """
     if direction not in ("auto", "manual"):
         raise ValueError(f"direction must be 'auto' or 'manual', got {direction!r}")
@@ -222,7 +228,7 @@ def run_cfd_polar(
         set_prop_freestream,
     )
     from fansim.propeller.calibrate import datasheet_compare, normalize_metrics_sign
-    from fansim.propeller.direction import prop_direction
+    from fansim.propeller.direction import resolve_prop_direction
     from fansim.propeller.geometry import build_prop, prop_blade_params
     from fansim.propeller.optimize import bemt_thrust_g
 
@@ -259,8 +265,11 @@ def run_cfd_polar(
         export_stl(build_impeller(blade), stl, tolerance=0.02, angular_tolerance=0.1)
 
     orientation_used = None
+    direction_crosscheck = None
     if direction == "auto":
-        d = prop_direction(stl)
+        # run_cfd_polar only ever solves in-house geometry (build_prop/build_impeller), so the
+        # builder convention applies -- see fansim.propeller.direction.BUILDER_DIRECTION.
+        d, direction_crosscheck = resolve_prop_direction(stl, external=False)
         if d.orientation == "flipped":
             orient_impeller_for_cfd(stl, stl, "flipped")
         spin_i = d.spin
@@ -327,6 +336,7 @@ def run_cfd_polar(
         "spin": spin_i,
         "direction_source": direction_source,
         "orientation": orientation_used,
+        "direction_crosscheck": direction_crosscheck,
         "spec": key,
         "datasheet": datasheet_compare(
             thrust_g=points[0].thrust_g if points else 0.0,

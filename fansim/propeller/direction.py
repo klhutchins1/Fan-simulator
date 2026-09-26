@@ -67,3 +67,58 @@ def prop_direction(stl_mm: Path, *, name_hint: str | None = None) -> PropDirecti
     else:
         orientation, spin = "flipped", -int(proof.omega_sign)
     return PropDirection(orientation, spin, "geometry", proof.chirality, proof.note)
+
+
+# In-house prop/impeller geometry (fansim.propeller.geometry.build_prop / fansim.geometry.
+# build_impeller) is built with a FIXED handedness, the same one geometry.stock_handedness pins
+# for the ducted fan: omega +1 (CCW from +Z), pumping -Z, as built. That is a property of the
+# builders themselves, not something that needs to be read back off the mesh every time -- and
+# many legitimate in-house designs (thin, stubby, low-camber optimizer trials from
+# fansim.propeller.optimize.random_prop_flat / suggest_prop) fail the mesh-only proof's
+# section-quality guard (low camber, poor midline fit) despite being unambiguously built with
+# this handedness. So builder geometry uses BUILDER_DIRECTION directly instead of requiring
+# prove_direction to be CONCLUSIVE; see resolve_prop_direction for the cross-check that still
+# runs against it.
+BUILDER_DIRECTION = PropDirection(
+    "flipped", -1, "builder", -1,
+    "fansim prop/impeller builders (build_prop / build_impeller): omega +1 pumps -Z as built "
+    "(geometry.stock_handedness)",
+)
+
+
+def resolve_prop_direction(
+    stl_mm: Path, *, external: bool, name_hint: str | None = None,
+) -> tuple[PropDirection, dict | None]:
+    """Resolve CFD orientation/spin for a just-written prop STL, builder or external.
+
+    External STLs (``external=True`` -- a drone/scanned/otherwise not-ours part) always go
+    through :func:`prop_direction`'s mesh-only proof, which raises on an INCONCLUSIVE read or a
+    label/chirality mismatch: there is no other source of truth for a part we didn't build.
+
+    In-house geometry (``external=False``, written by ``build_prop``/``build_impeller``) uses
+    :data:`BUILDER_DIRECTION` directly -- the builders' handedness is fixed and pinned by
+    ``geometry.stock_handedness`` (see also ``tests/audit/test_stock_handedness.py``), so an
+    INCONCLUSIVE proof (common for optimizer-search-space designs with low camber or otherwise
+    hard-to-read sections) is expected and is not an error. ``prove_direction`` is still run as a
+    cross-check: it raises ONLY if it manages a CONCLUSIVE reading that DISAGREES with
+    ``BUILDER_DIRECTION``'s (omega=+1, pump=-1) -- catching a genuinely mirrored/misbuilt design --
+    while an INCONCLUSIVE cross-check is recorded (not raised) in the returned dict, which the
+    caller stores as ``direction_crosscheck``.
+    """
+    if external:
+        return prop_direction(stl_mm, name_hint=name_hint), None
+    proof = prove_direction(trimesh.load(str(stl_mm), force="mesh"))
+    crosscheck = {
+        "verdict": proof.verdict,
+        "note": proof.note,
+        "omega_sign": proof.omega_sign,
+        "pump_sign": proof.pump_sign,
+        "chirality": proof.chirality,
+    }
+    if proof.verdict == "CONCLUSIVE" and (proof.omega_sign, proof.pump_sign) != (1, -1):
+        raise ValueError(
+            f"builder geometry direction cross-check disagrees with {stl_mm}: proof reads "
+            f"(omega={proof.omega_sign:+d}, pump={proof.pump_sign:+d}) but "
+            f"{BUILDER_DIRECTION.note} — {proof.note}"
+        )
+    return BUILDER_DIRECTION, crosscheck

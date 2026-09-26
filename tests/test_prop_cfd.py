@@ -133,6 +133,59 @@ def test_evaluate_prop_cfd_auto_direction_orients_case(tmp_path, monkeypatch):
     assert zmax_used >= z1_flipped - 1e-9
 
 
+@pytest.mark.slow
+def test_evaluate_prop_cfd_builder_geometry_never_raises_for_stubby_design(tmp_path, monkeypatch):
+    # Regression for the Task 8 re-review bug: a random_prop_flat-style stubby/low-camber design
+    # (built in-house via build_impeller) is expected to be INCONCLUSIVE under the direction
+    # proof's section-quality guard, but that must NOT abort evaluate_prop_cfd -- the builder path
+    # (direction="auto", no stl_mm) must resolve via BUILDER_DIRECTION regardless.
+    import random
+
+    import trimesh
+
+    from fansim.audit.direction import prove_direction
+    from fansim.geometry import build_impeller, export_stl
+    from fansim.prop_spec import get_prop_spec
+    from fansim.propeller import cfd as prop_cfd
+    from fansim.propeller.optimize import blade_params_from_trial_params, random_prop_flat
+
+    spec = get_prop_spec("fpv_5inch")
+    rng = random.Random(12345)
+    blade = None
+    for _ in range(4):  # most random_prop_flat draws are INCONCLUSIVE; find one to prove the point
+        flat = random_prop_flat(spec, rng)
+        candidate = blade_params_from_trial_params(spec, flat)
+        check_stl = tmp_path / "check.stl"
+        export_stl(build_impeller(candidate), check_stl, tolerance=0.02, angular_tolerance=0.1)
+        if prove_direction(trimesh.load(str(check_stl), force="mesh")).verdict == "INCONCLUSIVE":
+            blade = candidate
+            break
+    assert blade is not None, "expected at least one INCONCLUSIVE design in 4 random draws"
+
+    monkeypatch.setattr(prop_cfd, "run_mesh", lambda *_a, **_k: None)
+    monkeypatch.setattr(prop_cfd, "run_solve_prop", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        prop_cfd,
+        "parse_prop_metrics",
+        lambda *_a, **_k: {
+            "thrust_n": -0.5, "thrust_g": 51.0, "torque_nm": 0.01, "shaft_power_w": 5.0,
+        },
+    )
+    import fansim.cfd.runner as runner_mod
+
+    monkeypatch.setattr(
+        runner_mod,
+        "OpenFOAMRunner",
+        lambda workdir: type("R", (), {"run": staticmethod(lambda *a, **k: None)})(),
+    )
+
+    out = prop_cfd.evaluate_prop_cfd(spec, tmp_path, params=blade, rpm=20000.0)
+    assert out["orientation"] == "flipped"
+    assert out["direction_source"] == "builder"
+    assert out["spin"] == -1
+    assert out["direction_crosscheck"]["verdict"] == "INCONCLUSIVE"
+
+
 def test_default_rpm_tip_mach_compressible():
     from fansim.prop_spec import get_prop_spec
 
