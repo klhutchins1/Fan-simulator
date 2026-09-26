@@ -4,8 +4,8 @@ Checks (each True / False / None=unclear):
   real_handedness      chirality == REAL_FAN_CHIRALITY (model is not a mirror image of the real fan)
   motor_on_exhaust     motor_side == pump_sign (air leaves past the motor, like the real Noctua)
   tips_lead            tip_lead_sign == omega_sign (user-confirmed: real A12x25 tips lead the rotation)
-  cfd_spin_matches     TestRig default spin == designed omega_sign (CFD turns it the designed way)
-  cfd_pumps_plus_z     pump_sign == +1 (designed delivery matches the duct's inlet -Z -> outlet +Z)
+  cfd_spin_matches     designed omega / delivery in the CFD frame (after AXIAL_CFD_ORIENTATION)
+  cfd_pumps_plus_z     designed omega / delivery in the CFD frame (after AXIAL_CFD_ORIENTATION)
   motor_rotation_consistent  chirality * motor_side == omega_sign (air leaves past motor; pump=motor_side, chi*pump=omega)
                        -- algebraically redundant with motor_on_exhaust whenever the proof is
                        CONCLUSIVE, since pump_sign == motor_side in that case and
@@ -34,6 +34,7 @@ from fansim.audit.direction import (  # noqa: E402
     tip_lead_sign,
 )
 from fansim.cfd.domain import TestRig  # noqa: E402
+from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "validation" / "audits" / "direction_geometry.json"
@@ -53,6 +54,16 @@ def _stock_stl() -> Path:
 
 def _tri(a, b):
     return None if a is None or b is None else bool(a == b)
+
+
+def _cfd_frame(sign, orientation):
+    """Express a designed sign (omega or pump, in the as-built frame) in the CFD copy's frame.
+
+    The axial CFD copy may be rotated 180 deg about X relative to the as-built part
+    (``AXIAL_CFD_ORIENTATION``); that rotation negates both omega and pump-direction signs.
+    ``"as_built"`` is the identity.
+    """
+    return None if sign is None else (-sign if orientation == "flipped" else sign)
 
 
 def _sha256(path: Path) -> str:
@@ -77,16 +88,26 @@ def main() -> int:
                 "real_handedness": _tri(p.chirality, REAL_FAN_CHIRALITY),
                 "motor_on_exhaust": _tri(ms, p.pump_sign),
                 "tips_lead": _tri(tl, p.omega_sign),
-                "cfd_spin_matches": _tri(spin_in_use, p.omega_sign),
-                "cfd_pumps_plus_z": _tri(p.pump_sign, 1),
+                "cfd_spin_matches": _tri(spin_in_use, _cfd_frame(p.omega_sign, AXIAL_CFD_ORIENTATION)),
+                "cfd_pumps_plus_z": _tri(_cfd_frame(p.pump_sign, AXIAL_CFD_ORIENTATION), 1),
                 "motor_rotation_consistent": _tri(None if ms is None or p.chirality is None else p.chirality * ms, p.omega_sign),
             },
         }
         print(f"[{name}] {p.verdict}: rotate {p.omega_sign}, pump {p.pump_sign}, chi {p.chirality},"
               f" motor {ms} — {p.note}\n    checks {rotors[name]['checks']}", flush=True)
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps({"rotors": rotors, "cfd_spin_in_use": spin_in_use}, indent=2) + "\n",
-                   encoding="utf-8")
+    OUT.write_text(
+        json.dumps(
+            {
+                "rotors": rotors,
+                "cfd_spin_in_use": spin_in_use,
+                "cfd_orientation": AXIAL_CFD_ORIENTATION,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     print(f"-> {OUT}")
     return 0
 
