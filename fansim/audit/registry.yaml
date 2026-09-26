@@ -40,17 +40,19 @@ units:
       - "fansim.cfd.templates:FIELD_P"
       - "fansim.audit.direction_verdict"
       - "fansim.validation.reference_stl:rig_for_reference_stl"
+      - "fansim.cfd.orientation"
+      - "fansim.cfd.openfoam_case:check_placement"
     claim: "Duct inlet -Z / outlet +Z; MRF omega = spin*|omega| about +Z (right-hand); the solved fan pumps +Z in its designed rotation"
     source: {kind: derivation, ref: "Audit #1 (geometry proof + CFD matrix)"}
-    checks: [tests/audit/test_cfd_direction_contract.py, "ref:a12x25_direction_matrix"]
-    depends_on: [audit.direction_geometry, geometry.stock_handedness]
+    checks: [tests/audit/test_cfd_direction_contract.py, "ref:a12x25_direction_matrix", tests/test_cfd_orientation.py, tests/test_cfd_placement_check.py]
+    depends_on: [audit.direction_geometry, geometry.stock_handedness, optimize.search_space_handedness]
     libs: [openfoam]
 
   - id: cfd.cfm_from_outlet_flow
-    targets: ["fansim.cfd.metrics:parse_fan_metrics", "fansim.cfd.metrics:CFM_PER_M3S", "fansim.cfd.templates:CONTROL_DICT"]
+    targets: ["fansim.cfd.metrics:parse_fan_metrics", "fansim.cfd.metrics:CFM_PER_M3S", "fansim.cfd.templates:CONTROL_DICT", "fansim.cfd.metrics:convergence", "fansim.cfd.metrics:oscillation_pct"]
     claim: "CFM = sum(phi) over the +Z outlet patch * 2118.882; positive = delivery toward +Z; never abs()"
     source: {kind: standard, ref: "unit conversion; AMCA 210 flow sign"}
-    checks: [tests/audit/test_cfd_direction_contract.py, tests/test_math_consistency.py]
+    checks: [tests/audit/test_cfd_direction_contract.py, tests/test_math_consistency.py, tests/test_convergence_rule.py]
     depends_on: [cfd.flow_direction_convention, physics.air_properties]
 
   - id: optimize.reject_dead_designs
@@ -65,3 +67,9 @@ units:
     source: {kind: derivation, ref: "Audit #1"}
     checks: []
     depends_on: [cfd.flow_direction_convention]
+
+  - id: optimize.search_space_handedness
+    targets: ["fansim.optimize.search_space"]
+    claim: "Optimizer bounds keep stagger > 0 and camber >= 0, so every axial design has Stock handedness"
+    source: {kind: derivation, ref: "Audit #1: fixed CFD orientation is valid only without mirrored designs"}
+    checks: [tests/audit/test_search_space_handedness.py]

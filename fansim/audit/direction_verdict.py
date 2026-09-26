@@ -103,15 +103,16 @@ def matrix_verdict(rows: list[MatrixRow], geometry_omega: int | None, *,
     return out
 
 
-def convention_verdict(matrix: dict, production_spin: int) -> dict:
-    """Does PRODUCTION (as_built, ``TestRig.spin=production_spin``) solve the designed rotation?
+def convention_verdict(matrix: dict, production_spin: int, production_orientation: str) -> dict:
+    """Does PRODUCTION (``production_orientation``, ``TestRig.spin=production_spin``) solve the
+    designed rotation?
 
-    ``matrix_verdict`` can PASS while its winning *proper* run is ``{flipped, spin}`` -- meaning
-    production, which always solves ``as_built``, is actually solving the reversed or mis-oriented
-    rotor. This is the convention check production must pass, separate from the matrix's own
-    geometry-vs-CFD agreement check.
+    ``matrix_verdict`` can PASS while its winning *proper* run is a different
+    ``{orientation, spin}`` -- meaning production is actually solving the reversed or
+    mis-oriented rotor. This is the convention check production must pass, separate from the
+    matrix's own geometry-vs-CFD agreement check.
     """
-    production = {"orientation": "as_built", "spin": production_spin}
+    production = {"orientation": production_orientation, "spin": production_spin}
     matrix_status = matrix.get("verdict")
     recommended = matrix.get("recommended")
     if matrix_status == "FAIL":

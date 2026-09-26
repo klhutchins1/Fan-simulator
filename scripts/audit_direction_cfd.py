@@ -27,6 +27,7 @@ from fansim.audit.direction_verdict import MatrixRow, convention_verdict, matrix
 from fansim.cfd.domain import TestRig  # noqa: E402
 from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve  # noqa: E402
+from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.validation.reference_stl import rig_for_reference_stl  # noqa: E402
 
@@ -101,7 +102,8 @@ def _write_payload(out: Path, rotor: str, rpm: float, iters: int, mesh_res, rows
         "errors": errors,
         "geometry": geometry,
         "verdict": verdict,
-        "convention_verdict": convention_verdict(verdict, production_spin()),
+        "convention_verdict": convention_verdict(verdict, production_spin(),
+                                                 production_orientation=AXIAL_CFD_ORIENTATION),
     }
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n", encoding="utf-8")
@@ -119,7 +121,8 @@ def reverdict_payload(existing: dict) -> dict:
     out = dict(existing)
     out.setdefault("errors", [])
     out["verdict"] = verdict
-    out["convention_verdict"] = convention_verdict(verdict, production_spin())
+    out["convention_verdict"] = convention_verdict(verdict, production_spin(),
+                                                    production_orientation=AXIAL_CFD_ORIENTATION)
     return out
 
 

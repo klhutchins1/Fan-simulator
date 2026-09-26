@@ -102,10 +102,10 @@ def test_no_pump_direction_is_inconclusive():
 
 
 def test_convention_verdict_fails_when_matrix_recommends_flipped_but_production_is_as_built():
-    # ROWS recommends {flipped, -1}; production always solves as_built.
+    # ROWS recommends {flipped, -1}; production here solves as_built.
     v = matrix_verdict(ROWS, geometry_omega=+1, geometry_pump=-1)
     assert v["verdict"] == "PASS" and v["recommended"] == {"orientation": "flipped", "spin": -1}
-    cv = convention_verdict(v, production_spin=-1)
+    cv = convention_verdict(v, production_spin=-1, production_orientation="as_built")
     assert cv["verdict"] == "FAIL"
     assert cv["production"] == {"orientation": "as_built", "spin": -1}
     assert "reversed" in cv["reason"] or "mis-oriented" in cv["reason"]
@@ -116,25 +116,44 @@ def test_convention_verdict_passes_when_matrix_recommends_as_built():
             R("flipped", -1, -70.0), R("flipped", +1, 42.0)]
     v = matrix_verdict(rows, geometry_omega=+1, geometry_pump=+1)
     assert v["verdict"] == "PASS" and v["recommended"] == {"orientation": "as_built", "spin": +1}
-    cv = convention_verdict(v, production_spin=+1)
+    cv = convention_verdict(v, production_spin=+1, production_orientation="as_built")
     assert cv["verdict"] == "PASS"
     assert cv["production"] == cv["recommended"] == {"orientation": "as_built", "spin": +1}
+
+
+def test_convention_verdict_passes_when_production_is_flipped_matching_recommendation():
+    # ROWS recommends {flipped, -1}; production is the flipped setup at spin -1: PASS.
+    v = matrix_verdict(ROWS, geometry_omega=+1, geometry_pump=-1)
+    assert v["verdict"] == "PASS" and v["recommended"] == {"orientation": "flipped", "spin": -1}
+    cv = convention_verdict(v, production_spin=-1, production_orientation="flipped")
+    assert cv["verdict"] == "PASS"
+    assert cv["production"] == cv["recommended"] == {"orientation": "flipped", "spin": -1}
+
+
+def test_convention_verdict_fails_when_production_as_built_for_flipped_recommendation():
+    # Same matrix, production claims as_built at spin -1: FAIL (mismatched orientation).
+    v = matrix_verdict(ROWS, geometry_omega=+1, geometry_pump=-1)
+    assert v["verdict"] == "PASS" and v["recommended"] == {"orientation": "flipped", "spin": -1}
+    cv = convention_verdict(v, production_spin=-1, production_orientation="as_built")
+    assert cv["verdict"] == "FAIL"
+    assert cv["production"] == {"orientation": "as_built", "spin": -1}
 
 
 def test_convention_verdict_inconclusive_when_matrix_inconclusive():
     v = matrix_verdict(ROWS, geometry_omega=None, geometry_pump=-1)
     assert v["verdict"] == "INCONCLUSIVE"
-    cv = convention_verdict(v, production_spin=-1)
+    cv = convention_verdict(v, production_spin=-1, production_orientation="as_built")
     assert cv["verdict"] == "INCONCLUSIVE"
 
 
 def test_convention_verdict_inconclusive_when_matrix_status_missing():
-    cv = convention_verdict({}, production_spin=-1)
+    cv = convention_verdict({}, production_spin=-1, production_orientation="as_built")
     assert cv["verdict"] == "INCONCLUSIVE"
 
 
 def test_convention_verdict_inconclusive_when_matrix_status_unrecognised():
-    cv = convention_verdict({"verdict": "SKIPPED", "recommended": None}, production_spin=-1)
+    cv = convention_verdict({"verdict": "SKIPPED", "recommended": None}, production_spin=-1,
+                            production_orientation="as_built")
     assert cv["verdict"] == "INCONCLUSIVE"
     assert "SKIPPED" in cv["reason"]
 
@@ -142,7 +161,7 @@ def test_convention_verdict_inconclusive_when_matrix_status_unrecognised():
 def test_convention_verdict_fail_when_matrix_fail():
     v = matrix_verdict(ROWS, geometry_omega=-1, geometry_pump=-1)
     assert v["verdict"] == "FAIL"
-    cv = convention_verdict(v, production_spin=-1)
+    cv = convention_verdict(v, production_spin=-1, production_orientation="as_built")
     assert cv["verdict"] == "FAIL"
 
 

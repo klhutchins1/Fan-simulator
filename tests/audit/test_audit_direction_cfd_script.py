@@ -40,7 +40,9 @@ def test_production_spin_matches_test_rig_default(mod):
     assert mod.production_spin() == TestRig.__dataclass_fields__["spin"].default
 
 
-def test_reverdict_roundtrip_recommends_as_built(mod):
+def test_reverdict_roundtrip_flags_convention_failure_when_recommendation_is_as_built(mod):
+    # Production is now the FLIPPED setup (fansim.cfd.orientation.AXIAL_CFD_ORIENTATION), spin -1.
+    # A matrix that recommends as_built means production is solving the reversed rotor: FAIL.
     spin = mod.production_spin()
     assert spin == -1
     rows = [
@@ -56,16 +58,17 @@ def test_reverdict_roundtrip_recommends_as_built(mod):
     out = mod.reverdict_payload(existing)
     assert out["verdict"]["verdict"] == "PASS"
     assert out["verdict"]["recommended"] == {"orientation": "as_built", "spin": spin}
-    assert out["convention_verdict"]["verdict"] == "PASS"
+    assert out["convention_verdict"]["verdict"] == "FAIL"
+    assert out["convention_verdict"]["production"] == {"orientation": "flipped", "spin": spin}
     assert out["errors"] == []
 
 
-def test_reverdict_roundtrip_flags_convention_failure(mod):
+def test_reverdict_roundtrip_recommends_flipped_matches_production(mod):
     # Requires production's spin default to be -1 (fansim/cfd/domain.py); this is Audit #1's own
     # convention and is pinned separately, so this test asserts the value it needs directly.
     spin = mod.production_spin()
     assert spin == -1
-    # Designed sense's proper run is FLIPPED: production (as_built) solves the reversed rotor.
+    # Designed sense's proper run is FLIPPED: production (flipped, -1) solves the designed rotor.
     rows = [
         _row("as_built", -1, -70.0, True, 0.5, 0.002, -209.44),
         _row("as_built", 1, -30.0, True, 0.5, -0.002, 209.44),
@@ -79,7 +82,7 @@ def test_reverdict_roundtrip_flags_convention_failure(mod):
     out = mod.reverdict_payload(existing)
     assert out["verdict"]["verdict"] == "PASS"
     assert out["verdict"]["recommended"] == {"orientation": "flipped", "spin": -1}
-    assert out["convention_verdict"]["verdict"] == "FAIL"
+    assert out["convention_verdict"]["verdict"] == "PASS"
 
 
 def test_reverdict_tolerates_missing_convention_verdict_and_errors_keys(mod):

@@ -82,3 +82,9 @@ def test_metrics_keep_flow_and_moment_signed(tmp_path):
     assert m.flow_m3s < 0 and m.cfm < 0          # reverse flow reads negative, never abs()
     assert m.moment_z_nm == pytest.approx(-0.003) # signed z-component
     assert m.torque_nm == pytest.approx(0.003)    # torque is |Mz|
+
+
+def test_axial_convention_is_flipped_at_spin_minus_one():
+    from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION
+    assert AXIAL_CFD_ORIENTATION == "flipped"
+    assert _Rig.__dataclass_fields__["spin"].default == -1
