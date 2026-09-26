@@ -90,6 +90,7 @@ def test_evaluate_prop_cfd_auto_direction_orients_case(tmp_path, monkeypatch):
     mesh.export(str(src))
     asbuilt = trimesh.load(str(src), force="mesh")
     z0_before, z1_before = float(asbuilt.bounds[0, 2]), float(asbuilt.bounds[1, 2])
+    src_bytes_before = src.read_bytes()
 
     work = tmp_path / "case"
     monkeypatch.setattr(prop_cfd, "run_mesh", lambda *_a, **_k: None)
@@ -119,6 +120,13 @@ def test_evaluate_prop_cfd_auto_direction_orients_case(tmp_path, monkeypatch):
     assert out["orientation"] == "flipped"
     assert out["direction_source"] == "geometry"
     assert out["spin"] == -1
+
+    # M3: the input STL is unchanged, and the working copy evaluate_prop_cfd made from it
+    # (work/"prop.stl") is also never flipped in place -- the oriented copy for CFD goes to a
+    # separate file (work/"prop_cfd.stl").
+    assert src.read_bytes() == src_bytes_before
+    assert (work / "prop.stl").read_bytes() == src_bytes_before
+    assert (work / "prop_cfd.stl").is_file()
 
     mrf = (work / "constant/MRFProperties").read_text(encoding="utf-8")
     m = re.search(r"omega\s+([-\d.eE]+);", mrf)

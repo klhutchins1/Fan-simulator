@@ -285,7 +285,11 @@ def evaluate_prop_cfd(
     from fansim.cfd.orientation import orient_impeller_for_cfd
     from fansim.cfd.runner import OpenFOAMRunner
     from fansim.geometry import build_impeller, export_stl, watertight_report
-    from fansim.propeller.calibrate import datasheet_compare, normalize_metrics_sign
+    from fansim.propeller.calibrate import (
+        datasheet_compare,
+        flag_direction_suspect,
+        normalize_metrics_sign,
+    )
     from fansim.propeller.direction import resolve_prop_direction
     from fansim.propeller.geometry import build_prop, prop_blade_params
     from fansim.propeller.optimize import bemt_thrust_g
@@ -337,12 +341,17 @@ def evaluate_prop_cfd(
 
     orientation_used = None
     direction_crosscheck = None
+    # The CFD-oriented copy is written to a separate file, never flipped in place onto ``stl``
+    # (which may be the caller's own file when ``prepare_stl=False`` and ``stl_mm`` already
+    # points at ``workdir / "prop.stl"``). Same pattern as the axial path's prepare_axial_cfd.
+    stl_for_cfd = stl
     if direction == "auto":
         d, direction_crosscheck = resolve_prop_direction(
             stl, external=external, name_hint=Path(stl_mm).name if external else None,
         )
         if d.orientation == "flipped":
-            orient_impeller_for_cfd(stl, stl, "flipped")
+            stl_for_cfd = workdir / "prop_cfd.stl"
+            orient_impeller_for_cfd(stl, stl_for_cfd, "flipped")
         spin_i = d.spin
         direction_source = d.source
         orientation_used = d.orientation
@@ -351,7 +360,7 @@ def evaluate_prop_cfd(
 
     # 180° rotation about X (proper rotation; z-range reverses), so bounds must be re-measured
     # after orientation.
-    rep = watertight_report(stl)
+    rep = watertight_report(stl_for_cfd)
     (_, _, z0), (_, _, z1) = rep.bounds_mm
 
     u_kw = {} if u_freestream is None else {"u_eps": float(u_freestream)}
@@ -363,7 +372,7 @@ def evaluate_prop_cfd(
     mesh_used = mesh if mesh is not None else MeshResolution(base_cell=float(base_cell))
     build_prop_case(
         workdir,
-        stl,
+        stl_for_cfd,
         dom,
         mesh=mesh_used,
         n_iters=int(iters),
@@ -393,4 +402,5 @@ def evaluate_prop_cfd(
         rpm=rpm,
         spec=spec,
     )
+    out = flag_direction_suspect(out)
     return out

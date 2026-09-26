@@ -266,12 +266,16 @@ def run_cfd_polar(
 
     orientation_used = None
     direction_crosscheck = None
+    # The CFD-oriented copy is written to a separate file, never flipped in place onto ``stl``.
+    # Same pattern as the axial path's prepare_axial_cfd.
+    stl_for_cfd = stl
     if direction == "auto":
         # run_cfd_polar only ever solves in-house geometry (build_prop/build_impeller), so the
         # builder convention applies -- see fansim.propeller.direction.BUILDER_DIRECTION.
         d, direction_crosscheck = resolve_prop_direction(stl, external=False)
         if d.orientation == "flipped":
-            orient_impeller_for_cfd(stl, stl, "flipped")
+            stl_for_cfd = workdir / "prop_cfd.stl"
+            orient_impeller_for_cfd(stl, stl_for_cfd, "flipped")
         spin_i = d.spin
         direction_source = d.source
         orientation_used = d.orientation
@@ -280,7 +284,7 @@ def run_cfd_polar(
 
     # 180° rotation about X (proper rotation; z-range reverses), so bounds must be re-measured
     # after orientation.
-    rep = watertight_report(stl)
+    rep = watertight_report(stl_for_cfd)
     (_, _, z0), (_, _, z1) = rep.bounds_mm
 
     v_list = [float(v) for v in v_infs]
@@ -292,7 +296,7 @@ def run_cfd_polar(
     runner = OpenFOAMRunner(case_dir)
     build_prop_case(
         case_dir,
-        stl,
+        stl_for_cfd,
         dom,
         mesh=MeshResolution(base_cell=float(base_cell)),
         n_iters=int(iters),
