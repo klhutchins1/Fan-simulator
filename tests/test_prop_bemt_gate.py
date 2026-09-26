@@ -104,6 +104,56 @@ def test_refine_pareto_cfd_respects_floor(tmp_path, monkeypatch):
     assert calls == [50.0]
 
 
+def test_refine_pareto_cfd_carries_direction_suspect_flag(tmp_path, monkeypatch):
+    """M4: refine_pareto_cfd must carry a suspect-direction flag from evaluate_prop_cfd's result
+    into its rows, so a silently-backwards Pareto candidate is visible downstream."""
+    import fansim.propeller.optimize as po
+
+    def fake_eval(spec, workdir, **kw):
+        return {
+            "thrust_g": -5.0,
+            "bemt_thrust_g": 80.0,
+            "skipped": False,
+            "thrust_sign_ok": False,
+            "direction_crosscheck": {"verdict": "INCONCLUSIVE"},
+            "direction_suspect": True,
+            "direction_warning": "direction cross-check was INCONCLUSIVE and the CFD thrust "
+                                  "sign is wrong -- verify the geometry",
+        }
+
+    monkeypatch.setattr("fansim.propeller.cfd.evaluate_prop_cfd", fake_eval)
+    spec = get_prop_spec("fpv_5inch")
+    pareto = [
+        {
+            "thrust_g": 100.0,
+            "params": {
+                "n_blades": 3,
+                "pitch_in": 4.3,
+                "chord_root": 0.2,
+                "chord_mid": 0.26,
+                "chord_tip": 0.1,
+                "camber": 0.04,
+            },
+        }
+    ]
+    rows = po.refine_pareto_cfd(spec, pareto, tmp_path, n_top=1, bemt_floor_g=0.0)
+    assert rows[0]["direction_suspect"] is True
+    assert "direction_warning" in rows[0] and rows[0]["direction_warning"]
+
+
+def test_refine_pareto_cfd_direction_suspect_false_by_default(tmp_path, monkeypatch):
+    import fansim.propeller.optimize as po
+
+    def fake_eval(spec, workdir, **kw):
+        return {"thrust_g": 100.0, "bemt_thrust_g": 80.0, "skipped": False}
+
+    monkeypatch.setattr("fansim.propeller.cfd.evaluate_prop_cfd", fake_eval)
+    spec = get_prop_spec("fpv_5inch")
+    pareto = [{"thrust_g": 100.0, "params": {"n_blades": 3}}]
+    rows = po.refine_pareto_cfd(spec, pareto, tmp_path, n_top=1, bemt_floor_g=0.0)
+    assert rows[0]["direction_suspect"] is False
+
+
 def test_refine_pareto_cfd_forwards_mesh_knobs(tmp_path, monkeypatch):
     import fansim.propeller.optimize as po
 

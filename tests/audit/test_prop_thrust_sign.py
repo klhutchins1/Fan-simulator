@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from fansim.audit.synthetic import cambered_blade_fan
-from fansim.propeller.calibrate import normalize_metrics_sign
+from fansim.propeller.calibrate import flag_direction_suspect, normalize_metrics_sign
 from fansim.propeller.direction import chirality_hint_from_name, prop_direction
 
 
@@ -60,3 +60,39 @@ def test_label_disagreeing_with_geometry_raises(tmp_path):
 def test_inconclusive_geometry_raises(tmp_path):
     with pytest.raises(ValueError, match="INCONCLUSIVE"):
         prop_direction(_stl(tmp_path, stagger_deg=60.0, camber=0.0))
+
+
+def test_flag_direction_suspect_when_inconclusive_and_wrong_sign():
+    result = {
+        "direction_crosscheck": {"verdict": "INCONCLUSIVE", "note": "sections disagree"},
+        "thrust_sign_ok": False,
+    }
+    out = flag_direction_suspect(result)
+    assert out["direction_suspect"] is True
+    assert "direction_warning" in out and "backwards" in out["direction_warning"]
+    # Input dict is not mutated.
+    assert "direction_suspect" not in result
+
+
+def test_flag_direction_suspect_not_set_when_conclusive():
+    result = {
+        "direction_crosscheck": {"verdict": "CONCLUSIVE"},
+        "thrust_sign_ok": False,
+    }
+    out = flag_direction_suspect(result)
+    assert "direction_suspect" not in out
+
+
+def test_flag_direction_suspect_not_set_when_sign_ok():
+    result = {
+        "direction_crosscheck": {"verdict": "INCONCLUSIVE"},
+        "thrust_sign_ok": True,
+    }
+    out = flag_direction_suspect(result)
+    assert "direction_suspect" not in out
+
+
+def test_flag_direction_suspect_not_set_when_crosscheck_none():
+    result = {"direction_crosscheck": None, "thrust_sign_ok": False}
+    out = flag_direction_suspect(result)
+    assert "direction_suspect" not in out

@@ -49,6 +49,34 @@ def normalize_metrics_sign(metrics: dict[str, Any], *, spin: int) -> dict[str, A
     return out
 
 
+def flag_direction_suspect(result: dict[str, Any]) -> dict[str, Any]:
+    """Flag a prop CFD result whose direction could not be confirmed AND whose thrust sign is wrong.
+
+    ``direction_crosscheck`` (see :func:`fansim.propeller.direction.resolve_prop_direction`) is
+    None for a manual override, or a dict with ``"verdict"`` in ``{"CONCLUSIVE", "INCONCLUSIVE"}``
+    for the mesh-only geometry proof run as a cross-check on builder geometry. A CONCLUSIVE
+    cross-check that disagreed with the builder convention would already have raised (see
+    ``resolve_prop_direction``), so a wrong thrust sign together with a CONCLUSIVE cross-check is
+    something else (e.g. a genuinely draggy high-advance-ratio point), not a suspect direction.
+
+    But an INCONCLUSIVE cross-check combined with a wrong CFD thrust sign (``thrust_sign_ok`` is
+    False) means neither independent check confirmed this design spins/pumps the way it's
+    supposed to -- that combination is flagged as ``direction_suspect`` with an explanatory
+    ``direction_warning``, so a silently backwards prop doesn't slide through unnoticed.
+    """
+    out = dict(result)
+    crosscheck = out.get("direction_crosscheck")
+    inconclusive = isinstance(crosscheck, dict) and crosscheck.get("verdict") == "INCONCLUSIVE"
+    if inconclusive and out.get("thrust_sign_ok") is False:
+        out["direction_suspect"] = True
+        out["direction_warning"] = (
+            "direction cross-check was INCONCLUSIVE and the CFD thrust sign is wrong -- this "
+            "design may be spinning/oriented backwards; verify the geometry before trusting "
+            "this result"
+        )
+    return out
+
+
 def datasheet_compare(
     *,
     thrust_g: float,

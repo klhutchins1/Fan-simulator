@@ -144,6 +144,8 @@ def refine_pareto_cfd(spec: PropSpec, pareto: list[dict], out_dir,
             "skipped": bool(result.get("skipped")),
             "reason": result.get("reason"),
             "params": row.get("params"),
+            "direction_suspect": bool(result.get("direction_suspect", False)),
+            "direction_warning": result.get("direction_warning"),
         })
     return rows
 
