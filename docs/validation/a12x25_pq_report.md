@@ -1,5 +1,31 @@
 # NF-A12x25 reference P–Q validation report
 
+## 2026-09 direction fix (CFD_VERSION 3) — current numbers
+
+**Everything below this section was solved with the rotor spinning backwards** (Audit #1,
+`docs/validation/audits/2026-09-25-audit-01-flow-direction.md`) and with an MRF zone that clipped the
+blade ends in the optimizer path. Keep it as history only.
+
+Stock recipe, tip gap 0.5 mm, base_cell 5 mm, 1000 iters, no frame, designed rotation
+(`fansim/cfd/orientation.py`), convergence rule A. Run: `runs/validate_a12x25_dirfix/validation.json`.
+Evidence: `docs/validation/audits/2026-09-26-audit-01b-direction-fix.md`.
+
+| back-pressure | CFM before (reversed) | **CFM after** | Noctua | converged / osc |
+|---|---|---|---|---|
+| 0 Pa | 44.6 | **58.7** | 60.1 | yes / 7.9% |
+| 5 Pa | 30.5 | 21.6 | — | **no** / 11.4% |
+| 10 Pa | 18.5 | −6.2 | — | yes / 16.8% |
+| 15 Pa | ≈10 (interp.) | −72.5 | — | yes / 0.8% |
+| 20 Pa | — | −116.5 | — | no / 6.0% |
+
+- **Free air: −2% vs datasheet — PASS.** The earlier "−15…−26% plate-model ceiling" was mostly the reversed rotor.
+- **Shut-off: 9.5 Pa vs 22.9 Pa — FAIL** (interim band 17.9–27.9). In the designed rotation the steady solve stalls
+  early and oscillates strongly under load; steady RANS cannot represent that regime. Next levers (roadmap §19.6):
+  URANS at 5–15 Pa, frame/struts, prism layers, recipe fidelity.
+
+---
+
+
 **Status:** Task 3.2 + mesh/tip + frame/wall_ks + recipe + tip_gap 0.5 P–Q + close-reference STL free-air/P–Q + **prism layers**. **CFD interim:** free-air **fail** (−17% / layers −16%); shut-off **proxy fail** on STL (~14.6 Pa) vs **proxy pass** on parametric Stock (~24 Pa). Screening free-air levers exhausted.
 
 > **⚠ CORRECTION (2026-09-18) — free-air numbers below are superseded.** §2's verdict ("free-air is

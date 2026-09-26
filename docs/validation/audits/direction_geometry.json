@@ -7,7 +7,7 @@
       "pump_sign": -1,
       "chirality": -1,
       "verdict": "CONCLUSIVE",
-      "note": "36 sections, 0 flat skipped",
+      "note": "36 sections, 0 flat skipped, 0 low-quality skipped",
       "agreement": 1.0,
       "n_sections": 36,
       "motor_side": null,
@@ -16,8 +16,8 @@
         "real_handedness": true,
         "motor_on_exhaust": null,
         "tips_lead": true,
-        "cfd_spin_matches": false,
-        "cfd_pumps_plus_z": false,
+        "cfd_spin_matches": true,
+        "cfd_pumps_plus_z": true,
         "motor_rotation_consistent": null
       }
     },
@@ -28,7 +28,7 @@
       "pump_sign": -1,
       "chirality": -1,
       "verdict": "CONCLUSIVE",
-      "note": "36 sections, 0 flat skipped",
+      "note": "36 sections, 0 flat skipped, 0 low-quality skipped",
       "agreement": 1.0,
       "n_sections": 36,
       "motor_side": -1,
@@ -37,11 +37,12 @@
         "real_handedness": true,
         "motor_on_exhaust": true,
         "tips_lead": true,
-        "cfd_spin_matches": false,
-        "cfd_pumps_plus_z": false,
+        "cfd_spin_matches": true,
+        "cfd_pumps_plus_z": true,
         "motor_rotation_consistent": true
       }
     }
   },
-  "cfd_spin_in_use": -1
+  "cfd_spin_in_use": -1,
+  "cfd_orientation": "flipped"
 }

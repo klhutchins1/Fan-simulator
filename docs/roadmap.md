@@ -11,12 +11,8 @@ session.**
   Stock close-ref fidelity (§2.7–2.8). **§13.22–13.24** / **§14.3b** /
   **§14.6** / **§15.1–15.6** landed 2026-09-16. Still **not shippable** until Validation P–Q /
   print+measure — see `a12x25_pq_report.md`
-> ⛔ **FREEZE (2026-09-24): no changes to fan spin / flow direction / blade handedness / motor-side
-> geometry** — `TestRig.spin`, `flow_sign`, `u_axial`, inlet/outlet placement, glyph/arrow direction,
-> `normalize_metrics_sign`, blade mirror/lean/stagger signs, `_hub_axial_range`. Applies to every agent
-> (Claude, Cursor). Lifted only by the Audit #1 verdict (§19.1). Reason: the convention has been
-> "fixed" both ways (a75da48 → ea96f40) and the docs now disagree with each other and with the
-> 2026-09-24 spin A/B smoke. Another flip without proof makes it worse.
+> ✅ **§19.1 freeze lifted 2026-09-26** — rotor direction fixed and CFD-verified (Audit #1b). CFD orientation lives in
+> `fansim/cfd/orientation.py`; change it only with a new direction audit.
 
 - Tags: **[impact]** how much it changes results · **[effort]** rough build cost · owner *me* unless noted.
 - Related: `docs/known-issues.md` (historical cockpit fixes — **stale**, see §13.4), `docs/high-accuracy-plan.md` (fidelity
@@ -27,8 +23,8 @@ session.**
 
 ## ★ Recommended sequence
 
-0. **§19.1 Audit #1 — flow direction & sign conventions.** Blocks trusting any axial CFM,
-   the A12x25 P–Q gap (item 4), and every catalog score. Spin/flow **frozen** until it lands.
+0. ~~**§19.1 Audit #1**~~ — direction fixed + verified 2026-09-26 (CFD v3). Free-air now −2% vs Noctua; the open gap
+   is the **loaded branch** (shut-off 9.5 vs 22.9 Pa) — see §19.6. Pre-v3 catalog scores are stale.
 1. ~~**§13 hygiene**~~ — parse/CI/ruff critical/fan_tab UI split/mypy/MIT — closed 2026-09-15.
    Leftover geometry perf: ~~**13.22**~~ / ~~**13.23**~~ / ~~**13.24**~~ (2026-09-16).
 2. ~~Math audit / §12~~ — cockpit thickness, Fit, scoring honesty closed 2026-09-15.
@@ -711,7 +707,7 @@ separate: **verification** (code solves its equations right), **validation** (ri
 measured fans/props), **claims** (docs + cited papers match what the code does). Design spec to
 follow under `docs/superpowers/specs/`.
 
-- [ ] **19.1 Audit #1 — flow direction & sign conventions (axial fan).** **[impact: critical]** **[effort: med]**
+- [x] **19.1 Audit #1 — flow direction & sign conventions (axial fan).** **[impact: critical]** **[effort: med]**
   **Evidence that it's broken:** `runs/spin_ab_smoke/spin_ab_summary.json` (Stock a12x25, 2000 rpm,
   free air, same mesh): `spin=-1` → **+42.4 CFM (not converged)**; `spin=+1` → **−70.5 CFM
   (converged)**. The "reversed" spin moves ~1.7× more air toward −Z (the real-fan direction), yet
@@ -733,6 +729,7 @@ follow under `docs/superpowers/specs/`.
   `docs/validation/` stating the convention and its proofs; then fix code/docs/glyphs/§16.1 to match,
   bump `CFD_VERSION` so §18 quarantines every pre-verdict score, and re-run the Stock P–Q.
   **Verdict 2026-09-25:** convention **FAIL** — production CFD solves the rotor reversed (designed ω_z +1 / pump −Z by geometry, matching the real fan; production as_built spin −1). CFD matrix INCONCLUSIVE (designed-direction solve limit-cycles; ranks designed +24% Stock / +10% close-ref). See docs/validation/audits/2026-09-25-audit-01-flow-direction.md. Freeze stays until the follow-up fix plan + CFD re-check.
+  **Fixed + verified 2026-09-26:** CFD copy flipped 180° about X at spin −1, MRF fitted to the rotor, convergence rule A, CFD v3. Stock convention verdict **PASS**; free-air 58.7 CFM (−2%). Report: docs/validation/audits/2026-09-26-audit-01b-direction-fix.md. Freeze lifted.
 - [ ] **19.2 Direction as a derived, single-source property (after 19.1).** **[impact: high]** **[effort: med]**
   Stop hand-setting `spin`: derive pumping direction from blade geometry (19.1 proof #1) and have
   domain BCs, glyphs, metrics signs, and prop/CROR all read that one value. Makes this class of bug
@@ -746,6 +743,10 @@ follow under `docs/superpowers/specs/`.
   **Not** planned: a "run this design in reverse" performance mode — a blade optimized one way is poor
   reversed; only reversible fans need it, and intake-vs-exhaust mounting is a physical flip, not a
   rotation change (same numbers).
+- [ ] **19.6 Loaded-branch fidelity (designed rotation).** **[impact: high]** **[effort: med–high]**
+  CFD v3 Stock P–Q: free-air −2% but shut-off 9.5 Pa vs 22.9 Pa; loaded solves oscillate 11–17% (stall, steady RANS).
+  Levers in order: URANS at 5–15 Pa, `--with-frame`, prism layers, recipe fidelity. Also: `run_cfd_polar` lacks the
+  `direction_suspect` backstop (prop follow-up).
 - [ ] **19.5+ Later audits** (each: verification → validation → claims): axial BEM + P–Q + metrics,
   acoustics (Curle / FW-H / Proudman), prop BEMT vs. UIUC, then the other archetypes. Periodic runner
   + dated proof report; cadence set in the design spec.

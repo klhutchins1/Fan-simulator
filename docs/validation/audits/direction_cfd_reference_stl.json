@@ -1,7 +1,7 @@
 {
   "rotor": "reference_stl",
   "rpm": 2000.0,
-  "iters": 3000,
+  "iters": 1500,
   "mesh": {
     "base_cell": 0.006,
     "surf_min": 3,
@@ -14,37 +14,37 @@
     {
       "orientation": "as_built",
       "spin": -1,
-      "cfm": 51.7321016543082,
+      "cfm": 51.47159761381201,
       "converged": true,
-      "shaft_power_w": 0.38713006627190466,
-      "moment_z_nm": 0.00184840991,
+      "shaft_power_w": 0.3833505690412133,
+      "moment_z_nm": 0.00183036414,
       "omega_signed": -209.43951023931953
     },
     {
       "orientation": "as_built",
       "spin": 1,
-      "cfm": -70.75298351013241,
+      "cfm": -70.7329689745368,
       "converged": true,
-      "shaft_power_w": 0.432423394018802,
-      "moment_z_nm": -0.00206466962,
+      "shaft_power_w": 0.4324509353143985,
+      "moment_z_nm": -0.00206480112,
       "omega_signed": 209.43951023931953
     },
     {
       "orientation": "flipped",
       "spin": -1,
-      "cfm": 57.07926967998,
-      "converged": false,
-      "shaft_power_w": 0.42413754602031895,
-      "moment_z_nm": 0.00202510761,
+      "cfm": 56.645139363087,
+      "converged": true,
+      "shaft_power_w": 0.4236670862372585,
+      "moment_z_nm": 0.00202286133,
       "omega_signed": -209.43951023931953
     },
     {
       "orientation": "flipped",
       "spin": 1,
-      "cfm": -63.23642060890981,
+      "cfm": -63.2996181715536,
       "converged": true,
-      "shaft_power_w": 0.3625777091531958,
-      "moment_z_nm": -0.0017311810399999999,
+      "shaft_power_w": 0.3627280490224359,
+      "moment_z_nm": -0.0017318988600000002,
       "omega_signed": 209.43951023931953
     }
   ],
@@ -56,7 +56,7 @@
     "pump_sign": -1,
     "chirality": -1,
     "verdict": "CONCLUSIVE",
-    "note": "36 sections, 0 flat skipped",
+    "note": "36 sections, 0 flat skipped, 0 low-quality skipped",
     "agreement": 1.0,
     "n_sections": 36,
     "motor_side": -1,
@@ -65,8 +65,8 @@
       "real_handedness": true,
       "motor_on_exhaust": true,
       "tips_lead": true,
-      "cfd_spin_matches": false,
-      "cfd_pumps_plus_z": false,
+      "cfd_spin_matches": true,
+      "cfd_pumps_plus_z": true,
       "motor_rotation_consistent": true
     }
   },
@@ -74,23 +74,23 @@
     "verdict": "INCONCLUSIVE",
     "designed_sense": null,
     "proper": {
-      "+1": 57.07926967998,
-      "-1": 51.7321016543082
+      "+1": 56.645139363087,
+      "-1": 51.47159761381201
     },
     "bc_bias_cfm": {
-      "+1": 13.674,
-      "-1": 11.504
+      "+1": 14.088,
+      "-1": 11.828
     },
-    "power_sign_ok": false,
+    "power_sign_ok": true,
     "recommended": null,
     "reasons": [
-      "a proper (+Z) run did not converge"
+      "CFM margin 10% < 20%"
     ]
   },
   "convention_verdict": {
     "verdict": "INCONCLUSIVE",
     "production": {
-      "orientation": "as_built",
+      "orientation": "flipped",
       "spin": -1
     },
     "recommended": null,

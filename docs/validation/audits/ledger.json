@@ -1,27 +1,51 @@
 {
   "units": {
     "audit.direction_geometry": {
-      "date": "2026-09-25",
-      "fingerprint": "982927988971a3b5",
-      "report": "docs/validation/audits/2026-09-25-audit-01-flow-direction.md",
+      "date": "2026-09-26",
+      "fingerprint": "17d18868e3572094",
+      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
+      "verdict": "PASS"
+    },
+    "cfd.cfm_from_outlet_flow": {
+      "date": "2026-09-26",
+      "fingerprint": "afb42fdea4a85a3d",
+      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
+      "verdict": "PASS"
+    },
+    "cfd.flow_direction_convention": {
+      "date": "2026-09-26",
+      "fingerprint": "5e1a1d61138c5f1f",
+      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
-      "date": "2026-09-25",
+      "date": "2026-09-26",
       "fingerprint": "0ebfd93544ffd6c7",
-      "report": "docs/validation/audits/2026-09-25-audit-01-flow-direction.md",
+      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
       "verdict": "PASS"
     },
     "optimize.reject_dead_designs": {
-      "date": "2026-09-25",
+      "date": "2026-09-26",
       "fingerprint": "ed8938c92dd7d586",
-      "report": "docs/validation/audits/2026-09-25-audit-01-flow-direction.md",
+      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
+      "verdict": "PASS"
+    },
+    "optimize.search_space_handedness": {
+      "date": "2026-09-26",
+      "fingerprint": "9f38e42d0e47269a",
+      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
       "verdict": "PASS"
     },
     "physics.air_properties": {
-      "date": "2026-09-25",
+      "date": "2026-09-26",
       "fingerprint": "2fde588c4fea0749",
-      "report": "docs/validation/audits/2026-09-25-audit-01-flow-direction.md",
+      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
+      "verdict": "PASS"
+    },
+    "propeller.thrust_sign": {
+      "date": "2026-09-26",
+      "fingerprint": "83b4e5bba33cf7b0",
+      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
       "verdict": "PASS"
     }
   }
