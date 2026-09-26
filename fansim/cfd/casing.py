@@ -14,7 +14,12 @@ STEP_DEPTH_MM = 1.2  # radial enlargement of the inlet bore (roadmap 2.6)
 STEP_LEN_MM = 6.0  # axial length of the larger bore from domain_z_min (inlet)
 
 
-def build_casing_solid(rig: TestRig, stepped: bool = False, plenum_z_mm: float | None = None) -> cq.Solid:
+def build_casing_solid(
+    rig: TestRig,
+    stepped: bool = False,
+    plenum_z_mm: float | None = None,
+    fill_radius_mm: float | None = None,
+) -> cq.Solid:
     """Full-length tube whose inner radius is the fluid duct radius.
 
     When ``stepped`` is True the inlet (−Z / ``domain_z_min``) has a short larger bore,
@@ -23,6 +28,14 @@ def build_casing_solid(rig: TestRig, stepped: bool = False, plenum_z_mm: float |
     ``plenum_z_mm`` truncates the outlet end at this z (mm) instead of ``domain_z_max``,
     for use with an outlet-chamber (plenum) domain downstream of the duct. It must lie
     downstream of the impeller.
+
+    When ``plenum_z_mm`` is given, ``fill_radius_mm`` is required: the casing's outer
+    radius becomes ``fill_radius_mm`` instead of the thin ``CASING_WALL_MM`` wall, so the
+    solid fills the *entire* square box cross-section (pass at least
+    ``box_half_width * sqrt(2) + margin`` so the box corners are covered). Without this,
+    the open annulus between a thin tube and the outer box would let flow bypass the fan
+    bore and go straight from the inlet face to the plenum under back-pressure. The inner
+    radius stays ``duct_radius`` — the fan bore is the only path from inlet to plenum.
     """
     inner_r = rig.duct_radius / MM_TO_M
     zmin = rig.domain_z_min / MM_TO_M
@@ -31,13 +44,17 @@ def build_casing_solid(rig: TestRig, stepped: bool = False, plenum_z_mm: float |
             raise ValueError(
                 "plenum_z_mm must be downstream of the impeller "
                 f"(impeller_z_max={rig.impeller_z_max / MM_TO_M:.2f} mm, got {plenum_z_mm:.2f} mm)")
+        if fill_radius_mm is None:
+            raise ValueError(
+                "fill_radius_mm is required when plenum_z_mm is given, so the casing seals "
+                "the full box cross-section and flow can't bypass the fan through the annulus")
         zmax = plenum_z_mm
     else:
         zmax = rig.domain_z_max / MM_TO_M
     height = zmax - zmin
 
     if not stepped:
-        outer_r = inner_r + CASING_WALL_MM
+        outer_r = fill_radius_mm if plenum_z_mm is not None else inner_r + CASING_WALL_MM
         result = (
             cq.Workplane("XY")
             .workplane(offset=zmin)
@@ -48,7 +65,8 @@ def build_casing_solid(rig: TestRig, stepped: bool = False, plenum_z_mm: float |
         )
     else:
         step_r = inner_r + STEP_DEPTH_MM
-        outer_r = inner_r + CASING_WALL_MM + STEP_DEPTH_MM
+        outer_r = (fill_radius_mm if plenum_z_mm is not None
+                   else inner_r + CASING_WALL_MM + STEP_DEPTH_MM)
         z_step = zmin + STEP_LEN_MM
         outline = [
             (step_r, zmin),
@@ -73,8 +91,15 @@ def build_casing_solid(rig: TestRig, stepped: bool = False, plenum_z_mm: float |
 
 
 def export_casing_stl(
-    rig: TestRig, path: str | Path, *, stepped: bool = False, plenum_z_mm: float | None = None,
+    rig: TestRig,
+    path: str | Path,
+    *,
+    stepped: bool = False,
+    plenum_z_mm: float | None = None,
+    fill_radius_mm: float | None = None,
 ) -> Path:
     """Build the casing tube and write an STL via the shared geometry exporter."""
     return export_stl(
-        cq.Workplane(obj=build_casing_solid(rig, stepped=stepped, plenum_z_mm=plenum_z_mm)), path)
+        cq.Workplane(obj=build_casing_solid(
+            rig, stepped=stepped, plenum_z_mm=plenum_z_mm, fill_radius_mm=fill_radius_mm)),
+        path)
