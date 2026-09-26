@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from fansim.cfd.domain import rig_for_impeller  # noqa: E402
 from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve  # noqa: E402
+from fansim.cfd.orientation import prepare_axial_cfd  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.geometry import build_impeller, export_stl  # noqa: E402
 from fansim.optimize.search_space import blade_from_flat  # noqa: E402
@@ -37,6 +38,7 @@ def run_branch_scan(params, out: Path, back_pa: float, guesses, base_cell: float
     out.mkdir(parents=True, exist_ok=True)
     stl = export_stl(build_impeller(params), out / "impeller.stl")
     rig = rig_for_impeller(params)
+    stl, rig = prepare_axial_cfd(stl, rig, out)
     runner = OpenFOAMRunner(out)
     # Mesh once; all solves share this mesh so only the initial field differs.
     build_case(out, stl, rig, mesh=MeshResolution(base_cell=base_cell), n_iters=iters,

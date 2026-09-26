@@ -80,6 +80,7 @@ def run_des_fwh(
         run_mesh,
         run_solve_des,
     )
+    from fansim.cfd.orientation import prepare_axial_cfd
     from fansim.cfd.runner import OpenFOAMRunner, image_available
     from fansim.geometry.blade import BladeParams
 
@@ -113,6 +114,7 @@ def run_des_fwh(
         inlet_velocity=2.0,
         spin=spin,
     )
+    stl, rig = prepare_axial_cfd(stl, rig, case)
     half_z = max(0.02, 0.5 * (rig.impeller_z_max - rig.impeller_z_min) + 0.015)
     box = box_from_duct(rig.duct_radius, half_z_m=half_z)
     box["dia_mm"] = float(dia_mm)

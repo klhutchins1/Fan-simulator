@@ -36,6 +36,7 @@ from fansim.cfd.domain import rig_for_impeller  # noqa: E402
 from fansim.cfd.frame import export_frame_stl  # noqa: E402
 from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve  # noqa: E402
+from fansim.cfd.orientation import prepare_axial_cfd  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.cfd.wall_roughness import FDM_WALL_KS_MM  # noqa: E402
 from fansim.geometry import build_impeller, export_stl  # noqa: E402
@@ -249,13 +250,14 @@ def run_mesh_ladder(
     params = load_blade_params(params_path)
     min_wall = min_blade_wall_mm(params)
     stl_shared = _resolve_impeller_stl(out_root, params, stl_src)
-    rig = _rig_for_case(params, tip_gap_mm, stl_shared if stl_src else None)
+    base_rig = _rig_for_case(params, tip_gap_mm, stl_shared if stl_src else None)
     for bc in cells:
         cell_out = out_root / f"ladder_{bc:g}"
         cell_out.mkdir(parents=True, exist_ok=True)
         stl = cell_out / "impeller.stl"
         if not stl.exists():
             stl.write_bytes(stl_shared.read_bytes())
+        stl, rig = prepare_axial_cfd(stl, base_rig, cell_out)
         t = time.time()
         row = _run_free_air_at_cell(
             out=cell_out,
@@ -305,6 +307,7 @@ def run_free_air_tip_gap_study(
         if not stl.exists():
             stl.write_bytes(stl_shared.read_bytes())
         rig = _rig_for_case(params, gap, stl_shared if stl_src else None)
+        stl, rig = prepare_axial_cfd(stl, rig, gap_out)
         t = time.time()
         row = _run_free_air_at_cell(
             out=gap_out, stl=stl, rig=rig,
@@ -348,7 +351,7 @@ def run_free_air_physics_study(
     params = load_blade_params(params_path)
     min_wall = min_blade_wall_mm(params)
     stl_shared = _resolve_impeller_stl(out_root, params, stl_src)
-    rig = _rig_for_case(params, tip_gap_mm, stl_shared if stl_src else None)
+    base_rig = _rig_for_case(params, tip_gap_mm, stl_shared if stl_src else None)
 
     for label, with_frame, ks in configs:
         case_out = out_root / f"physics_{label}"
@@ -356,6 +359,7 @@ def run_free_air_physics_study(
         stl = case_out / "impeller.stl"
         if not stl.exists():
             stl.write_bytes(stl_shared.read_bytes())
+        stl, rig = prepare_axial_cfd(stl, base_rig, case_out)
         frame_path: Path | None = None
         if with_frame:
             frame_path = case_out / "frame.stl"
@@ -425,6 +429,7 @@ def run_pq_sweep(
     min_wall = min_blade_wall_mm(params)
     stl = _resolve_impeller_stl(out, params, stl_src)
     rig = _rig_for_case(params, tip_gap_mm, stl if stl_src else None)
+    stl, rig = prepare_axial_cfd(stl, rig, out)
     frame_path: Path | None = None
     if with_frame:
         frame_path = out / "frame.stl"

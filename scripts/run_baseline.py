@@ -25,6 +25,7 @@ from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
 from fansim.cfd.openfoam_case import (  # noqa: E402
     MeshResolution, build_case, run_mesh, run_solve,
 )
+from fansim.cfd.orientation import prepare_axial_cfd  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.geometry import BladeParams, build_impeller, export_stl, watertight_report  # noqa: E402
 from fansim.geometry.config import load_blade_params  # noqa: E402
@@ -90,6 +91,7 @@ def main() -> int:
         outlet_diameters=args.outlet_diameters,
         inlet_velocity=args.inlet_velocity,
     )
+    stl, rig = prepare_axial_cfd(stl, rig, out)
     build_case(out, stl, rig, mesh=MeshResolution(base_cell=args.base_cell),
                n_iters=args.iters, n_subdomains=args.procs,
                back_pressure_pa=args.back_pressure)

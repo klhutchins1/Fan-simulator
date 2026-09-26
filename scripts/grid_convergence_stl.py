@@ -27,6 +27,7 @@ import trimesh  # noqa: E402
 from fansim.cfd.domain import MM_TO_M, TestRig  # noqa: E402
 from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve  # noqa: E402
+from fansim.cfd.orientation import prepare_axial_cfd  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 
 PUBLISHED_FREE_CFM = 60.1
@@ -80,6 +81,7 @@ def main() -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     rig = rig_from_stl(stl, args.rpm, 1.0, -1, 2.0, 4.0)
+    stl, rig = prepare_axial_cfd(stl, rig, out)
     t0 = time.time()
 
     rows = []

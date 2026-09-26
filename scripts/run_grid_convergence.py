@@ -31,6 +31,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 from fansim.cfd.domain import rig_for_impeller  # noqa: E402
 from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve  # noqa: E402
+from fansim.cfd.orientation import prepare_axial_cfd  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.geometry import build_impeller, export_stl  # noqa: E402
 from fansim.optimize.search_space import blade_from_flat  # noqa: E402
@@ -74,6 +75,7 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     stl = export_stl(build_impeller(params), out / "impeller.stl")
     rig = rig_for_impeller(params, inlet_diameters=2.0, outlet_diameters=4.0)
+    stl, rig = prepare_axial_cfd(stl, rig, out)
     t0 = time.time()
 
     rows = []

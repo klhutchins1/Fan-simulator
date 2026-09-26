@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 from fansim.cfd.domain import rig_for_impeller  # noqa: E402
 from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve  # noqa: E402
+from fansim.cfd.orientation import fit_rig_to_stl, prepare_axial_cfd  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.geometry import build_impeller, export_stl  # noqa: E402
 from fansim.geometry.config import load_blade_params  # noqa: E402
@@ -72,6 +73,7 @@ def main() -> int:
     # Mesh once at the first operating point's geometry.
     rig0 = rig_for_impeller(params, inlet_diameters=1.0, outlet_diameters=1.5,
                             inlet_velocity=velocities[0])
+    stl, rig0 = prepare_axial_cfd(stl, rig0, out)
     build_case(out, stl, rig0, mesh=MeshResolution(base_cell=args.base_cell),
                n_iters=args.iters, n_subdomains=args.procs)
     t = time.time()
@@ -80,8 +82,8 @@ def main() -> int:
 
     points: list[dict] = []
     for v in velocities:
-        rig = rig_for_impeller(params, inlet_diameters=1.0, outlet_diameters=1.5,
-                               inlet_velocity=v)
+        rig = fit_rig_to_stl(rig_for_impeller(params, inlet_diameters=1.0, outlet_diameters=1.5,
+                                              inlet_velocity=v), stl)
         # Rewrite 0/ + dicts for this operating point (keeps constant/polyMesh).
         build_case(out, stl, rig, mesh=MeshResolution(base_cell=args.base_cell),
                    n_iters=args.iters, n_subdomains=args.procs)

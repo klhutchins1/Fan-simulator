@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 from fansim.cfd.domain import rig_for_impeller  # noqa: E402
 from fansim.cfd.metrics import CFM_PER_M3S, _flow_trajectory, convergence  # noqa: E402
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve  # noqa: E402
+from fansim.cfd.orientation import prepare_axial_cfd  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.geometry import build_impeller, export_stl  # noqa: E402
 from fansim.optimize.search_space import blade_from_flat  # noqa: E402
@@ -56,6 +57,7 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     stl = export_stl(build_impeller(params), out / "impeller.stl")
     rig = rig_for_impeller(params)
+    stl, rig = prepare_axial_cfd(stl, rig, out)
     runner = OpenFOAMRunner(out)
     t0 = time.time()
 
