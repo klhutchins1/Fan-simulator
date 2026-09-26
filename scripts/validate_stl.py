@@ -93,9 +93,12 @@ def main() -> int:
         run_solve(runner, n_procs=args.procs)
         m = parse_fan_metrics(out, omega_rad_s=rig.omega_rad_s)
         rows.append({"back_pa": b, "cfm": m.cfm, "converged": m.converged,
-                     "drift_pct": round(m.flow_drift_pct, 1), "eff": round(m.efficiency, 1)})
+                     "drift_pct": round(m.flow_drift_pct, 1),
+                     "oscillation_pct": round(m.oscillation_pct, 1),
+                     "eff": round(m.efficiency, 1)})
         print(f"  back={b:5.1f} Pa -> {m.cfm:7.1f} CFM  eff {m.efficiency:4.1f}%  "
-              f"{'converged' if m.converged else 'UNCONVERGED %.0f%%' % m.flow_drift_pct}"
+              f"{'converged' if m.converged else 'UNCONVERGED %.0f%% shift' % m.flow_drift_pct}"
+              f" osc={m.oscillation_pct:.0f}%"
               f"  ({time.time()-t:.0f}s)", flush=True)
 
     free = next((r["cfm"] for r in rows if r["back_pa"] == 0.0), None)

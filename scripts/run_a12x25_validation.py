@@ -226,6 +226,7 @@ def _run_free_air_at_cell(
         "cfm": m.cfm,
         "converged": m.converged,
         "drift_pct": round(m.flow_drift_pct, 1),
+        "oscillation_pct": round(m.oscillation_pct, 1),
         "tip_gap_mm": float(rig.tip_gap) / 1e-3,
         "with_frame": frame_stl is not None,
         "wall_ks_mm": float(wall_ks_mm) if wall_ks_mm is not None else 0.0,
@@ -468,6 +469,7 @@ def run_pq_sweep(
             "cfm": m.cfm,
             "converged": m.converged,
             "drift_pct": round(m.flow_drift_pct, 1),
+            "oscillation_pct": round(m.oscillation_pct, 1),
             "base_cell": base_cell,
             "tip_gap_mm": float(tip_gap_mm),
             "with_frame": with_frame,
@@ -476,7 +478,8 @@ def run_pq_sweep(
         })
         print(
             f"  back={b:5.1f} Pa -> {m.cfm:6.1f} CFM  "
-            f"{'converged' if m.converged else 'UNCONVERGED %.0f%%' % m.flow_drift_pct}"
+            f"{'converged' if m.converged else 'UNCONVERGED %.0f%% shift' % m.flow_drift_pct}"
+            f" osc={m.oscillation_pct:.0f}%"
             f"  ({time.time() - t:.0f}s)",
             flush=True,
         )

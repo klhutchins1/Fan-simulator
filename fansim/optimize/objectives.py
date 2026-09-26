@@ -8,7 +8,8 @@ Objectives (all maximized):
 Operating points are kept on the STABLE part of the fan curve (low back-pressure). The old
 2 Pa load sat in the near-stall region where the steady solve oscillates and never converges
 (see docs/adversarial-review.md §3.4); every solve now reports whether its integrated flow
-actually settled (`converged`/`flow_drift_pct`), and unconverged results are flagged.
+actually settled (`converged`/`flow_drift_pct`, the tail-mean shift; swing reported separately
+as `oscillation_pct`), and unconverged results are flagged.
 
 Lightweight manufacturability + structural gates reject un-buildable designs cheaply,
 before any CFD is spent on them.
@@ -100,6 +101,8 @@ def _operating_point_reason(
     converged: bool,
     free_drift_pct: float,
     load_drift_pct: float,
+    free_osc_pct: float = 0.0,
+    load_osc_pct: float = 0.0,
 ) -> str:
     """Human-readable reason when the system-curve intersection fails, degrading gracefully.
 
@@ -113,8 +116,9 @@ def _operating_point_reason(
       hose instead of a cryptic reject.
     """
     conv = "" if converged else (
-        f"; steady solve UNCONVERGED (free drift {free_drift_pct:.1f}%, "
-        f"load drift {load_drift_pct:.1f}%) — number is a solver artifact near stall")
+        f"; steady solve UNCONVERGED (free mean shift {free_drift_pct:.1f}%, "
+        f"osc {free_osc_pct:.1f}%; load mean shift {load_drift_pct:.1f}%, "
+        f"osc {load_osc_pct:.1f}%) — number is a solver artifact near stall")
     if free_signed <= 0.0:
         return (
             f"system-curve: {exc} — free outletFlow {free_signed:+.1f} CFM (signed); "
@@ -430,6 +434,8 @@ def evaluate_candidate(
             converged=bool(m_free.converged and m_load.converged),
             free_drift_pct=float(m_free.flow_drift_pct),
             load_drift_pct=float(m_load.flow_drift_pct),
+            free_osc_pct=float(m_free.oscillation_pct),
+            load_osc_pct=float(m_load.oscillation_pct),
         )
         return _infeasible(
             reason,
@@ -456,8 +462,9 @@ def evaluate_candidate(
             f"({derate * 100:.0f}% of {target_rpm:.0f})")
     if not (m_free.converged and m_load.converged):
         conv_note += ("  " if conv_note else "") + (
-            f"UNCONVERGED (free drift {m_free.flow_drift_pct:.1f}%, "
-            f"load drift {m_load.flow_drift_pct:.1f}%)")
+            f"UNCONVERGED (free mean shift {m_free.flow_drift_pct:.1f}%, "
+            f"osc {m_free.oscillation_pct:.1f}%; load mean shift {m_load.flow_drift_pct:.1f}%, "
+            f"osc {m_load.oscillation_pct:.1f}%)")
 
     # Sim→print knockdown (§7.6): report printed CFM/η from smooth-wall (or ks) RANS.
     tip_t = tip_section_thickness(params)

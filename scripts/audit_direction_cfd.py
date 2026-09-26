@@ -215,7 +215,8 @@ def main(argv: list[str] | None = None) -> int:
                                 m.moment_z_nm, rig.omega_signed)
                 rows.append(row)
                 print(f"[{orientation} spin {spin:+d}] CFM {m.cfm:+.1f} conv={m.converged} "
-                      f"drift={m.flow_drift_pct:.1f}% P={m.shaft_power_w:.3f} W "
+                      f"shift={m.flow_drift_pct:.1f}% osc={m.oscillation_pct:.1f}% "
+                      f"P={m.shaft_power_w:.3f} W "
                       f"Mz={m.moment_z_nm:+.5f} ({time.time() - t0:.0f}s)", flush=True)
             except Exception as e:
                 msg = f"[{orientation} spin {spin:+d}] solve failed: {e}"

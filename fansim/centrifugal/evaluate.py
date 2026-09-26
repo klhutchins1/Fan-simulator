@@ -247,8 +247,9 @@ def evaluate_mixed_flow(
         conv_note = f"motor-limited: {actual_rpm:.0f} RPM ({derate * 100:.0f}% of {spec.rpm:.0f})"
     if not (m_free.converged and m_load.converged):
         conv_note += ("  " if conv_note else "") + (
-            f"UNCONVERGED (free drift {m_free.flow_drift_pct:.1f}%, "
-            f"load drift {m_load.flow_drift_pct:.1f}%)")
+            f"UNCONVERGED (free mean shift {m_free.flow_drift_pct:.1f}%, "
+            f"osc {m_free.oscillation_pct:.1f}%; load mean shift {m_load.flow_drift_pct:.1f}%, "
+            f"osc {m_load.oscillation_pct:.1f}%)")
 
     cfm_free, cfm_load, efficiency, print_stamps = apply_print_penalty(
         cfm_free, cfm_load, efficiency, enabled=print_penalty,

@@ -26,7 +26,12 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 from fansim.cfd.domain import rig_for_impeller  # noqa: E402
-from fansim.cfd.metrics import CFM_PER_M3S, _flow_trajectory, convergence  # noqa: E402
+from fansim.cfd.metrics import (  # noqa: E402
+    CFM_PER_M3S,
+    _flow_trajectory,
+    convergence,
+    oscillation_pct,
+)
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve  # noqa: E402
 from fansim.cfd.orientation import prepare_axial_cfd  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
@@ -75,14 +80,16 @@ def main() -> int:
         run_solve(runner, n_procs=args.procs)
         traj = _flow_trajectory(out)
         conv, drift = convergence(out)
+        osc = oscillation_pct(out)
         its = [p[0] for p in traj]
         cfm = [p[1] * CFM_PER_M3S for p in traj]
         ax.plot(its, cfm, marker="o", ms=3, label=f"{b:g} Pa  (final {cfm[-1]:.0f} CFM, "
-                f"{'converged' if conv else 'DRIFT %.0f%%' % drift})")
+                f"{'converged' if conv else 'SHIFT %.0f%%' % drift}, osc {osc:.0f}%)")
         summary.append({"back_pa": b, "final_cfm": cfm[-1], "converged": conv,
-                        "drift_pct": drift})
+                        "drift_pct": drift, "oscillation_pct": osc})
         print(f"[back={b:g}Pa] final {cfm[-1]:.1f} CFM  "
-              f"{'converged' if conv else 'DRIFT %.1f%%' % drift}  ({time.time()-t:.0f}s)",
+              f"{'converged' if conv else 'SHIFT %.1f%%' % drift}  osc={osc:.1f}%"
+              f"  ({time.time()-t:.0f}s)",
               flush=True)
 
     ax.set_xlabel("SIMPLE iteration")

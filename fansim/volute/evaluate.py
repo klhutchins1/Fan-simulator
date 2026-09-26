@@ -169,8 +169,9 @@ def evaluate_volute(
             f"({derate * 100:.0f}% of {run_rpm:.0f})")
     if not (m_free.converged and m_load.converged):
         conv_note += ("  " if conv_note else "") + (
-            f"UNCONVERGED (free drift {m_free.flow_drift_pct:.1f}%, "
-            f"load drift {m_load.flow_drift_pct:.1f}%)")
+            f"UNCONVERGED (free mean shift {m_free.flow_drift_pct:.1f}%, "
+            f"osc {m_free.oscillation_pct:.1f}%; load mean shift {m_load.flow_drift_pct:.1f}%, "
+            f"osc {m_load.oscillation_pct:.1f}%)")
 
     cfm_load = op.q_op_cfm
     efficiency = max(op.eta * 100.0, 0.0)

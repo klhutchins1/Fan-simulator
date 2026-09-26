@@ -20,7 +20,10 @@ RHO_AIR = 1.2
 #   2 (2026-09-18) — converged-tail-MEAN metrics (_tail_mean_row) + adaptive blade-wall mesh
 #                    (openfoam_case.MeshResolution.for_blade). Free-air on the a12x25 refit moved
 #                    from an under-read ~30 CFM to ~45+ CFM, so v1 objectives are not comparable.
-CFD_VERSION = 2
+#   3 (2026-09-25) — Audit #1 fix: rotor solved in its designed rotation (flipped 180° about X,
+#                    spin −1; fansim/cfd/orientation.py); MRF zone fitted to the real rotor STL;
+#                    convergence judged on tail-mean stability (oscillation reported separately).
+CFD_VERSION = 3
 
 TAIL_FRAC = 0.25  # fraction of the run treated as the converged tail (see convergence())
 
@@ -88,6 +91,9 @@ class FanMetrics:
     p_inlet_kin: float
     p_outlet_kin: float
     converged: bool = True
+    # Tail-mean shift %: the two halves of the converged tail's mean, relative to the tail
+    # mean (see convergence()). This is what `converged` judges. The raw peak-to-peak swing
+    # of a limit-cycling solve is reported separately in oscillation_pct.
     flow_drift_pct: float = 0.0
     # Total (static+dynamic) efficiency when known; None until a caller sets it or a
     # future parse path computes ΔP_total. point_row passes this through as-is.
@@ -95,6 +101,10 @@ class FanMetrics:
     # Signed fluid moment on the impeller about +Z (N·m). A fan doing work on the air has
     # moment_z_nm * omega_signed < 0. torque_nm stays |moment_z| for power.
     moment_z_nm: float = 0.0
+    # Peak-to-peak flow over the converged tail as a % of its mean (pre-v3 "drift"). A thin-
+    # blade steady RANS solve settles into a limit cycle rather than a fixed point; this is
+    # the swing within that cycle, reported but not judged (see convergence()).
+    oscillation_pct: float = 0.0
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -116,22 +126,39 @@ def _flow_trajectory(case_dir: Path) -> list[tuple[float, float]]:
     return traj
 
 
-def convergence(case_dir: str | Path, tail_frac: float = 0.25,
-                tol_pct: float = 2.0) -> tuple[bool, float]:
-    """Is the integrated flow steady over the last ``tail_frac`` of iterations?
-
-    Returns (converged, drift_pct). A steady RANS solve near stall can plateau its residuals
-    while the integrated flow is still drifting (or flipping stall->attached); this catches
-    that. drift_pct is the peak-to-peak flow range over the tail as a % of its mean.
-    """
+def _tail_flows(case_dir: Path, tail_frac: float) -> list[float]:
     traj = _flow_trajectory(Path(case_dir))
     if len(traj) < 4:
+        return []
+    return [f for _, f in traj[max(1, int(len(traj) * (1.0 - tail_frac))):]]
+
+
+def convergence(case_dir: str | Path, tail_frac: float = TAIL_FRAC,
+                tol_pct: float = 2.0) -> tuple[bool, float]:
+    """Is the integrated flow's tail MEAN stable? Returns (converged, mean_shift_pct).
+
+    Steady RANS on thin blades settles into a limit cycle rather than a fixed point. The
+    reported metrics are the tail mean, so convergence judges that mean: split the tail into
+    two halves, and call it converged when their means agree within ``tol_pct`` of the tail
+    mean. The swing itself is reported by :func:`oscillation_pct`.
+    """
+    flows = _tail_flows(Path(case_dir), tail_frac)
+    if len(flows) < 4:
         return (False, 999.0)
-    tail = traj[max(1, int(len(traj) * (1.0 - tail_frac))):]
-    flows = [f for _, f in tail]
+    h = len(flows) // 2
+    m1, m2 = sum(flows[:h]) / h, sum(flows[h:]) / (len(flows) - h)
     mean = sum(flows) / len(flows)
-    drift = (max(flows) - min(flows)) / (abs(mean) + 1e-12) * 100.0
-    return (drift < tol_pct, drift)
+    shift = abs(m2 - m1) / (abs(mean) + 1e-12) * 100.0
+    return (shift < tol_pct, shift)
+
+
+def oscillation_pct(case_dir: str | Path, tail_frac: float = TAIL_FRAC) -> float:
+    """Peak-to-peak flow over the tail as a % of its mean (the pre-v3 'drift')."""
+    flows = _tail_flows(Path(case_dir), tail_frac)
+    if len(flows) < 4:
+        return 999.0
+    mean = sum(flows) / len(flows)
+    return (max(flows) - min(flows)) / (abs(mean) + 1e-12) * 100.0
 
 
 def parse_fan_metrics(
@@ -173,4 +200,5 @@ def parse_fan_metrics(
         converged=converged,
         flow_drift_pct=drift,
         moment_z_nm=moment[3],
+        oscillation_pct=oscillation_pct(case_dir),
     )
