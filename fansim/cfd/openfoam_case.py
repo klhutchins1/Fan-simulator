@@ -516,6 +516,73 @@ def apply_des_transient(
     return case_dir
 
 
+def apply_urans_transient(
+    case_dir: str | Path,
+    *,
+    end_time: float,
+    delta_t: float = 1e-5,
+    max_co: float = 1.5,
+    fo_interval: int = 1,
+) -> Path:
+    """Overlay frozen-rotor URANS (pimpleFoam) on an existing steady-RAS case.
+
+    Keeps the same k-omega SST RAS model and the same metric function objects
+    (forces, outletFlow, inletP, outletP) as the steady case, but switches the
+    application to pimpleFoam with an adjustable time step. Does not remesh and
+    leaves ``constant/turbulenceProperties`` as the steady RAS file build_case wrote.
+    """
+    case_dir = Path(case_dir)
+
+    write_interval = end_time / 10.0
+    cd = T.render(T.CONTROL_DICT, {
+        "HEADER": _header("dictionary", "controlDict"),
+        "ENDTIME": end_time,
+        "WRITEINT": write_interval,
+        "FOINT": fo_interval,
+        "RHO": RHO_AIR,
+    })
+
+    app_old = "application     simpleFoam;"
+    app_new = "application     pimpleFoam;"
+    assert cd.count(app_old) == 1, "expected exactly one steady application line"
+    cd = cd.replace(app_old, app_new)
+
+    dt_old = "deltaT          1;"
+    dt_new = f"deltaT          {delta_t};"
+    assert cd.count(dt_old) == 1, "expected exactly one steady deltaT line"
+    cd = cd.replace(dt_old, dt_new)
+
+    wc_old = f"writeControl    timeStep;\nwriteInterval   {write_interval};"
+    wc_new = f"writeControl    adjustableRunTime;\nwriteInterval   {write_interval};"
+    assert cd.count(wc_old) == 1, "expected exactly one steady writeControl/writeInterval pair"
+    cd = cd.replace(wc_old, wc_new)
+
+    adjust_lines = f"adjustTimeStep  yes;\nmaxCo           {max_co};\n"
+    assert cd.count(dt_new) == 1
+    cd = cd.replace(dt_new, dt_new + "\n" + adjust_lines.rstrip("\n"), 1)
+
+    (case_dir / "system").mkdir(parents=True, exist_ok=True)
+    (case_dir / "system/controlDict").write_text(cd, encoding="utf-8")
+
+    _write(case_dir / "system/fvSchemes", T.DES_FV_SCHEMES, "dictionary", "fvSchemes", {})
+    _write(case_dir / "system/fvSolution", T.DES_FV_SOLUTION, "dictionary", "fvSolution", {})
+
+    return case_dir
+
+
+def run_solve_urans(runner, n_procs: int = 8) -> None:
+    """URANS (frozen-rotor MRF)."""
+    runner.run("rm -rf processor* postProcessing", check=False)
+    if n_procs and n_procs > 1:
+        runner.run("decomposePar -force")
+        mpi = f"mpirun --allow-run-as-root --oversubscribe -np {n_procs}"
+        runner.run(f"{mpi} potentialFoam -parallel -initialiseUBCs", check=False)
+        runner.run(f"{mpi} pimpleFoam -parallel")
+    else:
+        runner.run("potentialFoam -initialiseUBCs", check=False)
+        runner.run("pimpleFoam")
+
+
 def run_solve_des(runner, n_procs: int = 8, reconstruct: bool = False) -> None:
     """Solve with pimpleFoam (DES transient), parallel via MPI when ``n_procs`` > 1."""
     runner.run("rm -rf processor* postProcessing", check=False)
