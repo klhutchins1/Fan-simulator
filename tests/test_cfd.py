@@ -147,7 +147,9 @@ def test_case_build_files(tmp_path):
 
     params = BladeParams()
     stl = export_stl(build_impeller(params), tmp_path / "imp.stl")
-    rig = rig_for_impeller(params)
+    from fansim.cfd.orientation import prepare_axial_cfd
+
+    stl, rig = prepare_axial_cfd(stl, rig_for_impeller(params), tmp_path)
     case = build_case(tmp_path / "case", stl, rig, mesh=MeshResolution(), n_iters=10)
     for f in ["system/blockMeshDict", "system/snappyHexMeshDict", "system/controlDict",
               "constant/MRFProperties", "constant/triSurface/impeller.stl",
