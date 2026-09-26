@@ -15,20 +15,13 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
-import numpy as np
 import trimesh
 
 from fansim.cfd.domain import MM_TO_M, TestRig
+from fansim.geometry.rotate import flip_about_x  # noqa: F401  (re-export; one implementation)
 
 AXIAL_CFD_ORIENTATION = "flipped"
 ORIENTATIONS = ("as_built", "flipped")
-
-
-def flip_about_x(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
-    """Proper 180° rotation about X (y → −y, z → −z): same rotor, turned over. Returns a copy."""
-    m = mesh.copy()
-    m.apply_transform(trimesh.transformations.rotation_matrix(np.pi, [1.0, 0.0, 0.0]))
-    return m
 
 
 def orient_impeller_for_cfd(src_stl_mm: Path, dst_stl_mm: Path,

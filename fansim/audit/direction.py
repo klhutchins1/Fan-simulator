@@ -54,7 +54,7 @@ import networkx as nx
 import numpy as np
 import trimesh
 
-from fansim.cfd.orientation import flip_about_x  # noqa: F401  (re-export; one implementation)
+from fansim.geometry.rotate import flip_about_x  # noqa: F401  (re-export; one implementation)
 
 MIN_CAMBER_RATIO = 0.02   # camber height / chord below which the concave side is not trusted
 MAX_THICKNESS_RATIO = 0.25       # t/c above which a "section" is not a thin airfoil (radial blade)

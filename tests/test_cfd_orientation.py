@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 import trimesh
 
-from fansim.cfd.domain import MM_TO_M, TestRig
+from fansim.cfd.domain import MM_TO_M, TestRig as _Rig
 from fansim.cfd.orientation import (
     AXIAL_CFD_ORIENTATION,
     fit_rig_to_stl,
@@ -19,8 +19,8 @@ from fansim.cfd.orientation import (
 )
 
 
-def _rig() -> TestRig:
-    return TestRig(duct_radius=0.056, tip_gap=0.0005, inlet_length=0.224, outlet_length=0.448,
+def _rig() -> _Rig:
+    return _Rig(duct_radius=0.056, tip_gap=0.0005, inlet_length=0.224, outlet_length=0.448,
                    impeller_z_min=-0.003, impeller_z_max=0.003, mrf_z_min=-0.005, mrf_z_max=0.005,
                    rpm=2000.0, inlet_velocity=2.0)
 
@@ -86,4 +86,6 @@ def test_prepare_axial_cfd(tmp_path):
 def test_audit_reexports_same_flip():
     from fansim.audit import direction
     from fansim.cfd import orientation
+    from fansim.geometry import rotate
     assert direction.flip_about_x is orientation.flip_about_x
+    assert direction.flip_about_x is rotate.flip_about_x

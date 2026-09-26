@@ -5,12 +5,12 @@ from __future__ import annotations
 import pytest
 import trimesh
 
-from fansim.cfd.domain import TestRig
+from fansim.cfd.domain import TestRig as _Rig
 from fansim.cfd.openfoam_case import build_case, check_placement
 
 
-def _rig(mrf=(-0.010, 0.010)) -> TestRig:
-    return TestRig(duct_radius=0.06, tip_gap=0.0005, inlet_length=0.24, outlet_length=0.48,
+def _rig(mrf=(-0.010, 0.010)) -> _Rig:
+    return _Rig(duct_radius=0.06, tip_gap=0.0005, inlet_length=0.24, outlet_length=0.48,
                    impeller_z_min=-0.008, impeller_z_max=0.008, mrf_z_min=mrf[0], mrf_z_max=mrf[1],
                    rpm=2000.0, inlet_velocity=2.0)
 
