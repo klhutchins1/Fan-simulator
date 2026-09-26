@@ -180,9 +180,16 @@ def run_cfd_polar(
     spec_key: str | None = None,
     params: BladeParams | None = None,
     bemt_floor_g: float = 0.0,
+    direction: str = "auto",
 ) -> dict:
-    """Mesh once, re-solve at each V∞, return meta + ``points`` list of dicts."""
+    """Mesh once, re-solve at each V∞, return meta + ``points`` list of dicts.
+
+    ``direction`` is ``"auto"`` (default) to derive orientation/spin from the mesh-only proof
+    (:func:`fansim.propeller.direction.prop_direction`), orienting the CFD copy if needed and
+    overriding the spin used for MRF; or ``"manual"`` to keep spin=-1 as-is.
+    """
     from fansim.cfd.openfoam_case import MeshResolution
+    from fansim.cfd.orientation import orient_impeller_for_cfd
     from fansim.cfd.runner import OpenFOAMRunner
     from fansim.geometry import build_impeller, export_stl, watertight_report
     from fansim.propeller.cfd import (
@@ -194,6 +201,7 @@ def run_cfd_polar(
         set_prop_freestream,
     )
     from fansim.propeller.calibrate import datasheet_compare, normalize_metrics_sign
+    from fansim.propeller.direction import prop_direction
     from fansim.propeller.geometry import build_prop, prop_blade_params
     from fansim.propeller.optimize import bemt_thrust_g
 
@@ -225,10 +233,23 @@ def run_cfd_polar(
 
     stl = workdir / "prop.stl"
     if params is None:
-        rep = build_prop(spec, stl)
+        build_prop(spec, stl)
     else:
         export_stl(build_impeller(blade), stl, tolerance=0.02, angular_tolerance=0.1)
-        rep = watertight_report(stl)
+
+    orientation_used = None
+    if direction == "auto":
+        d = prop_direction(stl)
+        if d.orientation == "flipped":
+            orient_impeller_for_cfd(stl, stl, "flipped")
+        spin_i = d.spin
+        direction_source = d.source
+        orientation_used = d.orientation
+    else:
+        direction_source = "manual"
+
+    # The flip mirrors z, so bounds must be re-measured after orientation.
+    rep = watertight_report(stl)
     (_, _, z0), (_, _, z1) = rep.bounds_mm
 
     v_list = [float(v) for v in v_infs]
@@ -280,6 +301,8 @@ def run_cfd_polar(
         "tip_mach": float(spec.tip_mach(rpm_f)),
         "rpm": rpm_f,
         "spin": spin_i,
+        "direction_source": direction_source,
+        "orientation": orientation_used,
         "spec": key,
         "datasheet": datasheet_compare(
             thrust_g=points[0].thrust_g if points else 0.0,

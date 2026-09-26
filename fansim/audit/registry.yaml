@@ -62,10 +62,10 @@ units:
     checks: [tests/audit/test_dead_design_guard.py]
 
   - id: propeller.thrust_sign
-    targets: ["fansim.propeller.calibrate:normalize_metrics_sign", "fansim.propeller.calibrate:preferred_spin_for_positive_thrust"]
+    targets: ["fansim.propeller.calibrate:normalize_metrics_sign", "fansim.propeller.direction"]
     claim: "Prop thrust sign comes from the geometry-derived rotation, not from flipping spin until thrust > 0"
     source: {kind: derivation, ref: "Audit #1"}
-    checks: []
+    checks: [tests/audit/test_prop_thrust_sign.py]
     depends_on: [cfd.flow_direction_convention]
 
   - id: optimize.search_space_handedness

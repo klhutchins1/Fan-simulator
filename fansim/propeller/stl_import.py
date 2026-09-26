@@ -15,6 +15,8 @@ from pathlib import Path
 import numpy as np
 import trimesh
 
+from fansim.propeller.direction import chirality_hint_from_name
+
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_IMPORT_DIR = ROOT / "validation" / "reference" / "drone_radial"
 
@@ -135,7 +137,7 @@ def import_prop_stl_dir(
             "source": str(src),
             "prepared": str(dst.as_posix()),
             "name": stem,
-            "spin_hint": spin_hint_from_name(src.name),
+            "chirality_hint": chirality_hint_from_name(src.name),
             **asdict(metrics),
         }
         rows.append(row)

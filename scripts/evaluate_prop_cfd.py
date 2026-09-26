@@ -54,7 +54,16 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         choices=(-1, 1),
-        help="MRF rotation sign about +z (default: -1, or CCW/CW hint from --stl name)",
+        help="MRF rotation sign about +z (default: -1; ignored when --direction=auto, which "
+             "derives it from the mesh-only geometry proof)",
+    )
+    ap.add_argument(
+        "--direction",
+        default="auto",
+        choices=("auto", "manual"),
+        help="'auto' (default) derives orientation/spin from the mesh-only geometry proof; "
+             "'manual' keeps --spin/orientation as given (use for parts the proof calls "
+             "INCONCLUSIVE)",
     )
     ap.add_argument(
         "--dry-run",
@@ -67,12 +76,6 @@ def build_parser() -> argparse.ArgumentParser:
 def _resolve_spin(args) -> int:
     if args.spin is not None:
         return int(args.spin)
-    if args.stl is not None:
-        from fansim.propeller.stl_import import spin_hint_from_name
-
-        hint = spin_hint_from_name(Path(args.stl).name)
-        if hint is not None:
-            return hint
     return -1
 
 
@@ -169,6 +172,7 @@ def main() -> int:
                     spec_key=args.spec,
                     bemt_floor_g=args.bemt_floor,
                     spin=spin,
+                    direction=args.direction,
                 )
                 (args.out / "result.json").write_text(
                     json.dumps(out, indent=2) + "\n", encoding="utf-8"
@@ -193,6 +197,7 @@ def main() -> int:
         spin=spin,
         stl_mm=args.stl,
         prepare_stl=not args.no_prepare_stl,
+        direction=args.direction,
     )
     (args.out / "result.json").write_text(json.dumps(out, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(out, indent=2))

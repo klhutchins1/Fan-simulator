@@ -12,7 +12,6 @@ from fansim.propeller.calibrate import (
     bemt_datasheet_report,
     datasheet_compare,
     normalize_metrics_sign,
-    preferred_spin_for_positive_thrust,
 )
 
 
@@ -20,17 +19,12 @@ def test_affinity_thrust_scales_n2():
     assert affinity_thrust_g(1600.0, 20000.0, 10000.0) == 400.0
 
 
-def test_preferred_spin_flips_on_negative_fz():
-    assert preferred_spin_for_positive_thrust(-1.2, -1) == (1, True)
-    assert preferred_spin_for_positive_thrust(1.2, -1) == (-1, False)
-
-
 def test_normalize_metrics_sign():
     out = normalize_metrics_sign({"thrust_n": -2.0, "thrust_g": -200.0}, spin=-1)
     assert out["thrust_n_raw"] == -2.0
     assert out["thrust_n"] == 2.0
-    assert out["spin_flipped"] is True
-    assert out["spin_recommended"] == 1
+    assert out["thrust_sign_ok"] is True
+    assert "thrust_sign_error" not in out
 
 
 def test_datasheet_compare_fpv():

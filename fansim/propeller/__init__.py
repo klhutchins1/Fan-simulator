@@ -13,6 +13,11 @@ from fansim.propeller.bemt_catalog import (
     load_uiuc_static_fixture,
     run_bemt_catalog_quorum,
 )
+from fansim.propeller.direction import (
+    PropDirection,
+    chirality_hint_from_name,
+    prop_direction,
+)
 from fansim.propeller.geometry import build_prop, build_prop_preview, prop_blade_params
 from fansim.propeller.power import (
     PropulsionExtraMissing,
@@ -42,6 +47,9 @@ __all__ = [
     "load_uiuc_static_fixture",
     "compare_bemt_to_static_witness",
     "run_bemt_catalog_quorum",
+    "PropDirection",
+    "chirality_hint_from_name",
+    "prop_direction",
     "prop_blade_params",
     "build_prop",
     "build_prop_preview",

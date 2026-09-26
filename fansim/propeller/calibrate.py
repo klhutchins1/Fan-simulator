@@ -1,9 +1,10 @@
 """Prop spin/sign + datasheet thrust comparison (roadmap §4.3).
 
-Drone convention: report **positive** static thrust in grams. Fan CFD uses ``spin=-1``
-so MRF pumps +z; props historically defaulted to ``spin=+1``, which can flip the force
-sign. Calibration picks the spin that yields +Fz and compares magnitude to
-``PropSpec.ref_thrust_g`` with RPM² affinity scaling.
+Drone convention: report **positive** static thrust in grams. The prop is oriented (via
+``fansim.propeller.direction``) so its designed rotation pushes air toward +Z, so the fluid
+force on it is Fz < 0 and thrust = -Fz. A wrong sign is reported (``thrust_sign_ok``), never
+hidden by flipping spin. Magnitude is then compared to ``PropSpec.ref_thrust_g`` with RPM²
+affinity scaling.
 """
 
 from __future__ import annotations
@@ -28,30 +29,23 @@ def affinity_power_w(ref_power_w: float, ref_rpm: float, rpm: float) -> float:
     return float(ref_power_w) * (float(rpm) / ref) ** 3
 
 
-def preferred_spin_for_positive_thrust(thrust_n: float, spin: int) -> tuple[int, bool]:
-    """If Fz is negative, recommend flipping ``spin``. Returns (spin_to_use, flipped)."""
-    s = int(spin)
-    if float(thrust_n) >= 0.0:
-        return s, False
-    return -s, True
-
-
 def normalize_metrics_sign(metrics: dict[str, Any], *, spin: int) -> dict[str, Any]:
-    """Stamp sign honesty and report positive thrust_g for drone tables.
+    """Report thrust along the designed pumping direction; flag (never flip) a wrong sign.
 
-    Keeps ``thrust_n_raw``; sets ``thrust_n`` / ``thrust_g`` to the positive magnitude
-    used for datasheet compares. Does **not** change torque (already abs in parser).
+    The prop is oriented so its designed rotation pushes air toward +Z (fansim.propeller.direction),
+    so the fluid force on it is Fz < 0 and thrust = -Fz. A positive Fz means the prop pushed air the
+    wrong way: that is reported, not hidden by flipping spin.
     """
     out = dict(metrics)
     raw = float(out.get("thrust_n", 0.0))
     out["thrust_n_raw"] = raw
     out["spin"] = int(spin)
-    spin_use, flipped = preferred_spin_for_positive_thrust(raw, spin)
-    out["spin_flipped"] = flipped
-    out["spin_recommended"] = spin_use
-    mag = abs(raw)
-    out["thrust_n"] = mag
-    out["thrust_g"] = mag / 9.80665 * 1000.0
+    out["thrust_n"] = -raw
+    out["thrust_g"] = -raw / 9.80665 * 1000.0
+    out["thrust_sign_ok"] = raw < 0.0
+    if raw >= 0.0:
+        out["thrust_sign_error"] = (
+            f"Fz={raw:+.4g} N pushes the prop toward -Z: air went the wrong way for spin {int(spin):+d}")
     return out
 
 

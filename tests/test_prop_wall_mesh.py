@@ -118,8 +118,11 @@ def test_evaluate_same_stl_path_skips_self_copy(tmp_path, monkeypatch):
         rpm=20000.0,
         stl_mm=src,
         prepare_stl=False,
+        direction="manual",  # plain test cylinder has no blades to prove direction from
     )
-    assert out["thrust_n"] > 0
+    # thrust is reported along the designed pumping direction (thrust = -Fz), not masked to
+    # always be positive; the fake forces file has Fz=+2.0 N, so thrust_n is -2.0.
+    assert out["thrust_n"] == pytest.approx(-2.0)
 
 
 def test_default_mesh_stays_coarse(tmp_path, monkeypatch):
@@ -149,6 +152,7 @@ def test_default_mesh_stays_coarse(tmp_path, monkeypatch):
         base_cell=0.005,
         stl_mm=src,
         prepare_stl=False,
+        direction="manual",  # plain test cylinder has no blades to prove direction from
     )
     text = (work / "system" / "snappyHexMeshDict").read_text(encoding="utf-8")
     assert "addLayers       false;" in text
@@ -182,6 +186,7 @@ def test_passed_mesh_writes_layers(tmp_path, monkeypatch):
         stl_mm=src,
         prepare_stl=False,
         mesh=mesh_for_wall(0.005, 2.0),
+        direction="manual",  # plain test cylinder has no blades to prove direction from
     )
     text = (work / "system" / "snappyHexMeshDict").read_text(encoding="utf-8")
     assert "addLayers       true;" in text

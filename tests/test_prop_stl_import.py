@@ -89,6 +89,7 @@ def test_evaluate_prop_cfd_external_stl_skips_bemt(tmp_path, monkeypatch):
         base_cell=0.02,
         stl_mm=src,
         bemt_floor_g=1e9,  # would skip if BEMT ran
+        direction="manual",  # plain test cylinder has no blades to prove direction from
     )
     assert out.get("skipped") is not True
     assert out["bemt_thrust_g"] is None
