@@ -54,8 +54,8 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         choices=(-1, 1),
-        help="MRF rotation sign about +z (default: -1; ignored when --direction=auto, which "
-             "derives it from the mesh-only geometry proof)",
+        help="MRF rotation sign about +z (default: -1; errors with --direction=auto, which "
+             "derives spin itself -- pass --direction=manual to set --spin explicitly)",
     )
     ap.add_argument(
         "--direction",
@@ -96,7 +96,7 @@ def main() -> int:
         from fansim.cfd.orientation import orient_impeller_for_cfd
         from fansim.geometry import watertight_report
         from fansim.propeller.cfd import build_prop_case, prop_open_air
-        from fansim.propeller.direction import prop_direction
+        from fansim.propeller.direction import resolve_prop_direction
         from fansim.propeller.geometry import build_prop
         from fansim.propeller.stl_import import measure_prop_stl, prepare_prop_stl
 
@@ -135,11 +135,16 @@ def main() -> int:
             tip_mach = float(spec.tip_mach(rpm))
             metrics = None
 
-        # Apply the same mesh-only direction proof (and CFD-copy orientation) as a real run, so
-        # --dry-run builds exactly the case a real solve would.
+        # Apply the same direction resolution (and CFD-copy orientation) a real run would --
+        # resolve_prop_direction, external vs builder, exactly as evaluate_prop_cfd itself uses --
+        # so --dry-run builds exactly the case a real solve would.
         orientation_used = None
         if args.direction == "auto":
-            d = prop_direction(stl, name_hint=Path(args.stl).name if args.stl is not None else None)
+            d, _crosscheck = resolve_prop_direction(
+                stl,
+                external=args.stl is not None,
+                name_hint=Path(args.stl).name if args.stl is not None else None,
+            )
             if d.orientation == "flipped":
                 orient_impeller_for_cfd(stl, stl, "flipped")
             spin_used = d.spin
