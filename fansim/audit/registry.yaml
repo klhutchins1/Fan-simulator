@@ -11,7 +11,7 @@ units:
     checks: [tests/audit/test_air_properties.py]
 
   - id: audit.direction_geometry
-    targets: ["fansim.audit.direction", "fansim.audit.synthetic"]
+    targets: ["fansim.audit.direction", "fansim.audit.synthetic", "fansim.geometry.rotate"]
     claim: "Designed rotation = the way the concave (pressure) face points; air leaves along that face normal"
     source: {kind: derivation, ref: "velocity triangles, Dixon & Hall, Fluid Mechanics and Thermodynamics of Turbomachinery, ch. 1/5"}
     checks: [tests/audit/test_direction_geometry.py]
@@ -62,11 +62,17 @@ units:
     checks: [tests/audit/test_dead_design_guard.py]
 
   - id: propeller.thrust_sign
-    targets: ["fansim.propeller.calibrate:normalize_metrics_sign", "fansim.propeller.direction"]
+    targets:
+      - "fansim.propeller.calibrate:normalize_metrics_sign"
+      - "fansim.propeller.direction"
+      - "fansim.propeller.optimize"
     claim: "Prop thrust sign comes from the geometry-derived rotation, not from flipping spin until thrust > 0"
     source: {kind: derivation, ref: "Audit #1"}
-    checks: [tests/audit/test_prop_thrust_sign.py]
-    depends_on: [cfd.flow_direction_convention]
+    checks:
+      - tests/audit/test_prop_thrust_sign.py
+      - tests/audit/test_prop_builder_direction.py
+      - tests/audit/test_prop_search_space_handedness.py
+    depends_on: [cfd.flow_direction_convention, geometry.stock_handedness]
 
   - id: optimize.search_space_handedness
     targets: ["fansim.optimize.search_space"]
