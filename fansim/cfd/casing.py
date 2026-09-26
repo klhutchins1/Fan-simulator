@@ -14,15 +14,26 @@ STEP_DEPTH_MM = 1.2  # radial enlargement of the inlet bore (roadmap 2.6)
 STEP_LEN_MM = 6.0  # axial length of the larger bore from domain_z_min (inlet)
 
 
-def build_casing_solid(rig: TestRig, stepped: bool = False) -> cq.Solid:
+def build_casing_solid(rig: TestRig, stepped: bool = False, plenum_z_mm: float | None = None) -> cq.Solid:
     """Full-length tube whose inner radius is the fluid duct radius.
 
     When ``stepped`` is True the inlet (−Z / ``domain_z_min``) has a short larger bore,
     then a sudden contraction back to ``duct_radius``. Outer radius is constant.
+
+    ``plenum_z_mm`` truncates the outlet end at this z (mm) instead of ``domain_z_max``,
+    for use with an outlet-chamber (plenum) domain downstream of the duct. It must lie
+    downstream of the impeller.
     """
     inner_r = rig.duct_radius / MM_TO_M
     zmin = rig.domain_z_min / MM_TO_M
-    zmax = rig.domain_z_max / MM_TO_M
+    if plenum_z_mm is not None:
+        if plenum_z_mm <= rig.impeller_z_max / MM_TO_M:
+            raise ValueError(
+                "plenum_z_mm must be downstream of the impeller "
+                f"(impeller_z_max={rig.impeller_z_max / MM_TO_M:.2f} mm, got {plenum_z_mm:.2f} mm)")
+        zmax = plenum_z_mm
+    else:
+        zmax = rig.domain_z_max / MM_TO_M
     height = zmax - zmin
 
     if not stepped:
@@ -61,6 +72,9 @@ def build_casing_solid(rig: TestRig, stepped: bool = False) -> cq.Solid:
     return solids[0]
 
 
-def export_casing_stl(rig: TestRig, path: str | Path, *, stepped: bool = False) -> Path:
+def export_casing_stl(
+    rig: TestRig, path: str | Path, *, stepped: bool = False, plenum_z_mm: float | None = None,
+) -> Path:
     """Build the casing tube and write an STL via the shared geometry exporter."""
-    return export_stl(cq.Workplane(obj=build_casing_solid(rig, stepped=stepped)), path)
+    return export_stl(
+        cq.Workplane(obj=build_casing_solid(rig, stepped=stepped, plenum_z_mm=plenum_z_mm)), path)

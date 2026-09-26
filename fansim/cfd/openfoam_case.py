@@ -198,6 +198,7 @@ def build_case(
     u_guess: float = 2.0,
     dual_mrf: dict | None = None,
     wall_ks_mm: float | None = None,
+    box_scale: float | None = None,
 ) -> Path:
     """Write a ready-to-run OpenFOAM case. ``impeller_stl_mm`` is a millimeter-scale STL.
 
@@ -223,6 +224,10 @@ def build_case(
     ``dual_mrf`` when set enables two MRF zones (CROR). Keys (SI metres / rad·s⁻¹):
     ``front_z_min``, ``front_z_max``, ``rear_z_min``, ``rear_z_max``,
     ``omega_front``, ``omega_rear``.
+
+    ``box_scale`` overrides the default hex half-width multiplier (``BOX_SCALE``) applied
+    to ``rig.duct_radius`` when ``casing_stl_mm`` is given, e.g. for an oversized
+    outlet-chamber (plenum) domain. Ignored when there is no casing.
     """
     case_dir = Path(case_dir)
     mesh = mesh or MeshResolution()
@@ -264,7 +269,8 @@ def build_case(
     length_scale = 0.07 * (2.0 * rig.duct_radius)
     omega_turb = math.sqrt(k) / (CMU**0.25 * length_scale)
 
-    H = BOX_SCALE * rig.duct_radius if casing_stl_mm is not None else rig.duct_radius
+    H = (box_scale if box_scale is not None else BOX_SCALE) * rig.duct_radius \
+        if casing_stl_mm is not None else rig.duct_radius
     zmin, zmax = rig.domain_z_min, rig.domain_z_max
     nx = max(10, round(2 * H / mesh.base_cell))
     nz = max(20, round((zmax - zmin) / mesh.base_cell))
