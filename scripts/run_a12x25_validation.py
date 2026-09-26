@@ -77,7 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--base-cell", type=float, default=0.005,
                     help="base_cell [m] for the multi-back P–Q sweep")
     ap.add_argument("--mesh-ladder", default=None, metavar="SIZES",
-                    help="optional free-air-only ladder: base_cell sizes [m], coarse→fine "
+                    help="optional free-air-only ladder: base_cell sizes [m], coarse->fine "
                          "(e.g. 0.008,0.005,0.003); three sizes enable GCI stamp when computed")
     ap.add_argument("--ladder-only", action="store_true",
                     help="run --mesh-ladder only (skip the multi-back P–Q sweep)")
@@ -90,7 +90,7 @@ def build_parser() -> argparse.ArgumentParser:
                     help="include four-bar exhaust frame STL (optimizer default geometry)")
     ap.add_argument("--wall-ks-mm", type=float, default=None,
                     help="sand-grain roughness [mm] on impeller/frame (default smooth; "
-                         f"FDM order-of-magnitude ≈ {FDM_WALL_KS_MM:g})")
+                         f"FDM order-of-magnitude ~= {FDM_WALL_KS_MM:g})")
     ap.add_argument("--physics-study", action="store_true",
                     help="free-air A/B at --base-cell/--tip-gap-mm: open, frame, wall_ks, "
                          "frame+wall_ks (wall_ks from --wall-ks-mm or FDM default)")

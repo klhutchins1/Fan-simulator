@@ -11,7 +11,7 @@ Layout (axis = Z, flow **+Z**):
 The duct flows +Z at ``spin=-1``. As built, the rotor is designed to turn CCW seen from +Z
 (``omega_z = +1``) and pump **−Z**; the CFD copy is rotated 180° about X by
 ``fansim.cfd.orientation`` (``AXIAL_CFD_ORIENTATION``), so ``spin=-1`` on the *oriented* copy
-solves for the as-built rotation. See
+solves the designed rotation. See
 ``docs/validation/audits/2026-09-25-audit-01-flow-direction.md`` for the evidence.
 
 Hub/motor: volume-flow from velocity uses the **annulus** (duct − hub). The solid hub in the

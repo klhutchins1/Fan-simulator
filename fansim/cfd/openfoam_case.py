@@ -201,6 +201,11 @@ def build_case(
 ) -> Path:
     """Write a ready-to-run OpenFOAM case. ``impeller_stl_mm`` is a millimeter-scale STL.
 
+    For an axial fan, ``impeller_stl_mm`` must be the CFD-oriented copy produced by
+    :func:`fansim.cfd.orientation.prepare_axial_cfd` (or ``orient_impeller_for_cfd`` directly),
+    not the as-built STL -- the rig's z-bounds and MRF zone are fitted to that oriented copy, and
+    passing the as-built mesh instead solves the wrong rotation for the ``rig.spin`` in use.
+
     ``frame_stl_mm=None`` keeps the impeller-only case (used by validation scripts).
     ``casing_stl_mm`` snaps a cylindrical duct wall inside an oversized hex; omit it
     to keep the square-tunnel screening box.
