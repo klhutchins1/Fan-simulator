@@ -134,7 +134,8 @@ def convention_verdict(matrix: dict, production_spin: int, production_orientatio
     if recommended == production:
         return {
             "verdict": "PASS", "production": production, "recommended": recommended,
-            "reason": "production (as_built, spin matches) solves the CFD-recommended designed sense",
+            "reason": (f"production ({production_orientation}, spin {production_spin:+d}) solves the "
+                       f"CFD-recommended designed sense"),
         }
     return {
         "verdict": "FAIL", "production": production, "recommended": recommended,
