@@ -170,6 +170,73 @@ def test_freeze_cli_parser_has_required_flags():
         assert need in names
 
 
+def _FULL_RESULT_FIXTURE(spin: int) -> dict:
+    return {
+        "spin": spin,
+        "thrust_n": 0.5,
+        "thrust_g": 51.0,
+        "torque_nm": 0.01,
+        "shaft_power_w": 5.0,
+        "rpm": 20000.0,
+        "tip_mach": 0.3,
+        "tip_radius_mm": 30.0,
+    }
+
+
+def test_freeze_main_stamps_spin_from_result_json_by_default(tmp_path, monkeypatch):
+    """M5: the stamped spin comes from result.json's own "spin" (what the run actually solved
+    with), not an independently-guessable CLI default."""
+    import importlib.util
+    import json
+
+    path = Path("scripts/freeze_prop_cfd_fixture.py")
+    spec = importlib.util.spec_from_file_location("freeze_prop_cfd_fixture_spin", path)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+
+    result = tmp_path / "result.json"
+    result.write_text(json.dumps(_FULL_RESULT_FIXTURE(spin=1)), encoding="utf-8")
+    out = tmp_path / "fixture.json"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "freeze_prop_cfd_fixture.py",
+            "--result", str(result), "--out", str(out), "--id", "x", "--stl", "s.stl",
+            "--allow-no-case",
+        ],
+    )
+    assert mod.main() == 0
+    stamped = json.loads(out.read_text(encoding="utf-8"))
+    assert stamped["spin"] == 1
+
+
+def test_freeze_main_explicit_spin_overrides_result_json(tmp_path, monkeypatch):
+    import importlib.util
+    import json
+
+    path = Path("scripts/freeze_prop_cfd_fixture.py")
+    spec = importlib.util.spec_from_file_location("freeze_prop_cfd_fixture_spin2", path)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+
+    result = tmp_path / "result.json"
+    result.write_text(json.dumps(_FULL_RESULT_FIXTURE(spin=1)), encoding="utf-8")
+    out = tmp_path / "fixture.json"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "freeze_prop_cfd_fixture.py",
+            "--result", str(result), "--out", str(out), "--id", "x", "--stl", "s.stl",
+            "--allow-no-case", "--spin", "-1",
+        ],
+    )
+    assert mod.main() == 0
+    stamped = json.loads(out.read_text(encoding="utf-8"))
+    assert stamped["spin"] == -1
+
+
 def test_freeze_cli_declares_drift_tol():
     import importlib.util
     from pathlib import Path

@@ -56,7 +56,12 @@ def main() -> int:
     ap.add_argument("--stl", required=True, help="watertight impeller STL, axis Z, centered")
     ap.add_argument("--rpm", type=float, default=2000.0)
     ap.add_argument("--backs", default="0", help="back-pressures (Pa) to solve")
-    ap.add_argument("--spin", type=int, default=-1, help="rotation sign (flip if flow reverses)")
+    ap.add_argument(
+        "--spin", type=int, default=-1,
+        help="explicit MRF rotation sign override about +z (default -1, matches "
+             "fansim.cfd.orientation.AXIAL_CFD_ORIENTATION); only override this after checking "
+             "the orientation/handedness audit, not to chase a sign",
+    )
     ap.add_argument("--tip-gap-mm", type=float, default=1.0)
     ap.add_argument("--iters", type=int, default=1200)
     ap.add_argument("--base-cell", type=float, default=0.004)
@@ -106,8 +111,10 @@ def main() -> int:
     print(f"  published free-air: {PUB_FREE_AIR_CFM} CFM")
     if free is not None:
         if free < 0:
-            print(f"  sim free-air {free:.1f} CFM is NEGATIVE -> flow reversed; rerun with "
-                  f"--spin {-args.spin} (blade handedness).")
+            print(f"  sim free-air {free:.1f} CFM is NEGATIVE -> flow reversed; this is an "
+                  f"orientation/handedness question, not a --spin knob to flip until it looks "
+                  f"right -- check fansim/cfd/orientation.py (AXIAL_CFD_ORIENTATION) and the "
+                  f"docs/validation/audits/ direction audit before rerunning.")
         else:
             ratio = free / PUB_FREE_AIR_CFM
             print(f"  sim free-air: {free:.1f} CFM => {ratio:.2f}x published ({(ratio-1)*100:+.0f}%)")

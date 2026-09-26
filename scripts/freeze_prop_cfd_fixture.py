@@ -23,7 +23,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--id", required=True)
     ap.add_argument("--stl", required=True)
-    ap.add_argument("--spin", type=int, default=-1)
+    ap.add_argument(
+        "--spin", type=int, default=None,
+        help="stamped MRF spin (default: taken from --result's own \"spin\" field, which is "
+             "what the run actually solved with; pass this only to override that)",
+    )
     ap.add_argument("--base-cell", type=float, default=0.005)
     ap.add_argument("--iters", type=int, default=400)
     ap.add_argument("--procs", type=int, default=8)
@@ -49,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
     result = json.loads(Path(args.result).read_text(encoding="utf-8"))
+    spin = int(result["spin"]) if args.spin is None else int(args.spin)
     case_dir = args.case_dir
     if case_dir is None:
         parent = Path(args.result).resolve().parent
@@ -77,7 +82,7 @@ def main() -> int:
         result=result,
         fixture_id=args.id,
         stl=args.stl,
-        spin=args.spin,
+        spin=spin,
         mesh={
             "base_cell_m": args.base_cell,
             "iters": args.iters,
