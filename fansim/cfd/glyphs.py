@@ -201,6 +201,37 @@ def make_glyph_arrows(
     return arrows if arrows.n_points > 0 else None
 
 
+def cfd_cloud_to_as_built(cloud, orientation: str):
+    """Map a velocity cloud from the CFD (solve) frame back to the as-built preview frame.
+
+    The axial CFD copy of the rotor may be rotated 180 deg about X relative to the as-built
+    part (``fansim.cfd.orientation.AXIAL_CFD_ORIENTATION``). Drawing the solve's velocity
+    cloud directly onto the as-built preview mesh is wrong when that orientation is
+    ``"flipped"``: points and vectors must be mapped through the same 180 deg-about-X
+    rotation the STL went through (``fansim.cfd.orientation.flip_about_x``), i.e. negate the
+    y and z components of both. ``"as_built"`` is the identity (returns ``cloud`` unchanged).
+    ``U_mag`` is a magnitude and is unaffected either way.
+    """
+    from fansim.cfd.orientation import ORIENTATIONS
+
+    if orientation not in ORIENTATIONS:
+        raise ValueError(f"orientation must be one of {ORIENTATIONS}, got {orientation!r}")
+    if orientation == "as_built":
+        return cloud
+    import pyvista as pv
+
+    pts = np.array(cloud.points, dtype=float)
+    pts[:, 1] *= -1.0
+    pts[:, 2] *= -1.0
+    u = np.array(cloud["U"], dtype=float)
+    u[:, 1] *= -1.0
+    u[:, 2] *= -1.0
+    out = pv.PolyData(pts)
+    out["U"] = u
+    out["U_mag"] = np.array(cloud["U_mag"])
+    return out
+
+
 def ensure_velocity_glyphs(
     case_dir: str | Path | None,
     *,

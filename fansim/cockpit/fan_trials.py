@@ -294,7 +294,7 @@ def bind(session) -> None:
                     z_span_mm=max(z_span, 20.0),
                 )
                 state.glyph_caption = (
-                    "Schematic +Z annulus flow (stock has no CFD — Assess for real arrows; "
+                    "Schematic -Z annulus flow (stock has no CFD — Assess for real arrows; "
                     "hub/motor core is blocked)"
                 )
                 session._rebuild_glyph_arrows()

@@ -11,6 +11,7 @@ from fansim.cfd.glyphs import (
     M_TO_MM,
     VelocityGlyphs,
     build_velocity_cloud,
+    cfd_cloud_to_as_built,
     ensure_velocity_glyphs,
     make_glyph_arrows,
     schematic_axial_flow_cloud,
@@ -141,6 +142,37 @@ def test_ensure_velocity_glyphs_with_injected_mesh(tmp_path: Path):
     assert art.n_points <= 50
     arrows = make_glyph_arrows(art.cloud, factor=2.0, max_arrows=40)
     assert arrows is not None and arrows.n_cells > 0
+
+
+def test_cfd_cloud_to_as_built_flipped_negates_y_and_z():
+    pv = pytest.importorskip("pyvista")
+    cloud = pv.PolyData(np.array([[1.0, 5.0, 3.0]]))
+    cloud["U"] = np.array([[0.0, 0.0, 2.5]])
+    cloud["U_mag"] = np.array([2.5])
+
+    out = cfd_cloud_to_as_built(cloud, "flipped")
+    assert np.allclose(out.points, [[1.0, -5.0, -3.0]])
+    assert np.allclose(np.asarray(out["U"]), [[0.0, 0.0, -2.5]])
+    assert np.allclose(np.asarray(out["U_mag"]), [2.5])  # magnitude unchanged
+
+
+def test_cfd_cloud_to_as_built_as_built_is_identity():
+    pv = pytest.importorskip("pyvista")
+    cloud = pv.PolyData(np.array([[1.0, 5.0, 3.0]]))
+    cloud["U"] = np.array([[0.0, 0.0, 2.5]])
+    cloud["U_mag"] = np.array([2.5])
+
+    out = cfd_cloud_to_as_built(cloud, "as_built")
+    assert out is cloud
+
+
+def test_cfd_cloud_to_as_built_rejects_invalid_orientation():
+    pv = pytest.importorskip("pyvista")
+    cloud = pv.PolyData(np.array([[0.0, 0.0, 0.0]]))
+    cloud["U"] = np.array([[0.0, 0.0, 1.0]])
+    cloud["U_mag"] = np.array([1.0])
+    with pytest.raises(ValueError, match="orientation"):
+        cfd_cloud_to_as_built(cloud, "sideways")
 
 
 def test_glyph_length_caps_tip_spikes_at_p95():

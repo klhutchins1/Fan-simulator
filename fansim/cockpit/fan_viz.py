@@ -11,12 +11,13 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from fansim.cfd.glyphs import ensure_velocity_glyphs, make_glyph_arrows
+from fansim.cfd.glyphs import cfd_cloud_to_as_built, ensure_velocity_glyphs, make_glyph_arrows
 from fansim.cfd.midplane import (
     ensure_axial_uz_artifact,
     ensure_midplane_artifacts,
     ensure_streamlines_artifact,
 )
+from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION
 from fansim.cockpit.airflow_panel import pick_airflow_uri, png_data_uri
 from fansim.cockpit import fan_runtime
 from fansim.cockpit.data import Design
@@ -105,7 +106,7 @@ def bind(session) -> None:
         """Fixed cues for the real-fan sense so the view is never ambiguous:
         - AIRFLOW (blue): bold −Z arrows just outside the tip — air enters the open +Z intake
           and exits the −Z face past the motor cup (matches the schematic glyph flow).
-        - ROTATION (orange): tangent arrows around a ring, CCW viewed from the +Z intake (spin −1).
+        - ROTATION (orange): tangent arrows around a ring, CCW viewed from the +Z intake.
         """
         import numpy as np
 
@@ -424,7 +425,12 @@ def bind(session) -> None:
                     state.airflow_img_uri = ""
                     state.airflow_caption = art.caption or "Airflow not available for this design"
                 if gly is not None and gly.available and gly.cloud is not None:
-                    render_state["glyph_cloud"] = gly.cloud
+                    # The CFD cloud is in the solve's frame (rotor oriented per
+                    # AXIAL_CFD_ORIENTATION); map it back to the as-built preview frame
+                    # before storing/drawing it (finding I1).
+                    render_state["glyph_cloud"] = cfd_cloud_to_as_built(
+                        gly.cloud, AXIAL_CFD_ORIENTATION
+                    )
                     state.glyph_caption = gly.caption
                     _rebuild_glyph_arrows()
                 elif gly is not None:
