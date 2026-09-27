@@ -1,0 +1,283 @@
+"""Cheap physics and setup sanity checks over a finished CFD case.
+
+Each check is individually SKIP-able (missing data never crashes the caller) and reports
+PASS / WARN / FAIL / SKIP. These are report-only: the optimizer flags a sanity FAIL, it
+never rejects a design over it (see ``docs/superpowers/plans/2026-09-27-cfd-sanity-checks.md``).
+
+Data sources:
+- ``constant/case_meta.json`` (patch areas, duct shape, rpm/spin) written by ``build_case``.
+- ``postProcessing/inletFlow`` / ``outletFlow`` (sum(phi)), ``postProcessing/yPlus`` — the
+  extra function objects from Task 1.
+- ``logs/checkMesh.log``.
+- :class:`fansim.cfd.metrics.FanMetrics`, parsed via ``parse_fan_metrics`` when not supplied.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+from fansim.cfd.metrics import RHO_AIR, FanMetrics, _pp_file, _tail_mean_row, parse_fan_metrics
+from fansim.physics.air import C0_AIR
+
+PASS = "PASS"
+WARN = "WARN"
+FAIL = "FAIL"
+SKIP = "SKIP"
+
+_STATUS_RANK = {SKIP: 0, PASS: 1, WARN: 2, FAIL: 3}
+
+
+@dataclass(frozen=True)
+class SanityCheck:
+    name: str
+    status: str
+    value: float | None
+    limit: str
+    note: str
+
+
+def _load_case_meta(case_dir: Path) -> dict | None:
+    path = case_dir / "constant" / "case_meta.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def _omega_from_case_meta(case_meta: dict | None) -> float | None:
+    if not case_meta or "rpm" not in case_meta or "spin" not in case_meta:
+        return None
+    try:
+        return float(case_meta["rpm"]) * float(case_meta["spin"]) * 2.0 * math.pi / 60.0
+    except (TypeError, ValueError):
+        return None
+
+
+def _check_mass_balance(case_dir: Path) -> SanityCheck:
+    limit = "<=1% PASS, <=5% WARN"
+    try:
+        q_in = _tail_mean_row(_pp_file(case_dir, "inletFlow", "surfaceFieldValue.dat"))[-1]
+        q_out = _tail_mean_row(_pp_file(case_dir, "outletFlow", "surfaceFieldValue.dat"))[-1]
+    except (FileNotFoundError, ValueError):
+        return SanityCheck("mass_balance", SKIP, None, limit, "missing inletFlow/outletFlow postProcessing")
+    if abs(q_out) < 1e-12:
+        return SanityCheck("mass_balance", SKIP, None, limit, "outlet flow ~0, imbalance undefined")
+    imbalance_pct = abs(q_in + q_out) / abs(q_out) * 100.0
+    status = PASS if imbalance_pct <= 1.0 else WARN if imbalance_pct <= 5.0 else FAIL
+    note = f"Q_in={q_in:.5f} Q_out={q_out:.5f} m3/s"
+    return SanityCheck("mass_balance", status, imbalance_pct, limit, note)
+
+
+def _check_energy_total(metrics: FanMetrics | None, case_meta: dict | None) -> SanityCheck:
+    limit = "eta_total < 1"
+    if metrics is None or not case_meta or not case_meta.get("outlet_area_m2"):
+        return SanityCheck("energy_total", SKIP, None, limit, "missing metrics or outlet_area_m2")
+    if metrics.shaft_power_w <= 1e-9:
+        return SanityCheck("energy_total", SKIP, None, limit, "shaft power ~0")
+    a_out = float(case_meta["outlet_area_m2"])
+    q = metrics.flow_m3s
+    p_out_static_pa = metrics.p_outlet_kin * RHO_AIR
+    dyn_out = 0.5 * RHO_AIR * (q / a_out) ** 2
+    eta_total = q * (p_out_static_pa + dyn_out) / metrics.shaft_power_w
+    status = PASS if eta_total < 1.0 else FAIL
+    note = f"eta_total={eta_total:.3f}"
+    return SanityCheck("energy_total", status, eta_total, limit, note)
+
+
+def _check_power_sign(metrics: FanMetrics | None, omega_signed: float | None) -> SanityCheck:
+    limit = "Mz*omega < 0 (Q>0)"
+    if metrics is None or omega_signed is None:
+        return SanityCheck("power_sign", SKIP, None, limit, "missing metrics or omega_signed")
+    if metrics.flow_m3s <= 0:
+        return SanityCheck("power_sign", SKIP, None, limit, "Q<=0, check only applies to forward flow")
+    product = metrics.moment_z_nm * omega_signed
+    status = PASS if product < 0 else FAIL
+    note = f"Mz={metrics.moment_z_nm:.5f} omega={omega_signed:.3f} product={product:.5f}"
+    return SanityCheck("power_sign", status, product, limit, note)
+
+
+def _check_thrust_direction(metrics: FanMetrics | None) -> SanityCheck:
+    limit = "Fz < 0 (Q>0)"
+    if metrics is None:
+        return SanityCheck("thrust_direction", SKIP, None, limit, "missing metrics")
+    if metrics.flow_m3s <= 0:
+        return SanityCheck("thrust_direction", SKIP, None, limit, "Q<=0, check only applies to forward flow")
+    status = PASS if metrics.thrust_n < 0 else FAIL
+    note = f"Fz={metrics.thrust_n:.5f} N, Q={metrics.flow_m3s:.5f} m3/s"
+    return SanityCheck("thrust_direction", status, metrics.thrust_n, limit, note)
+
+
+def _check_inlet_bookkeeping(metrics: FanMetrics | None, case_meta: dict | None) -> SanityCheck:
+    limit = "<=5% PASS, <=15% WARN"
+    if metrics is None or not case_meta or not case_meta.get("inlet_area_m2"):
+        return SanityCheck("inlet_bookkeeping", SKIP, None, limit, "missing metrics or inlet_area_m2")
+    a_in = float(case_meta["inlet_area_m2"])
+    q = metrics.flow_m3s
+    expected_pa = -0.5 * RHO_AIR * (q / a_in) ** 2
+    actual_pa = metrics.p_inlet_kin * RHO_AIR
+    if abs(expected_pa) < 1e-9:
+        return SanityCheck("inlet_bookkeeping", SKIP, None, limit, "expected inlet static ~0")
+    rel_err_pct = abs(actual_pa - expected_pa) / abs(expected_pa) * 100.0
+    status = PASS if rel_err_pct <= 5.0 else WARN if rel_err_pct <= 15.0 else FAIL
+    note = f"p_in={actual_pa:.3f} Pa expected={expected_pa:.3f} Pa"
+    return SanityCheck("inlet_bookkeeping", status, rel_err_pct, limit, note)
+
+
+_NON_ORTHO_RE = re.compile(r"non-orthogonality\s+Max:\s*([\d.]+)", re.IGNORECASE)
+_SKEWNESS_RE = re.compile(r"Max skewness\s*=\s*([\d.]+)", re.IGNORECASE)
+
+
+def _check_mesh_quality(case_dir: Path) -> SanityCheck:
+    limit = '"Mesh OK." PASS, failed checks FAIL'
+    path = case_dir / "logs" / "checkMesh.log"
+    if not path.exists():
+        return SanityCheck("mesh_quality", SKIP, None, limit, "missing logs/checkMesh.log")
+    text = path.read_text(encoding="utf-8", errors="replace")
+    non_ortho = _NON_ORTHO_RE.search(text)
+    skewness = _SKEWNESS_RE.search(text)
+    detail = (
+        f"max non-orthogonality={non_ortho.group(1) if non_ortho else 'n/a'}, "
+        f"Max skewness={skewness.group(1) if skewness else 'n/a'}"
+    )
+    if "Mesh OK." in text:
+        return SanityCheck("mesh_quality", PASS, None, limit, detail)
+    failed_line = any(
+        line.strip().startswith("***") and "Failed" in line for line in text.splitlines()
+    )
+    if failed_line:
+        return SanityCheck("mesh_quality", FAIL, None, limit, detail)
+    return SanityCheck("mesh_quality", WARN, None, limit, f"inconclusive checkMesh output; {detail}")
+
+
+def _read_yplus_dat(path: Path) -> list[tuple[float, str, float, float, float]]:
+    rows: list[tuple[float, str, float, float, float]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split()
+        if len(parts) < 5:
+            continue
+        try:
+            time = float(parts[0])
+            patch = parts[1]
+            vmin, vmax, vavg = float(parts[2]), float(parts[3]), float(parts[4])
+        except ValueError:
+            continue
+        rows.append((time, patch, vmin, vmax, vavg))
+    return rows
+
+
+def _check_y_plus(case_dir: Path) -> SanityCheck:
+    limit = "30-300"
+    try:
+        path = _pp_file(case_dir, "yPlus", "yPlus.dat")
+    except FileNotFoundError:
+        return SanityCheck("y_plus", SKIP, None, limit, "missing postProcessing/yPlus")
+    rows = _read_yplus_dat(path)
+    if not rows:
+        return SanityCheck("y_plus", SKIP, None, limit, "no data rows in yPlus.dat")
+    latest_time = max(r[0] for r in rows)
+    impeller_rows = [r for r in rows if r[1] == "impeller" and r[0] == latest_time]
+    if not impeller_rows:
+        return SanityCheck("y_plus", SKIP, None, limit, "no impeller rows in yPlus.dat")
+    avg = impeller_rows[-1][4]
+    status = PASS if 30.0 <= avg <= 300.0 else WARN
+    note = f"y+ avg={avg:.2f} (min={impeller_rows[-1][2]:.2f} max={impeller_rows[-1][3]:.2f})"
+    return SanityCheck("y_plus", status, avg, limit, note)
+
+
+def _check_regime(case_meta: dict | None, omega_signed: float | None) -> SanityCheck:
+    limit = "tip Mach < 0.3"
+    if not case_meta or not case_meta.get("tip_radius_m") or omega_signed is None:
+        return SanityCheck("regime", SKIP, None, limit, "missing tip_radius_m or omega_signed")
+    tip_mach = abs(omega_signed) * float(case_meta["tip_radius_m"]) / C0_AIR
+    status = PASS if tip_mach < 0.3 else WARN
+    note = f"tip Mach={tip_mach:.3f}"
+    return SanityCheck("regime", status, tip_mach, limit, note)
+
+
+def _check_converged(metrics: FanMetrics | None) -> SanityCheck:
+    limit = "FanMetrics.converged"
+    if metrics is None:
+        return SanityCheck("converged", SKIP, None, limit, "missing metrics")
+    status = PASS if metrics.converged else WARN
+    note = f"flow_drift_pct={metrics.flow_drift_pct:.2f}%, oscillation_pct={metrics.oscillation_pct:.2f}%"
+    return SanityCheck("converged", status, None, limit, note)
+
+
+def _check_duct_shape(case_meta: dict | None) -> SanityCheck:
+    limit = "round PASS, square WARN"
+    if not case_meta or "duct_shape" not in case_meta:
+        return SanityCheck("duct_shape", SKIP, None, limit, "missing case_meta.json")
+    shape = case_meta["duct_shape"]
+    status = PASS if shape == "round" else WARN
+    return SanityCheck("duct_shape", status, None, limit, shape)
+
+
+def run_sanity(
+    case_dir: str | Path,
+    *,
+    metrics: FanMetrics | None = None,
+    omega_signed: float | None = None,
+) -> list[SanityCheck]:
+    """Run every cheap sanity check over a CFD case directory.
+
+    Missing data (files, ``case_meta.json``, an unparseable metrics set) SKIPs the affected
+    check rather than raising. ``metrics``/``omega_signed`` may be supplied by the caller
+    (e.g. the optimizer, which has already parsed metrics); otherwise they are derived from
+    the case itself.
+    """
+    case_dir = Path(case_dir)
+    case_meta = _load_case_meta(case_dir)
+    if omega_signed is None:
+        omega_signed = _omega_from_case_meta(case_meta)
+    if metrics is None and omega_signed is not None:
+        try:
+            metrics = parse_fan_metrics(case_dir, omega_rad_s=abs(omega_signed))
+        except (FileNotFoundError, ValueError, ZeroDivisionError):
+            metrics = None
+
+    return [
+        _check_mass_balance(case_dir),
+        _check_energy_total(metrics, case_meta),
+        _check_power_sign(metrics, omega_signed),
+        _check_thrust_direction(metrics),
+        _check_inlet_bookkeeping(metrics, case_meta),
+        _check_mesh_quality(case_dir),
+        _check_y_plus(case_dir),
+        _check_regime(case_meta, omega_signed),
+        _check_converged(metrics),
+        _check_duct_shape(case_meta),
+    ]
+
+
+def overall(checks: list[SanityCheck]) -> str:
+    """Worst status across ``checks``: FAIL > WARN > PASS; SKIP is ignored unless it's all there is."""
+    if not checks:
+        return SKIP
+    non_skip = [c.status for c in checks if c.status != SKIP]
+    if not non_skip:
+        return SKIP
+    return max(non_skip, key=lambda s: _STATUS_RANK[s])
+
+
+def summarize(checks: list[SanityCheck]) -> str:
+    """One line: overall status, then each WARN/FAIL check's headline detail."""
+    status = overall(checks)
+    parts = []
+    for c in checks:
+        if c.status not in (WARN, FAIL):
+            continue
+        if c.value is not None:
+            parts.append(f"{c.name} {c.value:.3g} ({c.limit})")
+        else:
+            parts.append(f"{c.name} {c.note}")
+    detail = "; ".join(parts) if parts else "no WARN/FAIL checks"
+    return f"sanity {status}: {detail}"
