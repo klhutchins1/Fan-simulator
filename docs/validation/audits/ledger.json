@@ -7,15 +7,21 @@
       "verdict": "PASS"
     },
     "cfd.cfm_from_outlet_flow": {
-      "date": "2026-09-26",
-      "fingerprint": "afb42fdea4a85a3d",
-      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
+      "date": "2026-09-27",
+      "fingerprint": "b1d9672d717d5f2b",
+      "report": "docs/validation/cfd_sanity_baseline.md",
       "verdict": "PASS"
     },
     "cfd.flow_direction_convention": {
-      "date": "2026-09-26",
-      "fingerprint": "5e1a1d61138c5f1f",
-      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
+      "date": "2026-09-27",
+      "fingerprint": "d7c4e96a12dd6924",
+      "report": "docs/validation/cfd_sanity_baseline.md",
+      "verdict": "PASS"
+    },
+    "cfd.sanity_checks": {
+      "date": "2026-09-27",
+      "fingerprint": "60a35371dae5a8a8",
+      "report": "docs/validation/cfd_sanity_baseline.md",
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
@@ -43,9 +49,9 @@
       "verdict": "PASS"
     },
     "propeller.thrust_sign": {
-      "date": "2026-09-26",
+      "date": "2026-09-27",
       "fingerprint": "83b4e5bba33cf7b0",
-      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
+      "report": "docs/validation/cfd_sanity_baseline.md",
       "verdict": "PASS"
     }
   }
