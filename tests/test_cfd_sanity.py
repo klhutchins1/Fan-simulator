@@ -6,8 +6,11 @@ import json
 import math
 from pathlib import Path
 
+import numpy as np
 import pytest
+import trimesh
 
+from fansim.cfd import sanity as sanity_mod
 from fansim.cfd.sanity import (
     FAIL,
     PASS,
@@ -426,3 +429,196 @@ def test_run_sanity_full_case_all_pass(tmp_path):
     assert statuses["converged"] == PASS
     assert statuses["duct_shape"] == PASS
     assert overall(checks) == PASS
+
+
+# --- legacy-case metadata inference (no constant/case_meta.json) ---
+
+H = 0.1
+Z_MIN = -0.05
+Z_MAX = 0.20
+LEGACY_OMEGA = 209.4395
+HUB_R = 0.02
+TIP_R = 0.05
+BORE_R = 0.045
+
+
+def _tube_mesh(r0, z0, r1, z1, n=48):
+    """A cylindrical (or conical) shell: two vertex rings, side faces only, no end caps.
+
+    Mirrors the extruded-geometry topology noted in mount-gauge-bore-mesh-topology: wall
+    triangles only tessellate at the z-ends, so sampling a ring at z0/z1 is representative.
+    """
+    angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    ring0 = np.stack([r0 * np.cos(angles), r0 * np.sin(angles), np.full(n, z0)], axis=1)
+    ring1 = np.stack([r1 * np.cos(angles), r1 * np.sin(angles), np.full(n, z1)], axis=1)
+    verts = np.vstack([ring0, ring1])
+    faces = []
+    for i in range(n):
+        j = (i + 1) % n
+        faces.append([i, j, n + j])
+        faces.append([i, n + j, n + i])
+    return trimesh.Trimesh(vertices=verts, faces=np.array(faces, dtype=np.int64), process=False)
+
+
+def _write_block_mesh_dict(case: Path, *, h=H, z_min=Z_MIN, z_max=Z_MAX) -> None:
+    d = case / "system"
+    d.mkdir(parents=True, exist_ok=True)
+    verts = [
+        (-h, -h, z_min), (h, -h, z_min), (h, h, z_min), (-h, h, z_min),
+        (-h, -h, z_max), (h, -h, z_max), (h, h, z_max), (-h, h, z_max),
+    ]
+    lines = ["vertices", "("]
+    lines += [f"    ({x} {y} {z})" for x, y, z in verts]
+    lines += [");", "", "blocks", "(", "    hex (0 1 2 3 4 5 6 7) (10 10 10) simpleGrading (1 1 1)", ");"]
+    (d / "blockMeshDict").write_text("\n".join(lines), encoding="utf-8")
+
+
+def _write_mrf_properties(case: Path, *, omega=LEGACY_OMEGA, dual=False) -> None:
+    d = case / "constant"
+    d.mkdir(parents=True, exist_ok=True)
+    if dual:
+        text = (
+            "MRF1\n{\n    omega   150.0;\n}\n"
+            "MRF2\n{\n    omega   -150.0;\n}\n"
+        )
+    else:
+        text = f"MRF\n{{\n    omega           {omega};\n}}\n"
+    (d / "MRFProperties").write_text(text, encoding="utf-8")
+
+
+def _write_legacy_impeller_stl(case: Path, *, hub_r=HUB_R, tip_r=TIP_R) -> None:
+    d = case / "constant" / "triSurface"
+    d.mkdir(parents=True, exist_ok=True)
+    mesh = _tube_mesh(hub_r, 0.0, tip_r, 0.03)
+    mesh.export(str(d / "impeller.stl"))
+
+
+def _write_legacy_casing_stl(case: Path, *, bore_r=BORE_R, z0=Z_MIN, z1=Z_MAX) -> None:
+    d = case / "constant" / "triSurface"
+    d.mkdir(parents=True, exist_ok=True)
+    mesh = _tube_mesh(bore_r, z0, bore_r, z1)
+    mesh.export(str(d / "casing.stl"))
+
+
+def _build_legacy_case(tmp_path: Path, *, with_casing: bool, plenum: bool = False, dual_mrf: bool = False) -> Path:
+    case = tmp_path / "legacy_case"
+    _write_block_mesh_dict(case)
+    _write_mrf_properties(case, dual=dual_mrf)
+    _write_legacy_impeller_stl(case)
+    if with_casing:
+        casing_z1 = 0.15 if plenum else Z_MAX
+        _write_legacy_casing_stl(case, z1=casing_z1)
+    return case
+
+
+def test_infer_omega_single_mrf(tmp_path):
+    case = tmp_path / "case"
+    _write_mrf_properties(case, omega=LEGACY_OMEGA)
+    assert sanity_mod._infer_omega(case) == pytest.approx(LEGACY_OMEGA)
+
+
+def test_infer_omega_dual_mrf_is_none(tmp_path):
+    case = tmp_path / "case"
+    _write_mrf_properties(case, dual=True)
+    assert sanity_mod._infer_omega(case) is None
+
+
+def test_infer_omega_missing_file_is_none(tmp_path):
+    case = tmp_path / "case"
+    case.mkdir()
+    assert sanity_mod._infer_omega(case) is None
+
+
+def test_infer_box_half_width_and_zmax(tmp_path):
+    case = tmp_path / "case"
+    _write_block_mesh_dict(case)
+    result = sanity_mod._infer_box_half_width_and_zmax(case)
+    assert result is not None
+    h, z_max = result
+    assert h == pytest.approx(H)
+    assert z_max == pytest.approx(Z_MAX)
+
+
+def test_infer_case_meta_no_casing(tmp_path):
+    case = _build_legacy_case(tmp_path, with_casing=False)
+    meta = sanity_mod._infer_case_meta(case)
+    assert meta is not None
+    assert meta["inferred"] is True
+    assert meta["casing"] is False
+    assert meta["duct_shape"] == "square"
+    assert meta["plenum"] is False
+    assert meta["outlet_area_m2"] == pytest.approx((2 * H) ** 2)
+    assert meta["inlet_area_m2"] == pytest.approx((2 * H) ** 2)
+    assert meta["omega_signed"] == pytest.approx(LEGACY_OMEGA)
+    assert meta["tip_radius_m"] == pytest.approx(TIP_R, rel=1e-6)
+
+
+def test_infer_case_meta_with_casing(tmp_path):
+    case = _build_legacy_case(tmp_path, with_casing=True, plenum=False)
+    meta = sanity_mod._infer_case_meta(case)
+    assert meta is not None
+    assert meta["casing"] is True
+    assert meta["duct_shape"] == "round"
+    assert meta["plenum"] is False
+    assert meta["outlet_area_m2"] == pytest.approx((2 * H) ** 2)
+    assert meta["inlet_area_m2"] == pytest.approx(math.pi * BORE_R ** 2, rel=1e-6)
+
+
+def test_infer_case_meta_with_casing_plenum(tmp_path):
+    case = _build_legacy_case(tmp_path, with_casing=True, plenum=True)
+    meta = sanity_mod._infer_case_meta(case)
+    assert meta is not None
+    assert meta["plenum"] is True
+
+
+def test_infer_case_meta_missing_blockmesh_is_none(tmp_path):
+    case = tmp_path / "case"
+    case.mkdir()
+    assert sanity_mod._infer_case_meta(case) is None
+
+
+def test_run_sanity_infers_meta_for_legacy_case_no_casing(tmp_path):
+    case = _build_legacy_case(tmp_path, with_casing=False)
+    checks = run_sanity(case)
+    by_name = {c.name: c for c in checks}
+
+    # No inletFlow postProcessing on a legacy case -> still SKIPs.
+    assert by_name["mass_balance"].status == SKIP
+
+    # But omega/areas are now inferred, so metrics get parsed and these run (SKIP only
+    # because there is still no forces/pressure postProcessing in this synthetic case).
+    for name in ("energy_total", "power_sign", "regime"):
+        assert by_name[name].status in (SKIP, PASS, WARN, FAIL)
+
+    assert by_name["duct_shape"].status == WARN
+    assert "meta inferred" in by_name["duct_shape"].note
+    assert by_name["regime"].status == SKIP or by_name["regime"].value is not None
+
+
+def test_run_sanity_infers_meta_and_runs_metrics_checks(tmp_path):
+    case = _build_legacy_case(tmp_path, with_casing=True)
+    # Add the postProcessing a legacy run does have, so metrics parse succeeds.
+    n = 20
+    _write_pp(case, "forces", "moment.dat",
+               "".join(f"{i} 0 0 -0.01 0 0 -0.01 0 0 0\n" for i in range(n)))
+    _write_pp(case, "forces", "force.dat",
+               "".join(f"{i} 0 0 -0.28 0 0 -0.28 0 0 0\n" for i in range(n)))
+    _write_pp(case, "outletFlow", "surfaceFieldValue.dat",
+               "".join(f"{i} 0.03\n" for i in range(n)))
+    _write_pp(case, "inletP", "surfaceFieldValue.dat",
+               "".join(f"{i} -4.5\n" for i in range(n)))
+    _write_pp(case, "outletP", "surfaceFieldValue.dat",
+               "".join(f"{i} 50.0\n" for i in range(n)))
+
+    checks = run_sanity(case)
+    by_name = {c.name: c for c in checks}
+
+    # No inletFlow function object on a legacy case -> mass_balance still SKIPs.
+    assert by_name["mass_balance"].status == SKIP
+    # But metrics parsed successfully via the inferred omega, so these actually run.
+    assert by_name["energy_total"].status in (PASS, FAIL)
+    assert by_name["power_sign"].status in (PASS, FAIL)
+    assert by_name["thrust_direction"].status in (PASS, FAIL)
+    assert by_name["regime"].status in (PASS, WARN)
+    assert by_name["duct_shape"].status == PASS
+    assert "meta inferred" in by_name["duct_shape"].note

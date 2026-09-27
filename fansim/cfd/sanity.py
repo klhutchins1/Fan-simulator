@@ -20,8 +20,14 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
+import trimesh
+
 from fansim.cfd.metrics import RHO_AIR, FanMetrics, _pp_file, _tail_mean_row, parse_fan_metrics
 from fansim.physics.air import C0_AIR
+
+_BORE_Z_TOL_M = 1e-3
+_PLENUM_TOL_M = 1e-3
 
 PASS = "PASS"
 WARN = "WARN"
@@ -51,12 +57,130 @@ def _load_case_meta(case_dir: Path) -> dict | None:
 
 
 def _omega_from_case_meta(case_meta: dict | None) -> float | None:
-    if not case_meta or "rpm" not in case_meta or "spin" not in case_meta:
+    if not case_meta:
+        return None
+    if case_meta.get("omega_signed") is not None:
+        try:
+            return float(case_meta["omega_signed"])
+        except (TypeError, ValueError):
+            return None
+    if "rpm" not in case_meta or "spin" not in case_meta:
         return None
     try:
         return float(case_meta["rpm"]) * float(case_meta["spin"]) * 2.0 * math.pi / 60.0
     except (TypeError, ValueError):
         return None
+
+
+_OMEGA_RE = re.compile(r"omega\s+([-+\d.eE]+);")
+_VERTEX_RE = re.compile(r"\(\s*([-+\d.eE]+)\s+([-+\d.eE]+)\s+([-+\d.eE]+)\s*\)")
+
+
+def _infer_omega(case_dir: Path) -> float | None:
+    """omega from constant/MRFProperties. None for dual-MRF files (ambiguous) or missing."""
+    path = case_dir / "constant" / "MRFProperties"
+    if not path.exists():
+        return None
+    text = path.read_text(encoding="utf-8", errors="replace")
+    matches = _OMEGA_RE.findall(text)
+    if len(matches) != 1:
+        return None
+    try:
+        return float(matches[0])
+    except ValueError:
+        return None
+
+
+def _infer_box_half_width_and_zmax(case_dir: Path) -> tuple[float, float] | None:
+    """(H, domain z_max) from the first 8 vertices of system/blockMeshDict."""
+    path = case_dir / "system" / "blockMeshDict"
+    if not path.exists():
+        return None
+    text = path.read_text(encoding="utf-8", errors="replace")
+    m = re.search(r"vertices\s*\(", text)
+    if not m:
+        return None
+    matches = _VERTEX_RE.findall(text[m.end():])
+    if len(matches) < 8:
+        return None
+    try:
+        verts = [(float(x), float(y), float(z)) for x, y, z in matches[:8]]
+    except ValueError:
+        return None
+    h = max(abs(v[0]) for v in verts)
+    z_max = max(v[2] for v in verts)
+    return h, z_max
+
+
+def _load_mesh(path: Path) -> "trimesh.Trimesh | None":
+    if not path.exists():
+        return None
+    try:
+        return trimesh.load(str(path), force="mesh")
+    except Exception:
+        return None
+
+
+def _infer_tip_radius_m(case_dir: Path) -> float | None:
+    """99.5th percentile of impeller.stl vertex radius (metres)."""
+    mesh = _load_mesh(case_dir / "constant" / "triSurface" / "impeller.stl")
+    if mesh is None or len(mesh.vertices) == 0:
+        return None
+    verts = np.asarray(mesh.vertices)
+    radii = np.sqrt(verts[:, 0] ** 2 + verts[:, 1] ** 2)
+    return float(np.percentile(radii, 99.5))
+
+
+def _infer_bore_radius_m(casing_mesh: "trimesh.Trimesh") -> float | None:
+    """Min radial distance of casing.stl vertices at its inlet (z_min) end."""
+    verts = np.asarray(casing_mesh.vertices)
+    if verts.shape[0] == 0:
+        return None
+    z_min = verts[:, 2].min()
+    ring = verts[np.abs(verts[:, 2] - z_min) <= _BORE_Z_TOL_M]
+    if ring.shape[0] == 0:
+        return None
+    radii = np.sqrt(ring[:, 0] ** 2 + ring[:, 1] ** 2)
+    return float(radii.min())
+
+
+def _infer_case_meta(case_dir: Path) -> dict | None:
+    """Best-effort ``case_meta``-shaped dict for a legacy case built before Task 1.
+
+    Returns None when there isn't even enough geometry (blockMeshDict) to infer areas.
+    Anything else missing (MRFProperties, casing/impeller STLs) degrades individual
+    fields to None rather than failing the whole inference.
+    """
+    box = _infer_box_half_width_and_zmax(case_dir)
+    if box is None:
+        return None
+    h, domain_z_max = box
+
+    omega_signed = _infer_omega(case_dir)
+    casing_mesh = _load_mesh(case_dir / "constant" / "triSurface" / "casing.stl")
+    has_casing = casing_mesh is not None
+    outlet_area = (2.0 * h) ** 2
+
+    if has_casing:
+        r_bore = _infer_bore_radius_m(casing_mesh)
+        inlet_area = math.pi * r_bore ** 2 if r_bore is not None else None
+        casing_z_max = float(np.asarray(casing_mesh.vertices)[:, 2].max())
+        plenum = casing_z_max < domain_z_max - _PLENUM_TOL_M
+    else:
+        inlet_area = outlet_area
+        plenum = False
+
+    return {
+        "duct_shape": "round" if has_casing else "square",
+        "box_half_width_m": h,
+        "inlet_area_m2": inlet_area,
+        "outlet_area_m2": outlet_area,
+        "casing": has_casing,
+        "plenum": plenum,
+        "tip_radius_m": _infer_tip_radius_m(case_dir),
+        "omega_signed": omega_signed,
+        "inferred": True,
+    }
 
 
 def _check_mass_balance(case_dir: Path) -> SanityCheck:
@@ -218,7 +342,8 @@ def _check_duct_shape(case_meta: dict | None) -> SanityCheck:
         return SanityCheck("duct_shape", SKIP, None, limit, "missing case_meta.json")
     shape = case_meta["duct_shape"]
     status = PASS if shape == "round" else WARN
-    return SanityCheck("duct_shape", status, None, limit, shape)
+    note = f"{shape} (meta inferred)" if case_meta.get("inferred") else shape
+    return SanityCheck("duct_shape", status, None, limit, note)
 
 
 def run_sanity(
@@ -236,6 +361,8 @@ def run_sanity(
     """
     case_dir = Path(case_dir)
     case_meta = _load_case_meta(case_dir)
+    if case_meta is None:
+        case_meta = _infer_case_meta(case_dir)
     if omega_signed is None:
         omega_signed = _omega_from_case_meta(case_meta)
     if metrics is None and omega_signed is not None:
