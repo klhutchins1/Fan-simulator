@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import math
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +12,7 @@ import trimesh
 
 from fansim.cfd import templates as T
 from fansim.cfd.domain import MM_TO_M, TestRig
+from fansim.cfd.metrics import CFD_VERSION
 from fansim.cfd.wall_roughness import nut_wall_bc, wall_ks_m
 
 RHO_AIR = 1.2
@@ -182,6 +184,50 @@ def check_placement(impeller_mm: trimesh.Trimesh, rig: TestRig, *, dual_mrf: dic
             raise ValueError(
                 f"{name} starts at z={pz0 * 1e3:.2f} mm, inside the impeller (z_max "
                 f"{z1 * 1e3:.2f} mm) — export it from the fitted rig")
+
+
+_PLENUM_TOL_M = 1e-3  # 1 mm: casing z_max below domain_z_max by more than this counts as a plenum
+
+
+def _write_case_meta(
+    case_dir: Path,
+    rig: TestRig,
+    *,
+    casing_mesh: trimesh.Trimesh | None,
+    H: float,
+) -> None:
+    """Write ``constant/case_meta.json`` with the patch areas and duct shape sanity checks need.
+
+    ``H`` is the half-width (m) of the square background box (``rig.duct_radius`` with no
+    casing, else ``box_scale * rig.duct_radius``).
+    """
+    has_casing = casing_mesh is not None
+    plenum = False
+    if has_casing:
+        casing_z_max = float(casing_mesh.bounds[1, 2])
+        plenum = casing_z_max < rig.domain_z_max - _PLENUM_TOL_M
+
+    if has_casing:
+        inlet_area = math.pi * rig.duct_radius ** 2
+        outlet_area = (2.0 * H) ** 2
+    else:
+        inlet_area = outlet_area = (2.0 * H) ** 2
+
+    meta = {
+        "duct_shape": "round" if has_casing else "square",
+        "box_half_width_m": H,
+        "inlet_area_m2": inlet_area,
+        "outlet_area_m2": outlet_area,
+        "casing": has_casing,
+        "plenum": plenum,
+        "duct_radius_m": rig.duct_radius,
+        "tip_radius_m": rig.duct_radius - rig.tip_gap,
+        "hub_radius_m": rig.hub_radius,
+        "rpm": rig.rpm,
+        "spin": rig.spin,
+        "cfd_version": CFD_VERSION,
+    }
+    (case_dir / "constant/case_meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
 
 def build_case(
@@ -401,6 +447,8 @@ def build_case(
     _write(case_dir / "0/nut", T.FIELD_NUT, "volScalarField", "nut",
            {"IMPELLER_NUT": impeller_nut,
             "FRAME_NUT": frame["NUT"], "CASING_NUT": casing["NUT"], "STATOR_NUT": stator["NUT"]})
+
+    _write_case_meta(case_dir, rig, casing_mesh=casing_mesh, H=H)
 
     return case_dir
 
