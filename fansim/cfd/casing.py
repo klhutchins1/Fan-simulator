@@ -2,16 +2,29 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import cadquery as cq
 
 from fansim.cfd.domain import MM_TO_M, TestRig
+from fansim.cfd.openfoam_case import BOX_SCALE
 from fansim.geometry.export import export_stl
 
 CASING_WALL_MM = 2.4  # same as frame barrel; fluid radius stays duct_radius
 STEP_DEPTH_MM = 1.2  # radial enlargement of the inlet bore (roadmap 2.6)
 STEP_LEN_MM = 6.0  # axial length of the larger bore from domain_z_min (inlet)
+FILL_MARGIN_MM = 5.0  # extra radius past the box-corner requirement, for meshing slop
+
+
+def _sealed_fill_radius_mm(inner_r_mm: float, box_scale: float = BOX_SCALE) -> float:
+    """Outer radius (mm) that fully covers a ``box_scale``-half-width hex's corners.
+
+    The background box half-width is ``box_scale * inner_r_mm`` (mm); its far corner sits at
+    ``half_width * sqrt(2)``. A casing outer radius below that leaves the corners open, and
+    flow can bypass the fan bore around the tube (see ``check_casing_seals``).
+    """
+    return box_scale * inner_r_mm * math.sqrt(2) + FILL_MARGIN_MM
 
 
 def build_casing_solid(
@@ -54,7 +67,9 @@ def build_casing_solid(
     height = zmax - zmin
 
     if not stepped:
-        outer_r = fill_radius_mm if plenum_z_mm is not None else inner_r + CASING_WALL_MM
+        # Sealed by default: fill_radius_mm (explicit, e.g. a plenum) wins; otherwise the box
+        # corners must be covered (BOX_SCALE * R * sqrt(2) + margin), not just the thin wall.
+        outer_r = fill_radius_mm if fill_radius_mm is not None else _sealed_fill_radius_mm(inner_r)
         result = (
             cq.Workplane("XY")
             .workplane(offset=zmin)
@@ -65,8 +80,7 @@ def build_casing_solid(
         )
     else:
         step_r = inner_r + STEP_DEPTH_MM
-        outer_r = (fill_radius_mm if plenum_z_mm is not None
-                   else inner_r + CASING_WALL_MM + STEP_DEPTH_MM)
+        outer_r = fill_radius_mm if fill_radius_mm is not None else _sealed_fill_radius_mm(inner_r)
         z_step = zmin + STEP_LEN_MM
         outline = [
             (step_r, zmin),

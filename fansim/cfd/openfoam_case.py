@@ -158,6 +158,26 @@ def _k_omega_bc(snips: dict[str, str], k_val: float, omega_val: float) -> tuple[
 
 
 _PLACEMENT_TOL_M = 1e-6
+_SEAL_TOL_MM = 1e-6
+
+
+def check_casing_seals(casing_mm: trimesh.Trimesh, H_m: float) -> None:
+    """Refuse a casing whose outer radius leaves the background box corners open.
+
+    ``casing_mm`` is the casing mesh in its native millimetre scale (before the mm->m case
+    scaling), ``H_m`` is the background hex/box half-width in metres (SI, as used elsewhere in
+    :func:`build_case`). The box's far corner sits at ``H*sqrt(2)`` from the axis; a casing
+    whose maximum radial extent is smaller than that leaves the corners open, and flow can
+    bypass the fan bore around the outside of the tube (see the a12x25 casing-corner audit).
+    """
+    H_mm = H_m * 1000.0
+    required_mm = H_mm * math.sqrt(2)
+    max_r_mm = max(math.hypot(float(v[0]), float(v[1])) for v in casing_mm.vertices)
+    if max_r_mm < required_mm - _SEAL_TOL_MM:
+        raise ValueError(
+            f"casing max radial extent {max_r_mm:.2f} mm is less than H*sqrt(2) = "
+            f"{required_mm:.2f} mm (box half-width H={H_mm:.2f} mm) -- the box corners are "
+            "open and flow can bypass the fan around the casing")
 
 
 def check_placement(impeller_mm: trimesh.Trimesh, rig: TestRig, *, dual_mrf: dict | None = None,
@@ -187,6 +207,29 @@ def check_placement(impeller_mm: trimesh.Trimesh, rig: TestRig, *, dual_mrf: dic
 
 
 _PLENUM_TOL_M = 1e-3  # 1 mm: casing z_max below domain_z_max by more than this counts as a plenum
+DUCT_OUTER_MARGIN_MM = 5.0  # extra radius past the box-corner requirement, for meshing slop
+ROUND_DUCT_SECTIONS = 128  # annulus tessellation for the generated round duct
+ROUND_DUCT_Z_MARGIN_MM = 1.0  # each end extends past the domain so snappy trims it cleanly
+
+
+def _generate_round_duct_mesh_mm(rig: TestRig, box_scale: float) -> trimesh.Trimesh:
+    """Sealed round-duct casing (mm), covering the ``box_scale``-half-width box's corners.
+
+    Inner radius is ``rig.duct_radius``; outer radius is ``box_scale * rig.duct_radius *
+    sqrt(2) + margin`` so it fully covers the background box's corners (see
+    :func:`check_casing_seals`). Spans ``domain_z_min``..``domain_z_max``, extended by
+    :data:`ROUND_DUCT_Z_MARGIN_MM` beyond each end so snappyHexMesh trims it cleanly at the
+    domain faces instead of leaving a sliver gap.
+    """
+    inner_r_mm = rig.duct_radius / MM_TO_M
+    outer_r_mm = box_scale * inner_r_mm * math.sqrt(2) + DUCT_OUTER_MARGIN_MM
+    zmin_mm = rig.domain_z_min / MM_TO_M - ROUND_DUCT_Z_MARGIN_MM
+    zmax_mm = rig.domain_z_max / MM_TO_M + ROUND_DUCT_Z_MARGIN_MM
+    height_mm = zmax_mm - zmin_mm
+    mesh = trimesh.creation.annulus(
+        r_min=inner_r_mm, r_max=outer_r_mm, height=height_mm, sections=ROUND_DUCT_SECTIONS)
+    mesh.apply_translation([0.0, 0.0, 0.5 * (zmin_mm + zmax_mm)])
+    return mesh
 
 
 def _write_case_meta(
@@ -195,11 +238,14 @@ def _write_case_meta(
     *,
     casing_mesh: trimesh.Trimesh | None,
     H: float,
+    duct_source: str = "none",
 ) -> None:
     """Write ``constant/case_meta.json`` with the patch areas and duct shape sanity checks need.
 
     ``H`` is the half-width (m) of the square background box (``rig.duct_radius`` with no
-    casing, else ``box_scale * rig.duct_radius``).
+    casing, else ``box_scale * rig.duct_radius``). ``duct_source`` records where the casing
+    came from: ``"generated"`` (the in-process round duct), ``"casing_stl"`` (user-given), or
+    ``"none"`` (legacy square slip-wall tunnel).
     """
     has_casing = casing_mesh is not None
     plenum = False
@@ -215,6 +261,7 @@ def _write_case_meta(
 
     meta = {
         "duct_shape": "round" if has_casing else "square",
+        "duct_source": duct_source,
         "box_half_width_m": H,
         "inlet_area_m2": inlet_area,
         "outlet_area_m2": outlet_area,
@@ -245,6 +292,7 @@ def build_case(
     dual_mrf: dict | None = None,
     wall_ks_mm: float | None = None,
     box_scale: float | None = None,
+    duct: str = "round",
 ) -> Path:
     """Write a ready-to-run OpenFOAM case. ``impeller_stl_mm`` is a millimeter-scale STL.
 
@@ -254,10 +302,19 @@ def build_case(
     passing the as-built mesh instead solves the wrong rotation for the ``rig.spin`` in use.
 
     ``frame_stl_mm=None`` keeps the impeller-only case (used by validation scripts).
-    ``casing_stl_mm`` snaps a cylindrical duct wall inside an oversized hex; omit it
-    to keep the square-tunnel screening box.
+    ``casing_stl_mm`` snaps a user-given duct wall inside an oversized hex; a user-given
+    casing always wins over ``duct``.
     ``stator_stl_mm`` may be used alone (replace frame) or together with ``frame_stl_mm``
     for a stator-then-frame stack (frame must sit further downstream).
+
+    ``duct`` selects the background domain shape when ``casing_stl_mm`` is not given:
+    ``"round"`` (default) generates a sealed round duct in-process (an annulus, inner radius
+    ``rig.duct_radius``, outer radius covering the background box's corners) and writes it to
+    ``constant/triSurface/casing.stl`` exactly as a user-given casing would be; ``"square"``
+    keeps the legacy square slip-wall tunnel (half-width = ``rig.duct_radius``, corners open
+    around the blade tips at 4 points) for comparison. Any other value raises ``ValueError``.
+    Whenever a casing is present (user-given or generated), its outer radius must cover the
+    background box's corners (:func:`check_casing_seals`) or flow can bypass the fan.
 
     If ``back_pressure_pa`` is given, use pressure-driven BCs (total-pressure inlet, fixed
     static back-pressure outlet) so the flow rate emerges from the blade design -- this is
@@ -272,9 +329,12 @@ def build_case(
     ``omega_front``, ``omega_rear``.
 
     ``box_scale`` overrides the default hex half-width multiplier (``BOX_SCALE``) applied
-    to ``rig.duct_radius`` when ``casing_stl_mm`` is given, e.g. for an oversized
-    outlet-chamber (plenum) domain. Ignored when there is no casing.
+    to ``rig.duct_radius`` whenever a casing is present (user-given or generated), e.g. for
+    an oversized outlet-chamber (plenum) domain. Ignored when there is no casing.
     """
+    if duct not in ("round", "square"):
+        raise ValueError(f"duct must be 'round' or 'square', got {duct!r}")
+
     case_dir = Path(case_dir)
     mesh = mesh or MeshResolution()
     for sub in ("0", "constant/triSurface", "system"):
@@ -283,8 +343,21 @@ def build_case(
     # --- Load all STLs (still mm-scale) before any scaling or writing ---
     surf = trimesh.load(str(impeller_stl_mm), force="mesh")
     frame_mesh = trimesh.load(str(frame_stl_mm), force="mesh") if frame_stl_mm is not None else None
-    casing_mesh = trimesh.load(str(casing_stl_mm), force="mesh") if casing_stl_mm is not None else None
     stator_mesh = trimesh.load(str(stator_stl_mm), force="mesh") if stator_stl_mm is not None else None
+
+    # --- Casing: user-given STL always wins; otherwise "round" generates a sealed duct
+    # in-process (trimesh annulus, no CadQuery); "square" keeps the legacy open-corner tunnel.
+    effective_box_scale = box_scale if box_scale is not None else BOX_SCALE
+    if casing_stl_mm is not None:
+        casing_mesh = trimesh.load(str(casing_stl_mm), force="mesh")
+        duct_source = "casing_stl"
+    elif duct == "round":
+        casing_mesh = _generate_round_duct_mesh_mm(rig, effective_box_scale)
+        duct_source = "generated"
+    else:
+        casing_mesh = None
+        duct_source = "none"
+    has_casing = casing_mesh is not None
 
     downstream_mm: dict[str, trimesh.Trimesh] = {}
     if frame_mesh is not None:
@@ -292,6 +365,10 @@ def build_case(
     if stator_mesh is not None:
         downstream_mm["stator"] = stator_mesh
     check_placement(surf, rig, dual_mrf=dual_mrf, downstream_mm=downstream_mm)
+
+    H = effective_box_scale * rig.duct_radius if has_casing else rig.duct_radius
+    if has_casing:
+        check_casing_seals(casing_mesh, H)
 
     # --- Scale the impeller STL mm -> m into the case ---
     surf.apply_scale(MM_TO_M)
@@ -315,8 +392,6 @@ def build_case(
     length_scale = 0.07 * (2.0 * rig.duct_radius)
     omega_turb = math.sqrt(k) / (CMU**0.25 * length_scale)
 
-    H = (box_scale if box_scale is not None else BOX_SCALE) * rig.duct_radius \
-        if casing_stl_mm is not None else rig.duct_radius
     zmin, zmax = rig.domain_z_min, rig.domain_z_max
     nx = max(10, round(2 * H / mesh.base_cell))
     nz = max(20, round((zmax - zmin) / mesh.base_cell))
@@ -326,7 +401,7 @@ def build_case(
     frame = (_extra_wall_snippets("frame", mesh.feature_level, mesh.surf_min, mesh.surf_max)
              if frame_stl_mm is not None else _empty_wall_snippets())
     casing = (_extra_wall_snippets("casing", mesh.feature_level, mesh.surf_min, mesh.surf_max)
-              if casing_stl_mm is not None else _empty_wall_snippets())
+              if has_casing else _empty_wall_snippets())
     stator = (_extra_wall_snippets("stator", mesh.feature_level, mesh.surf_min, mesh.surf_max)
               if stator_stl_mm is not None else _empty_wall_snippets())
 
@@ -339,7 +414,7 @@ def build_case(
         if stator_stl_mm is not None:
             stator["NUT"] = nut_wall_bc("stator", wall_ks_m=ks_m)
 
-    if casing_stl_mm is not None:
+    if has_casing:
         locx = 0.35 * rig.duct_radius
         locy = 0.0
         locz = rig.domain_z_min + 0.25 * rig.inlet_length
@@ -448,7 +523,7 @@ def build_case(
            {"IMPELLER_NUT": impeller_nut,
             "FRAME_NUT": frame["NUT"], "CASING_NUT": casing["NUT"], "STATOR_NUT": stator["NUT"]})
 
-    _write_case_meta(case_dir, rig, casing_mesh=casing_mesh, H=H)
+    _write_case_meta(case_dir, rig, casing_mesh=casing_mesh, H=H, duct_source=duct_source)
 
     return case_dir
 

@@ -1,15 +1,22 @@
+import math
+
 import cadquery as cq
 import pytest
 
 from fansim.cfd.domain import MM_TO_M, rig_for_impeller
 from fansim.cfd.casing import (
-    CASING_WALL_MM,
     STEP_DEPTH_MM,
     STEP_LEN_MM,
     build_casing_solid,
     export_casing_stl,
 )
+from fansim.cfd.openfoam_case import BOX_SCALE
 from fansim.geometry.blade import BladeParams
+
+
+def _sealed_outer_r_mm(inner_r_mm: float) -> float:
+    """Default sealed outer radius (mm): covers a BOX_SCALE-half-width box's corners."""
+    return BOX_SCALE * inner_r_mm * math.sqrt(2) + 5.0
 
 
 def _solid_contains_point(solid, x: float, y: float, z: float) -> bool:
@@ -37,7 +44,7 @@ def test_casing_is_one_tube_at_duct_radius():
     zmax = rig.domain_z_max / MM_TO_M
     assert bb.zmin == pytest.approx(zmin, abs=0.2)
     assert bb.zmax == pytest.approx(zmax, abs=0.2)
-    assert bb.xmax == pytest.approx(inner_r + CASING_WALL_MM, abs=0.3)
+    assert bb.xmax == pytest.approx(_sealed_outer_r_mm(inner_r), abs=0.3)
 
     z_mid = 0.5 * (bb.zmin + bb.zmax)
     assert _solid_contains_point(solid, 0.5 * inner_r, 0.0, z_mid) is False
@@ -63,7 +70,7 @@ def test_stepped_casing_enlarges_inlet_bore_not_midspan():
     bb = solid.BoundingBox()
     assert bb.zmin == pytest.approx(zmin, abs=0.2)
     assert bb.zmax == pytest.approx(zmax, abs=0.2)
-    assert bb.xmax == pytest.approx(inner_r + CASING_WALL_MM + STEP_DEPTH_MM, abs=0.3)
+    assert bb.xmax == pytest.approx(_sealed_outer_r_mm(inner_r), abs=0.3)
     assert STEP_LEN_MM == 6.0
 
     z_inlet = zmin + 1.0

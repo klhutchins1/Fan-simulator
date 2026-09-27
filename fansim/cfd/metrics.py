@@ -23,7 +23,9 @@ RHO_AIR = 1.2
 #   3 (2026-09-25) — Audit #1 fix: rotor solved in its designed rotation (flipped 180° about X,
 #                    spin −1; fansim/cfd/orientation.py); MRF zone fitted to the real rotor STL;
 #                    convergence judged on tail-mean stability (oscillation reported separately).
-CFD_VERSION = 3
+#   4 (2026-09-27) — sealed round duct by default (was square slip-wall tunnel with open corners
+#                    around the tips); casing corners sealed.
+CFD_VERSION = 4
 
 TAIL_FRAC = 0.25  # fraction of the run treated as the converged tail (see convergence())
 

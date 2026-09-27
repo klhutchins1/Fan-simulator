@@ -31,12 +31,15 @@ def _load_meta(case_dir):
 
 
 def test_case_meta_no_casing_is_square(tmp_path):
+    """``duct="square"`` keeps the legacy no-casing tunnel, for comparison (CFD_VERSION 4)."""
     rig = _rig()
-    case = build_case(tmp_path / "case", _impeller_stl(tmp_path), rig, back_pressure_pa=0.0)
+    case = build_case(tmp_path / "case", _impeller_stl(tmp_path), rig, back_pressure_pa=0.0,
+                      duct="square")
     meta = _load_meta(case)
 
     H = rig.duct_radius
     assert meta["duct_shape"] == "square"
+    assert meta["duct_source"] == "none"
     assert meta["casing"] is False
     assert meta["plenum"] is False
     assert meta["box_half_width_m"] == pytest.approx(H)
@@ -59,6 +62,7 @@ def test_case_meta_casing_is_round_no_plenum(tmp_path):
 
     H = BOX_SCALE * rig.duct_radius
     assert meta["duct_shape"] == "round"
+    assert meta["duct_source"] == "casing_stl"
     assert meta["casing"] is True
     assert meta["plenum"] is False
     assert meta["box_half_width_m"] == pytest.approx(H)
