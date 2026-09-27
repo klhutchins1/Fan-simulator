@@ -199,9 +199,15 @@ def _check_mass_balance(case_dir: Path) -> SanityCheck:
 
 
 def _check_energy_total(metrics: FanMetrics | None, case_meta: dict | None) -> SanityCheck:
-    limit = "eta_total < 1"
+    limit = "eta_total < 1 (Q>0)"
     if metrics is None or not case_meta or not case_meta.get("outlet_area_m2"):
         return SanityCheck("energy_total", SKIP, None, limit, "missing metrics or outlet_area_m2")
+    if metrics.flow_m3s <= 0:
+        # Reversed flow makes the inlet an outflow boundary: the totalPressure BC then
+        # sets static p = p0 there, so the forward-flow inlet formula (and this
+        # forward-flow-only efficiency) don't apply. Not FAIL-ing this avoided false
+        # 99-29000% FAILs on back-pressured/reversed solves.
+        return SanityCheck("energy_total", SKIP, None, limit, "Q<=0, check only applies to forward flow")
     if metrics.shaft_power_w <= 1e-9:
         return SanityCheck("energy_total", SKIP, None, limit, "shaft power ~0")
     a_out = float(case_meta["outlet_area_m2"])
@@ -238,9 +244,14 @@ def _check_thrust_direction(metrics: FanMetrics | None) -> SanityCheck:
 
 
 def _check_inlet_bookkeeping(metrics: FanMetrics | None, case_meta: dict | None) -> SanityCheck:
-    limit = "<=5% PASS, <=15% WARN"
+    limit = "<=5% PASS, <=15% WARN (Q>0)"
     if metrics is None or not case_meta or not case_meta.get("inlet_area_m2"):
         return SanityCheck("inlet_bookkeeping", SKIP, None, limit, "missing metrics or inlet_area_m2")
+    if metrics.flow_m3s <= 0:
+        # On reversed flow the inlet becomes an outflow boundary: its totalPressure BC
+        # then sets static p = p0 there, so the expected -1/2 rho (Q/A)^2 inflow formula
+        # doesn't apply (this gave false FAILs of 99-29000% before the guard).
+        return SanityCheck("inlet_bookkeeping", SKIP, None, limit, "Q<=0, check only applies to forward flow")
     a_in = float(case_meta["inlet_area_m2"])
     q = metrics.flow_m3s
     expected_pa = -0.5 * RHO_AIR * (q / a_in) ** 2
@@ -255,10 +266,11 @@ def _check_inlet_bookkeeping(metrics: FanMetrics | None, case_meta: dict | None)
 
 _NON_ORTHO_RE = re.compile(r"non-orthogonality\s+Max:\s*([\d.]+)", re.IGNORECASE)
 _SKEWNESS_RE = re.compile(r"Max skewness\s*=\s*([\d.]+)", re.IGNORECASE)
+_FAILED_COUNT_RE = re.compile(r"Failed\s+(\d+)\s+mesh checks", re.IGNORECASE)
 
 
 def _check_mesh_quality(case_dir: Path) -> SanityCheck:
-    limit = '"Mesh OK." PASS, failed checks FAIL'
+    limit = '"Mesh OK." PASS; skewness-only failures WARN; other failures FAIL'
     path = case_dir / "logs" / "checkMesh.log"
     if not path.exists():
         return SanityCheck("mesh_quality", SKIP, None, limit, "missing logs/checkMesh.log")
@@ -271,12 +283,22 @@ def _check_mesh_quality(case_dir: Path) -> SanityCheck:
     )
     if "Mesh OK." in text:
         return SanityCheck("mesh_quality", PASS, None, limit, detail)
-    failed_line = any(
-        line.strip().startswith("***") and "Failed" in line for line in text.splitlines()
-    )
-    if failed_line:
-        return SanityCheck("mesh_quality", FAIL, None, limit, detail)
-    return SanityCheck("mesh_quality", WARN, None, limit, f"inconclusive checkMesh output; {detail}")
+
+    # Failing checks are reported as "***<description>" lines, e.g.
+    # " ***Max skewness = 4.257074, 1 highly skew faces detected which may impair..."
+    star_lines = [line.strip() for line in text.splitlines() if line.strip().startswith("***")]
+    if not star_lines:
+        return SanityCheck("mesh_quality", WARN, None, limit, f"inconclusive checkMesh output; {detail}")
+
+    count_match = _FAILED_COUNT_RE.search(text)
+    failed_count = int(count_match.group(1)) if count_match else len(star_lines)
+
+    if all("skew" in line.lower() for line in star_lines):
+        note = f"{failed_count} highly skew faces (skewness only); {detail}"
+        return SanityCheck("mesh_quality", WARN, None, limit, note)
+
+    note = f"{failed_count} failed checks: {'; '.join(star_lines)}; {detail}"
+    return SanityCheck("mesh_quality", FAIL, None, limit, note)
 
 
 def _read_yplus_dat(path: Path) -> list[tuple[float, str, float, float, float]]:

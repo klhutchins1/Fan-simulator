@@ -51,18 +51,33 @@ def _write_case_meta(case: Path, **overrides) -> None:
     (case / "constant" / "case_meta.json").write_text(json.dumps(meta), encoding="utf-8")
 
 
-def _write_checkmesh(case: Path, *, ok: bool, failed: bool = False) -> None:
+def _write_checkmesh(case: Path, *, ok: bool, failed: bool = False, mixed: bool = False) -> None:
+    """Real checkMesh output ends with a "Failed N mesh checks." summary; each failing
+    check is its own "***"-prefixed line above it, e.g.:
+        ***Max skewness = 4.257074, 1 highly skew faces detected which may impair ...
+    """
     d = case / "logs"
     d.mkdir(parents=True, exist_ok=True)
     lines = [
         "Checking geometry...",
-        "Mesh non-orthogonality Max: 42.5 average: 12.1",
-        "Max skewness = 1.8 OK.",
+        "    Mesh non-orthogonality Max: 42.5 average: 12.1",
+        "    Max skewness = 1.8 OK.",
     ]
     if ok:
         lines.append("Mesh OK.")
+    elif mixed:
+        lines += [
+            " ***Max skewness = 4.257074, 1 highly skew faces detected which may impair the "
+            "quality of the results",
+            " ***Number of severely non-orthogonal (> 70 degrees) faces: 12.",
+            "Failed 2 mesh checks.",
+        ]
     elif failed:
-        lines.append("***Failed 1 mesh checks.")
+        lines += [
+            " ***Max skewness = 4.257074, 1 highly skew faces detected which may impair the "
+            "quality of the results",
+            "Failed 1 mesh checks.",
+        ]
     (d / "checkMesh.log").write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -89,6 +104,7 @@ def _build_full_case(
     tip_radius_m: float = 0.05,
     mesh_ok: bool = True,
     mesh_failed: bool = False,
+    mesh_mixed: bool = False,
     yplus_avg: float = 45.0,
     n_rows: int = 20,
 ) -> Path:
@@ -108,7 +124,7 @@ def _build_full_case(
     _write_pp(case, "forces", "force.dat",
                "".join(f"{i} 0 0 {thrust_z} 0 0 {thrust_z} 0 0 0\n" for i in range(n_rows)))
     _write_case_meta(case, duct_shape=duct_shape, tip_radius_m=tip_radius_m)
-    _write_checkmesh(case, ok=mesh_ok, failed=mesh_failed)
+    _write_checkmesh(case, ok=mesh_ok, failed=mesh_failed, mixed=mesh_mixed)
     _write_yplus(case, avg=yplus_avg)
     return case
 
@@ -186,6 +202,15 @@ def test_energy_total_skip_missing_case_meta(tmp_path):
     assert c.status == SKIP
 
 
+def test_energy_total_skip_when_q_leq_0(tmp_path):
+    # Reversed flow: the inlet becomes an outflow boundary whose totalPressure BC sets
+    # static p = p0 there, so the forward-flow efficiency formula doesn't apply.
+    case = _build_full_case(tmp_path, q=-0.01, q_in_sign_ok=False)
+    c = _by_name(run_sanity(case), "energy_total")
+    assert c.status == SKIP
+    assert "Q<=0" in c.note
+
+
 # --- power_sign ---
 
 def test_power_sign_pass(tmp_path):
@@ -258,6 +283,15 @@ def test_inlet_bookkeeping_skip_missing_area(tmp_path):
     assert c.status == SKIP
 
 
+def test_inlet_bookkeeping_skip_when_q_leq_0(tmp_path):
+    # Same reversed-flow argument as energy_total: the inflow static-pressure formula
+    # doesn't apply once the inlet is acting as an outflow boundary.
+    case = _build_full_case(tmp_path, q=-0.01, q_in_sign_ok=False)
+    c = _by_name(run_sanity(case), "inlet_bookkeeping")
+    assert c.status == SKIP
+    assert "Q<=0" in c.note
+
+
 # --- mesh_quality ---
 
 def test_mesh_quality_pass(tmp_path):
@@ -267,10 +301,23 @@ def test_mesh_quality_pass(tmp_path):
     assert "42.5" in c.note and "1.8" in c.note
 
 
-def test_mesh_quality_fail(tmp_path):
+def test_mesh_quality_warn_skewness_only(tmp_path):
+    # Real checkMesh output: a single "***"-prefixed skewness failure line and
+    # "Failed 1 mesh checks." -> not a hard FAIL, just a skewness WARN.
     case = _build_full_case(tmp_path, mesh_ok=False, mesh_failed=True)
     c = _by_name(run_sanity(case), "mesh_quality")
+    assert c.status == WARN
+    assert "1 highly skew faces" in c.note
+    assert "skewness only" in c.note
+
+
+def test_mesh_quality_fail_on_non_skewness_failure(tmp_path):
+    # A mix of a skewness line and a non-orthogonality line -> real geometry problem, FAIL.
+    case = _build_full_case(tmp_path, mesh_ok=False, mesh_mixed=True)
+    c = _by_name(run_sanity(case), "mesh_quality")
     assert c.status == FAIL
+    assert "2 failed checks" in c.note
+    assert "severely non-orthogonal" in c.note
 
 
 def test_mesh_quality_skip_missing(tmp_path):
