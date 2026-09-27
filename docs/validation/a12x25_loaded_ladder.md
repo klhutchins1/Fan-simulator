@@ -37,3 +37,17 @@ The remaining shut-off gap (13.7 vs 22.9 Pa), and the free-air drop once the fra
 questions for the next rung (URANS). Rung 3 has **not been run yet**. With the 3× plenum box, a steady
 point already costs about 1 h at 16 procs, so a 10-revolution URANS point is estimated at several hours.
 The rung-3 scope needs a decision (see roadmap §19.6).
+
+## Rung 3 (URANS) — attempted 2026-09-27, stopped
+
+Trimmed scope (box 2×, frame on, points 0 and 10 Pa, 6 revs, maxCo 1.5, 16 procs). The adaptive time
+step settled at ~3.4 µs (limited by the fine blade-surface cells); after 40 min of solving it had covered
+0.0016 s of the 0.18 s needed (<1%), i.e. **~3 days per point**. Stopped as not viable. The partial 0 Pa
+history was sane (sanity checks: power/thrust signs and inlet bookkeeping PASS).
+
+Options if revisited: PIMPLE with outer correctors and maxCo 5–10, 2–3 revolutions, or a coarser
+transient mesh. Parked in favour of the external benchmark and model audits (roadmap §19).
+
+**Also note:** the baseline column above was solved in the default *square* tunnel (open corners around
+the tips; see `docs/validation/cfd_sanity_baseline.md`), while the plenum/frame rungs used a round bore —
+part of the rung-1 improvement may come from the duct shape, not only the plenum.
