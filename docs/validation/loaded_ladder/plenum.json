@@ -1,0 +1,59 @@
+{
+  "rung": "plenum",
+  "config": {
+    "rung": "plenum",
+    "params": "config/problems/a12x25_reference.yaml",
+    "points": [
+      0.0,
+      5.0,
+      10.0,
+      15.0
+    ],
+    "procs": 16,
+    "base_cell": 0.005,
+    "box_scale": 3.0,
+    "tip_gap_mm": 0.5,
+    "plenum_z_mm": 63.088229179382324,
+    "cfd_version": "loaded_ladder_v1",
+    "iters": 1000
+  },
+  "rows": [
+    {
+      "back_pa": 0.0,
+      "cfm": 59.8981309172142,
+      "converged": false,
+      "drift_pct": 5.2,
+      "oscillation_pct": 8.7
+    },
+    {
+      "back_pa": 5.0,
+      "cfm": 27.4164580813182,
+      "converged": false,
+      "drift_pct": 2.1,
+      "oscillation_pct": 5.1
+    },
+    {
+      "back_pa": 10.0,
+      "cfm": 5.09230690696272,
+      "converged": false,
+      "drift_pct": 37.3,
+      "oscillation_pct": 63.7
+    },
+    {
+      "back_pa": 15.0,
+      "cfm": -3.6001850748682798,
+      "converged": false,
+      "drift_pct": 5.5,
+      "oscillation_pct": 23.1
+    }
+  ],
+  "verdict": {
+    "verdict": "INCONCLUSIVE",
+    "shutoff_pa": null,
+    "free_air_cfm": 59.8981309172142,
+    "reasons": [
+      "shut-off could not be computed (insufficient converged points)",
+      "loaded point(s) at back_pa=5, 10 did not converge"
+    ]
+  }
+}

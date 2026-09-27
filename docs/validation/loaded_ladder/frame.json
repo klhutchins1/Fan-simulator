@@ -1,0 +1,59 @@
+{
+  "rung": "frame",
+  "config": {
+    "rung": "frame",
+    "params": "config/problems/a12x25_reference.yaml",
+    "points": [
+      0.0,
+      5.0,
+      10.0,
+      15.0
+    ],
+    "procs": 16,
+    "base_cell": 0.005,
+    "box_scale": 3.0,
+    "tip_gap_mm": 0.5,
+    "plenum_z_mm": 63.088229179382324,
+    "cfd_version": "loaded_ladder_v1",
+    "iters": 1000
+  },
+  "rows": [
+    {
+      "back_pa": 0.0,
+      "cfm": 49.930379209273205,
+      "converged": false,
+      "drift_pct": 10.2,
+      "oscillation_pct": 18.1
+    },
+    {
+      "back_pa": 5.0,
+      "cfm": 31.6501544635428,
+      "converged": true,
+      "drift_pct": 1.1,
+      "oscillation_pct": 5.0
+    },
+    {
+      "back_pa": 10.0,
+      "cfm": 13.476670920031978,
+      "converged": true,
+      "drift_pct": 0.0,
+      "oscillation_pct": 9.6
+    },
+    {
+      "back_pa": 15.0,
+      "cfm": -0.9120567593409,
+      "converged": false,
+      "drift_pct": 74.5,
+      "oscillation_pct": 351.5
+    }
+  ],
+  "verdict": {
+    "verdict": "FAIL",
+    "shutoff_pa": 13.71,
+    "free_air_cfm": 49.930379209273205,
+    "reasons": [
+      "free air 49.9 CFM outside tolerance [54.1, 66.1] CFM (published 60.1)",
+      "shut-off 13.7 Pa outside 22.9 +/- 5 Pa"
+    ]
+  }
+}
