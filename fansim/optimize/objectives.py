@@ -28,6 +28,9 @@ from fansim.cfd.orientation import prepare_axial_cfd
 from fansim.cfd.metrics import parse_fan_metrics
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve
 from fansim.cfd.runner import OpenFOAMRunner
+from fansim.cfd.sanity import FAIL as SANITY_FAIL
+from fansim.cfd.sanity import overall as sanity_overall
+from fansim.cfd.sanity import run_sanity, summarize as summarize_sanity
 from fansim.cfd.stator import export_stator_stl
 from fansim.geometry import build_impeller, export_stl, watertight_report
 from fansim.fan_spec import (
@@ -344,21 +347,34 @@ def evaluate_candidate(
     except Exception as exc:
         return _infeasible(f"mesh failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
-    def solve_at(back_pa: float):
+    # Sanity checks (fansim.cfd.sanity) are report-only: they flag, they never make a design
+    # infeasible. Each solve's postProcessing is wiped by the NEXT solve, so we must run them
+    # here, immediately after parsing that solve's metrics, keyed by which operating point
+    # ("free"/"load") this call is for.
+    sanity_by_label: dict[str, list] = {}
+
+    def solve_at(back_pa: float, label: str | None = None):
         build_case(workdir, stl, rig0, mesh=mesh0,
                    n_iters=iters, n_subdomains=procs, back_pressure_pa=back_pa,
                    frame_stl_mm=frame_path, casing_stl_mm=casing_path,
                    stator_stl_mm=stator_path, wall_ks_mm=wall_ks_mm)
         run_solve(runner, n_procs=procs)
-        return parse_fan_metrics(workdir, omega_rad_s=rig0.omega_rad_s)
+        m = parse_fan_metrics(workdir, omega_rad_s=rig0.omega_rad_s)
+        if label is not None:
+            try:
+                sanity_by_label[label] = run_sanity(
+                    workdir, metrics=m, omega_signed=rig0.omega_signed)
+            except Exception:  # noqa: BLE001 - sanity is report-only, must never break the eval
+                sanity_by_label[label] = []
+        return m
 
     noise_swl = INFEASIBLE_NOISE
     try:
         if with_noise and noise_model == "proudman":
             # Proudman broadband proxy needs the free field on disk: solve LOAD first, FREE last,
             # reconstruct, integrate turbulence over the domain. (Ranks LBM noise POORLY, rho~0.21.)
-            m_load = solve_at(load_pa)
-            m_free = solve_at(0.0)
+            m_load = solve_at(load_pa, "load")
+            m_free = solve_at(0.0, "free")
             try:
                 from fansim.acoustics.case import proudman_swl_from_case
                 runner.run("reconstructPar -latestTime", check=False)
@@ -366,14 +382,32 @@ def evaluate_candidate(
             except Exception:  # noqa: BLE001 - noise read failed -> worst score, won't be selected
                 noise_swl = INFEASIBLE_NOISE
         else:
-            m_free = solve_at(0.0)
-            m_load = solve_at(load_pa)
+            m_free = solve_at(0.0, "free")
+            m_load = solve_at(load_pa, "load")
             if with_noise:  # default: cheap calibrated LOADING proxy (no reconstruct; tracks LBM
                 # dipole better than Proudman -- blade count + per-blade thrust). See acoustics/loading.
                 from fansim.acoustics.loading import loading_proxy_from_rans
                 noise_swl = float(loading_proxy_from_rans(params.n_blades, m_free.thrust_n))
     except Exception as exc:
         return _infeasible(f"solve failed: {type(exc).__name__}", t0, raw=gap_raw)
+
+    # Sanity: flag-only. A FAIL is stamped into raw/reason for visibility but never rejects
+    # the design (user decision, .superpowers/sdd/constraints-sanity.md).
+    sanity_checks_all = [
+        *sanity_by_label.get("free", []),
+        *sanity_by_label.get("load", []),
+    ]
+    sanity_status = sanity_overall(sanity_checks_all) if sanity_checks_all else "SKIP"
+    sanity_dicts = [
+        {"phase": phase, **asdict(c)}
+        for phase, checks in sanity_by_label.items()
+        for c in checks
+    ]
+    gap_raw["sanity"] = sanity_dicts
+    gap_raw["sanity_status"] = sanity_status
+    sanity_note = ""
+    if sanity_status == SANITY_FAIL:
+        sanity_note = summarize_sanity(sanity_checks_all)
 
     # Flag under-converged solves: near the stall operating point the steady RANS may not
     # settle within the iteration budget, making the number untrustworthy (see the
@@ -465,6 +499,8 @@ def evaluate_candidate(
             f"UNCONVERGED (free mean shift {m_free.flow_drift_pct:.1f}%, "
             f"osc {m_free.oscillation_pct:.1f}%; load mean shift {m_load.flow_drift_pct:.1f}%, "
             f"osc {m_load.oscillation_pct:.1f}%)")
+    if sanity_note:
+        conv_note += ("  " if conv_note else "") + sanity_note
 
     # Sim→print knockdown (§7.6): report printed CFM/η from smooth-wall (or ks) RANS.
     tip_t = tip_section_thickness(params)

@@ -23,6 +23,7 @@ import json
 import math
 import sys
 import time
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +44,7 @@ from fansim.cfd.openfoam_case import (  # noqa: E402
 )
 from fansim.cfd.orientation import prepare_axial_cfd  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
+from fansim.cfd.sanity import overall as sanity_overall, run_sanity  # noqa: E402
 from fansim.geometry.blade import min_blade_wall_mm  # noqa: E402
 from fansim.geometry.config import load_blade_params  # noqa: E402
 from fansim.validation.loaded_ladder import (  # noqa: E402
@@ -222,12 +224,15 @@ def run_ladder(args: argparse.Namespace) -> int:
         else:
             run_solve(runner, n_procs=procs)
         m = parse_fan_metrics(out, omega_rad_s=rig.omega_rad_s)
+        sanity_checks = run_sanity(out, metrics=m, omega_signed=rig.omega_signed)
         return {
             "back_pa": back_pa,
             "cfm": m.cfm,
             "converged": m.converged,
             "drift_pct": round(m.flow_drift_pct, 1),
             "oscillation_pct": round(m.oscillation_pct, 1),
+            "sanity": [asdict(c) for c in sanity_checks],
+            "sanity_status": sanity_overall(sanity_checks),
         }
 
     for b in points:

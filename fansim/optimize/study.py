@@ -219,6 +219,9 @@ def run_study(
         trial.set_user_attr("cfd_version", CFD_VERSION)  # so stale (pre-fix) scores are detectable
         if with_noise:
             trial.set_user_attr("noise_swl", result.noise_swl)
+        if "sanity_status" in result.raw:
+            trial.set_user_attr("sanity_status", result.raw["sanity_status"])
+            trial.set_user_attr("sanity", result.raw.get("sanity", []))
         if result.raw:
             (workdir / "result.json").write_text(
                 json.dumps(result.to_dict(), indent=2), encoding="utf-8")

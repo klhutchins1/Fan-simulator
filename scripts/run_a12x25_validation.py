@@ -38,6 +38,7 @@ from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve  # noqa: E402
 from fansim.cfd.orientation import prepare_axial_cfd  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
+from fansim.cfd.sanity import overall as sanity_overall, run_sanity  # noqa: E402
 from fansim.cfd.wall_roughness import FDM_WALL_KS_MM  # noqa: E402
 from fansim.geometry import build_impeller, export_stl  # noqa: E402
 from fansim.geometry.blade import min_blade_wall_mm  # noqa: E402
@@ -464,6 +465,7 @@ def run_pq_sweep(
         t = time.time()
         run_solve(runner, n_procs=n_procs)
         m = parse_fan_metrics(out, omega_rad_s=rig.omega_rad_s)
+        sanity_checks = run_sanity(out, metrics=m, omega_signed=rig.omega_signed)
         rows.append({
             "back_pa": b,
             "cfm": m.cfm,
@@ -475,6 +477,8 @@ def run_pq_sweep(
             "with_frame": with_frame,
             "wall_ks_mm": float(wall_ks_mm) if wall_ks_mm is not None else 0.0,
             "add_layers": bool(add_layers),
+            "sanity": [asdict(c) for c in sanity_checks],
+            "sanity_status": sanity_overall(sanity_checks),
         })
         print(
             f"  back={b:5.1f} Pa -> {m.cfm:6.1f} CFM  "

@@ -79,3 +79,9 @@ units:
     claim: "Optimizer bounds keep stagger > 0 and camber >= 0, so every axial design has Stock handedness"
     source: {kind: derivation, ref: "Audit #1: fixed CFD orientation is valid only without mirrored designs"}
     checks: [tests/audit/test_search_space_handedness.py]
+
+  - id: cfd.sanity_checks
+    targets: ["fansim.cfd.sanity"]
+    claim: "Cheap physics/setup invariants on every fan CFD result"
+    source: {kind: derivation, ref: "mass/energy conservation; Euler turbomachinery power sign; AMCA inlet bookkeeping"}
+    checks: [tests/test_cfd_sanity.py]

@@ -29,6 +29,7 @@ from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve  # noqa: E402
 from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
+from fansim.cfd.sanity import overall as sanity_overall, run_sanity  # noqa: E402
 from fansim.validation.reference_stl import rig_for_reference_stl  # noqa: E402
 
 import math
@@ -64,9 +65,11 @@ def stl_hash_mismatch(src: Path, geom: dict) -> str | None:
     return None
 
 
-def _rows_to_json(rows: list[MatrixRow]) -> list[dict]:
-    return [
-        {
+def _rows_to_json(rows: list[MatrixRow], sanity_rows: list[dict] | None = None) -> list[dict]:
+    sanity_rows = sanity_rows or []
+    out_rows = []
+    for i, r in enumerate(rows):
+        d = {
             "orientation": r.orientation,
             "spin": r.spin,
             "cfm": _none_for_nan(r.cfm),
@@ -75,8 +78,12 @@ def _rows_to_json(rows: list[MatrixRow]) -> list[dict]:
             "moment_z_nm": _none_for_nan(r.moment_z_nm),
             "omega_signed": r.omega_signed,
         }
-        for r in rows
-    ]
+        if i < len(sanity_rows):
+            d.update(sanity_rows[i])
+        else:
+            d["sanity"], d["sanity_status"] = [], "SKIP"
+        out_rows.append(d)
+    return out_rows
 
 
 def _rows_from_json(raw_rows: list[dict]) -> list[MatrixRow]:
@@ -93,12 +100,13 @@ def _rows_from_json(raw_rows: list[dict]) -> list[MatrixRow]:
 
 
 def _write_payload(out: Path, rotor: str, rpm: float, iters: int, mesh_res, rows: list[MatrixRow],
-                   errors: list[str], geometry: dict, verdict: dict) -> None:
+                   errors: list[str], geometry: dict, verdict: dict,
+                   sanity_rows: list[dict] | None = None) -> None:
     """Write partial results to JSON with NaN converted to None."""
     payload = {
         "rotor": rotor, "rpm": rpm, "iters": iters,
         "mesh": asdict(mesh_res),
-        "rows": _rows_to_json(rows),
+        "rows": _rows_to_json(rows, sanity_rows),
         "errors": errors,
         "geometry": geometry,
         "verdict": verdict,
@@ -178,6 +186,7 @@ def main(argv: list[str] | None = None) -> int:
             ROOT / "config" / "problems" / "a12x25_reference.yaml"))
     mesh_res = MeshResolution.for_blade(float(args.base_cell), float(min_wall))
     rows: list[MatrixRow] = []
+    sanity_rows: list[dict] = []
     errors: list[str] = []
     for orientation in ("as_built", "flipped"):
         case = base / orientation
@@ -202,9 +211,11 @@ def main(argv: list[str] | None = None) -> int:
             for spin in (-1, 1):
                 rows.append(MatrixRow(orientation, spin, float("nan"), False, float("nan"),
                                     float("nan"), omega_rad_s * spin))
+                sanity_rows.append({"sanity": [], "sanity_status": "SKIP"})
                 verdict = matrix_verdict(rows, geometry_omega=geom.get("omega_sign"),
                                        geometry_pump=geom.get("pump_sign"))
-                _write_payload(out, args.rotor, args.rpm, args.iters, mesh_res, rows, errors, geom, verdict)
+                _write_payload(out, args.rotor, args.rpm, args.iters, mesh_res, rows, errors, geom,
+                               verdict, sanity_rows)
             continue
         for spin in (-1, 1):
             try:
@@ -214,6 +225,11 @@ def main(argv: list[str] | None = None) -> int:
                 t0 = time.time()
                 run_solve(runner, n_procs=args.procs)
                 m = parse_fan_metrics(case, omega_rad_s=rig.omega_rad_s)
+                sanity_checks = run_sanity(case, metrics=m, omega_signed=rig.omega_signed)
+                sanity_rows.append({
+                    "sanity": [asdict(c) for c in sanity_checks],
+                    "sanity_status": sanity_overall(sanity_checks),
+                })
                 row = MatrixRow(orientation, spin, m.cfm, m.converged, m.shaft_power_w,
                                 m.moment_z_nm, rig.omega_signed)
                 rows.append(row)
@@ -227,9 +243,11 @@ def main(argv: list[str] | None = None) -> int:
                 print(msg, flush=True)
                 rows.append(MatrixRow(orientation, spin, float("nan"), False, float("nan"),
                                     float("nan"), rig0.omega_rad_s * spin))
+                sanity_rows.append({"sanity": [], "sanity_status": "SKIP"})
             verdict = matrix_verdict(rows, geometry_omega=geom.get("omega_sign"),
                                    geometry_pump=geom.get("pump_sign"))
-            _write_payload(out, args.rotor, args.rpm, args.iters, mesh_res, rows, errors, geom, verdict)
+            _write_payload(out, args.rotor, args.rpm, args.iters, mesh_res, rows, errors, geom,
+                           verdict, sanity_rows)
     print(f"\nVERDICT {verdict['verdict']}: {verdict}\n-> {out}", flush=True)
     return 3 if errors else 0
 
