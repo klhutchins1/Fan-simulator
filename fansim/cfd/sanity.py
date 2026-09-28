@@ -340,7 +340,10 @@ def _read_yplus_dat(path: Path) -> list[tuple[float, str, float, float, float]]:
 
 
 def _check_y_plus(case_dir: Path) -> SanityCheck:
-    limit = "30-300"
+    # k-omega SST with the omega wall function blends viscous-sublayer and log-law behaviour:
+    # y+ <= 5 (resolved wall, e.g. prism layers) and 30-300 (log-law) are both valid; the buffer
+    # region 5-30 and y+ > 300 are where the wall treatment is least trustworthy.
+    limit = "<=5 or 30-300"
     try:
         path = _pp_file(case_dir, "yPlus", "yPlus.dat")
     except FileNotFoundError:
@@ -353,8 +356,12 @@ def _check_y_plus(case_dir: Path) -> SanityCheck:
     if not impeller_rows:
         return SanityCheck("y_plus", SKIP, None, limit, "no impeller rows in yPlus.dat")
     avg = impeller_rows[-1][4]
-    status = PASS if 30.0 <= avg <= 300.0 else WARN
-    note = f"y+ avg={avg:.2f} (min={impeller_rows[-1][2]:.2f} max={impeller_rows[-1][3]:.2f})"
+    resolved = avg <= 5.0
+    log_law = 30.0 <= avg <= 300.0
+    status = PASS if (resolved or log_law) else WARN
+    regime = "resolved" if resolved else ("log-law" if log_law else "buffer/over-range")
+    note = (f"y+ avg={avg:.2f} ({regime}; min={impeller_rows[-1][2]:.2f} "
+            f"max={impeller_rows[-1][3]:.2f})")
     return SanityCheck("y_plus", status, avg, limit, note)
 
 

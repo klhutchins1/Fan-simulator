@@ -336,8 +336,15 @@ def test_y_plus_pass(tmp_path):
     assert c.value == pytest.approx(45.0)
 
 
-def test_y_plus_warn(tmp_path):
-    case = _build_full_case(tmp_path, yplus_avg=4.1)
+def test_y_plus_resolved_wall_passes(tmp_path):
+    case = _build_full_case(tmp_path, yplus_avg=1.8)  # prism layers resolve the sublayer
+    c = _by_name(run_sanity(case), "y_plus")
+    assert c.status == PASS and "resolved" in c.note
+
+
+@pytest.mark.parametrize("avg", [12.0, 450.0])  # buffer region / over the log-law range
+def test_y_plus_warn(tmp_path, avg):
+    case = _build_full_case(tmp_path, yplus_avg=avg)
     c = _by_name(run_sanity(case), "y_plus")
     assert c.status == WARN
 
