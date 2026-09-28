@@ -68,6 +68,69 @@ def estimate_urans_wall_s(*, sim_s_per_wall_s: float, revs: float, rpm: float) -
     return sim_time_s / float(sim_s_per_wall_s)
 
 
+def read_fo_time_column(
+    case_dir: str | Path, fo_name: str = "outletFlow", filename: str = "surfaceFieldValue.dat",
+) -> list[float]:
+    """Time column of a postProcessing function-object .dat file (newest time-dir instance).
+
+    Mirrors :func:`fansim.cfd.metrics._pp_file`'s file-finding without importing the metrics
+    module, so timing stays independent of a solved case's metrics being parseable. Returns
+    ``[]`` when the file is missing (no completed run yet).
+    """
+    case_dir = Path(case_dir)
+    candidates = sorted((case_dir / "postProcessing" / fo_name).glob(f"*/{filename}"))
+    if not candidates:
+        return []
+    path = candidates[-1]
+    times: list[float] = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.replace("(", " ").replace(")", " ").split()
+        try:
+            times.append(float(parts[0]))
+        except (ValueError, IndexError):
+            continue
+    return times
+
+
+def mean_time_step(times: list[float]) -> float:
+    """Mean dt from a monotonically increasing time column; 0.0 if fewer than 2 samples."""
+    if len(times) < 2:
+        return 0.0
+    diffs = [b - a for a, b in zip(times, times[1:])]
+    return sum(diffs) / len(diffs)
+
+
+def urans_pilot_estimate(
+    *, pilot_end_time: float, wall_s: float, revs: float, rpm: float, n_points: int,
+    margin: float = 1.2,
+) -> dict:
+    """ETA payload for a URANS pilot: sim-time rate -> per-point and total wall estimates.
+
+    ``pilot_end_time`` (simulated seconds) advanced in ``wall_s`` wall-clock seconds gives the
+    achieved simulated-seconds-per-wall-second rate; :func:`estimate_urans_wall_s` turns that
+    into the wall time for ``revs`` revolutions at ``rpm``, padded by ``margin`` for per-point
+    overhead (mesh/BC setup, potentialFoam seeding) the short pilot under-samples.
+    """
+    sim_s_per_wall_s = pilot_end_time / wall_s if wall_s > 0 else 0.0
+    if sim_s_per_wall_s > 0:
+        per_point_s = margin * estimate_urans_wall_s(
+            sim_s_per_wall_s=sim_s_per_wall_s, revs=revs, rpm=rpm)
+    else:
+        per_point_s = 0.0
+    total_s = per_point_s * max(1, int(n_points))
+    return {
+        "sim_s_per_wall_s": sim_s_per_wall_s,
+        "margin": margin,
+        "estimated_per_point_s": per_point_s,
+        "estimated_per_point_eta": format_eta(per_point_s),
+        "estimated_total_s": total_s,
+        "estimated_total_eta": format_eta(total_s),
+    }
+
+
 def format_eta(seconds: float) -> str:
     """Human-readable ETA, e.g. ``"3 h 20 min"``, ``"45 min"``, or ``"12 s"``."""
     seconds = max(0.0, float(seconds))

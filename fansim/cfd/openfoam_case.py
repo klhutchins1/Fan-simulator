@@ -741,6 +741,56 @@ def apply_des_transient(
     return case_dir
 
 
+_PIMPLE_BLOCK = (
+    "PIMPLE\n"
+    "{\n"
+    "    nOuterCorrectors 1;\n"
+    "    nCorrectors     2;\n"
+    "    nNonOrthogonalCorrectors 1;\n"
+    "}\n"
+)
+
+
+def _pimple_block_with_outer_correctors(n_outer: int) -> str:
+    """PIMPLE block with ``n_outer`` outer correctors, residual control and under-relaxation.
+
+    Lets ``apply_urans_transient`` run at larger Courant numbers than the single-pass
+    (``nOuterCorrectors 1``, PISO-like) default by iterating the outer PIMPLE loop to
+    convergence each time step -- ``outerCorrectorResidualControl`` stops the loop early
+    once p/U/k/omega residuals fall below 1e-3, and ``relaxationFactors`` stabilizes the
+    now-iterated equations the way a steady SIMPLE solve would.
+    """
+    return (
+        "PIMPLE\n"
+        "{\n"
+        f"    nOuterCorrectors {n_outer};\n"
+        "    nCorrectors     2;\n"
+        "    nNonOrthogonalCorrectors 1;\n"
+        "    outerCorrectorResidualControl\n"
+        "    {\n"
+        "        p { tolerance 1e-3; relTol 0; }\n"
+        "        U { tolerance 1e-3; relTol 0; }\n"
+        "        k { tolerance 1e-3; relTol 0; }\n"
+        "        omega { tolerance 1e-3; relTol 0; }\n"
+        "    }\n"
+        "}\n"
+        "\n"
+        "relaxationFactors\n"
+        "{\n"
+        "    equations\n"
+        "    {\n"
+        '        ".*"      0.7;\n'
+        '        ".*Final" 1;\n'
+        "    }\n"
+        "    fields\n"
+        "    {\n"
+        "        p      0.3;\n"
+        "        pFinal 1;\n"
+        "    }\n"
+        "}\n"
+    )
+
+
 def apply_urans_transient(
     case_dir: str | Path,
     *,
@@ -748,6 +798,7 @@ def apply_urans_transient(
     delta_t: float = 1e-5,
     max_co: float = 1.5,
     fo_interval: int = 1,
+    n_outer: int = 1,
 ) -> Path:
     """Overlay frozen-rotor URANS (pimpleFoam) on an existing steady-RAS case.
 
@@ -755,6 +806,11 @@ def apply_urans_transient(
     (forces, outletFlow, inletP, outletP) as the steady case, but switches the
     application to pimpleFoam with an adjustable time step. Does not remesh and
     leaves ``constant/turbulenceProperties`` as the steady RAS file build_case wrote.
+
+    ``n_outer`` (default 1, byte-identical to the original single-pass PIMPLE block) sets
+    ``nOuterCorrectors``; values > 1 add ``outerCorrectorResidualControl`` and
+    ``relaxationFactors`` (see :func:`_pimple_block_with_outer_correctors`) so the outer
+    loop can absorb a larger ``max_co`` than a single-pass PISO-like step would tolerate.
     """
     case_dir = Path(case_dir)
 
@@ -790,7 +846,12 @@ def apply_urans_transient(
     (case_dir / "system/controlDict").write_text(cd, encoding="utf-8")
 
     _write(case_dir / "system/fvSchemes", T.DES_FV_SCHEMES, "dictionary", "fvSchemes", {})
-    _write(case_dir / "system/fvSolution", T.DES_FV_SOLUTION, "dictionary", "fvSolution", {})
+
+    sol = T.render(T.DES_FV_SOLUTION, {"HEADER": _header("dictionary", "fvSolution")})
+    if n_outer > 1:
+        assert sol.count(_PIMPLE_BLOCK) == 1, "expected exactly one steady PIMPLE block"
+        sol = sol.replace(_PIMPLE_BLOCK, _pimple_block_with_outer_correctors(n_outer), 1)
+    (case_dir / "system/fvSolution").write_text(sol, encoding="utf-8")
 
     return case_dir
 

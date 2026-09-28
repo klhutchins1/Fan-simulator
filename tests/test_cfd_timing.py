@@ -6,6 +6,7 @@ See ``.superpowers/sdd/ring-duct-brief.md`` Part B.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -14,8 +15,11 @@ from fansim.cfd.timing import (
     estimate_run,
     estimate_urans_wall_s,
     format_eta,
+    mean_time_step,
     mesh_cells,
     pilot_iters,
+    read_fo_time_column,
+    urans_pilot_estimate,
     write_pilot_json,
 )
 
@@ -120,3 +124,59 @@ def test_write_pilot_json_creates_parent_dirs(tmp_path):
     out = tmp_path / "nested" / "dir" / "pilot.json"
     write_pilot_json(out, cells=None, mesh_s=1.0, sec_per_iter=1.0, iters=10, points=1)
     assert out.exists()
+
+
+# --- URANS pilot: synthetic outletFlow time column ------------------------------------
+
+
+def _write_outlet_flow_times(case: Path, times: list[float]) -> None:
+    d = case / "postProcessing" / "outletFlow" / "0"
+    d.mkdir(parents=True, exist_ok=True)
+    lines = "\n".join(f"{t}  0.02645" for t in times) + "\n"
+    (d / "surfaceFieldValue.dat").write_text("# header\n" + lines, encoding="utf-8")
+
+
+def test_read_fo_time_column_parses_time_column(tmp_path):
+    case = tmp_path / "case"
+    times = [0.0, 1e-5, 2e-5, 3.5e-5, 5e-5]
+    _write_outlet_flow_times(case, times)
+    got = read_fo_time_column(case)
+    assert got == pytest.approx(times)
+
+
+def test_read_fo_time_column_missing_file_returns_empty(tmp_path):
+    assert read_fo_time_column(tmp_path / "nope") == []
+
+
+def test_mean_time_step_from_column():
+    assert mean_time_step([0.0, 1e-5, 2e-5, 3e-5]) == pytest.approx(1e-5)
+    assert mean_time_step([0.0, 1e-5, 3e-5]) == pytest.approx(1.5e-5)
+
+
+def test_mean_time_step_fewer_than_two_samples_is_zero():
+    assert mean_time_step([]) == 0.0
+    assert mean_time_step([1.0]) == 0.0
+
+
+def test_urans_pilot_estimate_arithmetic():
+    # Pilot advanced 0.01 simulated s in 100 wall s -> rate 1e-4 sim-s/wall-s.
+    # Full run: 4 revs at 1486 rpm -> sim_time = 4*60/1486 = 0.16151...s
+    # per_point_s (pre-margin) = sim_time / rate = 0.16151.../1e-4 = 1615.1...s
+    got = urans_pilot_estimate(
+        pilot_end_time=0.01, wall_s=100.0, revs=4, rpm=1486.0, n_points=3, margin=1.2)
+    sim_time_s = 4 * 60.0 / 1486.0
+    rate = 0.01 / 100.0
+    expected_per_point = 1.2 * (sim_time_s / rate)
+    assert got["sim_s_per_wall_s"] == pytest.approx(rate)
+    assert got["estimated_per_point_s"] == pytest.approx(expected_per_point)
+    assert got["estimated_total_s"] == pytest.approx(expected_per_point * 3)
+    assert got["estimated_per_point_eta"] == format_eta(expected_per_point)
+    assert got["estimated_total_eta"] == format_eta(expected_per_point * 3)
+
+
+def test_urans_pilot_estimate_zero_wall_time_is_zero_estimate():
+    got = urans_pilot_estimate(
+        pilot_end_time=0.01, wall_s=0.0, revs=4, rpm=1486.0, n_points=3)
+    assert got["sim_s_per_wall_s"] == 0.0
+    assert got["estimated_per_point_s"] == 0.0
+    assert got["estimated_total_s"] == 0.0
