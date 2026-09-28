@@ -1,5 +1,25 @@
 # NF-A12x25 reference P–Q validation report
 
+## 2026-09-27 domain fixes (CFD_VERSION 5) — free-air gate results
+
+The v3 numbers below were solved in the default **square slip-wall tunnel**, whose open corners let air
+bypass the blade tips (the nominal 0.5 mm gap existed at four points only). With the tip gap made real:
+
+| domain (Stock, 2000 rpm, 0 Pa) | free-air CFM | vs 60.1 | sanity |
+|---|---|---|---|
+| v3 square tunnel (open corners) | 58.7 | −2% | duct_shape WARN |
+| v4 full-length noSlip round duct | 39.6 | −34% | pipe friction, not free air |
+| v5 short sealed 25 mm ring | 80.4 | +34% | mass/energy/power/thrust PASS |
+| **v5 ring + four-bar frame** | **73.1** | **+22%** | mass/energy/power/thrust/inlet PASS; y+ avg 5 WARN |
+
+**Reading:** the v3 −2% agreement was largely two errors cancelling (tip leakage through the open corners
+vs. the missing frame). With the gap sealed and the frame included, steady RANS on the Stock recipe
+**over-predicts free air by ~22%**. Candidate causes: blade-recipe fidelity (the Stock recipe and close-ref
+STL are approximations, not OEM geometry), wall resolution (y+ ≈ 5 sits in the wall-function buffer
+region), and frame/hub representation. The loaded P–Q was not re-run (free-air gate outside 50–70 CFM).
+Next: an external benchmark fan with published geometry and measured P–Q to separate method error from
+geometry error.
+
 ## 2026-09 direction fix (CFD_VERSION 3) — current numbers
 
 **Everything below this section was solved with the rotor spinning backwards** (Audit #1,
