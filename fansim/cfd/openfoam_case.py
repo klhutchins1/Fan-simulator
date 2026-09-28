@@ -296,16 +296,18 @@ def _write_case_meta(
     square slip-wall tunnel). ``ring_length_mm`` is recorded only for ``duct_shape=="ring"``.
     """
     has_casing = casing_mesh is not None
+    # The bore is the inlet patch only when the casing reaches the inlet face; a short ring (or any
+    # casing starting downstream) leaves the full square box face as the inlet.
+    casing_at_inlet = False
     plenum = False
     if has_casing:
+        casing_z_min = float(casing_mesh.bounds[0, 2])
         casing_z_max = float(casing_mesh.bounds[1, 2])
-        plenum = casing_z_max < rig.domain_z_max - _PLENUM_TOL_M
+        casing_at_inlet = casing_z_min <= rig.domain_z_min + _PLENUM_TOL_M
+        plenum = casing_at_inlet and casing_z_max < rig.domain_z_max - _PLENUM_TOL_M
 
-    if has_casing:
-        inlet_area = math.pi * rig.duct_radius ** 2
-        outlet_area = (2.0 * H) ** 2
-    else:
-        inlet_area = outlet_area = (2.0 * H) ** 2
+    outlet_area = (2.0 * H) ** 2
+    inlet_area = math.pi * rig.duct_radius ** 2 if casing_at_inlet else outlet_area
 
     meta = {
         "duct_shape": duct_shape,

@@ -112,6 +112,20 @@ def _infer_box_half_width_and_zmax(case_dir: Path) -> tuple[float, float] | None
     return h, z_max
 
 
+def _infer_domain_z_min(case_dir: Path) -> float | None:
+    """Domain z_min from the first 8 blockMeshDict vertices (None if unreadable)."""
+    path = case_dir / "system" / "blockMeshDict"
+    if not path.exists():
+        return None
+    text = path.read_text(encoding="utf-8", errors="replace")
+    m = re.search(r"vertices\s*\(", text)
+    matches = _VERTEX_RE.findall(text[m.end():]) if m else []
+    try:
+        return min(float(z) for _, _, z in matches[:8]) if len(matches) >= 8 else None
+    except ValueError:
+        return None
+
+
 def _load_mesh(path: Path) -> "trimesh.Trimesh | None":
     if not path.exists():
         return None
@@ -162,10 +176,15 @@ def _infer_case_meta(case_dir: Path) -> dict | None:
     outlet_area = (2.0 * h) ** 2
 
     if has_casing:
-        r_bore = _infer_bore_radius_m(casing_mesh)
-        inlet_area = math.pi * r_bore ** 2 if r_bore is not None else None
-        casing_z_max = float(np.asarray(casing_mesh.vertices)[:, 2].max())
-        plenum = casing_z_max < domain_z_max - _PLENUM_TOL_M
+        # The bore is the inlet only if the casing reaches the inlet face; a short ring leaves
+        # the full box face as the inlet.
+        z_verts = np.asarray(casing_mesh.vertices)[:, 2]
+        domain_z_min = _infer_domain_z_min(case_dir)
+        at_inlet = domain_z_min is None or float(z_verts.min()) <= domain_z_min + _PLENUM_TOL_M
+        r_bore = _infer_bore_radius_m(casing_mesh) if at_inlet else None
+        inlet_area = (math.pi * r_bore ** 2 if r_bore is not None else None) if at_inlet             else outlet_area
+        casing_z_max = float(z_verts.max())
+        plenum = at_inlet and casing_z_max < domain_z_max - _PLENUM_TOL_M
     else:
         inlet_area = outlet_area
         plenum = False

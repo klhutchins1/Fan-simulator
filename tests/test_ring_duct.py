@@ -211,3 +211,25 @@ def test_sanity_duct_shape_square_is_warn(tmp_path):
     checks = run_sanity(case, omega_signed=-200.0)
     c = next(c for c in checks if c.name == "duct_shape")
     assert c.status == WARN
+
+
+def test_ring_case_meta_inlet_is_full_box_face_and_not_plenum(tmp_path):
+    """A short ring doesn't reach the inlet face: inlet area is (2H)^2 and it isn't a plenum."""
+    import json
+
+    import trimesh as _tm
+
+    from fansim.cfd.domain import TestRig as _R
+    from fansim.cfd.openfoam_case import BOX_SCALE, build_case
+
+    rig = _R(duct_radius=0.055, tip_gap=0.0005, inlet_length=0.22, outlet_length=0.44,
+             impeller_z_min=-0.008, impeller_z_max=0.008, mrf_z_min=-0.01, mrf_z_max=0.01,
+             rpm=2000.0, inlet_velocity=2.0)
+    stl = tmp_path / "r.stl"
+    _tm.creation.box(extents=(20.0, 20.0, 10.0)).export(str(stl))
+    case = build_case(tmp_path / "case", stl, rig, back_pressure_pa=0.0)
+    meta = json.loads((case / "constant/case_meta.json").read_text(encoding="utf-8"))
+    h = BOX_SCALE * rig.duct_radius
+    assert meta["duct_shape"] == "ring"
+    assert meta["plenum"] is False
+    assert abs(meta["inlet_area_m2"] - (2 * h) ** 2) < 1e-9
