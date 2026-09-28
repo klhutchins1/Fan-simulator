@@ -42,10 +42,8 @@ from fansim.validation.fan01 import (  # noqa: E402
 )
 
 DEFAULT_POINTS = "7,64,126,135,205,253"
-DEFAULT_MIN_WALL_MM = 3.0  # not measured from the STL (would need a chord-normal thickness
-# probe via a cylinder cut at r=185mm, per the brief's fallback) -- pass --min-wall-mm if a
-# measured value is available; 3.0 mm is a conservative placeholder for a fan this size (~4x
-# the Noctua a12x25).
+DEFAULT_MIN_WALL_MM = 4.0  # measured 2026-09-28: chord-binned section thickness via cylinder cuts
+# (median 7.1 mm at r=140, 5.4 at r=185, 4.7 at r=230; thinner toward LE/TE) -> 4.0 mm for mesh sizing.
 RING_LENGTH_MM = 201.0  # rig casing sleeve: 96.5mm upstream + 104.5mm downstream of rotor mid
 RING_CENTER_OFFSET_MM = (104.5 - 96.5) / 2.0  # +4mm downstream of the rotor mid-plane
 OUT_JSON = Path("docs/validation/fan01/fan01_cfd.json")
