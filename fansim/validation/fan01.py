@@ -31,7 +31,9 @@ through the origin with the rotor's axial mid-plane at z=0 -- the repo's STL con
 
 from __future__ import annotations
 
+import csv
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 
 import networkx as nx
@@ -39,9 +41,17 @@ import numpy as np
 import trimesh
 from scipy.spatial import cKDTree
 
+from fansim.audit.direction import prove_direction
+from fansim.cfd.domain import MM_TO_M, TestRig
+from fansim.cfd.orientation import orientation_from_proof
+
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_IGS = ROOT / "validation" / "reference" / "fan01" / "cad_model" / "cad_model.igs"
 DEFAULT_OUT_STL = ROOT / "validation" / "reference" / "fan01" / "fan01_rotor.stl"
+DEFAULT_CHARACTERISTIC_CSV = ROOT / "validation" / "reference" / "fan01" / "characteristic.csv"
+
+FAN01_DUCT_RADIUS_M = 0.250  # casing sleeve inner radius (brief: rig duct)
+FAN01_MRF_MARGIN_MM = 5.0
 
 MIN_CLUSTER_FACES = 20
 MAX_CLUSTER_FACES = 500
@@ -389,3 +399,176 @@ def extract_rotor_stl(
         "watertight": watertight,
         "n_blades_found": n_blades_found,
     }
+
+
+# --- Rig + direction (task 1 & 2 of .superpowers/sdd/fan01-runner-brief.md) ---
+
+
+def fan01_rig(
+    stl_mm: str | Path,
+    *,
+    rpm: float = 1486.0,
+    inlet_diameters: float = 2.0,
+    outlet_diameters: float = 4.0,
+    mrf_margin_mm: float = FAN01_MRF_MARGIN_MM,
+    inlet_velocity: float = 2.0,
+) -> TestRig:
+    """Build the FAN-01 ISO 5801 test-rig :class:`TestRig` from the extracted rotor STL.
+
+    ``duct_radius`` is the rig's casing sleeve inner radius (250 mm, fixed by the physical rig,
+    not derived from the rotor); ``tip_gap`` is whatever is left between that and the rotor's own
+    tip radius (measured from the STL, same 99.5th-percentile convention used elsewhere in this
+    module). The impeller and MRF z-range come from the STL's own axial bounds (+/- 5 mm margin
+    for the MRF zone), and ``hub_radius`` from the STL's near-axis percentile. ``spin`` is left at
+    the ``TestRig`` default (-1); set it from :func:`fan01_direction` before building the case.
+    """
+    mesh = trimesh.load(str(stl_mm), force="mesh")
+    v = mesh.vertices
+    r = np.hypot(v[:, 0], v[:, 1])
+    tip_radius_mm = float(np.percentile(r, 99.5))
+    hub_radius_mm = float(np.percentile(r, 5.0))
+    z0_mm = float(mesh.bounds[0, 2])
+    z1_mm = float(mesh.bounds[1, 2])
+
+    duct_radius = FAN01_DUCT_RADIUS_M
+    tip_gap = duct_radius - tip_radius_mm * MM_TO_M
+    impeller_z_min = z0_mm * MM_TO_M
+    impeller_z_max = z1_mm * MM_TO_M
+    mrf_z_min = impeller_z_min - mrf_margin_mm * MM_TO_M
+    mrf_z_max = impeller_z_max + mrf_margin_mm * MM_TO_M
+
+    return TestRig(
+        duct_radius=duct_radius,
+        tip_gap=tip_gap,
+        inlet_length=inlet_diameters * 2.0 * duct_radius,
+        outlet_length=outlet_diameters * 2.0 * duct_radius,
+        impeller_z_min=impeller_z_min,
+        impeller_z_max=impeller_z_max,
+        mrf_z_min=mrf_z_min,
+        mrf_z_max=mrf_z_max,
+        rpm=rpm,
+        inlet_velocity=inlet_velocity,
+        hub_radius=hub_radius_mm * MM_TO_M,
+    )
+
+
+def fan01_direction(stl_mm: str | Path) -> tuple[str, int]:
+    """Direction from geometry alone (roadmap Sec.19.2 applied to FAN-01).
+
+    Runs :func:`fansim.audit.direction.prove_direction` on the rotor STL and maps the result
+    through :func:`fansim.cfd.orientation.orientation_from_proof`. Raises ``ValueError`` if the
+    proof is not CONCLUSIVE -- rather than guess, the caller must fix the input or investigate.
+    Expected for the real FAN-01 rotor: ``("as_built", +1)``.
+    """
+    mesh = trimesh.load(str(stl_mm), force="mesh")
+    proof = prove_direction(mesh)
+    return orientation_from_proof(proof)
+
+
+# --- Measured characteristic (Task 6: interpolation helpers, no CFD) ---
+
+
+@dataclass(frozen=True)
+class CharacteristicPoint:
+    q_m3s: float
+    p_chamber_pa: float
+    shaft_power_w: float
+
+
+def load_characteristic(
+    csv_path: str | Path = DEFAULT_CHARACTERISTIC_CSV,
+) -> list[CharacteristicPoint]:
+    """Load ``characteristic.csv`` (20 measured points), sorted by ascending flow."""
+    rows: list[CharacteristicPoint] = []
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            rows.append(CharacteristicPoint(
+                q_m3s=float(row["volumetric_flow_m3_s"]),
+                p_chamber_pa=float(row["p_chamber_static_pa"]),
+                shaft_power_w=float(row["shaft_power_w_or_as_named"]),
+            ))
+    rows.sort(key=lambda r: r.q_m3s)
+    return rows
+
+
+def _monotone_decreasing_branch(
+    rows: list[CharacteristicPoint],
+) -> list[CharacteristicPoint]:
+    """The measured curve's single monotone-decreasing (high-flow) branch.
+
+    FAN-01's characteristic decreases with flow overall but has a small stall "hump" around
+    Q~0.9-1.2 m3/s where pressure rises again before resuming its decrease -- not a clean
+    function of pressure there. Greedily keep a point only if its pressure continues the
+    decrease from the last kept point; this drops just the hump's rising outliers and leaves a
+    single strictly-decreasing sequence spanning the whole flow range, safe to interpolate on.
+    """
+    if not rows:
+        return []
+    kept = [rows[0]]
+    for r in rows[1:]:
+        if r.p_chamber_pa < kept[-1].p_chamber_pa:
+            kept.append(r)
+    return kept
+
+
+def interpolate_measured_q(
+    rows: list[CharacteristicPoint], back_pressure_pa: float,
+) -> float | None:
+    """Flow Q (m3/s) at ``back_pressure_pa``, linearly interpolated on the monotone branch.
+
+    Returns ``None`` if ``back_pressure_pa`` falls outside the branch's pressure range (which
+    includes the small gap the stall hump's rejected points would otherwise have covered --
+    use :func:`measured_q_all_crossings` there instead).
+    """
+    branch = _monotone_decreasing_branch(rows)
+    if not branch:
+        return None
+    p_max, p_min = branch[0].p_chamber_pa, branch[-1].p_chamber_pa
+    extrap_margin = 0.05 * (p_max - p_min)  # small clamp for a target just past a measured extreme
+    if back_pressure_pa > p_max:
+        return branch[0].q_m3s if back_pressure_pa <= p_max + extrap_margin else None
+    if back_pressure_pa < p_min:
+        return branch[-1].q_m3s if back_pressure_pa >= p_min - extrap_margin else None
+    for a, b in pairwise(branch):
+        if a.p_chamber_pa >= back_pressure_pa >= b.p_chamber_pa:
+            if a.p_chamber_pa == b.p_chamber_pa:
+                return a.q_m3s
+            frac = (a.p_chamber_pa - back_pressure_pa) / (a.p_chamber_pa - b.p_chamber_pa)
+            return a.q_m3s + frac * (b.q_m3s - a.q_m3s)
+    return None
+
+
+def measured_q_all_crossings(
+    rows: list[CharacteristicPoint], back_pressure_pa: float,
+) -> list[float]:
+    """Every Q (m3/s) where the raw (unfiltered) measured curve crosses ``back_pressure_pa``.
+
+    Used for back-pressures in the stall-region gap the monotone branch drops, where the
+    measured curve is not single-valued: more than one flow rate can share the same chamber
+    pressure. Returned ascending; may contain 0, 1 or several crossings.
+    """
+    out: list[float] = []
+    for a, b in pairwise(rows):
+        lo, hi = sorted((a.p_chamber_pa, b.p_chamber_pa))
+        if lo <= back_pressure_pa <= hi and a.p_chamber_pa != b.p_chamber_pa:
+            frac = (a.p_chamber_pa - back_pressure_pa) / (a.p_chamber_pa - b.p_chamber_pa)
+            out.append(a.q_m3s + frac * (b.q_m3s - a.q_m3s))
+    uniq = sorted({round(q, 6) for q in out})
+    return uniq
+
+
+def measured_q_report(
+    rows: list[CharacteristicPoint], back_pressure_pa: float,
+) -> dict:
+    """Reporting dict for a run_fan01 point: primary measured Q plus stall-region alternates.
+
+    ``measured_q_m3s`` is the monotone-branch interpolation (``None`` outside its range).
+    ``measured_q_m3s_branches`` is added only when the raw curve crosses ``back_pressure_pa``
+    at more than one flow rate (the stall-region case the brief calls out) -- every crossing
+    found, so the caller can report both branches instead of picking one silently.
+    """
+    out: dict = {"measured_q_m3s": interpolate_measured_q(rows, back_pressure_pa)}
+    all_q = measured_q_all_crossings(rows, back_pressure_pa)
+    if len(all_q) > 1:
+        out["measured_q_m3s_branches"] = all_q
+    return out

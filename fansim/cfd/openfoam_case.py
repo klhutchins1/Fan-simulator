@@ -236,7 +236,13 @@ def _generate_round_duct_mesh_mm(rig: TestRig, box_scale: float) -> trimesh.Trim
     return mesh
 
 
-def _generate_ring_duct_mesh_mm(rig: TestRig, box_scale: float) -> tuple[trimesh.Trimesh, float]:
+def _generate_ring_duct_mesh_mm(
+    rig: TestRig,
+    box_scale: float,
+    *,
+    ring_length_mm: float | None = None,
+    ring_z_center_mm: float | None = None,
+) -> tuple[trimesh.Trimesh, float]:
     """Short sealed frame-ring casing (mm), ``RING_LENGTH_MM`` long, centred on the rotor.
 
     Inner radius is ``rig.duct_radius``; outer radius covers the ``box_scale``-half-width
@@ -246,12 +252,18 @@ def _generate_ring_duct_mesh_mm(rig: TestRig, box_scale: float) -> tuple[trimesh
     of the rotor instead of noSlip pipe walls over the whole ~0.7 m domain. A longer rotor
     lengthens the ring to ``impeller span + 2*RING_Z_MARGIN_MM`` so it still fully covers the
     blades. Returns ``(mesh, ring_length_mm)``.
+
+    ``ring_length_mm`` / ``ring_z_center_mm`` override the default nominal length / centring
+    (e.g. FAN-01's real 201 mm rig sleeve, centred a few mm off the rotor mid-plane) -- both
+    default to ``None``, which keeps the behaviour above unchanged.
     """
     inner_r_mm = rig.duct_radius / MM_TO_M
     outer_r_mm = box_scale * inner_r_mm * math.sqrt(2) + DUCT_OUTER_MARGIN_MM
     span_mm = (rig.impeller_z_max - rig.impeller_z_min) / MM_TO_M
-    length_mm = max(RING_LENGTH_MM, span_mm + 2.0 * RING_Z_MARGIN_MM)
-    mid_z_mm = 0.5 * (rig.impeller_z_min + rig.impeller_z_max) / MM_TO_M
+    default_length_mm = max(RING_LENGTH_MM, span_mm + 2.0 * RING_Z_MARGIN_MM)
+    length_mm = ring_length_mm if ring_length_mm is not None else default_length_mm
+    default_mid_z_mm = 0.5 * (rig.impeller_z_min + rig.impeller_z_max) / MM_TO_M
+    mid_z_mm = ring_z_center_mm if ring_z_center_mm is not None else default_mid_z_mm
     mesh = trimesh.creation.annulus(
         r_min=inner_r_mm, r_max=outer_r_mm, height=length_mm, sections=ROUND_DUCT_SECTIONS)
     mesh.apply_translation([0.0, 0.0, mid_z_mm])
@@ -345,6 +357,8 @@ def build_case(
     wall_ks_mm: float | None = None,
     box_scale: float | None = None,
     duct: str = "ring",
+    ring_length_mm: float | None = None,
+    ring_z_center_mm: float | None = None,
 ) -> Path:
     """Write a ready-to-run OpenFOAM case. ``impeller_stl_mm`` is a millimeter-scale STL.
 
@@ -388,6 +402,11 @@ def build_case(
     ``box_scale`` overrides the default hex half-width multiplier (``BOX_SCALE``) applied
     to ``rig.duct_radius`` whenever a casing is present (user-given or generated), e.g. for
     an oversized outlet-chamber (plenum) domain. Ignored when there is no casing.
+
+    ``ring_length_mm`` / ``ring_z_center_mm`` override the generated ring's default axial
+    length / z-centre (only meaningful with ``duct="ring"``; ignored otherwise) -- e.g. a real
+    rig sleeve that is neither the nominal 25 mm long nor centred exactly on the rotor
+    mid-plane. Both default to ``None``, which keeps the existing default ring unchanged.
     """
     if duct not in ("ring", "round", "square"):
         raise ValueError(f"duct must be 'ring', 'round' or 'square', got {duct!r}")
@@ -406,21 +425,25 @@ def build_case(
     # sealed frame ring, "round" the v4 full-length duct (both trimesh annuli, no CadQuery);
     # "square" keeps the legacy open-corner tunnel.
     effective_box_scale = box_scale if box_scale is not None else BOX_SCALE
-    ring_length_mm: float | None = None
     if casing_stl_mm is not None:
+        ring_length_mm = None
         casing_mesh = trimesh.load(str(casing_stl_mm), force="mesh")
         duct_source = "casing_stl"
         duct_shape_meta = "round"
     elif duct == "ring":
-        casing_mesh, ring_length_mm = _generate_ring_duct_mesh_mm(rig, effective_box_scale)
+        casing_mesh, ring_length_mm = _generate_ring_duct_mesh_mm(
+            rig, effective_box_scale,
+            ring_length_mm=ring_length_mm, ring_z_center_mm=ring_z_center_mm)
         check_ring_covers_impeller(casing_mesh, rig)
         duct_source = "generated"
         duct_shape_meta = "ring"
     elif duct == "round":
+        ring_length_mm = None
         casing_mesh = _generate_round_duct_mesh_mm(rig, effective_box_scale)
         duct_source = "generated"
         duct_shape_meta = "round"
     else:
+        ring_length_mm = None
         casing_mesh = None
         duct_source = "none"
         duct_shape_meta = "square"
@@ -486,10 +509,11 @@ def build_case(
         locy = 0.0
         locz = rig.domain_z_min + 0.25 * rig.inlet_length
         if duct_shape_meta == "ring" and ring_length_mm is not None:
-            ring_z0 = rig.impeller_z_min + rig.impeller_z_max
-            ring_z0 = 0.5 * ring_z0 - 0.5 * (ring_length_mm * MM_TO_M)
-            ring_z1 = 0.5 * (rig.impeller_z_min + rig.impeller_z_max) + 0.5 * (
-                ring_length_mm * MM_TO_M)
+            # casing_mesh is still mm-scale here (scaled to m further below): use its own
+            # z-bounds rather than recomputing from the rotor mid-plane, so this stays correct
+            # under a ring_z_center_mm override that decouples the ring from that mid-plane.
+            ring_z0 = float(casing_mesh.bounds[0, 2]) * MM_TO_M
+            ring_z1 = float(casing_mesh.bounds[1, 2]) * MM_TO_M
             if ring_z0 - _PLACEMENT_TOL_M <= locz <= ring_z1 + _PLACEMENT_TOL_M:
                 raise ValueError(
                     f"location-in-mesh z={locz * 1e3:.2f} mm falls inside the ring z-range "

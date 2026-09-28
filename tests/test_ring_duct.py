@@ -132,6 +132,34 @@ def test_location_in_mesh_is_outside_ring_z_range(tmp_path):
     assert locz < ring_z0_m  # upstream of the ring, in the inlet duct
 
 
+def test_ring_length_and_center_override(tmp_path):
+    # FAN-01: 201 mm sleeve, centred +4mm downstream of the rotor mid-plane.
+    rig = _rig()
+    mid_z_mm = 0.5 * (rig.impeller_z_min + rig.impeller_z_max) / MM_TO_M
+    center_mm = mid_z_mm + 4.0
+    case = build_case(tmp_path / "case", _impeller_stl(tmp_path), rig, back_pressure_pa=0.0,
+                      ring_length_mm=201.0, ring_z_center_mm=center_mm)
+    meta = _load_meta(case)
+    assert meta["ring_length_mm"] == pytest.approx(201.0)
+
+    m = trimesh.load(str(case / "constant/triSurface/casing.stl"), force="mesh")
+    z0, z1 = float(m.bounds[0, 2]), float(m.bounds[1, 2])
+    assert (z1 - z0) * 1e3 == pytest.approx(201.0, abs=1e-3)
+    assert 0.5 * (z0 + z1) * 1e3 == pytest.approx(center_mm, abs=1e-3)
+    # still covers the impeller (z0/z1 are meters, same as rig.impeller_z_*)
+    assert z0 <= rig.impeller_z_min + 1e-9
+    assert z1 >= rig.impeller_z_max - 1e-9
+
+
+def test_ring_override_defaults_keep_old_behaviour(tmp_path):
+    # No override args -> identical to test_default_duct_is_ring.
+    rig = _rig()
+    case = build_case(tmp_path / "case", _impeller_stl(tmp_path), rig, back_pressure_pa=0.0,
+                      ring_length_mm=None, ring_z_center_mm=None)
+    meta = _load_meta(case)
+    assert meta["ring_length_mm"] == pytest.approx(RING_LENGTH_MM)
+
+
 def test_duct_round_still_produces_v4_full_length_duct(tmp_path):
     rig = _rig()
     case = build_case(tmp_path / "case", _impeller_stl(tmp_path), rig, back_pressure_pa=0.0,

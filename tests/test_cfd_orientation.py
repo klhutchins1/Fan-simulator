@@ -9,12 +9,15 @@ import numpy as np
 import pytest
 import trimesh
 
+from fansim.audit.direction import prove_direction
+from fansim.audit.synthetic import cambered_blade_fan
 from fansim.cfd.domain import MM_TO_M, TestRig as _Rig
 from fansim.cfd.orientation import (
     AXIAL_CFD_ORIENTATION,
     fit_rig_to_stl,
     flip_about_x,
     orient_impeller_for_cfd,
+    orientation_from_proof,
     prepare_axial_cfd,
 )
 
@@ -81,6 +84,27 @@ def test_prepare_axial_cfd(tmp_path):
     assert rig.impeller_z_min == pytest.approx(-2.0 * MM_TO_M)
     assert rig.impeller_z_max == pytest.approx(8.0 * MM_TO_M)
     assert rig.spin == -1
+
+
+def test_orientation_from_proof_stock_handed_is_flipped():
+    # NF-A12x25 handedness: omega=+1, pump=-1, chirality=-1 -- must flip to pump +Z at spin=-1.
+    p = prove_direction(cambered_blade_fan(stagger_deg=60.0, camber=0.06))
+    assert p.verdict == "CONCLUSIVE" and (p.omega_sign, p.pump_sign) == (1, -1)
+    assert orientation_from_proof(p) == ("flipped", -1)
+
+
+def test_orientation_from_proof_fan01_handed_is_as_built():
+    # FAN-01 handedness (opposite chirality to the Noctua): omega=+1, pump=+1, chirality=+1.
+    p = prove_direction(cambered_blade_fan(stagger_deg=-60.0, camber=-0.06))
+    assert p.verdict == "CONCLUSIVE" and (p.omega_sign, p.pump_sign) == (1, 1)
+    assert orientation_from_proof(p) == ("as_built", 1)
+
+
+def test_orientation_from_proof_rejects_inconclusive():
+    p = prove_direction(cambered_blade_fan(camber=0.0))  # flat plate -> INCONCLUSIVE
+    assert p.verdict == "INCONCLUSIVE"
+    with pytest.raises(ValueError, match="CONCLUSIVE"):
+        orientation_from_proof(p)
 
 
 def test_audit_reexports_same_flip():

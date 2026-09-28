@@ -35,6 +35,29 @@ def orient_impeller_for_cfd(src_stl_mm: Path, dst_stl_mm: Path,
     return float(out.bounds[0, 2]), float(out.bounds[1, 2])
 
 
+def orientation_from_proof(proof) -> tuple[str, int]:
+    """Map a geometric :class:`~fansim.audit.direction.DirectionProof` to a CFD orientation.
+
+    ``proof`` must be CONCLUSIVE (raises ``ValueError`` otherwise -- guessing which way an
+    inconclusive rotor turns is worse than stopping, same policy as ``prove_direction`` itself).
+
+    The rule (roadmap Sec.19.2): the rotor is designed to pump toward ``pump_sign``. The CFD duct
+    always flows +Z (inlet -Z -> outlet +Z), so a rotor whose designed pump is +Z is used
+    ``"as_built"`` at ``spin = omega_sign`` (it already pumps the right way); a rotor whose
+    designed pump is -Z must be ``"flipped"`` 180 deg about X (which negates the body ``omega``)
+    at ``spin = -omega_sign`` so the flipped copy's spin still pumps the designed rotation down
+    the +Z duct. See ``fansim.audit.direction.prove_direction`` for ``pump_sign``/``omega_sign``.
+    """
+    if proof.verdict != "CONCLUSIVE":
+        raise ValueError(
+            f"direction proof is not CONCLUSIVE (verdict={proof.verdict!r}): {proof.note}")
+    if proof.pump_sign == 1:
+        return "as_built", int(proof.omega_sign)
+    if proof.pump_sign == -1:
+        return "flipped", -int(proof.omega_sign)
+    raise ValueError(f"unexpected pump_sign {proof.pump_sign!r} on a CONCLUSIVE proof")
+
+
 def fit_rig_to_stl(rig: TestRig, stl_mm: Path, *, mrf_margin_mm: float = 2.0) -> TestRig:
     mesh = trimesh.load(str(stl_mm), force="mesh")
     z0, z1 = float(mesh.bounds[0, 2]), float(mesh.bounds[1, 2])
