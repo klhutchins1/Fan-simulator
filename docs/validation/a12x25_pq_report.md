@@ -12,6 +12,16 @@ bypass the blade tips (the nominal 0.5 mm gap existed at four points only). With
 | v5 short sealed 25 mm ring | 80.4 | +34% | mass/energy/power/thrust PASS |
 | **v5 ring + four-bar frame** | **73.1** | **+22%** | mass/energy/power/thrust/inlet PASS; y+ avg 5 WARN |
 
+| v5 ring + frame + prism layers (Stock recipe) | 77.4 | +29% | all physics PASS; y+ avg 1.9 |
+| **v5 ring + frame, close-ref STL** | **58.4** | **−3%** | all physics PASS |
+| **v5 ring + frame + layers, close-ref STL** | **59.8** | **−0.5%** | all physics PASS; y+ avg 1.8 |
+
+**Factor A/B (2026-09-27):** with the domain physically complete (sealed 25 mm ring, four-bar frame,
+resolved walls), the **close-ref STL matches the datasheet free air within 0.5–3%**, while the Stock
+parametric recipe over-delivers by 22–29%. Prism layers change CFM by only 2–6%. So the CFD method now
+validates at free air with the right geometry, and the remaining free-air gap belongs to the **Stock
+recipe's blade geometry**, not the solver or domain.
+
 **Reading:** the v3 −2% agreement was largely two errors cancelling (tip leakage through the open corners
 vs. the missing frame). With the gap sealed and the frame included, steady RANS on the Stock recipe
 **over-predicts free air by ~22%**. Candidate causes: blade-recipe fidelity (the Stock recipe and close-ref
