@@ -1,5 +1,25 @@
 # NF-A12x25 reference P–Q validation report
 
+## 2026-09-28 full P–Q in the complete setup (CFD_VERSION 5) — current best
+
+Close-ref STL, sealed 25 mm ring, four-bar frame, prism layers (y+ ≈ 2), 2000 rpm, tip gap 0.5 mm.
+Runs: `runs/v5_ab_both` (0 Pa) + `runs/v5_full_pq_loaded` (5–20 Pa); wall time 2 h 50 min (pilot est. 3 h).
+
+| back-pressure | CFM | converged | sanity |
+|---|---|---|---|
+| 0 Pa | **59.8** (Noctua 60.1, −0.5%) | yes | all physics PASS |
+| 5 Pa | 52.5 | yes | all physics PASS |
+| 10 Pa | 41.0 | yes | all physics PASS |
+| 15 Pa | 26.8 | no (osc 16%) | physics PASS |
+| 20 Pa | 2.2 | no (osc 41%) | mass balance FAIL (near stall) |
+
+**Shut-off:** the curve crosses zero at ≈ **20–21 Pa** (interpolating 15→20 Pa) vs published **22.9 Pa**,
+inside the ±5 Pa tolerance, but both near-shut-off points are unconverged. The automated proxy
+(extrapolating the converged 5–10 Pa points) gives 28.0 Pa, a formal FAIL by 0.1 Pa over the band.
+**Verdict:** free air validated; the loaded branch is realistic in shape and roughly right near
+shut-off, and the remaining uncertainty is steady-RANS convergence near stall. The Stock parametric
+recipe still over-delivers (+22–29% free air) and is the next fidelity target.
+
 ## 2026-09-27 domain fixes (CFD_VERSION 5) — free-air gate results
 
 The v3 numbers below were solved in the default **square slip-wall tunnel**, whose open corners let air
