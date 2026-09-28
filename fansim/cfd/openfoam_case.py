@@ -208,8 +208,12 @@ def check_placement(impeller_mm: trimesh.Trimesh, rig: TestRig, *, dual_mrf: dic
 
 _PLENUM_TOL_M = 1e-3  # 1 mm: casing z_max below domain_z_max by more than this counts as a plenum
 DUCT_OUTER_MARGIN_MM = 5.0  # extra radius past the box-corner requirement, for meshing slop
-ROUND_DUCT_SECTIONS = 128  # annulus tessellation for the generated round duct
+ROUND_DUCT_SECTIONS = 128  # annulus tessellation for the generated round duct / ring
 ROUND_DUCT_Z_MARGIN_MM = 1.0  # each end extends past the domain so snappy trims it cleanly
+
+RING_LENGTH_MM = 25.0  # nominal a12x25 frame depth
+RING_Z_MARGIN_MM = 1.0  # each side's margin when the ring must lengthen to cover the impeller
+_RING_COVER_TOL_MM = 1e-6
 
 
 def _generate_round_duct_mesh_mm(rig: TestRig, box_scale: float) -> trimesh.Trimesh:
@@ -232,20 +236,64 @@ def _generate_round_duct_mesh_mm(rig: TestRig, box_scale: float) -> trimesh.Trim
     return mesh
 
 
+def _generate_ring_duct_mesh_mm(rig: TestRig, box_scale: float) -> tuple[trimesh.Trimesh, float]:
+    """Short sealed frame-ring casing (mm), ``RING_LENGTH_MM`` long, centred on the rotor.
+
+    Inner radius is ``rig.duct_radius``; outer radius covers the ``box_scale``-half-width
+    box's corners exactly like the full-length round duct (:func:`check_casing_seals`). Axial
+    length is :data:`RING_LENGTH_MM` (25 mm, the real NF-A12x25 frame depth), centred on the
+    impeller mid-plane -- unlike the round duct, this leaves open air upstream and downstream
+    of the rotor instead of noSlip pipe walls over the whole ~0.7 m domain. A longer rotor
+    lengthens the ring to ``impeller span + 2*RING_Z_MARGIN_MM`` so it still fully covers the
+    blades. Returns ``(mesh, ring_length_mm)``.
+    """
+    inner_r_mm = rig.duct_radius / MM_TO_M
+    outer_r_mm = box_scale * inner_r_mm * math.sqrt(2) + DUCT_OUTER_MARGIN_MM
+    span_mm = (rig.impeller_z_max - rig.impeller_z_min) / MM_TO_M
+    length_mm = max(RING_LENGTH_MM, span_mm + 2.0 * RING_Z_MARGIN_MM)
+    mid_z_mm = 0.5 * (rig.impeller_z_min + rig.impeller_z_max) / MM_TO_M
+    mesh = trimesh.creation.annulus(
+        r_min=inner_r_mm, r_max=outer_r_mm, height=length_mm, sections=ROUND_DUCT_SECTIONS)
+    mesh.apply_translation([0.0, 0.0, mid_z_mm])
+    return mesh, length_mm
+
+
+def check_ring_covers_impeller(ring_mm: trimesh.Trimesh, rig: TestRig) -> None:
+    """Refuse a ring whose z-span does not fully cover the impeller's z-range.
+
+    A ring shorter than the blades would solve part of the rotor as an open-air stationary
+    wall gap instead of the sealed frame it's meant to model. ``ring_mm`` is in the ring's
+    native millimetre scale (before mm->m case scaling); ``rig`` gives the impeller z-range
+    in SI metres.
+    """
+    z0_mm = float(ring_mm.bounds[0, 2])
+    z1_mm = float(ring_mm.bounds[1, 2])
+    imp_z0_mm = rig.impeller_z_min / MM_TO_M
+    imp_z1_mm = rig.impeller_z_max / MM_TO_M
+    if z0_mm > imp_z0_mm + _RING_COVER_TOL_MM or z1_mm < imp_z1_mm - _RING_COVER_TOL_MM:
+        raise ValueError(
+            f"ring z-span [{z0_mm:.2f}, {z1_mm:.2f}] mm does not cover the impeller z-range "
+            f"[{imp_z0_mm:.2f}, {imp_z1_mm:.2f}] mm")
+
+
 def _write_case_meta(
     case_dir: Path,
     rig: TestRig,
     *,
     casing_mesh: trimesh.Trimesh | None,
     H: float,
+    duct_shape: str,
     duct_source: str = "none",
+    ring_length_mm: float | None = None,
 ) -> None:
     """Write ``constant/case_meta.json`` with the patch areas and duct shape sanity checks need.
 
     ``H`` is the half-width (m) of the square background box (``rig.duct_radius`` with no
-    casing, else ``box_scale * rig.duct_radius``). ``duct_source`` records where the casing
-    came from: ``"generated"`` (the in-process round duct), ``"casing_stl"`` (user-given), or
-    ``"none"`` (legacy square slip-wall tunnel).
+    casing, else ``box_scale * rig.duct_radius``). ``duct_shape`` is ``"ring"``, ``"round"``
+    or ``"square"`` (the ``duct=`` value actually used, or ``"round"`` for a user-given
+    ``casing_stl_mm``). ``duct_source`` records where the casing came from: ``"generated"``
+    (the in-process ring or round duct), ``"casing_stl"`` (user-given), or ``"none"`` (legacy
+    square slip-wall tunnel). ``ring_length_mm`` is recorded only for ``duct_shape=="ring"``.
     """
     has_casing = casing_mesh is not None
     plenum = False
@@ -260,7 +308,7 @@ def _write_case_meta(
         inlet_area = outlet_area = (2.0 * H) ** 2
 
     meta = {
-        "duct_shape": "round" if has_casing else "square",
+        "duct_shape": duct_shape,
         "duct_source": duct_source,
         "box_half_width_m": H,
         "inlet_area_m2": inlet_area,
@@ -274,6 +322,8 @@ def _write_case_meta(
         "spin": rig.spin,
         "cfd_version": CFD_VERSION,
     }
+    if duct_shape == "ring":
+        meta["ring_length_mm"] = ring_length_mm
     (case_dir / "constant/case_meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
 
@@ -292,7 +342,7 @@ def build_case(
     dual_mrf: dict | None = None,
     wall_ks_mm: float | None = None,
     box_scale: float | None = None,
-    duct: str = "round",
+    duct: str = "ring",
 ) -> Path:
     """Write a ready-to-run OpenFOAM case. ``impeller_stl_mm`` is a millimeter-scale STL.
 
@@ -308,13 +358,18 @@ def build_case(
     for a stator-then-frame stack (frame must sit further downstream).
 
     ``duct`` selects the background domain shape when ``casing_stl_mm`` is not given:
-    ``"round"`` (default) generates a sealed round duct in-process (an annulus, inner radius
-    ``rig.duct_radius``, outer radius covering the background box's corners) and writes it to
-    ``constant/triSurface/casing.stl`` exactly as a user-given casing would be; ``"square"``
-    keeps the legacy square slip-wall tunnel (half-width = ``rig.duct_radius``, corners open
-    around the blade tips at 4 points) for comparison. Any other value raises ``ValueError``.
-    Whenever a casing is present (user-given or generated), its outer radius must cover the
-    background box's corners (:func:`check_casing_seals`) or flow can bypass the fan.
+    ``"ring"`` (default, CFD_VERSION 5) generates a short sealed frame ring in-process (an
+    annulus, inner radius ``rig.duct_radius``, outer radius covering the background box's
+    corners, axial length :data:`RING_LENGTH_MM` -- 25 mm, the real NF-A12x25 frame depth --
+    centred on the impeller mid-plane and lengthened if the rotor is longer) and writes it to
+    ``constant/triSurface/casing.stl``; ``"round"`` generates the v4 full-length duct (same
+    annulus, spanning the whole domain) kept for comparison -- it adds pipe friction, not
+    free air; ``"square"`` keeps the legacy square slip-wall tunnel (half-width =
+    ``rig.duct_radius``, corners open around the blade tips at 4 points). Any other value
+    raises ``ValueError``. Whenever a casing is present (user-given or generated), its outer
+    radius must cover the background box's corners (:func:`check_casing_seals`) or flow can
+    bypass the fan; a generated ring must also cover the whole impeller z-range
+    (:func:`check_ring_covers_impeller`).
 
     If ``back_pressure_pa`` is given, use pressure-driven BCs (total-pressure inlet, fixed
     static back-pressure outlet) so the flow rate emerges from the blade design -- this is
@@ -332,8 +387,8 @@ def build_case(
     to ``rig.duct_radius`` whenever a casing is present (user-given or generated), e.g. for
     an oversized outlet-chamber (plenum) domain. Ignored when there is no casing.
     """
-    if duct not in ("round", "square"):
-        raise ValueError(f"duct must be 'round' or 'square', got {duct!r}")
+    if duct not in ("ring", "round", "square"):
+        raise ValueError(f"duct must be 'ring', 'round' or 'square', got {duct!r}")
 
     case_dir = Path(case_dir)
     mesh = mesh or MeshResolution()
@@ -345,18 +400,28 @@ def build_case(
     frame_mesh = trimesh.load(str(frame_stl_mm), force="mesh") if frame_stl_mm is not None else None
     stator_mesh = trimesh.load(str(stator_stl_mm), force="mesh") if stator_stl_mm is not None else None
 
-    # --- Casing: user-given STL always wins; otherwise "round" generates a sealed duct
-    # in-process (trimesh annulus, no CadQuery); "square" keeps the legacy open-corner tunnel.
+    # --- Casing: user-given STL always wins; otherwise "ring" (default) generates a short
+    # sealed frame ring, "round" the v4 full-length duct (both trimesh annuli, no CadQuery);
+    # "square" keeps the legacy open-corner tunnel.
     effective_box_scale = box_scale if box_scale is not None else BOX_SCALE
+    ring_length_mm: float | None = None
     if casing_stl_mm is not None:
         casing_mesh = trimesh.load(str(casing_stl_mm), force="mesh")
         duct_source = "casing_stl"
+        duct_shape_meta = "round"
+    elif duct == "ring":
+        casing_mesh, ring_length_mm = _generate_ring_duct_mesh_mm(rig, effective_box_scale)
+        check_ring_covers_impeller(casing_mesh, rig)
+        duct_source = "generated"
+        duct_shape_meta = "ring"
     elif duct == "round":
         casing_mesh = _generate_round_duct_mesh_mm(rig, effective_box_scale)
         duct_source = "generated"
+        duct_shape_meta = "round"
     else:
         casing_mesh = None
         duct_source = "none"
+        duct_shape_meta = "square"
     has_casing = casing_mesh is not None
 
     downstream_mm: dict[str, trimesh.Trimesh] = {}
@@ -418,6 +483,16 @@ def build_case(
         locx = 0.35 * rig.duct_radius
         locy = 0.0
         locz = rig.domain_z_min + 0.25 * rig.inlet_length
+        if duct_shape_meta == "ring" and ring_length_mm is not None:
+            ring_z0 = rig.impeller_z_min + rig.impeller_z_max
+            ring_z0 = 0.5 * ring_z0 - 0.5 * (ring_length_mm * MM_TO_M)
+            ring_z1 = 0.5 * (rig.impeller_z_min + rig.impeller_z_max) + 0.5 * (
+                ring_length_mm * MM_TO_M)
+            if ring_z0 - _PLACEMENT_TOL_M <= locz <= ring_z1 + _PLACEMENT_TOL_M:
+                raise ValueError(
+                    f"location-in-mesh z={locz * 1e3:.2f} mm falls inside the ring z-range "
+                    f"[{ring_z0 * 1e3:.2f}, {ring_z1 * 1e3:.2f}] mm -- it must be in the "
+                    "fluid upstream of the ring, not inside the ring solid")
     else:
         locx = locy = 0.9 * rig.duct_radius
         locz = 0.0
@@ -523,7 +598,8 @@ def build_case(
            {"IMPELLER_NUT": impeller_nut,
             "FRAME_NUT": frame["NUT"], "CASING_NUT": casing["NUT"], "STATOR_NUT": stator["NUT"]})
 
-    _write_case_meta(case_dir, rig, casing_mesh=casing_mesh, H=H, duct_source=duct_source)
+    _write_case_meta(case_dir, rig, casing_mesh=casing_mesh, H=H, duct_shape=duct_shape_meta,
+                     duct_source=duct_source, ring_length_mm=ring_length_mm)
 
     return case_dir
 

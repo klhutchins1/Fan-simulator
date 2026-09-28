@@ -25,7 +25,9 @@ RHO_AIR = 1.2
 #                    convergence judged on tail-mean stability (oscillation reported separately).
 #   4 (2026-09-27) — sealed round duct by default (was square slip-wall tunnel with open corners
 #                    around the tips); casing corners sealed.
-CFD_VERSION = 4
+#   5 (2026-09-27) — short sealed frame ring (25 mm) around the rotor, slip box walls elsewhere;
+#                    v4 full-length noSlip duct gave pipe friction.
+CFD_VERSION = 5
 
 TAIL_FRAC = 0.25  # fraction of the run treated as the converged tail (see convergence())
 

@@ -30,6 +30,7 @@ from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_s
 from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.cfd.sanity import overall as sanity_overall, run_sanity  # noqa: E402
+from fansim.cfd.timing import mesh_cells, pilot_iters, write_pilot_json  # noqa: E402
 from fansim.validation.reference_stl import rig_for_reference_stl  # noqa: E402
 
 import math
@@ -134,6 +135,49 @@ def reverdict_payload(existing: dict) -> dict:
     return out
 
 
+def run_pilot(base: Path, src: Path, mesh_res: MeshResolution, args) -> int:
+    """Mesh the as_built orientation once, solve spin -1 at a fraction of --iters.
+
+    Estimates the full 2-orientation x 2-spin matrix (2 meshes, 4 solves) and writes
+    ``<base>/pilot.json``, then returns without running the matrix.
+    """
+    case = base / "as_built"
+    case.mkdir(parents=True, exist_ok=True)
+    stl = case / "impeller_mm.stl"
+    trimesh.load(str(src), force="mesh").export(str(stl))
+    rig0 = rig_for_reference_stl(stl, rpm=args.rpm)
+
+    pilot_n = pilot_iters(args.iters)
+    runner = OpenFOAMRunner(case)
+    build_case(case, stl, rig0, mesh=mesh_res, n_iters=pilot_n,
+               n_subdomains=args.procs, back_pressure_pa=0.0)
+    t_mesh = time.time()
+    run_mesh(runner)
+    mesh_s = time.time() - t_mesh
+
+    t_solve = time.time()
+    run_solve(runner, n_procs=args.procs)
+    wall_s = time.time() - t_solve
+    sec_per_iter = wall_s / pilot_n if pilot_n else 0.0
+    cells = mesh_cells(case)
+
+    payload = write_pilot_json(
+        base / "pilot.json",
+        cells=cells, mesh_s=mesh_s * 2, sec_per_iter=sec_per_iter,
+        iters=args.iters, points=4,
+        extra={"pilot_iters": pilot_n,
+              "note": "direction matrix: 2 meshes x 2 solves (mesh_s doubled, points=4 solves)"},
+    )
+    print(
+        f"[pilot as_built] cells={cells} mesh={mesh_s:.0f}s sec/iter={sec_per_iter:.3f} "
+        f"({pilot_n} pilot iters) -> full matrix (2 meshes x 2 solves x {args.iters} iters) "
+        f"~{payload['estimated_full_run_eta']} ({payload['estimated_full_run_s']:.0f}s)",
+        flush=True,
+    )
+    print(f"-> {base / 'pilot.json'}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--rotor", choices=sorted(ROTORS), required=True)
@@ -146,6 +190,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", default="runs/audit_direction")
     ap.add_argument("--reverdict", action="store_true",
                     help="recompute both verdicts from the existing JSON's rows; no CFD, no Docker")
+    ap.add_argument("--pilot", action="store_true",
+                    help="mesh the as_built orientation once, solve ONE spin at "
+                         "max(50, iters//10) iterations, print/write <out>/<rotor>/pilot.json "
+                         "with the estimated full-matrix time (2 meshes x 2 solves), then exit")
     args = ap.parse_args(argv)
     out = ROOT / "docs" / "validation" / "audits" / f"direction_cfd_{args.rotor}.json"
     if args.reverdict:
@@ -185,6 +233,10 @@ def main(argv: list[str] | None = None) -> int:
         min_wall = min_blade_wall_mm(load_blade_params(
             ROOT / "config" / "problems" / "a12x25_reference.yaml"))
     mesh_res = MeshResolution.for_blade(float(args.base_cell), float(min_wall))
+
+    if args.pilot:
+        return run_pilot(base, src, mesh_res, args)
+
     rows: list[MatrixRow] = []
     sanity_rows: list[dict] = []
     errors: list[str] = []
@@ -224,11 +276,15 @@ def main(argv: list[str] | None = None) -> int:
                            n_subdomains=args.procs, back_pressure_pa=0.0)
                 t0 = time.time()
                 run_solve(runner, n_procs=args.procs)
+                wall_s = time.time() - t0
                 m = parse_fan_metrics(case, omega_rad_s=rig.omega_rad_s)
                 sanity_checks = run_sanity(case, metrics=m, omega_signed=rig.omega_signed)
                 sanity_rows.append({
                     "sanity": [asdict(c) for c in sanity_checks],
                     "sanity_status": sanity_overall(sanity_checks),
+                    "cells": mesh_cells(case),
+                    "wall_s": wall_s,
+                    "sec_per_iter": wall_s / args.iters if args.iters else None,
                 })
                 row = MatrixRow(orientation, spin, m.cfm, m.converged, m.shaft_power_w,
                                 m.moment_z_nm, rig.omega_signed)

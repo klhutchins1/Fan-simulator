@@ -39,6 +39,7 @@ from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_s
 from fansim.cfd.orientation import prepare_axial_cfd  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.cfd.sanity import overall as sanity_overall, run_sanity  # noqa: E402
+from fansim.cfd.timing import mesh_cells, pilot_iters, write_pilot_json  # noqa: E402
 from fansim.cfd.wall_roughness import FDM_WALL_KS_MM  # noqa: E402
 from fansim.geometry import build_impeller, export_stl  # noqa: E402
 from fansim.geometry.blade import min_blade_wall_mm  # noqa: E402
@@ -116,6 +117,10 @@ def build_parser() -> argparse.ArgumentParser:
                     help="snappy feature (edge) refinement level; default follows --surf-max/auto")
     ap.add_argument("--procs", type=int, default=8)
     ap.add_argument("--out", default="runs/validate_a12x25_phase3")
+    ap.add_argument("--pilot", action="store_true",
+                    help="mesh once, solve ONE point at max(50, iters//10) iterations, "
+                         "print/write <out>/pilot.json with the estimated full-run time, "
+                         "then exit without running the full sweep")
     return ap
 
 
@@ -219,7 +224,9 @@ def _run_free_air_at_cell(
         wall_ks_mm=wall_ks_mm,
     )
     run_mesh(runner)
+    t_solve = time.time()
     run_solve(runner, n_procs=n_procs)
+    wall_s = time.time() - t_solve
     m = parse_fan_metrics(out, omega_rad_s=rig.omega_rad_s)
     return {
         "base_cell": base_cell,
@@ -232,6 +239,9 @@ def _run_free_air_at_cell(
         "with_frame": frame_stl is not None,
         "wall_ks_mm": float(wall_ks_mm) if wall_ks_mm is not None else 0.0,
         "add_layers": bool(add_layers),
+        "cells": mesh_cells(out),
+        "wall_s": wall_s,
+        "sec_per_iter": wall_s / n_iters if n_iters else None,
     }
 
 
@@ -464,6 +474,7 @@ def run_pq_sweep(
         )
         t = time.time()
         run_solve(runner, n_procs=n_procs)
+        wall_s = time.time() - t
         m = parse_fan_metrics(out, omega_rad_s=rig.omega_rad_s)
         sanity_checks = run_sanity(out, metrics=m, omega_signed=rig.omega_signed)
         rows.append({
@@ -479,6 +490,9 @@ def run_pq_sweep(
             "add_layers": bool(add_layers),
             "sanity": [asdict(c) for c in sanity_checks],
             "sanity_status": sanity_overall(sanity_checks),
+            "cells": mesh_cells(out),
+            "wall_s": wall_s,
+            "sec_per_iter": wall_s / n_iters if n_iters else None,
         })
         print(
             f"  back={b:5.1f} Pa -> {m.cfm:6.1f} CFM  "
@@ -622,6 +636,61 @@ def write_outputs(
     print(f"-> {out / 'validation.png'} , {out / 'validation.json'}")
 
 
+def run_pilot(args) -> int:
+    """Mesh once, solve ONE point at a fraction of --iters, and estimate the full run.
+
+    Writes ``<out>/pilot.json`` and prints a summary, then returns without running the
+    requested sweep -- lets an operator judge whether the full run is worth the wait before
+    committing hours (or days) of wall time to it.
+    """
+    backs = [float(b) for b in args.backs.split(",")]
+    out = Path(args.out)
+    tip_gap_mm = float(args.tip_gap_mm)
+    stl_src = Path(args.stl) if args.stl else None
+    add_layers = bool(args.layers)
+
+    params = load_blade_params(args.params)
+    min_wall = min_blade_wall_mm(params)
+    stl = _resolve_impeller_stl(out, params, stl_src)
+    rig = _rig_for_case(params, tip_gap_mm, stl if stl_src else None)
+    stl, rig = prepare_axial_cfd(stl, rig, out)
+
+    mesh_res = _mesh(args.base_cell, add_layers, min_wall_mm=min_wall,
+                     surf_max=args.surf_max, feature_level=args.feature_level)
+    pilot_n = pilot_iters(args.iters)
+
+    runner = OpenFOAMRunner(out)
+    build_case(
+        out, stl, rig, mesh=mesh_res, n_iters=pilot_n, n_subdomains=args.procs,
+        back_pressure_pa=backs[0],
+    )
+    t_mesh = time.time()
+    run_mesh(runner)
+    mesh_s = time.time() - t_mesh
+
+    t_solve = time.time()
+    run_solve(runner, n_procs=args.procs)
+    wall_s = time.time() - t_solve
+    sec_per_iter = wall_s / pilot_n if pilot_n else 0.0
+    cells = mesh_cells(out)
+
+    points = max(1, len(backs))
+    payload = write_pilot_json(
+        out / "pilot.json",
+        cells=cells, mesh_s=mesh_s, sec_per_iter=sec_per_iter,
+        iters=args.iters, points=points,
+        extra={"pilot_iters": pilot_n, "backs": backs, "note": "pq sweep: 1 mesh x N solves"},
+    )
+    print(
+        f"[pilot] cells={cells} mesh={mesh_s:.0f}s sec/iter={sec_per_iter:.3f} "
+        f"({pilot_n} pilot iters) -> full run ({points} points x {args.iters} iters) "
+        f"~{payload['estimated_full_run_eta']} ({payload['estimated_full_run_s']:.0f}s)",
+        flush=True,
+    )
+    print(f"-> {out / 'pilot.json'}")
+    return 0
+
+
 def main() -> int:
     args = build_parser().parse_args()
     apply_near_shutoff_defaults(args)
@@ -629,6 +698,9 @@ def main() -> int:
     if not image_available():
         print("ERROR: OpenFOAM image not found.")
         return 2
+
+    if getattr(args, "pilot", False):
+        return run_pilot(args)
 
     backs = [float(b) for b in args.backs.split(",")]
     out = Path(args.out)

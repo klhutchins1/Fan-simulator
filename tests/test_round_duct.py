@@ -40,9 +40,11 @@ def _load_meta(case_dir):
     return json.loads((case_dir / "constant/case_meta.json").read_text(encoding="utf-8"))
 
 
-def test_default_build_case_writes_sealed_round_casing(tmp_path):
+def test_round_duct_writes_sealed_round_casing(tmp_path):
+    """duct="round" (CFD_VERSION 4 default, kept for comparison) is no longer the default."""
     rig = _rig()
-    case = build_case(tmp_path / "case", _impeller_stl(tmp_path), rig, back_pressure_pa=0.0)
+    case = build_case(tmp_path / "case", _impeller_stl(tmp_path), rig, back_pressure_pa=0.0,
+                      duct="round")
 
     casing_path = case / "constant/triSurface/casing.stl"
     assert casing_path.exists()
@@ -110,9 +112,10 @@ def test_default_export_casing_stl_is_sealed_for_default_box(tmp_path):
         check_casing_seals(m, H)  # must not raise
 
 
-def test_case_meta_round_default_has_generated_source(tmp_path):
+def test_case_meta_round_has_generated_source(tmp_path):
     rig = _rig()
-    case = build_case(tmp_path / "case", _impeller_stl(tmp_path), rig, back_pressure_pa=0.0)
+    case = build_case(tmp_path / "case", _impeller_stl(tmp_path), rig, back_pressure_pa=0.0,
+                      duct="round")
     meta = _load_meta(case)
     assert meta["duct_shape"] == "round"
     assert meta["duct_source"] == "generated"

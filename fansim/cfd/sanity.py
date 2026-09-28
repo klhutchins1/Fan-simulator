@@ -359,12 +359,14 @@ def _check_converged(metrics: FanMetrics | None) -> SanityCheck:
 
 
 def _check_duct_shape(case_meta: dict | None) -> SanityCheck:
-    limit = "round PASS, square WARN"
+    limit = "ring/round PASS, square WARN"
     if not case_meta or "duct_shape" not in case_meta:
         return SanityCheck("duct_shape", SKIP, None, limit, "missing case_meta.json")
     shape = case_meta["duct_shape"]
-    status = PASS if shape == "round" else WARN
+    status = PASS if shape in ("ring", "round") else WARN
     note = f"{shape} (meta inferred)" if case_meta.get("inferred") else shape
+    if shape == "round":
+        note = f"{note}; full-length noSlip duct adds pipe friction; not free-air"
     return SanityCheck("duct_shape", status, None, limit, note)
 
 
