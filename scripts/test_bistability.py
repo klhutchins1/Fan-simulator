@@ -38,7 +38,7 @@ def run_branch_scan(params, out: Path, back_pa: float, guesses, base_cell: float
     out.mkdir(parents=True, exist_ok=True)
     stl = export_stl(build_impeller(params), out / "impeller.stl")
     rig = rig_for_impeller(params)
-    stl, rig = prepare_axial_cfd(stl, rig, out)
+    stl, rig = prepare_axial_cfd(stl, rig, out, source="builder")
     runner = OpenFOAMRunner(out)
     # Mesh once; all solves share this mesh so only the initial field differs.
     build_case(out, stl, rig, mesh=MeshResolution(base_cell=base_cell), n_iters=iters,

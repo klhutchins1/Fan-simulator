@@ -73,7 +73,7 @@ def main() -> int:
     # Mesh once at the first operating point's geometry.
     rig0 = rig_for_impeller(params, inlet_diameters=1.0, outlet_diameters=1.5,
                             inlet_velocity=velocities[0])
-    stl, rig0 = prepare_axial_cfd(stl, rig0, out)
+    stl, rig0 = prepare_axial_cfd(stl, rig0, out, source="builder")
     build_case(out, stl, rig0, mesh=MeshResolution(base_cell=args.base_cell),
                n_iters=args.iters, n_subdomains=args.procs)
     t = time.time()

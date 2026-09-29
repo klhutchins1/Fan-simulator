@@ -75,7 +75,7 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     stl = export_stl(build_impeller(params), out / "impeller.stl")
     rig = rig_for_impeller(params, inlet_diameters=2.0, outlet_diameters=4.0)
-    stl, rig = prepare_axial_cfd(stl, rig, out)
+    stl, rig = prepare_axial_cfd(stl, rig, out, source="builder")
     t0 = time.time()
 
     rows = []

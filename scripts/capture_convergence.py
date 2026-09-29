@@ -62,7 +62,7 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     stl = export_stl(build_impeller(params), out / "impeller.stl")
     rig = rig_for_impeller(params)
-    stl, rig = prepare_axial_cfd(stl, rig, out)
+    stl, rig = prepare_axial_cfd(stl, rig, out, source="builder")
     runner = OpenFOAMRunner(out)
     t0 = time.time()
 

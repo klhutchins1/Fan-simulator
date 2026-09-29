@@ -181,6 +181,12 @@ def _resolve_impeller_stl(
     return export_stl(build_impeller(params), dest)
 
 
+def _direction_source(stl_src: Path | None) -> str:
+    """Imported --stl rotors get their direction proven from the mesh; in-house geometry uses the
+    builder handedness (roadmap 19.2)."""
+    return "external" if stl_src is not None else "builder"
+
+
 def _rig_for_case(params: Any, tip_gap_mm: float, stl_path: Path | None) -> Any:
     if stl_path is not None:
         return rig_for_reference_stl(
@@ -269,7 +275,7 @@ def run_mesh_ladder(
         stl = cell_out / "impeller.stl"
         if not stl.exists():
             stl.write_bytes(stl_shared.read_bytes())
-        stl, rig = prepare_axial_cfd(stl, base_rig, cell_out)
+        stl, rig = prepare_axial_cfd(stl, base_rig, cell_out, source=_direction_source(stl_src))
         t = time.time()
         row = _run_free_air_at_cell(
             out=cell_out,
@@ -319,7 +325,7 @@ def run_free_air_tip_gap_study(
         if not stl.exists():
             stl.write_bytes(stl_shared.read_bytes())
         rig = _rig_for_case(params, gap, stl_shared if stl_src else None)
-        stl, rig = prepare_axial_cfd(stl, rig, gap_out)
+        stl, rig = prepare_axial_cfd(stl, rig, gap_out, source=_direction_source(stl_src))
         t = time.time()
         row = _run_free_air_at_cell(
             out=gap_out, stl=stl, rig=rig,
@@ -371,7 +377,7 @@ def run_free_air_physics_study(
         stl = case_out / "impeller.stl"
         if not stl.exists():
             stl.write_bytes(stl_shared.read_bytes())
-        stl, rig = prepare_axial_cfd(stl, base_rig, case_out)
+        stl, rig = prepare_axial_cfd(stl, base_rig, case_out, source=_direction_source(stl_src))
         frame_path: Path | None = None
         if with_frame:
             frame_path = case_out / "frame.stl"
@@ -441,7 +447,7 @@ def run_pq_sweep(
     min_wall = min_blade_wall_mm(params)
     stl = _resolve_impeller_stl(out, params, stl_src)
     rig = _rig_for_case(params, tip_gap_mm, stl if stl_src else None)
-    stl, rig = prepare_axial_cfd(stl, rig, out)
+    stl, rig = prepare_axial_cfd(stl, rig, out, source=_direction_source(stl_src))
     frame_path: Path | None = None
     if with_frame:
         frame_path = out / "frame.stl"
@@ -653,7 +659,7 @@ def run_pilot(args) -> int:
     min_wall = min_blade_wall_mm(params)
     stl = _resolve_impeller_stl(out, params, stl_src)
     rig = _rig_for_case(params, tip_gap_mm, stl if stl_src else None)
-    stl, rig = prepare_axial_cfd(stl, rig, out)
+    stl, rig = prepare_axial_cfd(stl, rig, out, source=_direction_source(stl_src))
 
     mesh_res = _mesh(args.base_cell, add_layers, min_wall_mm=min_wall,
                      surf_max=args.surf_max, feature_level=args.feature_level)

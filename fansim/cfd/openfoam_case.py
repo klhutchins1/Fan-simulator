@@ -297,6 +297,7 @@ def _write_case_meta(
     duct_shape: str,
     duct_source: str = "none",
     ring_length_mm: float | None = None,
+    direction_meta: dict | None = None,
 ) -> None:
     """Write ``constant/case_meta.json`` with the patch areas and duct shape sanity checks need.
 
@@ -338,6 +339,8 @@ def _write_case_meta(
     }
     if duct_shape == "ring":
         meta["ring_length_mm"] = ring_length_mm
+    if direction_meta:
+        meta.update(direction_meta)
     (case_dir / "constant/case_meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
 
@@ -359,6 +362,7 @@ def build_case(
     duct: str = "ring",
     ring_length_mm: float | None = None,
     ring_z_center_mm: float | None = None,
+    direction_meta: dict | None = None,
 ) -> Path:
     """Write a ready-to-run OpenFOAM case. ``impeller_stl_mm`` is a millimeter-scale STL.
 
@@ -624,8 +628,14 @@ def build_case(
            {"IMPELLER_NUT": impeller_nut,
             "FRAME_NUT": frame["NUT"], "CASING_NUT": casing["NUT"], "STATOR_NUT": stator["NUT"]})
 
+    if direction_meta is None:
+        # prepare_axial_cfd leaves its decision next to the oriented STL it returns.
+        dm_path = Path(impeller_stl_mm).parent / "direction_meta.json"
+        if dm_path.is_file():
+            direction_meta = json.loads(dm_path.read_text(encoding="utf-8"))
     _write_case_meta(case_dir, rig, casing_mesh=casing_mesh, H=H, duct_shape=duct_shape_meta,
-                     duct_source=duct_source, ring_length_mm=ring_length_mm)
+                     duct_source=duct_source, ring_length_mm=ring_length_mm,
+                     direction_meta=direction_meta)
 
     return case_dir
 

@@ -81,7 +81,7 @@ def main() -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     rig = rig_from_stl(stl, args.rpm, 1.0, -1, 2.0, 4.0)
-    stl, rig = prepare_axial_cfd(stl, rig, out)
+    stl, rig = prepare_axial_cfd(stl, rig, out, source="external")
     t0 = time.time()
 
     rows = []

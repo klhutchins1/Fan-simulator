@@ -12,6 +12,7 @@ left blade ends outside the MRF zone.
 
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 from pathlib import Path
 
@@ -70,11 +71,88 @@ def fit_rig_to_stl(rig: TestRig, stl_mm: Path, *, mrf_margin_mm: float = 2.0) ->
     )
 
 
+# In-house axial geometry (fansim.geometry.build_impeller) is built with ONE fixed handedness (omega
+# +1 as built, pumping -Z; pinned by tests/audit/test_search_space_handedness.py), so builder
+# rotors use it directly instead of requiring the mesh-only proof to be CONCLUSIVE (thin/low-camber
+# optimizer trials are INCONCLUSIVE). The proof still runs as a cross-check. Mirrors
+# fansim.propeller.direction.BUILDER_DIRECTION.
+AXIAL_BUILDER_DIRECTION = (AXIAL_CFD_ORIENTATION, -1)
+DIRECTION_SOURCES = ("builder", "external")
+DIRECTION_META_FILE = "direction_meta.json"
+
+
+def check_rotor_direction(stl_mm: Path | str, expected_omega_sign: int) -> None:
+    """Cross-check helper: raise if the mesh-only proof is CONCLUSIVE and disagrees.
+
+    ``expected_omega_sign`` is the body-frame omega sign the rotor is meant to turn (as built).
+    INCONCLUSIVE proofs pass silently (nothing to contradict). Used where a rotor's spin is chosen
+    by convention rather than derived (CROR/mixed), so a mirrored part cannot slip through.
+    """
+    from fansim.audit.direction import prove_direction
+
+    proof = prove_direction(trimesh.load(str(stl_mm), force="mesh"))
+    if proof.verdict == "CONCLUSIVE" and int(proof.omega_sign) != int(expected_omega_sign):
+        raise ValueError(
+            f"rotor direction cross-check disagrees for {stl_mm}: geometry reads "
+            f"omega={proof.omega_sign:+d} but {int(expected_omega_sign):+d} was expected -- {proof.note}")
+
+
+def _resolve_direction(stl_mm: Path, source: str) -> tuple[str, int, str]:
+    """Return (orientation, spin, proof_verdict) for ``source`` in {"builder", "external"}."""
+    from fansim.audit.direction import prove_direction
+
+    if source not in DIRECTION_SOURCES:
+        raise ValueError(f"source must be one of {DIRECTION_SOURCES}, got {source!r}")
+    proof = prove_direction(trimesh.load(str(stl_mm), force="mesh"))
+    if source == "external":
+        if proof.verdict != "CONCLUSIVE":
+            raise ValueError(
+                f"external rotor direction is not provable from geometry for {stl_mm} "
+                f"(verdict={proof.verdict!r}: {proof.note}); pass orientation= and spin= explicitly")
+        orientation, spin = orientation_from_proof(proof)
+        return orientation, spin, proof.verdict
+    orientation, spin = AXIAL_BUILDER_DIRECTION
+    if proof.verdict == "CONCLUSIVE" and (proof.omega_sign, proof.pump_sign) != (1, -1):
+        raise ValueError(
+            f"builder rotor direction cross-check disagrees for {stl_mm}: proof reads "
+            f"(omega={proof.omega_sign:+d}, pump={proof.pump_sign:+d}) but the builders produce "
+            f"(omega=+1, pump=-1) -- {proof.note}")
+    return orientation, spin, proof.verdict
+
+
 def prepare_axial_cfd(stl_mm: Path, rig: TestRig, workdir: Path, *,
-                      orientation: str = AXIAL_CFD_ORIENTATION,
+                      source: str = "builder",
+                      orientation: str | None = None,
+                      spin: int | None = None,
                       mrf_margin_mm: float = 2.0) -> tuple[Path, TestRig]:
-    """Orient the rotor for CFD and fit the rig to it. Use the returned STL and rig for everything
-    downstream (frame, stator, casing export, and ``build_case``)."""
-    dst = Path(workdir) / "impeller_cfd.stl"
+    """Orient the rotor for CFD, set the spin, and fit the rig. Use the returned STL and rig for
+    everything downstream (frame, stator, casing export, and ``build_case``).
+
+    Direction resolution (roadmap Sec.19.2):
+
+    * ``orientation`` and ``spin`` both given: explicit override, used as-is, no proof.
+    * only ``orientation`` given (legacy): that orientation, spin left as the rig's.
+    * ``source="builder"``: :data:`AXIAL_BUILDER_DIRECTION`; the proof is a cross-check that raises
+      only if CONCLUSIVE and disagreeing.
+    * ``source="external"``: the proof must be CONCLUSIVE; ``orientation_from_proof`` decides.
+
+    The decision is written to ``workdir/direction_meta.json``; ``build_case`` merges it into
+    ``constant/case_meta.json`` when the impeller STL sits in that directory.
+    """
+    workdir = Path(workdir)
+    if orientation is not None and spin is not None:
+        direction_source, verdict = "explicit", None
+    elif orientation is not None:
+        direction_source, verdict, spin = "explicit", None, int(rig.spin)
+    else:
+        orientation, spin, verdict = _resolve_direction(Path(stl_mm), source)
+        direction_source = source
+    if int(spin) not in (-1, 1):
+        raise ValueError(f"spin must be +1 or -1, got {spin!r}")
+    dst = workdir / "impeller_cfd.stl"
     orient_impeller_for_cfd(Path(stl_mm), dst, orientation)
-    return dst, fit_rig_to_stl(rig, dst, mrf_margin_mm=mrf_margin_mm)
+    fitted = replace(fit_rig_to_stl(rig, dst, mrf_margin_mm=mrf_margin_mm), spin=int(spin))
+    (workdir / DIRECTION_META_FILE).write_text(json.dumps({
+        "direction_source": direction_source, "orientation": orientation,
+        "spin": int(spin), "proof_verdict": verdict}, indent=2), encoding="utf-8")
+    return dst, fitted

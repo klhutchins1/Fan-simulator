@@ -222,7 +222,7 @@ def run_ladder(args: argparse.Namespace) -> int:
     rig = _rig_for_case(params, tip_gap_mm, None)
 
     # Always orient and fit via prepare_axial_cfd (Audit #1 direction fix).
-    stl, rig = prepare_axial_cfd(stl_shared, rig, out)
+    stl, rig = prepare_axial_cfd(stl_shared, rig, out, source="builder")
 
     plenum_z_mm = _plenum_z_mm(rig)
     fill_radius_mm = _fill_radius_mm(rig, box_scale)

@@ -76,6 +76,10 @@ def rig_for_cror(
         mrf_z_min=z_lo - mrf_margin_mm * MM_TO_M,
         mrf_z_max=z_hi + mrf_margin_mm * MM_TO_M,
         rpm=rpm,
+        # Roadmap 19.2 (open for CROR): the front/rear spins are fixed by convention (front -1,
+        # rear opposite via dual_mrf_dict). The two rotors are exported as ONE combined STL
+        # (export_cror_stl), so fansim.cfd.orientation.check_rotor_direction cannot be applied per
+        # rotor here without slicing the mesh; skipped until the rotors are exported separately.
         inlet_velocity=2.0,
         spin=-1,
     )

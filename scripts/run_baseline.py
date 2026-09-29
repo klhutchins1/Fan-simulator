@@ -91,7 +91,7 @@ def main() -> int:
         outlet_diameters=args.outlet_diameters,
         inlet_velocity=args.inlet_velocity,
     )
-    stl, rig = prepare_axial_cfd(stl, rig, out)
+    stl, rig = prepare_axial_cfd(stl, rig, out, source="builder")
     build_case(out, stl, rig, mesh=MeshResolution(base_cell=args.base_cell),
                n_iters=args.iters, n_subdomains=args.procs,
                back_pressure_pa=args.back_pressure)

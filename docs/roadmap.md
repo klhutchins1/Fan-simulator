@@ -730,7 +730,7 @@ follow under `docs/superpowers/specs/`.
   bump `CFD_VERSION` so §18 quarantines every pre-verdict score, and re-run the Stock P–Q.
   **Verdict 2026-09-25:** convention **FAIL** — production CFD solves the rotor reversed (designed ω_z +1 / pump −Z by geometry, matching the real fan; production as_built spin −1). CFD matrix INCONCLUSIVE (designed-direction solve limit-cycles; ranks designed +24% Stock / +10% close-ref). See docs/validation/audits/2026-09-25-audit-01-flow-direction.md. Freeze stays until the follow-up fix plan + CFD re-check.
   **Fixed + verified 2026-09-26:** CFD copy flipped 180° about X at spin −1, MRF fitted to the rotor, convergence rule A, CFD v3. Stock convention verdict **PASS**; free-air 58.7 CFM (−2%). Report: docs/validation/audits/2026-09-26-audit-01b-direction-fix.md. Freeze lifted.
-- [~] **19.2 Direction as a derived, single-source property (after 19.1).** **[impact: high]** **[effort: med]**
+- [x] **19.2 Direction as a derived, single-source property (after 19.1).** **[impact: high]** **[effort: med]**
   Stop hand-setting `spin`: derive pumping direction from blade geometry (19.1 proof #1) and have
   domain BCs, glyphs, metrics signs, and prop/CROR all read that one value. Makes this class of bug
   structurally impossible rather than documented-away.
@@ -738,6 +738,7 @@ follow under `docs/superpowers/specs/`.
   handedness) ran correctly through it (as_built, spin +1). Props use it for external STLs. **Open:** wire
   it into the axial pipeline for any imported/non-Stock-handed rotor (today axial assumes Stock
   handedness, guarded by the search-space handedness test), and into CROR/mixed.
+  **Axial DONE 2026-09-28:** `prepare_axial_cfd(..., source="builder"|"external", orientation=, spin=)` — builder = pinned `AXIAL_BUILDER_DIRECTION` (flipped, −1) with the proof as a cross-check (raises only if CONCLUSIVE and disagreeing); external = proof must be CONCLUSIVE (`orientation_from_proof`), else raises asking for explicit `orientation=`+`spin=`; explicit = pass-through. Decision recorded in `case_meta.json` (`direction_source`, `orientation`, `spin`, `proof_verdict`). All axial scripts/objectives pass `source=`; FAN-01 uses it. `check_rotor_direction` cross-check helper added. **Left for CROR/mixed:** CROR exports front+rear as one STL with convention spins (front −1, rear opposite), so per-rotor proof is not wired; mixed-flow untouched. Do when rotors are exported separately.
 - [ ] **19.3 Reverse-rotation run as a permanent regression check.** **[impact: med]** **[effort: low]**
   Keep a cheap forward-vs-reversed smoke in the periodic audit (not a user feature): if reversed ever
   beats forward, the convention broke again.

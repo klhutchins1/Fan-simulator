@@ -6,7 +6,7 @@ used here as an external-method validation: geometry and measurement are indepen
 anything in this repo, unlike the NF-A12x25 recipe-fit validation.
 
 Direction is derived from the rotor mesh alone (no hand-set spin) via
-``fansim.validation.fan01.fan01_direction`` -> ``fansim.cfd.orientation.orientation_from_proof``.
+``fansim.cfd.orientation.prepare_axial_cfd(source="external")`` (proof -> ``orientation_from_proof``).
 
 Usage:
     uv run python scripts/run_fan01.py --pilot
@@ -21,7 +21,7 @@ import json
 import os
 import sys
 import time
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -36,7 +36,7 @@ from fansim.cfd.openfoam_case import (  # noqa: E402
     run_solve,
     run_solve_urans,
 )
-from fansim.cfd.orientation import fit_rig_to_stl, orient_impeller_for_cfd  # noqa: E402
+from fansim.cfd.orientation import prepare_axial_cfd  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.cfd.sanity import overall as sanity_overall, run_sanity  # noqa: E402
 from fansim.cfd.timing import (  # noqa: E402
@@ -49,7 +49,7 @@ from fansim.cfd.timing import (  # noqa: E402
 )
 from fansim.validation.fan01 import (  # noqa: E402
     DEFAULT_OUT_STL,
-    fan01_direction,
+    FAN01_MRF_MARGIN_MM,
     fan01_rig,
     load_characteristic,
     measured_q_report,
@@ -106,17 +106,13 @@ def _mesh(base_cell: float, min_wall_mm: float, add_layers: bool) -> MeshResolut
 
 
 def prepare_rig_and_stl(stl_src: Path, out: Path, rpm: float) -> tuple[Path, Any, str]:
-    """fan01_rig -> fan01_direction -> oriented rig+STL (flip is a no-op when as_built)."""
+    """fan01_rig -> prepare_axial_cfd(source="external") -> oriented rig+STL (roadmap 19.2)."""
     rig = fan01_rig(stl_src, rpm=rpm)
-    orientation, spin = fan01_direction(stl_src)
-    rig = replace(rig, spin=spin)
-    if orientation == "flipped":
-        stl = out / "impeller_cfd.stl"
-        orient_impeller_for_cfd(stl_src, stl, orientation="flipped")
-        rig = fit_rig_to_stl(rig, stl)
-    else:
-        stl = Path(stl_src)
-    return stl, rig, orientation
+    out.mkdir(parents=True, exist_ok=True)
+    stl, rig = prepare_axial_cfd(stl_src, rig, out, source="external",
+                                 mrf_margin_mm=FAN01_MRF_MARGIN_MM)
+    meta = json.loads((out / "direction_meta.json").read_text(encoding="utf-8"))
+    return stl, rig, meta["orientation"]
 
 
 def write_rows_json(out_path: Path, rows: list[dict[str, Any]]) -> None:

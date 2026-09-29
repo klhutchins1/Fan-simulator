@@ -308,7 +308,7 @@ def evaluate_candidate(
     )
     # Audit #1: CFD solves the designed rotation only with the rotor flipped (spin stays −1), and
     # the MRF zone must contain the whole rotor, so size it from the oriented STL.
-    stl, rig0 = prepare_axial_cfd(stl, rig0, workdir)
+    stl, rig0 = prepare_axial_cfd(stl, rig0, workdir, source="builder")
     frame_path = None
     stator_path = None
     try:

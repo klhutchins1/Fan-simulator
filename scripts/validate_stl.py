@@ -78,7 +78,7 @@ def main() -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     rig = rig_from_stl(stl, args.rpm, args.tip_gap_mm, args.spin, 2.0, 4.0)
-    stl, rig = prepare_axial_cfd(stl, rig, out)
+    stl, rig = prepare_axial_cfd(stl, rig, out, source="external")
     runner = OpenFOAMRunner(out)
     t0 = time.time()
     print(f"real STL: tip r {rig.duct_radius*1e3-args.tip_gap_mm:.1f} mm, "
