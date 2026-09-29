@@ -53,6 +53,8 @@ def main() -> int:
     ap.add_argument("--stock-stl", help="use an existing Stock STL instead of building")
     ap.add_argument("--ref", default=str(ROOT / "validation/reference/a12x25_impeller.stl"))
     ap.add_argument("--out", default=str(ROOT / "docs/validation/recipe_fidelity"))
+    ap.add_argument("--suffix", default=None,
+                    help="output stem suffix (default: '_v2' when --params ends in _v2.yaml)")
     a = ap.parse_args()
     tmp = tempfile.TemporaryDirectory()
     params = None
@@ -75,7 +77,10 @@ def main() -> int:
                                        lean_deg=s.lean_deg) for s in params.stations]
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "section_compare.json").write_text(json.dumps(res, indent=2))
+    suffix = a.suffix if a.suffix is not None else (
+        "_v2" if a.params and Path(a.params).stem.endswith("_v2") else "")
+    stem = f"section_compare{suffix}"
+    (out / f"{stem}.json").write_text(json.dumps(res, indent=2))
     md = ["# Blade-section comparison: Stock recipe vs close-reference STL", "",
           "Cylinder cuts at r = frac x tip, unrolled to (s = r*theta, z); median over blades. "
           "Stagger is measured from the circumferential (s) direction (0 = in the rotation plane, "
@@ -113,7 +118,7 @@ def main() -> int:
         for s in res["recipe_stations"]:
             md.append("- " + ", ".join(f"{k}={v}" for k, v in s.items()))
         md.append("")
-    (out / "section_compare.md").write_text("\n".join(md), encoding="utf-8")
+    (out / f"{stem}.md").write_text("\n".join(md), encoding="utf-8")
     print("\n".join(md))
     return 0
 

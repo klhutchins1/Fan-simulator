@@ -1,0 +1,31 @@
+# a12x25_reference_v2 -- Stock recipe refitted so BUILT blade sections match the close-ref STL.
+# Fit provenance: 2026-09-29, scripts/fit_recipe_to_stl.py, 5 iteration(s) (last = measured, not updated), damping 0.7, converged=True.
+# Source STL: validation/reference/a12x25_impeller.stl (start: a12x25_reference.yaml, unmodified).
+# Final max |built - ref| at measured stations: stagger_deg 1.0614, chord_rel 0.0188, camber_ratio 0.0037, thickness_rel 0.0341 (tol: stagger 1.5 deg, chord 3%, camber 0.005, t/c 10%).
+# Station radii r/R = 0.358, 0.500, 0.600, 0.700, 0.800, 0.900, 1.000 (root = extrapolated, tip fitted at r/R 0.99).
+# Sweep/skew/lean/le_*, hub and tip fields are the Stock values (interpolated to the new stations) unless the LE-offset trigger fired; see the fit log.
+# Built-vs-reference table: docs/validation/recipe_fidelity/section_compare_v2.md
+n_blades: 9
+hub_radius: 21.5
+tip_radius: 54.5
+hub_height_mm: 16.5
+blade_hub_z_mm: 0.0
+root_embed: 2.0
+hub_axial_margin: 1.5
+rpm: 2000.0
+n_span: 18
+n_chord: 60
+section_family: plate
+span_interp: pchip
+le_thick_scale: 0.2
+te_thick_scale: 0.2
+tip_notch_count: 0
+tip_notch_depth_mm: 0.0
+stations:
+  - {r_frac: 0.0, chord: 17.7452, stagger_deg: 24.1259, thickness: 0.1249, max_camber: 0.037, camber_pos: 0.4775, sweep: 0.0, skew: 0.0, lean_deg: 0.0, le_sweep: 0.0, le_skew: 0.0}
+  - {r_frac: 0.2214, chord: 21.3408, stagger_deg: 39.7779, thickness: 0.1108, max_camber: 0.0411, camber_pos: 0.4775, sweep: -1.6014, skew: -0.7238, lean_deg: 5.6246, le_sweep: 0.0, le_skew: 0.0}
+  - {r_frac: 0.3771, chord: 23.3226, stagger_deg: 34.595, thickness: 0.1016, max_camber: 0.0758, camber_pos: 0.4624, sweep: -1.4798, skew: 1.4448, lean_deg: 10.1496, le_sweep: 0.0, le_skew: 0.0}
+  - {r_frac: 0.5329, chord: 26.956, stagger_deg: 28.6915, thickness: 0.0899, max_camber: 0.0777, camber_pos: 0.472, sweep: -1.2557, skew: 3.7372, lean_deg: 15.0734, le_sweep: 0.0, le_skew: 0.0}
+  - {r_frac: 0.6886, chord: 32.3827, stagger_deg: 21.9015, thickness: 0.0758, max_camber: 0.0808, camber_pos: 0.489, sweep: -0.8643, skew: 6.5974, lean_deg: 20.523, le_sweep: 0.0, le_skew: 0.0}
+  - {r_frac: 0.8443, chord: 40.1135, stagger_deg: 17.2416, thickness: 0.0616, max_camber: 0.075, camber_pos: 0.496, sweep: -0.3279, skew: 10.0436, lean_deg: 26.5215, le_sweep: 0.0, le_skew: 0.0}
+  - {r_frac: 1.0, chord: 49.7851, stagger_deg: 16.2628, thickness: 0.049, max_camber: 0.0654, camber_pos: 0.5868, sweep: 0.3578, skew: 13.7985, lean_deg: 33.0, le_sweep: 0.0, le_skew: 0.0}
