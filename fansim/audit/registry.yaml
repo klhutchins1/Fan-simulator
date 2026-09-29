@@ -85,3 +85,14 @@ units:
     claim: "Cheap physics/setup invariants on every fan CFD result"
     source: {kind: derivation, ref: "mass/energy conservation; Euler turbomachinery power sign; AMCA inlet bookkeeping"}
     checks: [tests/test_cfd_sanity.py]
+
+  - id: propeller.bemt
+    targets:
+      - "fansim.propeller.bemt:analyze"
+      - "fansim.propeller.bemt:_section_aero"
+      - "fansim.propeller.bemt:_compressibility_cl_cd"
+      - "fansim.propeller.bemt_catalog"
+    claim: "Prop BEMT (Prandtl tip loss, swirl, Re-aware polars, Prandtl-Glauert) gives static C_T/C_P near measured UIUC data and never beats momentum theory"
+    source: {kind: datasheet, ref: "UIUC Propeller Data Site (Selig) APC SF 9x4.7 static row; Glauert/Prandtl blade-element momentum theory"}
+    checks: [tests/audit/test_prop_bemt_audit.py, tests/test_bemt.py, tests/test_bemt_catalog.py]
+    depends_on: [physics.air_properties]

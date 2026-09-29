@@ -1,0 +1,102 @@
+"""Audit #3: prop BEMT (fansim.propeller.bemt) -- verification limits + one measured UIUC static point.
+
+Verification (does the code solve its equations right): momentum-theory bound, C_T -> 0 at a finite
+advance ratio, Prandtl F in [0.15, 1], convergence of the inflow iteration, air constants.
+Validation: the only UIUC datum in the repo is ONE static row (APC SF 9x4.7 @ 6026 rpm) with no chord/
+twist distribution, so it is judged on an approximate dia x pitch loft. Tolerances were fixed BEFORE
+the run (docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md): static C_T +-15%, C_P +-20%.
+"""
+
+from __future__ import annotations
+
+import math
+import sys
+
+import pytest
+
+from fansim.physics import air
+from fansim.propeller import bemt as B
+from fansim.propeller.bemt import RHO_AIR, analyze
+from fansim.propeller.bemt_catalog import (
+    approximate_prop_blade,
+    bemt_static_ct_cp,
+    load_uiuc_static_fixture,
+)
+
+CT_STATIC_TOL = 0.15   # pre-registered
+CP_STATIC_TOL = 0.20   # pre-registered
+N_ITER = 60            # inner-loop limit in analyze()
+
+
+@pytest.fixture(scope="module")
+def blade():
+    return approximate_prop_blade(9.0, 4.7)
+
+
+def _coeffs(blade, rpm, j):
+    d = 9.0 * 0.0254
+    n = rpm / 60.0
+    p = analyze(blade, rpm, v_forward=j * n * d)
+    return p, p.thrust_n / (RHO_AIR * n**2 * d**4), p.power_w / (RHO_AIR * n**3 * d**5)
+
+
+def test_air_constants_match_isa():
+    # bemt.py keeps its own copies (known, see test_air_properties.KNOWN_COPIES); they must agree.
+    assert B.RHO_AIR == pytest.approx(air.RHO_ISA)
+    assert B.NU_AIR == pytest.approx(air.NU_AIR)
+
+
+@pytest.mark.parametrize("rpm", [3000.0, 6026.0, 9000.0])
+def test_static_never_beats_momentum_theory(blade, rpm):
+    p = analyze(blade, rpm)
+    a = math.pi * (blade.tip_radius / 1000.0) ** 2
+    fm_raw = p.thrust_n**1.5 / math.sqrt(2.0 * RHO_AIR * a) / p.power_w   # unclipped (code clips at 1)
+    assert 0.3 < fm_raw < 1.0
+    # equivalently T^3 <= 2 rho A P^2
+    assert p.thrust_n**3 <= 2.0 * RHO_AIR * a * p.power_w**2
+
+
+def test_ct_reaches_zero_at_finite_J_and_falls_monotonically(blade):
+    js = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+    cts = [_coeffs(blade, 6026.0, j)[1] for j in js]
+    assert all(b <= a + 1e-9 for a, b in zip(cts, cts[1:]))
+    assert cts[0] > 0.05
+    assert cts[-1] == pytest.approx(0.0, abs=1e-6)          # zero-thrust J found below 0.7
+    # just below zero-thrust J the propeller still absorbs power (profile drag), not free lunch
+    assert _coeffs(blade, 6026.0, 0.6)[2] > 0.0
+    # propulsive efficiency is bounded by 1 and vanishes at both ends
+    for j in js[1:-1]:
+        _, ct, cp = _coeffs(blade, 6026.0, j)
+        assert 0.0 < j * ct / (2.0 * math.pi * cp) * 2.0 * math.pi < 1.0
+
+
+def test_prandtl_factor_bounded_and_inflow_iteration_converges(blade, monkeypatch):
+    """Spy on _section_aero from inside the element loop: read F and the iteration index."""
+    seen_f: list[float] = []
+    last_iter: dict[int, int] = {}
+    real = B._section_aero
+
+    def spy(*a, **k):
+        loc = sys._getframe(1).f_locals
+        if "F" in loc and loc.get("i") is not None:
+            seen_f.append(loc["F"])
+        last_iter[loc["i"]] = loc["_"]
+        return real(*a, **k)
+
+    monkeypatch.setattr(B, "_section_aero", spy)
+    for rpm, j in [(6026.0, 0.0), (6026.0, 0.3), (6026.0, 0.5)]:
+        seen_f.clear()
+        last_iter.clear()
+        _coeffs(blade, rpm, j)
+        assert seen_f and all(0.15 <= f <= 1.0 for f in seen_f)
+        assert last_iter and max(last_iter.values()) < N_ITER - 1, f"unconverged element at J={j}"
+
+
+def test_uiuc_static_point_within_preregistered_tolerance():
+    fx = load_uiuc_static_fixture()
+    out = bemt_static_ct_cp(fx["diameter_in"], fx["pitch_in"], rpm=fx["rpm"], blade_count=2)
+    e_ct = out["ct"] / fx["ct"] - 1.0
+    e_cp = out["cp"] / fx["cp"] - 1.0
+    assert abs(e_ct) <= CT_STATIC_TOL, e_ct
+    assert abs(e_cp) <= CP_STATIC_TOL, e_cp
+    assert out["geometry_match"] == "approximate"   # the honesty stamp must stay
