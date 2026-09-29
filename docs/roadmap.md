@@ -762,6 +762,7 @@ follow under `docs/superpowers/specs/`.
   close-ref STL matches (−0.5%). The optimizer's designs come from this recipe, so its airflow is biased high.
   Refit the recipe (section shapes, stagger/camber distribution, hub/tip treatment) until its CFD matches the
   close-ref STL at 0/5/10 Pa in the validated (unstalled) range. **Baseline 2026-09-28:** Stock 77.4/46.7/11.2 CFM at 0/5/10 Pa (shut-off ≈11–12 Pa) vs close-ref 59.8/52.5/41.0 (≈20–21 Pa): too much free air *and* too little pressure.
+  **2026-09-29:** builder airfoil was back-to-front (fixed <commit>); all parametric blade geometry changed; saved designs need re-evaluation (§19.8).
 - [ ] **19.8 Re-score the saved optimizer catalog at CFD v5.** **[impact: high]** **[effort: CPU]**
   All pre-v5 scores are stale (reversed rotor ≤v2, square tunnel v3, long duct v4). Re-score only designs worth
   keeping, after 19.7, using the complete setup; pilot-time first.

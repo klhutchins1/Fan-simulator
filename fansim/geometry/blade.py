@@ -383,6 +383,15 @@ def _section_loop(
         tooth_amp = 0.92 + 0.16 * u
         tooth = tip_notch_tooth(u, int(tip_notch_count)) * tooth_amp
         a = a - float(tip_notch_depth_mm) * tooth * w_te
+    # Everything above works in the airfoil frame (LE negative, TE positive along ``a``:
+    # features, notches, thickness). The rotor's LEADING side is +t / upstream (+Z) for the
+    # as-built rotation (omega_z=+1, pumps -Z; audit-01), so mirror the chordwise axis ONCE
+    # here: LE (x=0) lands at +a (leads), TE at -a. ``b`` (thickness side / concave face) is
+    # untouched, so stagger, handedness and the direction proof do not change.
+    # A NEGATIVE stagger is the opposite-swirl (CROR rear) rotor, which spins -theta: its
+    # leading side is -t, so it keeps the airfoil-frame sign (the true mirror of the front).
+    if stagger_deg >= 0.0:
+        a = -a
     # Leading-edge weight: 1 at the LE (x=0), 0 by mid-chord (x>=0.5).
     w_le = np.where(x < 0.5, 0.5 * (1.0 + np.cos(2.0 * np.pi * x)), 0.0)
     t = a * cb - b * sb + skew + le_skew * w_le  # circumferential (tangential) distance, mm
@@ -476,7 +485,7 @@ def apply_tip_shape(params: BladeParams, tip_round: float = 0.0,
 
     Over the outer span (beyond ``start_frac``) the chord is tapered following a quarter-ellipse, so
     the leading and trailing edges converge into a smooth curved tip. Sections are centred on their
-    mid-chord (see _section_points_3d: ``a = (x-0.5)*chord``), so shrinking the chord pulls BOTH edges
+    mid-chord (see _section_loop: mid-chord-centred, ``a = (0.5-x)*chord`` after the LE-leads mirror), so shrinking the chord pulls BOTH edges
     inward symmetrically -> a rounded tip. ``tip_round`` in [0,1]: 0 = square tip (unchanged), 1 =
     fully rounded. Intermediate stations are inserted for a smooth arc. Mutates and returns ``params``.
     Apply AFTER apply_winglet so the rounded tip inherits any winglet deflection."""
@@ -1026,9 +1035,18 @@ def _trim_blade_to_tip_cylinder(blade: cq.Solid, tip_radius: float) -> cq.Solid:
     h = float(bb.zmax - bb.zmin) + 2.0 * pad
     if h <= 0.0:
         return blade
-    cyl = cq.Solid.makeCylinder(R, h, cq.Vector(0, 0, z0), cq.Vector(0, 0, 1))
-    cut = blade.intersect(cyl)
-    solids = list(cut.Solids()) if hasattr(cut, "Solids") else []
+    # OCCT's first boolean on a freshly lofted solid can spuriously return an empty compound
+    # (seen after the LE-leads mirror); an identical retry / slightly different cutter succeeds.
+    # Falling through untrimmed would silently leave blade corners outside ``tip_radius``.
+    solids: list = []
+    cut = None
+    for k in range(4):
+        cyl = cq.Solid.makeCylinder(R, h + 0.37 * k, cq.Vector(0, 0, z0 - 0.19 * k),
+                                    cq.Vector(0, 0, 1))
+        cut = blade.intersect(cyl)
+        solids = list(cut.Solids()) if hasattr(cut, "Solids") else []
+        if solids:
+            break
     if not solids:
         # Some CadQuery builds return a single Solid from intersect.
         if isinstance(cut, cq.Solid) or cut.ShapeType() == "Solid":
