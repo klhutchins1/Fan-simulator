@@ -60,10 +60,16 @@ def test_build_case_wall_ks_writes_rough_impeller_smooth_casing(tmp_path):
     from fansim.cfd.domain import rig_for_impeller
     from fansim.cfd.openfoam_case import MeshResolution, build_case
 
+    import trimesh
+
     stl = _tiny_stl(tmp_path / "imp.stl")
     fr = _tiny_stl(tmp_path / "frame.stl")
-    cas = _tiny_stl(tmp_path / "casing.stl")
     rig = rig_for_impeller(BladeParams(), tip_gap_mm=0.5)
+    # A casing must seal the hex corners (check_casing_seals), so use a real sealed annulus
+    # rather than a 1 mm stub triangle.
+    cas = tmp_path / "casing.stl"
+    trimesh.creation.annulus(r_min=rig.duct_radius * 1000.0, r_max=120.0, height=20.0,
+                             sections=64).export(str(cas))
     case = build_case(
         tmp_path / "c_ks",
         stl,
