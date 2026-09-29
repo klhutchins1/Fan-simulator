@@ -72,7 +72,10 @@ def proudman_swl(k, epsilon, cell_volumes, rho: float = RHO_AIR, c0: float = C0_
 
 
 def curle_surface_swl(dpdt_ms, areas, rho: float = RHO_AIR, c0: float = C0_AIR) -> float:
-    """Curle surface-dipole radiated power [dB] from wall pressure time-derivative fluctuations.
+    """Curle surface-dipole power-like index [dB] from wall pressure time-derivative fluctuations.
+
+    NOTE (Audit #6): the integral omits the eddy correlation area, so the value is dimensionally
+    W/m^2 (multiply by a correlation/coherent area to get W). Use for RELATIVE ranking only.
 
         W = 1/(12 pi rho c0^3) * integral_S <(dp/dt)^2> dS
 

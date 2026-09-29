@@ -133,3 +133,44 @@ units:
     claim: "Static/couple unbalance sums, F = U w^2, counterweight nulls the residual, generated uneven spacings are balanced (also with per-blade masses)"
     source: {kind: derivation, ref: "rigid-rotor balancing, ISO 21940; Audit #5 exact-value and property checks"}
     checks: [tests/audit/test_structural_audit.py, tests/test_balance.py]
+
+  - id: acoustics.curle_dipole
+    targets:
+      - "fansim.acoustics.farfield:dipole_pressure"
+      - "fansim.acoustics.farfield:force_from_cv"
+      - "fansim.acoustics.farfield:noise_from_cv_force"
+      - "fansim.acoustics.farfield:dba_from_pressure"
+      - "fansim.acoustics.farfield:tone_level_db"
+      - "fansim.acoustics.farfield:a_weighting_db"
+    claim: "Compact Curle dipole far field p' = r_hat . dF/dt / (4 pi c0 r): amplitude, 1/r, cos(theta) directivity, power 1/(12 pi rho c0^3); pref 20 uPa; IEC 61672 A-weighting (far-field term only)"
+    source: {kind: derivation, ref: "Curle 1955 compact dipole; IEC 61672-1 A-weighting table; Audit #6 hand calculations"}
+    checks: [tests/audit/test_acoustics_audit.py, tests/test_acoustics.py]
+    depends_on: [physics.air_properties]
+
+  - id: acoustics.tonal_bpf
+    targets: ["fansim.acoustics.tonal", "fansim.acoustics.farfield:blade_pass_frequency"]
+    claim: "BPF = B rpm/60; blade-array factor A(m) = |sum exp(-i m theta_k)|: equal spacing concentrates all energy at m = kB, uneven spacing lowers the peak"
+    source: {kind: derivation, ref: "rotor tonal theory (Cattanei 2007); Audit #6 FFT synthesis of pulse trains"}
+    checks: [tests/audit/test_acoustics_audit.py, tests/test_tonal.py]
+
+  - id: acoustics.proudman
+    targets:
+      - "fansim.acoustics.proxies:proudman_power_density"
+      - "fansim.acoustics.proxies:proudman_swl"
+      - "fansim.acoustics.proxies:epsilon_from_komega"
+      - "fansim.acoustics.proxies:turbulent_mach"
+      - "fansim.acoustics.proxies:sound_power_level"
+    claim: "Proudman broadband power density alpha rho eps Mt^5 (alpha 0.1, Mt = sqrt(2k)/c0), eps = 0.09 k omega, SWL re 1 pW (RANKING-ONLY proxy)"
+    source: {kind: derivation, ref: "Proudman 1952; Sarkar & Hussaini 1993 constant; Audit #6 hand value + scaling"}
+    checks: [tests/audit/test_acoustics_audit.py, tests/test_acoustics.py]
+    depends_on: [physics.air_properties]
+
+  - id: acoustics.fwh
+    targets:
+      - "fansim.acoustics.fwh:loading_pressure_compact"
+      - "fansim.acoustics.fwh:loading_pressure_panels"
+      - "fansim.acoustics.fwh:noise_from_permeable_panels"
+    claim: "Stationary-panel loading-noise kernel (retarded-time Curle); NOT moving-source Farassat 1A / full FW-H"
+    source: {kind: derivation, ref: "Curle 1955 / FW-H loading term at M=0; Audit #6 offset-dipole analytic comparison"}
+    checks: [tests/audit/test_acoustics_audit.py, tests/test_fwh.py, tests/test_permeable_fwh.py]
+    depends_on: [physics.air_properties, acoustics.curle_dipole]

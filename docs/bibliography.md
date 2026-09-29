@@ -19,15 +19,20 @@ Legend: **→ code** points at the module/script that implements or relies on th
 - **Curle, N. (1955).** *The influence of solid boundaries upon aerodynamic sound.* Proc. R. Soc.
   Lond. A **231**, 505–514. — Adds solid surfaces to Lighthill: the surface term is a **dipole**
   whose strength is the unsteady force the body exerts on the fluid. **→ code:** the compact-dipole
-  far-field model in `scripts/fan_noise_cv.py` / `scripts/evaluate_noise.py` (control-volume force →
-  `p' = (x_i/4πc₀r²)·dF_i/dt`), valid because the fan is acoustically compact (λ_BPF ≈ 1.47 m ≫ 0.11 m).
+  far-field model in `fansim/acoustics/farfield.py::dipole_pressure` (also duplicated in `scripts/fan_noise_cv.py` /
+  `scripts/evaluate_noise.py`; control-volume force → far-field term `p' = (x_i/4πc₀r²)·dF_i/dt`, the
+  near-field `F_i/r²` term is omitted — Audit #6), valid because the fan is acoustically compact (λ_BPF ≈ 1.47 m ≫ 0.11 m).
 - **Proudman, I. (1952).** *The generation of noise by isotropic turbulence.* Proc. R. Soc. Lond. A
   **214**, 119–132. — Acoustic power of isotropic turbulence from RANS quantities (k, ε) — the
-  cheap **broadband** noise proxy. **→ code (planned):** `fansim/acoustics/proxies.py::proudman_power`.
+  cheap **broadband** noise proxy. **→ code (implemented):** `fansim/acoustics/proxies.py::proudman_power_density` / `proudman_swl`
+  (α = 0.1 rescaled constant of Sarkar & Hussaini 1993; verified Audit #6, ranking-only).
 - **Ffowcs Williams, J. E. & Hawkings, D. L. (1969).** *Sound generation by turbulence and surfaces
   in arbitrary motion.* Phil. Trans. R. Soc. Lond. A **264**, 321–342. — Generalises Curle to
   *moving* surfaces (the FW-H equation); the standard route for rotating-machinery far-field noise.
-  **→ code (future):** permeable-surface FW-H as the finalist noise upgrade beyond the compact dipole.
+  **→ code (partial):** `fansim/acoustics/fwh.py` / `fansim/cfd/des_fwh.py` implement only the
+  stationary, pressure-loading (Curle-type) kernel over compact/permeable-box panels: no moving-source
+  Doppler factor, no thickness or ρu(u·n) terms, no near-field term. Full moving-surface FW-H is not
+  implemented (Audit #6).
 - **Blake, W. K. (1986).** *Mechanics of Flow-Induced Sound and Vibration.* Academic Press. —
   Reference text tying the analogies to real flow-noise mechanisms (loading vs. thickness vs.
   broadband). Context for interpreting the dipole spectra.

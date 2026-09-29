@@ -1,4 +1,5 @@
-"""Far-field FW-H loading (Farassat 1A compact / discrete panels).
+"""Far-field loading-noise kernel over stationary panels (NOT full Farassat 1A / FW-H: no Doppler,
+thickness or near-field terms; Audit #6).
 
 This module is the far-field loading term:
 

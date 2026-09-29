@@ -46,7 +46,7 @@ def _tone(f, pxx, f0, half_bw=8.0):
 
 
 def analyze_cv_force(csv, cutoff_hz=2500.0, r_hat=(0.0, 0.0, 1.0), fwh=False):
-    """Reduce a CV-force CSV to noise metrics (Curle 1/r² default; FW-H 1/r if fwh)."""
+    """Reduce a CV-force CSV to noise metrics (Curle default; ``fwh`` uses the same far-field 1/r kernel with retarded delay)."""
     sys.path.insert(0, str(PROJECT))
     from fansim.acoustics.farfield import force_from_cv, noise_from_cv_force
 

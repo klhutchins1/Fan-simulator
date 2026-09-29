@@ -1,5 +1,29 @@
 {
   "units": {
+    "acoustics.curle_dipole": {
+      "date": "2026-09-29",
+      "fingerprint": "dda9aa374bf254aa",
+      "report": "docs/validation/audits/2026-09-29-audit-06-acoustics.md",
+      "verdict": "PASS"
+    },
+    "acoustics.fwh": {
+      "date": "2026-09-29",
+      "fingerprint": "16cadecd09a6b13c",
+      "report": "docs/validation/audits/2026-09-29-audit-06-acoustics.md",
+      "verdict": "PASS"
+    },
+    "acoustics.proudman": {
+      "date": "2026-09-29",
+      "fingerprint": "3d2562a18673225e",
+      "report": "docs/validation/audits/2026-09-29-audit-06-acoustics.md",
+      "verdict": "PASS"
+    },
+    "acoustics.tonal_bpf": {
+      "date": "2026-09-29",
+      "fingerprint": "98bfba61db1a70ef",
+      "report": "docs/validation/audits/2026-09-29-audit-06-acoustics.md",
+      "verdict": "PASS"
+    },
     "audit.direction_geometry": {
       "date": "2026-09-26",
       "fingerprint": "17d18868e3572094",
