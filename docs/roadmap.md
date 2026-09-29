@@ -777,6 +777,7 @@ follow under `docs/superpowers/specs/`.
 - [ ] **19.12 CFD estimates discipline.** **[effort: low]** Always `--pilot` before long runs (pilot estimates now
   land within ~5–40%); keep per-row `cells`/`wall_s`/`sec_per_iter`.
 - [ ] **19.14 Mesh level follows each design's thinnest wall.** **[effort: low]** Designs with thicker walls get a coarser surface mesh (v2: level 2–3 vs 3–4), which moved CFM 1–4% in the v2 check. Consider a fixed surface level for optimizer comparisons.
+- [ ] **19.15 Prop BEMT under-predicts thrust (Audit #3, FAIL).** **[impact: med]** **[effort: med]** Against UIUC measured J-sweeps with measured geometry: APC E 9x6 passes (static C_T −13.6%), APC SF 9x4.7 fails (static C_T −20.3%, C_T(J) RMS 0.021–0.024 vs 0.015). Both under-predict; suspect the airfoil polars (low-Re thin cambered sections). Test a NeuralFoil/XFOIL polar swap (see §20.2) against the same data before re-auditing.
 - [ ] **19.13 FAN-01 benchmark follow-ups.** **[effort: med]** Model the rig's downstream chamber/struts; mesh
   ladder at 126 Pa; measured tip gap is 2.11 mm vs 2.5 published (check extraction tip radius).
 - [ ] **19.5+ Later audits** (each: verification → validation → claims):

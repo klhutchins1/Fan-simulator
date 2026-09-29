@@ -109,9 +109,15 @@ def test_random_prop_flat_designs_never_raise_in_the_builder_path(tmp_path):
         assert crosscheck is not None and crosscheck["verdict"] in ("CONCLUSIVE", "INCONCLUSIVE")
         if crosscheck["verdict"] == "INCONCLUSIVE":
             n_inconclusive += 1
-    # Not a hard requirement, but documents why this test exists: this search space routinely
-    # produces sections the proof can't read, which is exactly what the builder path must tolerate.
-    assert n_inconclusive >= 1
+    # Since the builder's LE orientation fix (3a577c6) random designs usually read CONCLUSIVE, so
+    # the INCONCLUSIVE branch is exercised deliberately with a flat (camber 0) builder-path rotor.
+    from fansim.audit.synthetic import cambered_blade_fan
+
+    flat_stl = tmp_path / "flat.stl"
+    cambered_blade_fan(n_blades=2, r_hub=6.0, r_tip=60.0, chord=15.0, camber=0.0).export(str(flat_stl))
+    d, crosscheck = resolve_prop_direction(flat_stl, external=False)
+    assert d == BUILDER_DIRECTION
+    assert crosscheck is not None and crosscheck["verdict"] == "INCONCLUSIVE"
 
 
 @pytest.mark.slow
