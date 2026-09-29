@@ -1,5 +1,21 @@
 # NF-A12x25 reference P–Q validation report
 
+## 2026-09-29 recipe v2 (roadmap §19.7): refit to the close-ref STL sections
+
+After fixing the builder's back-to-front airfoil (3a577c6) and refitting the recipe section by section
+(`config/problems/a12x25_reference_v2.yaml`, fb625de; built sections within ±0.8 mm chord, ±0.7°
+stagger of the reference), the complete setup (ring + frame + layers, matched surface level 3–4) gives:
+
+| back-pressure | v2 recipe | close-ref STL | v2 vs ref | old Stock recipe |
+|---|---|---|---|---|
+| 0 Pa | **56.5** | 59.8 | −5.5% | 77.4 (+29%) |
+| 5 Pa | **49.8** | 52.5 | −5.1% | 46.7 (−11%) |
+| 10 Pa | **40.2** | 41.0 | −2.0% | 11.2 (−73%) |
+
+All points converged; sanity physics PASS (1 skewed face WARN). On the default (wall-derived, coarser)
+mesh level, v2 read 55.6 / 48.4 / 38.5, so mesh level moves results 1–4%. The remaining ~2–6% deficit is
+likely the extrapolated root station and the builder realising only ~70% of the recipe chord near the tip.
+
 ## 2026-09-28 full P–Q in the complete setup (CFD_VERSION 5) — current best
 
 Close-ref STL, sealed 25 mm ring, four-bar frame, prism layers (y+ ≈ 2), 2000 rpm, tip gap 0.5 mm.

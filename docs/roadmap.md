@@ -757,7 +757,7 @@ follow under `docs/superpowers/specs/`.
   3 outer correctors) = ~32 h per point; A12x25 ~3 days per point. Remaining options: coarse transient mesh +
   start from steady + 2 revs (~8–15 h, one point), AMI sliding mesh, or cloud compute. Until then, near-stall points
   carry the automatic `converged`/`oscillation_pct` flags.
-- [ ] **19.7 Stock recipe fidelity.** **[impact: critical for the optimizer]** **[effort: med–high]**
+- [~] **19.7 Stock recipe fidelity.** **v2 2026-09-29:** builder airfoil fixed + section refit → CFD within 2–6% of close-ref STL at 0/5/10 Pa (was +29%/−73%); pending: promote v2 to Stock, builder chord realisation (~70% near tip), root station. **[impact: critical for the optimizer]** **[effort: med–high]**
   In the complete setup the Stock parametric recipe over-delivers free air by **+22–29%** (73–77 CFM) while the
   close-ref STL matches (−0.5%). The optimizer's designs come from this recipe, so its airflow is biased high.
   Refit the recipe (section shapes, stagger/camber distribution, hub/tip treatment) until its CFD matches the
@@ -776,6 +776,7 @@ follow under `docs/superpowers/specs/`.
   drone STLs are all INCONCLUSIVE by design (manual direction only).
 - [ ] **19.12 CFD estimates discipline.** **[effort: low]** Always `--pilot` before long runs (pilot estimates now
   land within ~5–40%); keep per-row `cells`/`wall_s`/`sec_per_iter`.
+- [ ] **19.14 Mesh level follows each design's thinnest wall.** **[effort: low]** Designs with thicker walls get a coarser surface mesh (v2: level 2–3 vs 3–4), which moved CFM 1–4% in the v2 check. Consider a fixed surface level for optimizer comparisons.
 - [ ] **19.13 FAN-01 benchmark follow-ups.** **[effort: med]** Model the rig's downstream chamber/struts; mesh
   ladder at 126 Pa; measured tip gap is 2.11 mm vs 2.5 published (check extraction tip radius).
 - [ ] **19.5+ Later audits** (each: verification → validation → claims):
