@@ -14,38 +14,342 @@
     {
       "orientation": "as_built",
       "spin": -1,
-      "cfm": 49.0401220376688,
+      "cfm": 46.35548074506,
       "converged": true,
-      "shaft_power_w": 0.8687299620146541,
-      "moment_z_nm": 0.00414788003,
-      "omega_signed": -209.43951023931953
+      "shaft_power_w": 0.7959205049228366,
+      "moment_z_nm": 0.00380024048,
+      "omega_signed": -209.43951023931953,
+      "sanity": [
+        {
+          "name": "mass_balance",
+          "status": "PASS",
+          "value": 0.07584015051196878,
+          "limit": "<=1% PASS, <=5% WARN",
+          "note": "Q_in=-0.02186 Q_out=0.02188 m3/s"
+        },
+        {
+          "name": "energy_total",
+          "status": "PASS",
+          "value": 0.034262703804558016,
+          "limit": "eta_total < 1 (Q>0)",
+          "note": "eta_total=0.034"
+        },
+        {
+          "name": "power_sign",
+          "status": "PASS",
+          "value": -0.7959205049228366,
+          "limit": "Mz*omega < 0 (Q>0)",
+          "note": "Mz=0.00380 omega=-209.440 product=-0.79592"
+        },
+        {
+          "name": "thrust_direction",
+          "status": "PASS",
+          "value": -0.0570708495,
+          "limit": "Fz < 0 (Q>0)",
+          "note": "Fz=-0.05707 N, Q=0.02188 m3/s"
+        },
+        {
+          "name": "inlet_bookkeeping",
+          "status": "PASS",
+          "value": 0.15839542744311433,
+          "limit": "<=5% PASS, <=15% WARN (Q>0)",
+          "note": "p_in=-1.245 Pa expected=-1.247 Pa"
+        },
+        {
+          "name": "mesh_quality",
+          "status": "WARN",
+          "value": null,
+          "limit": "\"Mesh OK.\" PASS; skewness-only failures WARN; other failures FAIL",
+          "note": "1 highly skew faces (skewness only); max non-orthogonality=61.51754, Max skewness=6.918051"
+        },
+        {
+          "name": "y_plus",
+          "status": "WARN",
+          "value": 6.2357989,
+          "limit": "<=5 or 30-300",
+          "note": "y+ avg=6.24 (buffer/over-range; min=0.29 max=33.84)"
+        },
+        {
+          "name": "regime",
+          "status": "PASS",
+          "value": 0.0332782904408425,
+          "limit": "tip Mach < 0.3",
+          "note": "tip Mach=0.033"
+        },
+        {
+          "name": "converged",
+          "status": "PASS",
+          "value": null,
+          "limit": "FanMetrics.converged",
+          "note": "flow_drift_pct=0.23%, oscillation_pct=1.01%"
+        },
+        {
+          "name": "duct_shape",
+          "status": "PASS",
+          "value": null,
+          "limit": "ring/round PASS, square WARN",
+          "note": "ring"
+        }
+      ],
+      "sanity_status": "WARN",
+      "cells": 782055,
+      "wall_s": 1300.6694688796997,
+      "sec_per_iter": 0.8671129792531331
     },
     {
       "orientation": "as_built",
       "spin": 1,
-      "cfm": -80.184020924256,
+      "cfm": -79.2118740486684,
       "converged": true,
-      "shaft_power_w": 0.9744123555776465,
-      "moment_z_nm": -0.004652476290000001,
-      "omega_signed": 209.43951023931953
+      "shaft_power_w": 1.1029939185236197,
+      "moment_z_nm": -0.00526640803,
+      "omega_signed": 209.43951023931953,
+      "sanity": [
+        {
+          "name": "mass_balance",
+          "status": "PASS",
+          "value": 0.04246892334894926,
+          "limit": "<=1% PASS, <=5% WARN",
+          "note": "Q_in=0.03737 Q_out=-0.03738 m3/s"
+        },
+        {
+          "name": "energy_total",
+          "status": "SKIP",
+          "value": null,
+          "limit": "eta_total < 1 (Q>0)",
+          "note": "Q<=0, check only applies to forward flow"
+        },
+        {
+          "name": "power_sign",
+          "status": "SKIP",
+          "value": null,
+          "limit": "Mz*omega < 0 (Q>0)",
+          "note": "Q<=0, check only applies to forward flow"
+        },
+        {
+          "name": "thrust_direction",
+          "status": "SKIP",
+          "value": null,
+          "limit": "Fz < 0 (Q>0)",
+          "note": "Q<=0, check only applies to forward flow"
+        },
+        {
+          "name": "inlet_bookkeeping",
+          "status": "SKIP",
+          "value": null,
+          "limit": "<=5% PASS, <=15% WARN (Q>0)",
+          "note": "Q<=0, check only applies to forward flow"
+        },
+        {
+          "name": "mesh_quality",
+          "status": "WARN",
+          "value": null,
+          "limit": "\"Mesh OK.\" PASS; skewness-only failures WARN; other failures FAIL",
+          "note": "1 highly skew faces (skewness only); max non-orthogonality=61.51754, Max skewness=6.918051"
+        },
+        {
+          "name": "y_plus",
+          "status": "WARN",
+          "value": 5.4806609,
+          "limit": "<=5 or 30-300",
+          "note": "y+ avg=5.48 (buffer/over-range; min=0.30 max=32.83)"
+        },
+        {
+          "name": "regime",
+          "status": "PASS",
+          "value": 0.0332782904408425,
+          "limit": "tip Mach < 0.3",
+          "note": "tip Mach=0.033"
+        },
+        {
+          "name": "converged",
+          "status": "PASS",
+          "value": null,
+          "limit": "FanMetrics.converged",
+          "note": "flow_drift_pct=0.46%, oscillation_pct=1.24%"
+        },
+        {
+          "name": "duct_shape",
+          "status": "PASS",
+          "value": null,
+          "limit": "ring/round PASS, square WARN",
+          "note": "ring"
+        }
+      ],
+      "sanity_status": "WARN",
+      "cells": 782055,
+      "wall_s": 1344.8739676475525,
+      "sec_per_iter": 0.8965826450983684
     },
     {
       "orientation": "flipped",
       "spin": -1,
-      "cfm": 62.18729877613801,
+      "cfm": 76.4508468480714,
       "converged": true,
-      "shaft_power_w": 1.0198241465003253,
-      "moment_z_nm": 0.0048693016200000005,
-      "omega_signed": -209.43951023931953
+      "shaft_power_w": 1.1079203546834688,
+      "moment_z_nm": 0.00528993003,
+      "omega_signed": -209.43951023931953,
+      "sanity": [
+        {
+          "name": "mass_balance",
+          "status": "PASS",
+          "value": 0.10299980562764534,
+          "limit": "<=1% PASS, <=5% WARN",
+          "note": "Q_in=-0.03612 Q_out=0.03608 m3/s"
+        },
+        {
+          "name": "energy_total",
+          "status": "PASS",
+          "value": 0.11041457802840318,
+          "limit": "eta_total < 1 (Q>0)",
+          "note": "eta_total=0.110"
+        },
+        {
+          "name": "power_sign",
+          "status": "PASS",
+          "value": -1.1079203546834688,
+          "limit": "Mz*omega < 0 (Q>0)",
+          "note": "Mz=0.00529 omega=-209.440 product=-1.10792"
+        },
+        {
+          "name": "thrust_direction",
+          "status": "PASS",
+          "value": -0.0820778566,
+          "limit": "Fz < 0 (Q>0)",
+          "note": "Fz=-0.08208 N, Q=0.03608 m3/s"
+        },
+        {
+          "name": "inlet_bookkeeping",
+          "status": "PASS",
+          "value": 0.14582960301815232,
+          "limit": "<=5% PASS, <=15% WARN (Q>0)",
+          "note": "p_in=-3.395 Pa expected=-3.390 Pa"
+        },
+        {
+          "name": "mesh_quality",
+          "status": "WARN",
+          "value": null,
+          "limit": "\"Mesh OK.\" PASS; skewness-only failures WARN; other failures FAIL",
+          "note": "1 highly skew faces (skewness only); max non-orthogonality=61.14915, Max skewness=6.911443"
+        },
+        {
+          "name": "y_plus",
+          "status": "WARN",
+          "value": 5.3910052,
+          "limit": "<=5 or 30-300",
+          "note": "y+ avg=5.39 (buffer/over-range; min=0.23 max=33.66)"
+        },
+        {
+          "name": "regime",
+          "status": "PASS",
+          "value": 0.0332782904408425,
+          "limit": "tip Mach < 0.3",
+          "note": "tip Mach=0.033"
+        },
+        {
+          "name": "converged",
+          "status": "PASS",
+          "value": null,
+          "limit": "FanMetrics.converged",
+          "note": "flow_drift_pct=0.38%, oscillation_pct=0.65%"
+        },
+        {
+          "name": "duct_shape",
+          "status": "PASS",
+          "value": null,
+          "limit": "ring/round PASS, square WARN",
+          "note": "ring"
+        }
+      ],
+      "sanity_status": "WARN",
+      "cells": 780485,
+      "wall_s": 1533.023278951645,
+      "sec_per_iter": 1.0220155193010967
     },
     {
       "orientation": "flipped",
       "spin": 1,
-      "cfm": -63.0198907860006,
+      "cfm": -47.1582672893814,
       "converged": true,
-      "shaft_power_w": 1.0202458697093528,
-      "moment_z_nm": -0.0048713152,
-      "omega_signed": 209.43951023931953
+      "shaft_power_w": 0.80367556618173,
+      "moment_z_nm": -0.00383726817,
+      "omega_signed": 209.43951023931953,
+      "sanity": [
+        {
+          "name": "mass_balance",
+          "status": "PASS",
+          "value": 0.1639125078601161,
+          "limit": "<=1% PASS, <=5% WARN",
+          "note": "Q_in=0.02229 Q_out=-0.02226 m3/s"
+        },
+        {
+          "name": "energy_total",
+          "status": "SKIP",
+          "value": null,
+          "limit": "eta_total < 1 (Q>0)",
+          "note": "Q<=0, check only applies to forward flow"
+        },
+        {
+          "name": "power_sign",
+          "status": "SKIP",
+          "value": null,
+          "limit": "Mz*omega < 0 (Q>0)",
+          "note": "Q<=0, check only applies to forward flow"
+        },
+        {
+          "name": "thrust_direction",
+          "status": "SKIP",
+          "value": null,
+          "limit": "Fz < 0 (Q>0)",
+          "note": "Q<=0, check only applies to forward flow"
+        },
+        {
+          "name": "inlet_bookkeeping",
+          "status": "SKIP",
+          "value": null,
+          "limit": "<=5% PASS, <=15% WARN (Q>0)",
+          "note": "Q<=0, check only applies to forward flow"
+        },
+        {
+          "name": "mesh_quality",
+          "status": "WARN",
+          "value": null,
+          "limit": "\"Mesh OK.\" PASS; skewness-only failures WARN; other failures FAIL",
+          "note": "1 highly skew faces (skewness only); max non-orthogonality=61.14915, Max skewness=6.911443"
+        },
+        {
+          "name": "y_plus",
+          "status": "WARN",
+          "value": 6.2819219,
+          "limit": "<=5 or 30-300",
+          "note": "y+ avg=6.28 (buffer/over-range; min=0.19 max=25.72)"
+        },
+        {
+          "name": "regime",
+          "status": "PASS",
+          "value": 0.0332782904408425,
+          "limit": "tip Mach < 0.3",
+          "note": "tip Mach=0.033"
+        },
+        {
+          "name": "converged",
+          "status": "PASS",
+          "value": null,
+          "limit": "FanMetrics.converged",
+          "note": "flow_drift_pct=0.06%, oscillation_pct=1.84%"
+        },
+        {
+          "name": "duct_shape",
+          "status": "PASS",
+          "value": null,
+          "limit": "ring/round PASS, square WARN",
+          "note": "ring"
+        }
+      ],
+      "sanity_status": "WARN",
+      "cells": 780485,
+      "wall_s": 1450.7970750331879,
+      "sec_per_iter": 0.9671980500221252
     }
   ],
   "errors": [],
@@ -74,12 +378,12 @@
     "verdict": "PASS",
     "designed_sense": 1,
     "proper": {
-      "+1": 62.18729877613801,
-      "-1": 49.0401220376688
+      "+1": 76.4508468480714,
+      "-1": 46.35548074506
     },
     "bc_bias_cfm": {
-      "+1": 17.997,
-      "-1": 13.98
+      "+1": 2.761,
+      "-1": 0.803
     },
     "power_sign_ok": true,
     "recommended": {

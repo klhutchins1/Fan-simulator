@@ -107,3 +107,18 @@ run completes.
 
 1. The Stock direction matrix in the v5 domain (§19.9).
 2. The Stock recipe loaded P–Q in the complete setup (the §19.7 baseline).
+
+## Addendum: long run 2026-09-28 (19:11–23:12, 3 h 58 min vs est. 5.5 h)
+
+**Direction re-proof in the v5 ring domain (roadmap §19.9): PASS.** The designed rotation delivers 76.5 CFM
+against 46.4 CFM for the reversed rotation (+65%). All runs converged. Convention verdict PASS
+(production = flipped, spin −1). The ring domain nearly removes the duct-end BC bias (1–3 CFM, vs 14–18 in
+the v3 square tunnel). Evidence: `direction_cfd_stock.json`, copy `direction_cfd_stock_v5.json`.
+
+**Stock recipe loaded P–Q, complete setup (roadmap §19.7 baseline).** 0 / 5 / 10 / 15 / 20 Pa give
+77.4 / 46.7 / 11.2 / −23.7 / −41.9 CFM (loaded points unconverged, 6–12% oscillation), so the shut-off is
+about 11–12 Pa. The close-ref STL gives 59.8 / 52.5 / 41.0 / 26.8 / 2.2 (shut-off ≈ 20–21 Pa). The Stock
+recipe is wrong at both ends: too much free air and too little pressure. This is the target for §19.7.
+
+**Ledger:** after roadmap §19.2 (direction derived from geometry) and the v5 domain changes, the units were
+re-verified by their checks (256 tests including slow) and re-recorded. 9/9 PROVEN.

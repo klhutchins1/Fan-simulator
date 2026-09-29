@@ -761,11 +761,11 @@ follow under `docs/superpowers/specs/`.
   In the complete setup the Stock parametric recipe over-delivers free air by **+22–29%** (73–77 CFM) while the
   close-ref STL matches (−0.5%). The optimizer's designs come from this recipe, so its airflow is biased high.
   Refit the recipe (section shapes, stagger/camber distribution, hub/tip treatment) until its CFD matches the
-  close-ref STL at 0/5/10 Pa in the validated (unstalled) range. Baseline run queued 2026-09-28.
+  close-ref STL at 0/5/10 Pa in the validated (unstalled) range. **Baseline 2026-09-28:** Stock 77.4/46.7/11.2 CFM at 0/5/10 Pa (shut-off ≈11–12 Pa) vs close-ref 59.8/52.5/41.0 (≈20–21 Pa): too much free air *and* too little pressure.
 - [ ] **19.8 Re-score the saved optimizer catalog at CFD v5.** **[impact: high]** **[effort: CPU]**
   All pre-v5 scores are stale (reversed rotor ≤v2, square tunnel v3, long duct v4). Re-score only designs worth
   keeping, after 19.7, using the complete setup; pilot-time first.
-- [ ] **19.9 Direction matrix re-proof in the v5 domain.** **[impact: med]** **[effort: CPU ~2.5 h]**
+- [x] **19.9 Direction matrix re-proof in the v5 domain.** **PASS 2026-09-28** (76.5 vs 46.4 CFM, BC bias 1–3 CFM). **[impact: med]** **[effort: CPU ~2.5 h]**
   `cfd.flow_direction_convention`'s CFD evidence (PASS 2026-09-26) was solved in the v3 square tunnel; the v4 long
   duct run was INCONCLUSIVE (domain flawed). Re-run the Stock matrix in the v5 ring domain. Queued 2026-09-28.
 - [ ] **19.10 Mesh quality in the ring domain.** **[impact: med]** **[effort: low–med]**
