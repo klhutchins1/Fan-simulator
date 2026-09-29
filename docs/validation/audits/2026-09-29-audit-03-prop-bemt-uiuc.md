@@ -90,3 +90,30 @@ doc gaps above.
 - Real chord/twist of any UIUC prop; the 9x4.7 loft is a generic helix.
 - Stall/post-stall behaviour, compressibility, high tip Mach vs data, 3+ blades, ducted/counter-rotating.
 - The UIUC airfoil polar tables themselves (covered by `tests/test_uiuc_polars.py` provenance only).
+
+## Addendum 2026-09-29: UIUC geometry + J sweeps
+
+Data: UIUC vol-1 geometry (r/R, c/R, beta), static and advancing-flow files for **APC SF 9x4.7** (6 RPM sweeps,
+4008-6819 rpm) and **APC E 9x6** (7 sweeps, 4003-6715 rpm), vendored in `validation/reference/uiuc_propdb/`
+(README has source and credit). Blade built directly from the measured chord/twist tables (hub at r/R 0.15,
+camber 0.04, t/c 0.06, the BEMT's standard polars). Tolerances are the pre-registered ones, unchanged:
+static C_T +-15%, C_P +-20%, C_T(J) RMS <= 0.015. All tests in `tests/audit/test_prop_bemt_audit.py`.
+
+| prop | static C_T err @~6000 rpm | static C_P err | C_T(J) RMS (per sweep) | C_T(J) max | C_P(J) RMS | eta(J) RMS (eta>0.05) | verdict |
+|---|---|---|---|---|---|---|---|
+| APC SF 9x4.7 | -20.3% (tol 15%) FAIL | -19.5% (tol 20%, marginal) | 0.021-0.024 (tol 0.015) FAIL | 0.043 | 0.009-0.026 | 0.07-0.27 | **FAIL** |
+| APC E 9x6 | -13.6% PASS | -18.3% PASS | 0.004-0.010 PASS | 0.012 | 0.002-0.006 | 0.03-0.14 | **PASS** (CP max err 0.015) |
+
+Across all static rows: SF C_T -19% to -20%, C_P -18% to -25%; E 9x6 C_T -10% to -14%, C_P -17% to -30% (C_P
+beyond -20% at the lowest rpm). BEMT under-predicts thrust and power on both props, worst on the thin
+Slow Flyer. eta errors are inflated near the zero-thrust J where eta -> 0 (large relative sensitivity).
+
+**Overall verdict: FAIL** (one of two props misses the pre-registered C_T static and C_T(J) tolerances; not
+loosened). `propeller.bemt` is **not** recorded in the ledger. Likely cause (not tested): the generic
+camber-0.04 polar family and no root/Glauert correction under-predict lift on the low-pitch, thin Slow
+Flyer; a per-prop polar/calibration would be needed. The 9x6 result shows the solver is sound on real geometry.
+
+Fixes made from the observations: `PropPerf.figure_of_merit_raw` (unclipped FM) and `PropPerf.converged`
+(False if any element hits the 60-iteration cap; 3 of 16 SF and 1 of 16 E-9x6 static rows flagged);
+docstring now documents the Prandtl tip loss, no root loss, no Glauert correction; Prandtl/Glauert added to
+`docs/bibliography.md`. Two SF tests are `xfail(strict)` to keep the FAIL on record.

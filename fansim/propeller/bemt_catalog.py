@@ -38,6 +38,41 @@ def approximate_prop_blade(
     return prop_blade_params(spec)
 
 
+def load_uiuc_geometry_blade(
+    geom_path: str | Path, diameter_in: float, *, blade_count: int = 2, camber: float = 0.04
+) -> BladeParams:
+    """BladeParams from a UIUC ``*_geom.txt`` (r/R, c/R, beta[deg]); hub at the first station."""
+    from fansim.geometry.blade import RadialStation
+
+    rows = []
+    for line in Path(geom_path).read_text(encoding="utf-8").splitlines():
+        parts = line.split()
+        try:
+            rows.append(tuple(float(x) for x in parts[:3]))
+        except ValueError:
+            continue   # header
+    if len(rows) < 3:
+        raise ValueError(f"no geometry rows in {geom_path}")
+    R = float(diameter_in) * MM_PER_IN / 2.0
+    r0 = rows[0][0]
+    stations = [
+        RadialStation((rr - r0) / (1.0 - r0), cr * R, beta, 0.06, camber, 0.4)
+        for rr, cr, beta in rows
+    ]
+    return BladeParams(n_blades=int(blade_count), hub_radius=r0 * R, tip_radius=R, stations=stations)
+
+
+def load_uiuc_performance(path: str | Path) -> list[tuple[float, ...]]:
+    """Numeric rows of a UIUC performance file: (J, CT, CP, eta) or static (RPM, CT, CP)."""
+    rows = []
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        try:
+            rows.append(tuple(float(x) for x in line.split()))
+        except ValueError:
+            continue
+    return rows
+
+
 def bemt_static_ct_cp(
     diameter_in: float,
     pitch_in: float,

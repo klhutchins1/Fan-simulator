@@ -8,6 +8,13 @@ proxy screens fans. analyze applies _compressibility_cl_cd (Prandtl-Glauert on a
 the polar peak; stalled Cl unchanged; wave drag past Mach 0.7) using local
 relative speed over C_AIR. A compressible CFD tier can still refine finalists.
 
+Loss model (what is and is NOT modelled): a Prandtl finite-blade TIP-LOSS factor F (Prandtl 1919, in
+Betz/Glauert form; floored at 0.15) multiplies the momentum term only; there is NO ROOT-loss factor
+and NO Glauert high-induction (turbulent-wake) correction, so heavily loaded roots/hover are
+approximate. Swirl is included. The inner (vi, v_theta) fixed-point iteration is capped at 60 steps;
+``PropPerf.converged`` is False if any element hit the cap (results then unreliable).
+References: Prandtl (1919), Glauert (1935), Drela QPROP (2006); see docs/bibliography.md.
+
 Static thrust (V=0) is the headline drone number: thrust in grams + hover efficiency in grams-per-watt.
 """
 
@@ -37,6 +44,8 @@ class PropPerf:
     efficiency_g_per_w: float        # static hover efficiency = thrust/power
     figure_of_merit: float           # ideal/actual hover power ratio (0..1; ~0.6-0.8 good)
     prop_efficiency: float | None = None   # propulsive eff (forward flight); None in hover
+    figure_of_merit_raw: float = 0.0        # UNCLIPPED FM; > 1 would violate momentum theory (a bug flag)
+    converged: bool = True                  # False if any element hit the 60-iteration inflow cap
 
 
 def _cl_cd(
@@ -94,6 +103,7 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
     R = r_tip_mm / 1000.0
     edges = np.linspace(r_root_mm, r_tip_mm, n_elem + 1) / 1000.0   # element boundaries [m]
     T = Q = 0.0
+    converged = True
     for i in range(n_elem):
         r = 0.5 * (edges[i] + edges[i + 1])
         dr = edges[i + 1] - edges[i]
@@ -107,6 +117,7 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
         phi = 0.0
         W2 = 0.0
         cl = cd = 0.0
+        elem_converged = False
         for _ in range(60):                                 # BEM fixed-point iteration (a, a')
             Vax = v_forward + vi
             vth_m = 0.5 * vth                               # mean swirl through the disk
@@ -121,7 +132,7 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
             cl, cd = _compressibility_cl_cd(
                 cl, cd, mach, stalled=stalled, cl_cap=cl_cap
             )
-            # Prandtl tip-loss factor (open propeller only)
+            # Prandtl tip-loss factor (open propeller only; no root loss modelled)
             f = (B / 2.0) * (R - r) / max(r * math.sin(phi), 1e-4)
             F = max(0.15, (2.0 / math.pi) * math.acos(math.exp(-min(f, 20.0))))
 
@@ -141,10 +152,12 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
             if abs(vi_new - vi) < 1e-3 and abs(vth_new - vth) < 1e-3:
                 vi = vi_new
                 vth = vth_new
+                elem_converged = True
                 break
             vi = 0.5 * vi + 0.5 * vi_new                    # relax
             vth = 0.5 * vth + 0.5 * vth_new
 
+        converged = converged and elem_converged
         dQ = f_theta * r                                    # per unit span
         T += dT * dr
         Q += dQ * dr
@@ -156,7 +169,8 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
     return PropPerf(thrust_n=round(T, 3), torque_nm=round(Q, 4), power_w=round(P, 1), rpm=rpm,
                     v_forward=v_forward, thrust_g=round(T / G * 1000.0, 0),
                     efficiency_g_per_w=round(T / G * 1000.0 / P, 2) if P > 0 else 0.0,
-                    figure_of_merit=round(min(fm, 1.0), 3), prop_efficiency=prop_eff)
+                    figure_of_merit=round(min(fm, 1.0), 3), prop_efficiency=prop_eff,
+                    figure_of_merit_raw=round(fm, 4), converged=converged)
 
 
 # --- spliced from transcript edit-history (recovery 2026-09-12) ---

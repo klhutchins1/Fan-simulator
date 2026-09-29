@@ -148,6 +148,11 @@ Legend: **→ code** points at the module/script that implements or relies on th
   (BEMT with compressibility/Re corrections); **Hanson, D. B. (1985).** *Noise of counter-rotation
   propellers.* J. Aircraft **22**(7), 609–617. **→ code:** the prop BEMT + relative noise proxy
   (`fansim/propeller/`) and the CROR tier (`fansim/cror/`); compressible open-air prop CFD is roadmap §4.3.
+- **Prandtl tip loss & Glauert momentum theory (prop BEMT)** — **Prandtl, L. (1919/1921).** Applications of
+  modern hydrodynamics to aeronautics (tip-loss factor); **Glauert, H. (1935).** Airplane propellers, in
+  Durand (ed.), *Aerodynamic Theory* vol. IV (blade-element/momentum balance, induction). **→ code:**
+  `fansim/propeller/bemt.py` (`analyze`: Prandtl F on the momentum term; no root loss, no Glauert
+  high-induction correction — stated in the module docstring).
 - **PyThrust (`setuav-pythrust`)** — optional motor–prop–battery equilibrium against bundled APC
   catalogs; Apache-2.0; pin **0.2.3**. [GitHub](https://github.com/Setuav/PyThrust) ·
   [docs](https://setuav.github.io/PyThrust/) · [PyPI](https://pypi.org/project/setuav-pythrust/).
@@ -166,6 +171,8 @@ Legend: **→ code** points at the module/script that implements or relies on th
   corpus for geometry-honest BEMT cross-check (Track A **A3**).
   [propDB](https://m-selig.ae.illinois.edu/props/propDB.html). **→ code:** `fansim/propeller/bemt_catalog.py`
   (A3 Q7 fixture `validation/reference/uiuc_propdb/apcsf_9x4.7_static.json`; Q6 via PyThrust APC).
+  Vol-1 geometry + J-sweep files (APC SF 9x4.7, APC E 9x6; Selig, Brandt, Deters et al.) in
+  `validation/reference/uiuc_propdb/`, used by Audit #3 (`tests/audit/test_prop_bemt_audit.py`).
 
 ---
 

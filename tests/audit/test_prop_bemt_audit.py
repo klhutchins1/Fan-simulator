@@ -100,3 +100,86 @@ def test_uiuc_static_point_within_preregistered_tolerance():
     assert abs(e_ct) <= CT_STATIC_TOL, e_ct
     assert abs(e_cp) <= CP_STATIC_TOL, e_cp
     assert out["geometry_match"] == "approximate"   # the honesty stamp must stay
+
+
+# ---- Addendum 2026-09-29: UIUC measured geometry + J sweeps (vol-1 files, see uiuc_propdb/README.md) ----
+CT_RMS_TOL = 0.015   # pre-registered C_T(J) RMS
+
+from fansim.propeller.bemt_catalog import (  # noqa: E402
+    UIUC_DIR,
+    load_uiuc_geometry_blade,
+    load_uiuc_performance,
+)
+
+_PROPS = {"apcsf_9x4.7": 9.0, "apce_9x6": 9.0}
+
+
+def _uiuc_coeffs(blade, dia_in, rpm, j):
+    d = dia_in * 0.0254
+    n = rpm / 60.0
+    p = analyze(blade, rpm, v_forward=j * n * d)
+    return p.thrust_n / (RHO_AIR * n**2 * d**4), p.power_w / (RHO_AIR * n**3 * d**5), p
+
+
+def _static_errors(prefix):
+    dia = _PROPS[prefix]
+    blade = load_uiuc_geometry_blade(UIUC_DIR / f"{prefix}_geom.txt", dia)
+    rows = load_uiuc_performance(next(UIUC_DIR.glob(f"{prefix}_static_*.txt")))
+    rpm, ct, cp = min(rows, key=lambda r: abs(r[0] - 6000.0))
+    c, p, _ = _uiuc_coeffs(blade, dia, rpm, 0.0)
+    return c / ct - 1.0, p / cp - 1.0
+
+
+def _ct_rms(prefix, rpm_file):
+    dia = _PROPS[prefix]
+    blade = load_uiuc_geometry_blade(UIUC_DIR / f"{prefix}_geom.txt", dia)
+    rpm = float(rpm_file.stem.split("_")[-1])
+    err = [_uiuc_coeffs(blade, dia, rpm, j)[0] - ct for j, ct, _cp, _eta in load_uiuc_performance(rpm_file)]
+    return math.sqrt(sum(e * e for e in err) / len(err))
+
+
+def _sweep_files(prefix):
+    return sorted(f for f in UIUC_DIR.glob(f"{prefix}_*_*.txt") if "static" not in f.name and "geom" not in f.name)
+
+
+def test_uiuc_downloaded_files_present():
+    for prefix in _PROPS:
+        assert (UIUC_DIR / f"{prefix}_geom.txt").is_file()
+        assert len(_sweep_files(prefix)) >= 6
+
+
+def test_uiuc_apce_9x6_static_within_preregistered_tolerance():
+    e_ct, e_cp = _static_errors("apce_9x6")
+    assert abs(e_ct) <= CT_STATIC_TOL, e_ct
+    assert abs(e_cp) <= CP_STATIC_TOL, e_cp
+
+
+def test_uiuc_apce_9x6_ct_j_rms_within_preregistered_tolerance():
+    for f in _sweep_files("apce_9x6"):
+        assert _ct_rms("apce_9x6", f) <= CT_RMS_TOL, f.name
+
+
+@pytest.mark.xfail(strict=True, reason="Audit #3 addendum: APC SF 9x4.7 static C_T -20.3% (tol 15%) -- recorded FAIL")
+def test_uiuc_apcsf_static_within_preregistered_tolerance():
+    e_ct, e_cp = _static_errors("apcsf_9x4.7")
+    assert abs(e_ct) <= CT_STATIC_TOL and abs(e_cp) <= CP_STATIC_TOL
+
+
+@pytest.mark.xfail(strict=True, reason="Audit #3 addendum: APC SF 9x4.7 C_T(J) RMS 0.021-0.024 (tol 0.015) -- recorded FAIL")
+def test_uiuc_apcsf_ct_j_rms_within_preregistered_tolerance():
+    assert max(_ct_rms("apcsf_9x4.7", f) for f in _sweep_files("apcsf_9x4.7")) <= CT_RMS_TOL
+
+
+def test_uiuc_geometry_blade_matches_table():
+    blade = load_uiuc_geometry_blade(UIUC_DIR / "apcsf_9x4.7_geom.txt", 9.0)
+    assert blade.tip_radius == pytest.approx(114.3)
+    assert blade.hub_radius == pytest.approx(0.15 * 114.3)
+    assert blade.stations[-1].chord == pytest.approx(0.058 * 114.3)
+    assert blade.stations[-1].stagger_deg == pytest.approx(4.89)
+
+
+def test_bemt_reports_raw_fm_and_convergence_flag(blade):
+    p = analyze(blade, 6026.0)
+    assert p.converged in (True, False)
+    assert p.figure_of_merit_raw >= p.figure_of_merit - 1e-3
+    assert p.figure_of_merit_raw < 1.0   # momentum bound
