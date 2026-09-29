@@ -49,9 +49,9 @@
       "verdict": "PASS"
     },
     "propeller.thrust_sign": {
-      "date": "2026-09-28",
-      "fingerprint": "83b4e5bba33cf7b0",
-      "report": "docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md",
+      "date": "2026-09-29",
+      "fingerprint": "90347d82e302e565",
+      "report": "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md",
       "verdict": "PASS"
     }
   }
