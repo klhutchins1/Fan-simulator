@@ -96,3 +96,12 @@ units:
     source: {kind: datasheet, ref: "UIUC Propeller Data Site (Selig) APC SF 9x4.7 static row; Glauert/Prandtl blade-element momentum theory"}
     checks: [tests/audit/test_prop_bemt_audit.py, tests/test_bemt.py, tests/test_bemt_catalog.py]
     depends_on: [physics.air_properties]
+
+  - id: fan.bem_prescreen
+    targets:
+      - "fansim.fan_bem:operating_point"
+      - "fansim.fan_bem:pq_curve"
+    claim: "Axial-fan BEM never beats momentum theory, gives zero static rise at its free delivery, and ranks designs like CFD (RANKING-ONLY screening)"
+    source: {kind: datasheet, ref: "Audit #4: CFD v5 Stock v1/v2 + re-scored designs; Euler turbomachinery + blade-element theory"}
+    checks: [tests/audit/test_fan_bem_audit.py, tests/test_math_consistency.py]
+    depends_on: [physics.air_properties]

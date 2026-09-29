@@ -15,6 +15,10 @@ HONEST SCOPE: RANKING-ONLY screening. Do not quote BEM CFM as absolute or beside
 equivalent — BEM ignores thickness/lean/wrap/LE-TE scales/plate sections and typically
 under-ranks CFD (~0.6×). Absolute free-air needs CFD + print/measure (P–Q report: CFD Stock
 ~−26% vs published 60.1 CFM; the old “+2%” claim is retired).
+
+Audit #4 (docs/validation/audits/2026-09-29-audit-04-fan-bem.md): the loss buckets SLIP / K_FRICTION /
+K_TIP_LEAK are EMPIRICAL, tuned to the a12x25 Stock recipe, not derived. No Prandtl tip loss is applied
+(ducted; only the gap-leakage knockdown). Momentum bound: static air power <= shaft power by construction.
 """
 
 from __future__ import annotations
@@ -40,6 +44,7 @@ NU_AIR = 1.5e-5               # kinematic viscosity (m^2/s) -> local blade Reyno
 SLIP = 0.71                   # swirl actually delivered vs ideal (deviation) — gap leakage now explicit (§7.3)
 K_FRICTION = 1.7              # endwall/duct/blade friction static-pressure loss ~ K * dynamic head
 K_TIP_LEAK = 9.0             # tip-clearance leakage knockdown in the outer span ~ K * gap/chord (§7.3)
+N_ITER_MAX = 50               # cap on the per-element swirl fixed-point iteration
 DEFAULT_TIP_GAP_MM = 0.5      # blade-to-shroud gap (leakage grows the loss near the tip)
 
 
@@ -51,6 +56,7 @@ class FanPoint:
     dp_total_pa: float           # Euler total-pressure rise
     efficiency: float            # static air power / shaft power
     power_w: float               # shaft power
+    converged: bool = True       # False if any element's swirl iteration hit its cap (N_ITER_MAX)
 
 
 @dataclass
@@ -60,6 +66,7 @@ class FanCurve:
     shutoff_dp_pa: float         # static rise at the lowest (near-zero) flow
     peak_efficiency: float
     peak_eff_cfm: float
+    converged: bool = True       # False if any point up to free delivery failed to converge (post-free-delivery windmill region ignored)
 
 
 def _interp_geometry(params: BladeParams):
@@ -113,6 +120,7 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
     swirl_ke = 0.0       # mass-weighted swirl dynamic head (lost without a stator)
     power = 0.0
     mass = 0.0
+    converged = True
     for i in range(n_elem):
         r = 0.5 * (edges[i] + edges[i + 1])
         dr = edges[i + 1] - edges[i]
@@ -124,7 +132,8 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
         dm = rho * max(Vx, 0.0) * 2.0 * math.pi * r * dr  # element mass flow
 
         vth = 0.0                                         # swirl added by the rotor (absolute, +rotation)
-        for _ in range(50):
+        elem_ok = False
+        for _ in range(N_ITER_MAX):
             vth_m = 0.5 * vth                             # mean swirl through the row
             phi = math.atan2(Vx, max(U - vth_m, 0.05))    # mean relative flow angle from tangential
             W = math.hypot(Vx, U - vth_m)
@@ -139,8 +148,10 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
             vth_new = max(0.0, min(vth_new, 0.95 * U))
             if abs(vth_new - vth) < 1e-3:
                 vth = vth_new
+                elem_ok = True
                 break
             vth = 0.5 * vth + 0.5 * vth_new
+        converged = converged and elem_ok
 
         # Ducted fan screening model: do NOT apply Prandtl finite-blade tip loss (shroud suppresses the
         # free-tip vortex roll-up). Only model gap leakage in the outer span (screening approximation).
@@ -155,7 +166,7 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
         mass += dm
 
     if mass <= 0:
-        return FanPoint(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        return FanPoint(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, converged)
     dp_total = dp0_num / mass
     swirl_loss = 0.0 if stator else (swirl_ke / mass)
     dp_static = dp_total - swirl_loss \
@@ -164,7 +175,7 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
     air_power = flow_m3s * max(dp_static, 0.0)
     eff = air_power / power if power > 1e-6 else 0.0
     return FanPoint(round(flow_cfm, 1), flow_m3s, round(dp_static, 2), round(dp_total, 2),
-                    round(eff, 3), round(power, 2))
+                    round(eff, 3), round(power, 2), converged)
 
 
 def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 20,
@@ -201,4 +212,6 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
         p.dp_static_pa for p in pts)
     peak = max(pts, key=lambda p: p.efficiency)
     return FanCurve(points=pts, free_delivery_cfm=free_cfm, shutoff_dp_pa=round(shutoff, 2),
-                    peak_efficiency=peak.efficiency, peak_eff_cfm=peak.flow_cfm)
+                    peak_efficiency=peak.efficiency, peak_eff_cfm=peak.flow_cfm,
+                    converged=all(p.converged for p in pts if p.flow_cfm <= free_cfm + 1e-9
+                                  or p.dp_static_pa > 0.0))

@@ -126,7 +126,7 @@ Legend: **→ code** points at the module/script that implements or relies on th
   — The comprehensive loss taxonomy (endwall / tip-leakage / mixing) behind a design-dependent
   knockdown. Applied: [tip-gap analysis](https://www.sciencedirect.com/science/article/abs/pii/S0045793019300088),
   [energy dissipation in the blade-tip region](https://www.sciencedirect.com/science/article/abs/pii/S0022460X16302772).
-  **→ code:** the Prandtl finite-blade tip-loss + gap-leakage knockdown in `fansim/fan_bem.py`
+  **→ code:** the gap-leakage knockdown in `fansim/fan_bem.py` (no Prandtl tip loss: ducted, see Audit #4)
   (roadmap §7.3, §1.1 — the lever that moved fan ranking 0.52→0.62).
 - **Tip geometry — shroud/ring, optimal clearance, winglets, casing treatment / recirculation for
   stall margin:** [tip geometry on a low-speed axial fan](https://www.sciencedirect.com/science/article/abs/pii/S0140700721003273);
