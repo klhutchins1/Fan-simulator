@@ -55,7 +55,7 @@ Legend: **→ code** points at the module/script that implements or relies on th
   choice as a *psychoacoustic* optimization; motivates using a peak-tone / tonalness metric rather
   than overall SPL. **→ code (future):** `[[fan-sim-uneven-spacing]]` feature + a peak-tone objective.
 - **Balance constraint:** for identical blades, static balance holds iff Σₖ e^{iθ_k} = 0 (blade
-  position vectors sum to zero). **→ code (future):** `fansim/structural/balance.py`.
+  position vectors sum to zero). **→ code:** `fansim/structural/balance.py` (verified, Audit #5).
 
 ## 3. Bio-inspired blade features
 

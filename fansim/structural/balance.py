@@ -104,7 +104,8 @@ def balanced_uneven_spacing(n_blades: int, spread: float = 0.3, rng=None,
     ``spread`` in [0,1) scales how far blades wander from equal spacing (0 = equal, tone concentrated;
     larger = more tonal spreading). Even blade counts use diametrically-opposite pairing (balanced by
     construction); odd counts perturb equal spacing then project the residual to zero via a few
-    minimal-norm Newton steps. Guarantees is_balanced(result) for the given masses/radii.
+    minimal-norm Newton steps. Guarantees is_balanced(result) for the given masses/radii; with masses/radii the
+    angles are returned in BLADE ORDER (angle k belongs to masses[k]), otherwise sorted.
     """
     if n_blades < 2:
         raise ValueError("need >= 2 blades")
@@ -129,4 +130,7 @@ def balanced_uneven_spacing(n_blades: int, spread: float = 0.3, rng=None,
         J = np.vstack([-mr * np.sin(ang), mr * np.cos(ang)])   # 2 x N
         dth = J.T @ np.linalg.solve(J @ J.T + 1e-12 * np.eye(2), -np.array([ux, uy]))
         ang = ang + dth
-    return np.sort(ang % TWO_PI)
+    ang = ang % TWO_PI
+    # Sorting reorders blades; with per-blade masses/radii that would break the mass<->angle pairing
+    # the balance was solved for (Audit #5), so keep blade order in that case.
+    return np.sort(ang) if (masses is None and radii is None) else ang

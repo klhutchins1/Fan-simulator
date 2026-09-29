@@ -105,3 +105,31 @@ units:
     source: {kind: datasheet, ref: "Audit #4: CFD v5 Stock v1/v2 + re-scored designs; Euler turbomachinery + blade-element theory"}
     checks: [tests/audit/test_fan_bem_audit.py, tests/test_math_consistency.py]
     depends_on: [physics.air_properties]
+
+  - id: structural.deflection
+    targets:
+      - "fansim.structural.deflection"
+      - "fansim.manufacturability.materials"
+    claim: "Uniform-pressure cantilever tip deflection q L^4/(8 E I) with FDM E knockdown 0.7 (prismatic-beam, SI-consistent, materials inside datasheet ranges)"
+    source: {kind: derivation, ref: "Euler-Bernoulli cantilever (Roark); Audit #5 closed-form + Hermite FE; material TDS ranges in the test"}
+    checks: [tests/audit/test_structural_audit.py, tests/test_deflection.py]
+
+  - id: structural.centrifugal
+    targets: ["fansim.structural.stress"]
+    claim: "Root centrifugal stress of a uniform rotating bar rho w^2 (R^2 - r^2)/2 in MPa, safety factor vs 0.6 x yield"
+    source: {kind: derivation, ref: "Timoshenko, Strength of Materials; Audit #5 closed form + numerical integral"}
+    checks: [tests/audit/test_structural_audit.py]
+    depends_on: [structural.deflection]
+
+  - id: structural.flutter
+    targets: ["fansim.structural.flutter"]
+    claim: "First bending frequency of a uniform cantilever (1.875^2/2pi) sqrt(EI/(rho A L^4)) vs blade-pass frequency (resonance gate, not aeroelastic flutter)"
+    source: {kind: derivation, ref: "Euler-Bernoulli cantilever modes (Blevins, Formulas for Natural Frequency and Mode Shape); Audit #5 Hermite FE eigenvalue"}
+    checks: [tests/audit/test_structural_audit.py, tests/test_flutter.py]
+    depends_on: [structural.deflection]
+
+  - id: structural.balance
+    targets: ["fansim.structural.balance"]
+    claim: "Static/couple unbalance sums, F = U w^2, counterweight nulls the residual, generated uneven spacings are balanced (also with per-blade masses)"
+    source: {kind: derivation, ref: "rigid-rotor balancing, ISO 21940; Audit #5 exact-value and property checks"}
+    checks: [tests/audit/test_structural_audit.py, tests/test_balance.py]

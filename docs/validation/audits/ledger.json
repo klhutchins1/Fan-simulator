@@ -53,6 +53,30 @@
       "fingerprint": "90347d82e302e565",
       "report": "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md",
       "verdict": "PASS"
+    },
+    "structural.balance": {
+      "date": "2026-09-29",
+      "fingerprint": "c34f6a681b719e8b",
+      "report": "docs/validation/audits/2026-09-29-audit-05-structural.md",
+      "verdict": "PASS"
+    },
+    "structural.centrifugal": {
+      "date": "2026-09-29",
+      "fingerprint": "a00e0b6023de11ca",
+      "report": "docs/validation/audits/2026-09-29-audit-05-structural.md",
+      "verdict": "PASS"
+    },
+    "structural.deflection": {
+      "date": "2026-09-29",
+      "fingerprint": "d37ec9ab59966131",
+      "report": "docs/validation/audits/2026-09-29-audit-05-structural.md",
+      "verdict": "PASS"
+    },
+    "structural.flutter": {
+      "date": "2026-09-29",
+      "fingerprint": "e86f0d894ab94e9c",
+      "report": "docs/validation/audits/2026-09-29-audit-05-structural.md",
+      "verdict": "PASS"
     }
   }
 }
