@@ -730,10 +730,14 @@ follow under `docs/superpowers/specs/`.
   bump `CFD_VERSION` so §18 quarantines every pre-verdict score, and re-run the Stock P–Q.
   **Verdict 2026-09-25:** convention **FAIL** — production CFD solves the rotor reversed (designed ω_z +1 / pump −Z by geometry, matching the real fan; production as_built spin −1). CFD matrix INCONCLUSIVE (designed-direction solve limit-cycles; ranks designed +24% Stock / +10% close-ref). See docs/validation/audits/2026-09-25-audit-01-flow-direction.md. Freeze stays until the follow-up fix plan + CFD re-check.
   **Fixed + verified 2026-09-26:** CFD copy flipped 180° about X at spin −1, MRF fitted to the rotor, convergence rule A, CFD v3. Stock convention verdict **PASS**; free-air 58.7 CFM (−2%). Report: docs/validation/audits/2026-09-26-audit-01b-direction-fix.md. Freeze lifted.
-- [ ] **19.2 Direction as a derived, single-source property (after 19.1).** **[impact: high]** **[effort: med]**
+- [~] **19.2 Direction as a derived, single-source property (after 19.1).** **[impact: high]** **[effort: med]**
   Stop hand-setting `spin`: derive pumping direction from blade geometry (19.1 proof #1) and have
   domain BCs, glyphs, metrics signs, and prop/CROR all read that one value. Makes this class of bug
   structurally impossible rather than documented-away.
+  **Progress 2026-09-28:** `fansim/cfd/orientation.py:orientation_from_proof` exists and FAN-01 (opposite
+  handedness) ran correctly through it (as_built, spin +1). Props use it for external STLs. **Open:** wire
+  it into the axial pipeline for any imported/non-Stock-handed rotor (today axial assumes Stock
+  handedness, guarded by the search-space handedness test), and into CROR/mixed.
 - [ ] **19.3 Reverse-rotation run as a permanent regression check.** **[impact: med]** **[effort: low]**
   Keep a cheap forward-vs-reversed smoke in the periodic audit (not a user feature): if reversed ever
   beats forward, the convention broke again.
@@ -743,13 +747,44 @@ follow under `docs/superpowers/specs/`.
   **Not** planned: a "run this design in reverse" performance mode — a blade optimized one way is poor
   reversed; only reversible fans need it, and intake-vs-exhaust mounting is a physical flip, not a
   rotation change (same numbers).
-- [ ] **19.6 Loaded-branch fidelity (designed rotation).** **[impact: high]** **[effort: med–high]**
-  CFD v3 Stock P–Q: free-air −2% but shut-off 9.5 Pa vs 22.9 Pa; loaded solves oscillate 11–17% (stall, steady RANS).
-  Levers in order: URANS at 5–15 Pa, `--with-frame`, prism layers, recipe fidelity. Also: `run_cfd_polar` lacks the
-  `direction_suspect` backstop (prop follow-up).
-- [ ] **19.5+ Later audits** (each: verification → validation → claims): axial BEM + P–Q + metrics,
-  acoustics (Curle / FW-H / Proudman), prop BEMT vs. UIUC, then the other archetypes. Periodic runner
-  + dated proof report; cadence set in the design spec.
+- [~] **19.6 Loaded-branch fidelity (designed rotation).** **[impact: high]** **[effort: high]**
+  **Status 2026-09-28** (Audit #2, `docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md`): with the
+  complete setup (sealed 25 mm ring + frame + prism layers) and the close-ref STL, the A12x25 P–Q is 59.8 / 52.5 /
+  41.0 CFM at 0/5/10 Pa (converged) and crosses zero at ≈20–21 Pa vs 22.9 published (15/20 Pa unconverged).
+  FAN-01 confirms the same limit on exact geometry: high-flow branch within +3%, design point −17% and stall branch
+  collapsing (steady RANS near stall). **Transient is not viable on this PC:** URANS pilot on FAN-01 (maxCo 5,
+  3 outer correctors) = ~32 h per point; A12x25 ~3 days per point. Remaining options: coarse transient mesh +
+  start from steady + 2 revs (~8–15 h, one point), AMI sliding mesh, or cloud compute. Until then, near-stall points
+  carry the automatic `converged`/`oscillation_pct` flags.
+- [ ] **19.7 Stock recipe fidelity.** **[impact: critical for the optimizer]** **[effort: med–high]**
+  In the complete setup the Stock parametric recipe over-delivers free air by **+22–29%** (73–77 CFM) while the
+  close-ref STL matches (−0.5%). The optimizer's designs come from this recipe, so its airflow is biased high.
+  Refit the recipe (section shapes, stagger/camber distribution, hub/tip treatment) until its CFD matches the
+  close-ref STL at 0/5/10 Pa in the validated (unstalled) range. Baseline run queued 2026-09-28.
+- [ ] **19.8 Re-score the saved optimizer catalog at CFD v5.** **[impact: high]** **[effort: CPU]**
+  All pre-v5 scores are stale (reversed rotor ≤v2, square tunnel v3, long duct v4). Re-score only designs worth
+  keeping, after 19.7, using the complete setup; pilot-time first.
+- [ ] **19.9 Direction matrix re-proof in the v5 domain.** **[impact: med]** **[effort: CPU ~2.5 h]**
+  `cfd.flow_direction_convention`'s CFD evidence (PASS 2026-09-26) was solved in the v3 square tunnel; the v4 long
+  duct run was INCONCLUSIVE (domain flawed). Re-run the Stock matrix in the v5 ring domain. Queued 2026-09-28.
+- [ ] **19.10 Mesh quality in the ring domain.** **[impact: med]** **[effort: low–med]**
+  One highly skewed face per case (skewness up to 8.8 in the ring domain vs ~4.3 before); likely the ring edge /
+  blade tip. y+ now resolved (~2) with layers; decide whether layers become the default (cost ≈1.3×).
+- [ ] **19.11 Prop follow-ups.** **[effort: low]** `run_cfd_polar` lacks the `direction_suspect` backstop; the
+  drone STLs are all INCONCLUSIVE by design (manual direction only).
+- [ ] **19.12 CFD estimates discipline.** **[effort: low]** Always `--pilot` before long runs (pilot estimates now
+  land within ~5–40%); keep per-row `cells`/`wall_s`/`sec_per_iter`.
+- [ ] **19.13 FAN-01 benchmark follow-ups.** **[effort: med]** Model the rig's downstream chamber/struts; mesh
+  ladder at 126 Pa; measured tip gap is 2.11 mm vs 2.5 published (check extraction tip radius).
+- [ ] **19.5+ Later audits** (each: verification → validation → claims):
+  - axial **BEM pre-screen** (`fansim/fan_bem.py`) vs CFD in the validated range;
+  - **prop BEMT vs UIUC** measured data (already in `validation/reference/uiuc_propdb`);
+  - **acoustics** (Curle / FW-H / Proudman) — FAN-01 has measured acoustics for validation;
+  - **structural / deflection**;
+  - **CROR and mixed-flow setups** (the placement check already found a CROR hub overhang);
+  - **air-constant consolidation** (19 local copies, all agree; new copies blocked);
+  - triage the ~319 unregistered public physics functions (`scripts/audit_status.py --unregistered`).
+  Change-driven: re-run `scripts/audit_status.py` and audit whatever is CHANGED/AFFECTED/NEW.
 
 ## 20. External feature radar (2026-09-25)
 
