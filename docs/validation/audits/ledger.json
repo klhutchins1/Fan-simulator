@@ -7,15 +7,15 @@
       "verdict": "PASS"
     },
     "cfd.cfm_from_outlet_flow": {
-      "date": "2026-09-28",
-      "fingerprint": "ccdab4cd2980d83b",
-      "report": "docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md",
+      "date": "2026-09-29",
+      "fingerprint": "f9a4e8d63508dce0",
+      "report": "docs/validation/audits/2026-09-29-air-consolidation.md",
       "verdict": "PASS"
     },
     "cfd.flow_direction_convention": {
-      "date": "2026-09-28",
-      "fingerprint": "c04a9b127de692e1",
-      "report": "docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md",
+      "date": "2026-09-29",
+      "fingerprint": "b1affdd38797b9bf",
+      "report": "docs/validation/audits/2026-09-29-air-consolidation.md",
       "verdict": "PASS"
     },
     "cfd.sanity_checks": {
@@ -43,9 +43,9 @@
       "verdict": "PASS"
     },
     "physics.air_properties": {
-      "date": "2026-09-26",
-      "fingerprint": "2fde588c4fea0749",
-      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
+      "date": "2026-09-29",
+      "fingerprint": "a2634e2310b3e1c3",
+      "report": "docs/validation/audits/2026-09-29-air-consolidation.md",
       "verdict": "PASS"
     },
     "propeller.thrust_sign": {

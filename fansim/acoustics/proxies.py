@@ -17,8 +17,8 @@ import numpy as np
 
 # physical constants / model constants
 # Use the same default air density as the CFD/AMCA metrics (screening-level consistency).
-RHO_AIR = 1.2          # kg/m^3
-C0_AIR = 343.0         # m/s speed of sound
+from fansim.physics.air import RHO_AMCA as RHO_AIR
+from fansim.physics.air import C0_AIR
 CMU = 0.09             # k-omega/k-epsilon Cmu
 ALPHA_PROUDMAN = 0.1   # rescaled Proudman constant (Sarkar & Hussaini 1993)
 W_REF = 1e-12          # reference acoustic power, W (=> dB re 1 pW)

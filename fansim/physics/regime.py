@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-NU_AIR = 1.5e-5     # kinematic viscosity of air, m^2/s
-C0_AIR = 343.0      # speed of sound, m/s
+from fansim.physics.air import NU_AIR
+from fansim.physics.air import C0_AIR
 RE_LAMINAR = 2000.0     # below ~this, treat as laminar
 MACH_COMPRESSIBLE = 0.3  # above ~this, compressibility matters
 

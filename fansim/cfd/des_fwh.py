@@ -19,7 +19,7 @@ from fansim.acoustics.fwh import (
 )
 
 # Match openfoam_case.RHO_AIR — OF stores kinematic p; force [N] = rho * ∫ p n dA
-RHO_AIR = 1.2
+from fansim.physics.air import RHO_AMCA as RHO_AIR
 # Default DES observer (m). Keep r/c0 << typical short DES windows.
 DEFAULT_X_OBS = (0.0, 0.0, 0.2)
 

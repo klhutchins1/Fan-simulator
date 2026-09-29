@@ -14,19 +14,9 @@ from fansim.physics import air
 ROOT = Path(__file__).resolve().parents[2]
 NAME_RE = re.compile(r"^(RHO(_AIR)?|NU(_AIR)?|MU(_AIR)?|C0(_AIR)?|C_SOUND|SPEED_OF_SOUND)$")
 
-# Local copies that existed on 2026-09-24 (spec finding). Consolidating them is a later change;
-# this list may only SHRINK. Values must still agree with fansim.physics.air.
-KNOWN_COPIES = {
-    ("fansim/acoustics/farfield.py", "C0_AIR"), ("fansim/acoustics/proxies.py", "RHO_AIR"),
-    ("fansim/acoustics/proxies.py", "C0_AIR"), ("fansim/cfd/des_fwh.py", "RHO_AIR"),
-    ("fansim/cfd/metrics.py", "RHO_AIR"), ("fansim/cfd/openfoam_case.py", "RHO_AIR"),
-    ("fansim/cfd/openfoam_case.py", "NU_AIR"), ("fansim/fan_bem.py", "RHO_AIR"),
-    ("fansim/fan_bem.py", "NU_AIR"), ("fansim/physics/regime.py", "NU_AIR"),
-    ("fansim/physics/regime.py", "C0_AIR"), ("fansim/propeller/bemt.py", "RHO_AIR"),
-    ("fansim/propeller/bemt.py", "NU_AIR"), ("fansim/propeller/noise.py", "C_SOUND"),
-    ("fansim/propeller/power.py", "RHO_AIR"), ("fansim/wind_turbine/evaluate.py", "RHO_AIR"),
-    ("scripts/evaluate_noise.py", "C0"), ("scripts/fan_noise_curle.py", "C0"), ("scripts/fan_noise_cv.py", "C0"),
-}
+# Local copies were consolidated onto fansim.physics.air (2026-09-29). This set may only hold
+# documented exceptions (module-level literals that must stay literal, with the reason).
+KNOWN_COPIES: set[tuple[str, str]] = set()
 
 
 def _air_constants_in(source: str) -> dict[str, float]:
@@ -121,3 +111,7 @@ def test_existing_copies_agree_with_single_source():
         if val not in allowed[key]:
             bad.append(f"{rel}:{name}={val}")
     assert not bad, bad
+
+
+def test_known_copies_is_empty():
+    assert KNOWN_COPIES == set(), "consolidated; any exception must be documented next to KNOWN_COPIES"

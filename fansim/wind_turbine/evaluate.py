@@ -10,7 +10,7 @@ from pathlib import Path
 
 from fansim.wind_turbine.params import WindTurbineParams
 
-RHO_AIR = 1.225  # ISA kg/m³ — props/turbines (fans keep 1.2 for duct CFD)
+from fansim.physics.air import RHO_ISA as RHO_AIR  # ISA — props/turbines (fans use AMCA 1.2)
 BETZ_LIMIT = 16.0 / 27.0
 WIND_TURBINE_HONESTY = (
     "scaffold: BEM-lite Cp screen; no aeroelastic / no RANS domain yet"

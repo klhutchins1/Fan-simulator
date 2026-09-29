@@ -11,7 +11,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 CFM_PER_M3S = 2118.882  # ft^3/min per m^3/s
-RHO_AIR = 1.2
+from fansim.physics.air import RHO_AMCA as RHO_AIR
 
 # Solver/metrics generation stamped on every scored trial (optimize/study.py + cockpit Assess),
 # so the catalog can tell which results are trustworthy. Bump when a change makes previously stored

@@ -2,7 +2,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
-RHO_AIR = 1.225
+from fansim.physics.air import RHO_ISA as RHO_AIR
 
 
 class PropulsionExtraMissing(RuntimeError):

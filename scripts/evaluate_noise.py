@@ -24,7 +24,8 @@ FLUIDX3D = Path("E:/Projects/programming_2/FluidX3D")
 EXE = FLUIDX3D / "bin" / "FluidX3D.exe"
 UCRT = r"C:\msys64\ucrt64\bin"
 CFG = PROJECT / "build" / "noise_job.cfg"
-C0, R_OBS, PREF = 343.0, 1.0, 20e-6
+from fansim.physics.air import C0_AIR as C0
+R_OBS, PREF = 1.0, 20e-6
 N_BLADES, RPM = 7, 2000.0
 BPF = N_BLADES * RPM / 60.0
 

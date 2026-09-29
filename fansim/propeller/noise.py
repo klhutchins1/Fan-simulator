@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import math
 
-C_SOUND = 343.0   # m/s
+from fansim.physics.air import C0_AIR as C_SOUND
 
 
 def estimate_prop_noise(params, rpm: float, perf, c_sound: float = C_SOUND) -> dict:

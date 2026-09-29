@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 
 CSV = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("build/fan_cv_force.csv")
-C0 = 343.0
+from fansim.physics.air import C0_AIR as C0
 R_OBS = 1.0
 PREF = 20e-6
 N_BLADES, RPM = 7, 2000.0

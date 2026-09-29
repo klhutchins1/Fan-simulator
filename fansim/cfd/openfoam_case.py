@@ -15,8 +15,8 @@ from fansim.cfd.domain import MM_TO_M, TestRig
 from fansim.cfd.metrics import CFD_VERSION
 from fansim.cfd.wall_roughness import nut_wall_bc, wall_ks_m
 
-RHO_AIR = 1.2
-NU_AIR = 1.5e-5
+from fansim.physics.air import RHO_AMCA as RHO_AIR
+from fansim.physics.air import NU_AIR
 CMU = 0.09
 TURB_INTENSITY = 0.05
 BOX_SCALE = 1.12  # hex half-side / duct_radius when a circular casing is present

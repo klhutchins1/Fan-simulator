@@ -33,8 +33,8 @@ from fansim.cfd.metrics import CFM_PER_M3S
 from fansim.geometry.blade import BladeParams
 from fansim.propeller.bemt import _cl_cd   # thin cambered-airfoil polar (shared with the prop BEMT)
 
-RHO_AIR = 1.2                 # kg/m^3
-NU_AIR = 1.5e-5               # kinematic viscosity (m^2/s) -> local blade Reynolds number
+from fansim.physics.air import RHO_AMCA as RHO_AIR
+from fansim.physics.air import NU_AIR
 
 # --- first-order aggregate loss calibration (roadmap §7.3; refine with Kröger-Venter + low-Re polars) ---
 # Inviscid blade-element+Euler over-predicts ~1.6-2x: the real fan loses work to flow DEVIATION/slip

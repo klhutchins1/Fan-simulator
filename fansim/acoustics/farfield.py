@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import numpy as np
 
-C0_AIR = 343.0
+from fansim.physics.air import C0_AIR
 PREF = 20e-6
 N_BLADES_DEFAULT, RPM_DEFAULT = 7, 2000.0
 

@@ -28,8 +28,8 @@ import numpy as np
 from fansim.geometry.blade import BladeParams
 from fansim.prop_spec import C_AIR
 
-RHO_AIR = 1.225   # kg/m^3
-NU_AIR = 1.5e-5   # kinematic viscosity (m^2/s) -> local blade Reynolds number
+from fansim.physics.air import RHO_ISA as RHO_AIR
+from fansim.physics.air import NU_AIR
 G = 9.80665
 
 
