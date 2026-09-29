@@ -2,10 +2,10 @@
 
   uv run python scripts/fit_recipe_to_stl.py
 
-Starts from config/problems/a12x25_reference.yaml (NOT modified), re-stations the blade at the
+Starts from config/problems/a12x25_reference_v1.yaml (NOT modified), re-stations the blade at the
 measurable reference radii, and iterates build -> measure_sections -> update_station until every
 measurable station is within tolerance (or 8 iterations). Writes
-config/problems/a12x25_reference_v2.yaml.
+config/problems/a12x25_reference.yaml (promoted Stock v2).
 
 Station layout (r/R = radius / tip): the recipe span coordinate runs hub_radius - root_embed (r/R
 0.358) .. tip. Stations are placed at r/R = ROOT (0.358), 0.50, 0.60, 0.70, 0.80, 0.90, 1.00. The
@@ -39,9 +39,9 @@ from fansim.validation.recipe_fit import (  # noqa: E402
     DAMPING, SWEEP_SKEW_TRIGGER_MM, TOL, residuals, update_station, within_tol)
 from fansim.validation.section_compare import measure_sections  # noqa: E402
 
-STOCK = ROOT / "config/problems/a12x25_reference.yaml"
+STOCK = ROOT / "config/problems/a12x25_reference_v1.yaml"
 REF = ROOT / "validation/reference/a12x25_impeller.stl"
-OUT = ROOT / "config/problems/a12x25_reference_v2.yaml"
+OUT = ROOT / "config/problems/a12x25_reference.yaml"
 STATION_RR = [None, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00]  # None = root at r0/tip
 MEASURE_RR = {1.00: 0.99}  # station r/R -> radius actually measured
 KEYS = ("chord_mm", "stagger_deg", "camber_ratio", "camber_pos", "thickness_ratio",

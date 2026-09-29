@@ -3,7 +3,7 @@
 ## 2026-09-29 recipe v2 (roadmap §19.7): refit to the close-ref STL sections
 
 After fixing the builder's back-to-front airfoil (3a577c6) and refitting the recipe section by section
-(`config/problems/a12x25_reference_v2.yaml`, fb625de; built sections within ±0.8 mm chord, ±0.7°
+(`config/problems/a12x25_reference.yaml`, fb625de, promoted to Stock; built sections within ±0.8 mm chord, ±0.7°
 stagger of the reference), the complete setup (ring + frame + layers, matched surface level 3–4) gives:
 
 | back-pressure | v2 recipe | close-ref STL | v2 vs ref | old Stock recipe |

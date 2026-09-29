@@ -2,7 +2,7 @@
   "rotors": {
     "stock": {
       "stl": "runs\\audit_direction\\stock_impeller.stl",
-      "stl_sha256": "76579fcff44efd867d01a7875bccce81faa7a1d348132aa41d4f154b7e3b1626",
+      "stl_sha256": "7514e75f0f73c4d879ff33237ccf5a5750389ffbe972a7221d0f7131d2768f2b",
       "omega_sign": 1,
       "pump_sign": -1,
       "chirality": -1,

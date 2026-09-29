@@ -46,8 +46,9 @@ def stock_fingerprint(flat: dict, *, preview: bool = True) -> str:
     payload["_preview_dense"] = True
     # Bump when the builder's geometry changes so stale cached STLs rebuild. 3 = revert the
     # bad +Z motor relocation back to the −Z-cup original (2026-09-17). 4 = airfoil LE now leads
-    # (chordwise placement was back-to-front; 2026-09-29).
-    payload["_geom_version"] = 4
+    # (chordwise placement was back-to-front; 2026-09-29). 5 = Stock recipe v2 promoted
+    # (section refit to the close-ref STL; 2026-09-29).
+    payload["_geom_version"] = 5
     blob = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
     return hashlib.sha256(blob).hexdigest()[:16]
 

@@ -13,7 +13,7 @@ from fansim.geometry.config import load_blade_params
 
 ROOT = Path(__file__).resolve().parents[1]
 REF = ROOT / "validation" / "reference" / "a12x25_impeller.stl"
-YAML = ROOT / "config" / "problems" / "a12x25_reference.yaml"
+YAML = ROOT / "config" / "problems" / "a12x25_reference_v1.yaml"
 RADII = (27.0, 37.0, 53.0)
 
 

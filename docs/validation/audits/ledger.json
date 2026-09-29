@@ -25,9 +25,9 @@
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
-      "date": "2026-09-26",
-      "fingerprint": "0ebfd93544ffd6c7",
-      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
+      "date": "2026-09-29",
+      "fingerprint": "69dee6ca382e3d5a",
+      "report": "docs/validation/a12x25_pq_report.md",
       "verdict": "PASS"
     },
     "optimize.reject_dead_designs": {

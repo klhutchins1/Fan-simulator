@@ -757,7 +757,7 @@ follow under `docs/superpowers/specs/`.
   3 outer correctors) = ~32 h per point; A12x25 ~3 days per point. Remaining options: coarse transient mesh +
   start from steady + 2 revs (~8–15 h, one point), AMI sliding mesh, or cloud compute. Until then, near-stall points
   carry the automatic `converged`/`oscillation_pct` flags.
-- [~] **19.7 Stock recipe fidelity.** **v2 2026-09-29:** builder airfoil fixed + section refit → CFD within 2–6% of close-ref STL at 0/5/10 Pa (was +29%/−73%); pending: promote v2 to Stock, builder chord realisation (~70% near tip), root station. **[impact: critical for the optimizer]** **[effort: med–high]**
+- [~] **19.7 Stock recipe fidelity.** **v2 2026-09-29:** builder airfoil fixed + section refit → CFD within 2–6% of close-ref STL at 0/5/10 Pa (was +29%/−73%); **v2 promoted to Stock (commit; v1 kept as `a12x25_reference_v1.yaml`)**; pending: builder chord realisation (~70% near tip), root station. **[impact: critical for the optimizer]** **[effort: med–high]**
   In the complete setup the Stock parametric recipe over-delivers free air by **+22–29%** (73–77 CFM) while the
   close-ref STL matches (−0.5%). The optimizer's designs come from this recipe, so its airflow is biased high.
   Refit the recipe (section shapes, stagger/camber distribution, hub/tip treatment) until its CFD matches the
