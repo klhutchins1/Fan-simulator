@@ -739,7 +739,10 @@ follow under `docs/superpowers/specs/`.
   it into the axial pipeline for any imported/non-Stock-handed rotor (today axial assumes Stock
   handedness, guarded by the search-space handedness test), and into CROR/mixed.
   **Axial DONE 2026-09-28:** `prepare_axial_cfd(..., source="builder"|"external", orientation=, spin=)` — builder = pinned `AXIAL_BUILDER_DIRECTION` (flipped, −1) with the proof as a cross-check (raises only if CONCLUSIVE and disagreeing); external = proof must be CONCLUSIVE (`orientation_from_proof`), else raises asking for explicit `orientation=`+`spin=`; explicit = pass-through. Decision recorded in `case_meta.json` (`direction_source`, `orientation`, `spin`, `proof_verdict`). All axial scripts/objectives pass `source=`; FAN-01 uses it. `check_rotor_direction` cross-check helper added. **Left for CROR/mixed:** CROR exports front+rear as one STL with convention spins (front −1, rear opposite), so per-rotor proof is not wired; mixed-flow untouched. Do when rotors are exported separately.
-- [ ] **19.3 Reverse-rotation run as a permanent regression check.** **[impact: med]** **[effort: low]**
+- [x] **19.3 Reverse-rotation run as a permanent regression check.** **DONE 2026-09-30** — cheap
+  pytest locks the committed Stock v5 free-air matrix (`direction_cfd_stock_v5.json`): designed sense
+  CFM must beat reversed by ≥1.3× and production stays `(flipped, spin=-1)`. Refresh evidence only via
+  `scripts/audit_direction_cfd.py --rotor stock`. **[impact: med]** **[effort: low]**
   Keep a cheap forward-vs-reversed smoke in the periodic audit (not a user feature): if reversed ever
   beats forward, the convention broke again.
 - [ ] **19.4 Handedness mirror (CW ⇄ CCW variant export).** **[impact: med]** **[effort: low–med]**
@@ -757,7 +760,7 @@ follow under `docs/superpowers/specs/`.
   3 outer correctors) = ~32 h per point; A12x25 ~3 days per point. Remaining options: coarse transient mesh +
   start from steady + 2 revs (~8–15 h, one point), AMI sliding mesh, or cloud compute. Until then, near-stall points
   carry the automatic `converged`/`oscillation_pct` flags.
-- [~] **19.7 Stock recipe fidelity.** **v2 2026-09-29:** builder airfoil fixed + section refit → CFD within 2–6% of close-ref STL at 0/5/10 Pa (was +29%/−73%); **v2 promoted to Stock (commit; v1 kept as `a12x25_reference_v1.yaml`)**; pending: builder chord realisation (~70% near tip), root station. **[impact: critical for the optimizer]** **[effort: med–high]**
+- [~] **19.7 Stock recipe fidelity.** **v2 2026-09-29:** builder airfoil fixed + section refit → CFD within 2–6% of close-ref STL at 0/5/10 Pa (was +29%/−73%); **v2 promoted to Stock (commit; v1 kept as `a12x25_reference_v1.yaml`)**. **Tip chord “~70%” diagnosed 2026-09-30:** not a silent loft bug — planar-tangent sections at the tip with low stagger put LE/TE corners outside `tip_radius`, so `cylindrical_tip` clips them; `fit_recipe_to_stl` compensates by inflating recipe chord until *built* matches the STL (±0.8 mm). Pending: honest builder↔recipe chord mapping (or stream-surface wrap), root station (still extrapolated). **[impact: critical for the optimizer]** **[effort: med–high]**
   In the complete setup the Stock parametric recipe over-delivers free air by **+22–29%** (73–77 CFM) while the
   close-ref STL matches (−0.5%). The optimizer's designs come from this recipe, so its airflow is biased high.
   Refit the recipe (section shapes, stagger/camber distribution, hub/tip treatment) until its CFD matches the

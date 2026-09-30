@@ -40,6 +40,32 @@ def test_production_spin_matches_test_rig_default(mod):
     assert mod.production_spin() == TestRig.__dataclass_fields__["spin"].default
 
 
+_STOCK_V5 = Path(__file__).resolve().parents[2] / "docs" / "validation" / "audits" / "direction_cfd_stock_v5.json"
+
+
+@pytest.mark.skipif(not _STOCK_V5.is_file(), reason="direction_cfd_stock_v5.json missing")
+def test_stock_v5_direction_matrix_keeps_designed_ahead_of_reversed(mod):
+    """Roadmap §19.3: permanent cheap reverse-rotation regression (no CFD).
+
+    Locks the committed v5 Stock free-air matrix: designed body sense must beat reversed on |CFM|,
+    and production (flipped, spin -1) must still be the convention recommendation. Re-run
+    ``scripts/audit_direction_cfd.py --rotor stock`` only when deliberately refreshing evidence.
+    """
+    import json
+
+    existing = json.loads(_STOCK_V5.read_text(encoding="utf-8"))
+    out = mod.reverdict_payload(existing)
+    v = out["verdict"]
+    cv = out["convention_verdict"]
+    assert v["verdict"] == "PASS", v
+    proper = v["proper"]
+    assert proper["+1"] > proper["-1"], proper
+    # Clear margin so a soft drift still fails before it becomes ambiguous.
+    assert proper["+1"] / proper["-1"] >= 1.3, proper
+    assert cv["verdict"] == "PASS", cv
+    assert cv["production"] == {"orientation": "flipped", "spin": -1}
+    assert cv["recommended"] == {"orientation": "flipped", "spin": -1}
+
 def test_reverdict_roundtrip_flags_convention_failure_when_recommendation_is_as_built(mod):
     # Production is now the FLIPPED setup (fansim.cfd.orientation.AXIAL_CFD_ORIENTATION), spin -1.
     # A matrix that recommends as_built means production is solving the reversed rotor: FAIL.
