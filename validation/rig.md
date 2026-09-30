@@ -26,16 +26,38 @@ project optimizes for (the honest north star).
 
 **You already have:** used A12x25 (~$15), PSU (~$15), printer + PLA/PETG.
 
-**Buy first (~$45):** laser tach + CFM anemometer. Without matched RPM, nothing calibrates.
+Prices surveyed 2026-09; Amazon ASINs rotate — any equivalent tach / CFM anemometer / Pa manometer is fine.
+Machine-readable copy: [`hardware_bom.csv`](hardware_bom.csv).
 
-**Buy next (~$50):** dual-port digital manometer (Pa) + 0.01 g scale.
+### Buy first (~$45)
 
-**Defer:** ESP32 + Sensirion SDP810 (logger path); DIY plenum/orifice plates once single-point works.
+| # | Item | ~$ | Link |
+|---|------|----|------|
+| 1 | Laser tachometer (non-contact) | 15–25 | [Mulcort ~$15](https://www.amazon.com/dp/B0B9KXP9LZ) · [alt ~$24](https://www.amazon.com/dp/B0DBM7FJ58) |
+| 2 | CFM anemometer | 27–37 | [BTMETER BT-6000GH ~$31](https://www.amazon.com/dp/B0D2HGR4QH) · [BT-5000D ~$27](https://www.btmeter-store.com/products/bt-5000d-anemometer-rechargeable) |
 
-**Skip:** lab ±250 Pa meters, AMCA chambers, calibrated mics, shaft dynos.
+Without matched RPM, CFM/Pa cannot calibrate.
 
-Full ranked table with example products / survey prices (2026-09):
-[`validation/hardware_bom.csv`](hardware_bom.csv).
+### Buy next (~$50)
+
+| # | Item | ~$ | Link |
+|---|------|----|------|
+| 3 | Dual-port digital manometer (use **Pa**) | 35–45 | [manometer ~$40](https://www.amazon.com/dp/B0FG7XDY3Q) · [alt ±2 psi / Pa](https://www.amazon.com/dp/B0BBHDTQXK) |
+| 4 | Pocket scale 500 g × 0.01 g | 10–17 | [Kizing ~$12](https://www.amazon.com/dp/B08BHKW2J8) · [alt ~$14](https://www.amazon.com/dp/B07R32V1Y2) |
+
+### Optional / defer
+
+| Item | ~$ | Link | When |
+|------|----|------|------|
+| Phone dB(A) at 1 m | 0 | (phone app) | Relative noise A/B only |
+| USB-C watt meter | 12–20 | [example](https://www.amazon.com/dp/B0D95QZ9T4) · [alt](https://www.amazon.com/USB-Tester-Type-Power-Meter/dp/B0B48LG5N4) | Only if fan is USB-C powered |
+| ESP32 DevKit | 8–15 | [Espressif ~$11](https://www.amazon.com/dp/B087T94ZH9) · [2-pack](https://www.amazon.com/dp/B0B5LFG394) | Later: `rig_logger.py --serial` |
+| Sensirion SDP810-500PA | 30–45 | [DigiKey](https://www.digikey.ca/en/products/detail/sensirion-ag/SDP810-500PA/6605489) · [RS](https://my.rs-online.com/web/p/pressure-sensor-ics/1331913) | Later automated ΔP — buy manometer first |
+| DIY plenum + orifice plates | 10–30 | (foam-core / printed) | After single-point works (§20.7 sweep) |
+
+### Skip
+
+Lab ±250 Pa meters ([PCE-PME 250](https://www.pce-instruments.com/us/measuring-instruments/test-meters/hvac-meter-hvacr-tester-pce-instruments-hvac-meter-hvacr-tester-pce-pme-250-det_6311246.htm) ~$264+), AMCA chambers, calibrated mics, shaft dynos.
 
 Ingest readings via cockpit **Record measurement** or `scripts/rig_logger.py` (columns below).
 
