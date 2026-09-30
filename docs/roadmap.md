@@ -825,7 +825,8 @@ follow under `docs/superpowers/specs/`.
   - **acoustics** (Curle / FW-H / Proudman) — FAN-01 has measured acoustics for validation;
   - **structural / deflection**;
   - **CROR and mixed-flow setups** (the placement check already found a CROR hub overhang);
-  - **air-constant consolidation** (19 local copies, all agree; new copies blocked);
+  - [x] **air-constant consolidation** — DONE (`fansim/physics/air.py` single source;
+    `tests/audit/test_air_properties.py` blocks new local copies; 8 tests PASS 2026-09-30);
   - triage the ~319 unregistered public physics functions (`scripts/audit_status.py --unregistered`).
   Change-driven: re-run `scripts/audit_status.py` and audit whatever is CHANGED/AFFECTED/NEW.
 
