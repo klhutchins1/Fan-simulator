@@ -610,6 +610,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                         out_dir=out_dir,
                         prop_model=str(state.prop_model),
                         stop_event=opt_stop,
+                        polar_backend=str(state.prop_polar_backend or "table"),
                         **mission_call["kwargs"],
                     ),
                 )

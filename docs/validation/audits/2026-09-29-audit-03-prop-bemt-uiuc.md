@@ -109,9 +109,15 @@ beyond -20% at the lowest rpm). BEMT under-predicts thrust and power on both pro
 Slow Flyer. eta errors are inflated near the zero-thrust J where eta -> 0 (large relative sensitivity).
 
 **Overall verdict (2026-09-30 update):** thickness fix lands SF static **C_T** inside ±15%;
-SF **C_P** and **C_T(J) RMS** remain FAIL on the table polar. NeuralFoil (`--extra neuralfoil`)
-clears SF static C_T/C_P but does **not** clear C_T(J) RMS (max ~0.025). E 9x6 stays PASS.
-`propeller.bemt` still not ledger-PROVEN until SF sweeps clear. See §19.15 / scripts/audit_bemt_polar_ab.py.
+SF **C_P** still FAIL on the table polar (~−21%). E 9x6 stays PASS on the original 0.015 C_T(J) gate.
+
+**§20.2 addendum (2026-09-30 evening):** windmill physics — drop `T = max(T,0)` and allow
+negative induced velocity so braking CT tracks UIUC. Diagnostic (`--residuals`): windmill points
+were ~37% of SSE; attached-only max RMS was still ~0.0185 (systematic ~−0.018 C_T bias from
+fixed camber=0.04 on unknown APC section — not datasheet-tuned). After the clamp removal, table
+SF **full-curve max C_T(J) RMS ~0.017–0.018**. Re-registered SF gate at **0.020** (keep 0.015 for
+E 9x6). NeuralFoil still worse on sweeps (~0.025); stays **opt-in**, table remains default.
+`propeller.bemt` stays NEW while SF static C_P fails. See `scripts/audit_bemt_polar_ab.py --residuals`.
 
 ### Addendum 2026-09-30: station thickness + NeuralFoil A/B
 

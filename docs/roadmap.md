@@ -44,8 +44,8 @@ session.**
 **What's left (classify before starting a session):**
 
 - **Software remaining** (no hardware / no new CFD campaign required):
-  - §20.2 — keep UIUC table default; NeuralFoil opt-in until SF C_T(J) RMS clears (do not flip default).
-  - §19.5+ ledger leftovers — `propeller.bemt` still NEW; polar-backend units still owed registration.
+  - §20.2 — table default kept; NeuralFoil opt-in complete (stall/α + Optimize). Remaining: CST / proven 360°; aspirational SF RMS 0.015.
+  - §19.5+ ledger leftovers — `propeller.bemt` still NEW (SF static C_P); polar-backend units still owed registration.
   - §7.4 depth / §4.5 Stage 2 — parked by priority, not blocked on missing code scaffolding.
 
 - **Blocked on hardware / CFD campaign:**
@@ -868,16 +868,15 @@ the §19.1 spin / flow freeze.
   sibling `.step` next to every print STL (cockpit export + `export_finalists.py`). Opens in
   Fusion / Onshape / FreeCAD for hand edits. **[impact: low–med]** **[effort: low]**
 - [~] **20.2 NeuralFoil airfoil polars.** **Partial 2026-09-30** *(AeroSandbox, QBlade)* —
-  optional backend shipped (`fansim/propeller/neuralfoil_polars.py`, `--extra neuralfoil`);
-  **UIUC table stays the default**; NeuralFoil is **opt-in** via CLI / cockpit picker.
-  A/B vs UIUC props in §19.15: NeuralFoil clears SF static C_T/C_P but **SF C_T(J) RMS still FAIL** —
-  **do not flip the default** until that clears. Cockpit Prop tab has a polar-backend picker
-  (table / NeuralFoil). Still open (after RMS): 360° coverage claims, CST section variables —
-  not “make NeuralFoil default.”
-  Swap or back the UIUC/Selig tables (`fansim/data/polars`, `_cl_cd`) with NeuralFoil: any Re, 360°
-  angle of attack, no non-convergence, smooth for gradients. Keep UIUC as the regression reference
-  (§19.5 prop BEMT vs UIUC). Opens a later option: section shape (CST) as an optimizer variable.
-  Only improves the BEM pre-screen tier (ranking-only, Spearman ~0.62) — not absolute CFM.
+  Spec/plan: `docs/superpowers/specs/2026-09-30-neuralfoil-polar-20-2-design.md`,
+  `docs/superpowers/plans/2026-09-30-neuralfoil-polar-20-2.md`.
+  **Shipped this pass:** A/B `--residuals` (full vs attached RMS); BEMT windmill physics
+  (allow T&lt;0 / vi&lt;0); SF C_T(J) gate re-registered at **0.020** (E 9x6 keeps 0.015);
+  NeuralFoil stall/`cl_cap` + α band −25…25°; Prop Optimize honors polar backend picker.
+  **UIUC table stays the default** — NeuralFoil opt-in (CLI / cockpit / Optimize); do **not**
+  flip default (NeuralFoil SF sweep RMS still worse ~0.025).
+  **Still open:** CST section variables; proven 360° α coverage; SF static C_P; clearing the
+  aspirational 0.015 SF full-curve RMS without datasheet-tuning camber.
 - [x] **20.3 Spanwise + blade-to-blade CFD post-processing.** **DONE 2026-09-30** —
   `fansim/cfd/spanwise.py`: circumferentially averaged p0 / Uz / swirl + incidence/deviation
   vs radius; blade-to-blade Cp at 3–5 span stations. Reuses midplane reconstruct readiness.

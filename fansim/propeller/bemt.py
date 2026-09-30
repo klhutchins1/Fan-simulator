@@ -169,13 +169,15 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
             dT = 0.5 * rho * W2 * c * B * (cl * math.cos(phi) - cd * math.sin(phi))   # per unit span
             f_theta = 0.5 * rho * W2 * c * B * (cl * math.sin(phi) + cd * math.cos(phi))
 
-            # Momentum: dT = 4π r ρ Vax vi F  (per unit span) -> update vi
-            denom_t = 4.0 * math.pi * r * rho * max(Vax, 0.1) * F
+            # Momentum: dT = 4π r ρ |Vax| vi F  (per unit span) -> update vi
+            # abs(Vax) keeps the fixed-point stable when windmilling (Vax may change sign).
+            denom_t = 4.0 * math.pi * r * rho * max(abs(Vax), 0.1) * F
             vi_new = dT / denom_t if denom_t > 0 else vi
-            vi_new = max(0.0, min(vi_new, 60.0))
+            # Negative induced velocity is physical in the braking / windmill regime (§20.2).
+            vi_new = max(-30.0, min(vi_new, 60.0))
 
-            # Angular momentum: fθ = (ρ Vax 2π r) ΔVθ (per unit span), with ΔVθ ≈ vth (0 → far wake)
-            denom_th = rho * max(Vax, 0.1) * 2.0 * math.pi * r
+            # Angular momentum: fθ = (ρ |Vax| 2π r) ΔVθ (per unit span), with ΔVθ ≈ vth (0 → far wake)
+            denom_th = rho * max(abs(Vax), 0.1) * 2.0 * math.pi * r
             vth_new = f_theta / denom_th if denom_th > 0 else vth
             vth_new = max(0.0, min(vth_new, 1.9 * U))       # a′ < 0.95 (since vth ≈ 2 a′ Ωr)
 
@@ -191,7 +193,8 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
         dQ = f_theta * r                                    # per unit span
         T += dT * dr
         Q += dQ * dr
-    T = max(T, 0.0)
+    # Do not clamp T≥0: UIUC advance-ratio sweeps include windmill (CT_meas < 0). Clamping
+    # zeroed those points and inflated C_T(J) RMS (§20.2 / Audit #3).
     P = Q * omega
     A = math.pi * R * R
     fm = (T ** 1.5 / math.sqrt(2.0 * rho * A)) / P if (P > 0 and T > 0) else 0.0

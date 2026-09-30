@@ -195,6 +195,39 @@ def run_prop_study(spec: PropSpec, n_trials: int = 200, seed: int = 0,
                    battery_wh: float | None = None,
                    cruise_mps: float | None = None,
                    min_hover_minutes: float | None = None,
+                   stop_event: threading.Event | None = None,
+                   polar_backend: str | None = None):
+    """NSGA-II over the prop blade. ``mission`` picks the two objectives.
+
+    ``polar_backend`` (``table`` / ``neuralfoil``) overrides the process polar backend for
+    the study duration (§20.2); ``None`` keeps the current / env default.
+    """
+    from fansim.propeller.bemt import get_polar_backend, set_polar_backend
+
+    prev_backend = get_polar_backend()
+    if polar_backend is not None:
+        set_polar_backend(str(polar_backend))
+    try:
+        return _run_prop_study_body(
+            spec, n_trials=n_trials, seed=seed, max_power_w=max_power_w,
+            out_dir=out_dir, prop_model=prop_model, mission=mission,
+            all_up_weight_n=all_up_weight_n, n_rotors=n_rotors, battery_wh=battery_wh,
+            cruise_mps=cruise_mps, min_hover_minutes=min_hover_minutes,
+            stop_event=stop_event,
+        )
+    finally:
+        set_polar_backend(prev_backend)
+
+
+def _run_prop_study_body(spec: PropSpec, n_trials: int = 200, seed: int = 0,
+                   max_power_w: float | None = None,
+                   out_dir=None, prop_model: str | None = None,
+                   mission: str = "thrust_efficiency",
+                   all_up_weight_n: float | None = None,
+                   n_rotors: int | None = None,
+                   battery_wh: float | None = None,
+                   cruise_mps: float | None = None,
+                   min_hover_minutes: float | None = None,
                    stop_event: threading.Event | None = None):
     """NSGA-II over the prop blade. ``mission`` picks the two objectives."""
     from pathlib import Path

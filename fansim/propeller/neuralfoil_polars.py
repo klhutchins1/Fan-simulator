@@ -3,6 +3,10 @@
 Maps station (camber, thickness) to a NACA 4-digit section and evaluates Cl/Cd via
 NeuralFoil. Requires ``uv sync --extra neuralfoil``. Default BEMT path stays on the
 vendored UIUC tables; call :func:`set_polar_backend` or set ``FANSIM_POLAR_BACKEND=neuralfoil``.
+
+Supported geometric α band is documented as ``ALPHA_DEG_MIN``…``ALPHA_DEG_MAX`` (not a
+proven 360° claim). Outside that band α is clamped; stall / ``cl_cap`` mirror the table
+path so compressibility capping in ``_compressibility_cl_cd`` still applies.
 """
 
 from __future__ import annotations
@@ -13,6 +17,12 @@ from functools import lru_cache
 import numpy as np
 
 _MODEL_SIZE = "medium"
+# Documented NeuralFoil evaluation band for this backend (widen from the old −15…20).
+# Not a 360° coverage claim — see roadmap §20.2.
+ALPHA_DEG_MIN = -25.0
+ALPHA_DEG_MAX = 25.0
+# Soft thin-airfoil stall onset used for stalled / cl_cap parity with the table path.
+STALL_ALPHA_DEG = 12.0
 
 
 def neuralfoil_available() -> bool:
@@ -57,15 +67,17 @@ def section_neuralfoil(
     """Return `(cl, cd, stalled, cl_cap)` or ``None`` if NeuralFoil is unavailable / fails."""
     if re is None or float(re) <= 0.0 or not neuralfoil_available():
         return None
-    a_deg = max(-15.0, min(20.0, math.degrees(float(alpha_rad))))
+    a_deg = max(ALPHA_DEG_MIN, min(ALPHA_DEG_MAX, math.degrees(float(alpha_rad))))
     re_c = max(1.0e4, min(1.0e6, float(re)))
+    naca = naca4_name(camber, thickness)
+    re_key = round(math.log10(re_c), 3)
     try:
-        cl, cd = _nf_cl_cd(
-            naca4_name(camber, thickness),
-            round(a_deg, 2),
-            round(math.log10(re_c), 3),
-            model_size,
-        )
+        cl, cd = _nf_cl_cd(naca, round(a_deg, 2), re_key, model_size)
+        # cl_cap at stall-onset α so Prandtl–Glauert in bemt stays bounded like the table path.
+        stall_a = math.copysign(STALL_ALPHA_DEG, a_deg if a_deg != 0.0 else 1.0)
+        cl_stall, _cd_stall = _nf_cl_cd(naca, round(stall_a, 2), re_key, model_size)
     except Exception:  # noqa: BLE001 - polar miss must fall through to tables/analytic
         return None
-    return cl, cd, False, abs(cl) + 0.5
+    stalled = abs(a_deg) >= STALL_ALPHA_DEG
+    cl_cap = abs(cl_stall)
+    return cl, cd, stalled, cl_cap

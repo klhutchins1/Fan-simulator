@@ -118,3 +118,14 @@ def test_random_prop_flat_stays_in_search_bounds():
     assert 0.05 <= flat["chord_tip"] <= 0.16
     assert flat["thick_mode"] == "tapered"
     assert flat["camber"] == flat["camber_mid"]
+
+
+def test_run_prop_study_restores_polar_backend():
+    """§20.2: Optimize honors polar_backend for the study then restores the prior default."""
+    from fansim.propeller.bemt import get_polar_backend, set_polar_backend
+
+    spec = get_prop_spec("fpv_5inch")
+    set_polar_backend("table")
+    assert get_polar_backend() == "table"
+    run_prop_study(spec, n_trials=3, seed=0, polar_backend="table")
+    assert get_polar_backend() == "table"
