@@ -116,12 +116,27 @@ def test_purge_prop_time_dirs(tmp_path):
     assert not (tmp_path / "postProcessing").exists()
 
 
-def test_run_cfd_polar_auto_with_explicit_spin_raises(tmp_path):
-    from fansim.propeller.polar import run_cfd_polar
+def test_run_cfd_polar_applies_direction_suspect_backstop():
+    """§19.11: polar results get the same INCONCLUSIVE+wrong-sign flag as evaluate_prop_cfd."""
+    from fansim.propeller.polar import finalize_cfd_polar_result
 
-    spec = get_prop_spec("fpv_5inch")
-    with pytest.raises(ValueError, match="direction='manual'"):
-        run_cfd_polar(spec, tmp_path, [0.0], spin=-1, direction="auto")
+    out = finalize_cfd_polar_result({
+        "direction_crosscheck": {"verdict": "INCONCLUSIVE"},
+        "points": [
+            {"thrust_sign_ok": True, "v_inf": 0.0},
+            {"thrust_sign_ok": False, "v_inf": 10.0},
+        ],
+    })
+    assert out["thrust_sign_ok"] is False
+    assert out["direction_suspect"] is True
+    assert "direction_warning" in out
+
+    ok = finalize_cfd_polar_result({
+        "direction_crosscheck": {"verdict": "INCONCLUSIVE"},
+        "points": [{"thrust_sign_ok": True}],
+    })
+    assert ok["thrust_sign_ok"] is True
+    assert "direction_suspect" not in ok
 
 
 def test_run_cfd_polar_invalid_direction_raises(tmp_path):

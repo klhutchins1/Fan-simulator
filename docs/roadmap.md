@@ -778,8 +778,10 @@ follow under `docs/superpowers/specs/`.
   **WARN**. Prism layers stay **opt-in**: OFF for NSGA / screening / `evaluate_candidate`; ON for
   validation P–Q via `--layers` (y+ ≈ 2, CFM +0.6–6%, does not clear the skew). No mesh campaign.
   **[impact: med]** **[effort: low–med]**
-- [ ] **19.11 Prop follow-ups.** **[effort: low]** `run_cfd_polar` lacks the `direction_suspect` backstop; the
-  drone STLs are all INCONCLUSIVE by design (manual direction only).
+- [x] **19.11 Prop follow-ups.** **DONE 2026-09-30** — `run_cfd_polar` applies the same
+  `direction_suspect` backstop as `evaluate_prop_cfd` (`finalize_cfd_polar_result`: INCONCLUSIVE
+  cross-check + any wrong-sign CFD point). Drone STLs remain INCONCLUSIVE by design (manual
+  direction only). **[effort: low]**
 - [ ] **19.12 CFD estimates discipline.** **[effort: low]** Always `--pilot` before long runs (pilot estimates now
   land within ~5–40%); keep per-row `cells`/`wall_s`/`sec_per_iter`.
 - [ ] **19.14 Mesh level follows each design's thinnest wall.** **[effort: low]** Designs with thicker walls get a coarser surface mesh (v2: level 2–3 vs 3–4), which moved CFM 1–4% in the v2 check. Consider a fixed surface level for optimizer comparisons.

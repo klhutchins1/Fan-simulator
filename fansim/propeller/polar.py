@@ -26,6 +26,24 @@ DEFAULT_V_INF_MS = (0.0, 5.0, 10.0, 15.0, 20.0)
 _HOVER_BC_U = 1.0  # solver needs a tiny freestream; report still uses requested V∞=0
 
 
+def finalize_cfd_polar_result(result: dict) -> dict:
+    """Apply the ``direction_suspect`` backstop used by ``evaluate_prop_cfd`` (§19.11).
+
+    Aggregates per-point ``thrust_sign_ok`` onto the polar result, then flags when the mesh
+    direction cross-check was INCONCLUSIVE and any CFD point has the wrong thrust sign.
+    """
+    from fansim.propeller.calibrate import flag_direction_suspect
+
+    out = dict(result)
+    points = out.get("points") or []
+    sign_vals = [
+        p.get("thrust_sign_ok") for p in points if p.get("thrust_sign_ok") is not None
+    ]
+    if sign_vals:
+        out["thrust_sign_ok"] = all(sign_vals)
+    return flag_direction_suspect(out)
+
+
 @dataclass(frozen=True)
 class PolarPoint:
     v_inf: float
@@ -329,7 +347,7 @@ def run_cfd_polar(
             )
         )
 
-    return {
+    result = {
         "skipped": False,
         "bemt_thrust_g": bemt_g,
         "solver": "rhoSimpleFoam",
@@ -350,6 +368,7 @@ def run_cfd_polar(
         ),
         "points": [asdict(p) for p in points],
     }
+    return finalize_cfd_polar_result(result)
 
 
 def write_polar_artifacts(
