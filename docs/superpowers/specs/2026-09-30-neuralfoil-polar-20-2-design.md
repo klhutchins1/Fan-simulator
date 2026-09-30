@@ -36,7 +36,7 @@ E 9×6 already PASS on both. Flipping default to NeuralFoil would **worsen** the
 
 ### Phase 1 — Diagnostic
 
-Extend A/B (prefer extend `scripts/audit_bemt_polar_ab.py`, or add `scripts/audit_apcsf_ctj_residuals.py`) to emit, per SF sweep file:
+Extend `scripts/audit_bemt_polar_ab.py` to emit, per SF sweep file:
 
 - per-J: measured C_T, BEMT C_T, `e_CT`
 - flag **windmill** points (`CT_meas < 0`)
@@ -79,8 +79,7 @@ Extend A/B (prefer extend `scripts/audit_bemt_polar_ab.py`, or add `scripts/audi
 
 ### Roadmap status after this pass
 
-- §20.2 stays **Partial** if success is redefined as “RMS clear + NeuralFoil opt-in complete, table default kept” — update bullet text to drop “make NeuralFoil the default” as the open item; list CST / proven 360° as remaining.
-- Or mark **DONE** only if the team agrees “opt-in complete + SF C_T(J) gate clear” is the Adopt criterion (default flip is explicitly not required). Prefer **Partial → clarify remaining = CST / 360° evidence** unless product owner wants DONE.
+§20.2 stays **Partial**. Update the bullet to: RMS gate clear (or honestly re-scoped) + NeuralFoil opt-in complete (stall/α + Optimize); **table remains default**. Remaining open under §20.2: CST section variables; proven 360° α coverage claims. Do **not** mark DONE until CST lands or the Adopt criterion is explicitly redefined.
 
 ## Risks
 
