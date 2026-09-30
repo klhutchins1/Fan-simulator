@@ -18,7 +18,7 @@ import numpy as np
 
 from fansim.geometry import build_impeller, export_stl, watertight_report
 from fansim.geometry.blade import BladeParams
-from fansim.geometry.export import WatertightReport
+from fansim.geometry.export import WatertightReport, export_step
 from fansim.manufacturability.materials import DEFAULT_MATERIAL, MATERIALS
 from fansim.manufacturability.printability_score import grade_printability
 from fansim.structural.balance import required_counterweight, residual_force, static_unbalance
@@ -222,9 +222,13 @@ def export_print_ready(
     mount=None,                       # a MotorMount to carve a real cup cavity (supersedes `bore`)
     tolerance: float = 0.02,          # finer than CFD export (0.05) — smooth printed surfaces
     angular_tolerance: float = 0.1,
+    also_step: bool = True,
 ) -> WatertightReport:
     """Build the impeller, carve the motor mount (or a simple bore), export a fine STL, return the
-    watertight report (with mount_fits/mount_msg when a MotorMount is given)."""
+    watertight report (with mount_fits/mount_msg when a MotorMount is given).
+
+    When ``also_step`` is True (default), write a sibling ``.step`` B-rep next to the STL (§20.1).
+    """
     out_stl = Path(out_stl)
     mount_fits, mount_msg = None, ""
     if mount is not None:
@@ -234,6 +238,8 @@ def export_print_ready(
         if bore is not None:
             model = bore_hub(model, bore)
     export_stl(model, out_stl, tolerance=tolerance, angular_tolerance=angular_tolerance)
+    if also_step:
+        export_step(model, out_stl.with_suffix(".step"))
     rep = watertight_report(out_stl)
     rep.mount_fits, rep.mount_msg = mount_fits, mount_msg
     return rep

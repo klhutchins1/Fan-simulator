@@ -29,6 +29,16 @@ def _simple_params(n_blades: int = 5) -> BladeParams:
 def test_export_solid_is_watertight(tmp_path):
     rep = export_print_ready(_simple_params(), tmp_path / "solid.stl")
     assert rep.ok and rep.n_bodies == 1 and rep.volume_mm3 > 0
+    step = tmp_path / "solid.step"
+    assert step.is_file() and step.stat().st_size > 100
+    # ISO-10303 header
+    head = step.read_text(encoding="utf-8", errors="ignore")[:80]
+    assert "ISO-10303" in head or "HEADER" in head
+
+
+def test_export_can_skip_step(tmp_path):
+    export_print_ready(_simple_params(), tmp_path / "no_step.stl", also_step=False)
+    assert not (tmp_path / "no_step.step").exists()
 
 
 def test_bore_removes_material_and_stays_watertight(tmp_path):

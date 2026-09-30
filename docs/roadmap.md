@@ -831,10 +831,10 @@ parked ideas live in the living doc **"fansim — Competitive Landscape & Featur
 lands here only when the doc marks it *Adopt*. Ordered by value for effort; none of these may touch
 the §19.1 spin / flow freeze.
 
-- [ ] **20.1 STEP export of blade + hub.** **[impact: low–med]** **[effort: low]** *(CFturbo, AxCent)*
-  The blade is already a CadQuery solid (`geometry/blade.py`) but `geometry/export.py` writes STL only.
-  Add STEP beside the STL in `export_finalists.py` and the cockpit export, so designs open cleanly in
-  Fusion / Onshape / FreeCAD for hand edits.
+- [x] **20.1 STEP export of blade + hub.** **DONE 2026-09-30** —
+  `export_step` in `geometry/export.py`; `export_print_ready(..., also_step=True)` writes a
+  sibling `.step` next to every print STL (cockpit export + `export_finalists.py`). Opens in
+  Fusion / Onshape / FreeCAD for hand edits. **[impact: low–med]** **[effort: low]**
 - [~] **20.2 NeuralFoil airfoil polars.** **Partial 2026-09-30** *(AeroSandbox, QBlade)* —
   optional backend shipped (`fansim/propeller/neuralfoil_polars.py`, `--extra neuralfoil`);
   default remains UIUC tables. A/B vs UIUC props in §19.15. Still open: make NeuralFoil the

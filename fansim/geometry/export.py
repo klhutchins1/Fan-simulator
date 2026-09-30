@@ -44,6 +44,17 @@ def export_stl(
     return path
 
 
+def export_step(model: cq.Workplane, path: str | Path, *, unit: str = "MM") -> Path:
+    """Write a STEP (B-rep) file for Fusion / Onshape / FreeCAD (§20.1).
+
+    No tessellation — CAD apps get the exact solid. ``unit`` is the STEP header unit.
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    cq.exporters.export(model, str(path), exportType="STEP", unit=unit)  # type: ignore[arg-type]
+    return path
+
+
 def watertight_report(path: str | Path) -> WatertightReport:
     """Load an STL with trimesh and report watertightness / body count."""
     mesh = trimesh.load(str(path), force="mesh")

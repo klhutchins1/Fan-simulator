@@ -154,7 +154,9 @@ def bind(session) -> None:
                     " Press Preview to see it; the CFM/eff shown were for the original geometry, so "
                     "they're now approximate — re-Assess for exact numbers."
                 )
-            state.export_msg = f"✓ Saved {out.resolve()}  ({wt}{mnt}){gauge_txt}{extra}"
+            state.export_msg = (
+                f"✓ Saved {out.resolve()} (+ .step)  ({wt}{mnt}){gauge_txt}{extra}"
+            )
             state.export_busy = False
             ticker.cancel()
             state.flush()

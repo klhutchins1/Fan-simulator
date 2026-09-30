@@ -7,7 +7,7 @@ from fansim.geometry.blade import (
     build_impeller,
     set_uneven_spacing,
 )
-from fansim.geometry.export import export_stl, watertight_report
+from fansim.geometry.export import export_stl, export_step, watertight_report
 from fansim.geometry.handedness import (
     cfd_spin_for_omega,
     handedness_variants,
@@ -21,6 +21,7 @@ __all__ = [
     "build_impeller",
     "set_uneven_spacing",
     "export_stl",
+    "export_step",
     "watertight_report",
     "mirror_blade_params",
     "handedness_variants",
