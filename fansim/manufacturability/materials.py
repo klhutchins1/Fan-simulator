@@ -31,6 +31,8 @@ MATERIALS: dict[str, Material] = {
     "PETG": Material("PETG", 2.1, 50.0, 1270.0, 70.0, True, "default: stiffness + heat resistance"),
     "ABS": Material("ABS", 2.0, 40.0, 1040.0, 95.0, True, "heat-tolerant; needs an enclosure"),
     "TPU": Material("TPU", 0.02, 25.0, 1210.0, 60.0, False, "too flexible for a blade (excluded)"),
+    "RESIN": Material("RESIN", 2.5, 50.0, 1100.0, 50.0, True,
+                      "SLA/DLP; isotropic E (no FDM interlayer knockdown)"),
 }
 
 DEFAULT_MATERIAL = "PETG"

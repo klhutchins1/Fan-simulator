@@ -3,7 +3,8 @@
 Tolerances were pre-registered in docs/validation/audits/2026-09-29-audit-05-structural.md
 before any comparison:
   deflection (uniform load)  rel err <= 2% vs q L^4 / (8 E I) on a prismatic beam
-  tip point load, sigma=Mc/I no code exists -> verified only for the FE harness used here (<= 0.1%)
+  tip point load             rel err <= 1e-9 vs P L^3 / (3 E I); FE harness <= 0.1%
+  root bending stress        rel err <= 1e-9 vs M c / I with M = q L^2 / 2
   centrifugal root stress    rel err <= 1e-6 vs closed form and vs numerical integral of rho w^2 r dr
   first bending frequency    rel err <= 1% vs (1.875^2/2pi) sqrt(EI/(rho A L^4)); <= 1% vs Hermite FE
   balance                    residual <= 1e-8 normalized; couple/force exact to 1e-9
@@ -24,7 +25,12 @@ from fansim.manufacturability.fdm_rules import check_printability
 from fansim.manufacturability.materials import MATERIALS
 from fansim.optimize.print_penalty import apply_print_penalty
 from fansim.structural import balance as B
-from fansim.structural.deflection import deflection_report, tip_deflection_mm
+from fansim.structural.deflection import (
+    deflection_report,
+    root_bending_stress,
+    tip_deflection_mm,
+    tip_deflection_point_load_mm,
+)
 from fansim.structural.flutter import CANTILEVER_LAMBDA, first_bending_hz, flutter_report
 from fansim.structural.flutter import max_blades_for_margin
 from fansim.structural.stress import FDM_E_K, centrifugal_root_stress
@@ -112,16 +118,37 @@ def test_deflection_scaling_and_units():
     assert tip_deflection_mm(pa, "PETG", 100.0) == pytest.approx(delta_m * 1e3, rel=1e-9)
 
 
-def test_tip_point_load_closed_form_via_fe_harness():
-    # No point-load function exists in fansim; verify the FE harness reproduces PL^3/(3EI).
-    EI, L, P = 2.0e3, 40.0, 0.5
-    assert fe_tip_point(EI, L, P) == pytest.approx(P * L**3 / (3 * EI), rel=1e-3)
+def test_tip_point_load_closed_form():
+    """§19.17: tip point-load δ = P L³/(3EI) matches closed form (and the FE harness)."""
+    p = prismatic(chord_mm=10.0, t_frac=0.10, hub=20.0, tip=60.0)
+    force_n = 0.5
+    got = tip_deflection_point_load_mm(p, force_n, "PETG")
+    span_m = 0.040
+    chord_m = 0.010
+    thick_m = 0.001
+    e = 2.1e9 * FDM_E_K
+    inertia = chord_m * thick_m ** 3 / 12.0
+    closed_mm = force_n * span_m ** 3 / (3.0 * e * inertia) * 1e3
+    assert got == pytest.approx(closed_mm, rel=1e-9)
+    EI = e * inertia
+    assert fe_tip_point(EI, span_m * 1e3, force_n) == pytest.approx(
+        force_n * (span_m * 1e3) ** 3 / (3 * EI), rel=1e-3)
 
 
-def test_root_bending_stress_not_in_code():
-    # sigma = M c / I: no function in fansim computes root bending stress (roadmap note).
-    import fansim.structural as S
-    assert not any("bend" in n.lower() and "stress" in n.lower() for n in dir(S))
+def test_root_bending_stress_closed_form():
+    """§19.17: σ = M c / I with M = q L²/2 under the same hose load as tip deflection."""
+    p = prismatic(chord_mm=10.0, t_frac=0.10, hub=20.0, tip=60.0)
+    load = 20.0
+    rep = root_bending_stress(p, "PETG", load_pa=load)
+    span_m, chord_m, thick_m = 0.040, 0.010, 0.001
+    q = load * chord_m
+    moment = q * span_m ** 2 / 2.0
+    inertia = chord_m * thick_m ** 3 / 12.0
+    closed_mpa = moment * (thick_m / 2.0) / inertia / 1e6
+    assert rep.sigma_root_mpa == pytest.approx(closed_mpa, rel=1e-9)
+    assert rep.yield_mpa == pytest.approx(MATERIALS["PETG"].yield_strength_mpa * 0.6)
+    assert rep.safety_factor == pytest.approx(rep.yield_mpa / rep.sigma_root_mpa, rel=1e-9)
+    assert rep.ok  # Stock-like beam has huge SF under hose Pa
 
 
 def test_deflection_report_gate_logic():

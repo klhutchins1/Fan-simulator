@@ -11,10 +11,24 @@ from fansim.structural.balance import (
     static_unbalance,
 )
 from fansim.structural.stress import CentrifugalReport, centrifugal_root_stress
+from fansim.structural.deflection import (
+    DeflectionReport,
+    RootBendingReport,
+    deflection_report,
+    root_bending_stress,
+    tip_deflection_mm,
+    tip_deflection_point_load_mm,
+)
 
 __all__ = [
     "CentrifugalReport",
     "centrifugal_root_stress",
+    "DeflectionReport",
+    "RootBendingReport",
+    "deflection_report",
+    "root_bending_stress",
+    "tip_deflection_mm",
+    "tip_deflection_point_load_mm",
     "Unbalance",
     "equal_spacing",
     "static_unbalance",

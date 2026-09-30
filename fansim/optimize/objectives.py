@@ -52,7 +52,7 @@ from fansim.optimize.system_curve import (
     score_operating_point,
 )
 from fansim.optimize.print_penalty import apply_print_penalty, tip_section_thickness
-from fansim.structural.deflection import tip_deflection_mm
+from fansim.structural.deflection import tip_deflection_mm, root_bending_stress
 from fansim.structural.stress import centrifugal_root_stress
 
 INFEASIBLE = -1.0e6      # rejected value for MAXIMIZED objectives (optimizer avoids them)
@@ -195,6 +195,9 @@ def evaluate_candidate(
     stress = centrifugal_root_stress(params, material=material)
     if not stress.ok:
         return _infeasible(f"overstressed: {stress.reason}", t0)
+    bend = root_bending_stress(params, material=material, load_pa=float(load_pa))
+    if not bend.ok:
+        return _infeasible(f"root bending: {bend.reason}", t0)
 
     if tip_gap_mm is None:
         tip_gap_mm = OPTIMIZER_TIP_GAP_MM

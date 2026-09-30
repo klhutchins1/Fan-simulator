@@ -7,6 +7,7 @@ from dataclasses import replace
 import pytest
 
 from fansim.geometry.blade import BladeParams
+from fansim.manufacturability.materials import MATERIALS
 from fansim.optimize.print_penalty import PRINT_K_CFM, apply_print_penalty
 from fansim.structural.deflection import deflection_report, tip_deflection_mm
 
@@ -19,17 +20,17 @@ def test_default_petg_clear_of_half_mm_gap():
     assert r.e_fdm_knockdown == pytest.approx(0.70)  # §10.11 FDM E knockdown
 
 
-def test_fdm_e_knockdown_increases_deflection():
-    from fansim.structural.stress import FDM_E_K
-    from fansim.structural.deflection import tip_deflection_mm
+def test_resin_skips_fdm_e_knockdown():
+    """§19.17: RESIN is in MATERIALS and keeps full E (knockdown 1.0)."""
+    from fansim.structural.deflection import _fdm_e_factor
 
-    p = BladeParams()
-    d_fdm = tip_deflection_mm(p, material="PETG", load_pa=20.0)
-    # Force full-E comparison via resin path if available, else scale expectation
-    assert FDM_E_K == pytest.approx(0.70)
-    # Lower E → larger δ; PETG uses FDM_E_K so δ scales as 1/E_k vs isotropic E
-    d_iso_equiv = d_fdm * FDM_E_K  # what full-E would give for same load
-    assert d_fdm > d_iso_equiv
+    assert "RESIN" in MATERIALS
+    assert _fdm_e_factor("RESIN") == pytest.approx(1.0)
+    assert _fdm_e_factor("PETG") == pytest.approx(0.70)
+    d_resin = tip_deflection_mm(BladeParams(), material="RESIN", load_pa=20.0)
+    d_petg = tip_deflection_mm(BladeParams(), material="PETG", load_pa=20.0)
+    # Same load; PETG E_eff = 2.1*0.7, RESIN E = 2.5 → PETG deflects more
+    assert d_petg > d_resin
 
 
 def test_tpu_can_fail_tip_gap_gate():

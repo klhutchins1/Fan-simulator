@@ -794,7 +794,11 @@ follow under `docs/superpowers/specs/`.
   `fan.bem_prescreen` PROVEN. Mid-pack still weak (without `t9012` rho = 0.54). Absolute shut-off 40.6 Pa /
   peak eff 0.53 vs datasheet 22.9 Pa / 25-35% remain known loss-bucket limits (RANKING-ONLY).
   **[impact: med]** **[effort: med]**
-- [ ] **19.17 Structural gaps (Audit #5).** **[impact: low]** **[effort: low]** No root bending stress (sigma = M c / I) or yield check exists next to the deflection gate, and no tip-point-load path; `_fdm_e_factor` has a dead RESIN branch. Add a root-bending-stress SF using the same q L^2/2 moment. Fixed in Audit #5: `balanced_uneven_spacing` broke mass/angle pairing by sorting when masses were passed.
+- [x] **19.17 Structural gaps (Audit #5).** **DONE 2026-09-30** — root bending
+  `σ = M c / I` (`root_bending_stress`, same `q L²/2` as tip deflection) + tip point-load
+  `δ = P L³/(3EI)`; both gated/exported. `RESIN` added to `MATERIALS` so the isotropic-E
+  branch is live; unused `mat` lookup removed. Uneven-spacing mass pairing was fixed in Audit #5.
+  **[impact: low]** **[effort: low]**
 - [ ] **19.18 Beam models unvalidated on real blades (Audit #5).** **[impact: med]** **[effort: high]** Deflection / f1 pass closed-form verification but the Stock v2 blade is a wide tapered plate (aspect ratio < 1.5, chord up to 50 mm on a 33 mm span) where Euler-Bernoulli beams are out of regime, and Stock's f1/BPF margin is only 1.29 vs the 1.2 gate. Compare against a shell FEA or a printed-blade tap test before trusting the gate. `print_penalty` k_fsi/0.95/0.92 constants are unsourced.
 - [ ] **19.13 FAN-01 benchmark follow-ups.** **[effort: med]** Model the rig's downstream chamber/struts; mesh
   ladder at 126 Pa; measured tip gap is 2.11 mm vs 2.5 published (check extraction tip radius).
