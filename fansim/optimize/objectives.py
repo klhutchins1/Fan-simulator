@@ -26,7 +26,7 @@ from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM, remaining_tip_gap_mm, rig_fo
 from fansim.cfd.frame import export_frame_stl, stack_frame_z_start_mm
 from fansim.cfd.orientation import prepare_axial_cfd
 from fansim.cfd.metrics import parse_fan_metrics
-from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve
+from fansim.cfd.openfoam_case import MeshResolution, OPTIMIZER_SURF_MAX_FLOOR, build_case, run_mesh, run_solve
 from fansim.cfd.runner import OpenFOAMRunner
 from fansim.cfd.sanity import FAIL as SANITY_FAIL
 from fansim.cfd.sanity import overall as sanity_overall
@@ -337,7 +337,8 @@ def evaluate_candidate(
     # Adapt surface refinement to the blade's thinnest wall: a thin plate meshed to ~1 cell
     # loses ~30% of its loading and reads an artificially low, mesh-sensitive CFM (the a12x25
     # refit investigation). Thick blades keep the cheap baseline level.
-    mesh0 = MeshResolution.for_blade(base_cell, min_blade_wall_mm(params))
+    mesh0 = MeshResolution.for_blade(
+        base_cell, min_blade_wall_mm(params), min_surf_max=OPTIMIZER_SURF_MAX_FLOOR)
     try:
         build_case(workdir, stl, rig0, mesh=mesh0,
                    n_iters=iters, n_subdomains=procs, back_pressure_pa=0.0,

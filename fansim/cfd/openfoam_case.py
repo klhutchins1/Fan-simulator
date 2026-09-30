@@ -25,6 +25,10 @@ BOX_SCALE = 1.12  # hex half-side / duct_radius when a circular casing is presen
 SURF_LEVEL_MIN = 2  # baseline snappy surface refinement (thick blades keep this)
 SURF_LEVEL_MAX = 4  # cap so a knife-thin wall can't demand an unbounded mesh
 WALL_CELLS_ACROSS = 3  # target cells through the thinnest blade wall (finest cell <= wall/3)
+# §19.14: optimizer / Assess CFD floors surface level so thick-wall designs are not coarsened
+# relative to thin ones (adaptive-only moved CFM 1–4% in the v2 check). Validation scripts omit
+# the floor and keep pure wall-adaptive levels.
+OPTIMIZER_SURF_MAX_FLOOR = 3
 
 
 def surface_level_for_wall(
@@ -69,14 +73,20 @@ class MeshResolution:
         *,
         cells_across: int = WALL_CELLS_ACROSS,
         add_layers: bool = False,
+        min_surf_max: int | None = None,
     ) -> "MeshResolution":
         """Resolution whose surface refinement resolves ``min_wall_mm`` (>= ~3 cells).
 
         Adapts snappy surface + feature levels to the blade's thinnest wall so thin plates
         are meshed properly without over-refining thick blades. surf_min trails surf_max by
         one so the whole impeller surface carries at least the coarser level.
+
+        ``min_surf_max`` (optimizer path, §19.14) floors ``surf_max`` so thick-wall designs
+        are not ranked on a coarser mesh than thin ones.
         """
         lvl = surface_level_for_wall(base_cell, min_wall_mm, cells_across=cells_across)
+        if min_surf_max is not None:
+            lvl = max(lvl, int(min_surf_max))
         return cls(base_cell=base_cell, surf_min=max(1, lvl - 1), surf_max=lvl,
                    feature_level=lvl, add_layers=add_layers)
 

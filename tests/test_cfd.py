@@ -125,6 +125,18 @@ def test_mesh_resolution_for_blade_sets_adaptive_levels():
     assert m.feature_level == 3
 
 
+def test_optimizer_surf_max_floor_for_thick_walls():
+    """§19.14: thick blades still get surf_max >= 3 on the optimizer path."""
+    from fansim.cfd.openfoam_case import MeshResolution, OPTIMIZER_SURF_MAX_FLOOR
+
+    adaptive = MeshResolution.for_blade(0.005, 6.0)
+    assert adaptive.surf_max == 2
+    floored = MeshResolution.for_blade(0.005, 6.0, min_surf_max=OPTIMIZER_SURF_MAX_FLOOR)
+    assert floored.surf_max == OPTIMIZER_SURF_MAX_FLOOR
+    assert floored.surf_min == OPTIMIZER_SURF_MAX_FLOOR - 1
+    assert floored.feature_level == OPTIMIZER_SURF_MAX_FLOOR
+
+
 def test_kinematic_pressure_contract_once_times_rho():
     """FO ``inletP``/``outletP`` are kinematic p; parse must ×ρ exactly once (§12.11)."""
     from fansim.cfd import templates
