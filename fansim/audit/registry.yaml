@@ -1,7 +1,46 @@
 # Audited physics units. Schema + states: docs/superpowers/specs/2026-09-24-physics-audit-design.md
 # targets: "pkg.module" (whole module) or "pkg.module:Name[.method]". Fingerprints ignore comments,
 # docstrings and formatting, so only logic changes invalidate a unit.
-exempt: []
+# Scaffolding / I/O / UI helpers — not equation claims. Triage: docs/validation/audits/2026-09-30-unregistered-triage.md
+exempt:
+  - "fansim.*.persist:*"
+  - "fansim.*.params_io:*"
+  - "fansim.*.isolated:*"
+  - "fansim.*._*_worker:*"
+  - "fansim.*.archetype:*"
+  - "fansim.cfd.runner:*"
+  - "fansim.cfd.templates:*"
+  - "fansim.cfd.timing:*"
+  - "fansim.cfd.glyphs:*"
+  - "fansim.cfd.midplane:*"
+  - "fansim.cfd.lbm_geometry_ab:*"
+  - "fansim.cfd.openfoam_case:*"
+  - "fansim.cfd.casing:*"
+  - "fansim.cfd.frame:*"
+  - "fansim.cfd.stator:*"
+  - "fansim.propeller.airflow_case:*"
+  - "fansim.propeller.ami_smoke:*"
+  - "fansim.propeller.cfd_fixture:*"
+  - "fansim.propeller.gci_ladder:*"
+  - "fansim.propeller.geometry:*"
+  - "fansim.propeller.stl_import:*"
+  - "fansim.propeller.wall_mesh:*"
+  - "fansim.propeller.pythrust_export:*"
+  - "fansim.propeller.polar:PolarPoint"
+  - "fansim.propeller.polar:parse_float_list"
+  - "fansim.propeller.polar:resolve_sweep"
+  - "fansim.centrifugal.geometry:*"
+  - "fansim.centrifugal.optimize:*"
+  - "fansim.centrifugal.evaluate:*"
+  - "fansim.cror.geometry:*"
+  - "fansim.cror.optimize:*"
+  - "fansim.cror.evaluate:*"
+  - "fansim.volute.geometry:*"
+  - "fansim.volute.optimize:*"
+  - "fansim.volute.evaluate:*"
+  - "fansim.volute.case:*"
+  - "fansim.volute.domain:*"
+  - "fansim.wind_turbine.*:*"
 units:
   - id: physics.air_properties
     targets: ["fansim.physics.air"]
@@ -174,3 +213,26 @@ units:
     source: {kind: derivation, ref: "Curle 1955 / FW-H loading term at M=0; Audit #6 offset-dipole analytic comparison"}
     checks: [tests/audit/test_acoustics_audit.py, tests/test_fwh.py, tests/test_permeable_fwh.py]
     depends_on: [physics.air_properties, acoustics.curle_dipole]
+
+  - id: physics.regime
+    targets: ["fansim.physics.regime"]
+    claim: "Re = U L / nu, Ma = U / c0; Ma>0.3 -> compressible solver; Re<2000 -> laminar else k-omega SST"
+    source: {kind: derivation, ref: "standard continuum thresholds; fansim axial default simpleFoam + SST"}
+    checks: [tests/test_motor_regime.py]
+    depends_on: [physics.air_properties]
+
+  - id: cfd.duct_area
+    targets: ["fansim.cfd.duct_area"]
+    claim: "Circular inlet area honesty: expected A = pi R^2; mesh inlet patch within +-20% or raise"
+    source: {kind: derivation, ref: "AMCA circular duct bookkeeping; §10.10"}
+    checks: [tests/test_duct_area.py, tests/test_math_consistency.py]
+
+  - id: cfd.spanwise
+    targets:
+      - "fansim.cfd.spanwise:compute_spanwise_profile"
+      - "fansim.cfd.spanwise:compute_blade_to_blade_cp"
+      - "fansim.cfd.spanwise:cylindrical_velocity"
+    claim: "Circ. avg p0=p+0.5|U|^2, Uz, swirl vs radius; blade-to-blade Cp from kinematic p (diagnostic, not absolute CFM)"
+    source: {kind: derivation, ref: "incompressible Bernoulli total pressure; TCAE-style spanwise averages; §20.3"}
+    checks: [tests/test_spanwise.py]
+    depends_on: [physics.air_properties]

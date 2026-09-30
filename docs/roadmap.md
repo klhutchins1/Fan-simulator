@@ -38,9 +38,8 @@ session.**
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
-9. **§20 external feature radar** — quick wins 20.1 / 20.2 any time; 20.3 alongside item 4 (diagnoses
-   the P–Q gap); 20.7 is the hardware path for item 5; ~~20.4~~ DONE 2026-09-30; ~~20.5~~ DONE 2026-09-30;
-   ~~20.6~~ DONE 2026-09-30.
+9. **§20 external feature radar** — ~~20.1~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
+   20.2 NeuralFoil default still partial; 20.7 is the hardware path for item 5.
 
 §8 / §9 / §10 / §12 / §13 stage-1 are **closed in code**. Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
 Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
@@ -183,13 +182,15 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   **fpv_5inch BEMT datasheet (2026-09-23):** static check at 30000 rpm is 1654 g (ratio 0.894) and 572.6 W (ratio 0.881) versus 1850 g and 650 W. Figure of merit 0.648. `within_2x` is thrust only. Spec/plan:
   `docs/superpowers/specs/2026-09-23-prop-fpv-datasheet-design.md`,
   `docs/superpowers/plans/2026-09-23-prop-fpv-datasheet.md`.
-- [ ] **4.4 Make obj_2 thrust and power believable before more AMI.** **[impact: high]** **[effort: med]**
-  Physics review 2026-09-23. obj_2 smoke is arithmetically consistent (0.769 N·m × 2644 rad/s = 2034 W,
-  938 g) and a poor hover propeller: figure of merit **0.11** at the solver density 1.174 kg/m³
-  (ideal momentum power 226 W). Power stays ~2.0–2.2 kW across the GCI ladder while thrust climbs
-  924 → 1038 → 1109 g (fine GCI 16%, order p = 1.21). `converged=true` only means the asymptotic
-  ratio is near 1. obj_1 thrust falls on the fine mesh and the medium rung drifts 55% — do not quote it.
-  Do this before another AMI campaign or a datasheet claim:
+- [x] **4.4 Make obj_2 thrust and power believable before more AMI. DONE 2026-09-30.** **[impact: high]** **[effort: med]**
+  Actionable software work is finished (steps 1, 2, 4). **AMI remains intentionally parked** — not an
+  unfinished software gap. A retry still needs: single-rank thermo init that does not SIGFPE; time step
+  ≈ **1° or less** (today 4e-5 s is 6.1° at 2644 rad/s); a **signed** thrust mean; comparison target =
+  same-mesh MRF smoke (938 g), not the 1249 g extrapolation. Physics review 2026-09-23: obj_2 smoke is
+  arithmetically consistent (0.769 N·m × 2644 rad/s = 2034 W, 938 g) and a poor hover propeller
+  (FoM **0.11** at ρ = 1.174 kg/m³; ideal momentum power 226 W). Power stays ~2.0–2.2 kW across GCI while
+  thrust climbs 924 → 1038 → 1109 g (fine GCI 16%, p = 1.21). `converged=true` only means the asymptotic
+  ratio is near 1. obj_1 fine-mesh thrust falls / medium drifts 55% — do not quote it.
   1. **Done.** `bemt.analyze` calls `_compressibility_cl_cd` with local Mach
      (`sqrt(W2) / C_AIR`, 343 m/s) inside the element loop. Spec/plan:
      `docs/superpowers/specs/2026-09-23-prop-bemt-compressibility-design.md`,
@@ -204,18 +205,16 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
      `docs/superpowers/specs/2026-09-23-prop-obj2-wall-mesh-design.md`,
      `docs/superpowers/plans/2026-09-23-prop-obj2-wall-mesh.md`.
      At iteration 400 the shaft moment is 0.818 N·m, of which 0.812 N·m is pressure and 0.006 N·m is viscous.
-  3. Leave AMI parked. A retry needs a single-rank thermo init that does not SIGFPE, a step of about
-     **1° or less** (today 4e-5 s is 6.1° at 2644 rad/s), and a **signed** thrust mean. The comparison
-     target stays the same-mesh MRF smoke (938 g), not the 1249 g extrapolation.
+  3. **Parked (by design).** AMI not resumed until the preconditions above are met.
   4. **Done.** The 2163 W versus 388 W gap is the FPV 5×4.3×3 datasheet (650 W at 30 000 rpm, rpm³) applied to a radial impeller (hub 30.4 mm, tip 45.4 mm). Pressure moment is 0.812 N·m of 0.818 N·m. Do not retune the mesh to 388 W. Spec:
      `docs/superpowers/specs/2026-09-23-prop-obj2-power-gap-design.md`.
-- [ ] **4.5 Toroidal propeller shapes — investigate then implement.** **[impact: med]** **[effort: high]**
+- [~] **4.5 Toroidal propeller shapes — investigate then implement.** **Partial 2026-09-30.** **[impact: med]** **[effort: high]**
   Closed-loop / ring-blade (Sharrow-style) props as an alternate topology under the Prop archetype —
-  not a conventional open blade loft. **Stage 1 (investigate):** literature + printability constraints
-  (continuous toroidal surface, hub join, tip “loop”), whether BEMT is usable or CFD-first is required,
-  and a go/no-go vs the existing open-blade Prop path. **Stage 2 (implement, if go):** CadQuery
-  geometry + STL export, cockpit Design knobs, then open-air CFD smoke (reuse §4.3 MRF path). Do not
-  start Stage 2 until Stage 1 writes a short design note. Park absolute noise / AMI until geometry is real.
+  not a conventional open blade loft. **Stage 1 (investigate): DONE 2026-09-30** — design note
+  `docs/superpowers/specs/2026-09-30-toroidal-prop-investigate-design.md` (printability, BEMT unsuitable →
+  CFD-first via §4.3 MRF, **no-go** vs open-blade Prop). **Stage 2 (implement): parked** per that note
+  until after hardware P–Q / higher-priority CFD capacity; do not start CadQuery / Design knobs / CFD smoke.
+  Park absolute noise / AMI until geometry is real.
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 
@@ -820,15 +819,19 @@ follow under `docs/superpowers/specs/`.
   `tip_gap_report` / `scale_rotor_to_published_tip` + `run_fan01.py --align-tip` restore
   geometric clearance in the mesh. Still open: downstream chamber/struts; mesh ladder at 126 Pa.
   **[effort: med]**
-- [ ] **19.5+ Later audits** (each: verification → validation → claims):
-  - axial **BEM pre-screen** (`fansim/fan_bem.py`) vs CFD in the validated range;
-  - **prop BEMT vs UIUC** measured data (already in `validation/reference/uiuc_propdb`);
-  - **acoustics** (Curle / FW-H / Proudman) — FAN-01 has measured acoustics for validation;
-  - **structural / deflection**;
-  - **CROR and mixed-flow setups** (the placement check already found a CROR hub overhang);
+- [~] **19.5+ Later audits** (each: verification → validation → claims):
+  - [x] axial **BEM pre-screen** — PROVEN as `fan.bem_prescreen` (Audit #4 / §19.16);
+  - [~] **prop BEMT vs UIUC** — verification PASS; SF C_P / C_T(J) RMS still FAIL → `propeller.bemt` stays NEW (§19.15);
+  - [x] **acoustics** kernels — PROVEN (Audit #6); absolute dB(A) still §1.4 / hardware;
+  - [x] **structural / deflection** — PROVEN (Audit #5); absolute δ/f1 still needs §19.18 FEA / §5;
+  - **CROR and mixed-flow setups** (placement found a CROR hub overhang) — still open;
   - [x] **air-constant consolidation** — DONE (`fansim/physics/air.py` single source;
     `tests/audit/test_air_properties.py` blocks new local copies; 8 tests PASS 2026-09-30);
-  - triage the ~319 unregistered public physics functions (`scripts/audit_status.py --unregistered`).
+  - [x] **ledger refresh + unregistered triage** — DONE 2026-09-30: re-`record_pass` for 7 CHANGED
+    units (structural + direction/handedness); registered `physics.regime` / `cfd.duct_area` /
+    `cfd.spanwise`; scaffolding exempted → unregistered ~310→~90; PROVEN=21 / NEW=1
+    (`propeller.bemt`). Reports: `2026-09-30-ledger-refresh.md`,
+    `2026-09-30-unregistered-triage.md`. Remaining owed units listed in the triage note.
   Change-driven: re-run `scripts/audit_status.py` and audit whatever is CHANGED/AFFECTED/NEW.
 
 ## 20. External feature radar (2026-09-25)
@@ -852,7 +855,12 @@ the §19.1 spin / flow freeze.
   angle of attack, no non-convergence, smooth for gradients. Keep UIUC as the regression reference
   (§19.5 prop BEMT vs UIUC). Opens a later option: section shape (CST) as an optimizer variable.
   Only improves the BEM pre-screen tier (ranking-only, Spearman ~0.62) — not absolute CFM.
-- [ ] **20.3 Spanwise + blade-to-blade CFD post-processing.** **[impact: high]** **[effort: med]** *(TCAE Turbo Blade Post)*
+- [x] **20.3 Spanwise + blade-to-blade CFD post-processing.** **DONE 2026-09-30** —
+  `fansim/cfd/spanwise.py`: circumferentially averaged p0 / Uz / swirl + incidence/deviation
+  vs radius; blade-to-blade Cp at 3–5 span stations. Reuses midplane reconstruct readiness.
+  Cockpit Fan Results airflow toggle: **spanwise** / **b2b Cp**. Tests:
+  `tests/test_spanwise.py` (synthetic mesh, no Docker).
+  **[impact: high]** **[effort: med]** *(TCAE Turbo Blade Post)*
   Circumferentially averaged total pressure, axial / swirl velocity, incidence and deviation vs
   radius, plus blade-to-blade Cp at 3–5 span stations, built on `cfd/midplane.py`. Primary use:
   locate *where* along the span the a12x25 free-air gap (−15…−20%, §1.5) is lost. Cockpit plot after.
