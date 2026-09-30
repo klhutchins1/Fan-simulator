@@ -550,6 +550,15 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             classes="mt-1",
                             label="Fit tip/depth to frame on export (default on — re-Assess after)",
                         )
+                        v3.VSwitch(
+                            v_model=("export_also_mirror",),
+                            density="compact",
+                            hide_details=True,
+                            color="primary",
+                            inset=True,
+                            classes="mt-1",
+                            label="Also export opposite-hand STL + spin meta (CW⇄CCW, §19.4)",
+                        )
 
                     with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):
                         html.Div("Assess settings", classes="text-subtitle-2 mb-1")

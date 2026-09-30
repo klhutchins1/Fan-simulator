@@ -52,7 +52,12 @@ from fansim.optimize.system_curve import (
     score_operating_point,
 )
 from fansim.optimize.print_penalty import apply_print_penalty, tip_section_thickness
-from fansim.structural.deflection import tip_deflection_mm, root_bending_stress
+from fansim.structural.deflection import (
+    deflection_report,
+    root_bending_stress,
+    tip_deflection_mm,
+)
+from fansim.structural.flutter import flutter_report
 from fansim.structural.stress import centrifugal_root_stress
 
 INFEASIBLE = -1.0e6      # rejected value for MAXIMIZED objectives (optimizer avoids them)
@@ -198,6 +203,10 @@ def evaluate_candidate(
     bend = root_bending_stress(params, material=material, load_pa=float(load_pa))
     if not bend.ok:
         return _infeasible(f"root bending: {bend.reason}", t0)
+    # Resonance gate (UI Assess material picker / §7.6 flutter) — stamps beam_regime (§19.18).
+    flutter = flutter_report(params, material=material)
+    if not flutter.ok:
+        return _infeasible(flutter.reason, t0)
 
     if tip_gap_mm is None:
         tip_gap_mm = OPTIMIZER_TIP_GAP_MM
@@ -208,6 +217,11 @@ def evaluate_candidate(
         "tip_gap_mm": remaining,
         "casing_id_mm": casing_id,
         "tip_gap_floor_mm": floor,
+        "beam_aspect": float(flutter.beam_aspect),
+        "beam_regime_ok": bool(flutter.beam_regime_ok),
+        "f1_hz": float(flutter.f1_hz),
+        "bpf_hz": float(flutter.bpf_hz),
+        "f1_bpf_margin": float(flutter.margin),
         **SCREENING_GRID_STAMP,
     }
     if remaining < floor:
@@ -215,6 +229,19 @@ def evaluate_candidate(
             f"{spec.name}: tip gap {remaining:.2f} mm < min {floor:.2f} mm "
             f"to {casing_id:.0f} mm frame",
             t0, raw=gap_raw)
+    # FSI tip-rub gate (§7.6): δ ≥ leftover tip gap.
+    defl = deflection_report(
+        params, tip_gap_mm=remaining, material=material, load_pa=float(load_pa),
+    )
+    gap_raw["tip_deflection_mm"] = float(defl.tip_deflection_mm)
+    gap_raw["beam_aspect"] = float(defl.beam_aspect)
+    gap_raw["beam_regime_ok"] = bool(defl.beam_regime_ok and flutter.beam_regime_ok)
+    if defl.reason and "WARN" in defl.reason:
+        gap_raw["beam_regime_warn"] = defl.reason
+    elif flutter.reason and "WARN" in flutter.reason:
+        gap_raw["beam_regime_warn"] = flutter.reason
+    if not defl.ok:
+        return _infeasible(defl.reason, t0, raw=gap_raw)
 
     # --- BEM pre-screen (roadmap §7.1c): reject clearly-non-viable designs before CFD.
     # Floor is on hose operating CFM (same axis as CFD cfm_load), not free-delivery.

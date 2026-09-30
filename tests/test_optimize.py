@@ -74,3 +74,14 @@ def test_evaluate_candidate_gate_is_cheap_and_infeasible(tmp_path):
     assert res.feasible is False
     assert "unprintable" in res.reason
     assert res.as_tuple() == (INFEASIBLE, INFEASIBLE, INFEASIBLE)
+
+
+def test_evaluate_candidate_rejects_tpu_vibration_before_cfd(tmp_path):
+    """§7.6 / UI Assess material gate: flutter resonance rejects without CFD."""
+    from dataclasses import replace
+
+    # 3000 rpm keeps centrifugal SF OK on TPU; flutter margin fails (audit #5 case).
+    p = replace(BladeParams(), rpm=3000.0, n_blades=7)
+    res = evaluate_candidate(p, tmp_path / "vib", procs=1, material="TPU")
+    assert res.feasible is False
+    assert "vibration" in res.reason.lower() or "blade-pass" in res.reason.lower()

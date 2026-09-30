@@ -90,8 +90,11 @@ def prop_blade_params(
 
 
 def build_prop(spec: PropSpec, out_path: str | Path, *, bore: bool = True,
-               params: BladeParams | None = None, **kw):
-    """Build a printable prop STL for ``spec`` (optional center shaft bore). Returns the WatertightReport."""
+               params: BladeParams | None = None, also_step: bool = True, **kw):
+    """Build a printable prop STL for ``spec`` (optional center shaft bore). Returns the WatertightReport.
+
+    When ``also_step`` is True (default), write a sibling ``.step`` B-rep (§20.1).
+    """
     from fansim.geometry import watertight_report
     if params is None:
         params = prop_blade_params(spec, **kw)
@@ -105,6 +108,10 @@ def build_prop(spec: PropSpec, out_path: str | Path, *, bore: bool = True,
         model = cq.Workplane(obj=shape.cut(cutter))
     out_path = Path(out_path)
     export_stl(model, out_path, tolerance=0.02, angular_tolerance=0.1)
+    if also_step:
+        from fansim.geometry.export import export_step
+
+        export_step(model, out_path.with_suffix(".step"))
     return watertight_report(out_path)
 
 

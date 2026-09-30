@@ -48,6 +48,7 @@ def apply_state_defaults(session) -> None:
     state.export_busy = False
     state.export_fit_hub = True
     state.export_fit_frame = True
+    state.export_also_mirror = False  # §19.4 CW⇄CCW pair beside the primary STL
     state.preview_motor_cup = True
     state.assess_preset = "case"
     state.assess_preset_items = assess_preset_items()

@@ -672,8 +672,10 @@ present. The real Fan-only gap was the **airflow viz**, now the focus of 17.3.
   list literal to `items=`, which trame reads as a state binding and crashes — fixed by binding
   `items=("p_thick_mode_items",)`. Guarded by `tests/test_cockpit_items_binding.py`; verified in the
   browser (Fan/Mixed/Volute/Prop/CROR all render, no errors). See [[cockpit-trame-gotchas]].
-- [~] **17.2 Assess / run a single design from the tab.** Already present (Mixed/Volute Assess,
-  Prop Analyze, CROR Optimize+CFD-refine).
+- [x] **17.2 Assess / run a single design from the tab.** **DONE 2026-09-30** — Assess/Analyze
+  already on Fan/Mixed/Volute/Prop/CROR; UI wiring pass also surfaces §19.4 mirror export,
+  §19.15 polar-backend picker, §19.18 beam-regime WARN in score caption, and §20.1 STEP on
+  prop export (Fan STEP was already default).
 - [x] **17.3 Airflow viz where applicable.** **[impact: med]** **[effort: med]** DONE 2026-09-24.
   - [x] **Mixed** (2026-09-19) — full |U|/p + axial-Uz + streamlines, verified on a real MRF case.
   - [x] **CROR** (2026-09-20) — rendered for the best CFD-refined design (dual AXIAL rotors).
@@ -841,8 +843,9 @@ the §19.1 spin / flow freeze.
   Fusion / Onshape / FreeCAD for hand edits. **[impact: low–med]** **[effort: low]**
 - [~] **20.2 NeuralFoil airfoil polars.** **Partial 2026-09-30** *(AeroSandbox, QBlade)* —
   optional backend shipped (`fansim/propeller/neuralfoil_polars.py`, `--extra neuralfoil`);
-  default remains UIUC tables. A/B vs UIUC props in §19.15. Still open: make NeuralFoil the
-  default, 360° coverage claims, CST section variables.
+  default remains UIUC tables. A/B vs UIUC props in §19.15. Cockpit Prop tab has a polar-backend
+  picker (table / NeuralFoil). Still open: make NeuralFoil the default, 360° coverage claims,
+  CST section variables.
   Swap or back the UIUC/Selig tables (`fansim/data/polars`, `_cl_cd`) with NeuralFoil: any Re, 360°
   angle of attack, no non-convergence, smooth for gradients. Keep UIUC as the regression reference
   (§19.5 prop BEMT vs UIUC). Opens a later option: section shape (CST) as an optimizer variable.

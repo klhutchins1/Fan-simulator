@@ -26,6 +26,12 @@ def score_caption(extra: dict) -> str:
     op_cfd = extra.get("op_cfd")
     if op_cfd:
         parts.append(f"op CFD: {op_cfd}")
+    if extra.get("beam_regime_ok") is False:
+        aspect = extra.get("beam_aspect")
+        if aspect is not None:
+            parts.append(f"WARN beam aspect {float(aspect):.2f} (plate-like §19.18)")
+        else:
+            parts.append("WARN beam regime (plate-like §19.18)")
     return " · ".join(parts)
 
 
@@ -42,6 +48,9 @@ def stamp_score_extra(
     if raw.get("duct"):
         extra["duct"] = raw["duct"]
     for key in ("print_k_cfm", "print_k_eta"):
+        if raw.get(key) is not None:
+            extra[key] = raw[key]
+    for key in ("beam_regime_ok", "beam_aspect", "beam_regime_warn", "f1_bpf_margin"):
         if raw.get(key) is not None:
             extra[key] = raw[key]
     if refine_op:

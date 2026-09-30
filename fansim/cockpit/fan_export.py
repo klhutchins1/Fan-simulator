@@ -22,16 +22,30 @@ def bind(session) -> None:
     state = session.state
     spawn_busy_ticker = session.spawn_busy_ticker
 
-    def _do_export(params, out, mount, spec):
+    def _do_export(params, out, mount, spec, also_mirror: bool = False):
         from fansim.manufacturability.mount_gauge import write_print_fit_sidecars
         from fansim.manufacturability.print_export import (
             balance_summary,
+            export_handedness_pair,
             export_print_ready,
             print_readme,
             recommend_print_settings,
         )
 
         rep = export_print_ready(params, out, mount=mount)
+        mirror_note = ""
+        if also_mirror:
+            try:
+                paths = export_handedness_pair(
+                    params, out.parent, stem=out.stem, mount=mount,
+                )
+                mirror_note = (
+                    f"\n↳ Opposite-hand pair: {paths['mirrored_stl'].name} "
+                    f"+ {paths['mirrored_meta'].name} (spin travels with geometry — §19.4)"
+                )
+            except Exception as exc:  # noqa: BLE001
+                log_caught(_log, "handedness mirror export", exc)
+                mirror_note = f"\n⚠ Mirror export failed: {type(exc).__name__}: {exc}"
         try:
             settings = recommend_print_settings(spec.material)
             bal = balance_summary(params, spec.rpm)
@@ -59,7 +73,7 @@ def bind(session) -> None:
             except Exception as exc:  # noqa: BLE001
                 log_caught(_log, "print fit sidecars", exc, level=logging.DEBUG)
                 gauge = None
-        return rep, gauge
+        return rep, gauge, mirror_note
 
     def export_stl_current():
         if state.export_busy or state.preview_busy or state.assess_busy:
@@ -107,8 +121,14 @@ def bind(session) -> None:
             state.flush()
             loop = asyncio.get_running_loop()
             try:
-                rep, gauge = await loop.run_in_executor(
-                    None, _do_export, params, out, spec.motor_mount, spec
+                rep, gauge, mirror_note = await loop.run_in_executor(
+                    None,
+                    _do_export,
+                    params,
+                    out,
+                    spec.motor_mount,
+                    spec,
+                    bool(state.export_also_mirror),
                 )
             except Exception as exc:  # noqa: BLE001
                 state.export_msg = f"⚠ Export failed: {type(exc).__name__}: {exc}"
@@ -155,7 +175,8 @@ def bind(session) -> None:
                     "they're now approximate — re-Assess for exact numbers."
                 )
             state.export_msg = (
-                f"✓ Saved {out.resolve()} (+ .step)  ({wt}{mnt}){gauge_txt}{extra}"
+                f"✓ Saved {out.resolve()} (+ .step)  ({wt}{mnt})"
+                f"{mirror_note}{gauge_txt}{extra}"
             )
             state.export_busy = False
             ticker.cancel()

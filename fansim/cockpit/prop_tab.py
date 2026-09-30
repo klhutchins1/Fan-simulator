@@ -176,6 +176,11 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     state.prop_cfd_top = 0
     state.prop_cfd_mesh_preset = "smoke"
     state.prop_bemt_floor = 0.0
+    state.prop_polar_backend = "table"  # §19.15 / §20.2: table | neuralfoil
+    state.prop_polar_backend_items = [
+        {"title": "UIUC tables (default)", "value": "table"},
+        {"title": "NeuralFoil (needs --extra neuralfoil)", "value": "neuralfoil"},
+    ]
     state.prop_refine_busy = False
     state.prop_polar_v = "0,5,10,15,20"
     state.prop_geo_ready = False
@@ -406,38 +411,48 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
 
     def _prop_perf_lines(spec, params):
         """BEMT readout for the current prop: static hover thrust/eff/FM + a forward-flight note."""
-        perf = bemt_analyze(params, rpm=spec.rpm_max)
-        lines = [
-            f"⚙ {spec.n_blades}-blade  {spec.diameter_in}×{spec.pitch_in:.1f} in  @ {spec.rpm_max:.0f} rpm",
-            f"Thrust {perf.thrust_g:.0f} g   ·   {perf.efficiency_g_per_w:.2f} g/W   ·   {perf.power_w:.0f} W",
-            f"Figure of merit {perf.figure_of_merit:.2f}   (0.6–0.8 = a good real prop)",
-        ]
-        nz = estimate_prop_noise(params, spec.rpm_max, perf)
-        lines.append(
-            f"🔉 Noise {nz['rel_dba']:.0f} (relative) · tip Mach {nz['tip_mach']:.2f} · "
-            f"BPF {nz['bpf_hz']:.0f} Hz  (relative rank, not calibrated dBA)"
-        )
-        # Forward-flight polar (BEMT) — V∞ list from the editor
-        try:
-            from fansim.propeller.polar import parse_float_list
+        from fansim.propeller.bemt import get_polar_backend, set_polar_backend
 
-            raw = parse_float_list(str(state.prop_polar_v or ""))
-            v_list = raw if raw else list(DEFAULT_V_INF_MS)
-        except Exception:  # noqa: BLE001
-            v_list = list(DEFAULT_V_INF_MS)
+        backend = str(state.prop_polar_backend or "table").strip().lower()
+        prev = get_polar_backend()
         try:
-            pts = run_bemt_polar(params, spec.rpm_max, v_list)
-            bits = []
-            for p in pts[:6]:
-                eta = f"{100 * p.eta:.0f}%" if p.eta is not None else "—"
-                bits.append(f"V∞={p.v_inf:.0f} J={p.J:.2f} η={eta}")
-            if bits:
-                lines.append("Polar (BEMT): " + " · ".join(bits))
-        except Exception:  # noqa: BLE001
-            fwd = bemt_analyze(params, rpm=spec.rpm_max, v_forward=15.0)
-            if fwd.prop_efficiency is not None:
-                lines.append(f"At 15 m/s forward: prop efficiency {100 * fwd.prop_efficiency:.0f}%")
-        return lines
+            if backend in ("table", "neuralfoil"):
+                set_polar_backend(backend)
+            perf = bemt_analyze(params, rpm=spec.rpm_max)
+            lines = [
+                f"⚙ {spec.n_blades}-blade  {spec.diameter_in}×{spec.pitch_in:.1f} in  @ {spec.rpm_max:.0f} rpm",
+                f"Thrust {perf.thrust_g:.0f} g   ·   {perf.efficiency_g_per_w:.2f} g/W   ·   {perf.power_w:.0f} W",
+                f"Figure of merit {perf.figure_of_merit:.2f}   (0.6–0.8 = a good real prop)",
+                f"Polar backend: {get_polar_backend()}",
+            ]
+            nz = estimate_prop_noise(params, spec.rpm_max, perf)
+            lines.append(
+                f"🔉 Noise {nz['rel_dba']:.0f} (relative) · tip Mach {nz['tip_mach']:.2f} · "
+                f"BPF {nz['bpf_hz']:.0f} Hz  (relative rank, not calibrated dBA)"
+            )
+            # Forward-flight polar (BEMT) — V∞ list from the editor
+            try:
+                from fansim.propeller.polar import parse_float_list
+
+                raw = parse_float_list(str(state.prop_polar_v or ""))
+                v_list = raw if raw else list(DEFAULT_V_INF_MS)
+            except Exception:  # noqa: BLE001
+                v_list = list(DEFAULT_V_INF_MS)
+            try:
+                pts = run_bemt_polar(params, spec.rpm_max, v_list)
+                bits = []
+                for p in pts[:6]:
+                    eta = f"{100 * p.eta:.0f}%" if p.eta is not None else "—"
+                    bits.append(f"V∞={p.v_inf:.0f} J={p.J:.2f} η={eta}")
+                if bits:
+                    lines.append("Polar (BEMT): " + " · ".join(bits))
+            except Exception:  # noqa: BLE001
+                fwd = bemt_analyze(params, rpm=spec.rpm_max, v_forward=15.0)
+                if fwd.prop_efficiency is not None:
+                    lines.append(f"At 15 m/s forward: prop efficiency {100 * fwd.prop_efficiency:.0f}%")
+            return lines
+        finally:
+            set_polar_backend(prev)
 
     def analyze_prop(persist=True, **_):
         """Instant BEMT readout, then an async 3-D preview build (geometry is the slow part).
@@ -455,7 +470,16 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                 spec, params
             )  # BEMT is instant — show it now
             if persist:
-                perf = bemt_analyze(params, rpm=spec.rpm_max)
+                from fansim.propeller.bemt import get_polar_backend, set_polar_backend
+
+                backend = str(state.prop_polar_backend or "table").strip().lower()
+                prev = get_polar_backend()
+                try:
+                    if backend in ("table", "neuralfoil"):
+                        set_polar_backend(backend)
+                    perf = bemt_analyze(params, rpm=spec.rpm_max)
+                finally:
+                    set_polar_backend(prev)
                 nz = estimate_prop_noise(params, spec.rpm_max, perf)
                 flat = _prop_flat_from_state()
                 row = prop_row_from_bemt(
@@ -782,7 +806,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                 state.flush()
                 return
             wt = "watertight" if rep.ok else "⚠ NON-manifold"
-            state.prop_export_msg = f"✓ Saved {out.resolve()}  ({wt})"
+            state.prop_export_msg = f"✓ Saved {out.resolve()} (+ .step)  ({wt})"
             state.prop_export_busy = False
             _refresh_prop_export_items()
             ticker.cancel()
@@ -1155,6 +1179,15 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                         "prop_busy || prop_refine_busy || !prop_has_front || !(prop_cfd_top > 0)",
                                     ),
                                 )
+                        v3.VSelect(
+                            label="BEMT polar backend",
+                            v_model=("prop_polar_backend",),
+                            items=("prop_polar_backend_items",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            classes="mt-2",
+                        )
                         v3.VTextField(
                             label="Polar V∞ (m/s, comma)",
                             v_model=("prop_polar_v",),

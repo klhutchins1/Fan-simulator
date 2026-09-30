@@ -15,6 +15,12 @@ def test_score_caption_lists_hose_duct_and_print_k():
     assert "×0.92" in text
 
 
+def test_score_caption_beam_regime_warn():
+    text = score_caption({"beam_regime_ok": False, "beam_aspect": 0.98})
+    assert "WARN beam aspect 0.98" in text
+    assert "§19.18" in text
+
+
 def test_score_caption_empty_does_not_claim_circular():
     text = score_caption({})
     assert "circular" not in text.lower()
