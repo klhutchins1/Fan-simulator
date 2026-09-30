@@ -39,3 +39,9 @@ def test_urans_overrides():
     assert args.max_co == 8.0
     assert args.n_outer == 4
     assert args.delta_t == 2e-5
+
+
+def test_align_tip_flag_default_off():
+    args = build_parser().parse_args([])
+    assert args.align_tip is False
+    assert build_parser().parse_args(["--align-tip"]).align_tip is True

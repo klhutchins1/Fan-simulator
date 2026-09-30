@@ -811,8 +811,12 @@ follow under `docs/superpowers/specs/`.
   arXiv:2309.13195 / thickness study + FSI design note (still provisional pending §5).
   Still open: shell FEA or printed-blade tap test before trusting absolute δ / f1.
   **[impact: med]** **[effort: high]**
-- [ ] **19.13 FAN-01 benchmark follow-ups.** **[effort: med]** Model the rig's downstream chamber/struts; mesh
-  ladder at 126 Pa; measured tip gap is 2.11 mm vs 2.5 published (check extraction tip radius).
+- [~] **19.13 FAN-01 benchmark follow-ups.** **Partial 2026-09-30** — tip-gap root cause
+  closed: extracted STL 99.5th-percentile tip ≈247.9 mm → duct−tip ≈2.11 mm vs published
+  2.5 mm (Table 2 tip radius 247.5). `fan01_rig` now defaults `tip_gap` to published 2.5 mm;
+  `tip_gap_report` / `scale_rotor_to_published_tip` + `run_fan01.py --align-tip` restore
+  geometric clearance in the mesh. Still open: downstream chamber/struts; mesh ladder at 126 Pa.
+  **[effort: med]**
 - [ ] **19.5+ Later audits** (each: verification → validation → claims):
   - axial **BEM pre-screen** (`fansim/fan_bem.py`) vs CFD in the validated range;
   - **prop BEMT vs UIUC** measured data (already in `validation/reference/uiuc_propdb`);

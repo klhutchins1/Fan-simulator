@@ -50,4 +50,11 @@ These are shared by both fans:
 - a mesh ladder at 126 Pa;
 - the frame/strut geometry of the FAN-01 rig (not yet modelled; the rig is a sleeve only).
 
+### Tip clearance (§19.13, 2026-09-30)
+
+Extracted STL tip (99.5th percentile) ≈ **247.9 mm** → duct 250 − tip ≈ **2.11 mm**, vs published
+**2.5 mm** (fan Ø 495 mm → tip 247.5). Root cause is tip-radius over-read on the mesh, not a wrong
+duct. `fan01_rig` now stamps published tip_gap=2.5 mm for tip-speed/reporting; `run_fan01.py
+--align-tip` uniform-scales the rotor to 247.5 mm so the mesh clearance matches Table 2.
+
 Measured curve: `validation/reference/fan01/characteristic.csv`.

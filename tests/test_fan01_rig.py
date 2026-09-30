@@ -13,6 +13,8 @@ import trimesh
 from fansim.cfd.domain import MM_TO_M
 from fansim.validation.fan01 import (
     DEFAULT_CHARACTERISTIC_CSV,
+    FAN01_TIP_CLEARANCE_M,
+    FAN01_TIP_RADIUS_MM,
     CharacteristicPoint,
     fan01_direction,
     fan01_rig,
@@ -20,6 +22,8 @@ from fansim.validation.fan01 import (
     load_characteristic,
     measured_q_all_crossings,
     measured_q_report,
+    scale_rotor_to_published_tip,
+    tip_gap_report,
 )
 
 _REAL_STL = (Path(__file__).resolve().parents[1]
@@ -39,24 +43,45 @@ def _annulus_stl(tmp_path, r_hub=123.5, r_tip=247.9, half_span=57.8) -> Path:
 def test_fan01_rig_radii_and_gap_on_real_stl():
     rig = fan01_rig(_REAL_STL)
     assert rig.duct_radius == pytest.approx(0.250)
-    # tip radius ~247.9 mm -> tip_gap ~ 250 - 247.9 = ~2.1 mm
-    assert rig.tip_gap == pytest.approx(0.250 - 247.890 * MM_TO_M, abs=1e-4)
-    assert rig.tip_gap > 0.0
+    # §19.13: default tip_gap is published 2.5 mm (not duct − STL tip ≈ 2.11 mm)
+    assert rig.tip_gap == pytest.approx(FAN01_TIP_CLEARANCE_M)
     assert rig.hub_radius == pytest.approx(123.17 * MM_TO_M, abs=2e-4)
     assert rig.rpm == pytest.approx(1486.0)
+    measured = fan01_rig(_REAL_STL, tip_gap_source="measured")
+    assert measured.tip_gap == pytest.approx(0.250 - 247.890 * MM_TO_M, abs=1e-4)
 
 
 def test_fan01_rig_radii_and_gap_on_synthetic_annulus(tmp_path):
     stl = _annulus_stl(tmp_path, r_hub=120.0, r_tip=245.0, half_span=50.0)
     rig = fan01_rig(stl)
     assert rig.duct_radius == pytest.approx(0.250)
-    assert rig.tip_gap == pytest.approx(0.250 - 0.245, abs=1e-3)
-    assert rig.hub_radius == pytest.approx(0.120, abs=2e-3)
-    assert rig.impeller_z_min == pytest.approx(-0.050, abs=1e-3)
-    assert rig.impeller_z_max == pytest.approx(0.050, abs=1e-3)
+    assert rig.tip_gap == pytest.approx(FAN01_TIP_CLEARANCE_M)
+    measured = fan01_rig(stl, tip_gap_source="measured")
+    assert measured.tip_gap == pytest.approx(0.250 - 0.245, abs=1e-3)
+    assert measured.hub_radius == pytest.approx(0.120, abs=2e-3)
+    assert measured.impeller_z_min == pytest.approx(-0.050, abs=1e-3)
+    assert measured.impeller_z_max == pytest.approx(0.050, abs=1e-3)
     # MRF zone is +-5mm past the impeller bounds by default.
-    assert rig.mrf_z_min == pytest.approx(rig.impeller_z_min - 0.005, abs=1e-6)
-    assert rig.mrf_z_max == pytest.approx(rig.impeller_z_max + 0.005, abs=1e-6)
+    assert measured.mrf_z_min == pytest.approx(measured.impeller_z_min - 0.005, abs=1e-6)
+    assert measured.mrf_z_max == pytest.approx(measured.impeller_z_max + 0.005, abs=1e-6)
+
+
+def test_tip_gap_report_flags_stl_overread(tmp_path):
+    stl = _annulus_stl(tmp_path, r_tip=247.9)
+    rep = tip_gap_report(stl)
+    assert rep["tip_radius_mm_published"] == pytest.approx(FAN01_TIP_RADIUS_MM)
+    assert rep["tip_gap_mm_published"] == pytest.approx(2.5)
+    assert rep["tip_gap_mm_measured"] == pytest.approx(2.1, abs=0.05)
+    assert rep["tip_overread_mm"] == pytest.approx(0.4, abs=0.05)
+
+
+def test_scale_rotor_to_published_tip_restores_clearance(tmp_path):
+    stl = _annulus_stl(tmp_path, r_tip=247.9)
+    out = tmp_path / "aligned.stl"
+    info = scale_rotor_to_published_tip(stl, out)
+    assert info["tip_radius_mm_after"] == pytest.approx(FAN01_TIP_RADIUS_MM, abs=0.05)
+    assert info["tip_gap_mm_after"] == pytest.approx(2.5, abs=0.05)
+    assert tip_gap_report(out)["tip_gap_mm_measured"] == pytest.approx(2.5, abs=0.05)
 
 
 def test_fan01_rig_inlet_outlet_lengths_scale_with_duct_diameter(tmp_path):

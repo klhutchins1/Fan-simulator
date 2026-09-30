@@ -52,6 +52,13 @@ DEFAULT_CHARACTERISTIC_CSV = ROOT / "validation" / "reference" / "fan01" / "char
 
 FAN01_DUCT_RADIUS_M = 0.250  # casing sleeve inner radius (brief: rig duct)
 FAN01_MRF_MARGIN_MM = 5.0
+# Dataset paper Table 2: tip clearance 2.5 mm, fan diameter 495 mm → tip radius 247.5 mm.
+# Extracted STL 99.5th-percentile tip is ~247.9 mm → duct−tip ≈ 2.11 mm (§19.13). The
+# geometric clearance in the mesh follows the STL; TestRig.tip_gap defaults to the
+# published value for tip-speed / reporting. Pass tip_gap_source="measured" to use
+# duct − STL tip instead.
+FAN01_TIP_CLEARANCE_M = 0.0025
+FAN01_TIP_RADIUS_MM = 247.5
 
 MIN_CLUSTER_FACES = 20
 MAX_CLUSTER_FACES = 500
@@ -404,6 +411,57 @@ def extract_rotor_stl(
 # --- Rig + direction (task 1 & 2 of .superpowers/sdd/fan01-runner-brief.md) ---
 
 
+def measured_tip_radius_mm(stl_mm: str | Path) -> float:
+    """99.5th-percentile radial extent of the rotor STL (mm) — same convention as extract."""
+    mesh = trimesh.load(str(stl_mm), force="mesh")
+    r = np.hypot(mesh.vertices[:, 0], mesh.vertices[:, 1])
+    return float(np.percentile(r, 99.5))
+
+
+def tip_gap_report(stl_mm: str | Path) -> dict[str, float]:
+    """Published vs STL-measured tip clearance (§19.13). All lengths in mm except where noted."""
+    tip_mm = measured_tip_radius_mm(stl_mm)
+    duct_mm = FAN01_DUCT_RADIUS_M / MM_TO_M
+    measured_gap_mm = duct_mm - tip_mm
+    return {
+        "tip_radius_mm_measured": tip_mm,
+        "tip_radius_mm_published": FAN01_TIP_RADIUS_MM,
+        "duct_radius_mm": duct_mm,
+        "tip_gap_mm_measured": measured_gap_mm,
+        "tip_gap_mm_published": FAN01_TIP_CLEARANCE_M / MM_TO_M,
+        "tip_overread_mm": tip_mm - FAN01_TIP_RADIUS_MM,
+    }
+
+
+def scale_rotor_to_published_tip(
+    stl_in: str | Path,
+    stl_out: str | Path,
+    *,
+    published_tip_mm: float = FAN01_TIP_RADIUS_MM,
+) -> dict[str, float]:
+    """Uniform scale about the origin so the measured tip matches the published radius.
+
+    Keeps the duct at ``FAN01_DUCT_RADIUS_M`` and restores the Table-2 tip clearance in the
+    mesh. Hub/blade lengths scale by the same factor (~0.998 for the current extract).
+    """
+    mesh = trimesh.load(str(stl_in), force="mesh")
+    tip_mm = float(np.percentile(np.hypot(mesh.vertices[:, 0], mesh.vertices[:, 1]), 99.5))
+    if tip_mm <= 1e-9:
+        raise ValueError(f"tip radius {tip_mm} mm is not usable for tip alignment")
+    scale = float(published_tip_mm) / tip_mm
+    mesh.apply_scale(scale)
+    out = Path(stl_out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    mesh.export(str(out))
+    tip_after = float(np.percentile(np.hypot(mesh.vertices[:, 0], mesh.vertices[:, 1]), 99.5))
+    return {
+        "tip_radius_mm_before": tip_mm,
+        "tip_radius_mm_after": tip_after,
+        "scale": scale,
+        "tip_gap_mm_after": FAN01_DUCT_RADIUS_M / MM_TO_M - tip_after,
+    }
+
+
 def fan01_rig(
     stl_mm: str | Path,
     *,
@@ -412,15 +470,15 @@ def fan01_rig(
     outlet_diameters: float = 4.0,
     mrf_margin_mm: float = FAN01_MRF_MARGIN_MM,
     inlet_velocity: float = 2.0,
+    tip_gap_source: str = "published",
 ) -> TestRig:
     """Build the FAN-01 ISO 5801 test-rig :class:`TestRig` from the extracted rotor STL.
 
-    ``duct_radius`` is the rig's casing sleeve inner radius (250 mm, fixed by the physical rig,
-    not derived from the rotor); ``tip_gap`` is whatever is left between that and the rotor's own
-    tip radius (measured from the STL, same 99.5th-percentile convention used elsewhere in this
-    module). The impeller and MRF z-range come from the STL's own axial bounds (+/- 5 mm margin
-    for the MRF zone), and ``hub_radius`` from the STL's near-axis percentile. ``spin`` is left at
-    the ``TestRig`` default (-1); set it from :func:`fan01_direction` before building the case.
+    ``duct_radius`` is the rig's casing sleeve inner radius (250 mm, fixed by the physical
+    rig). ``tip_gap`` defaults to the published 2.5 mm clearance (Table 2); the extracted
+    STL's 99.5th-percentile tip over-reads ~0.4 mm so ``duct − tip_measured ≈ 2.11 mm``
+    (§19.13). Pass ``tip_gap_source="measured"`` to use the STL-derived gap instead.
+    Impeller / MRF z-range and hub radius still come from the STL.
     """
     mesh = trimesh.load(str(stl_mm), force="mesh")
     v = mesh.vertices
@@ -431,7 +489,15 @@ def fan01_rig(
     z1_mm = float(mesh.bounds[1, 2])
 
     duct_radius = FAN01_DUCT_RADIUS_M
-    tip_gap = duct_radius - tip_radius_mm * MM_TO_M
+    src = str(tip_gap_source or "published").strip().lower()
+    if src == "published":
+        tip_gap = FAN01_TIP_CLEARANCE_M
+    elif src == "measured":
+        tip_gap = duct_radius - tip_radius_mm * MM_TO_M
+    else:
+        raise ValueError(
+            f"tip_gap_source must be 'published' or 'measured', got {tip_gap_source!r}"
+        )
     impeller_z_min = z0_mm * MM_TO_M
     impeller_z_max = z1_mm * MM_TO_M
     mrf_z_min = impeller_z_min - mrf_margin_mm * MM_TO_M

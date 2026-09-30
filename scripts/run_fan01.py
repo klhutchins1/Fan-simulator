@@ -53,6 +53,8 @@ from fansim.validation.fan01 import (  # noqa: E402
     fan01_rig,
     load_characteristic,
     measured_q_report,
+    scale_rotor_to_published_tip,
+    tip_gap_report,
 )
 
 DEFAULT_POINTS = "7,64,126,135,205,253"
@@ -78,6 +80,11 @@ def build_parser() -> argparse.ArgumentParser:
                     help="thinnest blade wall [mm] for the adaptive mesh (MeshResolution.for_blade)")
     ap.add_argument("--layers", action="store_true", default=False,
                     help="grow prism layers on the impeller (snappy addLayers; off by default)")
+    ap.add_argument(
+        "--align-tip", action="store_true", default=False,
+        help="§19.13: uniform-scale rotor so tip radius matches published 247.5 mm "
+             "(restores 2.5 mm geometric tip clearance vs duct)",
+    )
     ap.add_argument("--iters", type=int, default=1000)
     ap.add_argument("--procs", type=int, default=16)
     ap.add_argument("--base-cell", type=float, default=0.02)
@@ -105,11 +112,30 @@ def _mesh(base_cell: float, min_wall_mm: float, add_layers: bool) -> MeshResolut
     return MeshResolution.for_blade(base_cell, min_wall_mm, add_layers=add_layers)
 
 
-def prepare_rig_and_stl(stl_src: Path, out: Path, rpm: float) -> tuple[Path, Any, str]:
+def prepare_rig_and_stl(stl_src: Path, out: Path, rpm: float,
+                        *, align_tip: bool = False) -> tuple[Path, Any, str]:
     """fan01_rig -> prepare_axial_cfd(source="external") -> oriented rig+STL (roadmap 19.2)."""
-    rig = fan01_rig(stl_src, rpm=rpm)
     out.mkdir(parents=True, exist_ok=True)
-    stl, rig = prepare_axial_cfd(stl_src, rig, out, source="external",
+    gap = tip_gap_report(stl_src)
+    print(
+        f"[fan01] tip_gap measured={gap['tip_gap_mm_measured']:.2f} mm "
+        f"(STL tip {gap['tip_radius_mm_measured']:.2f}) vs published "
+        f"{gap['tip_gap_mm_published']:.2f} mm",
+        flush=True,
+    )
+    src = stl_src
+    if align_tip:
+        aligned = out / "fan01_rotor_tip_aligned.stl"
+        info = scale_rotor_to_published_tip(stl_src, aligned)
+        print(
+            f"[fan01] --align-tip scale={info['scale']:.6f} "
+            f"tip {info['tip_radius_mm_before']:.2f}→{info['tip_radius_mm_after']:.2f} mm "
+            f"gap→{info['tip_gap_mm_after']:.2f} mm",
+            flush=True,
+        )
+        src = aligned
+    rig = fan01_rig(src, rpm=rpm)  # tip_gap defaults to published 2.5 mm
+    stl, rig = prepare_axial_cfd(src, rig, out, source="external",
                                  mrf_margin_mm=FAN01_MRF_MARGIN_MM)
     meta = json.loads((out / "direction_meta.json").read_text(encoding="utf-8"))
     return stl, rig, meta["orientation"]
@@ -126,7 +152,7 @@ def run_pilot(args) -> int:
     stl_src = Path(args.stl)
     points = [float(p) for p in args.points.split(",")]
 
-    stl, rig, orientation = prepare_rig_and_stl(stl_src, out, args.rpm)
+    stl, rig, orientation = prepare_rig_and_stl(stl_src, out, args.rpm, align_tip=bool(args.align_tip))
     print(f"[fan01] direction={orientation!r} spin={rig.spin:+d} "
           f"tip_gap={rig.tip_gap * 1e3:.2f}mm hub_radius={rig.hub_radius * 1e3:.1f}mm",
           flush=True)
@@ -178,7 +204,7 @@ def run_pilot_urans(args) -> int:
     stl_src = Path(args.stl)
     points = [float(p) for p in args.points.split(",")]
 
-    stl, rig, orientation = prepare_rig_and_stl(stl_src, out, args.rpm)
+    stl, rig, orientation = prepare_rig_and_stl(stl_src, out, args.rpm, align_tip=bool(args.align_tip))
     print(f"[fan01-urans-pilot] direction={orientation!r} spin={rig.spin:+d} "
           f"tip_gap={rig.tip_gap * 1e3:.2f}mm hub_radius={rig.hub_radius * 1e3:.1f}mm",
           flush=True)
@@ -259,7 +285,7 @@ def run_urans(args) -> int:
     points = [float(p) for p in args.points.split(",")]
     characteristic = load_characteristic()
 
-    stl, rig, orientation = prepare_rig_and_stl(stl_src, out, args.rpm)
+    stl, rig, orientation = prepare_rig_and_stl(stl_src, out, args.rpm, align_tip=bool(args.align_tip))
     print(f"[fan01-urans] direction={orientation!r} spin={rig.spin:+d} "
           f"tip_gap={rig.tip_gap * 1e3:.2f}mm hub_radius={rig.hub_radius * 1e3:.1f}mm "
           f"points={points} revs={args.revs} max_co={args.max_co} n_outer={args.n_outer}",
@@ -351,7 +377,7 @@ def main() -> int:
     points = [float(p) for p in args.points.split(",")]
     characteristic = load_characteristic()
 
-    stl, rig, orientation = prepare_rig_and_stl(stl_src, out, args.rpm)
+    stl, rig, orientation = prepare_rig_and_stl(stl_src, out, args.rpm, align_tip=bool(args.align_tip))
     print(f"[fan01] direction={orientation!r} spin={rig.spin:+d} "
           f"tip_gap={rig.tip_gap * 1e3:.2f}mm hub_radius={rig.hub_radius * 1e3:.1f}mm "
           f"points={points}", flush=True)
