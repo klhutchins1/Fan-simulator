@@ -16,6 +16,7 @@ _EXPOSE = (
     ("fan_load_stock_reference", "load_stock_reference"),
     ("fan_do_preview", "do_preview"),
     ("fan_on_assess", "on_assess"),
+    ("fan_score_multi_point_bem", "score_multi_point_bem"),
     ("fan_export_stl_current", "export_stl_current"),
     ("fan_on_optimize", "on_optimize_fan"),
     ("fan_cancel_optimize", "cancel_optimize"),

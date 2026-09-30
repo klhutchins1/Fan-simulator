@@ -57,6 +57,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
     save_measurement = getattr(ctx, "fan_save_measurement")
     do_preview = getattr(ctx, "fan_do_preview")
     on_assess = getattr(ctx, "fan_on_assess")
+    score_multi_point_bem = getattr(ctx, "fan_score_multi_point_bem")
     export_stl_current = getattr(ctx, "fan_export_stl_current")
     on_optimize_fan = getattr(ctx, "fan_on_optimize")
     cancel_optimize = getattr(ctx, "fan_cancel_optimize")
@@ -601,6 +602,20 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             "tip deflection). Optimize previously always used PETG — "
                             "pick PLA+ here before Optimize if that is what you print.",
                             classes="text-caption text-medium-emphasis mb-2",
+                        )
+                        v3.VBtn(
+                            "Score multi-point BEM (§20.6)",
+                            size="small",
+                            variant="tonal",
+                            color="secondary",
+                            classes="mb-1",
+                            click=(score_multi_point_bem,),
+                            block=True,
+                        )
+                        html.Div(
+                            "{{ multi_point_msg }}",
+                            classes="text-caption mb-2",
+                            style="white-space: pre-line",
                         )
                         _opt_section(
                             "Honesty / fidelity",

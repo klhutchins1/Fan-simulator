@@ -533,3 +533,32 @@ def bind(session) -> None:
     session.on_sweep = on_sweep
     session.cancel_sweep = cancel_sweep
     session.cancel_assess = cancel_assess
+
+    def score_multi_point_bem():
+        """§20.6: instant BEM duty-cycle score for the editor blade (no CFD)."""
+        try:
+            from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
+            from fansim.optimize.multi_point import (
+                cfm_at_matched_noise,
+                format_multi_point,
+                score_multi_point,
+            )
+
+            params = session.build_edit_params()
+            tip = float(OPTIMIZER_TIP_GAP_MM)
+            score = score_multi_point(params, tip_gap_mm=tip)
+            lines = format_multi_point(score)
+            mid_noise = score.points[1].rel_noise_db if len(score.points) > 1 else score.weighted_rel_noise_db
+            matched = cfm_at_matched_noise(params, mid_noise, tip_gap_mm=tip)
+            if matched.get("cfm_free") is not None:
+                lines.append(
+                    f"CFM at matched rel noise {mid_noise:.0f}: "
+                    f"{matched['cfm_free']:.0f} CFM @ {matched['duty_pct']:.0f}% PWM "
+                    f"({matched['rpm']:.0f} RPM)"
+                )
+            state.multi_point_msg = "\n".join(lines)
+        except Exception as exc:  # noqa: BLE001
+            state.multi_point_msg = f"⚠ Multi-point score failed: {type(exc).__name__}: {exc}"
+        state.flush()
+
+    session.score_multi_point_bem = score_multi_point_bem

@@ -60,6 +60,7 @@ def apply_state_defaults(session) -> None:
         for k in MATERIALS
         if MATERIALS[k].blade_suitable
     ]
+    state.multi_point_msg = ""  # §20.6 BEM duty-cycle readout
     state.opt_trials = 8
     state.opt_shroud = False
     state.opt_bem = False

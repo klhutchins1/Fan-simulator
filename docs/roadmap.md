@@ -863,10 +863,11 @@ the §19.1 spin / flow freeze.
   Today surrogates only *reject* designs before CFD (`--surrogate-prescreen`). Add the pro loop:
   space-filling DoE → fit (`surrogate/` GP / boost / ensemble) → NSGA-II on the surrogate → CFD-verify
   the top-k → refit. Use ensemble spread as the acquisition / uncertainty signal.
-- [ ] **20.6 Weighted multi-point duty + airflow at matched noise.** **[impact: med]** **[effort: low–med]** *(FanScout, FANselect)*
-  Score across 2–5 operating points (system-curve loads × PWM duty from `pwm_table`) weighted by time
-  at each. Add "CFM at matched relative dB(A)" — how PC fan reviewers compare fans; uses the relative
-  noise tier only, so no absolute-dB claim.
+- [x] **20.6 Weighted multi-point duty + airflow at matched noise.** **DONE 2026-09-30** —
+  `fansim/optimize/multi_point.py`: DEFAULT_PC_CYCLE (25/50/100% × hose), weighted BEM CFM,
+  relative noise ranking, `cfm_at_matched_noise` PWM interp. Cockpit Fan Assess:
+  “Score multi-point BEM (§20.6)” button. Ranking-only (not absolute CFM / calibrated dB(A)).
+  **[impact: med]** **[effort: low–med]**
 - [ ] **20.7 Low-cost P–Q rig.** **[impact: critical]** **[effort: med, hardware]** *(every vendor tool's certified data)*
   Build the `validation/rig.md` minimum rig: plenum box, swappable restriction plates, digital
   differential-pressure sensor (e.g. Sensirion SDP810), tach, microcontroller logging straight into
