@@ -59,6 +59,10 @@ def main() -> int:
     ap.add_argument("--rpm", type=float, default=2000.0, help="RPM for the balance force estimate")
     ap.add_argument("--fan-model", default="a12x25", help="fan model whose motor mount to carve")
     ap.add_argument("--no-mount", action="store_true", help="skip the motor-mount cavity (use --bore)")
+    ap.add_argument(
+        "--also-mirror", action="store_true",
+        help="§19.4: also write opposite-hand STL + *.handedness.json (spin travels with geometry)",
+    )
     args = ap.parse_args()
 
     run_dir = Path(args.run)
@@ -96,6 +100,15 @@ def main() -> int:
             index.append(f"| {trial} | — | — | — | — | — | — | BUILD FAILED: {type(exc).__name__} |")
             print(f"  trial {trial}: BUILD FAILED — {exc}")
             continue
+        if args.also_mirror:
+            from fansim.manufacturability.print_export import export_handedness_pair
+
+            try:
+                paths = export_handedness_pair(
+                    params, d, stem="impeller", mount=mount, bore=bore)
+                print(f"  trial {trial}: mirror pair → {paths['mirrored_stl'].name}")
+            except Exception as exc:  # noqa: BLE001
+                print(f"  trial {trial}: mirror export FAILED — {exc}")
         balance = balance_summary(params, rpm=args.rpm)
         objs = {k: row[k] for k in OBJ_KEYS if k in row}
         (d / "print_sheet.md").write_text(

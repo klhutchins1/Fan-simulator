@@ -8,6 +8,11 @@ from fansim.geometry.blade import (
     set_uneven_spacing,
 )
 from fansim.geometry.export import export_stl, watertight_report
+from fansim.geometry.handedness import (
+    cfd_spin_for_omega,
+    handedness_variants,
+    mirror_blade_params,
+)
 
 __all__ = [
     "BladeParams",
@@ -17,4 +22,7 @@ __all__ = [
     "set_uneven_spacing",
     "export_stl",
     "watertight_report",
+    "mirror_blade_params",
+    "handedness_variants",
+    "cfd_spin_for_omega",
 ]

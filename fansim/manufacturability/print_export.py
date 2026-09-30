@@ -239,6 +239,39 @@ def export_print_ready(
     return rep
 
 
+def export_handedness_pair(
+    params: BladeParams,
+    out_dir: str | Path,
+    *,
+    stem: str = "impeller",
+    bore: BoreSpec | None = None,
+    mount=None,
+    designed_omega: int = +1,
+    tolerance: float = 0.02,
+    angular_tolerance: float = 0.1,
+) -> dict[str, Path]:
+    """Export as-designed + mirrored STLs with paired ``*.handedness.json`` spin metadata (§19.4).
+
+    Returns paths keyed ``as_designed_stl``, ``as_designed_meta``, ``mirrored_stl``, ``mirrored_meta``.
+    """
+    from fansim.geometry.handedness import handedness_variants, write_handedness_meta
+
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    paths: dict[str, Path] = {}
+    for variant in handedness_variants(params, designed_omega=designed_omega):
+        stl = out_dir / f"{stem}_{variant.label}.stl"
+        meta = out_dir / f"{stem}_{variant.label}.handedness.json"
+        export_print_ready(
+            variant.params, stl, bore=bore, mount=mount,
+            tolerance=tolerance, angular_tolerance=angular_tolerance,
+        )
+        write_handedness_meta(variant, meta)
+        paths[f"{variant.label}_stl"] = stl
+        paths[f"{variant.label}_meta"] = meta
+    return paths
+
+
 def print_readme(name: str, params: BladeParams, material: str, report: WatertightReport,
                  balance: dict, settings: dict, bore: BoreSpec | None,
                  objectives: dict | None = None) -> str:

@@ -745,12 +745,13 @@ follow under `docs/superpowers/specs/`.
   `scripts/audit_direction_cfd.py --rotor stock`. **[impact: med]** **[effort: low]**
   Keep a cheap forward-vs-reversed smoke in the periodic audit (not a user feature): if reversed ever
   beats forward, the convention broke again.
-- [ ] **19.4 Handedness mirror (CW ⇄ CCW variant export).** **[impact: med]** **[effort: low–med]**
-  Real value: CROR rear rotor, push-pull / counter-rotating pairs, matching a motor that only turns
-  one way. Must mirror geometry *and* flip spin together (a mirrored blade + same spin = backwards fan).
-  **Not** planned: a "run this design in reverse" performance mode — a blade optimized one way is poor
-  reversed; only reversible fans need it, and intake-vs-exhaust mounting is a physical flip, not a
-  rotation change (same numbers).
+- [x] **19.4 Handedness mirror (CW ⇄ CCW variant export).** **DONE 2026-09-30** —
+  `fansim/geometry/handedness.py`: `mirror_blade_params` (stagger/lean/skew/le_skew + blade
+  angles) and `handedness_variants` pair geometry with the matching CFD spin
+  (`cfd_spin_for_omega`; flipped + mirrored → spin +1). Print path:
+  `export_handedness_pair` + `export_finalists.py --also-mirror` writes
+  `*.handedness.json` beside each STL. Not a reverse-performance mode.
+  **[impact: med]** **[effort: low–med]**
 - [~] **19.6 Loaded-branch fidelity (designed rotation).** **[impact: high]** **[effort: high]**
   **Status 2026-09-28** (Audit #2, `docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md`): with the
   complete setup (sealed 25 mm ring + frame + prism layers) and the close-ref STL, the A12x25 P–Q is 59.8 / 52.5 /
