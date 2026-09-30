@@ -94,6 +94,7 @@ def optimization_argv(
     rpm_max: float | None = None,
     wall_ks_mm: float | None = None,
     material: str | None = None,
+    surrogate_guided: bool = False,
 ) -> list[str]:
     """CLI vector for a fan NSGA-II study. No Docker; the caller spawns this."""
     if stator and stator_stack:
@@ -121,6 +122,13 @@ def optimization_argv(
         if gp_boost:
             argv.append("--surrogate-boost")
         if gp_nn:
+            argv.append("--surrogate-nn")
+    if surrogate_guided:
+        argv.append("--surrogate-guided")
+        # Reuse boost/nn toggles for the guided loop even without a prescreen floor.
+        if gp_boost and float(gp_floor) <= 0:
+            argv.append("--surrogate-boost")
+        if gp_nn and float(gp_floor) <= 0:
             argv.append("--surrogate-nn")
     if study_name:
         argv.extend(["--study-name", str(study_name)])

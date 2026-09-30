@@ -77,6 +77,7 @@ def apply_state_defaults(session) -> None:
     state.opt_gp = False
     state.opt_gp_boost = False
     state.opt_gp_nn = False
+    state.opt_surrogate_guided = False
     state.opt_resume = False
     state.opt_stator = False
     state.opt_stator_stack = False

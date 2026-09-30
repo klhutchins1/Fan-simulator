@@ -39,7 +39,8 @@ session.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
 9. **§20 external feature radar** — quick wins 20.1 / 20.2 any time; 20.3 alongside item 4 (diagnoses
-   the P–Q gap); 20.7 is the hardware path for item 5; ~~20.4~~ DONE 2026-09-30; ~~20.6~~ DONE 2026-09-30.
+   the P–Q gap); 20.7 is the hardware path for item 5; ~~20.4~~ DONE 2026-09-30; ~~20.5~~ DONE 2026-09-30;
+   ~~20.6~~ DONE 2026-09-30.
 
 §8 / §9 / §10 / §12 / §13 stage-1 are **closed in code**. Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
 Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
@@ -860,10 +861,12 @@ the §19.1 spin / flow freeze.
   stagger/camber *magnitudes*, Lieblein DF / de Haller gates. Cockpit Fan Design: “Seed from duty”
   panel (CFM / Pa / RPM) applies magnitudes without flipping signs. Tests: `tests/test_meanline.py`.
   **[impact: high]** **[effort: med]** *(CFturbo, AxCent)*
-- [ ] **20.5 Surrogate-guided search.** **[impact: high]** **[effort: med]** *(Cadence Fine Design3D)*
-  Today surrogates only *reject* designs before CFD (`--surrogate-prescreen`). Add the pro loop:
-  space-filling DoE → fit (`surrogate/` GP / boost / ensemble) → NSGA-II on the surrogate → CFD-verify
-  the top-k → refit. Use ensemble spread as the acquisition / uncertainty signal.
+- [x] **20.5 Surrogate-guided search.** **DONE 2026-09-30** —
+  `fansim/optimize/surrogate_search.py`: LHS DoE → fit GP/boost/NN ensemble → NSGA-II on
+  surrogate μ → top-k via UCB (ensemble/GP spread) → stub or opt-in CFD verify → refit.
+  CLI: `--surrogate-guided` / `scripts/run_surrogate_search.py`. Cockpit Advanced toggle
+  wires the flag into `optimization_argv`. Tests: `tests/test_surrogate_guided.py` (no Docker).
+  **[impact: high]** **[effort: med]** *(Cadence Fine Design3D)*
 - [x] **20.6 Weighted multi-point duty + airflow at matched noise.** **DONE 2026-09-30** —
   `fansim/optimize/multi_point.py`: DEFAULT_PC_CYCLE (25/50/100% × hose), weighted BEM CFM,
   relative noise ranking, `cfm_at_matched_noise` PWM interp. Cockpit Fan Assess:

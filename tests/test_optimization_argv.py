@@ -61,6 +61,16 @@ def test_gp_nn_only_with_gp_floor():
     assert "--surrogate-nn" in _argv(gp_floor=40, gp_nn=True)
 
 
+def test_surrogate_guided_flag():
+    assert "--surrogate-guided" not in _argv()
+    assert "--surrogate-guided" in _argv(surrogate_guided=True)
+    # Boost/NN may appear with guided even when gp_floor is 0.
+    argv = _argv(surrogate_guided=True, gp_boost=True, gp_nn=True)
+    assert "--surrogate-guided" in argv
+    assert "--surrogate-boost" in argv
+    assert "--surrogate-nn" in argv
+
+
 def test_search_rpm_and_material_flags():
     assert "--search-rpm" not in _argv()
     argv = _argv(search_rpm=True, rpm_min=500, rpm_max=1800, material="PLA", wall_ks_mm=0.1)

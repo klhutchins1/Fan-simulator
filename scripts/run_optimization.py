@@ -105,6 +105,22 @@ def build_parser() -> argparse.ArgumentParser:
                     help="with --surrogate-prescreen: use a small MLP for the CFM mean and the "
                          "catalog GP for std (roadmap 7.4). Needs torch; else falls back to GP-only. "
                          "Wins over --surrogate-boost when both are set. Off by default.")
+    ap.add_argument("--surrogate-guided", action="store_true",
+                    help="roadmap §20.5: DoE → fit GP/ensemble → NSGA-II on the surrogate → "
+                         "CFD-verify top-k → refit. Default verify is stub (no Docker); pass "
+                         "--verify-cfd to call evaluate_candidate when the OpenFOAM image exists.")
+    ap.add_argument("--verify-cfd", action="store_true",
+                    help="with --surrogate-guided: CFD-verify top-k (needs Docker). Off = stub.")
+    ap.add_argument("--doe", type=int, default=24,
+                    help="with --surrogate-guided: space-filling DoE sample count.")
+    ap.add_argument("--nsga-trials", type=int, default=64,
+                    help="with --surrogate-guided: NSGA-II trials on the surrogate.")
+    ap.add_argument("--top-k", type=int, default=4,
+                    help="with --surrogate-guided: designs to verify each round.")
+    ap.add_argument("--rounds", type=int, default=2,
+                    help="with --surrogate-guided: fit→NSGA→verify→refit rounds.")
+    ap.add_argument("--acq-kappa", type=float, default=1.0,
+                    help="with --surrogate-guided: UCB kappa on ensemble/GP spread.")
     ap.add_argument("--preset", choices=["legacy", "case", "heatsink", "radiator"], default=None,
                     help="application hose preset (sets --load-pa unless --load-pa is also given).")
     ap.add_argument("--refine-op", action="store_true",
@@ -133,10 +149,6 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
 
-    if not image_available():
-        print("ERROR: OpenFOAM Docker image not found.")
-        return 2
-
     out = Path(args.out)
     space = args.space or ("guided" if args.guided else "open")
     from fansim.optimize.presets import resolve_load
@@ -144,6 +156,46 @@ def main() -> int:
     load_pa, preset_name = resolve_load(preset=preset, load_pa=args.load_pa)
     if preset_name:
         print(f"PRESET {preset_name}: load_pa={load_pa:g}")
+
+    # §20.5 surrogate-guided loop: software-first; Docker only when --verify-cfd.
+    if args.surrogate_guided:
+        if args.verify_cfd and not image_available():
+            print("ERROR: --verify-cfd needs the OpenFOAM Docker image.")
+            return 2
+        from fansim.optimize.surrogate_search import run_surrogate_guided
+        print(
+            f"SURROGATE-GUIDED Doe={args.doe} nsga={args.nsga_trials} "
+            f"top_k={args.top_k} rounds={args.rounds} verify_cfd={args.verify_cfd}"
+        )
+        result = run_surrogate_guided(
+            out_dir=out,
+            n_doe=args.doe,
+            n_nsga=args.nsga_trials,
+            top_k=args.top_k,
+            n_rounds=args.rounds,
+            space=space,
+            kappa=args.acq_kappa,
+            boost=args.surrogate_boost,
+            nn=args.surrogate_nn,
+            catalog_db=args.surrogate_db,
+            verify_cfd=args.verify_cfd,
+            fan_model=args.fan_model,
+            procs=args.procs,
+            base_cell=args.base_cell,
+            iters=args.iters,
+            load_pa=load_pa,
+            material=args.material,
+        )
+        for note in result.notes:
+            print(f"  {note}")
+        print(f"Wrote {out / 'surrogate_guided.json'} "
+              f"({len(result.verified)} verified, train n={len(result.X)})")
+        return 0
+
+    if not image_available():
+        print("ERROR: OpenFOAM Docker image not found.")
+        return 2
+
     min_sol_mid = args.min_sol_mid if args.min_sol_mid is not None else (0.9 if args.loadcap else None)
     min_sol_tip = args.min_sol_tip if args.min_sol_tip is not None else (0.6 if args.loadcap else None)
     if space != "open":

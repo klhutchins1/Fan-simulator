@@ -736,6 +736,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             "opt_gp_nn",
                             "NN + GP mean (--surrogate-nn)",
                         )
+                        _help_switch(
+                            "opt_surrogate_guided",
+                            "Surrogate-guided (DoE→NSGA on GP→verify top-k)",
+                        )
                         _opt_section(
                             "Operating point",
                             "Fixed nameplate RPM unless you open the PWM band.",
