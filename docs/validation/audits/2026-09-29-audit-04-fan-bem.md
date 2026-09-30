@@ -9,11 +9,12 @@ Question: does `fansim/fan_bem.py` solve its equations right, and does it do the
   free-delivery flow, the P-Q curve falls monotonically past its peak, constants match the single source.
   One gap found and fixed: the swirl iteration had no convergence flag (see Bugs).
 - **Validation (a) absolute, Stock v2: PASS.** BEM 58.0 CFM vs CFD 56.5 (+2.7%); flow order 0 > 5 > 10 Pa correct.
-- **Validation (b) ranking: INCONCLUSIVE.** Only **3** designs exist (Stock v1, Stock v2, one re-scored
-  optimizer design); the rule needs >= 5. The 3-point Spearman is 1.0 but carries no weight.
+- **Validation (b) ranking: PASS (2026-09-30).** n = 7 (Stock v1/v2 + five §19.8 re-scores), Spearman
+  **rho = 0.714** (>= 0.6). Caveat: mid-pack is weak — drop the clear low outlier `opt_run1_t9012` and rho
+  falls to 0.54; BEM under-ranks `t9005` (CFD #2 → BEM #4). Still meets the pre-registered rule.
 - **Validation (c) v1 above v2: PASS**, but the margin is small: BEM 61.9 vs 58.0 (+6.7%); CFD 77.4 vs 56.5 (+37%).
-- **Overall: INCONCLUSIVE.** Unit `fan.bem_prescreen` is registered and **not** recorded in the ledger (stays NEW).
-  To close it: about 2 more re-scored designs (each ~40 min of CFD).
+- **Overall: PASS** for the RANKING-ONLY claim. Unit `fan.bem_prescreen` recorded PROVEN 2026-09-30.
+  Absolute shut-off / peak-eff vs datasheet remain wrong (see Claims); do not quote BEM CFM as absolute.
 
 ## Pre-registered tolerances (fixed before any BEM-vs-CFD comparison)
 
@@ -29,9 +30,9 @@ Tolerances were not changed after seeing data.
 
 CFD reference (CFD v5, ring + frame + layers, converged; `a12x25_pq_report.md`): Stock v2 56.5 / 49.8 / 40.2 CFM at
 0 / 5 / 10 Pa; Stock v1 77.4 CFM at 0 Pa (its 5 / 10 Pa points are unconverged and not used). The close-ref STL has
-no recipe and is unusable. Re-scored design `opt_run1_t9000`: CFD 51.72 CFM at 2000 rpm, converged, **optimizer
-default mesh, not the complete setup** (so only loosely comparable to the Stock points). `opt_run1_t9001` was
-infeasible in CFD and is excluded. Data: `bem_vs_cfd_audit4.json` (script `scripts/audit_bem_vs_cfd.py`).
+no recipe and is unusable. Re-scored designs (`docs/validation/rescore_19_8.json`, complete 2026-09-30): five OK
+CFD free-air points at optimizer-default mesh (not the complete ring+frame+layers setup — mesh noise, §19.14).
+Infeasible `t9001`/`t9002`/`t9003` excluded. Data: `bem_vs_cfd_audit4.json` (script `scripts/audit_bem_vs_cfd.py`).
 
 ## 1. Inventory: what the code claims
 
@@ -59,13 +60,18 @@ infeasible in CFD and is excluded. Data: `bem_vs_cfd_audit4.json` (script `scrip
 
 | design | mesh | CFD CFM | BEM CFM | error |
 |---|---|---|---|---|
-| Stock v2 | complete | 56.5 | 58.0 | +2.7% |
 | Stock v1 | complete | 77.4 | 61.9 | -20.0% |
+| opt_run1_t9005 | optimizer default | 67.20 | 58.4 | -13.1% |
+| Stock v2 | complete | 56.5 | 58.0 | +2.7% |
+| opt_run1_t9008 | optimizer default | 55.11 | 61.1 | +10.9% |
+| opt_run1_t9006 | optimizer default | 52.48 | 60.7 | +15.7% |
 | opt_run1_t9000 | optimizer default | 51.72 | 57.6 | +11.4% |
+| opt_run1_t9012 | optimizer default | 27.42 | 42.6 | +55.4% |
 
 (a) v2 loaded points, BEM vs CFD flow: 5 Pa 52.6 vs 49.8 (+5.6%); 10 Pa 46.4 vs 40.2 (+15%). Slope sign and
 ordering correct; BEM P-Q is too flat at load. **PASS.**
-(b) n = 3 < 5, **INCONCLUSIVE** (Spearman 1.0, not judged).
+(b) n = 7, Spearman **0.714** (>= 0.6). **PASS** (2026-09-30). Sensitivity: without `t9012`, rho = 0.54;
+optimizer-only (n = 5) rho = 0.70. Mid-pack CFD order is not faithfully reproduced.
 (c) BEM v1 61.9 > v2 58.0. **PASS**, at a 6.7% spread vs 37% in CFD. BEM barely separates the two recipes and puts
 v1 20% under CFD: it cannot resolve differences smaller than about 10%.
 
@@ -76,8 +82,8 @@ v1 20% under CFD: it cannot resolve differences smaller than about 10%.
   gives Stock v2 shut-off 40.6 Pa (datasheet 22.9, CFD loaded branch 9.5) and peak efficiency 0.53. Free-air agrees
   only because it is calibrated; shut-off and efficiency are not reproduced.
 - `docs/bibliography.md` said the code has "the Prandtl finite-blade tip-loss". It does not (ducted; the source and
-  `test_math_consistency` say so). Corrected. The "ranking Spearman ~0.62" figure is not reproducible from stored
-  data here; this audit could only build 3 points.
+  `test_math_consistency` say so). Corrected. Ranking Spearman on the §19.8 set is **0.714** (n = 7); the older
+  "~0.62" figure was from a different design set and is not reproduced here.
 - The bibliography cites Winterberg/FAN2018, Denton, Storer & Cumpsty for the loss buckets; the constants are
   fitted, not taken from those correlations.
 
@@ -89,8 +95,14 @@ v1 20% under CFD: it cannot resolve differences smaller than about 10%.
 
 No equation bugs.
 
+## 5. Registry / ledger
+
+Unit `fan.bem_prescreen` recorded **PASS** 2026-09-30 (fingerprint via `record_pass`). Ranking criterion (b)
+closed by §19.8 re-scores. Shut-off / peak-eff vs datasheet stay known limitations of the loss buckets, not
+failures of the RANKING-ONLY claim.
+
 ## Not checked
 
-- Ranking on >= 5 designs (blocked on CFD re-scores). Optimizer-default-mesh scores add mesh noise (roadmap 19.14).
+- Complete-setup CFD for optimizer designs (current re-scores use optimizer-default mesh; roadmap 19.14).
 - Loaded-branch accuracy for v1 (CFD unconverged); stalled branch; stator mode; shut-off vs CFD (no converged
   CFD); efficiency vs CFD; other rpm; the polar itself (see Audit #3, 19.15).

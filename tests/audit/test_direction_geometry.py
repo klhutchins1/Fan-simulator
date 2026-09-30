@@ -32,6 +32,7 @@ _OBJ_7 = _DRONE_DIR / "obj_7_ccw.stl"
 _OBJ_8 = _DRONE_DIR / "obj_8_cw.stl"
 
 from fansim.audit.direction import (
+    DEFAULT_R_FRACS,
     MIN_CAMBER_RATIO,
     REAL_FAN_CHIRALITY,
     flip_about_x,
@@ -227,6 +228,29 @@ def test_single_radius_is_inconclusive_even_if_cambered():
     p = prove_direction(good, r_fracs=(0.7,))
     assert p.verdict == "INCONCLUSIVE", p.note
     assert "radius" in p.note
+
+
+def test_default_r_fracs_include_outer_tip_station():
+    # Tip lead is the independent rotation check; default cuts must reach an outer station so
+    # mid-span-only false CONCLUSIVE votes cannot stand alone (opt_run1_t9012 regression).
+    assert 0.90 in DEFAULT_R_FRACS
+    assert DEFAULT_R_FRACS == prove_direction.__defaults__[0]
+
+
+def test_mid_only_false_mirror_becomes_inconclusive_with_tip_station():
+    # Low-camber / high-chord optimizer trial: stations ≤0.85 vote (−1,+1) while the tip votes
+    # Stock (+1,−1). Extending the default cuts to 0.90 must surface the disagreement as
+    # INCONCLUSIVE (builder CFD then keeps AXIAL_BUILDER_DIRECTION) rather than a false mirror.
+    stl = _REPO_ROOT / "runs" / "_dir_diag" / "opt_run1_t9012_rebuild.stl"
+    if not stl.is_file():
+        pytest.skip("t9012 rebuild fixture not present (runs/_dir_diag/opt_run1_t9012_rebuild.stl)")
+    mesh = trimesh.load(str(stl), force="mesh")
+    mid_only = prove_direction(mesh, r_fracs=(0.55, 0.65, 0.75, 0.85))
+    assert mid_only.verdict == "CONCLUSIVE", mid_only.note
+    assert (mid_only.omega_sign, mid_only.pump_sign) == (-1, +1)
+    full = prove_direction(mesh)
+    assert full.verdict == "INCONCLUSIVE", full.note
+    assert "disagree" in full.note
 
 
 def test_good_synthetic_section_survives_quality_guard():

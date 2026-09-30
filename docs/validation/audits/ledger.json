@@ -48,6 +48,12 @@
       "report": "docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md",
       "verdict": "PASS"
     },
+    "fan.bem_prescreen": {
+      "date": "2026-09-30",
+      "fingerprint": "2f75094511bc31cd",
+      "report": "docs/validation/audits/2026-09-29-audit-04-fan-bem.md",
+      "verdict": "PASS"
+    },
     "geometry.stock_handedness": {
       "date": "2026-09-29",
       "fingerprint": "69dee6ca382e3d5a",

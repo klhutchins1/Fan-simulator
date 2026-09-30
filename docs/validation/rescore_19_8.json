@@ -1,0 +1,338 @@
+{
+  "cfd_version": 5,
+  "designs": {
+    "opt_run1_t9000": {
+      "design_id": "opt_run1_t9000",
+      "aliases": [],
+      "origin": "catalog",
+      "params_hash": "1ce1ccf39a1375f7",
+      "status": "ok",
+      "old": {
+        "cfm_free": 38.901739093038,
+        "cfm_load": 36.593709729649404,
+        "efficiency": 10.47711155163162,
+        "cfd_version": null
+      },
+      "new": {
+        "cfm_free": 51.72,
+        "cfm_load": 45.414,
+        "efficiency": 30.547,
+        "actual_rpm": 2000.0
+      },
+      "cfd_version": 5,
+      "sanity_status": "WARN",
+      "converged": true,
+      "reason": "",
+      "settings": {
+        "preset": "case",
+        "load_pa": 8.0,
+        "refine_op": true,
+        "material": "PLA+",
+        "wall_ks": false,
+        "procs": 8,
+        "base_cell": 0.006,
+        "iters": 500,
+        "rpm": null,
+        "fan_model": "a12x25",
+        "stator": "frame"
+      },
+      "settings_source": "design.json extra (preset,load_pa,refine_op,material,fan_model); rest = defaults",
+      "wall_s": 2541.2,
+      "pilot": true,
+      "timestamp": "2026-09-29T19:24:20+00:00",
+      "catalog_updated": true
+    },
+    "opt_run1_t9001": {
+      "design_id": "opt_run1_t9001",
+      "aliases": [],
+      "origin": "catalog",
+      "params_hash": "069369c36dadb7ee",
+      "status": "infeasible",
+      "old": {
+        "cfm_free": 52.889930609208,
+        "cfm_load": 45.01491069269382,
+        "efficiency": 11.316347375357495,
+        "cfd_version": null
+      },
+      "new": {
+        "cfm_free": null,
+        "cfm_load": null,
+        "efficiency": null,
+        "actual_rpm": null
+      },
+      "cfd_version": 5,
+      "sanity_status": null,
+      "converged": null,
+      "reason": "Noctua NF-A12x25: depth 27.7 mm > max 25.0",
+      "settings": {
+        "preset": "case",
+        "load_pa": 8.0,
+        "refine_op": true,
+        "material": "PLA+",
+        "wall_ks": false,
+        "procs": 8,
+        "base_cell": 0.006,
+        "iters": 500,
+        "rpm": null,
+        "fan_model": "a12x25",
+        "stator": "frame"
+      },
+      "settings_source": "design.json extra (preset,load_pa,refine_op,material,fan_model); rest = defaults",
+      "wall_s": 107.2,
+      "pilot": false,
+      "timestamp": "2026-09-30T01:53:13+00:00",
+      "catalog_updated": false
+    },
+    "opt_run1_t9002": {
+      "design_id": "opt_run1_t9002",
+      "aliases": [],
+      "origin": "catalog",
+      "params_hash": "73a87fbd0d8a27ba",
+      "status": "infeasible",
+      "old": {
+        "cfm_free": 48.692571570066,
+        "cfm_load": 43.43890358722719,
+        "efficiency": 15.513491280619032,
+        "cfd_version": null
+      },
+      "new": {
+        "cfm_free": null,
+        "cfm_load": null,
+        "efficiency": null,
+        "actual_rpm": null
+      },
+      "cfd_version": 5,
+      "sanity_status": "WARN",
+      "converged": null,
+      "reason": "system-curve: free static 2.1 Pa \u2265 hose probe 1.0 Pa \u2014 use Case / Heatsink / Radiator (1 Pa legacy is below free residual)",
+      "settings": {
+        "preset": "legacy",
+        "load_pa": 1.0,
+        "refine_op": false,
+        "material": "PETG",
+        "wall_ks": false,
+        "procs": 8,
+        "base_cell": 0.006,
+        "iters": 500,
+        "rpm": null,
+        "fan_model": "a12x25",
+        "stator": "frame"
+      },
+      "settings_source": "design.json extra (preset,load_pa,refine_op,material,fan_model); rest = defaults",
+      "wall_s": 1686.4,
+      "pilot": false,
+      "timestamp": "2026-09-30T02:21:19+00:00",
+      "catalog_updated": false
+    },
+    "opt_run1_t9003": {
+      "design_id": "opt_run1_t9003",
+      "aliases": [],
+      "origin": "catalog",
+      "params_hash": "4bcfd1815b86ed95",
+      "status": "infeasible",
+      "old": {
+        "cfm_free": 56.224838989008,
+        "cfm_load": 50.73717833914622,
+        "efficiency": 18.092549865748854,
+        "cfd_version": null
+      },
+      "new": {
+        "cfm_free": null,
+        "cfm_load": null,
+        "efficiency": null,
+        "actual_rpm": null
+      },
+      "cfd_version": 5,
+      "sanity_status": "WARN",
+      "converged": null,
+      "reason": "system-curve: free static 2.6 Pa \u2265 hose probe 1.0 Pa \u2014 use Case / Heatsink / Radiator (1 Pa legacy is below free residual)",
+      "settings": {
+        "preset": "legacy",
+        "load_pa": 1.0,
+        "refine_op": false,
+        "material": "PETG",
+        "wall_ks": false,
+        "procs": 8,
+        "base_cell": 0.006,
+        "iters": 500,
+        "rpm": null,
+        "fan_model": "a12x25",
+        "stator": "frame"
+      },
+      "settings_source": "design.json extra (preset,load_pa,refine_op,material,fan_model); rest = defaults",
+      "wall_s": 1859.6,
+      "pilot": false,
+      "timestamp": "2026-09-30T02:52:19+00:00",
+      "catalog_updated": false
+    },
+    "opt_run1_t9005": {
+      "design_id": "opt_run1_t9005",
+      "aliases": [],
+      "origin": "catalog",
+      "params_hash": "1b9f4d5f33ed80ad",
+      "status": "ok",
+      "old": {
+        "cfm_free": 60.985765549218,
+        "cfm_load": 26.496479563788,
+        "efficiency": 13.5562422784173,
+        "cfd_version": null
+      },
+      "new": {
+        "cfm_free": 67.201,
+        "cfm_load": 48.176,
+        "efficiency": 31.291,
+        "actual_rpm": 1868.746
+      },
+      "cfd_version": 5,
+      "sanity_status": "WARN",
+      "converged": true,
+      "reason": "motor-limited: 1869 RPM (93% of 2000)",
+      "settings": {
+        "preset": "case",
+        "load_pa": 8.0,
+        "refine_op": true,
+        "material": "PETG",
+        "wall_ks": false,
+        "procs": 8,
+        "base_cell": 0.006,
+        "iters": 500,
+        "rpm": null,
+        "fan_model": "a12x25",
+        "stator": "frame"
+      },
+      "settings_source": "design.json extra (preset,load_pa,refine_op,material,fan_model); rest = defaults",
+      "wall_s": 2358.3,
+      "pilot": false,
+      "timestamp": "2026-09-29T21:03:13+00:00",
+      "catalog_updated": true
+    },
+    "opt_run1_t9006": {
+      "design_id": "opt_run1_t9006",
+      "aliases": [],
+      "origin": "catalog",
+      "params_hash": "c86560b9c6db54e5",
+      "status": "ok",
+      "old": {
+        "cfm_free": 63.671823526332,
+        "cfm_load": 26.672291678856002,
+        "efficiency": 20.325173197379918,
+        "cfd_version": null
+      },
+      "new": {
+        "cfm_free": 52.483,
+        "cfm_load": 42.507,
+        "efficiency": 27.149,
+        "actual_rpm": 2000.0
+      },
+      "cfd_version": 5,
+      "sanity_status": "WARN",
+      "converged": true,
+      "reason": "",
+      "settings": {
+        "preset": "case",
+        "load_pa": 8.0,
+        "refine_op": true,
+        "material": "PLA+",
+        "wall_ks": false,
+        "procs": 8,
+        "base_cell": 0.006,
+        "iters": 500,
+        "rpm": null,
+        "fan_model": "a12x25",
+        "stator": "frame"
+      },
+      "settings_source": "design.json extra (preset,load_pa,refine_op,material,fan_model); rest = defaults",
+      "wall_s": 783.1,
+      "pilot": false,
+      "timestamp": "2026-09-29T21:16:17+00:00",
+      "catalog_updated": true
+    },
+    "opt_run1_t9008": {
+      "design_id": "opt_run1_t9008",
+      "aliases": [
+        "opt_run1_t9009",
+        "opt_run1_t9010",
+        "opt_run1_t9011"
+      ],
+      "origin": "catalog",
+      "params_hash": "c218382227ce7c19",
+      "status": "ok",
+      "old": {
+        "cfm_free": 38.38936400330439,
+        "cfm_load": 16.175338366839803,
+        "efficiency": 7.958004068792633,
+        "cfd_version": null
+      },
+      "new": {
+        "cfm_free": 55.11,
+        "cfm_load": 44.318,
+        "efficiency": 25.606,
+        "actual_rpm": 1996.213
+      },
+      "cfd_version": 5,
+      "sanity_status": "WARN",
+      "converged": true,
+      "reason": "",
+      "settings": {
+        "preset": "case",
+        "load_pa": 8.0,
+        "refine_op": true,
+        "material": "PLA+",
+        "wall_ks": false,
+        "procs": 8,
+        "base_cell": 0.006,
+        "iters": 500,
+        "rpm": null,
+        "fan_model": "a12x25",
+        "stator": "frame"
+      },
+      "settings_source": "design.json extra (preset,load_pa,refine_op,material,fan_model); rest = defaults",
+      "wall_s": 665.5,
+      "pilot": false,
+      "timestamp": "2026-09-29T21:27:22+00:00",
+      "catalog_updated": true
+    },
+    "opt_run1_t9012": {
+      "design_id": "opt_run1_t9012",
+      "aliases": [],
+      "origin": "catalog",
+      "params_hash": "79ce14f06fd5ba54",
+      "status": "ok",
+      "old": {
+        "cfm_free": 28.630540448187404,
+        "cfm_load": 22.67093468779649,
+        "efficiency": 7.8191118564948505,
+        "cfd_version": null
+      },
+      "new": {
+        "cfm_free": 27.42,
+        "cfm_load": 26.343,
+        "efficiency": 7.448,
+        "actual_rpm": 2000.0
+      },
+      "cfd_version": 5,
+      "sanity_status": "WARN",
+      "converged": true,
+      "reason": "",
+      "settings": {
+        "preset": "case",
+        "load_pa": 8.0,
+        "refine_op": true,
+        "material": "PLA+",
+        "wall_ks": false,
+        "procs": 8,
+        "base_cell": 0.006,
+        "iters": 500,
+        "rpm": null,
+        "fan_model": "a12x25",
+        "stator": "frame"
+      },
+      "settings_source": "design.json extra (preset,load_pa,refine_op,material,fan_model); rest = defaults",
+      "wall_s": 3899.2,
+      "pilot": false,
+      "timestamp": "2026-09-30T05:20:00+00:00",
+      "catalog_updated": true
+    }
+  },
+  "updated": "2026-09-30T05:20:01+00:00"
+}

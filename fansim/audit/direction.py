@@ -191,8 +191,14 @@ def _read_section(mesh, pts, faces, r0) -> SectionReading | None:
                           midline_residual_mm, float(chord))
 
 
+# Default cuts include an outer tip station (0.90). Mid-only sampling (stopping at 0.85) can
+# declare CONCLUSIVE on marginal mid-span camber while the tip — the independent lead check —
+# votes the opposite way (seen on low-camber / high-chord optimizer trial opt_run1_t9012).
+DEFAULT_R_FRACS: tuple[float, ...] = (0.55, 0.65, 0.75, 0.85, 0.90)
+
+
 def prove_direction(mesh: trimesh.Trimesh,
-                    r_fracs: tuple[float, ...] = (0.55, 0.65, 0.75, 0.85)) -> DirectionProof:
+                    r_fracs: tuple[float, ...] = DEFAULT_R_FRACS) -> DirectionProof:
     mesh = mesh.copy()
     mesh.merge_vertices()
     tip = _tip_radius(mesh)

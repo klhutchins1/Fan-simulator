@@ -1,5 +1,5 @@
 {
-  "n_designs": 3,
+  "n_designs": 7,
   "rows": [
     {
       "id": "stock_v2",
@@ -46,7 +46,47 @@
       "mesh": "optimizer default mesh",
       "cfd_converged": true,
       "err_pct": 11.368909512761025
+    },
+    {
+      "id": "opt_run1_t9005",
+      "cfd_cfm": 67.201,
+      "bem_cfm": 58.4,
+      "bem_shutoff_pa": 34.55,
+      "converged": true,
+      "mesh": "optimizer default mesh",
+      "cfd_converged": true,
+      "err_pct": -13.096531301617528
+    },
+    {
+      "id": "opt_run1_t9006",
+      "cfd_cfm": 52.483,
+      "bem_cfm": 60.7,
+      "bem_shutoff_pa": 38.94,
+      "converged": true,
+      "mesh": "optimizer default mesh",
+      "cfd_converged": true,
+      "err_pct": 15.65649829468591
+    },
+    {
+      "id": "opt_run1_t9008",
+      "cfd_cfm": 55.11,
+      "bem_cfm": 61.1,
+      "bem_shutoff_pa": 39.01,
+      "converged": true,
+      "mesh": "optimizer default mesh",
+      "cfd_converged": true,
+      "err_pct": 10.869170749410275
+    },
+    {
+      "id": "opt_run1_t9012",
+      "cfd_cfm": 27.42,
+      "bem_cfm": 42.6,
+      "bem_shutoff_pa": 45.17,
+      "converged": true,
+      "mesh": "optimizer default mesh",
+      "cfd_converged": true,
+      "err_pct": 55.36105032822757
     }
   ],
-  "spearman": 1.0
+  "spearman": 0.7142857142857144
 }

@@ -763,9 +763,10 @@ follow under `docs/superpowers/specs/`.
   Refit the recipe (section shapes, stagger/camber distribution, hub/tip treatment) until its CFD matches the
   close-ref STL at 0/5/10 Pa in the validated (unstalled) range. **Baseline 2026-09-28:** Stock 77.4/46.7/11.2 CFM at 0/5/10 Pa (shut-off ≈11–12 Pa) vs close-ref 59.8/52.5/41.0 (≈20–21 Pa): too much free air *and* too little pressure.
   **2026-09-29:** builder airfoil was back-to-front (fixed 3a577c6); all parametric blade geometry changed; saved designs need re-evaluation (§19.8).
-- [ ] **19.8 Re-score the saved optimizer catalog at CFD v5.** **[impact: high]** **[effort: CPU]**
-  All pre-v5 scores are stale (reversed rotor ≤v2, square tunnel v3, long duct v4). Re-score only designs worth
-  keeping, after 19.7, using the complete setup; pilot-time first.
+- [x] **19.8 Re-score the saved optimizer catalog at CFD v5.** **DONE 2026-09-30** — 8 reconstructable:
+  5 ok / 3 infeasible (`docs/validation/rescore_19_8.json`). Direction-proof default `r_fracs` extended to
+  0.90 so low-camber mid-span false mirrors (e.g. `t9012`) become INCONCLUSIVE and builder CFD proceeds.
+  **[impact: high]** **[effort: CPU]**
 - [x] **19.9 Direction matrix re-proof in the v5 domain.** **PASS 2026-09-28** (76.5 vs 46.4 CFM, BC bias 1–3 CFM). **[impact: med]** **[effort: CPU ~2.5 h]**
   `cfd.flow_direction_convention`'s CFD evidence (PASS 2026-09-26) was solved in the v3 square tunnel; the v4 long
   duct run was INCONCLUSIVE (domain flawed). Re-run the Stock matrix in the v5 ring domain. Queued 2026-09-28.
@@ -778,7 +779,10 @@ follow under `docs/superpowers/specs/`.
   land within ~5–40%); keep per-row `cells`/`wall_s`/`sec_per_iter`.
 - [ ] **19.14 Mesh level follows each design's thinnest wall.** **[effort: low]** Designs with thicker walls get a coarser surface mesh (v2: level 2–3 vs 3–4), which moved CFM 1–4% in the v2 check. Consider a fixed surface level for optimizer comparisons.
 - [ ] **19.15 Prop BEMT under-predicts thrust (Audit #3, FAIL).** **[impact: med]** **[effort: med]** Against UIUC measured J-sweeps with measured geometry: APC E 9x6 passes (static C_T −13.6%), APC SF 9x4.7 fails (static C_T −20.3%, C_T(J) RMS 0.021–0.024 vs 0.015). Both under-predict; suspect the airfoil polars (low-Re thin cambered sections). Test a NeuralFoil/XFOIL polar swap (see §20.2) against the same data before re-auditing.
-- [ ] **19.16 Fan BEM pre-screen ranking unproven (Audit #4, INCONCLUSIVE).** **[impact: med]** **[effort: med]** Absolute Stock v2 free-air is +2.7% vs CFD and v1 > v2 is ordered right, but BEM separates v1/v2 by 6.7% (CFD 37%) and puts v1 at -20%. Only 3 designs have CFD-v5 free-air, so the pre-registered Spearman >= 0.6 (needs >= 5) could not be judged. Re-score >= 2 more distinct designs (ideally with the complete ring+frame+layers setup), rerun `scripts/audit_bem_vs_cfd.py`. Also: BEM shut-off 40.6 Pa and peak eff 0.53 are far from the datasheet 22.9 Pa / 25-35% the loss buckets were meant to reproduce.
+- [x] **19.16 Fan BEM pre-screen ranking (Audit #4).** **PASS 2026-09-30** — n = 7, Spearman rho = 0.714;
+  `fan.bem_prescreen` PROVEN. Mid-pack still weak (without `t9012` rho = 0.54). Absolute shut-off 40.6 Pa /
+  peak eff 0.53 vs datasheet 22.9 Pa / 25-35% remain known loss-bucket limits (RANKING-ONLY).
+  **[impact: med]** **[effort: med]**
 - [ ] **19.17 Structural gaps (Audit #5).** **[impact: low]** **[effort: low]** No root bending stress (sigma = M c / I) or yield check exists next to the deflection gate, and no tip-point-load path; `_fdm_e_factor` has a dead RESIN branch. Add a root-bending-stress SF using the same q L^2/2 moment. Fixed in Audit #5: `balanced_uneven_spacing` broke mass/angle pairing by sorting when masses were passed.
 - [ ] **19.18 Beam models unvalidated on real blades (Audit #5).** **[impact: med]** **[effort: high]** Deflection / f1 pass closed-form verification but the Stock v2 blade is a wide tapered plate (aspect ratio < 1.5, chord up to 50 mm on a 33 mm span) where Euler-Bernoulli beams are out of regime, and Stock's f1/BPF margin is only 1.29 vs the 1.2 gate. Compare against a shell FEA or a printed-blade tap test before trusting the gate. `print_penalty` k_fsi/0.95/0.92 constants are unsourced.
 - [ ] **19.13 FAN-01 benchmark follow-ups.** **[effort: med]** Model the rig's downstream chamber/struts; mesh
