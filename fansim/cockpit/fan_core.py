@@ -109,6 +109,8 @@ def apply_state_defaults(session) -> None:
     state._airflow_p_uri = ""
     state._airflow_uz_uri = ""       # axial-velocity (Uz) cut-plane
     state._airflow_stream_uri = ""   # streamlines colored by |U|
+    state._airflow_span_uri = ""     # spanwise averages (§20.3)
+    state._airflow_b2b_uri = ""      # blade-to-blade Cp (§20.3)
     state.show_glyphs = True
     state.glyph_mode = "on"
     state.glyph_density = "medium"

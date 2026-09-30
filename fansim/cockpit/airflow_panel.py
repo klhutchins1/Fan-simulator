@@ -1,10 +1,12 @@
 """Engine-agnostic airflow-viz helper shared by the archetype tabs (roadmap §17.3 / §17.4).
 
-The Fan tab's Results panel renders four off-screen views of a solved OpenFOAM case — |U| and
-pressure midplane slices, the axial-Uz cut-plane, and magnitude streamlines. Any archetype whose
-Assess leaves a reconstructable case (Mixed/centrifugal, Volute, CROR-refine) can reuse the same
-renderers; this module holds the pure, UI-free pieces so each tab wires identical behavior instead
-of copy-pasting fan_viz. The renderers themselves live in ``fansim.cfd.midplane``.
+The Fan tab's Results panel renders off-screen views of a solved OpenFOAM case — |U| and
+pressure midplane slices, the axial-Uz cut-plane, magnitude streamlines, plus spanwise
+averages and blade-to-blade Cp (§20.3). Any archetype whose Assess leaves a reconstructable
+case (Mixed/centrifugal, Volute, CROR-refine) can reuse the midplane renderers; this module
+holds the pure, UI-free pieces so each tab wires identical behavior instead of copy-pasting
+fan_viz. Midplane / streamlines live in ``fansim.cfd.midplane``; spanwise in
+``fansim.cfd.spanwise``.
 """
 
 from __future__ import annotations
@@ -17,6 +19,7 @@ from fansim.cfd.midplane import (
     ensure_midplane_artifacts,
     ensure_streamlines_artifact,
 )
+from fansim.cfd.spanwise import ensure_spanwise_artifacts
 
 # Field key -> caption shown under the image. Keys match the VBtnToggle values.
 AIRFLOW_CAPTIONS = {
@@ -24,12 +27,14 @@ AIRFLOW_CAPTIONS = {
     "p": "pressure midplane — FRONT LEFT -> OUTLET RIGHT",
     "uz": "axial Uz cut-plane — blue = delivery (+Z), red = reverse (−Z)",
     "stream": "streamlines colored by |U| — inlet (−Z) → wake (+Z)",
+    "span": "spanwise averages — p0 / Uz / swirl / incidence vs radius",
+    "b2b": "blade-to-blade Cp — 3–5 span stations",
 }
 AIRFLOW_CAPTIONS_SCROLL = {
     "U": "Umag scroll section — OUTLET RIGHT (+X), INLET UP (+Z)",
     "p": "pressure scroll section — OUTLET RIGHT (+X), INLET UP (+Z)",
 }
-AIRFLOW_FIELDS = ("U", "p", "uz", "stream")
+AIRFLOW_FIELDS = ("U", "p", "uz", "stream", "span", "b2b")
 AIRFLOW_FIELDS_SCROLL = ("U", "p")
 
 
@@ -62,16 +67,21 @@ def render_airflow_pack(case_dir, *, runner_factory=None, image_ok=None, layout:
             "p": png_data_uri(mid.p_png) if mid.available else "",
             "uz": "",
             "stream": "",
+            "span": "",
+            "b2b": "",
         }
         return {"uris": uris, "available": any(uris.values()), "layout": "scroll"}
 
     uz = ensure_axial_uz_artifact(case_dir, runner_factory=runner_factory, image_ok=image_ok)
     stream = ensure_streamlines_artifact(case_dir, runner_factory=runner_factory, image_ok=image_ok)
+    span = ensure_spanwise_artifacts(case_dir, runner_factory=runner_factory, image_ok=image_ok)
     uris = {
         "U": png_data_uri(mid.u_png) if mid.available else "",
         "p": png_data_uri(mid.p_png) if mid.available else "",
         "uz": png_data_uri(uz.png) if uz is not None and uz.available else "",
         "stream": png_data_uri(stream.png) if stream is not None and stream.available else "",
+        "span": png_data_uri(span.spanwise_png) if span is not None and span.available else "",
+        "b2b": png_data_uri(span.b2b_png) if span is not None and span.available else "",
     }
     return {"uris": uris, "available": any(uris.values()), "layout": "axial"}
 

@@ -25,19 +25,25 @@ def test_png_data_uri_reads_a_file(tmp_path: Path):
 
 
 def test_pick_airflow_uri_selected_field_wins():
-    uris = {"U": "u", "p": "pp", "uz": "z", "stream": "s"}
+    uris = {"U": "u", "p": "pp", "uz": "z", "stream": "s", "span": "sp", "b2b": "bb"}
     uri, cap = pick_airflow_uri(uris, "uz")
     assert uri == "z" and cap == AIRFLOW_CAPTIONS["uz"]
+    uri2, cap2 = pick_airflow_uri(uris, "span")
+    assert uri2 == "sp" and cap2 == AIRFLOW_CAPTIONS["span"]
+    uri3, cap3 = pick_airflow_uri(uris, "b2b")
+    assert uri3 == "bb" and cap3 == AIRFLOW_CAPTIONS["b2b"]
 
 
 def test_pick_airflow_uri_falls_back_to_umag():
-    uris = {"U": "u", "p": "", "uz": "", "stream": ""}
+    uris = {"U": "u", "p": "", "uz": "", "stream": "", "span": "", "b2b": ""}
     uri, cap = pick_airflow_uri(uris, "stream")  # streamlines missing -> fall back to |U|
     assert uri == "u" and cap == AIRFLOW_CAPTIONS["U"]
 
 
 def test_pick_airflow_uri_none_available():
-    uri, cap = pick_airflow_uri({"U": "", "p": "", "uz": "", "stream": ""}, "U")
+    uri, cap = pick_airflow_uri(
+        {"U": "", "p": "", "uz": "", "stream": "", "span": "", "b2b": ""}, "U",
+    )
     assert uri == "" and cap == ""
 
 
@@ -53,6 +59,8 @@ def test_render_airflow_pack_scroll_skips_uz_and_stream(tmp_path: Path):
     assert pack["layout"] == "scroll"
     assert pack["uris"]["uz"] == ""
     assert pack["uris"]["stream"] == ""
+    assert pack["uris"]["span"] == ""
+    assert pack["uris"]["b2b"] == ""
     assert pack["available"] is False
 
 

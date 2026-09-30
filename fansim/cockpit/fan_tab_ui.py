@@ -1163,13 +1163,16 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                     with v3.VCard(style=f"height:{VTK_HEIGHT_PX}px;", classes="mb-2"):
                         view = plotter_ui(plotter)
                     with v3.VCard(classes="mb-2 pa-2", v_show="fan_subtab === 'results'"):
-                        html.Div("Duct airflow — slices & streamlines", classes="text-subtitle-2 mb-1")
+                        html.Div("Duct airflow — slices, streamlines & spanwise", classes="text-subtitle-2 mb-1")
                         html.Div(
                             "|U| / pressure midplane: cut through the duct center, flow left → "
                             "right (FRONT/inlet LEFT, OUTLET RIGHT); brighter = faster. "
                             "axial Uz: fan-face cut colored by axial velocity — blue = forward "
                             "delivery, red = reverse/recirculation (a stalled fan reads red). "
-                            "streamlines: lines through the rotor colored by |U|.",
+                            "streamlines: lines through the rotor colored by |U|. "
+                            "spanwise: circumferentially averaged p0 / Uz / swirl / incidence vs "
+                            "radius (where along the span free-air work is lost). "
+                            "b2b Cp: blade-to-blade pressure coefficient at 3–5 span stations.",
                             classes="text-caption text-medium-emphasis mb-2",
                         )
                         with v3.VBtnToggle(
@@ -1183,6 +1186,8 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             v3.VBtn("pressure midplane", value="p", size="small")
                             v3.VBtn("axial Uz", value="uz", size="small")
                             v3.VBtn("streamlines", value="stream", size="small")
+                            v3.VBtn("spanwise", value="span", size="small")
+                            v3.VBtn("b2b Cp", value="b2b", size="small")
                         html.Div(
                             "{{ airflow_caption }}",
                             classes="text-caption text-medium-emphasis mb-1",

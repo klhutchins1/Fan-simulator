@@ -18,6 +18,7 @@ from fansim.cfd.midplane import (
     ensure_streamlines_artifact,
 )
 from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION
+from fansim.cfd.spanwise import ensure_spanwise_artifacts
 from fansim.cockpit.airflow_panel import pick_airflow_uri, png_data_uri
 from fansim.cockpit import fan_runtime
 from fansim.cockpit.data import Design
@@ -340,6 +341,8 @@ def bind(session) -> None:
             "p": state._airflow_p_uri,
             "uz": state._airflow_uz_uri,
             "stream": state._airflow_stream_uri,
+            "span": state._airflow_span_uri,
+            "b2b": state._airflow_b2b_uri,
         }
         uri, caption = pick_airflow_uri(uris, getattr(state, "airflow_field", "U") or "U")
         if uri:
@@ -356,6 +359,8 @@ def bind(session) -> None:
         state._airflow_p_uri = ""
         state._airflow_uz_uri = ""
         state._airflow_stream_uri = ""
+        state._airflow_span_uri = ""
+        state._airflow_b2b_uri = ""
         state.airflow_img_uri = ""
         state.airflow_caption = msg
         _clear_glyphs("Velocity arrows not available for this design")
@@ -373,6 +378,8 @@ def bind(session) -> None:
         state._airflow_p_uri = ""
         state._airflow_uz_uri = ""
         state._airflow_stream_uri = ""
+        state._airflow_span_uri = ""
+        state._airflow_b2b_uri = ""
         _clear_glyphs("Loading 3-D velocity arrows…")
         _apply_render(reset=False)
         token = int(d.trial)
@@ -393,8 +400,11 @@ def bind(session) -> None:
                 stream = ensure_streamlines_artifact(case)
                 if airflow_gen[0] != gen:
                     return None
+                span = ensure_spanwise_artifacts(case)
+                if airflow_gen[0] != gen:
+                    return None
                 gly = ensure_velocity_glyphs(case)
-                return mid, gly, uz, stream
+                return mid, gly, uz, stream, span
 
         async def task():
             try:
@@ -402,18 +412,30 @@ def bind(session) -> None:
                 pack = await loop.run_in_executor(None, _load_airflow_pack)
                 if state.selected_trial != token or pack is None:
                     return
-                art, gly, uz, stream = pack
+                art, gly, uz, stream, span = pack
                 state._airflow_uz_uri = (
                     _png_data_uri(uz.png) if uz is not None and uz.available else "")
                 state._airflow_stream_uri = (
                     _png_data_uri(stream.png) if stream is not None and stream.available else "")
+                state._airflow_span_uri = (
+                    _png_data_uri(span.spanwise_png)
+                    if span is not None and span.available and span.spanwise_png
+                    else "")
+                state._airflow_b2b_uri = (
+                    _png_data_uri(span.b2b_png)
+                    if span is not None and span.available and span.b2b_png
+                    else "")
+                has_extra = bool(
+                    state._airflow_uz_uri or state._airflow_stream_uri
+                    or state._airflow_span_uri or state._airflow_b2b_uri
+                )
                 if art.available:
                     state._airflow_u_uri = _png_data_uri(art.u_png)
                     state._airflow_p_uri = _png_data_uri(art.p_png)
                     state.airflow_busy = False
                     _apply_airflow_field()
-                elif state._airflow_uz_uri or state._airflow_stream_uri:
-                    # midplane failed but a slice/streamline rendered — still show something
+                elif has_extra:
+                    # midplane failed but another view rendered — still show something
                     state.airflow_busy = False
                     state._airflow_u_uri = ""
                     state._airflow_p_uri = ""
@@ -443,6 +465,8 @@ def bind(session) -> None:
                     state._airflow_p_uri = ""
                     state._airflow_uz_uri = ""
                     state._airflow_stream_uri = ""
+                    state._airflow_span_uri = ""
+                    state._airflow_b2b_uri = ""
                     state.airflow_img_uri = ""
                     state.airflow_caption = "Airflow not available for this design"
                     _clear_glyphs()
