@@ -773,9 +773,11 @@ follow under `docs/superpowers/specs/`.
 - [x] **19.9 Direction matrix re-proof in the v5 domain.** **PASS 2026-09-28** (76.5 vs 46.4 CFM, BC bias 1–3 CFM). **[impact: med]** **[effort: CPU ~2.5 h]**
   `cfd.flow_direction_convention`'s CFD evidence (PASS 2026-09-26) was solved in the v3 square tunnel; the v4 long
   duct run was INCONCLUSIVE (domain flawed). Re-run the Stock matrix in the v5 ring domain. Queued 2026-09-28.
-- [ ] **19.10 Mesh quality in the ring domain.** **[impact: med]** **[effort: low–med]**
-  One highly skewed face per case (skewness up to 8.8 in the ring domain vs ~4.3 before); likely the ring edge /
-  blade tip. y+ now resolved (~2) with layers; decide whether layers become the default (cost ≈1.3×).
+- [x] **19.10 Mesh quality in the ring domain.** **DONE 2026-09-30** — tip/ring skew is endemic
+  (typically 5–11 highly skew faces, max ~6.9–8.8 at r ≈ tip_radius); sanity keeps skew-only as
+  **WARN**. Prism layers stay **opt-in**: OFF for NSGA / screening / `evaluate_candidate`; ON for
+  validation P–Q via `--layers` (y+ ≈ 2, CFM +0.6–6%, does not clear the skew). No mesh campaign.
+  **[impact: med]** **[effort: low–med]**
 - [ ] **19.11 Prop follow-ups.** **[effort: low]** `run_cfd_polar` lacks the `direction_suspect` backstop; the
   drone STLs are all INCONCLUSIVE by design (manual direction only).
 - [ ] **19.12 CFD estimates discipline.** **[effort: low]** Always `--pilot` before long runs (pilot estimates now

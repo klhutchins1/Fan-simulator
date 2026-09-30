@@ -12,7 +12,8 @@ stagger of the reference), the complete setup (ring + frame + layers, matched su
 | 5 Pa | **49.8** | 52.5 | −5.1% | 46.7 (−11%) |
 | 10 Pa | **40.2** | 41.0 | −2.0% | 11.2 (−73%) |
 
-All points converged; sanity physics PASS (1 skewed face WARN). On the default (wall-derived, coarser)
+All points converged; sanity physics PASS (skew-only WARN at tip/ring — typically several faces,
+max skew ~7–9; §19.10). On the default (wall-derived, coarser)
 mesh level, v2 read 55.6 / 48.4 / 38.5, so mesh level moves results 1–4%. The remaining ~2–6% deficit is
 likely the extrapolated root station and the builder realising only ~70% of the recipe chord near the tip.
 

@@ -57,6 +57,7 @@ class MeshResolution:
     surf_min: int = 1
     surf_max: int = 2
     feature_level: int = 2
+    # §19.10: layers stay opt-in — OFF for NSGA/screening; validation P–Q passes add_layers=True.
     add_layers: bool = False
     n_surface_layers: int = 3
 
@@ -81,7 +82,11 @@ class MeshResolution:
 
 
 def snappy_layers_mapping(mesh: MeshResolution) -> dict[str, str]:
-    """Snappy placeholders for opt-in impeller prism layers. Default is off."""
+    """Snappy placeholders for opt-in impeller prism layers.
+
+    Default is off (§19.10): screening / NSGA stay layer-free; validation runners pass
+    ``add_layers=True`` via ``--layers`` when they want resolved y+ (~2).
+    """
     if not mesh.add_layers:
         return {"ADDLAYERS": "false", "LAYER_PATCHES": ""}
     n = mesh.n_surface_layers
