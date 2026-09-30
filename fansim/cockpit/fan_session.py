@@ -25,6 +25,7 @@ _EXPOSE = (
     ("fan_cancel_sweep", "cancel_sweep"),
     ("fan_on_fit_envelope", "on_fit_envelope"),
     ("fan_on_scale_to_hub", "on_scale_to_hub"),
+    ("fan_seed_from_duty", "seed_from_duty"),
     ("fan_randomize_geometry", "randomize_geometry"),
     ("fan_randomize_features", "randomize_features"),
     ("fan_select_library_design", "select_library_design"),

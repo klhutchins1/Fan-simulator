@@ -66,6 +66,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
     cancel_sweep = getattr(ctx, "fan_cancel_sweep")
     on_fit_envelope = getattr(ctx, "fan_on_fit_envelope")
     on_scale_to_hub = getattr(ctx, "fan_on_scale_to_hub")
+    seed_from_duty = getattr(ctx, "fan_seed_from_duty")
     randomize_geometry = getattr(ctx, "fan_randomize_geometry")
     randomize_features = getattr(ctx, "fan_randomize_features")
 
@@ -813,6 +814,66 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         html.Div("{{ tip_fit_info }}", classes="text-caption mt-2")
                         html.Div("{{ hub_fit_info }}", classes="text-caption")
                         html.Div("{{ depth_fit_info }}", classes="text-caption")
+
+                    with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):
+                        html.Div(
+                            "Seed from duty (§20.4) — Cordier sizing + free/forced-vortex "
+                            "triangles → stagger/camber magnitudes. Signs and handedness "
+                            "are preserved. Cheap Lieblein DF / de Haller gates (no CFD).",
+                            classes="text-caption mb-2",
+                        )
+                        with v3.VRow(no_gutters=True, classes="mb-1"):
+                            with v3.VCol(cols=4, classes="pr-1"):
+                                v3.VTextField(
+                                    label="Target CFM",
+                                    v_model=("seed_duty_cfm",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                            with v3.VCol(cols=4, classes="px-1"):
+                                v3.VTextField(
+                                    label="ΔP (Pa)",
+                                    v_model=("seed_duty_pa",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                            with v3.VCol(cols=4, classes="pl-1"):
+                                v3.VTextField(
+                                    label="RPM",
+                                    v_model=("seed_duty_rpm",),
+                                    type="number",
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                )
+                        v3.VSelect(
+                            label="Vortex",
+                            v_model=("seed_duty_vortex",),
+                            items=("seed_duty_vortex_items",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            classes="mb-2",
+                        )
+                        v3.VBtn(
+                            "Apply stagger/camber seed",
+                            size="small",
+                            variant="tonal",
+                            color="secondary",
+                            block=True,
+                            click=(seed_from_duty,),
+                            disabled=("e_tip_radius == null",),
+                            classes="mb-1",
+                        )
+                        html.Div(
+                            "{{ seed_duty_msg }}",
+                            classes="text-caption",
+                            style="white-space: pre-line",
+                        )
 
                     with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):
                         html.Div(

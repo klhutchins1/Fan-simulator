@@ -89,10 +89,11 @@ def test_setup_fan_tab_binds_without_error(bound_ctx):
         "fan_do_preview", "fan_on_assess", "fan_export_stl_current",
         "fan_on_optimize", "fan_cancel_optimize", "fan_cancel_assess",
         "fan_on_sweep", "fan_cancel_sweep", "fan_on_fit_envelope",
-        "fan_on_scale_to_hub", "fan_randomize_geometry", "fan_randomize_features",
+        "fan_on_scale_to_hub", "fan_seed_from_duty", "fan_randomize_geometry", "fan_randomize_features",
         "fan_select_library_design", "fan_on_library_scale_to_hub",
         "fan_load_model_into_form", "fan_save_model", "fan_delete_model",
         "fan_save_measurement", "fan_hub_designs", "fan_active_spec",
+        "fan_score_multi_point_bem",
     ):
         assert callable(getattr(bound_ctx, name, None)), name
 
@@ -106,6 +107,7 @@ def test_readonly_handlers_run(bound_ctx):
     bound_ctx.fan_randomize_features()
     bound_ctx.fan_on_fit_envelope()
     bound_ctx.fan_on_scale_to_hub()
+    bound_ctx.fan_seed_from_duty()
     bound_ctx.fan_select(None)
     bound_ctx.fan_on_plotly_click(None)
 

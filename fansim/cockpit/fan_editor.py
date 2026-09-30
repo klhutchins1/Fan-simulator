@@ -330,6 +330,63 @@ def bind(session) -> None:
         state.preview_msg = preview_changes(res.changes)
         state.flush()
 
+    def seed_from_duty():
+        """§20.4: Cordier + velocity-triangle magnitudes → editor stagger/camber (signs kept)."""
+        try:
+            from fansim.optimize.meanline import (
+                DutyPoint,
+                format_meanline_seed,
+                preserve_sign,
+                seed_from_duty as _seed,
+                station_magnitudes,
+            )
+
+            duty = DutyPoint(
+                cfm=float(state.seed_duty_cfm),
+                dp_pa=float(state.seed_duty_pa),
+                rpm=float(state.seed_duty_rpm),
+            )
+            vortex = str(getattr(state, "seed_duty_vortex", "free") or "free")
+            seed = _seed(
+                duty,
+                hub_radius_mm=float(state.e_hub_radius),
+                tip_radius_mm=float(state.e_tip_radius),
+                n_blades=int(state.e_n_blades),
+                chord_root_mm=float(state.e_chord_root),
+                chord_mid_mm=float(state.e_chord_mid),
+                chord_tip_mm=float(state.e_chord_tip),
+                vortex=vortex,
+            )
+            mags = station_magnitudes(seed)
+            state.e_stagger_root = round(
+                preserve_sign(float(state.e_stagger_root), mags["stagger_root"]), 1
+            )
+            state.e_stagger_mid = round(
+                preserve_sign(float(state.e_stagger_mid), mags["stagger_mid"]), 1
+            )
+            state.e_stagger_tip = round(
+                preserve_sign(float(state.e_stagger_tip), mags["stagger_tip"]), 1
+            )
+            state.e_camber_root = round(
+                preserve_sign(float(state.e_camber_root), mags["camber_root"]), 3
+            )
+            state.e_camber_mid = round(
+                preserve_sign(float(state.e_camber_mid), mags["camber_mid"]), 3
+            )
+            state.e_camber_tip = round(
+                preserve_sign(float(state.e_camber_tip), mags["camber_tip"]), 3
+            )
+            state.e_camber = state.e_camber_mid
+            state.edited_stale = True
+            state.seed_duty_msg = "\n".join(format_meanline_seed(seed))
+            state.preview_msg = (
+                "Seeded stagger/camber magnitudes from duty (§20.4; signs/handedness kept). "
+                "Press Preview geometry."
+            )
+        except Exception as exc:  # noqa: BLE001
+            state.seed_duty_msg = f"⚠ Seed from duty failed: {type(exc).__name__}: {exc}"
+        state.flush()
+
     def edit_features() -> Features:
         tw = int(state.e_tub_waves) or (6 if state.e_tub_amp > 0 else 0)
         sw = int(state.e_ser_waves) or (8 if state.e_ser_amp > 0 else 0)
@@ -560,6 +617,7 @@ def bind(session) -> None:
     session._apply_editor_flat = _apply_editor_flat
     session.on_fit_envelope = on_fit_envelope
     session.on_scale_to_hub = on_scale_to_hub
+    session.seed_from_duty = seed_from_duty
     session.edit_features = edit_features
     session.randomize_features = randomize_features
     session.randomize_geometry = randomize_geometry

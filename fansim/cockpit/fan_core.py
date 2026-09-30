@@ -61,6 +61,16 @@ def apply_state_defaults(session) -> None:
         if MATERIALS[k].blade_suitable
     ]
     state.multi_point_msg = ""  # §20.6 BEM duty-cycle readout
+    # §20.4 meanline seed-from-duty (Design panel)
+    state.seed_duty_cfm = 60.0
+    state.seed_duty_pa = 15.0
+    state.seed_duty_rpm = 2000.0
+    state.seed_duty_vortex = "free"
+    state.seed_duty_vortex_items = [
+        {"title": "Free vortex (r·Cu = const)", "value": "free"},
+        {"title": "Forced vortex (Cu ∝ r)", "value": "forced"},
+    ]
+    state.seed_duty_msg = ""
     state.opt_trials = 8
     state.opt_shroud = False
     state.opt_bem = False

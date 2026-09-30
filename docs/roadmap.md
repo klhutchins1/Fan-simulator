@@ -39,7 +39,7 @@ session.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
 9. **§20 external feature radar** — quick wins 20.1 / 20.2 any time; 20.3 alongside item 4 (diagnoses
-   the P–Q gap); 20.7 is the hardware path for item 5; 20.4 waits on §19.1.
+   the P–Q gap); 20.7 is the hardware path for item 5; ~~20.4~~ DONE 2026-09-30; ~~20.6~~ DONE 2026-09-30.
 
 §8 / §9 / §10 / §12 / §13 stage-1 are **closed in code**. Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
 Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
@@ -855,11 +855,11 @@ the §19.1 spin / flow freeze.
   Circumferentially averaged total pressure, axial / swirl velocity, incidence and deviation vs
   radius, plus blade-to-blade Cp at 3–5 span stations, built on `cfd/midplane.py`. Primary use:
   locate *where* along the span the a12x25 free-air gap (−15…−20%, §1.5) is lost. Cockpit plot after.
-- [ ] **20.4 Design from the target point (meanline seed + loading gates).** **[impact: high]** **[effort: med]** *(CFturbo, AxCent)*
-  From target Q / ΔP / RPM: specific speed & diameter (Cordier) sizing, free- or forced-vortex
-  velocity triangles → per-station stagger/camber *magnitudes* as an optimizer seed, and cheap
-  Lieblein diffusion-factor / de Haller gates before CFD. **Freeze:** emit magnitudes only; handedness
-  and sign come from the existing convention until §19.1 lands (then from §19.2).
+- [x] **20.4 Design from the target point (meanline seed + loading gates).** **DONE 2026-09-30** —
+  `fansim/optimize/meanline.py`: Cordier σ/δ sizing, free/forced-vortex triangles → per-station
+  stagger/camber *magnitudes*, Lieblein DF / de Haller gates. Cockpit Fan Design: “Seed from duty”
+  panel (CFM / Pa / RPM) applies magnitudes without flipping signs. Tests: `tests/test_meanline.py`.
+  **[impact: high]** **[effort: med]** *(CFturbo, AxCent)*
 - [ ] **20.5 Surrogate-guided search.** **[impact: high]** **[effort: med]** *(Cadence Fine Design3D)*
   Today surrogates only *reject* designs before CFD (`--surrogate-prescreen`). Add the pro loop:
   space-filling DoE → fit (`surrogate/` GP / boost / ensemble) → NSGA-II on the surrogate → CFD-verify
