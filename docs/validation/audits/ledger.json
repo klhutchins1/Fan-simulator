@@ -12,6 +12,12 @@
       "report": "docs/validation/audits/2026-09-29-audit-06-acoustics.md",
       "verdict": "PASS"
     },
+    "acoustics.loading": {
+      "date": "2026-09-30",
+      "fingerprint": "15c9dc447f55b81c",
+      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "verdict": "PASS"
+    },
     "acoustics.proudman": {
       "date": "2026-09-29",
       "fingerprint": "3d2562a18673225e",
@@ -28,6 +34,12 @@
       "date": "2026-09-30",
       "fingerprint": "ce41fe1c43f1a064",
       "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "verdict": "PASS"
+    },
+    "centrifugal.bem": {
+      "date": "2026-09-30",
+      "fingerprint": "773d1677a2a52706",
+      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
       "verdict": "PASS"
     },
     "cfd.cfm_from_outlet_flow": {
@@ -58,6 +70,12 @@
       "date": "2026-09-30",
       "fingerprint": "162af8206620219a",
       "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "verdict": "PASS"
+    },
+    "cror.noise": {
+      "date": "2026-09-30",
+      "fingerprint": "5845b629ef396705",
+      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
       "verdict": "PASS"
     },
     "fan.bem_prescreen": {
@@ -96,10 +114,34 @@
       "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
       "verdict": "PASS"
     },
+    "propeller.bemt": {
+      "date": "2026-09-30",
+      "fingerprint": "d81316a52dad7a5c",
+      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "verdict": "PASS"
+    },
+    "propeller.neuralfoil_polars": {
+      "date": "2026-09-30",
+      "fingerprint": "debd4add8164e344",
+      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "verdict": "PASS"
+    },
+    "propeller.noise": {
+      "date": "2026-09-30",
+      "fingerprint": "064c70702bc0a505",
+      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "verdict": "PASS"
+    },
+    "propeller.polars": {
+      "date": "2026-09-30",
+      "fingerprint": "d4e817dfc166d441",
+      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "verdict": "PASS"
+    },
     "propeller.thrust_sign": {
-      "date": "2026-09-29",
-      "fingerprint": "90347d82e302e565",
-      "report": "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md",
+      "date": "2026-09-30",
+      "fingerprint": "7d1f7f552cdfbb86",
+      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
       "verdict": "PASS"
     },
     "structural.balance": {

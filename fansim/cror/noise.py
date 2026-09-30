@@ -21,6 +21,8 @@ def estimate_cror_noise(params: CrorParams, rpm: float) -> dict:
     i_f = 10.0 ** (float(nf["rel_dba"]) / 10.0)
     i_r = 10.0 ** (float(nr["rel_dba"]) / 10.0)
     rel = 10.0 * math.log10(i_f + i_r)
+    # Rear stagger is signed for opposite spin; BEMT CT sign follows that convention.
+    # Noise ranking uses |thrust| (delivery magnitude), not the signed prop convention.
     return {
         "rel_dba": round(rel, 1),
         "front_rel_dba": nf["rel_dba"],
@@ -29,7 +31,7 @@ def estimate_cror_noise(params: CrorParams, rpm: float) -> dict:
         "rear_bpf_hz": nr["bpf_hz"],
         "tip_mach_front": nf["tip_mach"],
         "tip_mach_rear": nr["tip_mach"],
-        "thrust_g": front_perf.thrust_g + rear_perf.thrust_g,
+        "thrust_g": abs(front_perf.thrust_g) + abs(rear_perf.thrust_g),
         "analogy": "cror_tip_speed_proxy",
     }
 
@@ -40,8 +42,8 @@ def cror_fwh_from_proxy(params: CrorParams, rpm: float, *, r_obs: float = 1.0) -
 
     front_perf = analyze(params.front, rpm=rpm)
     rear_perf = analyze(params.rear, rpm=rpm)
-    Tf = max(float(front_perf.thrust_n), 1e-6)
-    Tr = max(float(rear_perf.thrust_n), 1e-6)
+    Tf = max(abs(float(front_perf.thrust_n)), 1e-6)
+    Tr = max(abs(float(rear_perf.thrust_n)), 1e-6)
     n_f = int(params.front.n_blades)
     n_r = int(params.rear.n_blades)
     omega_rev = float(rpm) / 60.0

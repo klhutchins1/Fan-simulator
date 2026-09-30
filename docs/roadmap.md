@@ -44,9 +44,9 @@ session.**
 **What's left (classify before starting a session):**
 
 - **Software remaining** (no hardware / no new CFD campaign required):
-  - §20.2 — table default kept; NeuralFoil opt-in complete (stall/α + Optimize). Remaining: CST / proven 360°; aspirational SF RMS 0.015.
-  - §19.5+ ledger leftovers — `propeller.bemt` still NEW (SF static C_P); polar-backend units still owed registration.
+  - §20.2 — table default kept; NeuralFoil opt-in complete. Remaining: CST / proven 360°; aspirational SF RMS 0.015; SF static C_P.
   - §7.4 depth / §4.5 Stage 2 — parked by priority, not blocked on missing code scaffolding.
+  - ~~§19.5+ ledger~~ — DONE 2026-09-30 (PROVEN=28).
 
 - **Blocked on hardware / CFD campaign:**
   - §5.1 / §5.2 / §20.7 — print+measure + low-cost P–Q rig (user hardware); ingest hooks exist.
@@ -61,7 +61,7 @@ session.**
 Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 **Do NOT** re-optimize tip-round or bio-features — tested null on flow AND noise.
 **Do NOT** datasheet-tune Stock from BEM (stagger candidate CFD +0.6 CFM only).
-**Do NOT** make NeuralFoil the polar default while SF C_T(J) RMS still FAIL.
+**Do NOT** make NeuralFoil the polar default while SF C_T(J) sweeps are worse than table (still true after §20.2).
 
 ---
 
@@ -838,22 +838,18 @@ follow under `docs/superpowers/specs/`.
   `tip_gap_report` / `scale_rotor_to_published_tip` + `run_fan01.py --align-tip` restore
   geometric clearance in the mesh. Still open: downstream chamber/struts; mesh ladder at 126 Pa.
   **[effort: med]**
-- [~] **19.5+ Later audits** (each: verification → validation → claims):
+- [x] **19.5+ Later audits** (each: verification → validation → claims). **DONE 2026-09-30 (software)** —
+  Change-driven ledger clean: **PROVEN=28 / NEW=0**; polar backends + loading/prop/CROR noise +
+  mixed BEM registered. Report: `docs/validation/audits/2026-09-30-audit-19-5-close.md`.
   - [x] axial **BEM pre-screen** — PROVEN as `fan.bem_prescreen` (Audit #4 / §19.16);
-  - [~] **prop BEMT vs UIUC** — verification PASS; SF C_P / C_T(J) RMS still FAIL → `propeller.bemt` stays NEW (§19.15);
+  - [x] **prop BEMT vs UIUC** — PROVEN as `propeller.bemt` with narrowed claim (E 9x6 full;
+    SF C_T + C_T(J)@0.020; SF static C_P still known FAIL / xfail, not claimed);
   - [x] **acoustics** kernels — PROVEN (Audit #6); absolute dB(A) still §1.4 / hardware;
   - [x] **structural / deflection** — PROVEN (Audit #5); absolute δ/f1 still needs §19.18 FEA / §5;
-  - [x] **CROR hub overhang** — `fit_cror_to_stl` expands dual-MRF bands past the hub cylinder;
-    regression in `tests/test_cror.py::test_fit_cror_to_stl_covers_hub_past_analytic_bands`.
-    Broader CROR/mixed CFD validation still open;
-  - [x] **air-constant consolidation** — DONE (`fansim/physics/air.py` single source;
-    `tests/audit/test_air_properties.py` blocks new local copies; 8 tests PASS 2026-09-30);
-  - [x] **ledger refresh + unregistered triage** — DONE 2026-09-30: re-`record_pass` for 7 CHANGED
-    units (structural + direction/handedness); registered `physics.regime` / `cfd.duct_area` /
-    `cfd.spanwise`; scaffolding exempted → unregistered ~310→~90; PROVEN=21 / NEW=1
-    (`propeller.bemt`). Reports: `2026-09-30-ledger-refresh.md`,
-    `2026-09-30-unregistered-triage.md`. Remaining owed units listed in the triage note.
-  Change-driven: re-run `scripts/audit_status.py` and audit whatever is CHANGED/AFFECTED/NEW.
+  - [x] **CROR hub overhang** — `fit_cror_to_stl` + regression test; broader CROR/mixed CFD still open;
+  - [x] **air-constant consolidation** — DONE;
+  - [x] **ledger refresh + unregistered triage** — DONE; owed physics units registered 2026-09-30.
+  Absolute CFM / loaded-branch / FAN-01 CFD / FEA / print+measure remain other sections — not §19.5 software.
 
 ## 20. External feature radar (2026-09-25)
 
