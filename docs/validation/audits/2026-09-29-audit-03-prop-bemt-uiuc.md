@@ -108,12 +108,27 @@ Across all static rows: SF C_T -19% to -20%, C_P -18% to -25%; E 9x6 C_T -10% to
 beyond -20% at the lowest rpm). BEMT under-predicts thrust and power on both props, worst on the thin
 Slow Flyer. eta errors are inflated near the zero-thrust J where eta -> 0 (large relative sensitivity).
 
-**Overall verdict: FAIL** (one of two props misses the pre-registered C_T static and C_T(J) tolerances; not
-loosened). `propeller.bemt` is **not** recorded in the ledger. Likely cause (not tested): the generic
-camber-0.04 polar family and no root/Glauert correction under-predict lift on the low-pitch, thin Slow
-Flyer; a per-prop polar/calibration would be needed. The 9x6 result shows the solver is sound on real geometry.
+**Overall verdict (2026-09-30 update):** thickness fix lands SF static **C_T** inside ±15%;
+SF **C_P** and **C_T(J) RMS** remain FAIL on the table polar. NeuralFoil (`--extra neuralfoil`)
+clears SF static C_T/C_P but does **not** clear C_T(J) RMS (max ~0.025). E 9x6 stays PASS.
+`propeller.bemt` still not ledger-PROVEN until SF sweeps clear. See §19.15 / scripts/audit_bemt_polar_ab.py.
+
+### Addendum 2026-09-30: station thickness + NeuralFoil A/B
+
+Root cause of much of the SF C_T miss: `analyze` ignored station `thickness` and always
+looked up 12% polars for 6% UIUC blades. Passing mean station t/c:
+
+| prop | backend | static e_CT | static e_CP | max C_T(J) RMS | notes |
+|---|---|---|---|---|---|
+| APC SF 9x4.7 | table (t/c=0.12, old) | −20.3% FAIL | −19.5% | 0.021–0.024 FAIL | Audit #3 addendum |
+| APC SF 9x4.7 | table (t/c=0.06) | −12.8% PASS | −21.3% FAIL | ~0.020 FAIL | thickness fix |
+| APC SF 9x4.7 | neuralfoil (t/c=0.06) | −7.6% PASS | −13.3% PASS | ~0.025 FAIL | optional extra |
+| APC E 9x6 | table (t/c=0.06) | −0.7% PASS | −8.9% PASS | ~0.004 PASS | |
+| APC E 9x6 | neuralfoil | +0.5% PASS | +5.3% PASS | ~0.005 PASS | |
 
 Fixes made from the observations: `PropPerf.figure_of_merit_raw` (unclipped FM) and `PropPerf.converged`
 (False if any element hits the 60-iteration cap; 3 of 16 SF and 1 of 16 E-9x6 static rows flagged);
 docstring now documents the Prandtl tip loss, no root loss, no Glauert correction; Prandtl/Glauert added to
-`docs/bibliography.md`. Two SF tests are `xfail(strict)` to keep the FAIL on record.
+`docs/bibliography.md`. Two SF tests are `xfail(strict)` to keep the remaining FAIL on record
+(C_P static / C_T(J) RMS). Optional NeuralFoil backend: `set_polar_backend("neuralfoil")` /
+`FANSIM_POLAR_BACKEND=neuralfoil` (`uv sync --extra neuralfoil`).

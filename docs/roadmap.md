@@ -789,7 +789,12 @@ follow under `docs/superpowers/specs/`.
   `for_blade` kept for validation; optimizer / Assess floors `surf_max` at
   `OPTIMIZER_SURF_MAX_FLOOR=3` so thick-wall designs are not ranked on a coarser mesh than thin
   ones (adaptive-only moved CFM 1–4% in the v2 check). **[effort: low]**
-- [ ] **19.15 Prop BEMT under-predicts thrust (Audit #3, FAIL).** **[impact: med]** **[effort: med]** Against UIUC measured J-sweeps with measured geometry: APC E 9x6 passes (static C_T −13.6%), APC SF 9x4.7 fails (static C_T −20.3%, C_T(J) RMS 0.021–0.024 vs 0.015). Both under-predict; suspect the airfoil polars (low-Re thin cambered sections). Test a NeuralFoil/XFOIL polar swap (see §20.2) against the same data before re-auditing.
+- [x] **19.15 Prop BEMT under-predicts thrust (Audit #3).** **DONE 2026-09-30 (partial close)** —
+  root cause: `analyze` ignored station t/c (always 12% polars on 6% UIUC blades). Thickness fix
+  brings SF static C_T to −12.8% (PASS); SF C_P (−21%) and C_T(J) RMS (~0.020) still FAIL.
+  NeuralFoil optional backend (`--extra neuralfoil`, `set_polar_backend`) clears SF static C_T/C_P
+  but not C_T(J) RMS — A/B in `scripts/audit_bemt_polar_ab.py`. E 9x6 PASS. Ledger still not
+  PROVEN until SF sweeps clear. **[impact: med]** **[effort: med]**
 - [x] **19.16 Fan BEM pre-screen ranking (Audit #4).** **PASS 2026-09-30** — n = 7, Spearman rho = 0.714;
   `fan.bem_prescreen` PROVEN. Mid-pack still weak (without `t9012` rho = 0.54). Absolute shut-off 40.6 Pa /
   peak eff 0.53 vs datasheet 22.9 Pa / 25-35% remain known loss-bucket limits (RANKING-ONLY).
@@ -824,7 +829,10 @@ the §19.1 spin / flow freeze.
   The blade is already a CadQuery solid (`geometry/blade.py`) but `geometry/export.py` writes STL only.
   Add STEP beside the STL in `export_finalists.py` and the cockpit export, so designs open cleanly in
   Fusion / Onshape / FreeCAD for hand edits.
-- [ ] **20.2 NeuralFoil airfoil polars.** **[impact: med]** **[effort: low]** *(AeroSandbox, QBlade)*
+- [~] **20.2 NeuralFoil airfoil polars.** **Partial 2026-09-30** *(AeroSandbox, QBlade)* —
+  optional backend shipped (`fansim/propeller/neuralfoil_polars.py`, `--extra neuralfoil`);
+  default remains UIUC tables. A/B vs UIUC props in §19.15. Still open: make NeuralFoil the
+  default, 360° coverage claims, CST section variables.
   Swap or back the UIUC/Selig tables (`fansim/data/polars`, `_cl_cd`) with NeuralFoil: any Re, 360°
   angle of attack, no non-convergence, smooth for gradients. Keep UIUC as the regression reference
   (§19.5 prop BEMT vs UIUC). Opens a later option: section shape (CST) as an optimizer variable.

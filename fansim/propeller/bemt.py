@@ -32,6 +32,29 @@ from fansim.physics.air import RHO_ISA as RHO_AIR
 from fansim.physics.air import NU_AIR
 G = 9.80665
 
+# Polar backend for `_section_aero`: "table" (default UIUC CSVs → analytic) or "neuralfoil"
+# (§19.15 / §20.2). Override with ``set_polar_backend`` or env ``FANSIM_POLAR_BACKEND``.
+_POLAR_BACKEND = "table"
+
+
+def get_polar_backend() -> str:
+    import os
+
+    env = (os.environ.get("FANSIM_POLAR_BACKEND") or "").strip().lower()
+    if env in ("table", "neuralfoil"):
+        return env
+    return _POLAR_BACKEND
+
+
+def set_polar_backend(name: str) -> str:
+    """Set process-wide polar backend: ``table`` or ``neuralfoil``. Returns the active name."""
+    global _POLAR_BACKEND
+    key = str(name or "table").strip().lower()
+    if key not in ("table", "neuralfoil"):
+        raise ValueError(f"polar backend must be 'table' or 'neuralfoil', got {name!r}")
+    _POLAR_BACKEND = key
+    return _POLAR_BACKEND
+
 
 @dataclass
 class PropPerf:
@@ -72,6 +95,12 @@ def _section_aero(
     thickness: float = 0.12,
 ) -> tuple[float, float, bool, float]:
     """Incompressible `(cl, cd, stalled, cl_cap)` from the same branch as `_cl_cd`."""
+    if re is not None and get_polar_backend() == "neuralfoil":
+        from fansim.propeller.neuralfoil_polars import section_neuralfoil
+
+        nf = section_neuralfoil(alpha_rad, camber, re, thickness=thickness)
+        if nf is not None:
+            return nf
     if re is not None:
         from fansim.propeller.polars import section_table
 
@@ -90,14 +119,15 @@ def _interp_geom(params: BladeParams):
     chords = np.array([s.chord for s in st])
     twists = np.array([s.stagger_deg for s in st])
     camber = float(np.mean([s.max_camber for s in st]))
+    thickness = float(np.mean([s.thickness for s in st]))
     return (lambda r: float(np.interp(r, rs, chords)),
-            lambda r: float(np.interp(r, rs, twists)), camber, r_root, r_tip)
+            lambda r: float(np.interp(r, rs, twists)), camber, thickness, r_root, r_tip)
 
 
 def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float = RHO_AIR,
             n_elem: int = 24) -> PropPerf:
     """BEMT performance of a propeller ``params`` at ``rpm`` (static if v_forward=0). Distances mm->m."""
-    chord_fn, twist_fn, camber, r_root_mm, r_tip_mm = _interp_geom(params)
+    chord_fn, twist_fn, camber, thickness, r_root_mm, r_tip_mm = _interp_geom(params)
     B = params.n_blades
     omega = rpm * 2.0 * math.pi / 60.0
     R = r_tip_mm / 1000.0
@@ -126,7 +156,7 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
             W2 = Vax * Vax + Vt * Vt
             alpha = beta - phi
             cl, cd, stalled, cl_cap = _section_aero(
-                alpha, camber, re=math.sqrt(W2) * c / NU_AIR
+                alpha, camber, re=math.sqrt(W2) * c / NU_AIR, thickness=thickness,
             )
             mach = math.sqrt(W2) / C_AIR
             cl, cd = _compressibility_cl_cd(
