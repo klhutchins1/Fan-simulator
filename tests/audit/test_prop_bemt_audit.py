@@ -107,11 +107,11 @@ def test_uiuc_static_point_within_preregistered_tolerance():
 
 
 # ---- Addendum 2026-09-29: UIUC measured geometry + J sweeps (vol-1 files, see uiuc_propdb/README.md) ----
-# E 9x6 keeps the original 0.015 gate. SF 9x4.7 re-registered 2026-09-30 at 0.020 after windmill
-# physics (allow T<0 / vi<0) — full-curve max RMS ~0.017–0.018 with fixed camber=0.04; the old
-# 0.015 tol is not achievable without datasheet-tuning the unknown section camber (§20.2).
-CT_RMS_TOL = 0.015          # APC E 9x6 (and aspirational full-curve)
-CT_RMS_TOL_SF = 0.020       # APC SF 9x4.7 re-registered 2026-09-30
+# E 9x6 keeps the original 0.015 gate. SF 9x4.7 registered gate is 0.020 (2026-09-30).
+# Aspirational SF full-curve 0.015 abandoned 2026-09-30: attached bias dominates (~0.018 RMS);
+# clearing 0.015 needs unknown-section camber ≈0.06 (forbidden datasheet fit; 0.07 blows up).
+CT_RMS_TOL = 0.015          # APC E 9x6 only
+CT_RMS_TOL_SF = 0.020       # APC SF 9x4.7 registered gate (§20.2)
 
 from fansim.propeller.bemt_catalog import (  # noqa: E402
     UIUC_DIR,
@@ -204,16 +204,19 @@ def test_uiuc_apcsf_static_neuralfoil_within_tolerance():
 
 
 def test_uiuc_apcsf_ct_j_rms_within_reregistered_tolerance():
-    """§20.2: after windmill physics, SF full-curve max RMS is ~0.017–0.018 (tol 0.020)."""
+    """§20.2: SF registered gate is 0.020 (aspirational 0.015 abandoned — see audit addendum)."""
     worst = max(_ct_rms("apcsf_9x4.7", f) for f in _sweep_files("apcsf_9x4.7"))
     assert worst <= CT_RMS_TOL_SF, worst
 
 
 def test_uiuc_apcsf_ct_j_attached_rms_within_reregistered_tolerance():
+    """Attached-window RMS is the driver; still gated at SF 0.020 (not 0.015)."""
     worst = max(
         _ct_rms("apcsf_9x4.7", f, attached_only=True) for f in _sweep_files("apcsf_9x4.7")
     )
     assert worst <= CT_RMS_TOL_SF, worst
+    # Honesty stamp: attached RMS does not meet the old 0.015 aspirational tol.
+    assert worst > CT_RMS_TOL, worst
 
 
 def test_bemt_allows_negative_thrust_in_windmill():

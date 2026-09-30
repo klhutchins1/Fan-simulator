@@ -38,15 +38,15 @@ session.**
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
-9. **§20 external feature radar** — ~~20.1~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
-   20.2 NeuralFoil stays **opt-in** (do **not** flip UIUC default); 20.7 is the hardware path for item 5.
+9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
+   NeuralFoil stays **opt-in** (do **not** flip UIUC default); 20.7 is the hardware path for item 5.
 
 **What's left (classify before starting a session):**
 
 - **Software remaining** (no hardware / no new CFD campaign required):
-  - §20.2 leftovers — aspirational RMS 0.015. CST Stage 2 parked.
-    Proven 360° α DONE (NF ±25° + Viterna). Table SF C_P known FAIL; NeuralFoil clears SF static C_T/C_P (opt-in only).
+  - CST Stage 2 (§20.2 Stage 1 investigate → parked). Do not unpark while table SF C_P stays unclaimed.
   - §7.4 depth / §4.5 Stage 2 — parked by priority, not blocked on missing code scaffolding.
+  - ~~§20.2 NeuralFoil / RMS / 360°~~ — DONE 2026-09-30 (SF RMS gate 0.020; aspirational 0.015 abandoned).
   - ~~§19.5+ ledger~~ — DONE 2026-09-30 (PROVEN=28, unregistered=0).
 
 - **Blocked on hardware / CFD campaign:**
@@ -864,22 +864,17 @@ the §19.1 spin / flow freeze.
   `export_step` in `geometry/export.py`; `export_print_ready(..., also_step=True)` writes a
   sibling `.step` next to every print STL (cockpit export + `export_finalists.py`). Opens in
   Fusion / Onshape / FreeCAD for hand edits. **[impact: low–med]** **[effort: low]**
-- [~] **20.2 NeuralFoil airfoil polars.** **Partial 2026-09-30** *(AeroSandbox, QBlade)* —
+- [x] **20.2 NeuralFoil airfoil polars.** **DONE 2026-09-30** *(AeroSandbox, QBlade)* —
   Spec/plan: `docs/superpowers/specs/2026-09-30-neuralfoil-polar-20-2-design.md`,
   `docs/superpowers/plans/2026-09-30-neuralfoil-polar-20-2.md`.
-  **Shipped this pass:** A/B `--residuals` (full vs attached RMS); BEMT windmill physics
-  (allow T&lt;0 / vi&lt;0); SF C_T(J) gate re-registered at **0.020** (E 9x6 keeps 0.015);
-  NeuralFoil stall/`cl_cap` + α band −25…25°; Prop Optimize honors polar backend picker.
-  **UIUC table stays the default** — NeuralFoil opt-in (CLI / cockpit / Optimize); do **not**
-  flip default (NeuralFoil SF sweep RMS still worse ~0.025).
-  **Still open:** aspirational 0.015 SF full-curve RMS.
-  **CST Stage 1:** `docs/superpowers/specs/2026-09-30-cst-section-investigate-design.md` → Stage 2 parked.
-  **SF static C_P (2026-09-30):** table backend remains known FAIL (~−21%, xfail); **NeuralFoil
-  opt-in clears SF static C_T+C_P** within Audit #3 tols — not a reason to flip the default
-  (sweeps still worse on NeuralFoil). No table Cd fudge.
-  **Proven 360° α (2026-09-30):** NeuralFoil-native ±25°; Viterna–Corrigan extension to ±180°
-  with CD_MAX at ±90° (raw NF past ±25° is unphysical — not claimed). Tests in
-  `tests/test_neuralfoil_polars.py`.
+  **Shipped:** A/B `--residuals`; BEMT windmill (T&lt;0 / vi&lt;0); SF C_T(J) gate **0.020**
+  (E 9x6 keeps 0.015); NeuralFoil stall/`cl_cap` + NF ±25° + Viterna 360°; Prop Optimize
+  honors polar backend; SF static C_P split (table FAIL / NeuralFoil PASS).
+  **UIUC table stays the default** — do **not** flip (NeuralFoil SF sweep RMS ~0.027).
+  **Aspirational SF 0.015 abandoned** — attached bias ~0.018; clearing needs camber≈0.06
+  datasheet fit (forbidden). Table SF static C_P remains known FAIL / not claimed.
+  **CST Stage 1** investigate → Stage 2 parked (separate; not required for §20.2 Adopt).
+  **[impact: high]** **[effort: med]**
 - [x] **20.3 Spanwise + blade-to-blade CFD post-processing.** **DONE 2026-09-30** —
   `fansim/cfd/spanwise.py`: circumferentially averaged p0 / Uz / swirl + incidence/deviation
   vs radius; blade-to-blade Cp at 3–5 span stations. Reuses midplane reconstruct readiness.

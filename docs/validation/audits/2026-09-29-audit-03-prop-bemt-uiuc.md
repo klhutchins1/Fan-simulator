@@ -123,6 +123,22 @@ flat-plate Cd at ±90°; reverse flow near ±180° mirrors back onto the NF band
 alone is finite but unphysical past ±25° (Cd≪1 at 90°) — not claimed. Evidence:
 `tests/test_neuralfoil_polars.py`.
 
+**§20.2 aspirational SF C_T(J) RMS 0.015 — abandoned (2026-09-30):**
+
+Live `scripts/audit_bemt_polar_ab.py --residuals` (table, camber=0.04):
+
+| metric | value | notes |
+|---|---|---|
+| max RMS_full | **0.0175** | worst file kt1033 @ 4008 rpm |
+| max RMS_attached | **0.0188** | attached worse than full |
+| windmill SSE share | **5.9%** | not the driver |
+| systematic e_CT | ~−0.015…−0.020 | across attached J |
+
+NeuralFoil max RMS_full ≈ **0.027** (worse). Camber sensitivity (table, full-curve max RMS):
+0.04→0.0175, 0.05→0.0165, 0.06→0.0154, **0.07→0.044** (blow-up). Clearing ≤0.015 requires
+tuning the unknown section camber into a narrow pocket — forbidden datasheet fit. **Registered
+SF gate stays 0.020**; E 9x6 keeps 0.015. Aspirational SF 0.015 is not claimed.
+
 
 ### Addendum 2026-09-30: station thickness + NeuralFoil A/B
 

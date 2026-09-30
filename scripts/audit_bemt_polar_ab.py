@@ -32,7 +32,7 @@ _PROPS = {"apcsf_9x4.7": 9.0, "apce_9x6": 9.0}
 CT_STATIC_TOL = 0.15
 CP_STATIC_TOL = 0.20
 CT_RMS_TOL = 0.015       # APC E 9x6
-CT_RMS_TOL_SF = 0.020    # APC SF 9x4.7 re-registered 2026-09-30 (§20.2)
+CT_RMS_TOL_SF = 0.020    # APC SF 9x4.7 registered (§20.2; aspirational 0.015 abandoned)
 
 
 def _static(prefix: str) -> tuple[float, float]:

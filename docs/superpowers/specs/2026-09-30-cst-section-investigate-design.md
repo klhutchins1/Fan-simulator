@@ -43,8 +43,9 @@ thin TE / LE from aggressive coefficients — reuse existing thickness / printab
 
 Reasons:
 
-1. SF static **C_P** and aspirational **0.015** C_T(J) RMS are still open on the **table** path —
-   more section freedom before those clear invites datasheet-fitting noise.
+1. SF static **C_P** still open on the **table** path (aspirational SF C_T(J) **0.015**
+   abandoned 2026-09-30; registered gate is 0.020) — more section freedom before C_P is
+   claimed or explicitly abandoned invites datasheet-fitting noise.
 2. NeuralFoil opt-in just landed; CST needs a polar backend contract (which backend, how Design
    edits coefficients, how Stock/UIUC regression stays frozen).
 3. Optimizer DOF count jumps (typically 6–12 CST coeffs × stations) — needs a search-space
