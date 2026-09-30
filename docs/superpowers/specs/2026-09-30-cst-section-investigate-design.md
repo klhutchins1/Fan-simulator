@@ -39,24 +39,21 @@ thin TE / LE from aggressive coefficients — reuse existing thickness / printab
 
 ## Go / no-go
 
-**No-go for Stage 2 right now.**
+**No-go for Stage 2 — not adopted (2026-09-30).**
 
-Reasons:
+Cleared from active software scope. Table SF static C_P is explicitly **unclaimed** (xfail),
+but reasons 2–3 still block a greenlight:
 
-1. SF static **C_P** still open on the **table** path (aspirational SF C_T(J) **0.015**
-   abandoned 2026-09-30; registered gate is 0.020) — more section freedom before C_P is
-   claimed or explicitly abandoned invites datasheet-fitting noise.
-2. NeuralFoil opt-in just landed; CST needs a polar backend contract (which backend, how Design
-   edits coefficients, how Stock/UIUC regression stays frozen).
-3. Optimizer DOF count jumps (typically 6–12 CST coeffs × stations) — needs a search-space
-   design and surrogate story (§20.5) before NSGA on raw CST.
+1. ~~SF C_P / aspirational 0.015~~ — C_P unclaimed; 0.015 abandoned; not a reason to start CST.
+2. NeuralFoil opt-in needs a frozen CST polar-backend contract (Design coeffs, Stock/UIUC freeze).
+3. Optimizer DOF jump (6–12 CST coeffs × stations) needs a bound proposal beyond §20.5.
 
-**Revisit Stage 2 when:** SF C_P is claimed or explicitly abandoned; NeuralFoil (or CST-native)
-backend has a frozen contract test; and a short Optuna bound proposal exists.
+**Revisit Stage 2 only with a fresh Adopt** that addresses (2) and (3). Until then: no
+`SectionCST`, no Design coeff panel, no `--cst` Optuna bounds.
 
-## Stage 2 (parked) sketch
+## Stage 2 (not adopted) sketch
 
-Only if greenlit later:
+Only if a fresh Adopt lands later:
 
 1. `SectionCST` dataclass + `section_neuralfoil_cst(...)`  
 2. Prop Design: advanced panel (coeffs) defaulting off  

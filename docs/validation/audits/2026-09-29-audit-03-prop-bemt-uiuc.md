@@ -116,6 +116,9 @@ under-drag / low CP/CT vs UIUC (not a Cd fudge). **NeuralFoil opt-in clears SF s
 C_P** within Audit #3 tols (CT ~−9.5%, CP ~−14.9%); regression:
 `test_uiuc_apcsf_static_neuralfoil_within_tolerance`. Table stays default; do not flip while
 SF C_T(J) sweeps are worse on NeuralFoil. No datasheet Cd scale on the table path.
+**Table SF static C_P is explicitly abandoned as a claim** (2026-09-30 close-out) — remains
+xfail for regression honesty; not a gate for further polar DOFs (CST Stage 2 still not adopted
+on contract/DOF grounds).
 
 **§20.2 proven 360° α (2026-09-30):** NeuralFoil-native band remains ±25°. Beyond that,
 Viterna–Corrigan (NREL AirfoilPrep form, AR=10 → CD_MAX≈1.29) extends to ±180° with

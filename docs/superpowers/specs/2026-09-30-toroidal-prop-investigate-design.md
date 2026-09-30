@@ -41,7 +41,7 @@ Cheap ranking without CFD would require a new reduced-order model we do not have
 
 ## Go / no-go
 
-**Recommendation: NO-GO on Stage 2 for now. Park implementation.**
+**Recommendation: NO-GO on Stage 2. Not adopted (cleared from active software 2026-09-30).**
 
 Rationale:
 
@@ -53,7 +53,8 @@ Rationale:
 **Revisit Stage 2 only when** (all soft gates, not a schedule promise):
 
 - Hardware P–Q / §5 path is moving, **or** open-prop MRF screening is clearly “good enough” and capacity opens for a novelty topology; **and**
-- Someone accepts CFD-first cost (no BEMT prescreen) plus FDM loop print trials.
+- Someone accepts CFD-first cost (no BEMT prescreen) plus FDM loop print trials; **and**
+- A fresh **Adopt** is written.
 
 Until then: **do not** start CadQuery toroidal geometry, cockpit Design knobs, or toroidal CFD smokes.
 
@@ -67,4 +68,4 @@ Until then: **do not** start CadQuery toroidal geometry, cockpit Design knobs, o
 ## What lands
 
 1. This design note under `docs/superpowers/specs/`.
-2. Roadmap §4.5 → Partial: Stage 1 DONE 2026-09-30; Stage 2 parked per this note.
+2. Roadmap §4.5 → Stage 1 DONE; Stage 2 **not adopted** (cleared from active software 2026-09-30).

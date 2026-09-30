@@ -37,16 +37,17 @@ session.**
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
-8. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
+8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
    NeuralFoil stays **opt-in** (do **not** flip UIUC default); 20.7 is the hardware path for item 5.
 
 **What's left (classify before starting a session):**
 
 - **Software remaining** (no hardware / no new CFD campaign required):
-  - CST Stage 2 (§20.2 Stage 1 investigate → parked). Do not unpark while table SF C_P stays unclaimed.
-  - §7.4 depth / §4.5 Stage 2 — parked by priority, not blocked on missing code scaffolding.
-  - ~~§20.2 NeuralFoil / RMS / 360°~~ — DONE 2026-09-30 (SF RMS gate 0.020; aspirational 0.015 abandoned).
+  - **None.** Active software scope is closed 2026-09-30.
+  - Deferred (Stage 1 done, Stage 2 **not adopted** — do not start without a new Adopt):
+    CST section DOFs, §7.4 CNN/FNO field predictor, §4.5 toroidal Prop topology.
+  - ~~§20.2 NeuralFoil / RMS / 360°~~ — DONE 2026-09-30.
   - ~~§19.5+ ledger~~ — DONE 2026-09-30 (PROVEN=28, unregistered=0).
 
 - **Blocked on hardware / CFD campaign:**
@@ -228,13 +229,12 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   3. **Parked (by design).** AMI not resumed until the preconditions above are met.
   4. **Done.** The 2163 W versus 388 W gap is the FPV 5×4.3×3 datasheet (650 W at 30 000 rpm, rpm³) applied to a radial impeller (hub 30.4 mm, tip 45.4 mm). Pressure moment is 0.812 N·m of 0.818 N·m. Do not retune the mesh to 388 W. Spec:
      `docs/superpowers/specs/2026-09-23-prop-obj2-power-gap-design.md`.
-- [~] **4.5 Toroidal propeller shapes — investigate then implement.** **Partial 2026-09-30.** **[impact: med]** **[effort: high]**
-  Closed-loop / ring-blade (Sharrow-style) props as an alternate topology under the Prop archetype —
-  not a conventional open blade loft. **Stage 1 (investigate): DONE 2026-09-30** — design note
-  `docs/superpowers/specs/2026-09-30-toroidal-prop-investigate-design.md` (printability, BEMT unsuitable →
-  CFD-first via §4.3 MRF, **no-go** vs open-blade Prop). **Stage 2 (implement): parked** per that note
-  until after hardware P–Q / higher-priority CFD capacity; do not start CadQuery / Design knobs / CFD smoke.
-  Park absolute noise / AMI until geometry is real.
+- [x] **4.5 Toroidal propeller shapes — investigate then implement.** **DONE (Stage 1 only) 2026-09-30.** **[impact: med]** **[effort: high]**
+  Closed-loop / ring-blade (Sharrow-style) props as an alternate topology under the Prop archetype.
+  **Stage 1 (investigate): DONE** — `docs/superpowers/specs/2026-09-30-toroidal-prop-investigate-design.md`
+  (printability, BEMT unsuitable → CFD-first via §4.3 MRF, **no-go** vs open-blade Prop).
+  **Stage 2 (implement): not adopted** — cleared from active software scope 2026-09-30; revisit only
+  after hardware P–Q / spare CFD capacity and a fresh Adopt. Do not start CadQuery / Design knobs / CFD smoke.
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 
@@ -307,8 +307,10 @@ Concrete, open-source / academically-usable methods found in the literature. The
   [tip-gap analysis](https://www.sciencedirect.com/science/article/abs/pii/S0045793019300088),
   [energy dissipation in the blade tip region](https://www.sciencedirect.com/science/article/abs/pii/S0022460X16302772).
 - [x] **7.4 ML / kriging surrogate tier (stage 1). DONE 2026-09-13** **[impact: high]** **[effort: med-high]**
-  `--surrogate-prescreen` / GP on catalog DB wired in `study.py` (`tests/test_surrogate_catalog.py`).
-  Remaining: CNN/FNO field predictor (§7.4 depth) — **after** Phase 1–5 sequence above. Refs:
+  `--surrogate-prescreen` / GP on catalog DB wired in `study.py` (`tests/test_surrogate_catalog.py`);
+  §20.5 surrogate-guided search also DONE. **§7.4 depth (CNN/FNO field predictor): not adopted** —
+  cleared from active software scope 2026-09-30 (priority after Phase 1–5 / hardware, not a scaffolding
+  gap). Refs:
   [ML-in-CFD-for-turbomachinery review](https://doi.org/10.3390/ijtpp7020016),
   [C(NN)FD deep-learning turbomachinery CFD](https://arxiv.org/pdf/2306.05889),
   [airfoil ML + surrogate modelling](https://pmc.ncbi.nlm.nih.gov/articles/PMC11024608/). → speeds §1, the optimizer.
@@ -873,7 +875,8 @@ the §19.1 spin / flow freeze.
   **UIUC table stays the default** — do **not** flip (NeuralFoil SF sweep RMS ~0.027).
   **Aspirational SF 0.015 abandoned** — attached bias ~0.018; clearing needs camber≈0.06
   datasheet fit (forbidden). Table SF static C_P remains known FAIL / not claimed.
-  **CST Stage 1** investigate → Stage 2 parked (separate; not required for §20.2 Adopt).
+  **CST Stage 1** investigate → Stage 2 **not adopted** (cleared from active software 2026-09-30;
+  DOF / polar-contract risks remain even with table SF C_P explicitly unclaimed).
   **[impact: high]** **[effort: med]**
 - [x] **20.3 Spanwise + blade-to-blade CFD post-processing.** **DONE 2026-09-30** —
   `fansim/cfd/spanwise.py`: circumferentially averaged p0 / Uz / swirl + incidence/deviation
