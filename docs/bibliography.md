@@ -143,7 +143,9 @@ Legend: **→ code** points at the module/script that implements or relies on th
 - **Sim→print penalty — printed-impeller performance & blade-thickness effects:**
   [tip-vortex manipulators, num vs experimental on a printed condenser fan (arXiv:2309.13195)](https://arxiv.org/pdf/2309.13195);
   [experimental blade-thickness effects on axial-fan performance](https://www.academia.edu/70824092/Experimental_study_of_blade_thickness_effects_on_the_global_and_the_local_performances_of_axial_flow_fans).
-  **→ code:** `fansim/optimize/print_penalty.py` (CFM/η knockdown; provisional until §5 hardware, §1.3/§7.6).
+  **→ code:** `fansim/optimize/print_penalty.py` — `PRINT_K_CFM≈0.95` (printed vs smooth order from
+  arXiv), η 0.92→0.96 with tip thickness, heuristic `k_fsi` (spec
+  `2026-09-08-fsi-tip-deflection-design`). Provisional until §5 hardware (§1.3/§7.6/§19.18).
 - **Swept / sickle (forward-swept) cooling-fan noise** — automotive cooling-fan studies motivating the
   sickle planform's noise trade (URANS-LES+FW-H serrated/swept fans; see the §3 applied list and the
   plan history for the specific DOIs — re-verify before publication). **→ code:** `apply_sickle` /

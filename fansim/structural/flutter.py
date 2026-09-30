@@ -2,6 +2,9 @@
 
 Treat the blade as a uniform rectangular cantilever of mid-span chord × thickness. This is not
 flutter derivatives or FEA — it only catches TPU / extreme RPM / long-span pathologies.
+
+Wide plates (span/chord ≲ :data:`~fansim.structural.deflection.BEAM_ASPECT_MIN`) stamp
+``beam_regime_ok=False`` without failing the resonance gate alone (§19.18).
 """
 
 from __future__ import annotations
@@ -11,6 +14,7 @@ from dataclasses import dataclass
 
 from fansim.geometry.blade import BladeParams
 from fansim.manufacturability.materials import MATERIALS
+from fansim.structural.deflection import BEAM_ASPECT_MIN, beam_aspect_ratio
 from fansim.structural.stress import FDM_E_K
 
 MM_TO_M = 1.0e-3
@@ -26,6 +30,8 @@ class FlutterReport:
     bpf_hz: float
     margin: float
     reason: str = ""
+    beam_aspect: float = float("inf")
+    beam_regime_ok: bool = True
 
 
 def _mid_station(params: BladeParams):
@@ -101,6 +107,8 @@ def flutter_report(
     bpf = params.n_blades * rpm_hz
     margin = f1 / bpf if bpf > 1e-9 else float("inf")
     ok = margin >= min_margin
+    aspect = beam_aspect_ratio(params, station="mid")
+    regime = aspect >= BEAM_ASPECT_MIN
     reason = ""
     if not ok:
         reason = resonance_user_message(
@@ -112,4 +120,9 @@ def flutter_report(
             n_blades=int(params.n_blades),
             rpm=float(params.rpm),
         )
-    return FlutterReport(ok, f1, rpm_hz, bpf, margin, reason)
+    elif not regime:
+        reason = (
+            f"WARN beam regime: mid span/chord={aspect:.2f} < {BEAM_ASPECT_MIN} "
+            f"(wide plate; f1 is order-of-magnitude only — §19.18)"
+        )
+    return FlutterReport(ok, f1, rpm_hz, bpf, margin, reason, aspect, regime)

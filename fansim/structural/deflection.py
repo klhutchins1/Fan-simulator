@@ -12,6 +12,10 @@ Root bending stress under the same load (roadmap §19.17):
 
 Reject when δ ≥ leftover tip gap (rub / catastrophic leakage risk). Not FEA,
 not coupled OpenFOAM FSI — same order-of-magnitude class as the flutter gate.
+
+Euler-Bernoulli is out of regime for wide plates (span/chord ≲
+:data:`BEAM_ASPECT_MIN`); reports stamp ``beam_regime_ok`` but do **not** fail the
+gate on aspect alone (§19.18). Absolute trust still needs shell FEA / tap test.
 """
 
 from __future__ import annotations
@@ -23,6 +27,8 @@ from fansim.manufacturability.materials import MATERIALS
 from fansim.structural.stress import FDM_E_K, LAYER_ADHESION_K
 
 MM_TO_M = 1.0e-3
+# Classical slender-beam floor; Audit #5 Stock tip aspect ≈ 1.0 (wide plate).
+BEAM_ASPECT_MIN = 1.5
 
 
 @dataclass
@@ -34,7 +40,8 @@ class DeflectionReport:
     load_pa: float
     reason: str = ""
     e_fdm_knockdown: float = 1.0
-
+    beam_aspect: float = float("inf")
+    beam_regime_ok: bool = True
 
 @dataclass
 class RootBendingReport:
@@ -50,6 +57,22 @@ class RootBendingReport:
 
 def _tip_station(params: BladeParams):
     return max(params.stations, key=lambda s: float(s.r_frac))
+
+
+def beam_aspect_ratio(params: BladeParams, *, station: str = "tip") -> float:
+    """Span / chord at tip or mid station. Values ≲ :data:`BEAM_ASPECT_MIN` are plate-like."""
+    span_mm = max(float(params.tip_radius) - float(params.hub_radius), 1.0)
+    if station == "mid":
+        st = min(params.stations, key=lambda s: abs(float(s.r_frac) - 0.5))
+    else:
+        st = _tip_station(params)
+    chord = max(float(st.chord), 1e-3)
+    return span_mm / chord
+
+
+def beam_regime_ok(params: BladeParams, *, station: str = "tip") -> bool:
+    """True when Euler-Bernoulli is a plausible model for this planform."""
+    return beam_aspect_ratio(params, station=station) >= BEAM_ASPECT_MIN
 
 
 def _fdm_e_factor(material: str) -> float:
@@ -154,6 +177,8 @@ def deflection_report(
     frac = delta / gap if gap > 1e-9 else float("inf")
     ok = delta < gap
     e_k = _fdm_e_factor(material)
+    aspect = beam_aspect_ratio(params, station="tip")
+    regime = aspect >= BEAM_ASPECT_MIN
     reason = ""
     if not ok:
         reason = (
@@ -162,4 +187,11 @@ def deflection_report(
             f"Fix: raise tip Thickness, shorten Tip radius, stiffer material, "
             f"or ease the hose Pa."
         )
-    return DeflectionReport(ok, delta, gap, frac, float(load_pa), reason, e_k)
+    elif not regime:
+        reason = (
+            f"WARN beam regime: tip span/chord={aspect:.2f} < {BEAM_ASPECT_MIN} "
+            f"(wide plate; Euler-Bernoulli is order-of-magnitude only — §19.18)"
+        )
+    return DeflectionReport(
+        ok, delta, gap, frac, float(load_pa), reason, e_k, aspect, regime,
+    )

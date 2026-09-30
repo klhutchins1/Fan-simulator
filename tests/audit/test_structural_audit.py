@@ -310,3 +310,20 @@ def test_fdm_min_wall_is_thickness_times_chord_in_mm():
     assert rep.min_section_thickness_mm == pytest.approx(0.5)
     assert not rep.printable
     assert check_printability(prismatic(chord_mm=10.0, t_frac=0.10)).printable
+
+
+def test_stock_wide_plate_stamps_beam_regime_warn():
+    """§19.18: Stock aspect < 1.5 → beam_regime_ok False; gates still pass."""
+    from pathlib import Path
+
+    from fansim.geometry.config import load_blade_params
+    from fansim.structural.deflection import BEAM_ASPECT_MIN, beam_aspect_ratio
+
+    stock = load_blade_params(Path("config/problems/a12x25_reference.yaml"))
+    assert beam_aspect_ratio(stock, station="tip") < BEAM_ASPECT_MIN
+    assert beam_aspect_ratio(stock, station="mid") < BEAM_ASPECT_MIN
+    d = deflection_report(stock, tip_gap_mm=0.5, material="PETG", load_pa=10.0)
+    assert d.ok and not d.beam_regime_ok
+    f = flutter_report(stock, material="PETG")
+    assert f.ok and not f.beam_regime_ok
+    assert f.margin >= 1.2

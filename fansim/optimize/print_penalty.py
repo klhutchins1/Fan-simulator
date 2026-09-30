@@ -1,8 +1,21 @@
-"""Sim→print knockdown: report printed CFM/eta from smooth-wall RANS (roadmap §7.6)."""
+"""Sim→print knockdown: report printed CFM/eta from smooth-wall RANS (roadmap §7.6).
+
+Constants are provisional engineering factors (not fitted to our hardware). Sources:
+
+* ``PRINT_K_CFM`` ≈ 0.95 — printed vs smooth CFD free-air drop order from tip-vortex /
+  roughness studies on FDM condenser fans (arXiv:2309.13195; see bibliography
+  "Sim→print penalty").
+* ``PRINT_K_ETA`` 0.92→0.96 with tip thickness — blade-thickness robustness lever from
+  axial-fan thickness experiments (Academia 70824092 / bibliography same entry).
+* ``k_fsi`` = max(0.90, 1 − 0.5·δ/gap) — heuristic FSI tip-leakage multiplier
+  (spec ``2026-09-08-fsi-tip-deflection-design``); not a measured transfer function.
+
+Recalibrate against §5 bench data before treating stamped CFM/η as absolute.
+"""
 
 from __future__ import annotations
 
-PRINT_K_CFM = 0.95    # printed free/load CFM / smooth-wall CFM
+PRINT_K_CFM = 0.95    # printed free/load CFM / smooth-wall CFM (arXiv:2309.13195 order)
 PRINT_K_ETA = 0.92    # printed efficiency / smooth-wall efficiency (thin tip)
 PRINT_K_ETA_THICK = 0.96  # thick-tip milder η knockdown (robustness lever)
 PRINT_T_THIN = 0.04   # tip thickness ≤ this → full η knockdown

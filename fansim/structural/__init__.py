@@ -12,8 +12,11 @@ from fansim.structural.balance import (
 )
 from fansim.structural.stress import CentrifugalReport, centrifugal_root_stress
 from fansim.structural.deflection import (
+    BEAM_ASPECT_MIN,
     DeflectionReport,
     RootBendingReport,
+    beam_aspect_ratio,
+    beam_regime_ok,
     deflection_report,
     root_bending_stress,
     tip_deflection_mm,
@@ -21,10 +24,13 @@ from fansim.structural.deflection import (
 )
 
 __all__ = [
+    "BEAM_ASPECT_MIN",
     "CentrifugalReport",
     "centrifugal_root_stress",
     "DeflectionReport",
     "RootBendingReport",
+    "beam_aspect_ratio",
+    "beam_regime_ok",
     "deflection_report",
     "root_bending_stress",
     "tip_deflection_mm",

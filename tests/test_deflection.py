@@ -83,3 +83,36 @@ def test_print_penalty_small_deflection_keeps_base_cfm():
     )
     assert stamps["print_k_fsi"] == pytest.approx(1.0)
     assert stamps["print_k_cfm"] == pytest.approx(PRINT_K_CFM)
+
+
+def test_stock_blade_flags_beam_regime_warn():
+    """§19.18: Stock tip aspect ≈ 1.0; gate still passes but stamps regime WARN."""
+    from pathlib import Path
+
+    from fansim.geometry.config import load_blade_params
+    from fansim.structural.deflection import BEAM_ASPECT_MIN, beam_aspect_ratio
+    from fansim.structural.flutter import flutter_report
+
+    stock = load_blade_params(Path("config/problems/a12x25_reference.yaml"))
+    assert beam_aspect_ratio(stock, station="tip") < BEAM_ASPECT_MIN
+    r = deflection_report(stock, tip_gap_mm=0.5, load_pa=10.0)
+    assert r.ok
+    assert r.beam_regime_ok is False
+    assert "WARN beam regime" in r.reason
+    fr = flutter_report(stock)
+    assert fr.ok  # margin still clears 1.2× BPF
+    assert fr.beam_regime_ok is False
+    assert "WARN beam regime" in fr.reason
+
+
+def test_slender_beam_regime_ok():
+    """Prismatic long span clears BEAM_ASPECT_MIN and leaves reason empty when gate passes."""
+    from fansim.geometry.blade import RadialStation
+    from fansim.structural.deflection import BEAM_ASPECT_MIN, beam_aspect_ratio
+
+    sts = [RadialStation(r, 8.0, 30.0, thickness=0.10) for r in (0.0, 0.5, 1.0)]
+    slender = replace(BladeParams(), stations=sts, hub_radius=20.0, tip_radius=60.0)
+    assert beam_aspect_ratio(slender, station="tip") >= BEAM_ASPECT_MIN
+    r = deflection_report(slender, tip_gap_mm=5.0, load_pa=1.0)
+    assert r.ok and r.beam_regime_ok
+    assert r.reason == ""

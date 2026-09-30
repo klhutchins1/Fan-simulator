@@ -804,7 +804,12 @@ follow under `docs/superpowers/specs/`.
   `δ = P L³/(3EI)`; both gated/exported. `RESIN` added to `MATERIALS` so the isotropic-E
   branch is live; unused `mat` lookup removed. Uneven-spacing mass pairing was fixed in Audit #5.
   **[impact: low]** **[effort: low]**
-- [ ] **19.18 Beam models unvalidated on real blades (Audit #5).** **[impact: med]** **[effort: high]** Deflection / f1 pass closed-form verification but the Stock v2 blade is a wide tapered plate (aspect ratio < 1.5, chord up to 50 mm on a 33 mm span) where Euler-Bernoulli beams are out of regime, and Stock's f1/BPF margin is only 1.29 vs the 1.2 gate. Compare against a shell FEA or a printed-blade tap test before trusting the gate. `print_penalty` k_fsi/0.95/0.92 constants are unsourced.
+- [~] **19.18 Beam models unvalidated on real blades (Audit #5).** **Partial 2026-09-30** —
+  regime stamp shipped (`beam_aspect_ratio`, `BEAM_ASPECT_MIN=1.5`; Stock tip aspect ≈ 0.98
+  WARN on deflection/flutter without failing the gate). `print_penalty` constants cited to
+  arXiv:2309.13195 / thickness study + FSI design note (still provisional pending §5).
+  Still open: shell FEA or printed-blade tap test before trusting absolute δ / f1.
+  **[impact: med]** **[effort: high]**
 - [ ] **19.13 FAN-01 benchmark follow-ups.** **[effort: med]** Model the rig's downstream chamber/struts; mesh
   ladder at 126 Pa; measured tip gap is 2.11 mm vs 2.5 published (check extraction tip radius).
 - [ ] **19.5+ Later audits** (each: verification → validation → claims):

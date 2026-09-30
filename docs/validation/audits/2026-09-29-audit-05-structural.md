@@ -15,9 +15,9 @@ equations correctly, with consistent units and defensible material data?
   1e-9 and a Hermite FE eigenvalue to < 1% (tolerance 1%). It is not aeroelastic flutter (the docstring says so).
 - **structural.balance: PASS after one bug fix.** Sums, F = U w^2, couple, counterweight, equal and generated uneven
   spacings all exact. Bug found and fixed (below).
-- **Absent, not verifiable:** no tip-point-load function and no root bending stress sigma = M c / I exist in the code.
-  Point-load PL^3/(3EI) was verified only on the FE harness (0.1%) so the harness is trustworthy; sigma = Mc/I is a
-  roadmap gap (19.17).
+- **Absent (closed 2026-09-30 / §19.17):** tip point-load δ = P L³/(3EI) and root bending
+  σ = M c / I now exist (`tip_deflection_point_load_mm`, `root_bending_stress`); `RESIN` is in
+  `MATERIALS`.
 - **Not validated against reality:** the models are verified against textbook beam theory, not against a printed blade
   or FEA. The Stock v2 blade is a wide tapered plate (aspect ratio < 1.5), where Euler-Bernoulli beam theory is out
   of its regime. Verification here does not show the numbers are right for the real blade (19.18).
@@ -114,3 +114,13 @@ for Stock.
 | structural.balance | PASS (after fix) |
 
 Ledger: the four units are recorded PASS. The physics-vs-reality gap is tracked in roadmap 19.17 / 19.18.
+
+### Addendum 2026-09-30 (§19.17 / §19.18)
+
+- **19.17 closed:** `root_bending_stress` (σ = M c / I) and `tip_deflection_point_load_mm`
+  (δ = P L³ / 3EI) live; `RESIN` in `MATERIALS`; unused `mat` lookup removed.
+- **19.18 partial:** `beam_aspect_ratio` / `BEAM_ASPECT_MIN = 1.5`. Stock tip aspect ≈ 0.98,
+  mid ≈ 1.31 → `beam_regime_ok=False` with WARN reason on `deflection_report` /
+  `flutter_report` (gate `ok` unchanged). Print-penalty constants documented against
+  bibliography Sim→print refs + FSI design note; still provisional pending §5 hardware.
+  Absolute δ / f1 trust still needs shell FEA or a printed-blade tap test.
