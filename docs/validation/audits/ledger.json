@@ -116,8 +116,8 @@
     },
     "propeller.bemt": {
       "date": "2026-09-30",
-      "fingerprint": "d81316a52dad7a5c",
-      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "fingerprint": "cb4624f645f58fc3",
+      "report": "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md",
       "verdict": "PASS"
     },
     "propeller.neuralfoil_polars": {

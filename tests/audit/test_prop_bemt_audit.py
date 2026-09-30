@@ -176,12 +176,31 @@ def test_uiuc_apce_9x6_ct_j_rms_within_preregistered_tolerance():
 
 @pytest.mark.xfail(
     strict=True,
-    reason="Audit #3: APC SF 9x4.7 C_P static still ~-21% after thickness fix (tol 20%); "
-    "C_T static now passes. NeuralFoil improves C_P but not C_T(J) RMS.",
+    reason="§20.2 / Audit #3: table-backend APC SF 9x4.7 static C_P ~-21% (tol 20%); "
+    "C_T passes. Known table Cd under-drag on 6% SF — not claimed. NeuralFoil clears "
+    "SF static C_T/C_P (see test_uiuc_apcsf_static_neuralfoil_within_tolerance).",
 )
 def test_uiuc_apcsf_static_within_preregistered_tolerance():
+    """Table default: SF static C_T+C_P together — C_P still FAIL."""
     e_ct, e_cp = _static_errors("apcsf_9x4.7")
     assert abs(e_ct) <= CT_STATIC_TOL and abs(e_cp) <= CP_STATIC_TOL
+
+
+def test_uiuc_apcsf_static_neuralfoil_within_tolerance():
+    """§20.2: NeuralFoil opt-in clears SF static C_T and C_P (table C_P remains FAIL)."""
+    from fansim.propeller.bemt import get_polar_backend, set_polar_backend
+    from fansim.propeller.neuralfoil_polars import neuralfoil_available
+
+    if not neuralfoil_available():
+        pytest.skip("needs uv sync --extra neuralfoil")
+    prev = get_polar_backend()
+    try:
+        set_polar_backend("neuralfoil")
+        e_ct, e_cp = _static_errors("apcsf_9x4.7")
+    finally:
+        set_polar_backend(prev)
+    assert abs(e_ct) <= CT_STATIC_TOL, e_ct
+    assert abs(e_cp) <= CP_STATIC_TOL, e_cp
 
 
 def test_uiuc_apcsf_ct_j_rms_within_reregistered_tolerance():

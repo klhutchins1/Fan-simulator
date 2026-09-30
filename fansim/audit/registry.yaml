@@ -186,9 +186,10 @@ units:
     claim: >
       Prop BEMT (Prandtl tip loss, swirl, Re-aware polars, Prandtl-Glauert, windmill T/vi signed)
       never beats momentum theory; UIUC APC E 9x6 static C_T/C_P and C_T(J) RMS within Audit #3
-      tols; APC SF 9x4.7 static C_T and C_T(J) RMS (tol 0.020) PASS. SF static C_P remains a known
-      FAIL (not claimed).
-    source: {kind: datasheet, ref: "UIUC PropDB APC SF 9x4.7 / E 9x6; Audit #3 + §20.2 windmill addendum"}
+      tols; APC SF 9x4.7 static C_T and C_T(J) RMS (tol 0.020) PASS on the table default.
+      Table SF static C_P remains a known FAIL (~-21%, not claimed). NeuralFoil opt-in clears
+      SF static C_T and C_P within the same tols (regression test; not the process default).
+    source: {kind: datasheet, ref: "UIUC PropDB APC SF 9x4.7 / E 9x6; Audit #3 + §20.2 C_P split"}
     checks: [tests/audit/test_prop_bemt_audit.py, tests/test_bemt.py, tests/test_bemt_catalog.py]
     depends_on: [physics.air_properties]
 

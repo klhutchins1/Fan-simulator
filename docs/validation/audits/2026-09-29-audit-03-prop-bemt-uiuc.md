@@ -111,13 +111,12 @@ Slow Flyer. eta errors are inflated near the zero-thrust J where eta -> 0 (large
 **Overall verdict (2026-09-30 update):** thickness fix lands SF static **C_T** inside ±15%;
 SF **C_P** still FAIL on the table polar (~−21%). E 9x6 stays PASS on the original 0.015 C_T(J) gate.
 
-**§20.2 addendum (2026-09-30 evening):** windmill physics — drop `T = max(T,0)` and allow
-negative induced velocity so braking CT tracks UIUC. Diagnostic (`--residuals`): windmill points
-were ~37% of SSE; attached-only max RMS was still ~0.0185 (systematic ~−0.018 C_T bias from
-fixed camber=0.04 on unknown APC section — not datasheet-tuned). After the clamp removal, table
-SF **full-curve max C_T(J) RMS ~0.017–0.018**. Re-registered SF gate at **0.020** (keep 0.015 for
-E 9x6). NeuralFoil still worse on sweeps (~0.025); stays **opt-in**, table remains default.
-`propeller.bemt` stays NEW while SF static C_P fails. See `scripts/audit_bemt_polar_ab.py --residuals`.
+**§20.2 C_P split (2026-09-30):** table SF static C_P remains **FAIL** (~−21%, tol ±20%) —
+under-drag / low CP/CT vs UIUC (not a Cd fudge). **NeuralFoil opt-in clears SF static C_T and
+C_P** within Audit #3 tols (CT ~−9.5%, CP ~−14.9%); regression:
+`test_uiuc_apcsf_static_neuralfoil_within_tolerance`. Table stays default; do not flip while
+SF C_T(J) sweeps are worse on NeuralFoil. No datasheet Cd scale on the table path.
+
 
 ### Addendum 2026-09-30: station thickness + NeuralFoil A/B
 
@@ -135,6 +134,7 @@ looked up 12% polars for 6% UIUC blades. Passing mean station t/c:
 Fixes made from the observations: `PropPerf.figure_of_merit_raw` (unclipped FM) and `PropPerf.converged`
 (False if any element hits the 60-iteration cap; 3 of 16 SF and 1 of 16 E-9x6 static rows flagged);
 docstring now documents the Prandtl tip loss, no root loss, no Glauert correction; Prandtl/Glauert added to
-`docs/bibliography.md`. Two SF tests are `xfail(strict)` to keep the remaining FAIL on record
-(C_P static / C_T(J) RMS). Optional NeuralFoil backend: `set_polar_backend("neuralfoil")` /
+`docs/bibliography.md`. SF table static C_P remains `xfail(strict)`; SF C_T(J) uses re-registered
+tol 0.020 (passing). NeuralFoil SF static C_T/C_P has a dedicated passing test when the extra is
+installed. Optional NeuralFoil backend: `set_polar_backend("neuralfoil")` /
 `FANSIM_POLAR_BACKEND=neuralfoil` (`uv sync --extra neuralfoil`).

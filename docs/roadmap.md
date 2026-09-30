@@ -44,7 +44,8 @@ session.**
 **What's left (classify before starting a session):**
 
 - **Software remaining** (no hardware / no new CFD campaign required):
-  - §20.2 leftovers — proven 360° α; SF static C_P; aspirational RMS 0.015. CST Stage 2 parked.
+  - §20.2 leftovers — proven 360° α; aspirational RMS 0.015. CST Stage 2 parked.
+    Table SF C_P known FAIL; NeuralFoil clears SF static C_T/C_P (opt-in only).
   - §7.4 depth / §4.5 Stage 2 — parked by priority, not blocked on missing code scaffolding.
   - ~~§19.5+ ledger~~ — DONE 2026-09-30 (PROVEN=28, unregistered=0).
 
@@ -842,8 +843,8 @@ follow under `docs/superpowers/specs/`.
   Change-driven ledger clean: **PROVEN=28 / NEW=0**; polar backends + loading/prop/CROR noise +
   mixed BEM registered. Report: `docs/validation/audits/2026-09-30-audit-19-5-close.md`.
   - [x] axial **BEM pre-screen** — PROVEN as `fan.bem_prescreen` (Audit #4 / §19.16);
-  - [x] **prop BEMT vs UIUC** — PROVEN as `propeller.bemt` with narrowed claim (E 9x6 full;
-    SF C_T + C_T(J)@0.020; SF static C_P still known FAIL / xfail, not claimed);
+  - [x] **prop BEMT vs UIUC** — PROVEN as `propeller.bemt` (E 9x6 full; SF C_T + C_T(J)@0.020;
+    table SF static C_P known FAIL / not claimed; NeuralFoil opt-in clears SF static C_T+C_P);
   - [x] **acoustics** kernels — PROVEN (Audit #6); absolute dB(A) still §1.4 / hardware;
   - [x] **structural / deflection** — PROVEN (Audit #5); absolute δ/f1 still needs §19.18 FEA / §5;
   - [x] **CROR hub overhang** — `fit_cror_to_stl` + regression test; broader CROR/mixed CFD still open;
@@ -871,10 +872,11 @@ the §19.1 spin / flow freeze.
   NeuralFoil stall/`cl_cap` + α band −25…25°; Prop Optimize honors polar backend picker.
   **UIUC table stays the default** — NeuralFoil opt-in (CLI / cockpit / Optimize); do **not**
   flip default (NeuralFoil SF sweep RMS still worse ~0.025).
-  **Still open:** proven 360° α coverage; SF static C_P; aspirational 0.015 SF full-curve RMS.
-  **CST Stage 1 (2026-09-30):** investigate note
-  `docs/superpowers/specs/2026-09-30-cst-section-investigate-design.md` → **Stage 2 parked**
-  (no-go until SF C_P policy + NeuralFoil contract + Optuna bounds exist).
+  **Still open:** proven 360° α coverage; aspirational 0.015 SF full-curve RMS.
+  **CST Stage 1:** `docs/superpowers/specs/2026-09-30-cst-section-investigate-design.md` → Stage 2 parked.
+  **SF static C_P (2026-09-30):** table backend remains known FAIL (~−21%, xfail); **NeuralFoil
+  opt-in clears SF static C_T+C_P** within Audit #3 tols — not a reason to flip the default
+  (sweeps still worse on NeuralFoil). No table Cd fudge.
 - [x] **20.3 Spanwise + blade-to-blade CFD post-processing.** **DONE 2026-09-30** —
   `fansim/cfd/spanwise.py`: circumferentially averaged p0 / Uz / swirl + incidence/deviation
   vs radius; blade-to-blade Cp at 3–5 span stations. Reuses midplane reconstruct readiness.
