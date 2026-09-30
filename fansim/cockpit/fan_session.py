@@ -34,6 +34,7 @@ _EXPOSE = (
     ("fan_save_model", "save_model"),
     ("fan_delete_model", "delete_model"),
     ("fan_save_measurement", "save_measurement"),
+    ("fan_show_store_calibration", "show_store_calibration"),
     ("fan_hub_designs", "_hub_designs"),
     ("fan_active_spec", "active_spec"),
 )

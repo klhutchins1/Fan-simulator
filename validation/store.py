@@ -143,7 +143,10 @@ def calibration_from_store(store_dir: Path | str = STORE_DIR) -> Calibration:
             measured.append(MeasuredPoint(
                 rpm=m.get("rpm", 0.0), cfm=m.get("cfm"),
                 static_pressure_pa=m.get("static_pressure_pa"), noise_dba=m.get("noise_dba"),
-                source=m.get("source", ""), notes=m.get("notes", "")))
+                source=m.get("source", ""), notes=m.get("notes", ""),
+                restriction_id=m.get("restriction_id", "") or "",
+                dp_pa=m.get("dp_pa"), tach_rpm=m.get("tach_rpm"),
+                ambient_c=m.get("ambient_c"), humidity_pct=m.get("humidity_pct")))
             simulated.append({"cfm": rec.sim.get("cfm_free"),
                               "static_pressure_pa": rec.sim.get("static_pressure_pa"),
                               "noise_dba": rec.sim.get("noise_dba")})

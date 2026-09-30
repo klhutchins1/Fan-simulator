@@ -39,12 +39,29 @@ session.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** surrogate depth (§7.4 NN/FNO), absolute noise (§1.4), archetype CFD depth (§4.x).
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
-   20.2 NeuralFoil default still partial; 20.7 is the hardware path for item 5.
+   20.2 NeuralFoil stays **opt-in** (do **not** flip UIUC default); 20.7 is the hardware path for item 5.
+
+**What's left (classify before starting a session):**
+
+- **Software remaining** (no hardware / no new CFD campaign required):
+  - §20.2 — keep UIUC table default; NeuralFoil opt-in until SF C_T(J) RMS clears (do not flip default).
+  - §19.5+ ledger leftovers — `propeller.bemt` still NEW; polar-backend units still owed registration.
+  - §7.4 depth / §4.5 Stage 2 — parked by priority, not blocked on missing code scaffolding.
+
+- **Blocked on hardware / CFD campaign:**
+  - §5.1 / §5.2 / §20.7 — print+measure + low-cost P–Q rig (user hardware); ingest hooks exist.
+  - §1.4 — absolute calibrated dB(A) (bench mic **or** porous FW-H campaign); kernels already PROVEN.
+  - §1.5 — full P–Q / shut-off convergence (more CFD + hardware to claim datasheet).
+  - §4.3 — full compressible / AMI prop CFD (screening stages done; AMI parked).
+  - §19.6 — loaded-branch / near-stall (heavy CFD / cloud; URANS not viable on this PC).
+  - §19.13 — FAN-01 chamber/struts + mesh ladder at 126 Pa (CFD).
+  - §19.18 — shell FEA or printed-blade tap test (high effort / hardware) before absolute δ / f1.
 
 §8 / §9 / §10 / §12 / §13 stage-1 are **closed in code**. Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
 Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 **Do NOT** re-optimize tip-round or bio-features — tested null on flow AND noise.
 **Do NOT** datasheet-tune Stock from BEM (stagger candidate CFD +0.6 CFM only).
+**Do NOT** make NeuralFoil the polar default while SF C_T(J) RMS still FAIL.
 
 ---
 
@@ -65,10 +82,12 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   deflection / flutter modulus (`structural/deflection.py`, §10.11). Tests: `tests/test_stress.py`,
   `tests/test_deflection.py`. Remaining: full orthotropic FEA / first-mode flutter depth.
 - [ ] **1.4 Absolute noise (FW-H), fan + prop.** **[impact: med]** **[effort: high]**
-  Fan noise is a band-limited *relative* proxy (Curle/loading); prop noise is a *relative* analytic
-  proxy (`propeller/noise.py`). Both lack calibrated dB(A). A porous FW-H surface (GPU LBM) or a bench
-  mic would give absolute numbers. Tonal (BPF) is validated via uneven spacing; broadband is
-  coarse-grid-limited (~0.5 mm cells needed, >12 GB VRAM).
+  **Blocked on hardware or a porous FW-H campaign** — not on missing kernel code.
+  Audit #6: acoustics **kernels are PROVEN** (relative Curle/loading + prop analytic proxy). Fan noise
+  remains a band-limited *relative* proxy; prop noise (`propeller/noise.py`) is likewise *relative*.
+  **Still open:** absolute calibrated dB(A). A porous FW-H surface (GPU LBM) or a bench mic would give
+  absolute numbers. Tonal (BPF) is validated via uneven spacing; broadband is coarse-grid-limited
+  (~0.5 mm cells needed, >12 GB VRAM).
 - [ ] **1.5 Full P–Q curve + shut-off pressure + grid convergence** for the buildable a12x25 designs.
   **[impact: med]** **[effort: med]** **Partial (2026-09-14; free-air corrected 2026-09-18):** free-air mesh ladder + GCI at tip_gap 0.5 mm. The 2026-09-14 ladder read ~44.7 CFM but varied `base_cell` only and left the ~1.5 mm blade wall under-resolved; resolving it (surf3 + tail-mean) gives grid-converged **~48–51 CFM (Richardson ≈50.8, −15…−20% vs 60.1)**. tip/frame/wall_ks/stagger A/Bs documented. Stock multi-back P–Q at **0.5 mm** tip: shut-off **proxy ~24.0 Pa** (interim ±5 Pa **pass**; 18 Pa mildly unconverged). Free-air interim ±10% **still fail** (even corrected). Absolute shut-off still needs a converged Q→0 (or agreed) solve before datasheet claims. See `docs/validation/a12x25_pq_report.md` (correction banner) §9.
 - [x] **1.6 Low-Reynolds-number airfoils (stage 1). DONE 2026-09-13**
@@ -824,7 +843,9 @@ follow under `docs/superpowers/specs/`.
   - [~] **prop BEMT vs UIUC** — verification PASS; SF C_P / C_T(J) RMS still FAIL → `propeller.bemt` stays NEW (§19.15);
   - [x] **acoustics** kernels — PROVEN (Audit #6); absolute dB(A) still §1.4 / hardware;
   - [x] **structural / deflection** — PROVEN (Audit #5); absolute δ/f1 still needs §19.18 FEA / §5;
-  - **CROR and mixed-flow setups** (placement found a CROR hub overhang) — still open;
+  - [x] **CROR hub overhang** — `fit_cror_to_stl` expands dual-MRF bands past the hub cylinder;
+    regression in `tests/test_cror.py::test_fit_cror_to_stl_covers_hub_past_analytic_bands`.
+    Broader CROR/mixed CFD validation still open;
   - [x] **air-constant consolidation** — DONE (`fansim/physics/air.py` single source;
     `tests/audit/test_air_properties.py` blocks new local copies; 8 tests PASS 2026-09-30);
   - [x] **ledger refresh + unregistered triage** — DONE 2026-09-30: re-`record_pass` for 7 CHANGED
@@ -848,9 +869,11 @@ the §19.1 spin / flow freeze.
   Fusion / Onshape / FreeCAD for hand edits. **[impact: low–med]** **[effort: low]**
 - [~] **20.2 NeuralFoil airfoil polars.** **Partial 2026-09-30** *(AeroSandbox, QBlade)* —
   optional backend shipped (`fansim/propeller/neuralfoil_polars.py`, `--extra neuralfoil`);
-  default remains UIUC tables. A/B vs UIUC props in §19.15. Cockpit Prop tab has a polar-backend
-  picker (table / NeuralFoil). Still open: make NeuralFoil the default, 360° coverage claims,
-  CST section variables.
+  **UIUC table stays the default**; NeuralFoil is **opt-in** via CLI / cockpit picker.
+  A/B vs UIUC props in §19.15: NeuralFoil clears SF static C_T/C_P but **SF C_T(J) RMS still FAIL** —
+  **do not flip the default** until that clears. Cockpit Prop tab has a polar-backend picker
+  (table / NeuralFoil). Still open (after RMS): 360° coverage claims, CST section variables —
+  not “make NeuralFoil default.”
   Swap or back the UIUC/Selig tables (`fansim/data/polars`, `_cl_cd`) with NeuralFoil: any Re, 360°
   angle of attack, no non-convergence, smooth for gradients. Keep UIUC as the regression reference
   (§19.5 prop BEMT vs UIUC). Opens a later option: section shape (CST) as an optimizer variable.
@@ -880,11 +903,13 @@ the §19.1 spin / flow freeze.
   relative noise ranking, `cfm_at_matched_noise` PWM interp. Cockpit Fan Assess:
   “Score multi-point BEM (§20.6)” button. Ranking-only (not absolute CFM / calibrated dB(A)).
   **[impact: med]** **[effort: low–med]**
-- [ ] **20.7 Low-cost P–Q rig.** **[impact: critical]** **[effort: med, hardware]** *(every vendor tool's certified data)*
-  Build the `validation/rig.md` minimum rig: plenum box, swappable restriction plates, digital
-  differential-pressure sensor (e.g. Sensirion SDP810), tach, microcontroller logging straight into
-  `validation/ingest.py`. Unblocks Phase 5 / §5.1 and every absolute-number claim. User-side build;
-  code side = logger + ingest schema.
+- [~] **20.7 Low-cost P–Q rig.** **Partial 2026-09-30** **[impact: critical]** **[effort: med, hardware]** *(every vendor tool's certified data)*
+  **Code side DONE:** ingest optional rig fields (`restriction_id`, `dp_pa`, `tach_rpm`,
+  `ambient_c`, `humidity_pct`) + `scripts/rig_logger.py` (stdin / optional `--serial`) +
+  `scripts/calibrate_from_store.py` + cockpit Library **Show store calibration**. Docs:
+  `validation/rig.md`. **Still open (user hardware):** plenum box, swappable restriction plates,
+  digital DP sensor (e.g. Sensirion SDP810), tach, MCU. Unblocks Phase 5 / §5.1 and every
+  absolute-number claim once measured points exist. Do **not** check the box fully until then.
 
 ---
 

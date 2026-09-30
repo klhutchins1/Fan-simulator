@@ -19,7 +19,12 @@ from fansim.geometry.features import Features
 from fansim.optimize.presets import assess_load
 from fansim.optimize.search_space import stock_blade_flat
 from validation.ingest import MeasuredPoint
-from validation.store import make_design_id, record_measurement, sim_vs_real
+from validation.store import (
+    calibration_from_store,
+    make_design_id,
+    record_measurement,
+    sim_vs_real,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -181,6 +186,29 @@ def bind(session) -> None:
         )
         state.flush()
 
+    def show_store_calibration():
+        """Show aggregate sim→reality factors from validation/measurements/ in meas_msg."""
+        cal = calibration_from_store()
+        if cal.n_points == 0:
+            state.meas_msg = (
+                "Store calibration: no measured points yet "
+                "(save a measurement first, or log CSV via scripts/rig_logger.py)."
+            )
+        else:
+            def _fmt(v, kind="factor"):
+                if v is None:
+                    return "—"
+                return f"{v:+.2f} dB" if kind == "offset" else f"{v:.3f}"
+
+            state.meas_msg = (
+                f"Store calibration ({cal.n_points} point(s)): "
+                f"cfm×{_fmt(cal.cfm)}  "
+                f"static×{_fmt(cal.static_pressure)}  "
+                f"noise {_fmt(cal.noise_dba_offset, 'offset')}  "
+                f"(reality = factor × sim; dB is additive offset)."
+            )
+        state.flush()
+
     def on_plotly_click(trial=None):
         if isinstance(trial, (list, tuple)):
             trial = trial[0] if trial else None
@@ -320,5 +348,6 @@ def bind(session) -> None:
 
     session.select = select
     session.save_measurement = save_measurement
+    session.show_store_calibration = show_store_calibration
     session.on_plotly_click = on_plotly_click
     session.load_stock_reference = load_stock_reference

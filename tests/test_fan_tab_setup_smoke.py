@@ -92,7 +92,8 @@ def test_setup_fan_tab_binds_without_error(bound_ctx):
         "fan_on_scale_to_hub", "fan_seed_from_duty", "fan_randomize_geometry", "fan_randomize_features",
         "fan_select_library_design", "fan_on_library_scale_to_hub",
         "fan_load_model_into_form", "fan_save_model", "fan_delete_model",
-        "fan_save_measurement", "fan_hub_designs", "fan_active_spec",
+        "fan_save_measurement", "fan_show_store_calibration",
+        "fan_hub_designs", "fan_active_spec",
         "fan_score_multi_point_bem",
     ):
         assert callable(getattr(bound_ctx, name, None)), name

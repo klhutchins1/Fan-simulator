@@ -55,6 +55,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
     save_model = getattr(ctx, "fan_save_model")
     delete_model = getattr(ctx, "fan_delete_model")
     save_measurement = getattr(ctx, "fan_save_measurement")
+    show_store_calibration = getattr(ctx, "fan_show_store_calibration")
     do_preview = getattr(ctx, "fan_do_preview")
     on_assess = getattr(ctx, "fan_on_assess")
     score_multi_point_bem = getattr(ctx, "fan_score_multi_point_bem")
@@ -438,7 +439,24 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         hide_details=True,
                                         classes="mb-2",
                                     )
-                                    v3.VBtn("Save measurement", color="primary", size="small", block=True, click=(save_measurement,))
+                                    with v3.VRow(no_gutters=True, classes="mb-1"):
+                                        with v3.VCol(cols=7, classes="pr-1"):
+                                            v3.VBtn(
+                                                "Save measurement",
+                                                color="primary",
+                                                size="small",
+                                                block=True,
+                                                click=(save_measurement,),
+                                            )
+                                        with v3.VCol(cols=5, classes="pl-1"):
+                                            v3.VBtn(
+                                                "Show store calibration",
+                                                color="secondary",
+                                                variant="outlined",
+                                                size="small",
+                                                block=True,
+                                                click=(show_store_calibration,),
+                                            )
                                     html.Div("{{ meas_msg }}", classes="text-caption mt-2", style="white-space: pre-line")
 
                     with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):

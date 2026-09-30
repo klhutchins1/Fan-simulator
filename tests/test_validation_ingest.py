@@ -13,6 +13,23 @@ def test_load_measurements(tmp_path):
     assert len(pts) == 2
     assert pts[0].cfm == 54.0 and pts[0].source == "anemometer"
     assert pts[1].cfm is None and pts[1].noise_dba == 26.5   # blanks -> None
+    # Older CSVs omit rig extras — defaults stay empty / None
+    assert pts[0].restriction_id == "" and pts[0].dp_pa is None
+    assert pts[0].tach_rpm is None and pts[0].ambient_c is None
+
+
+def test_load_measurements_rig_extras(tmp_path):
+    csv = tmp_path / "rig.csv"
+    csv.write_text(
+        "rpm,cfm,static_pressure_pa,noise_dba,source,notes,"
+        "restriction_id,dp_pa,tach_rpm,ambient_c,humidity_pct\n"
+        "2000,45.0,12.0,38.0,sdp810,,plate3,12.3,1998,22.5,40\n"
+    )
+    pts = load_measurements(csv)
+    assert len(pts) == 1
+    p = pts[0]
+    assert p.restriction_id == "plate3" and p.dp_pa == 12.3
+    assert p.tach_rpm == 1998.0 and p.ambient_c == 22.5 and p.humidity_pct == 40.0
 
 
 def test_calibrate_factors():
