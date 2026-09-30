@@ -44,9 +44,9 @@ session.**
 **What's left (classify before starting a session):**
 
 - **Software remaining** (no hardware / no new CFD campaign required):
-  - §20.2 — table default kept; NeuralFoil opt-in complete. Remaining: CST / proven 360°; aspirational SF RMS 0.015; SF static C_P.
+  - §20.2 leftovers — proven 360° α; SF static C_P; aspirational RMS 0.015. CST Stage 2 parked.
   - §7.4 depth / §4.5 Stage 2 — parked by priority, not blocked on missing code scaffolding.
-  - ~~§19.5+ ledger~~ — DONE 2026-09-30 (PROVEN=28).
+  - ~~§19.5+ ledger~~ — DONE 2026-09-30 (PROVEN=28, unregistered=0).
 
 - **Blocked on hardware / CFD campaign:**
   - §5.1 / §5.2 / §20.7 — print+measure + low-cost P–Q rig (user hardware); ingest hooks exist.
@@ -871,8 +871,10 @@ the §19.1 spin / flow freeze.
   NeuralFoil stall/`cl_cap` + α band −25…25°; Prop Optimize honors polar backend picker.
   **UIUC table stays the default** — NeuralFoil opt-in (CLI / cockpit / Optimize); do **not**
   flip default (NeuralFoil SF sweep RMS still worse ~0.025).
-  **Still open:** CST section variables; proven 360° α coverage; SF static C_P; clearing the
-  aspirational 0.015 SF full-curve RMS without datasheet-tuning camber.
+  **Still open:** proven 360° α coverage; SF static C_P; aspirational 0.015 SF full-curve RMS.
+  **CST Stage 1 (2026-09-30):** investigate note
+  `docs/superpowers/specs/2026-09-30-cst-section-investigate-design.md` → **Stage 2 parked**
+  (no-go until SF C_P policy + NeuralFoil contract + Optuna bounds exist).
 - [x] **20.3 Spanwise + blade-to-blade CFD post-processing.** **DONE 2026-09-30** —
   `fansim/cfd/spanwise.py`: circumferentially averaged p0 / Uz / swirl + incidence/deviation
   vs radius; blade-to-blade Cp at 3–5 span stations. Reuses midplane reconstruct readiness.
