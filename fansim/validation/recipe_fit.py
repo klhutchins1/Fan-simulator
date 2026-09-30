@@ -37,8 +37,10 @@ def update_station(st: dict, built: dict, ref: dict, damping: float = DAMPING,
 
     ``st``: recipe fields (chord, stagger_deg, thickness, max_camber, camber_pos, sweep, skew, ...).
     ``built``/``ref``: measure_sections keys (chord_mm, stagger_deg, camber_ratio, camber_pos,
-    thickness_ratio). Targets: stagger and camber_pos additive (ref - built), chord / max_camber /
-    thickness multiplicative (ref / built); each move is damped toward its target and clamped.
+    thickness_ratio). Targets: stagger and camber_pos additive (ref - built); ``chord`` is the
+    *measured* chord target (blended toward ``ref["chord_mm"]`` — the builder realizes it under
+    cylindrical_tip); max_camber / thickness multiplicative (ref / built); each move is damped
+    toward its target and clamped.
     ``d_le_z_mm`` / ``d_skew_mm`` are (built - ref) LE offsets, applied only when adjusting.
     """
     b = BOUNDS if bounds is None else bounds
@@ -55,7 +57,7 @@ def update_station(st: dict, built: dict, ref: dict, damping: float = DAMPING,
     put("stagger_deg", _blend(st["stagger_deg"],
                               st["stagger_deg"] + (ref["stagger_deg"] - built["stagger_deg"]),
                               damping))
-    put("chord", _blend(st["chord"], st["chord"] * ref["chord_mm"] / built["chord_mm"], damping))
+    put("chord", _blend(st["chord"], ref["chord_mm"], damping))
     if built["camber_ratio"] > 1e-4:
         put("max_camber", _blend(st["max_camber"],
                                  st["max_camber"] * ref["camber_ratio"] / built["camber_ratio"],

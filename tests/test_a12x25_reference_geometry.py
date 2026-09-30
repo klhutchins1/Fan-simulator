@@ -24,16 +24,16 @@ def test_reference_blade_count_and_envelope():
     assert float(flat.get("te_thick_scale") or 1.0) == pytest.approx(0.2)
     assert int(flat.get("tip_notch_count") or 0) == 0
     assert float(flat.get("tip_notch_depth_mm") or 0.0) == pytest.approx(0.0)
-    # Stock recipe v2 (promoted 2026-09-29): section refit to the close-ref STL
-    # (previous recipe kept as a12x25_reference_v1.yaml: chord 10/16/28, stagger 30/52/23).
-    assert flat["chord_root"] == pytest.approx(17.7452)
-    assert flat["chord_mid"] == pytest.approx(26.956)
-    assert flat["chord_tip"] == pytest.approx(49.7851)
-    assert flat["stagger_root"] == pytest.approx(24.1259)
-    assert flat["stagger_mid"] == pytest.approx(28.6915)
-    assert flat["stagger_tip"] == pytest.approx(16.2628)
-    assert flat["skew_mid"] == pytest.approx(3.7372)
-    assert flat["skew_tip"] == pytest.approx(13.7985)
+    # Stock recipe v2 (§19.7): station chord = measured cylinder-cut chord (not loft).
+    # Previous loft-inflated tip (~49.8) kept as build-internal; YAML tip ~33.5.
+    assert flat["chord_root"] == pytest.approx(17.75, abs=0.05)
+    assert flat["chord_mid"] == pytest.approx(25.12, abs=0.1)
+    assert flat["chord_tip"] == pytest.approx(33.53, abs=0.1)
+    assert flat["stagger_root"] == pytest.approx(24.13, abs=0.05)
+    assert flat["stagger_mid"] == pytest.approx(28.69, abs=0.05)
+    assert flat["stagger_tip"] == pytest.approx(16.26, abs=0.05)
+    assert flat["skew_mid"] == pytest.approx(3.7372, abs=0.01)
+    assert flat["skew_tip"] == pytest.approx(13.7985, abs=0.01)
     assert flat["lean_tip"] == pytest.approx(33.0)
     assert flat["thick_mode"] == "tapered"
     tip_wall = float(flat["thickness_tip"]) * float(flat["chord_tip"])
@@ -146,11 +146,11 @@ def test_stock_cylinder_slices_near_reference():
     from fansim.optimize.search_space import stock_blade_flat
 
     flat = stock_blade_flat("a12x25")
-    # Recipe targets (Stock v2 section refit to the STL, 2026-09-29).
-    assert flat["chord_mid"] == pytest.approx(26.956, abs=0.5)
-    assert flat["chord_tip"] == pytest.approx(49.7851, abs=0.5)
-    assert flat["stagger_mid"] == pytest.approx(28.6915, abs=1.0)
-    assert flat["stagger_tip"] == pytest.approx(16.2628, abs=1.0)
+    # Recipe targets (§19.7 measured chords; absolute tip wall unchanged ~2.44 mm).
+    assert flat["chord_mid"] == pytest.approx(25.12, abs=0.5)
+    assert flat["chord_tip"] == pytest.approx(33.53, abs=0.5)
+    assert flat["stagger_mid"] == pytest.approx(28.69, abs=1.0)
+    assert flat["stagger_tip"] == pytest.approx(16.26, abs=1.0)
     assert float(flat["thick_mm"]) == pytest.approx(2.36, abs=0.3)
     assert flat["section_family"] == "plate"
     assert flat["lean_tip"] - flat.get("lean_mid", 0.0) == pytest.approx(19.0, abs=6.0)

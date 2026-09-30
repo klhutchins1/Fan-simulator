@@ -58,11 +58,11 @@ Recipe stations: `r_frac, chord, stagger_deg, max_camber, camber_pos, thickness,
 - r_frac=0.8443, chord=40.1135, stagger_deg=17.2416, max_camber=0.075, camber_pos=0.496, thickness=0.0616, sweep=-0.3279, skew=10.0436, lean_deg=26.5215
 - r_frac=1.0, chord=49.7851, stagger_deg=16.2628, max_camber=0.0654, camber_pos=0.5868, thickness=0.049, sweep=0.3578, skew=13.7985, lean_deg=33.0
 
-### Why recipe tip chord ≫ built (~70% realisation)
+### Station chord semantics (§19.7, 2026-09-30)
 
-Built tip chord matches the close-ref STL (±0.8 mm). The recipe tip chord is larger on purpose:
-`fit_recipe_to_stl` inflates station `chord` until the *measured* built section hits the STL target.
-Planar-tangent loft wires at `r ≈ tip_radius` put LE/TE corners at radial distance `sqrt(r² + t²) > tip`;
-`cylindrical_tip` then clips them, so a 50 mm recipe chord measures ~32 mm on a cylinder cut. This is
-geometry of the current builder, not a missed scale factor. Closing §19.7 means either teaching the
-builder an honest chord (pre-compensate or stream-surface wrap) or treating YAML chord as a fit knob.
+YAML / recipe `chord` is the **measured** cylinder-cut chord (mm). Under `cylindrical_tip`,
+planar-tangent loft wires put LE/TE corners outside `tip_radius`, so the builder raises an
+internal loft chord (and scales `thickness` / `max_camber` so absolute wall and camber height
+stay put) until the trimmed solid measures the YAML target. Tip measured ≈ 33.5 mm; loft tip
+≈ 49.6 mm (same solid as the former loft-inflated recipe). `fit_recipe_to_stl` now writes the
+measured chord directly — no YAML inflation knob.

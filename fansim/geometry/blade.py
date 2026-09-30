@@ -64,7 +64,7 @@ class RadialStation:
     """One spanwise control station. ``r_frac`` runs 0 (hub) to 1 (tip)."""
 
     r_frac: float
-    chord: float  # mm
+    chord: float  # mm — target *measured* cylinder-cut chord (builder may loft longer when cylindrical_tip)
     stagger_deg: float  # angle of chord to rotation plane
     thickness: float = 0.08  # fraction of chord
     max_camber: float = 0.02  # fraction of chord
@@ -517,8 +517,14 @@ def apply_tip_shape(params: BladeParams, tip_round: float = 0.0,
     return params
 
 
-def build_blade_solid(params: BladeParams) -> cq.Solid:
-    """Loft one blade solid from hub to tip (raising loft resolution for active features)."""
+def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False) -> cq.Solid:
+    """Loft one blade solid from hub to tip (raising loft resolution for active features).
+
+    When ``cylindrical_tip`` is on, station ``chord`` is treated as the desired *measured*
+    cylinder-cut chord; an internal fixed-point raises loft chord so the trimmed solid matches
+    (see ``fansim.geometry.chord_realisation``). Preview/screen lofts use the same realized chords
+    (measured at full loft density so low ``n_span`` does not under-compensate).
+    """
     cq = _cq()
     n_span = params.features.required_span_sections(params.n_span)
     # Extra inserted stations (winglet shoulder / tip rounding) live in the outer span; raise the
@@ -526,6 +532,16 @@ def build_blade_solid(params: BladeParams) -> cq.Solid:
     # Screen/preview loft (§13.22): do NOT bump — ``with_screen_loft`` already set n_span low on
     # purpose; bumping to 30 defeats Preview timing (tip-round was ~7.8 s vs stock ~2.3 s).
     screen = int(params.n_span) <= SCREEN_N_SPAN
+    if (
+        bool(getattr(params, "cylindrical_tip", True))
+        and not _chord_realized
+        and len(params.stations) >= 2
+    ):
+        from fansim.geometry.chord_realisation import prepare_loft_chords
+
+        # Screen/preview lofts also need realized loft chords — station.chord is the measured
+        # target; prepare_* measures at full loft density so screen n_span does not under-compensate.
+        return build_blade_solid(prepare_loft_chords(params), _chord_realized=True)
     if len(params.stations) > 3 and not screen:
         n_span = max(n_span, 30)
     if int(params.tip_notch_count or 0) > 0:
@@ -617,7 +633,15 @@ def _root_axial_span(params: BladeParams) -> tuple[float, float]:
 
 
 def tip_section_points(params: BladeParams) -> list[Vec]:
-    """The outermost control station's section loop — the chord the tip ring must swallow."""
+    """The outermost control station's section loop — the chord the tip ring must swallow.
+
+    With ``cylindrical_tip``, ``station.chord`` is the measured target; use the realized loft
+    station (same as ``build_blade_solid``) so the tip ring matches the lofted wire.
+    """
+    if bool(getattr(params, "cylindrical_tip", True)) and len(params.stations) >= 2:
+        from fansim.geometry.chord_realisation import prepare_loft_chords
+
+        params = prepare_loft_chords(params)
     st = max(params.stations, key=lambda s: s.r_frac)
     r = params.hub_radius - params.root_embed
     r = r + (params.tip_radius - r) * st.r_frac

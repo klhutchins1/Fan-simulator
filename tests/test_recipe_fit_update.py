@@ -19,7 +19,8 @@ def test_update_moves_damped_toward_target():
     d = DAMPING
     assert hit == []
     assert new["stagger_deg"] == pytest.approx(52.0 + d * (34.0 - 54.0))
-    assert new["chord"] == pytest.approx(16.0 + d * (16.0 * 24.0 / 15.0 - 16.0))
+    # chord is the measured target — blend toward ref chord_mm (builder realizes loft).
+    assert new["chord"] == pytest.approx(16.0 + d * (24.0 - 16.0))
     assert new["max_camber"] == pytest.approx(0.10 + d * (0.10 * 0.035 / 0.065 - 0.10))
     assert new["camber_pos"] == pytest.approx(0.40 + d * (0.47 - 0.42))
     assert new["thickness"] == pytest.approx(0.10 + d * (0.10 * 0.10 / 0.12 - 0.10))
@@ -30,11 +31,12 @@ def test_update_moves_damped_toward_target():
 def test_undamped_is_exact_correction_and_fixed_point_when_matched():
     new, _ = update_station(ST, BUILT, REF, damping=1.0)
     assert new["stagger_deg"] == pytest.approx(52.0 - 20.0)
-    assert new["chord"] == pytest.approx(16.0 * 24.0 / 15.0)
-    same, _ = update_station(ST, REF, REF)
+    assert new["chord"] == pytest.approx(24.0)
+    # Fixed point: recipe chord already equals the measured target and built matches ref.
+    matched = dict(ST, chord=REF["chord_mm"])
+    same, _ = update_station(matched, REF, REF)
     for k in ("chord", "stagger_deg", "thickness", "max_camber", "camber_pos"):
-        assert same[k] == pytest.approx(ST[k])
-
+        assert same[k] == pytest.approx(matched[k])
 
 def test_clamping_reports_hits():
     huge = dict(REF, chord_mm=1000.0, stagger_deg=-500.0)
@@ -42,7 +44,6 @@ def test_clamping_reports_hits():
     assert new["chord"] == BOUNDS["chord"][1]
     assert new["stagger_deg"] == BOUNDS["stagger_deg"][0]
     assert {"chord", "stagger_deg"} <= set(hit)
-
 
 def test_sweep_skew_adjust_only_when_asked_and_opposes_offset():
     new, _ = update_station(ST, BUILT, REF, adjust_sweep=True, adjust_skew=True,
