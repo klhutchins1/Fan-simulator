@@ -22,6 +22,23 @@ CFM (anemometer), relative pressure (manometer), and relative noise (phone mic, 
 Absolute accuracy is secondary; **matched A/B deltas** validate the *relative* rankings the whole
 project optimizes for (the honest north star).
 
+## Shopping list (low-cost — ranked)
+
+**You already have:** used A12x25 (~$15), PSU (~$15), printer + PLA/PETG.
+
+**Buy first (~$45):** laser tach + CFM anemometer. Without matched RPM, nothing calibrates.
+
+**Buy next (~$50):** dual-port digital manometer (Pa) + 0.01 g scale.
+
+**Defer:** ESP32 + Sensirion SDP810 (logger path); DIY plenum/orifice plates once single-point works.
+
+**Skip:** lab ±250 Pa meters, AMCA chambers, calibrated mics, shaft dynos.
+
+Full ranked table with example products / survey prices (2026-09):
+[`validation/hardware_bom.csv`](hardware_bom.csv).
+
+Ingest readings via cockpit **Record measurement** or `scripts/rig_logger.py` (columns below).
+
 ## Low-cost P–Q rig (§20.7 — hardware still open)
 Build when ready: plenum box, swappable restriction plates, digital differential-pressure sensor
 (e.g. Sensirion SDP810), tach, microcontroller. Log straight into the CSV schema below via

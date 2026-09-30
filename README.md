@@ -38,6 +38,8 @@ Other docs: [`docs/high-accuracy-plan.md`](docs/high-accuracy-plan.md),
 - **Unified catalog** (`catalog/catalog.db`): every design across every run + its sim results + print
   files + measurements, one stable id per design.
 - **Measurement store** + sim-vs-real calibration hooks (`validation/`).
+  Hardware shopping list (ranked, cheap Tier‑1): [`validation/hardware_bom.csv`](validation/hardware_bom.csv)
+  — see also [`validation/rig.md`](validation/rig.md).
 
 **Validated (interim — see `docs/validation/a12x25_pq_report.md`):** close-reference STL free-air
 is about **−17%** vs published 60.1 CFM (~49.8 CFM; prism layers ~50.4). Parametric Stock free-air

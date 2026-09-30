@@ -907,8 +907,9 @@ the §19.1 spin / flow freeze.
   **Code side DONE:** ingest optional rig fields (`restriction_id`, `dp_pa`, `tach_rpm`,
   `ambient_c`, `humidity_pct`) + `scripts/rig_logger.py` (stdin / optional `--serial`) +
   `scripts/calibrate_from_store.py` + cockpit Library **Show store calibration**. Docs:
-  `validation/rig.md`. **Still open (user hardware):** plenum box, swappable restriction plates,
-  digital DP sensor (e.g. Sensirion SDP810), tach, MCU. Unblocks Phase 5 / §5.1 and every
+  `validation/rig.md`. Ranked cheap shopping list: `validation/hardware_bom.csv`.
+  **Still open (user hardware):** tach + CFM anemometer first; then manometer + scale;
+  plenum/plates / SDP810+MCU later. Unblocks Phase 5 / §5.1 and every
   absolute-number claim once measured points exist. Do **not** check the box fully until then.
 
 ---
