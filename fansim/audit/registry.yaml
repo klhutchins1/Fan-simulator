@@ -308,8 +308,8 @@ units:
     targets:
       - "fansim.propeller.neuralfoil_polars:section_neuralfoil"
       - "fansim.propeller.neuralfoil_polars:naca4_name"
-    claim: "Optional NeuralFoil NACA4 backend returns (cl,cd,stalled,cl_cap) in alpha [-25,25] deg with stall onset at 12 deg (opt-in; not default)"
-    source: {kind: derivation, ref: "NeuralFoil/AeroSandbox; §20.2"}
+    claim: "Optional NeuralFoil NACA4 backend: NF-native alpha [-25,25] deg; Viterna-Corrigan to +/-180 deg (CD_MAX at 90); stall onset 12 deg (opt-in; not default)"
+    source: {kind: derivation, ref: "NeuralFoil/AeroSandbox + NREL Viterna-Corrigan; §20.2"}
     checks: [tests/test_neuralfoil_polars.py]
     depends_on: [physics.air_properties]
 

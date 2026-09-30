@@ -64,6 +64,6 @@ Only if greenlit later:
 
 ## Non-goals
 
-- Proven 360° α marketing claims (separate; needs polar evidence beyond −25…25°)  
+- Proven 360° α — DONE via NF ±25° + Viterna–Corrigan (see `neuralfoil_polars.py`)  
 - Making NeuralFoil or CST the default  
 - Fan axial BEM CST (axial uses plate/NACA families differently)

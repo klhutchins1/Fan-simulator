@@ -29,7 +29,7 @@ E 9×6 already PASS on both. Flipping default to NeuralFoil would **worsen** the
 
 - Making NeuralFoil the default polar backend.
 - CST section variables as optimizer DOFs (later).
-- Marketing “360° α” without measured coverage evidence.
+- Marketing “360° α” from raw NeuralFoil without Viterna (or equivalent) evidence.
 - Datasheet-tuning Stock **fan** stagger / recipe (roadmap forbid); SF prop camber defaults used only if diagnostic proves they drive the moderate-J bias and changes are documented as prop-BEMT honesty, not OEM retune.
 
 ## Design
@@ -60,7 +60,8 @@ Extend `scripts/audit_bemt_polar_ab.py` to emit, per SF sweep file:
 ### Phase 3 — NeuralFoil quality (opt-in)
 
 1. **Stall / cl_cap parity:** NeuralFoil path must not always report `stalled=False`; respect table-equivalent stall/`cl_cap` behavior used by `_section_aero` / compressibility.
-2. **α range:** widen beyond the current −15°…20° clamp where NeuralFoil returns valid aero; document the actual supported band (not “360°” until proven).
+2. **α range:** NeuralFoil-native ±25°; Viterna–Corrigan engineering extension to ±180°
+   (proven 360° with CD_MAX at ±90°). Do not claim raw NeuralFoil as 360°.
 3. **Optimize wiring:** Prop Optimize must honor cockpit / CLI / env polar backend the same way Analyze does (`set_polar_backend` around `analyze`, or thread backend into evaluate). Today Optimize always uses process default.
 4. **Audit registry (optional this pass):** register `propeller.polars` / `propeller.neuralfoil_polars` units if focused checks exist; otherwise leave on the unregistered triage list.
 
@@ -79,7 +80,7 @@ Extend `scripts/audit_bemt_polar_ab.py` to emit, per SF sweep file:
 
 ### Roadmap status after this pass
 
-§20.2 stays **Partial**. Update the bullet to: RMS gate clear (or honestly re-scoped) + NeuralFoil opt-in complete (stall/α + Optimize); **table remains default**. Remaining open under §20.2: CST section variables; proven 360° α coverage claims. Do **not** mark DONE until CST lands or the Adopt criterion is explicitly redefined.
+§20.2 stays **Partial**. Update the bullet to: RMS gate clear (or honestly re-scoped) + NeuralFoil opt-in complete (stall/α + Optimize); **table remains default**. Remaining open under §20.2: CST section variables (Stage 2 parked); aspirational 0.015 SF full-curve RMS. Proven 360° α: NF ±25° + Viterna. Do **not** mark DONE until CST lands or the Adopt criterion is explicitly redefined.
 
 ## Risks
 

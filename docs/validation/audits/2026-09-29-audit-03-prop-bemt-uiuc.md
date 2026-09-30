@@ -117,6 +117,12 @@ C_P** within Audit #3 tols (CT ~−9.5%, CP ~−14.9%); regression:
 `test_uiuc_apcsf_static_neuralfoil_within_tolerance`. Table stays default; do not flip while
 SF C_T(J) sweeps are worse on NeuralFoil. No datasheet Cd scale on the table path.
 
+**§20.2 proven 360° α (2026-09-30):** NeuralFoil-native band remains ±25°. Beyond that,
+Viterna–Corrigan (NREL AirfoilPrep form, AR=10 → CD_MAX≈1.29) extends to ±180° with
+flat-plate Cd at ±90°; reverse flow near ±180° mirrors back onto the NF band. Raw NeuralFoil
+alone is finite but unphysical past ±25° (Cd≪1 at 90°) — not claimed. Evidence:
+`tests/test_neuralfoil_polars.py`.
+
 
 ### Addendum 2026-09-30: station thickness + NeuralFoil A/B
 
