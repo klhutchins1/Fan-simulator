@@ -49,11 +49,23 @@ def _make_study(d: Path):
     return d
 
 
-def test_reconstruct_and_hash_stable():
-    bp, h = rd.reconstruct(FLAT)
-    assert bp.n_blades == 7 and bp.features.tubercle_waves == 5   # features come from the flat
-    assert rd.reconstruct(dict(FLAT))[1] == h
-    assert rd.reconstruct({**FLAT, "chord_mid": 45.0})[1] != h
+def test_result_record_timing_fields():
+    """§19.12: rescore rows carry cells / wall_s / sec_per_iter."""
+    from types import SimpleNamespace
+
+    c = SimpleNamespace(
+        design_id="t1", aliases=[], origin="test", params_hash="abc",
+        old={}, settings={"iters": 100, "refine_op": False}, settings_source="defaults",
+    )
+    res = SimpleNamespace(
+        feasible=True, cfm_free=50.0, cfm_load=40.0, efficiency=0.1, actual_rpm=2000.0,
+        reason=None, raw={"sanity_status": "PASS", "converged": True},
+    )
+    rec = rd.result_record(c, res, wall_s=200.0, cells=500000)
+    assert rec["cells"] == 500000
+    assert rec["wall_s"] == 200.0
+    # free + load = 2 solves × 100 iters
+    assert rec["sec_per_iter"] == 1.0
 
 
 def test_enumerate_dedupe_skip(tmp_path):

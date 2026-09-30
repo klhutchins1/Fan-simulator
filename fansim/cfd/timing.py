@@ -1,10 +1,14 @@
 """Pilot-run timing: mesh cell counts, solve rate, and full-run ETA for CFD scripts.
 
-A full validation / ladder / direction-audit run can take hours to days. ``--pilot`` (added to
-``scripts/run_a12x25_validation.py``, ``scripts/audit_direction_cfd.py`` and
-``scripts/run_loaded_ladder.py``) meshes once, solves a single point at a fraction of the
-requested iterations, measures the achieved rate, and estimates the full run's wall time
-before committing to it -- see ``.superpowers/sdd/ring-duct-brief.md`` Part B.
+Discipline (§19.12): always ``--pilot`` before committing to a long CFD campaign; every
+result row should carry ``cells`` / ``wall_s`` / ``sec_per_iter`` so estimates stay
+auditable. Pilot ETAs typically land within ~5–40% of the full run.
+
+A full validation / ladder / direction-audit run can take hours to days. ``--pilot`` (on
+``scripts/run_a12x25_validation.py``, ``scripts/audit_direction_cfd.py``,
+``scripts/run_loaded_ladder.py``, ``scripts/run_fan01.py``, ``scripts/rescore_designs.py``)
+meshes once, solves a single point at a fraction of the requested iterations, measures the
+achieved rate, and estimates the full run's wall time before committing to it.
 """
 
 from __future__ import annotations

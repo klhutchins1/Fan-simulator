@@ -266,7 +266,8 @@ def _f(v):
 
 
 def score_candidate(c: Candidate, workroot: Path):
-    """Run the real CFD evaluation. Returns (ObjectiveResult, wall_s)."""
+    """Run the real CFD evaluation. Returns (ObjectiveResult, wall_s, cells)."""
+    from fansim.cfd.timing import mesh_cells
     from fansim.fan_spec import get_fan_spec
     from fansim.optimize.isolated_eval import evaluate_candidate_isolated
     from fansim.optimize.presets import assess_load
@@ -285,12 +286,18 @@ def score_candidate(c: Candidate, workroot: Path):
         procs=int(s["procs"]), base_cell=float(s["base_cell"]), iters=int(s["iters"]),
         load_pa=load_pa, refine_op=bool(s["refine_op"]), material=str(s["material"]),
         wall_ks_mm=ks)
-    return res, time.time() - t0
+    wall_s = time.time() - t0
+    return res, wall_s, mesh_cells(workdir)
 
 
-def result_record(c: Candidate, res, wall_s: float, pilot: bool = False) -> dict:
+def result_record(c: Candidate, res, wall_s: float, pilot: bool = False,
+                  cells: int | None = None) -> dict:
     ok = bool(res.feasible)
     raw = res.raw or {}
+    s = c.settings
+    iters = int(s.get("iters") or 0)
+    n_solves = 2 + (1 if s.get("refine_op") else 0)  # free + load (+ optional refine)
+    sec_per_iter = (wall_s / (n_solves * iters)) if iters > 0 else None
     return {
         "design_id": c.design_id, "aliases": list(c.aliases), "origin": c.origin,
         "params_hash": c.params_hash, "status": "ok" if ok else "infeasible",
@@ -302,7 +309,10 @@ def result_record(c: Candidate, res, wall_s: float, pilot: bool = False) -> dict
         "cfd_version": CFD_VERSION, "sanity_status": raw.get("sanity_status"),
         "converged": raw.get("converged"), "reason": res.reason,
         "settings": c.settings, "settings_source": c.settings_source,
-        "wall_s": round(wall_s, 1), "pilot": pilot,
+        "cells": cells,
+        "wall_s": round(wall_s, 1),
+        "sec_per_iter": round(sec_per_iter, 4) if sec_per_iter is not None else None,
+        "pilot": pilot,
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "catalog_updated": False,
     }
@@ -399,13 +409,13 @@ def main(argv=None) -> int:
     if args.pilot:
         c = todo[0]
         print(f"pilot: {c.design_id} (settings: {c.settings_source})", flush=True)
-        res, wall = score_candidate(c, workroot)
-        rec = result_record(c, res, wall, pilot=True)
+        res, wall, cells = score_candidate(c, workroot)
+        rec = result_record(c, res, wall, pilot=True, cells=cells)
         data["designs"][c.design_id] = rec
         write_results(out_path, data)
         est = wall * len(todo) * MARGIN
         print(json.dumps({k: rec[k] for k in ("old", "new", "status", "sanity_status", "converged",
-                                              "reason")}, indent=2))
+                                              "reason", "cells", "wall_s", "sec_per_iter")}, indent=2))
         print(f"\nmeasured wall time per design: {format_eta(wall)} ({wall:.0f} s)")
         print(f"estimate for all {len(todo)} designs (x{MARGIN} margin): {format_eta(est)}")
         return 0
@@ -420,13 +430,14 @@ def main(argv=None) -> int:
             continue
         print(f"[{i}/{len(todo)}] {c.design_id} ...", flush=True)
         try:
-            res, wall = score_candidate(c, workroot)
-            rec = result_record(c, res, wall)
+            res, wall, cells = score_candidate(c, workroot)
+            rec = result_record(c, res, wall, cells=cells)
         except Exception as exc:  # noqa: BLE001 - one bad design must not stop the batch
             rec = {"design_id": c.design_id, "aliases": list(c.aliases), "origin": c.origin,
                    "params_hash": c.params_hash, "status": "error", "old": c.old, "new": None,
                    "cfd_version": CFD_VERSION, "sanity_status": None, "converged": None,
                    "reason": f"{type(exc).__name__}: {exc}", "settings": c.settings,
+                   "cells": None, "wall_s": None, "sec_per_iter": None,
                    "settings_source": c.settings_source, "catalog_updated": False,
                    "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds")}
         _apply(c, rec, catalog_db, True)

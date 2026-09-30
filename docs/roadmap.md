@@ -782,8 +782,9 @@ follow under `docs/superpowers/specs/`.
   `direction_suspect` backstop as `evaluate_prop_cfd` (`finalize_cfd_polar_result`: INCONCLUSIVE
   cross-check + any wrong-sign CFD point). Drone STLs remain INCONCLUSIVE by design (manual
   direction only). **[effort: low]**
-- [ ] **19.12 CFD estimates discipline.** **[effort: low]** Always `--pilot` before long runs (pilot estimates now
-  land within ~5–40%); keep per-row `cells`/`wall_s`/`sec_per_iter`.
+- [x] **19.12 CFD estimates discipline.** **DONE 2026-09-30** — `--pilot` on validation /
+  direction / ladder / FAN-01 / rescore; rows carry `cells` / `wall_s` / `sec_per_iter`
+  (`fansim.cfd.timing` + rescore records). Pilot ETAs typically within ~5–40%. **[effort: low]**
 - [ ] **19.14 Mesh level follows each design's thinnest wall.** **[effort: low]** Designs with thicker walls get a coarser surface mesh (v2: level 2–3 vs 3–4), which moved CFM 1–4% in the v2 check. Consider a fixed surface level for optimizer comparisons.
 - [ ] **19.15 Prop BEMT under-predicts thrust (Audit #3, FAIL).** **[impact: med]** **[effort: med]** Against UIUC measured J-sweeps with measured geometry: APC E 9x6 passes (static C_T −13.6%), APC SF 9x4.7 fails (static C_T −20.3%, C_T(J) RMS 0.021–0.024 vs 0.015). Both under-predict; suspect the airfoil polars (low-Re thin cambered sections). Test a NeuralFoil/XFOIL polar swap (see §20.2) against the same data before re-auditing.
 - [x] **19.16 Fan BEM pre-screen ranking (Audit #4).** **PASS 2026-09-30** — n = 7, Spearman rho = 0.714;
