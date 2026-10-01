@@ -51,13 +51,46 @@ Earlier CFD results for these machine types were solved backwards and should not
 `docs/validation/keep_cut_board.md` keeps these scaffolds "secondary to the A12x25 band". That
 decision still stands, but it rested partly on the mixed-flow campaign above.
 
+## Proof 3: CFD, designed vs reversed rotation (2026-10-01)
+
+`scripts/audit_archetype_direction_cfd.py` meshes each machine once in its production setup and
+solves free air at both spins on that same mesh. The rule was fixed before any run: PASS needs
+designed ≥ 1.10× reversed on CFM and on CFM/W, with both solves converged.
+
+| machine | designed | reversed | verdict |
+|---|---|---|---|
+| mixed-flow (250k cells) | **+73.3 CFM**, 0.80 W, converged | **−44.3 CFM** (pumps backwards), 0.66 W, converged | **PASS** |
+| volute (102k cells) | 29.7 / 30.5 CFM (two runs), 3.70 W, converged | 24.7 / 25.0 CFM, 3.42 W, oscillating (20–24%), drift 6.5% on the second run | **INCONCLUSIVE** (reversed unconverged) |
+
+- **Mixed-flow:** spun backwards, the rotor drives air against the duct. The old 2026-09-05 campaign
+  ran exactly that way and got 39.3 CFM at 5.3% efficiency. Solved the designed way, free air is
+  73.3 CFM.
+- **Volute:** both runs put designed ~20% above reversed. The reversed blower settles into a steady-RANS
+  limit cycle, so by the rule this is not a CFD proof. The direction rests on the scroll geometry
+  (proof 6), which is first-principles. Flat radial blades do the same ideal (Euler) work either way,
+  so only the scroll can decide.
+
+Evidence: `docs/validation/audits/direction_cfd_mixed.json`, `direction_cfd_volute.json`.
+
+### Bugs this proof found
+
+1. **Sanity treated the volute as an axial duct.** With no `case_meta.json`, `_infer_case_meta`
+   assumed a uniform duct inlet, so inlet bookkeeping FAILed on a misapplied formula. Volute cases
+   are now recognised (`constant/volute_domain.json`), and the duct-only checks SKIP.
+2. **The volute "outlet area" was the stub section (5.6 cm²), but the solver's outlet patch is the
+   whole +X face (59.4 cm², measured from the mesh).** The stub ends 12 mm short of the face. With the
+   stub area the energy check read η_total = 1.43 on the designed solve, which is impossible. (An
+   earlier, interim reading of ~0.92 came from the same error.) The check now uses the measured
+   patch, giving η_total 0.008: at free air the jet dissipates in the box before reaching the outlet
+   face. Volute scoring never used this area; only the new sanity path did. The designed row in
+   `direction_cfd_volute.json` still shows the old energy FAIL, which is this bug.
+3. **The result file crashed on an infinite ratio** when reversed pumped backwards. The ratio is now
+   null and `reversed_pumps_backwards` is true.
+
 ## Not done
 
-- **CFD both-ways confirmation** (proof 3 in Audit #1's sense): forward vs reversed free-air solves
-  for mixed-flow (and the volute), where the designed sense must win on |CFM| and efficiency. This
-  needs a pilot for timing and is queued (see roadmap 19.2). The unit's claim is about setup
-  conventions, which the geometry proofs establish. The CFD run would confirm the performance
-  consequence.
+- **Volute CFD confirmation:** needs either a converged reversed solve (finer mesh or transient) or
+  acceptance that the scroll proof suffices. CROR CFD both-ways (dual MRF) has not been run.
 - CROR exports both rotors as one STL. The per-rotor proof meshes them separately in the test, not
   in the production path. That is fine while the builder handedness is fixed (the test pins it).
 

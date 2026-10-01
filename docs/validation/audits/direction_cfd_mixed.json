@@ -1,0 +1,219 @@
+{
+  "machine": "mixed",
+  "rpm": 2000.0,
+  "iters": 1000,
+  "mesh": {
+    "base_cell": 0.005,
+    "surf_min": 1,
+    "surf_max": 2,
+    "feature_level": 2,
+    "add_layers": false,
+    "n_surface_layers": 3
+  },
+  "cells": 249623,
+  "mesh_s": 118.48316216468811,
+  "designed_spin": -1,
+  "min_ratio": 1.1,
+  "rows": [
+    {
+      "spin": -1,
+      "designed": true,
+      "cfm": 73.2803300212476,
+      "converged": true,
+      "flow_drift_pct": 0.0020645127383159033,
+      "oscillation_pct": 0.005944871414486652,
+      "shaft_power_w": 0.7955906167502586,
+      "eta_total": null,
+      "moment_z_nm": 0.00379866538,
+      "omega_signed": -209.43951023931953,
+      "sanity_status": "WARN",
+      "sanity": [
+        {
+          "name": "mass_balance",
+          "status": "PASS",
+          "value": 0.2696071473407718,
+          "limit": "<=1% PASS, <=5% WARN",
+          "note": "Q_in=-0.03449 Q_out=0.03458 m3/s"
+        },
+        {
+          "name": "energy_total",
+          "status": "PASS",
+          "value": 0.1354131065165289,
+          "limit": "eta_total < 1 (Q>0)",
+          "note": "eta_total=0.135"
+        },
+        {
+          "name": "power_sign",
+          "status": "PASS",
+          "value": -0.7955906167502586,
+          "limit": "Mz*omega < 0 (Q>0)",
+          "note": "Mz=0.00380 omega=-209.440 product=-0.79559"
+        },
+        {
+          "name": "thrust_direction",
+          "status": "PASS",
+          "value": -0.115663027,
+          "limit": "Fz < 0 (Q>0)",
+          "note": "Fz=-0.11566 N, Q=0.03458 m3/s"
+        },
+        {
+          "name": "inlet_bookkeeping",
+          "status": "PASS",
+          "value": 0.17996918153397606,
+          "limit": "<=5% PASS, <=15% WARN (Q>0)",
+          "note": "p_in=-7.932 Pa expected=-7.946 Pa"
+        },
+        {
+          "name": "mesh_quality",
+          "status": "PASS",
+          "value": null,
+          "limit": "\"Mesh OK.\" PASS; skewness-only failures WARN; other failures FAIL",
+          "note": "max non-orthogonality=64.31951, Max skewness=3.784949"
+        },
+        {
+          "name": "y_plus",
+          "status": "WARN",
+          "value": 11.678938,
+          "limit": "<=5 or 30-300",
+          "note": "y+ avg=11.68 (buffer/over-range; min=1.24 max=38.81)"
+        },
+        {
+          "name": "regime",
+          "status": "PASS",
+          "value": 0.03262195141343379,
+          "limit": "tip Mach < 0.3",
+          "note": "tip Mach=0.033"
+        },
+        {
+          "name": "converged",
+          "status": "PASS",
+          "value": null,
+          "limit": "FanMetrics.converged",
+          "note": "flow_drift_pct=0.00%, oscillation_pct=0.01%"
+        },
+        {
+          "name": "duct_shape",
+          "status": "PASS",
+          "value": null,
+          "limit": "ring/round PASS, square WARN",
+          "note": "round; full-length noSlip duct adds pipe friction; not free-air"
+        }
+      ],
+      "wall_s": 346.1254417896271,
+      "sec_per_iter": 0.34612544178962706
+    },
+    {
+      "spin": 1,
+      "designed": false,
+      "cfm": -44.2965527231382,
+      "converged": true,
+      "flow_drift_pct": 0.10962504057772147,
+      "oscillation_pct": 0.3050805689467239,
+      "shaft_power_w": 0.6551599150759261,
+      "eta_total": null,
+      "moment_z_nm": -0.00312815817,
+      "omega_signed": 209.43951023931953,
+      "sanity_status": "WARN",
+      "sanity": [
+        {
+          "name": "mass_balance",
+          "status": "PASS",
+          "value": 0.44509647310187334,
+          "limit": "<=1% PASS, <=5% WARN",
+          "note": "Q_in=0.02081 Q_out=-0.02091 m3/s"
+        },
+        {
+          "name": "energy_total",
+          "status": "SKIP",
+          "value": null,
+          "limit": "eta_total < 1 (Q>0)",
+          "note": "Q<=0, check only applies to forward flow"
+        },
+        {
+          "name": "power_sign",
+          "status": "SKIP",
+          "value": null,
+          "limit": "Mz*omega < 0 (Q>0)",
+          "note": "Q<=0, check only applies to forward flow"
+        },
+        {
+          "name": "thrust_direction",
+          "status": "SKIP",
+          "value": null,
+          "limit": "Fz < 0 (Q>0)",
+          "note": "Q<=0, check only applies to forward flow"
+        },
+        {
+          "name": "inlet_bookkeeping",
+          "status": "SKIP",
+          "value": null,
+          "limit": "<=5% PASS, <=15% WARN (Q>0)",
+          "note": "Q<=0, check only applies to forward flow"
+        },
+        {
+          "name": "mesh_quality",
+          "status": "PASS",
+          "value": null,
+          "limit": "\"Mesh OK.\" PASS; skewness-only failures WARN; other failures FAIL",
+          "note": "max non-orthogonality=64.31951, Max skewness=3.784949"
+        },
+        {
+          "name": "y_plus",
+          "status": "WARN",
+          "value": 10.260157,
+          "limit": "<=5 or 30-300",
+          "note": "y+ avg=10.26 (buffer/over-range; min=1.22 max=42.86)"
+        },
+        {
+          "name": "regime",
+          "status": "PASS",
+          "value": 0.03262195141343379,
+          "limit": "tip Mach < 0.3",
+          "note": "tip Mach=0.033"
+        },
+        {
+          "name": "converged",
+          "status": "PASS",
+          "value": null,
+          "limit": "FanMetrics.converged",
+          "note": "flow_drift_pct=0.11%, oscillation_pct=0.31%"
+        },
+        {
+          "name": "duct_shape",
+          "status": "PASS",
+          "value": null,
+          "limit": "ring/round PASS, square WARN",
+          "note": "round; full-length noSlip duct adds pipe friction; not free-air"
+        }
+      ],
+      "wall_s": 346.90323781967163,
+      "sec_per_iter": 0.34690323781967164
+    }
+  ],
+  "errors": [],
+  "verdict": {
+    "verdict": "PASS",
+    "cfm_ratio": null,
+    "reversed_pumps_backwards": true,
+    "cfm_per_w_designed": 92.10808734845952,
+    "cfm_per_w_reversed": 0.0
+  },
+  "params": {
+    "n_blades": 9,
+    "r_eye_mm": 16.0,
+    "r_back_mm": 28.0,
+    "r_tip_mm": 54.5,
+    "z_span_mm": 18.0,
+    "chord_mm": 22.0,
+    "stagger_deg": 35.0,
+    "chord_root": 22.0,
+    "chord_tip": 22.0,
+    "stagger_root": 35.0,
+    "stagger_tip": 35.0,
+    "thickness": 0.08,
+    "max_camber": 0.04,
+    "camber_pos": 0.4,
+    "n_span": 12,
+    "n_chord": 48
+  }
+}

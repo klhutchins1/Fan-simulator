@@ -67,9 +67,9 @@
       "verdict": "PASS"
     },
     "cfd.sanity_checks": {
-      "date": "2026-09-28",
-      "fingerprint": "129c7aab0143cfc3",
-      "report": "docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md",
+      "date": "2026-10-01",
+      "fingerprint": "41f089a9b0f1dd97",
+      "report": "docs/validation/audits/2026-10-01-audit-07-cror-mixed-setup.md",
       "verdict": "PASS"
     },
     "cfd.spanwise": {

@@ -174,9 +174,19 @@ def _infer_case_meta(case_dir: Path) -> dict | None:
             vd = json.loads(volute.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             vd = {}
+        # The recorded outlet_area_m2 is the stub's inner section, but the stub ends short of the
+        # +X face, so the solver's outlet patch is the whole face (~10x larger on the default
+        # volute). Energy bookkeeping must use the patch the BC sits on, measured from the mesh.
+        try:
+            from fansim.cfd.duct_area import inlet_patch_area_m2
+
+            out_area = inlet_patch_area_m2(case_dir, patch="outlet")
+        except Exception:  # noqa: BLE001 - no mesh yet: energy check SKIPs
+            out_area = None
         return {
             "topology": vd.get("topology", "volute_radial"),
-            "outlet_area_m2": vd.get("outlet_area_m2"),
+            "outlet_area_m2": out_area,
+            "outlet_stub_area_m2": vd.get("outlet_area_m2"),
             "tip_radius_m": vd.get("mrf_radius_m"),   # MRF zone just outside the tip: Mach bound
             "omega_signed": _infer_omega(case_dir),
             "inferred": True,

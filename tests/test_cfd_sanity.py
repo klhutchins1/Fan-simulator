@@ -688,7 +688,10 @@ def test_volute_case_meta_skips_duct_only_checks(tmp_path):
     (tmp_path / "constant" / "volute_domain.json").write_text(_json.dumps(
         {"topology": "volute_radial", "outlet_area_m2": 5.6e-4, "mrf_radius_m": 0.052}))
     meta = _infer_case_meta(tmp_path)
-    assert meta["topology"] == "volute_radial" and meta["outlet_area_m2"] == 5.6e-4
+    assert meta["topology"] == "volute_radial" and meta["outlet_stub_area_m2"] == 5.6e-4
+    # no mesh here, so the real outlet patch area is unknown and the energy check must SKIP
+    # (never fall back to the stub section, which is ~10x too small on the default volute)
+    assert meta["outlet_area_m2"] is None
     assert "inlet_area_m2" not in meta and "duct_shape" not in meta
     assert _check_inlet_bookkeeping(None, meta).status == "SKIP"
     assert _check_duct_shape(meta).status == "SKIP"
