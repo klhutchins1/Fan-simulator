@@ -24,4 +24,9 @@ def run_label(run_id: str, labels_path: Path | None = None) -> str:
     if not run_id:
         return ""
     path = str(labels_path or _DEFAULT)
-    return _load(path).get(run_id, run_id)
+    named = _load(path).get(run_id)
+    if named:
+        return named
+    from fansim.optimize.cli_argv import run_label as stamped_label  # cockpit_opt_<stamp> → date
+
+    return stamped_label(run_id)

@@ -14,6 +14,7 @@ import subprocess
 import sys
 import threading
 import time
+from pathlib import Path
 
 from fansim.cfd.runner import kill_cfd_containers
 from fansim.cockpit import fan_runtime
@@ -21,10 +22,12 @@ from fansim.cockpit.busy import busy_caption, format_elapsed
 from fansim.cockpit.data import load_designs
 from fansim.cockpit.fan_helpers import append_user_designs
 from fansim.optimize.cli_argv import (
-    OPT_TRIAL_OFFSET,
+    latest_opt_run,
     merge_opt_designs,
     opt_out_path,
+    opt_trial_offset,
     optimization_argv,
+    run_label,
 )
 
 _log = logging.getLogger(__name__)
@@ -53,6 +56,26 @@ def bind(session) -> None:
             p.terminate()
         kill_cfd_containers()
 
+    def refresh_resume_caption(*, default_on: bool = False) -> None:
+        """Say which run "Continue" would add to; optionally switch it on when one exists."""
+        target = latest_opt_run(session.runs_root)
+        if target is None:
+            state.opt_resume_caption = (
+                "No earlier Optimize run yet — this starts a new one in runs/cockpit_opt_*."
+            )
+            return
+        n = sum(1 for d in user_designs
+                if d.extra.get("source") == "cockpit_opt"
+                and d.extra.get("source_run") == target.name)
+        state.opt_resume_caption = (
+            f"On: adds trials to {run_label(target.name)} ({n} plotted so far) so the search keeps "
+            "learning from them. Off: starts a fresh run (random warm-up again)."
+        )
+        if default_on:
+            state.opt_resume = True
+
+    refresh_resume_caption(default_on=True)
+
     def cancel_optimize():
         if not state.opt_running:
             return
@@ -70,10 +93,18 @@ def bind(session) -> None:
             trials = 8
         trials = max(2, min(40, trials))
         resume = bool(state.opt_resume)
-        out = opt_out_path(resume=resume, run_dir=run_dir)
+        # "Continue" adds trials to the latest cockpit Optimize run so the sampler keeps learning
+        # from earlier batches; with none on disk it falls back to the opened run.
+        target = latest_opt_run(session.runs_root) if resume else None
+        if resume and target is None:
+            target = run_dir
+        out = opt_out_path(resume=resume, run_dir=target or run_dir)
+        is_opened = resume and Path(target).resolve() == Path(run_dir).resolve()
         resume_study = None
         if resume:
-            resume_study = study_name or "fansim"
+            resume_study = (study_name or "fansim") if is_opened else "fansim"
+        resync_opened = is_opened
+        offset = opt_trial_offset(out.name, session.runs_root)
         search_rpm = bool(state.opt_search_rpm)
         rpm_min = rpm_max = None
         if search_rpm:
@@ -166,7 +197,7 @@ def bind(session) -> None:
                 except Exception:  # noqa: BLE001
                     return 0
                 fresh = merge_opt_designs(
-                    loaded, source_run=out.name, existing_keys=seen_keys
+                    loaded, source_run=out.name, existing_keys=seen_keys, offset=offset
                 )
                 append_user_designs(designs_lock, user_designs, by_trial, fresh)
                 if fresh:
@@ -222,7 +253,7 @@ def bind(session) -> None:
                     tail = "\n".join(lines[-8:])
                     state.opt_msg = f"⚠ Optimize exited {rc}\n{tail}"
                 await loop.run_in_executor(None, poll_merge)
-                if resume:
+                if resync_opened:
                     await loop.run_in_executor(None, session._resync_study_from_disk)
                 session.refresh_items()
                 session.refresh_figure()
@@ -233,20 +264,20 @@ def bind(session) -> None:
                 return
             n = await loop.run_in_executor(None, poll_merge)
             n_study = 0
-            if resume:
+            if resync_opened:
                 n_study = await loop.run_in_executor(None, session._resync_study_from_disk)
             session.refresh_items()
             session.refresh_figure()
             state.opt_msg = (
-                f"✓ Optimize finished → {out.name}. "
-                f"{len(seen_keys)} merged from this run (trial ids +{OPT_TRIAL_OFFSET}; "
-                f"+{n} on final merge)"
-                + (f"; opened study now {n_study} feasible" if resume else "")
+                f"✓ Optimize finished → {run_label(out.name)} ({out.name}). "
+                f"Its points are on the plot as #{offset}+trial; +{n} on final merge"
+                + (f"; opened study now {n_study} feasible" if resync_opened else "")
                 + f"  · elapsed {format_elapsed(time.time() - t0)}"
                 + ". Open Results and click a ◆ diamond for the 3-D impeller "
                 "+ velocity arrows + duct midplane airflow when case fields are still on disk."
             )
             state.fan_subtab = "results"
+            refresh_resume_caption(default_on=True)  # next Optimize builds on this run
             state.assess_busy = False
             state.opt_running = False
             state.flush()

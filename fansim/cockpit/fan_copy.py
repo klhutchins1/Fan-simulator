@@ -89,9 +89,11 @@ OPT_SEARCH_HELP = {
         "Start small (8). More trials ≈ better Pareto coverage, linear wall-clock cost."
     ),
     "opt_resume": (
-        "Append new trials into the currently opened run folder instead of making a new "
-        "runs/cockpit_opt_* folder. Use when continuing a campaign. Risk: mixes settings if you "
-        "changed hose/flags since the last batch."
+        "Add new trials to the most recent runs/cockpit_opt_* run instead of starting a new one. "
+        "The optimizer only learns from trials in the same run, so separate small runs each "
+        "restart with random warm-up designs; continuing lets the trials add up. Risk: mixes "
+        "settings if you changed hose/flags since the last batch. With no earlier Optimize run "
+        "it continues the opened run."
     ),
     "opt_shroud": (
         "Also search designs with a plastic tip ring fused at the blade tips (kills tip leak). "

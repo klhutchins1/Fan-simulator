@@ -96,7 +96,8 @@ def test_scatter_stock_ref_is_distinct_marker():
     fig = scatter_figure([d], stock_ref={
         "cfm_free": 60.1, "cfm_load": 55.0, "name": "Noctua NF-A12x25", "kind": "published",
     })
-    assert len(fig.data) == 2
+    # study + best-overall ring + stock
+    assert len(fig.data) == 3
     stock = fig.data[-1]
     assert stock.marker.symbol == "x"
     assert list(stock.x) == [60.1]

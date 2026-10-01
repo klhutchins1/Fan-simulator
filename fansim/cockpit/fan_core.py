@@ -16,7 +16,12 @@ from fansim.catalog import load_catalog, results_for_hub
 from fansim.cockpit.data import Design, feasible_designs, load_designs
 from fansim.cockpit.errors import log_caught
 from fansim.cockpit.fan_helpers import _has_real_cfm
-from fansim.cockpit.figures import filter_fitting_designs, scatter_figure
+from fansim.cockpit.figures import (
+    design_provenance,
+    filter_fitting_designs,
+    pareto_front,
+    scatter_figure,
+)
 from fansim.cockpit.library_view import library_list_items
 from fansim.cockpit.placement import fit_envelope, nominal_fits_spec
 from fansim.fan_spec import (
@@ -81,7 +86,8 @@ def apply_state_defaults(session) -> None:
     state.opt_gp_boost = False
     state.opt_gp_nn = False
     state.opt_surrogate_guided = False
-    state.opt_resume = False
+    state.opt_resume = False  # fan_optimize turns it on when an earlier cockpit run exists
+    state.opt_resume_caption = ""
     state.opt_stator = False
     state.opt_stator_stack = False
     state.opt_sickle = False
@@ -197,16 +203,20 @@ def bind(session) -> None:
     designs_lock = session.designs_lock
     study_name = session.study_name
 
-    def _label(d):
-        if d.is_pareto:
-            tag = "  ★"
-        elif d.trial >= 9000:  # user-assessed; note which run it was assessed under
-            run = d.extra.get("source_run", "")
-            tag = f"  ◆ {run}" if run else "  ◆"
-        else:
-            tag = ""
+    def _label(d, best_ids=frozenset()):
+        """``#id ✪ · Opt 2026-10-01 10:01 · free 48.3 · load 36.7 · η 17.9``."""
+        tag = ""
+        if id(d) in best_ids:
+            tag = "  ✪"          # best overall across everything listed
+        elif d.is_pareto:
+            tag = "  ★"          # best within its own run
         stale = "  ⧗" if d.extra.get("cfd_stale") else ""
-        return {"title": f"#{d.trial}{tag}{stale}", "value": d.trial}
+        bits = [design_provenance(d, run_dir.name)]
+        for key, lab in (("cfm_free", "free"), ("cfm_load", "load"), ("efficiency", "η")):
+            v = d.objectives.get(key)
+            if isinstance(v, (int, float)) and v > -1e5:
+                bits.append(f"{lab} {v:.1f}")
+        return {"title": f"#{d.trial}{tag}{stale} · " + " · ".join(bits), "value": d.trial}
 
     def _design_id(d: Design) -> str | None:
         """Catalog design_id (<run>_t<trial>) for a loaded Design, if we can infer it."""
@@ -339,7 +349,8 @@ def bind(session) -> None:
         stale = [d for d in hub_all if d.extra.get("cfd_stale")]
         scored = sorted(scored, key=lambda d: -(d.objectives.get("cfm_load") or -1e9))
         stale = sorted(stale, key=lambda d: d.trial)
-        items = [_label(d) for d in scored]
+        best = frozenset(pareto_front(scored))
+        items = [_label(d, best) for d in scored]
         if stale:
             items.append({"title": "— Unscored on this hub —", "value": None, "disabled": True})
             items += [_label(d) for d in stale]
@@ -380,7 +391,7 @@ def bind(session) -> None:
             sd, ud = _thin(sd), _thin(list(ud))
         load_pa, _ = assess_load(str(state.assess_preset or "case"))
         stock = published_scatter_point(active_spec(), load_pa) if state.show_stock else None
-        fig = scatter_figure(sd, ud, stock_ref=stock)
+        fig = scatter_figure(sd, ud, stock_ref=stock, opened_run=run_dir.name)
         if hasattr(ctrl, "figure_update"):
             ctrl.figure_update(fig)
 

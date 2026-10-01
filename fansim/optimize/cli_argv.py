@@ -7,6 +7,46 @@ from datetime import datetime
 from pathlib import Path
 
 OPT_TRIAL_OFFSET = 20000  # cockpit-merged trial ids, so they miss the opened study
+OPT_RUN_STRIDE = 1000     # each cockpit_opt_* run gets its own id block (cockpit caps trials at 40)
+OPT_RUN_PREFIX = "cockpit_opt_"
+
+
+def cockpit_opt_dirs(runs_root: str | Path) -> list[Path]:
+    """All ``runs/cockpit_opt_*`` folders, oldest first (folder names carry the start stamp)."""
+    root = Path(runs_root)
+    if not root.is_dir():
+        return []
+    return sorted(p for p in root.glob(f"{OPT_RUN_PREFIX}*") if p.is_dir())
+
+
+def opt_trial_offset(run_name: str, runs_root: str | Path) -> int:
+    """Stable trial-id offset for one cockpit Optimize run.
+
+    Runs are numbered by start stamp, so ids survive restarts and a new run (always the newest)
+    never shifts the older ones. Two runs' trial 4 no longer collide on #20004.
+    """
+    names = sorted({p.name for p in cockpit_opt_dirs(runs_root)} | {str(run_name)})
+    return OPT_TRIAL_OFFSET + names.index(str(run_name)) * OPT_RUN_STRIDE
+
+
+def run_label(run_name: str) -> str:
+    """Short human label: ``cockpit_opt_20261001-100133`` -> ``Opt 2026-10-01 10:01``."""
+    name = str(run_name or "")
+    if name.startswith(OPT_RUN_PREFIX):
+        try:
+            dt = datetime.strptime(name[len(OPT_RUN_PREFIX):], "%Y%m%d-%H%M%S")
+            return f"Opt {dt:%Y-%m-%d %H:%M}"
+        except ValueError:
+            pass
+    return name
+
+
+def latest_opt_run(runs_root: str | Path) -> Path | None:
+    """Newest cockpit Optimize run that has a study to continue, or None."""
+    for p in reversed(cockpit_opt_dirs(runs_root)):
+        if (p / "study.db").is_file():
+            return p
+    return None
 
 
 def _script() -> Path:
@@ -64,6 +104,7 @@ def merge_opt_designs(
         )
         nd.extra["orig_trial"] = orig
         nd.extra["source_run"] = source_run
+        nd.extra["run_label"] = run_label(source_run)
         nd.extra["source"] = "cockpit_opt"
         out.append(nd)
     return out

@@ -219,11 +219,69 @@ def volute_scatter_figure(designs) -> go.Figure:
     return fig
 
 
-def scatter_figure(study_designs, user_designs=(), stock_ref: dict | None = None) -> go.Figure:
-    effs = [d.objectives["efficiency"] for d in study_designs] + [d.objectives["efficiency"] for d in user_designs]
+FAN_OBJECTIVES = ("cfm_free", "cfm_load", "efficiency")
+# One marker shape per cockpit Optimize run (color stays = efficiency).
+OPT_RUN_SYMBOLS = ("square", "triangle-up", "pentagon", "hexagon", "triangle-down",
+                   "cross", "star-diamond", "hourglass")
+
+
+def pareto_front(designs, keys=FAN_OBJECTIVES) -> set[int]:
+    """``id()`` of designs no other design beats on every objective (all maximised)."""
+    pts = []
+    for d in designs:
+        try:
+            pts.append((d, tuple(float(d.objectives[k]) for k in keys)))
+        except (KeyError, TypeError, ValueError):
+            continue
+    front = set()
+    for d, a in pts:
+        dominated = any(
+            all(bk >= ak for ak, bk in zip(a, b)) and any(bk > ak for ak, bk in zip(a, b))
+            for _, b in pts
+        )
+        if not dominated:
+            front.add(id(d))
+    return front
+
+
+def design_group(d, opened_run: str = "") -> tuple[str, str]:
+    """(group key, legend label) for a fan design: opened study, one Optimize run, or Assessed."""
+    from fansim.cockpit.labels import run_label
+
+    extra = getattr(d, "extra", None) or {}
+    if extra.get("source") == "cockpit_opt":
+        run = str(extra.get("source_run") or "")
+        return f"opt:{run}", run_label(run)
+    if int(getattr(d, "trial", 0)) >= 9000:
+        return "assessed", "Assessed by you"
+    label = run_label(opened_run) if opened_run else "study"
+    return "study", f"{label} (opened run)"
+
+
+def design_provenance(d, opened_run: str = "") -> str:
+    """One-line 'where/when' for hover text and the design dropdown."""
+    extra = getattr(d, "extra", None) or {}
+    _, label = design_group(d, opened_run)
+    when = str(extra.get("completed") or "")
+    if label == "Assessed by you" and extra.get("source_run"):
+        label = f"Assessed under {extra['source_run']}"
+    if when and when[:10] in label:          # same day as the run's start stamp
+        when = f"done {when[11:]}"
+    return f"{label} · {when}" if when else label
+
+
+def scatter_figure(study_designs, user_designs=(), stock_ref: dict | None = None,
+                   opened_run: str = "") -> go.Figure:
+    study_designs, user_designs = list(study_designs), list(user_designs)
+    everything = study_designs + user_designs
+    effs = [d.objectives["efficiency"] for d in everything]
     cmax = max([45.0] + [e for e in effs if e is not None])
+    best = pareto_front(everything)
+    colorbar_shown = [False]
 
     def trace(designs, name, symbol_pareto, symbol_plain, line):
+        show_scale = not colorbar_shown[0]
+        colorbar_shown[0] = True
         return go.Scatter(
             x=[d.objectives["cfm_free"] for d in designs],
             y=[d.objectives["cfm_load"] for d in designs],
@@ -233,20 +291,43 @@ def scatter_figure(study_designs, user_designs=(), stock_ref: dict | None = None
                 size=[30 if d.is_pareto else 20 for d in designs],
                 symbol=[symbol_pareto if d.is_pareto else symbol_plain for d in designs],
                 color=[d.objectives["efficiency"] for d in designs],
-                colorscale="Viridis", showscale=True, colorbar=dict(title="eff %"),
+                colorscale="Viridis", showscale=show_scale, colorbar=dict(title="eff %"),
                 cmin=0, cmax=cmax, line=line,
             ),
             customdata=[d.trial for d in designs],
-            hovertemplate="#%{customdata}<br>free %{x:.1f} CFM"
-                          "<br>load %{y:.1f} CFM<extra>" + name + "</extra>",
+            text=[design_provenance(d, opened_run) for d in designs],
+            hovertemplate="#%{customdata} · %{text}<br>free %{x:.1f} CFM"
+                          "<br>load %{y:.1f} CFM<br>eff %{marker.color:.1f} %<extra></extra>",
         )
 
     fig = go.Figure()
-    fig.add_trace(trace(study_designs, "study", "star", "circle",
-                        dict(width=1, color="rgba(0,0,0,0.4)")))
-    if user_designs:
-        fig.add_trace(trace(list(user_designs), "your runs", "diamond", "diamond",
-                            dict(width=2, color="crimson")))
+    _, study_label = design_group(study_designs[0], opened_run) if study_designs else ("", "study")
+    if study_designs:
+        fig.add_trace(trace(study_designs, study_label, "star", "circle",
+                            dict(width=1, color="rgba(0,0,0,0.4)")))
+    groups: dict[str, tuple[str, list]] = {}
+    for d in user_designs:
+        key, label = design_group(d, opened_run)
+        groups.setdefault(key, (label, []))[1].append(d)
+    if "assessed" in groups:
+        label, ds = groups.pop("assessed")
+        fig.add_trace(trace(ds, label, "diamond", "diamond", dict(width=2, color="crimson")))
+    for k, key in enumerate(sorted(groups)):     # Optimize runs, oldest first (stamped names)
+        label, ds = groups[key]
+        sym = OPT_RUN_SYMBOLS[k % len(OPT_RUN_SYMBOLS)]
+        fig.add_trace(trace(ds, label, sym, sym, dict(width=1.5, color="rgba(0,0,0,0.7)")))
+    ringed = [d for d in everything if id(d) in best]
+    if ringed:
+        fig.add_trace(go.Scatter(
+            x=[d.objectives["cfm_free"] for d in ringed],
+            y=[d.objectives["cfm_load"] for d in ringed],
+            mode="markers", name="Best overall (nothing beats it on all 3)",
+            marker=dict(size=40, symbol="circle-open", color="gold", line=dict(width=3)),
+            customdata=[d.trial for d in ringed],
+            text=[design_provenance(d, opened_run) for d in ringed],
+            hovertemplate="#%{customdata} · %{text}<br>best overall: no design beats it on "
+                          "free, load and efficiency at once<extra></extra>",
+        ))
     if stock_ref and stock_ref.get("cfm_free") is not None and stock_ref.get("cfm_load") is not None:
         label = str(stock_ref.get("name") or "stock")
         noise = stock_ref.get("noise_dba")
@@ -255,7 +336,7 @@ def scatter_figure(study_designs, user_designs=(), stock_ref: dict | None = None
             x=[float(stock_ref["cfm_free"])],
             y=[float(stock_ref["cfm_load"])],
             mode="markers",
-            name="stock",
+            name=f"{label} (published)",
             marker=dict(
                 size=22,
                 symbol="x",
@@ -271,10 +352,14 @@ def scatter_figure(study_designs, user_designs=(), stock_ref: dict | None = None
             ),
         ))
     fig.update_layout(
-        margin=dict(l=50, r=10, t=30, b=45),
+        margin=dict(l=50, r=10, t=40, b=45),
         xaxis_title="CFM at free delivery", yaxis_title="CFM at load",
-        title="Design space (★ Pareto, ◆ your runs, ✕ stock published)", height=560,
-        template="plotly_white", showlegend=False,
+        title="Design space (shape = run · gold ring = best)",
+        height=580, template="plotly_white", showlegend=True,
+        # Top-left is always empty (load CFM ≤ free CFM), so the legend never covers points.
+        legend=dict(x=0.01, y=0.99, xanchor="left", yanchor="top", font=dict(size=11),
+                    bgcolor="rgba(255,255,255,0.85)", bordercolor="rgba(0,0,0,0.15)",
+                    borderwidth=1),
     )
     return fig
 

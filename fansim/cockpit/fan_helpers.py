@@ -5,6 +5,8 @@ Extracted from `fansim.cockpit.app` as part of cockpit tab-split (Approach B).
 
 from __future__ import annotations
 
+from datetime import datetime
+
 import json
 import logging
 import threading
@@ -167,6 +169,12 @@ def _load_assessed_designs(assess_dirs) -> list[Design]:
                     used.add(tid)
                 extra = dict(d.get("extra", {}))
                 extra.setdefault("source_run", run_name)
+                if not extra.get("completed"):
+                    # When it was assessed: the STL is written once by Assess (design.json may be
+                    # re-stamped later, e.g. by scripts/migrate_chord_basis.py).
+                    when = stl if stl.exists() else jf
+                    extra["completed"] = datetime.fromtimestamp(
+                        when.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
                 from fansim.cockpit.data import cfd_is_stale
                 extra["cfd_stale"] = cfd_is_stale(extra.get("cfd_version"))
                 if tid != orig:

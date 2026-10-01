@@ -80,9 +80,13 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
     from fansim.cockpit.fan_helpers import _load_assessed_designs
 
     user_designs = _load_assessed_designs(all_assess_dirs)
+    next_id = [max([9000] + [d.trial + 1 for d in user_designs])]  # continue past reloaded ids
+    # Saved cockpit Optimize runs come back after a restart (own id block per run, ≥ 20000).
+    from fansim.cockpit.data import load_saved_opt_designs
+
+    user_designs += load_saved_opt_designs(runs_root, exclude=run_dir, existing_keys=set())
     by_trial = {d.trial: d for d in study_designs}
     by_trial.update({d.trial: d for d in user_designs})
-    next_id = [max([9000] + [d.trial + 1 for d in user_designs])]  # continue past reloaded ids
 
     server = get_server(client_type="vue3")
     state, ctrl = server.state, server.controller

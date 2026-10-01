@@ -6,6 +6,8 @@ this module only builds widgets and binds ctrl.view_update / figure_update.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import sys
 
 from fansim.cockpit.context import CockpitCtx
@@ -155,7 +157,9 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             "Free = open delivery; load = against the hose ΔP. "
                             "Hub = motor barrel the blades sit on. "
                             "Preview = shape only (sec); Assess = one CFD; Optimize = many. "
-                            "● Optimize trial · ◆ Assess CFD · ★ Pareto · gold ✕ stock datasheet.",
+                            "Plot: shape = which run (see legend) · ◆ = Assessed by you · ★ = best in "
+                            "its run · gold ring = best overall (nothing beats it on free, load and "
+                            "efficiency at once) · gold ✕ = stock datasheet. Dropdown ✪ = best overall.",
                             classes="text-caption text-medium-emphasis ml-2 mb-2",
                         )
                         with v3.VCard(classes="mb-2 pa-3"):
@@ -182,11 +186,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             if state.show_stock
                             else None
                         )
-                        with v3.VCard(style="height:420px;", classes="mb-2 pa-1"):
+                        with v3.VCard(style="height:640px;", classes="mb-2 pa-1"):
                             html.Div(
                                 "CFM scatter — up and right is better (free vs load). "
-                                "Click a point to load Design. Color ≈ efficiency. "
-                                "● Optimize · ◆ Assess CFD · gold ✕ = stock published.",
+                                "Click a point to load Design. Color = efficiency, shape = run "
+                                "(legend), gold ring = best overall. Hover shows run + date.",
                                 classes="text-caption text-medium-emphasis px-2 pt-1",
                             )
                             html.Div(
@@ -200,6 +204,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     [d for d in hub_all if d in study_designs],
                                     [d for d in hub_all if d in user_designs],
                                     stock_ref=_stock0,
+                                    opened_run=Path(ctx.run_dir).name,
                                 ),
                                 click=(on_plotly_click, "[$event?.points?.[0]?.customdata]"),
                                 style="width:100%;",
@@ -990,7 +995,9 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             classes="mb-2",
                                         )
                                     html.Div(OPT_SEARCH_HELP["opt_trials"], classes="text-caption")
-                                _help_switch("opt_resume", "Continue the opened run", classes="mb-2")
+                                _help_switch("opt_resume", "Continue the last Optimize run",
+                                             classes="mb-0")
+                                html.Div("{{ opt_resume_caption }}", classes="text-caption mb-2")
                                 _opt_section(
                                     "Geometry stamps",
                                     "Optional part shapes stamped onto every trial "

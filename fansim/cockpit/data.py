@@ -62,11 +62,40 @@ def load_designs(out_dir: str | Path, study_name: str | None = None) -> list[Des
             stl_path=stl if stl.exists() else None,
             reason=t.user_attrs.get("reason", ""),
             extra={"n_blades": t.user_attrs.get("n_blades"),
+                   "source_run": out_dir.name,
+                   "completed": (t.datetime_complete.strftime("%Y-%m-%d %H:%M")
+                                 if t.datetime_complete else None),
                    "runtime_s": t.user_attrs.get("runtime_s"),
                    "cfd_version": t.user_attrs.get("cfd_version"),
                    "cfd_stale": cfd_is_stale(t.user_attrs.get("cfd_version"))},
         ))
     return designs
+
+
+def load_saved_opt_designs(runs_root: str | Path, *, exclude: str | Path | None,
+                           existing_keys: set[tuple[str, int]]) -> list[Design]:
+    """Plottable trials from every saved ``runs/cockpit_opt_*`` study, merged for the cockpit.
+
+    Lets Optimize results survive a cockpit restart. Each run keeps its own id block
+    (``opt_trial_offset``). ``exclude`` is the opened run (already on the plot as the study);
+    ``existing_keys`` is updated so live Optimize polling does not re-add these.
+    """
+    from fansim.optimize.cli_argv import cockpit_opt_dirs, merge_opt_designs, opt_trial_offset
+
+    skip = Path(exclude).resolve() if exclude is not None else None
+    out: list[Design] = []
+    for run in cockpit_opt_dirs(runs_root):
+        if skip is not None and run.resolve() == skip:
+            continue
+        if not (run / "study.db").is_file():
+            continue
+        try:
+            loaded = load_designs(run)
+        except Exception:  # noqa: BLE001 - a corrupt/empty study just stays off the plot
+            continue
+        out += merge_opt_designs(loaded, source_run=run.name, existing_keys=existing_keys,
+                                 offset=opt_trial_offset(run.name, runs_root))
+    return out
 
 
 def feasible_designs(designs: list[Design]) -> list[Design]:
