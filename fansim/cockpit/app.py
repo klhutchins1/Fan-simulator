@@ -136,27 +136,42 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
     _lazy_ui = {"mixed": False, "volute": False, "propeller": False, "cror": False}
 
     with SinglePageLayout(server) as layout:
-        layout.title.set_text("Fan-simulator Cockpit")
-        state.trame__title = "Fan-simulator Cockpit"
+        layout.title.set_text("Fan Simulator — printable blade designer")
+        state.trame__title = "Fan Simulator"
         with layout.content:
             with v3.VContainer(fluid=True, classes="pa-2") as _tabs_box:
                 with v3.VTabs(v_model=("active_tab",), color="primary", classes="mb-3"):
-                    with v3.VTooltip(text="Fan — CFD design"):
+                    with v3.VTooltip(
+                        text="Fan — CFD-checked axial PC-fan blades (printable STL)",
+                    ):
                         with v3.Template(v_slot_activator="{ props }"):
-                            v3.VTab("Fan", value="fan", v_bind="props")
-                    with v3.VTooltip(text="Mixed-flow — drop-in impeller"):
+                            v3.VTab("Fan · CFD", value="fan", v_bind="props")
+                    with v3.VTooltip(
+                        text="Mixed-flow — drop-in impeller (rough / proxy estimates)",
+                    ):
                         with v3.Template(v_slot_activator="{ props }"):
-                            v3.VTab("Mixed", value="mixed", v_bind="props")
-                    with v3.VTooltip(text="Volute — radial blower"):
+                            v3.VTab("Mixed · proxy", value="mixed", v_bind="props")
+                    with v3.VTooltip(
+                        text="Volute — radial blower (rough / relative proxy)",
+                    ):
                         with v3.Template(v_slot_activator="{ props }"):
-                            v3.VTab("Volute", value="volute", v_bind="props")
-                    with v3.VTooltip(text="Propeller — instant BEMT design"):
+                            v3.VTab("Volute · proxy", value="volute", v_bind="props")
+                    with v3.VTooltip(
+                        text="Propeller — fast BEMT estimate (~1 s); CFD refine optional",
+                    ):
                         with v3.Template(v_slot_activator="{ props }"):
-                            v3.VTab("Prop", value="propeller", v_bind="props")
-                    with v3.VTooltip(text="CROR — stacked rotors (BEMT proxy)"):
+                            v3.VTab("Prop · BEMT", value="propeller", v_bind="props")
+                    with v3.VTooltip(
+                        text="CROR — stacked rotors (BEMT proxy, not full CFD)",
+                    ):
                         with v3.Template(v_slot_activator="{ props }"):
-                            v3.VTab("CROR", value="cror", v_bind="props")
+                            v3.VTab("CROR · proxy", value="cror", v_bind="props")
 
+                html.Div(
+                    "3D-printable PC-fan blade designer — CFD on Fan; other tabs are faster "
+                    "estimates or proxies (see tab labels).",
+                    classes="text-caption text-medium-emphasis mb-2",
+                )
                 render_fan_tab(ctx)
 
                 @state.change("active_tab")

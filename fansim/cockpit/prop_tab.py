@@ -148,6 +148,8 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     state.prop_model = "fpv_5inch"
     state.prop_models = prop_spec_names()
     state.prop_info = "Pick a size, tune the blade, then Analyze (instant) or Optimize."
+    state.prop_design_panels = [0]  # Geometry open; Optimize closed (§21.1c)
+    state.prop_ux_banner = True  # dismissible BEMT honesty (§21.1c / §21.2d)
     state.prop_readout = ["Analyze a prop to see thrust, efficiency, and figure of merit."]
     state.prop_busy = False
     state.prop_opt_running = False
@@ -917,6 +919,23 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
         with v3.VRow(no_gutters=True):
             with v3.VCol(cols=5, classes="pr-2"):
                 def _prop_design():
+                    v3.VAlert(
+                        "Propeller tab — fast BEMT estimate (~1 s), not full CFD. "
+                        "Use Analyze for instant thrust/efficiency; Optimize searches "
+                        "many BEMT designs. Optional CFD refine scores top finalists "
+                        "(Docker). Fan tab is the CFD-checked PC-fan path.",
+                        type="info",
+                        density="compact",
+                        variant="tonal",
+                        classes="mb-2",
+                        closable=True,
+                        v_model=("prop_ux_banner",),
+                    )
+                    html.Div(
+                        "Start here: pick size → tune blade → Analyze (~1 s) → "
+                        "Optimize (optional) → Export STL. CFD refine is optional honesty.",
+                        classes="text-caption text-medium-emphasis mb-2",
+                    )
                     with v3.VCard(classes="mb-2 pa-3"):
                         v3.VSelect(
                             label="Propeller size",
@@ -932,42 +951,16 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                             style="white-space: pre-line",
                         )
                     with v3.VCard(classes="mb-2 pa-3"):
+                        html.Div("Actions", classes="text-subtitle-2 mb-1")
                         html.Div(
-                            "Blade — pitch drives the twist; expand panels for thickness / 3-D / tip",
-                            classes="text-subtitle-2 mb-2",
-                        )
-                        _slider("Blades", "p_n_blades", 2, 4, 1)
-                        _slider("Pitch (in)", "p_pitch", 1.5, 8.0, 0.1)
-                        _slider("Chord root (×tip R)", "p_chord_root", 0.08, 0.30, 0.01)
-                        _slider("Chord mid (×tip R)", "p_chord_mid", 0.10, 0.32, 0.01)
-                        _slider("Chord tip (×tip R)", "p_chord_tip", 0.04, 0.18, 0.01)
-                        v3.VSelect(
-                            label="Wall mode",
-                            v_model=("p_thick_mode",),
-                            items=("p_thick_mode_items",),
-                            density="compact",
-                            variant="outlined",
-                            hide_details=True,
-                            classes="mb-2",
-                        )
-                        from fansim.cockpit.blade_editor import render_shape_panels
-                        from fansim.cockpit.fan_widgets import help_switch as _help_switch
-
-                        def _pslider(label, model, mn, mx, step, unit="", disabled=None, **_kw):
-                            _slider(label, model, mn, mx, step, disabled=disabled)
-
-                        render_shape_panels(
-                            prefix="p_",
-                            slider=_pslider,
-                            help_switch=_help_switch,
-                            v3=v3,
-                            html=html,
+                            "{{ prop_mission }} mission — change under Optimize below.",
+                            classes="text-caption text-medium-emphasis mb-1",
                         )
                         render_action_row(
                             v3,
                             {
                                 "score": {
-                                    "label": "Analyze",
+                                    "label": "Analyze (~1 s)",
                                     "color": "primary",
                                     "size": "small",
                                     "click": (getattr(ctx, "analyze_prop"),),
@@ -999,7 +992,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                     },
                                 ],
                                 "optimize": {
-                                    "label": "Optimize",
+                                    "label": "Optimize (BEMT)",
                                     "color": "success",
                                     "size": "small",
                                     "click": (getattr(ctx, "optimize_prop"),),
@@ -1038,166 +1031,207 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                             "prop_export_busy",
                             color="success",
                         )
-                    with v3.VCard(classes="mb-2 pa-3"):
-                        html.Div(
-                            "Auto-optimize the blade (mission presets: thrust/efficiency, quiet, endurance, range, ~1 s)",
-                            classes="text-subtitle-2 mb-1",
-                        )
-                        html.Div(
-                            "Turn on Continue last prop study to append trials into the "
-                            "most recent cockpit_prop_* Optuna DB (same as Fan resume).",
-                            classes="text-caption mb-2",
-                            style="white-space: pre-line",
-                        )
-                        with v3.VRow(no_gutters=True, classes="align-center"):
-                            with v3.VCol(cols=6, classes="pr-1"):
-                                v3.VTextField(
-                                    label="Trials",
-                                    v_model=("prop_trials",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
+                    with v3.VExpansionPanels(
+                        v_model=("prop_design_panels",),
+                        multiple=True,
+                        variant="accordion",
+                        classes="mb-2",
+                    ):
+                        with v3.VExpansionPanel(title="Geometry — modify blade"):
+                            with v3.VExpansionPanelText():
+                                html.Div(
+                                    "Pitch drives twist; expand inner panels for thickness / 3-D / tip.",
+                                    classes="text-caption mb-2",
                                 )
-                            with v3.VCol(cols=6, classes="pl-1"):
-                                v3.VTextField(
-                                    label="Max power W (0=any)",
-                                    v_model=("prop_maxpower",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                        v3.VSelect(
-                            label="Mission",
-                            v_model=("prop_mission",),
-                            items=("prop_mission_items",),
-                            density="compact",
-                            variant="outlined",
-                            hide_details=True,
-                            classes="mt-2",
-                        )
-                        with v3.VRow(no_gutters=True, classes="align-center mt-1"):
-                            with v3.VCol(cols=4, classes="pr-1"):
-                                v3.VTextField(
-                                    label="Weight (N)",
-                                    v_model=("prop_weight_n",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                            with v3.VCol(cols=4, classes="px-1"):
-                                v3.VTextField(
-                                    label="Rotors",
-                                    v_model=("prop_n_rotors",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                            with v3.VCol(cols=4, classes="pl-1"):
-                                v3.VTextField(
-                                    label="Battery (Wh)",
-                                    v_model=("prop_battery_wh",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                        with v3.VRow(no_gutters=True, classes="align-center mt-1"):
-                            with v3.VCol(cols=6, classes="pr-1"):
-                                v3.VTextField(
-                                    label="Cruise (m/s)",
-                                    v_model=("prop_cruise_mps",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                            with v3.VCol(cols=6, classes="pl-1"):
-                                v3.VTextField(
-                                    label="Min hover (min)",
-                                    v_model=("prop_min_minutes",),
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                        v3.VSwitch(
-                            v_model=("prop_resume",),
-                            density="compact",
-                            hide_details=True,
-                            color="primary",
-                            inset=True,
-                            label="Continue last prop study",
-                            classes="mt-2",
-                        )
-                        html.Div(
-                            "CFD refine scores top-N BEMT finalists (Docker). "
-                            "BEMT floor skips hopeless CFD. "
-                            "Smoke mesh is fast sanity-check; Refine is denser for ranking. "
-                            "Polar V∞ list feeds Analyze.",
-                            classes="text-caption mt-3 mb-1",
-                            style="white-space: pre-line",
-                        )
-                        with v3.VRow(no_gutters=True, classes="align-center"):
-                            with v3.VCol(cols=3, classes="pr-1"):
-                                v3.VTextField(
-                                    label="CFD top N",
-                                    v_model=("prop_cfd_top",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                            with v3.VCol(cols=3, classes="px-1"):
-                                v3.VTextField(
-                                    label="BEMT floor g",
-                                    v_model=("prop_bemt_floor",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                            with v3.VCol(cols=3, classes="px-1"):
+                                _slider("Blades", "p_n_blades", 2, 4, 1)
+                                _slider("Pitch (in)", "p_pitch", 1.5, 8.0, 0.1)
+                                _slider("Chord root (×tip R)", "p_chord_root", 0.08, 0.30, 0.01)
+                                _slider("Chord mid (×tip R)", "p_chord_mid", 0.10, 0.32, 0.01)
+                                _slider("Chord tip (×tip R)", "p_chord_tip", 0.04, 0.18, 0.01)
                                 v3.VSelect(
-                                    label="CFD mesh",
-                                    v_model=("prop_cfd_mesh_preset",),
-                                    items=("prop_cfd_mesh_items",),
+                                    label="Wall mode",
+                                    v_model=("p_thick_mode",),
+                                    items=("p_thick_mode_items",),
                                     density="compact",
                                     variant="outlined",
                                     hide_details=True,
+                                    classes="mb-2",
                                 )
-                            with v3.VCol(cols=3, classes="pl-1"):
-                                v3.VBtn(
-                                    "CFD refine",
-                                    color="warning",
-                                    size="small",
-                                    block=True,
-                                    click=(getattr(ctx, "refine_prop_cfd"),),
-                                    loading=("prop_refine_busy",),
-                                    disabled=(
-                                        "prop_busy || prop_refine_busy || !prop_has_front || !(prop_cfd_top > 0)",
-                                    ),
+                                from fansim.cockpit.blade_editor import render_shape_panels
+                                from fansim.cockpit.fan_widgets import help_switch as _help_switch
+
+                                def _pslider(label, model, mn, mx, step, unit="", disabled=None, **_kw):
+                                    _slider(label, model, mn, mx, step, disabled=disabled)
+
+                                render_shape_panels(
+                                    prefix="p_",
+                                    slider=_pslider,
+                                    help_switch=_help_switch,
+                                    v3=v3,
+                                    html=html,
                                 )
-                        v3.VSelect(
-                            label="BEMT polar backend",
-                            v_model=("prop_polar_backend",),
-                            items=("prop_polar_backend_items",),
-                            density="compact",
-                            variant="outlined",
-                            hide_details=True,
-                            classes="mt-2",
-                        )
-                        v3.VTextField(
-                            label="Polar V∞ (m/s, comma)",
-                            v_model=("prop_polar_v",),
-                            density="compact",
-                            variant="outlined",
-                            hide_details=True,
-                            classes="mt-2",
-                            hint="BEMT forward-flight sweep on Analyze",
-                        )
+                        with v3.VExpansionPanel(title="Optimize & CFD refine"):
+                            with v3.VExpansionPanelText():
+                                html.Div(
+                                    "Multi-objective BEMT search (~1 s/trial). "
+                                    "CFD refine scores top-N finalists when Docker is up.",
+                                    classes="text-caption mb-2",
+                                )
+                                html.Div(
+                                    "Turn on Continue last prop study to append trials into the "
+                                    "most recent cockpit_prop_* Optuna DB (same as Fan resume).",
+                                    classes="text-caption mb-2",
+                                    style="white-space: pre-line",
+                                )
+                                with v3.VRow(no_gutters=True, classes="align-center"):
+                                    with v3.VCol(cols=6, classes="pr-1"):
+                                        v3.VTextField(
+                                            label="Trials",
+                                            v_model=("prop_trials",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                    with v3.VCol(cols=6, classes="pl-1"):
+                                        v3.VTextField(
+                                            label="Max power W (0=any)",
+                                            v_model=("prop_maxpower",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                v3.VSelect(
+                                    label="Mission",
+                                    v_model=("prop_mission",),
+                                    items=("prop_mission_items",),
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                    classes="mt-2",
+                                )
+                                with v3.VRow(no_gutters=True, classes="align-center mt-1"):
+                                    with v3.VCol(cols=4, classes="pr-1"):
+                                        v3.VTextField(
+                                            label="Weight (N)",
+                                            v_model=("prop_weight_n",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                    with v3.VCol(cols=4, classes="px-1"):
+                                        v3.VTextField(
+                                            label="Rotors",
+                                            v_model=("prop_n_rotors",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                    with v3.VCol(cols=4, classes="pl-1"):
+                                        v3.VTextField(
+                                            label="Battery (Wh)",
+                                            v_model=("prop_battery_wh",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                with v3.VRow(no_gutters=True, classes="align-center mt-1"):
+                                    with v3.VCol(cols=6, classes="pr-1"):
+                                        v3.VTextField(
+                                            label="Cruise (m/s)",
+                                            v_model=("prop_cruise_mps",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                    with v3.VCol(cols=6, classes="pl-1"):
+                                        v3.VTextField(
+                                            label="Min hover (min)",
+                                            v_model=("prop_min_minutes",),
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                v3.VSwitch(
+                                    v_model=("prop_resume",),
+                                    density="compact",
+                                    hide_details=True,
+                                    color="primary",
+                                    inset=True,
+                                    label="Continue last prop study",
+                                    classes="mt-2",
+                                )
+                                html.Div(
+                                    "CFD refine scores top-N BEMT finalists (Docker). "
+                                    "BEMT floor skips hopeless CFD. "
+                                    "Smoke mesh is fast sanity-check; Refine is denser for ranking. "
+                                    "Polar V∞ list feeds Analyze.",
+                                    classes="text-caption mt-3 mb-1",
+                                    style="white-space: pre-line",
+                                )
+                                with v3.VRow(no_gutters=True, classes="align-center"):
+                                    with v3.VCol(cols=3, classes="pr-1"):
+                                        v3.VTextField(
+                                            label="CFD top N",
+                                            v_model=("prop_cfd_top",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                    with v3.VCol(cols=3, classes="px-1"):
+                                        v3.VTextField(
+                                            label="BEMT floor g",
+                                            v_model=("prop_bemt_floor",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                    with v3.VCol(cols=3, classes="px-1"):
+                                        v3.VSelect(
+                                            label="CFD mesh",
+                                            v_model=("prop_cfd_mesh_preset",),
+                                            items=("prop_cfd_mesh_items",),
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                    with v3.VCol(cols=3, classes="pl-1"):
+                                        v3.VBtn(
+                                            "CFD refine",
+                                            color="warning",
+                                            size="small",
+                                            block=True,
+                                            click=(getattr(ctx, "refine_prop_cfd"),),
+                                            loading=("prop_refine_busy",),
+                                            disabled=(
+                                                "prop_busy || prop_refine_busy || !prop_has_front || !(prop_cfd_top > 0)",
+                                            ),
+                                        )
+                                v3.VSelect(
+                                    label="BEMT polar backend",
+                                    v_model=("prop_polar_backend",),
+                                    items=("prop_polar_backend_items",),
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                    classes="mt-2",
+                                )
+                                v3.VTextField(
+                                    label="Polar V∞ (m/s, comma)",
+                                    v_model=("prop_polar_v",),
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                    classes="mt-2",
+                                    hint="BEMT forward-flight sweep on Analyze",
+                                )
 
                 def _prop_results():
                     with v3.VCard(classes="pa-2 mb-2"):

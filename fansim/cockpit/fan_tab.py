@@ -65,4 +65,15 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
     session.refresh_items()
     session._init_editor({})
 
+    # §21.2b Cold-open: load the published A12x25 reference so Preview/Assess are not dead.
+    try:
+        if str(session.state.fan_model) == "a12x25":
+            session.load_stock_reference()
+            from fansim.cockpit.fan_core import A12X25_REF_TRIAL
+
+            if A12X25_REF_TRIAL in (session.by_trial or {}):
+                session.state.selected_trial = A12X25_REF_TRIAL
+    except Exception as exc:  # noqa: BLE001 — never block cockpit boot
+        _log.debug("skip cold-open stock reference: %s: %s", type(exc).__name__, exc)
+
     session.expose_to_ctx()

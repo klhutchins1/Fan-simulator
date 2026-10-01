@@ -16,6 +16,7 @@ import sys
 import time
 from pathlib import Path
 
+from fansim.cfd.cockpit_viz import bake_cockpit_viz_core
 from fansim.cfd.metrics import CFD_VERSION
 from fansim.cfd.runner import kill_cfd_containers
 from fansim.cockpit import fan_runtime
@@ -173,6 +174,24 @@ def bind(session) -> None:
             refine_op=bool(state.assess_refine_op),
         )
         extra["cfd_version"] = CFD_VERSION  # tag the solver generation (stale-result detection)
+
+    async def _bake_viz_for_design(d: Design | None) -> None:
+        """Warm midplane + glyphs before Results select (§22.6 / §22.10). Fail-soft."""
+        if d is None or not d.has_model or d.stl_path is None:
+            return
+        case = Path(d.stl_path).parent
+        if not case.is_dir():
+            return
+        if state.assess_cancel:
+            return
+        prev = state.assess_msg or ""
+        state.assess_msg = (prev + "\nWarming airflow viz (midplane + arrows)…").strip()
+        state.flush()
+        loop = asyncio.get_running_loop()
+        try:
+            await loop.run_in_executor(None, bake_cockpit_viz_core, case)
+        except Exception as exc:  # noqa: BLE001 — never fail Assess on viz bake
+            log_caught(_log, "bake_cockpit_viz_core", exc)
 
     async def _assess(params, flat, label, workdir_holder=None):
         tid = next_id[0]
@@ -371,9 +390,20 @@ def bind(session) -> None:
                         f"load {o['cfm_load']:.1f}  eff {o['efficiency']:.1f}%"
                         f"  (added to Results plot){rpm_tag}{tag}"
                     )
+                    ref_cfm = getattr(spec, "ref_cfm", None)
+                    if ref_cfm:
+                        pct = 100.0 * (float(o["cfm_free"]) - float(ref_cfm)) / float(ref_cfm)
+                        state.assess_msg += (
+                            f"\nvs stock free {float(ref_cfm):.0f} CFM: {pct:+.0f}% "
+                            f"({'better' if pct >= 0 else 'lower'} free-air)"
+                        )
                     cap = score_caption(d.extra)
                     if cap:
                         state.assess_msg += f"\n{cap}"
+                    await _bake_viz_for_design(d)
+                    if state.assess_cancel:
+                        state.assess_msg = "⏹ Assess cancelled."
+                        return
                     session.select(d.trial)
                     state.fan_subtab = "results"
                     session._set_baseline()

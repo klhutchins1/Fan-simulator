@@ -3,16 +3,23 @@
 After reconstruct (shared readiness with midplane), load the internal mesh ``U``
 field, subsample cell centers near the impeller, scale meters→millimeters to match
 the impeller STL, and build arrow glyphs for overlay in the same PyVista plotter.
+
+Process-local cloud cache (§22.1) + on-disk ``.vtp`` under ``cockpit_viz/`` (§22.9):
+reselecting / restarting must not re-``read_case`` the ~0.5–1M-cell OpenFOAM grid.
 """
 
 from __future__ import annotations
 
+import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
 from fansim.cfd.midplane import case_has_flow_fields, ensure_reconstructed
+
+_log = logging.getLogger(__name__)
 
 # OpenFOAM cases are SI meters; cockpit impeller STL is millimeters.
 M_TO_MM = 1.0e3
@@ -25,6 +32,13 @@ DEFAULT_FACTOR = 2.0  # |U| [m/s] * factor ≈ arrow length in mm
 # Tip |U| spikes (~20+ m/s) blow glyph scale vs bulk (~3 m/s). Cap length at p95 (§15.3).
 GLYPH_MAG_PERCENTILE = 95.0
 
+_VIZ_SUBDIR = Path("postProcessing") / "cockpit_viz"
+_GLYPH_VTP = "velocity_cloud_v1.vtp"
+_GLYPH_META = "velocity_cloud_v1.meta.json"
+
+# (resolved case path, field fingerprint, max_points, z_half_span) → VelocityGlyphs
+_GLYPH_CACHE: dict[tuple[str, str, int, float], VelocityGlyphs] = {}
+
 
 @dataclass(frozen=True)
 class VelocityGlyphs:
@@ -35,6 +49,158 @@ class VelocityGlyphs:
     caption: str
     available: bool
     n_points: int = 0
+
+
+def clear_glyph_cache() -> None:
+    """Drop the process-local glyph cloud cache (tests / after field rewrite)."""
+    _GLYPH_CACHE.clear()
+
+
+def glyph_artifact_paths(case_dir: str | Path) -> tuple[Path, Path]:
+    """``(vtp, meta.json)`` under ``postProcessing/cockpit_viz/`` (§22.9)."""
+    root = Path(case_dir) / _VIZ_SUBDIR
+    return root / _GLYPH_VTP, root / _GLYPH_META
+
+
+def _latest_nonzero_time_dir(case_dir: Path) -> Path | None:
+    times: list[Path] = []
+    for p in case_dir.iterdir():
+        if not p.is_dir():
+            continue
+        name = p.name
+        if not name.replace(".", "", 1).isdigit():
+            continue
+        try:
+            if float(name) > 0.0:
+                times.append(p)
+        except ValueError:
+            continue
+    if not times:
+        return None
+    return max(times, key=lambda p: float(p.name))
+
+
+def case_field_fingerprint(case_dir: str | Path) -> str:
+    """Stable fingerprint of the latest reconstructed field set (mtime of ``U``)."""
+    case_dir = Path(case_dir)
+    if not case_dir.is_dir():
+        return "none"
+    latest = _latest_nonzero_time_dir(case_dir)
+    if latest is None:
+        return "none"
+    u = latest / "U"
+    try:
+        mt = u.stat().st_mtime_ns if u.is_file() else latest.stat().st_mtime_ns
+    except OSError:
+        return f"{latest.name}:missing"
+    return f"{latest.name}:{mt}"
+
+
+def _cache_key(
+    case_dir: Path, max_points: int, z_half_span_m: float,
+) -> tuple[str, str, int, float]:
+    return (
+        str(case_dir.resolve()),
+        case_field_fingerprint(case_dir),
+        int(max_points),
+        float(z_half_span_m),
+    )
+
+
+def _load_disk_glyphs(
+    case_dir: Path,
+    *,
+    max_points: int,
+    z_half_span_m: float,
+) -> VelocityGlyphs | None:
+    """Load ``velocity_cloud_v1.vtp`` when meta fingerprint matches (§22.9)."""
+    vtp, meta_path = glyph_artifact_paths(case_dir)
+    if not vtp.is_file() or not meta_path.is_file():
+        return None
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(meta, dict):
+        return None
+    if str(meta.get("fingerprint", "")) != case_field_fingerprint(case_dir):
+        return None
+    if int(meta.get("max_points", -1)) != int(max_points):
+        return None
+    if abs(float(meta.get("z_half_span_m", -1.0)) - float(z_half_span_m)) > 1e-12:
+        return None
+    try:
+        import pyvista as pv
+
+        cloud = pv.read(str(vtp))
+        if cloud.n_points <= 0 or "U" not in cloud.point_data:
+            return None
+        if "U_mag" not in cloud.point_data:
+            u = np.asarray(cloud["U"], dtype=float)
+            cloud["U_mag"] = np.linalg.norm(u, axis=1) if u.ndim > 1 else np.abs(u)
+        n = int(cloud.n_points)
+        return VelocityGlyphs(
+            case_dir=case_dir,
+            cloud=cloud,
+            caption=f"{n} velocity sample points (cached)",
+            available=True,
+            n_points=n,
+        )
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("load disk glyphs %s: %s: %s", vtp, type(exc).__name__, exc)
+        return None
+
+
+def _save_disk_glyphs(
+    case_dir: Path,
+    art: VelocityGlyphs,
+    *,
+    max_points: int,
+    z_half_span_m: float,
+) -> None:
+    """Write glyph cloud + fingerprint meta (fail-soft)."""
+    if not art.available or art.cloud is None:
+        return
+    vtp, meta_path = glyph_artifact_paths(case_dir)
+    try:
+        vtp.parent.mkdir(parents=True, exist_ok=True)
+        art.cloud.save(str(vtp))
+        meta = {
+            "fingerprint": case_field_fingerprint(case_dir),
+            "max_points": int(max_points),
+            "z_half_span_m": float(z_half_span_m),
+            "n_points": int(art.n_points),
+        }
+        meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("save disk glyphs %s: %s: %s", vtp, type(exc).__name__, exc)
+
+
+def peek_cached_velocity_glyphs(
+    case_dir: str | Path | None,
+    *,
+    max_points: int = DEFAULT_MAX_CLOUD,
+    z_half_span_m: float = DEFAULT_Z_HALF_SPAN_M,
+) -> VelocityGlyphs | None:
+    """Return a cached glyph cloud without reading the OpenFOAM mesh, or None on miss.
+
+    Checks process memory first, then on-disk ``.vtp`` (§22.1 / §22.9).
+    """
+    if case_dir is None:
+        return None
+    case_dir = Path(case_dir)
+    if not case_dir.is_dir():
+        return None
+    key = _cache_key(case_dir, max_points, z_half_span_m)
+    hit = _GLYPH_CACHE.get(key)
+    if hit is not None:
+        return hit
+    disk = _load_disk_glyphs(
+        case_dir, max_points=max_points, z_half_span_m=z_half_span_m,
+    )
+    if disk is not None:
+        _GLYPH_CACHE[key] = disk
+    return disk
 
 
 def _ensure_cell_u(mesh):
@@ -240,8 +406,14 @@ def ensure_velocity_glyphs(
     mesh=None,
     max_points: int = DEFAULT_MAX_CLOUD,
     z_half_span_m: float = DEFAULT_Z_HALF_SPAN_M,
+    use_cache: bool = True,
 ) -> VelocityGlyphs:
-    """Load / subsample velocity cloud for a case. Fail-soft — never raises."""
+    """Load / subsample velocity cloud for a case. Fail-soft — never raises.
+
+    When ``use_cache`` is True (default), process memory + on-disk ``.vtp`` (§22.1 /
+    §22.9) avoid re-reading the OpenFOAM mesh on design reselect / cockpit restart.
+    Pass ``mesh=`` to skip ``read_case`` (and still populate both caches).
+    """
     unavailable = VelocityGlyphs(
         case_dir=Path(case_dir) if case_dir else Path("."),
         cloud=None,
@@ -254,6 +426,15 @@ def ensure_velocity_glyphs(
     case_dir = Path(case_dir)
     if not case_dir.is_dir():
         return unavailable
+
+    cache_key: tuple[str, str, int, float] | None = None
+    if use_cache:
+        cache_key = _cache_key(case_dir, max_points, z_half_span_m)
+        hit = peek_cached_velocity_glyphs(
+            case_dir, max_points=max_points, z_half_span_m=z_half_span_m,
+        )
+        if hit is not None:
+            return hit
 
     try:
         if mesh is None:
@@ -276,12 +457,18 @@ def ensure_velocity_glyphs(
         n = int(cloud.n_points)
         if n <= 0:
             return unavailable
-        return VelocityGlyphs(
+        art = VelocityGlyphs(
             case_dir=case_dir,
             cloud=cloud,
             caption=f"{n} velocity sample points (subsampled near impeller)",
             available=True,
             n_points=n,
         )
+        if cache_key is not None:
+            _GLYPH_CACHE[cache_key] = art
+            _save_disk_glyphs(
+                case_dir, art, max_points=max_points, z_half_span_m=z_half_span_m,
+            )
+        return art
     except Exception:  # noqa: BLE001 — viz must never break Assess
         return unavailable

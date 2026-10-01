@@ -34,6 +34,57 @@ def test_ensure_glyphs_none_case():
     assert art.n_points == 0
 
 
+def test_glyph_memory_cache_skips_rebuild(tmp_path: Path, monkeypatch):
+    """Reselect of the same case must hit the process cache (§22.1)."""
+    from fansim.cfd import glyphs as glyphs_mod
+
+    glyphs_mod.clear_glyph_cache()
+    pv = pytest.importorskip("pyvista")
+    case = tmp_path / "cased"
+    case.mkdir()
+    tdir = case / "500"
+    tdir.mkdir()
+    (tdir / "U").write_text("placeholder", encoding="utf-8")
+
+    grid = pv.ImageData(
+        dimensions=(6, 6, 6),
+        spacing=(0.01, 0.01, 0.01),
+        origin=(-0.025, -0.025, -0.025),
+    )
+    n = grid.n_cells
+    u = np.zeros((n, 3), dtype=float)
+    u[:, 2] = 2.0
+    grid.cell_data["U"] = u
+
+    reads = {"n": 0}
+
+    def _fake_read(_case):
+        reads["n"] += 1
+        return grid
+
+    monkeypatch.setattr("fansim.acoustics.case.read_case", _fake_read)
+    monkeypatch.setattr(glyphs_mod, "case_has_flow_fields", lambda _c: True)
+    monkeypatch.setattr(glyphs_mod, "ensure_reconstructed", lambda *_a, **_k: True)
+
+    a1 = ensure_velocity_glyphs(case, max_points=30)
+    a2 = ensure_velocity_glyphs(case, max_points=30)
+    assert a1.available and a2.available
+    assert reads["n"] == 1
+    assert a2.cloud is a1.cloud
+    peek = glyphs_mod.peek_cached_velocity_glyphs(case, max_points=30)
+    assert peek is not None and peek.available
+    glyphs_mod.clear_glyph_cache()
+    # Disk cache (§22.9) still serves after memory clear — no second read_case.
+    peek2 = glyphs_mod.peek_cached_velocity_glyphs(case, max_points=30)
+    assert peek2 is not None and peek2.available
+    assert reads["n"] == 1
+    a3 = ensure_velocity_glyphs(case, max_points=30)
+    assert a3.available and reads["n"] == 1
+    vtp, meta = glyphs_mod.glyph_artifact_paths(case)
+    assert vtp.is_file() and meta.is_file()
+    glyphs_mod.clear_glyph_cache()
+
+
 def test_build_velocity_cloud_scales_m_to_mm_and_subsamples():
     pv = pytest.importorskip("pyvista")
     # ~70 mm cube in meters, uniform +Z flow

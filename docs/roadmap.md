@@ -7,10 +7,11 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-09-16**. **§12** + **§13** + **§7.6** + **§14.1–14.6** closed in code.
+- Last reviewed: **2026-09-30**. **§12** + **§13** + **§7.6** + **§14.1–14.6** closed in code.
   Stock close-ref fidelity (§2.7–2.8). **§13.22–13.24** / **§14.3b** /
   **§14.6** / **§15.1–15.6** landed 2026-09-16. Still **not shippable** until Validation P–Q /
-  print+measure — see `a12x25_pq_report.md`
+  print+measure — see `a12x25_pq_report.md`. **§21** cockpit UX + **§22** design-switch
+  3-D reload bug opened 2026-09-30.
 > ✅ **§19.1 freeze lifted 2026-09-26** — rotor direction fixed and CFD-verified (Audit #1b). CFD orientation lives in
 > `fansim/cfd/orientation.py`; change it only with a new direction audit.
 
@@ -40,11 +41,17 @@ session.**
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
    NeuralFoil stays **opt-in** (do **not** flip UIUC default); 20.7 is the hardware path for item 5.
+10. ~~**§22 cockpit airflow / 3-D viz speed**~~ — first-open + disk glyphs + busy UX landed
+    2026-09-30; leftover optional: 22.12 diminishing returns.
+11. ~~**§21 Fan Design UX**~~ — IA collapse + cold-open / banner / badges / vs-stock + Prop
+    mirror landed 2026-09-30; leftover optional: 21.2g tour/readiness.
 
 **What's left (classify before starting a session):**
 
 - **Software remaining** (no hardware / no new CFD campaign required):
-  - **None.** Active software scope is closed 2026-09-30.
+  - **§22** — optional diminishing returns (22.12) only. Core reselect + first-open bake/lazy/
+    slice/streamlines + disk glyphs + busy/cancel UX landed 2026-09-30.
+  - **§21** — core Fan + Prop UX done 2026-09-30; optional leftover: 21.2g (tour/readiness).
   - Deferred (Stage 1 done, Stage 2 **not adopted** — do not start without a new Adopt):
     CST section DOFs, §7.4 CNN/FNO field predictor, §4.5 toroidal Prop topology.
   - ~~§20.2 NeuralFoil / RMS / 360°~~ — DONE 2026-09-30.
@@ -911,6 +918,124 @@ the §19.1 spin / flow freeze.
   **Still open (user hardware):** tach + CFM anemometer first; then manometer + scale;
   plenum/plates / SDP810+MCU later. Unblocks Phase 5 / §5.1 and every
   absolute-number claim once measured points exist. Do **not** check the box fully until then.
+
+## 21. Cockpit UX — config IA + newcomer comprehension (2026-09-30)
+
+Audits of the Fan Design column (keep graph / 3-D placement). Two passes: **organization**
+(accordion vs always-open cards) and **blank-slate comprehension** (what a stranger cannot
+tell). Software-only; does not touch CFD honesty.
+
+### 21.1 Config information architecture
+
+Design left column today dumps always-open cards (Actions, Assess settings, Optimize, Fit,
+Seed) while **only** blade “Modify design” is an accordion — reads as “sliders are secondary;
+every workflow dump is primary.” Library already uses ExpansionPanels; Prop Optimize is the
+same flat-wall pattern.
+
+- [x] **21.1a Collapse workflow panels.** **DONE 2026-09-30.** Fixed Actions strip (buttons +
+  hose/material chips + stale alert). Expansion panels (Geometry open by default; others
+  closed): Geometry · Assess & print · Optimize · Fit & seed · Export options. Export
+  switches moved out of Actions.
+- [x] **21.1b Split Optimize internals.** **DONE 2026-09-30.** Sections: Geometry stamps |
+  Speed-ups | Operating point; Actions chips show hose / material when panels closed.
+- [x] **21.1c Mirror Prop (and Mixed/Volute if needed)** after Fan settles. **DONE 2026-09-30
+  (Prop).** Actions strip + Geometry / Optimize & CFD refine ExpansionPanels; BEMT honesty
+  banner + start-here. Mixed/Volute left as-is (already lighter / proxy-scoped).
+
+### 21.2 Newcomer comprehension (cold-open)
+
+A stranger cannot tell what the product is, which tab to use, what to click first, how long
+Assess/Optimize take, or whether a number is CFD-truth vs BEM/proxy. Per-slider `CONTROL_DESC`
+tooltips are already strong — the gap is product story, first path, and result interpretation.
+
+- [x] **21.2a Product banner + About/?.** **DONE 2026-09-30.** Dismissible banner on Fan Design;
+  About reopen; subtitle + README / design-rules / a12x25-reference pointers.
+- [x] **21.2b Cold-open dead end.** **DONE 2026-09-30.** Auto-loads published A12x25 reference
+  on a12x25; Design picker + disabled-button caption when tip radius missing.
+- [x] **21.2c Start-here strip.** **DONE 2026-09-30.** Pick → Preview (sec) → Assess (~15–30 min)
+  → Optimize (hours) → Export; runtimes on Action buttons.
+- [x] **21.2d Tab honesty badges.** **DONE 2026-09-30.** Fan · CFD / Prop · BEMT / Mixed·Volute·
+  CROR · proxy on tab titles + tooltips + app subtitle.
+- [x] **21.2e Assess vs stock + glossary.** **DONE 2026-09-30.** Assess done line includes vs-stock
+  free CFM %; Results glossary; Assess caption rewritten; `--flags` / `(§N.N)` stripped from
+  user-facing labels (tooltips cleaned).
+- [x] **21.2f Results / 3-D readability.** **DONE 2026-09-30.** Scatter “up-right = better” +
+  empty-state; 3-D color legend (orange/white/red/green/arrows; CFD vs schematic); stale
+  Preview warning on Actions; Assess done/reject as alerts.
+- [ ] **21.2g Nice later.** First-run tour; Docker/OpenFOAM readiness badge; click-to-open help
+  (not hover-only); panel-header diagrams for chord/stagger/camber. **[effort: med]**
+
+## 22. Design-switch 3-D airflow / glyph lag (bug, 2026-09-30)
+
+**Symptom:** After a full Assess, selecting another design (e.g. opt_run1 vs another run) then
+returning leaves the 3-D velocity overlay missing for a long time. Console floods with:
+
+`vtkPolyhedron.cxx WARN| A cell with a non-manifold triangulation has been encountered. This cell cannot be contoured.`
+
+(Plus the usual Trame “multi-users … configure a launcher” note — unrelated.)
+
+**Repro path:** Assess → Results click design A → click design B (other run) → click A again.
+Impeller STL may redraw; arrows / airflow pack stay blank until a slow background job finishes.
+
+**Root cause (measured on `runs/opt_run1/cockpit_assess/design_9014`, 864k cells):**
+
+1. `_schedule_airflow` (`fan_viz.py`) **clears glyphs immediately** on every select, then rebuilds
+   midplane / Uz / streamlines / spanwise / glyphs under one `airflow_lock`.
+2. PNG artifacts **do** cache under `postProcessing/cockpit_viz/` — re-`ensure_*` is ~0 s once
+   built. **Glyphs have no cache:** every select calls `read_case` (~6 s) + cloud build (~2.5 s)
+   ≈ **~7 s** even when all PNGs exist.
+3. First-time midplane / axial-Uz use PyVista `mesh.slice` on OpenFOAM polyhedra → VTK contour
+   of non-manifold polyhedron cells → WARN spam + multi-second delay (timestamps ~8:28:22–28
+   matched user console).
+4. Rapid A→B→A serializes behind the lock; gen cancel only helps between steps, so the UI stays
+   empty longer than a single reload.
+
+- [x] **22.1 Glyph memory (or disk) cache keyed by case dir + field mtime.** Skip `read_case` on
+  reselect of the same Assessed case. **DONE 2026-09-30** — `peek_cached_velocity_glyphs` /
+  `_GLYPH_CACHE` in `fansim/cfd/glyphs.py`; Fan `_schedule_airflow` sync fast-path when PNGs +
+  glyphs are cached. **[impact: high]** **[effort: low]**
+- [x] **22.2 Keep prior glyphs until the new pack is ready** (or show impeller-only without
+  clearing arrows to a blank “Loading…” state that looks broken). **DONE 2026-09-30** — cache hit
+  restores arrows immediately; miss still clears, but re-visit of a prior case is instant via 22.1.
+  **[impact: high]** **[effort: low]**
+- [x] **22.3 Single shared `read_case` when any PNG is missing** — pass one mesh into midplane /
+  Uz / stream / span / glyphs instead of up to five full loads. **DONE 2026-09-30** — `_load_airflow_pack`
+  loads once and threads `mesh=` through ensure_*. **[impact: med]** **[effort: low]**
+- [x] **22.4 Polyhedron slice WARN / cost.** Prefer a path that does not contour broken
+  polyhedra (e.g. cell-center plane sample, or tetrahedralize-once + cache; suppress duplicate
+  VTK spam). First-build only once caches exist. Often halves midplane/Uz time and kills console
+  flood. **DONE 2026-09-30** — `slice_volume_for_viz` drops polyhedra before cutter when a
+  usable majority remains, else cell-center band + `delaunay_2d`. **[impact: med]** **[effort: med]**
+- [x] **22.5 Busy / cancel UX.** Show impeller + CFM immediately; caption progress
+  (midplane ✓ · arrows ✓ · streamlines…); optional cancel / skip heavy views. Document expected
+  “first open of a case ~tens of seconds (until 22.6–22.7), revisit ~instant” after 22.1.
+  **DONE 2026-09-30** — `airflow_progress` checklist + Cancel viz button + indeterminate bar;
+  cancel bumps `airflow_gen` and keeps impeller. **[impact: med]** **[effort: low]**
+
+### 22.x First-open speedups (2026-09-30)
+
+Reselect is warm after 22.1–22.3. Measured first-open cost on `design_9014` (864k cells) was
+~30 s serial; bake + lazy core cut the interactive wait.
+
+- [x] **22.6 Bake viz at end of Assess.** **DONE 2026-09-30** — `bake_cockpit_viz_core` after
+  Assess (midplane + Uz + glyphs) so Results select is warm. **[impact: high]** **[effort: med]**
+- [x] **22.7 Lazy airflow pack.** **DONE 2026-09-30** — Fan loads midplane + glyphs (+ Uz) first;
+  streamlines / spanwise on field toggle or idle. **[impact: high]** **[effort: low–med]**
+- [x] **22.8 Cheaper streamlines.** **DONE 2026-09-30** — `n_seed=24`, `max_steps=4000`, no
+  impeller STL in stream PNG. **[impact: med]** **[effort: low]**
+- [x] **22.9 Persist glyph cloud to disk.** Write a small `.vtp` / `.npz` under
+  `postProcessing/cockpit_viz/` so a cockpit restart still skips `read_case`. Complements the
+  process-local `_GLYPH_CACHE` from 22.1.
+  **DONE 2026-09-30** — `velocity_cloud_v1.vtp` + `.meta.json` fingerprint; `peek` loads disk
+  into memory. **[impact: med]** **[effort: low]**
+- [x] **22.10 Reconstruct before Assess returns Done.** **DONE 2026-09-30** —
+  `bake_cockpit_viz_core` → `load_case_mesh` → `ensure_reconstructed` before select.
+  **[impact: high when decomposed]** **[effort: low]**
+- [x] **22.11 Soft LRU of last 1–2 `read_case` grids.** **DONE 2026-09-30** —
+  `fansim/cfd/cockpit_viz.py` mesh LRU (max 2). **[impact: med]** **[effort: low]**
+- [ ] **22.12 Later / diminishing returns.** Smaller CFD mesh or FOAM→VTU extract for viz-only;
+  parallel PNG renders (VTK off-screen is mostly lock-serialized on Windows — limited win).
+  **[effort: med–high]** Parked — only reopen if first-open still feels slow after 22.5–22.11.
 
 ---
 

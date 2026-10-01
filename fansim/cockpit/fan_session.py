@@ -23,6 +23,7 @@ _EXPOSE = (
     ("fan_cancel_assess", "cancel_assess"),
     ("fan_on_sweep", "on_sweep"),
     ("fan_cancel_sweep", "cancel_sweep"),
+    ("fan_cancel_airflow", "cancel_airflow"),
     ("fan_on_fit_envelope", "on_fit_envelope"),
     ("fan_on_scale_to_hub", "on_scale_to_hub"),
     ("fan_seed_from_duty", "seed_from_duty"),

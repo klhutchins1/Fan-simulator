@@ -10,15 +10,25 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from pathlib import Path
 
-from fansim.cfd.glyphs import cfd_cloud_to_as_built, ensure_velocity_glyphs, make_glyph_arrows
+from fansim.cfd.cockpit_viz import bake_cockpit_viz_heavy, load_case_mesh
+from fansim.cfd.glyphs import (
+    cfd_cloud_to_as_built,
+    ensure_velocity_glyphs,
+    make_glyph_arrows,
+    peek_cached_velocity_glyphs,
+)
 from fansim.cfd.midplane import (
+    axial_artifact_path,
     ensure_axial_uz_artifact,
     ensure_midplane_artifacts,
     ensure_streamlines_artifact,
+    find_cached_midplane,
+    streamline_artifact_path,
 )
 from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION
-from fansim.cfd.spanwise import ensure_spanwise_artifacts
+from fansim.cfd.spanwise import ensure_spanwise_artifacts, find_cached_spanwise
 from fansim.cockpit.airflow_panel import pick_airflow_uri, png_data_uri
 from fansim.cockpit import fan_runtime
 from fansim.cockpit.data import Design
@@ -355,6 +365,8 @@ def bind(session) -> None:
 
     def _clear_airflow(msg: str = "Airflow not available for this design"):
         state.airflow_busy = False
+        state.airflow_cancel = False
+        state.airflow_progress = ""
         state._airflow_u_uri = ""
         state._airflow_p_uri = ""
         state._airflow_uz_uri = ""
@@ -365,108 +377,336 @@ def bind(session) -> None:
         state.airflow_caption = msg
         _clear_glyphs("Velocity arrows not available for this design")
 
+    def _mark(done: bool | None) -> str:
+        if done is True:
+            return "✓"
+        if done is False:
+            return "…"
+        return "—"
+
+    def _set_airflow_progress(
+        *,
+        midplane: bool | None = None,
+        arrows: bool | None = None,
+        heavy: bool | None = None,
+        note: str = "",
+    ) -> None:
+        """Update checklist caption (§22.5). ``None`` = not started, False = in flight, True = done."""
+        parts = [
+            f"midplane {_mark(midplane)}",
+            f"arrows {_mark(arrows)}",
+            f"stream/span {_mark(heavy)}",
+        ]
+        state.airflow_progress = " · ".join(parts)
+        base = state.airflow_progress
+        state.airflow_caption = f"{note} {base}".strip() if note else base
+
+    def cancel_airflow():
+        """Abort in-flight core / heavy airflow builds (§22.5)."""
+        if not state.airflow_busy:
+            return
+        state.airflow_cancel = True
+        airflow_gen[0] += 1
+        state.airflow_busy = False
+        state.airflow_progress = "midplane — · arrows — · stream/span —"
+        state.airflow_caption = "⏹ Airflow build cancelled — impeller kept; pick a design or toggle a view to retry."
+        try:
+            state.flush()
+            ctrl.view_update()
+        except Exception as exc:  # noqa: BLE001
+            log_caught(_log, "view_update (cancel airflow)", exc, level=logging.DEBUG)
+
+    def _apply_glyph_artifact(gly) -> None:
+        """Install a VelocityGlyphs result onto the plotter (CFD → as-built frame)."""
+        if gly is not None and gly.available and gly.cloud is not None:
+            render_state["glyph_cloud"] = cfd_cloud_to_as_built(
+                gly.cloud, AXIAL_CFD_ORIENTATION
+            )
+            state.glyph_caption = gly.caption
+            _rebuild_glyph_arrows()
+        elif gly is not None:
+            _clear_glyphs(gly.caption or "Velocity arrows not available for this design")
+
+    def _apply_png_pack(art, uz, stream, span) -> None:
+        """Push PNG URIs into state. ``None`` args leave that slot unchanged (§22.7 partial)."""
+        if uz is not None:
+            state._airflow_uz_uri = _png_data_uri(uz.png) if uz.available else ""
+        if stream is not None:
+            state._airflow_stream_uri = (
+                _png_data_uri(stream.png) if stream.available else "")
+        if span is not None:
+            state._airflow_span_uri = (
+                _png_data_uri(span.spanwise_png)
+                if span.available and span.spanwise_png
+                else "")
+            state._airflow_b2b_uri = (
+                _png_data_uri(span.b2b_png)
+                if span.available and span.b2b_png
+                else "")
+        has_extra = bool(
+            state._airflow_uz_uri or state._airflow_stream_uri
+            or state._airflow_span_uri or state._airflow_b2b_uri
+        )
+        if art is not None and art.available:
+            state._airflow_u_uri = _png_data_uri(art.u_png)
+            state._airflow_p_uri = _png_data_uri(art.p_png)
+            state.airflow_busy = False
+            _apply_airflow_field()
+        elif art is not None and not art.available and not has_extra:
+            state.airflow_busy = False
+            state._airflow_u_uri = ""
+            state._airflow_p_uri = ""
+            state.airflow_img_uri = ""
+            state.airflow_caption = art.caption or "Airflow not available for this design"
+        elif has_extra or (art is not None and art.available):
+            state.airflow_busy = False
+            _apply_airflow_field()
+        elif art is None and (uz is not None or stream is not None or span is not None):
+            state.airflow_busy = False
+            _apply_airflow_field()
+
+    def _apply_cached_pngs(case) -> bool:
+        """Apply any on-disk PNGs. Returns True if default midplane (|U|) is ready."""
+        mid = find_cached_midplane(case)
+        uz_path = axial_artifact_path(case)
+        stream_path = streamline_artifact_path(case)
+        span = find_cached_spanwise(case)
+
+        class _Png:
+            def __init__(self, png, available=True):
+                self.png = png
+                self.available = available
+
+        uz = _Png(uz_path, uz_path.is_file()) if uz_path.is_file() else None
+        stream = _Png(stream_path, True) if stream_path.is_file() else None
+        if mid is not None or uz is not None or stream is not None or span is not None:
+            _apply_png_pack(mid, uz, stream, span)
+        return mid is not None and mid.available
+
+    def _core_warm(case) -> bool:
+        """True when midplane PNG + glyph memory cache cover the default Design view."""
+        mid_ok = _apply_cached_pngs(case)
+        gly = peek_cached_velocity_glyphs(case)
+        if gly is not None and gly.available:
+            _apply_glyph_artifact(gly)
+            _apply_render(reset=False)
+            return mid_ok
+        return False
+
+    def _schedule_heavy_field(case, token: int, field: str) -> None:
+        """Build streamlines / spanwise / Uz on demand when the user selects that view (§22.7)."""
+        field = (field or "U").lower()
+        if field in ("u", "p"):
+            return
+        need_uz = field == "uz" and not state._airflow_uz_uri
+        need_stream = field == "stream" and not state._airflow_stream_uri
+        need_span = field in ("span", "b2b") and not (
+            state._airflow_span_uri if field == "span" else state._airflow_b2b_uri
+        )
+        if not (need_uz or need_stream or need_span):
+            return
+
+        airflow_gen[0] += 1
+        gen = airflow_gen[0]
+        state.airflow_cancel = False
+        state.airflow_busy = True
+        mid_ok = bool(state._airflow_u_uri or state._airflow_p_uri)
+        arrows_ok = render_state.get("glyph_arrows") is not None
+        _set_airflow_progress(
+            midplane=True if mid_ok else None,
+            arrows=True if arrows_ok else None,
+            heavy=False,
+            note=f"Building {field}…",
+        )
+
+        def _load():
+            with airflow_lock:
+                if airflow_gen[0] != gen or state.airflow_cancel:
+                    return None
+                mesh = load_case_mesh(case)
+                if airflow_gen[0] != gen or state.airflow_cancel:
+                    return None
+                uz = stream = span = None
+                if need_uz:
+                    uz = ensure_axial_uz_artifact(case, mesh=mesh)
+                if need_stream:
+                    stream = ensure_streamlines_artifact(case, mesh=mesh)
+                if need_span:
+                    span = ensure_spanwise_artifacts(case, mesh=mesh)
+                return uz, stream, span
+
+        async def task():
+            try:
+                loop = asyncio.get_running_loop()
+                pack = await loop.run_in_executor(None, _load)
+                if state.selected_trial != token or pack is None:
+                    return
+                uz, stream, span = pack
+                _apply_png_pack(None, uz, stream, span)
+                state.airflow_busy = False
+                state.airflow_cancel = False
+                _set_airflow_progress(
+                    midplane=True if (state._airflow_u_uri or state._airflow_p_uri) else None,
+                    arrows=True if render_state.get("glyph_arrows") is not None else None,
+                    heavy=True,
+                )
+                _apply_airflow_field()
+            except Exception:  # noqa: BLE001
+                if state.selected_trial == token:
+                    state.airflow_busy = False
+                    state.airflow_caption = f"{field} view not available for this design"
+            finally:
+                if state.selected_trial == token and airflow_gen[0] == gen:
+                    state.airflow_busy = False
+                try:
+                    state.flush()
+                    ctrl.view_update()
+                except Exception as exc:  # noqa: BLE001
+                    log_caught(_log, "view_update (heavy field)", exc, level=logging.DEBUG)
+
+        fan_runtime.asynchronous.create_task(task())
+
     def _schedule_airflow(d: Design):
         case = Path(d.stl_path).parent if d.has_model else None
         if case is None or d.extra.get("cfd_stale"):
             _clear_airflow("Airflow not available for this design")
             _apply_render(reset=False)
             return
-        state.airflow_busy = True
-        state.airflow_img_uri = ""
-        state.airflow_caption = "Loading duct airflow midplane…"
-        state._airflow_u_uri = ""
-        state._airflow_p_uri = ""
-        state._airflow_uz_uri = ""
-        state._airflow_stream_uri = ""
-        state._airflow_span_uri = ""
-        state._airflow_b2b_uri = ""
-        _clear_glyphs("Loading 3-D velocity arrows…")
-        _apply_render(reset=False)
+
         token = int(d.trial)
         airflow_gen[0] += 1
         gen = airflow_gen[0]
+        render_state["airflow_case"] = str(case)
+        state.airflow_cancel = False
 
-        def _load_airflow_pack():
+        # Instant path: midplane + glyphs warm (§22.1 / §22.7 / §22.9). Heavy on field toggle.
+        if _core_warm(case):
+            state.airflow_busy = False
+            _set_airflow_progress(midplane=True, arrows=True, heavy=None)
+            # Prefer the field caption when a PNG is already showing.
+            _apply_airflow_field()
+            if not state.airflow_img_uri:
+                state.airflow_caption = (
+                    "Core airflow ready (midplane ✓ · arrows ✓). "
+                    "Streamlines / spanwise build when selected."
+                )
+            try:
+                state.flush()
+                ctrl.view_update()
+            except Exception as exc:  # noqa: BLE001
+                log_caught(_log, "view_update (airflow cache hit)", exc, level=logging.DEBUG)
+            _schedule_heavy_field(case, token, getattr(state, "airflow_field", "U"))
+            return
+
+        state.airflow_busy = True
+        # Keep existing midplane image if cached; only blank when nothing on disk.
+        if find_cached_midplane(case) is None:
+            state.airflow_img_uri = ""
+            state._airflow_u_uri = ""
+            state._airflow_p_uri = ""
+        if not axial_artifact_path(case).is_file():
+            state._airflow_uz_uri = ""
+        if not streamline_artifact_path(case).is_file():
+            state._airflow_stream_uri = ""
+        if find_cached_spanwise(case) is None:
+            state._airflow_span_uri = ""
+            state._airflow_b2b_uri = ""
+        mid_cached_now = _apply_cached_pngs(case)
+        _set_airflow_progress(
+            midplane=True if mid_cached_now else False,
+            arrows=False,
+            heavy=None,
+            note="Loading core airflow…",
+        )
+
+        cached_gly = peek_cached_velocity_glyphs(case)
+        if cached_gly is not None and cached_gly.available:
+            _apply_glyph_artifact(cached_gly)
+            _set_airflow_progress(
+                midplane=True if mid_cached_now else False,
+                arrows=True,
+                heavy=None,
+                note="Loading core airflow…",
+            )
+        else:
+            # Keep prior arrows visible if any; otherwise show loading caption on glyphs.
+            if render_state.get("glyph_arrows") is None:
+                state.glyph_caption = "Loading 3-D velocity arrows…"
+        _apply_render(reset=False)
+
+        def _load_core_pack():
+            """Midplane + glyphs only — streamlines/spanwise deferred (§22.7)."""
             with airflow_lock:
-                if airflow_gen[0] != gen:
+                if airflow_gen[0] != gen or state.airflow_cancel:
                     return None
-                mid = ensure_midplane_artifacts(case)
-                if airflow_gen[0] != gen:
+                mesh = None
+                mid_cached = find_cached_midplane(case)
+                gly_cached = peek_cached_velocity_glyphs(case)
+                need_mesh = mid_cached is None or gly_cached is None
+                if need_mesh:
+                    mesh = load_case_mesh(case)
+                if airflow_gen[0] != gen or state.airflow_cancel:
                     return None
-                # Reconstruct is shared: midplane already ran it, so these just slice + render.
-                uz = ensure_axial_uz_artifact(case)
-                if airflow_gen[0] != gen:
+                mid = ensure_midplane_artifacts(case, mesh=mesh)
+                if airflow_gen[0] != gen or state.airflow_cancel:
                     return None
-                stream = ensure_streamlines_artifact(case)
-                if airflow_gen[0] != gen:
+                uz = ensure_axial_uz_artifact(case, mesh=mesh)
+                if airflow_gen[0] != gen or state.airflow_cancel:
                     return None
-                span = ensure_spanwise_artifacts(case)
-                if airflow_gen[0] != gen:
-                    return None
-                gly = ensure_velocity_glyphs(case)
-                return mid, gly, uz, stream, span
+                gly = ensure_velocity_glyphs(case, mesh=mesh)
+                return mid, gly, uz
 
         async def task():
             try:
                 loop = asyncio.get_running_loop()
-                pack = await loop.run_in_executor(None, _load_airflow_pack)
+                pack = await loop.run_in_executor(None, _load_core_pack)
                 if state.selected_trial != token or pack is None:
                     return
-                art, gly, uz, stream, span = pack
-                state._airflow_uz_uri = (
-                    _png_data_uri(uz.png) if uz is not None and uz.available else "")
-                state._airflow_stream_uri = (
-                    _png_data_uri(stream.png) if stream is not None and stream.available else "")
-                state._airflow_span_uri = (
-                    _png_data_uri(span.spanwise_png)
-                    if span is not None and span.available and span.spanwise_png
-                    else "")
-                state._airflow_b2b_uri = (
-                    _png_data_uri(span.b2b_png)
-                    if span is not None and span.available and span.b2b_png
-                    else "")
-                has_extra = bool(
-                    state._airflow_uz_uri or state._airflow_stream_uri
-                    or state._airflow_span_uri or state._airflow_b2b_uri
-                )
-                if art.available:
-                    state._airflow_u_uri = _png_data_uri(art.u_png)
-                    state._airflow_p_uri = _png_data_uri(art.p_png)
-                    state.airflow_busy = False
-                    _apply_airflow_field()
-                elif has_extra:
-                    # midplane failed but another view rendered — still show something
-                    state.airflow_busy = False
-                    state._airflow_u_uri = ""
-                    state._airflow_p_uri = ""
-                    _apply_airflow_field()
-                else:
-                    state.airflow_busy = False
-                    state._airflow_u_uri = ""
-                    state._airflow_p_uri = ""
-                    state.airflow_img_uri = ""
-                    state.airflow_caption = art.caption or "Airflow not available for this design"
-                if gly is not None and gly.available and gly.cloud is not None:
-                    # The CFD cloud is in the solve's frame (rotor oriented per
-                    # AXIAL_CFD_ORIENTATION); map it back to the as-built preview frame
-                    # before storing/drawing it (finding I1).
-                    render_state["glyph_cloud"] = cfd_cloud_to_as_built(
-                        gly.cloud, AXIAL_CFD_ORIENTATION
-                    )
-                    state.glyph_caption = gly.caption
-                    _rebuild_glyph_arrows()
-                elif gly is not None:
-                    _clear_glyphs(gly.caption or "Velocity arrows not available for this design")
+                art, gly, uz = pack
+                _apply_png_pack(art, uz, None, None)
+                _apply_glyph_artifact(gly)
                 _apply_render(reset=False)
+                state.airflow_busy = False
+                state.airflow_cancel = False
+                _set_airflow_progress(
+                    midplane=bool(art and art.available),
+                    arrows=bool(gly and gly.available),
+                    heavy=None,
+                )
+                _apply_airflow_field()
+                if not state.airflow_img_uri and art and art.available:
+                    state.airflow_caption = state.airflow_progress
+                field = getattr(state, "airflow_field", "U") or "U"
+                if str(field).lower() in ("stream", "span", "b2b"):
+                    _schedule_heavy_field(case, token, field)
+                else:
+                    async def _idle_heavy():
+                        await asyncio.sleep(0.5)
+                        if state.selected_trial != token or state.airflow_cancel:
+                            return
+                        await loop.run_in_executor(
+                            None, lambda: bake_cockpit_viz_heavy(case),
+                        )
+                        if state.selected_trial == token and not state.airflow_cancel:
+                            _apply_cached_pngs(case)
+                            _set_airflow_progress(
+                                midplane=True,
+                                arrows=True,
+                                heavy=True,
+                            )
+                            try:
+                                state.flush()
+                            except Exception as exc:  # noqa: BLE001
+                                log_caught(
+                                    _log, "state.flush (idle heavy)", exc, level=logging.DEBUG,
+                                )
+                    fan_runtime.asynchronous.create_task(_idle_heavy())
             except Exception:  # noqa: BLE001
                 if state.selected_trial == token:
                     state.airflow_busy = False
+                    state.airflow_progress = ""
                     state._airflow_u_uri = ""
                     state._airflow_p_uri = ""
-                    state._airflow_uz_uri = ""
-                    state._airflow_stream_uri = ""
-                    state._airflow_span_uri = ""
-                    state._airflow_b2b_uri = ""
                     state.airflow_img_uri = ""
                     state.airflow_caption = "Airflow not available for this design"
                     _clear_glyphs()
@@ -485,6 +725,13 @@ def bind(session) -> None:
     @state.change("airflow_field")
     def _on_airflow_field(airflow_field=None, **_):
         _apply_airflow_field()
+        field = airflow_field or getattr(state, "airflow_field", "U")
+        tid = state.selected_trial
+        case_s = render_state.get("airflow_case")
+        if tid is not None and case_s:
+            case = Path(case_s)
+            if case.is_dir():
+                _schedule_heavy_field(case, int(tid), field)
         try:
             state.flush()
         except Exception as exc:  # noqa: BLE001
@@ -498,3 +745,5 @@ def bind(session) -> None:
     session._schedule_airflow = _schedule_airflow
     session._clear_airflow = _clear_airflow
     session._apply_airflow_field = _apply_airflow_field
+    session._schedule_heavy_field = _schedule_heavy_field
+    session.cancel_airflow = cancel_airflow

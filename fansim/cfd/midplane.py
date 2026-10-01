@@ -30,6 +30,100 @@ _RENDER_LOCK = threading.Lock()
 
 _LAYOUTS = ("axial", "scroll")
 
+# VTK_POLYHEDRON — snappyHexMesh leaves these; vtkCutter WARNs and slows (§22.4).
+_VTK_POLYHEDRON = 42
+
+
+def _mesh_has_polyhedra(mesh) -> bool:
+    try:
+        types = np.asarray(mesh.celltypes)
+        return bool(np.any(types == _VTK_POLYHEDRON))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def slice_volume_for_viz(mesh, normal, origin):
+    """Slice a volume field for cockpit PNGs without polyhedron cutter spam (§22.4).
+
+    Hex/tet/wedge meshes use PyVista ``slice`` (fast, exact). When polyhedra are
+    present, drop those cells before cutting when a usable majority remains; otherwise
+    fall back to a cell-center plane band + ``delaunay_2d`` so VTK never contours
+    non-manifold polyhedra.
+    """
+    origin = tuple(float(x) for x in origin)
+    normal = tuple(float(x) for x in normal)
+
+    if not _mesh_has_polyhedra(mesh):
+        return mesh.slice(normal=normal, origin=origin)
+
+    try:
+        types = np.asarray(mesh.celltypes)
+        keep = types != _VTK_POLYHEDRON
+        n_keep = int(np.count_nonzero(keep))
+        if n_keep >= max(1000, int(0.55 * types.size)):
+            subset = mesh.extract_cells(keep)
+            if subset.n_cells > 0:
+                return subset.slice(normal=normal, origin=origin)
+    except Exception:  # noqa: BLE001 — fall through to center band
+        pass
+
+    return _slice_cell_center_band(mesh, normal, origin)
+
+
+def _slice_cell_center_band(mesh, normal, origin):
+    """PolyData near the plane from cell centers (no vtkCutter on polyhedra)."""
+    import pyvista as pv
+
+    n = np.asarray(normal, dtype=float)
+    n = n / max(float(np.linalg.norm(n)), 1e-12)
+    o = np.asarray(origin, dtype=float)
+    try:
+        centers = mesh.cell_centers()
+    except Exception:  # noqa: BLE001
+        return mesh.slice(normal=tuple(n), origin=tuple(o))
+
+    pts = np.asarray(centers.points, dtype=float)
+    if pts.size == 0:
+        return pv.PolyData()
+    dist = (pts - o) @ n
+    # Band ~1–2 typical near-impeller cell sizes (screening base_cell ~6 mm → 0.006 m).
+    b = mesh.bounds
+    char = max(
+        abs(float(b[1]) - float(b[0])),
+        abs(float(b[3]) - float(b[2])),
+        abs(float(b[5]) - float(b[4])),
+        0.05,
+    )
+    band = max(0.002, min(0.008, 0.02 * char))
+    mask = np.abs(dist) <= band
+    if not np.any(mask):
+        # Widen once so sparse meshes still yield a surface.
+        mask = np.abs(dist) <= max(band * 3.0, 0.01)
+    if not np.any(mask):
+        return pv.PolyData()
+
+    idx = np.nonzero(mask)[0]
+    cloud = centers.extract_points(idx, include_cells=False)
+    # Re-attach cell arrays vtk may have dropped.
+    for name in list(centers.array_names):
+        if name not in cloud.array_names and name in centers.point_data:
+            try:
+                cloud[name] = np.asarray(centers[name])[idx]
+            except Exception:  # noqa: BLE001
+                pass
+    try:
+        # Project onto the cut plane then triangulate for a fillable surface.
+        proj = cloud.points - np.outer((cloud.points - o) @ n, n)
+        flat = pv.PolyData(proj)
+        for name in cloud.point_data.keys():
+            flat[name] = cloud[name]
+        surf = flat.delaunay_2d()
+        if surf.n_cells > 0:
+            return surf
+    except Exception:  # noqa: BLE001
+        pass
+    return cloud
+
 
 @dataclass(frozen=True)
 class MidplaneArtifacts:
@@ -260,7 +354,7 @@ def render_midplane_pngs(
 
     mesh = _grid_with_umag(mesh)
     origin = tuple(float(x) for x in mesh.center)
-    slc = mesh.slice(normal=_MIDPLANE_NORMAL, origin=origin)
+    slc = slice_volume_for_viz(mesh, _MIDPLANE_NORMAL, origin)
     if slc.n_points == 0:
         return MidplaneArtifacts(
             case_dir=case_dir, u_png=None, p_png=None,
@@ -451,9 +545,9 @@ def render_axial_uz_png(
     # Rig places the rotor near Z=0; slice there when it is inside the mesh, else at the center.
     b = mesh.bounds
     z0, z1 = float(b[4]), float(b[5])
-    z_cut = 0.0 if z0 < 0.0 < z1 else 0.5 * (z0 + z1)
     cx, cy = float(mesh.center[0]), float(mesh.center[1])
-    slc = mesh.slice(normal=(0.0, 0.0, 1.0), origin=(cx, cy, z_cut))
+    z_cut = 0.0 if z0 < 0.0 < z1 else 0.5 * (z0 + z1)
+    slc = slice_volume_for_viz(mesh, (0.0, 0.0, 1.0), (cx, cy, z_cut))
     if slc.n_points == 0:
         return AxialSliceArtifact(
             case_dir=case_dir, png=None,
@@ -545,7 +639,7 @@ def render_streamlines_png(
     *,
     mesh=None,
     window_size: tuple[int, int] = (1000, 1000),
-    n_seed: int = 48,
+    n_seed: int = 24,
     clim: tuple[float, float] | None = None,
 ) -> StreamlineArtifact:
     """Seed a disc upstream of the rotor and trace streamlines colored by ``|U|``.
@@ -555,6 +649,9 @@ def render_streamlines_png(
     inside the −Z (inlet) side and integrates both directions so the approach and the wake
     both show. The impeller STL, if present in the case, is drawn as a light-grey body for
     context. Fail-soft; ``mesh`` may be injected for tests.
+
+    Defaults lean cheap for cockpit first-open (§22.8): ``n_seed=24``, capped integration
+    steps. Raise ``n_seed`` for publication stills.
     """
     import pyvista as pv
 
@@ -610,7 +707,7 @@ def render_streamlines_png(
     try:
         streams = mesh.streamlines_from_source(
             seed, vectors="U", integration_direction="forward",
-            max_steps=12000, initial_step_length=0.2, max_step_length=1.0,
+            max_steps=4000, initial_step_length=0.25, max_step_length=1.2,
             terminal_speed=1e-8,
         )
     except Exception:  # noqa: BLE001
@@ -645,22 +742,7 @@ def render_streamlines_png(
                     "width": 0.12, "height": 0.55, "position_x": 0.86, "position_y": 0.2,
                 },
             )
-            stl = case_dir / "constant" / "triSurface" / "impeller.stl"
-            if not stl.is_file():
-                stl = case_dir / "impeller.stl"
-            if stl.is_file():
-                try:
-                    body = pv.read(str(stl))
-                    # The snappy STL is in mm; the OpenFOAM mesh is in m. Scale it down when it
-                    # dwarfs the flow domain, else skip (a mis-scaled body swamps the scene).
-                    bl = body.length
-                    if bl > 5.0 * max(r_tip, 1e-6):
-                        body = body.scale(0.001, inplace=False)
-                    if body.length <= 5.0 * max(r_tip, 1e-6):
-                        pl.add_mesh(body, color="lightgrey", opacity=0.35,
-                                    show_scalar_bar=False)
-                except Exception:  # noqa: BLE001 — context body is optional
-                    pass
+            # Impeller STL context omitted in cockpit stills (§22.8) — wake tubes carry the story.
             # Look down the axis from DOWNSTREAM (slightly off-axis) back at the rotor: the wake
             # swirl then reads as a corkscrew. A side view would flatten it into straight lines.
             pl.camera_position = [

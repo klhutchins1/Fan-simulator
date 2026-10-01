@@ -43,7 +43,10 @@ def apply_state_defaults(session) -> None:
 
     state.selected_trial = None
     state.info_lines = ["Select a design (click a point or use the dropdown)."]
-    state.preview_msg = "Select a design, then edit and press Preview geometry."
+    state.preview_msg = (
+        "Stock / reference loaded — press Preview to refresh 3-D, or Assess to run CFD "
+        "(~15–30 min)."
+    )
     state.export_msg = ""
     state.export_busy = False
     state.export_fit_hub = True
@@ -101,10 +104,14 @@ def apply_state_defaults(session) -> None:
     state.show_envelope = False
     state.show_dir_cues = True  # rotation (CCW) + airflow (−Z) direction cues in the 3-D view
     state.fan_subtab = "design"
+    state.fan_ux_banner = True  # dismissible product story (§21.2a)
+    state.fan_design_panels = [0]  # Geometry open; other workflow panels closed (§21.1a)
     state.airflow_img_uri = ""
     state.airflow_caption = "Select a scored design to load duct airflow (midplane)."
     state.airflow_field = "U"
     state.airflow_busy = False
+    state.airflow_cancel = False
+    state.airflow_progress = ""
     state._airflow_u_uri = ""
     state._airflow_p_uri = ""
     state._airflow_uz_uri = ""       # axial-velocity (Uz) cut-plane

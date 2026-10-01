@@ -40,7 +40,7 @@ CONTROL_DESC = {
     "e_le_mid": "Rakes only the LEADING edge at mid-span (mm) — curves the LE line, trailing edge unchanged.",
     "e_le_tip": "Rakes only the LEADING edge at the tip (mm).",
     "e_le_skew_mid": "Sickle / LE skew at mid-span (mm) — shifts only the leading-edge region sideways in the rotation plane (scimitar). Trailing edge stays put. 0 = radial LE. Not live: press Preview. If Preview times out, the old mesh stays on screen so sickle looks like it did nothing.",
-    "e_le_skew_tip": "Sickle / LE skew at the tip (mm). Typical printed PC-fan tips sit around 4–12 mm. Same axis as Optimize --sickle. Press Preview — a timed-out build keeps the previous orange mesh.",
+    "e_le_skew_tip": "Sickle / LE skew at the tip (mm). Typical printed PC-fan tips sit around 4–12 mm. Same axis as Optimize → Sickle leading edge. Press Preview — a timed-out build keeps the previous orange mesh.",
     "e_skew_mid": "Skew (mm) — shifts the whole mid section sideways (tangentially). Fine balance/overlap tweak.",
     "e_skew_tip": "Skew (mm) — shifts the whole tip section sideways (tangentially). Wide range for matching reference planforms.",
     "e_smooth_span": "Smooth span curves (PCHIP) — interpolate hub→mid→tip with a shape-preserving cubic so mid wrap/sweep/skew don't put a sharp kink in the blade. Off = linear (historical).",
@@ -142,8 +142,8 @@ OPT_SEARCH_HELP = {
         "Risk: needs PyTorch or falls back to GP-only."
     ),
     "opt_surrogate_guided": (
-        "Pro loop (§20.5): space-filling DoE → fit GP/boost/NN → NSGA-II on the surrogate → "
-        "verify top-k (stub by default; CFD when Docker + --verify-cfd) → refit. "
+        "Pro loop: space-filling DoE → fit GP/boost/NN → NSGA-II on the surrogate → "
+        "verify top-k (stub by default; CFD when Docker verify is on) → refit. "
         "Uses ensemble/GP spread as the acquisition signal. When to use: explore many "
         "designs cheaply before spending CFD. Cost: CPU for DoE+NSGA; CFD only on top-k "
         "if verify is enabled. Risk: surrogate can mis-rank early; verify is the honesty gate."

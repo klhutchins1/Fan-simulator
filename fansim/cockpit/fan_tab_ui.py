@@ -65,6 +65,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
     cancel_assess = getattr(ctx, "fan_cancel_assess")
     on_sweep = getattr(ctx, "fan_on_sweep")
     cancel_sweep = getattr(ctx, "fan_cancel_sweep")
+    cancel_airflow = getattr(ctx, "fan_cancel_airflow")
     on_fit_envelope = getattr(ctx, "fan_on_fit_envelope")
     on_scale_to_hub = getattr(ctx, "fan_on_scale_to_hub")
     seed_from_duty = getattr(ctx, "fan_seed_from_duty")
@@ -73,6 +74,9 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
 
     hub_designs = getattr(ctx, "fan_hub_designs")
     active_spec = getattr(ctx, "fan_active_spec")
+
+    def show_fan_about(**_):
+        state.fan_ux_banner = True
 
     _action_busy = (
         "preview_busy || assess_busy || export_busy || opt_running || e_tip_radius == null"
@@ -146,6 +150,14 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             "blade into Design (editable approximation) + 3-D preview.",
                             classes="text-caption text-medium-emphasis ml-2 mb-2",
                         )
+                        html.Div(
+                            "Glossary — CFM: airflow volume. Pa: pressure. "
+                            "Free = open delivery; load = against the hose ΔP. "
+                            "Hub = motor barrel the blades sit on. "
+                            "Preview = shape only (sec); Assess = one CFD; Optimize = many. "
+                            "● Optimize trial · ◆ Assess CFD · ★ Pareto · gold ✕ stock datasheet.",
+                            classes="text-caption text-medium-emphasis ml-2 mb-2",
+                        )
                         with v3.VCard(classes="mb-2 pa-3"):
                             v3.VSelect(
                                 label="Design",
@@ -172,10 +184,16 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         )
                         with v3.VCard(style="height:420px;", classes="mb-2 pa-1"):
                             html.Div(
-                                "CFM / efficiency scatter — click a point to load Design "
-                                "sliders, 3-D impeller, velocity arrows, and duct midplane "
-                                "airflow when available. Gold ✕ = stock published.",
+                                "CFM scatter — up and right is better (free vs load). "
+                                "Click a point to load Design. Color ≈ efficiency. "
+                                "● Optimize · ◆ Assess CFD · gold ✕ = stock published.",
                                 classes="text-caption text-medium-emphasis px-2 pt-1",
+                            )
+                            html.Div(
+                                "No scored designs yet — Assess one blade or open an Optimize "
+                                "run to fill this plot. Gold ✕ (stock) still shows when enabled.",
+                                classes="text-caption text-medium-emphasis px-2 py-4 text-center",
+                                v_show="!trial_items || trial_items.length < 2",
                             )
                             fig_widget = plotly_widgets.Figure(
                                 figure=scatter_figure(
@@ -459,13 +477,75 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             )
                                     html.Div("{{ meas_msg }}", classes="text-caption mt-2", style="white-space: pre-line")
 
+                    with html.Div(v_show="fan_subtab === 'design'"):
+                        v3.VAlert(
+                            "Design 3D-printable replacement blades for a PC cooling fan "
+                            "(start: Noctua A12x25). Preview updates the shape in seconds; "
+                            "Assess runs one CFD solve (~15–30 min); Optimize searches many "
+                            "designs (hours). Export writes a print-ready STL. "
+                            "Fan is CFD-checked — Mixed / Volute / Prop / CROR tabs are "
+                            "faster estimates or proxies. Docs: README, docs/design-rules.md, "
+                            "docs/a12x25-reference.md.",
+                            type="info",
+                            density="compact",
+                            variant="tonal",
+                            classes="mb-2",
+                            closable=True,
+                            v_model=("fan_ux_banner",),
+                        )
+                        with v3.VRow(no_gutters=True, classes="align-center mb-2"):
+                            with v3.VCol(cols=10):
+                                html.Div(
+                                    "Start here: 1) Pick a design ↓  2) Preview (sec)  "
+                                    "3) Assess (~15–30 min)  4) Optimize (hours, optional)  "
+                                    "5) Export STL when happy.",
+                                    classes="text-caption text-medium-emphasis",
+                                )
+                            with v3.VCol(cols=2, classes="text-right"):
+                                v3.VBtn(
+                                    "About",
+                                    size="x-small",
+                                    variant="tonal",
+                                    click=(show_fan_about,),
+                                )
+                        v3.VSelect(
+                            label="Design (unlocks Preview / Assess / Export)",
+                            v_model=("selected_trial",),
+                            items=("trial_items",),
+                            density="compact",
+                            variant="outlined",
+                            hide_details=True,
+                            classes="mb-2",
+                            update_modelValue=(select, "[$event]"),
+                        )
+                        html.Div(
+                            "Buttons stay disabled until a design is selected "
+                            "(tip radius loaded). Use the reference entry or Results scatter.",
+                            classes="text-caption text-medium-emphasis mb-2",
+                            v_show="e_tip_radius == null",
+                        )
+
                     with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):
                         html.Div("Actions", classes="text-subtitle-2 mb-1")
+                        html.Div(
+                            "{{ assess_preset }} hose · {{ assess_material }} — "
+                            "change under Assess & print below.",
+                            classes="text-caption text-medium-emphasis mb-1",
+                        )
+                        v3.VAlert(
+                            "{{ stale_msg }}",
+                            v_if="edited_stale",
+                            type="warning",
+                            density="compact",
+                            variant="tonal",
+                            classes="mb-2",
+                            style="white-space: pre-line",
+                        )
                         render_action_row(
                             v3,
                             {
                                 "preview": {
-                                    "label": "Preview",
+                                    "label": "Preview (sec)",
                                     "color": "primary",
                                     "size": "small",
                                     "click": (do_preview,),
@@ -473,7 +553,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "disabled": (_action_busy,),
                                 },
                                 "score": {
-                                    "label": "Assess",
+                                    "label": "Assess (~15–30 min)",
                                     "color": "success",
                                     "size": "small",
                                     "click": (on_assess,),
@@ -481,7 +561,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "disabled": (_action_busy,),
                                 },
                                 "export": {
-                                    "label": "Export print STL",
+                                    "label": "Export STL",
                                     "size": "small",
                                     "variant": "tonal",
                                     "color": "primary",
@@ -490,7 +570,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "disabled": (_action_busy,),
                                 },
                                 "optimize": {
-                                    "label": "Optimize",
+                                    "label": "Optimize (hours)",
                                     "color": "success",
                                     "size": "small",
                                     "click": (on_optimize_fan,),
@@ -534,573 +614,579 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             classes="mt-1 mb-1",
                         )
                         html.Div("{{ preview_msg }}", classes="text-caption", style="white-space: pre-line")
-                        html.Div("{{ assess_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
+                        v3.VAlert(
+                            "{{ assess_msg }}",
+                            v_if="assess_msg",
+                            type="info",
+                            density="compact",
+                            variant="tonal",
+                            classes="mt-1",
+                            style="white-space: pre-line",
+                        )
                         html.Div("{{ export_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
                         html.Div("{{ opt_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
                         busy_bar("preview_busy", "assess_busy", "export_busy", "opt_running", color="success")
-                        html.Div(
-                            "Export carves the motor cup (+ grip pads) and writes a mount/frame checklist. "
-                            "Leave both Fit switches on for the commercial A12x25 hub/frame.",
-                            classes="text-caption text-medium-emphasis mt-2 mb-1",
-                        )
-                        v3.VSwitch(
-                            v_model=("preview_motor_cup",),
-                            density="compact",
-                            hide_details=True,
-                            color="primary",
-                            inset=True,
-                            classes="mt-1",
-                            label="Preview motor cup + grip pads (slower full solid; matches Export)",
-                        )
-                        v3.VSwitch(
-                            v_model=("export_fit_hub",),
-                            density="compact",
-                            hide_details=True,
-                            color="primary",
-                            inset=True,
-                            classes="mt-1",
-                            label="Fit hub to motor on export (widen so the cup carves)",
-                        )
-                        v3.VSwitch(
-                            v_model=("export_fit_frame",),
-                            density="compact",
-                            hide_details=True,
-                            color="primary",
-                            inset=True,
-                            classes="mt-1",
-                            label="Fit tip/depth to frame on export (default on — re-Assess after)",
-                        )
-                        v3.VSwitch(
-                            v_model=("export_also_mirror",),
-                            density="compact",
-                            hide_details=True,
-                            color="primary",
-                            inset=True,
-                            classes="mt-1",
-                            label="Also export opposite-hand STL + spin meta (CW⇄CCW, §19.4)",
-                        )
 
-                    with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):
-                        html.Div("Assess settings", classes="text-subtitle-2 mb-1")
-                        html.Div(
-                            "Before CFD: printability, stress, and blade-vibration "
-                            "(bend frequency vs blade-pass tone). If rejected, the "
-                            "message below says what to change — usually fewer Blades "
-                            "or thicker mid-blade.",
-                            classes="text-caption text-medium-emphasis mb-2",
-                        )
-                        v3.VAlert(
-                            "{{ stale_msg }}",
-                            v_if="edited_stale",
-                            type="warning",
-                            density="compact",
-                            variant="tonal",
-                            classes="mb-2",
-                            style="white-space: pre-line",
-                        )
-                        v3.VSelect(
-                            label="Application",
-                            v_model=("assess_preset",),
-                            items=("assess_preset_items",),
-                            density="compact",
-                            variant="outlined",
-                            hide_details=True,
-                            classes="mb-2",
-                        )
-                        v3.VSelect(
-                            label="Print material (stress + vibration gate)",
-                            v_model=("assess_material",),
-                            items=("assess_material_items",),
-                            density="compact",
-                            variant="outlined",
-                            hide_details=True,
-                            classes="mb-2",
-                        )
-                        html.Div(
-                            "Used by Assess and Optimize (stress, blade vibration, "
-                            "tip deflection). Optimize previously always used PETG — "
-                            "pick PLA+ here before Optimize if that is what you print.",
-                            classes="text-caption text-medium-emphasis mb-2",
-                        )
-                        v3.VBtn(
-                            "Score multi-point BEM (§20.6)",
-                            size="small",
-                            variant="tonal",
-                            color="secondary",
-                            classes="mb-1",
-                            click=(score_multi_point_bem,),
-                            block=True,
-                        )
-                        html.Div(
-                            "{{ multi_point_msg }}",
-                            classes="text-caption mb-2",
-                            style="white-space: pre-line",
-                        )
-                        _opt_section(
-                            "Honesty / fidelity",
-                            "Also applied when you press Optimize (same hose + roughness).",
-                        )
-                        _help_switch(
-                            "assess_refine_op",
-                            "Third CFD at operating point (~50% longer)",
-                            classes="mb-2",
-                        )
-                        _help_switch(
-                            "assess_wall_ks",
-                            "FDM wall roughness (ks≈0.1 mm)",
-                            classes="mb-2",
-                        )
-                        with v3.VRow(no_gutters=True, classes="mt-2 align-center"):
-                            with v3.VCol(cols=6, classes="pr-1"):
+                    with v3.VExpansionPanels(
+                        v_model=("fan_design_panels",),
+                        multiple=True,
+                        variant="accordion",
+                        classes="mb-2",
+                        v_show="fan_subtab === 'design'",
+                    ):
+                        with v3.VExpansionPanel(title="Geometry — modify design"):
+                            with v3.VExpansionPanelText():
+                                html.Div(
+                                    "Hover any slider for a min/max picture + what it does.",
+                                    classes="text-caption mb-1",
+                                )
+                                with v3.VExpansionPanels(variant="accordion", multiple=True):
+                                    with v3.VExpansionPanel(title="Planform — blades & chord"):
+                                        with v3.VExpansionPanelText():
+                                            _slider("Blades", "e_n_blades", 5, 11, 1)
+                                            _slider("Chord root", "e_chord_root", 14, 50, 0.5, unit="mm")
+                                            _slider("Chord mid", "e_chord_mid", 14, 60, 0.5, unit="mm")
+                                            _slider("Chord tip", "e_chord_tip", 14, 70, 0.5, unit="mm")
+                                            html.Div(
+                                                "Chord = LE→TE blade width (planform). Not wall thickness.",
+                                                classes="text-caption mb-2",
+                                            )
+                                    with v3.VExpansionPanel(title="Pitch / twist — stagger"):
+                                        with v3.VExpansionPanelText():
+                                            _slider("Stagger root", "e_stagger_root", 15, 55, 1, unit="deg")
+                                            _slider("Stagger mid", "e_stagger_mid", 15, 55, 1, unit="deg")
+                                            _slider("Stagger tip", "e_stagger_tip", 15, 55, 1, unit="deg")
+                                    with v3.VExpansionPanel(title="Airfoil — camber & thickness"):
+                                        with v3.VExpansionPanelText():
+                                            _help_select(
+                                                "e_section_family",
+                                                "Section family",
+                                                items="section_family_items",
+                                                help_map=CONTROL_DESC,
+                                            )
+                                            html.Div(
+                                                "NACA = cambered airfoil (knife LE/TE). Rounded plate = "
+                                                "constant wall, round LE, tunable TE + camber for the slight "
+                                                "face curve — match printed PC-fan blades.",
+                                                classes="text-caption mb-2",
+                                            )
+                                            _slider("Camber root", "e_camber_root", 0.0, 0.15, 0.005, unit="c/c")
+                                            _slider("Camber mid", "e_camber_mid", 0.0, 0.15, 0.005, unit="c/c")
+                                            _slider("Camber tip", "e_camber_tip", 0.0, 0.15, 0.005, unit="c/c")
+                                            html.Div(
+                                                "Camber = the scoop in the blade face (LE→TE curve). "
+                                                "Raise tip/mid until the tip-on view matches the white reference. "
+                                                "Not wrap/sickle — those move the planform, not the face scoop. Preview after changes.",
+                                                classes="text-caption mb-2",
+                                            )
+                                            _slider("Camber position", "e_camber_pos", 0.2, 0.6, 0.05, unit="x/c")
+                                            _help_select(
+                                                "e_thick_mode",
+                                                "Thickness span",
+                                                items="thick_mode_items",
+                                                help_map=CONTROL_DESC,
+                                            )
+                                            html.Div(
+                                                "{{ thick_wall_readout }}",
+                                                classes="text-caption mb-2",
+                                            )
+                                            _slider(
+                                                "Wall thickness", "e_thick_mm", 0.8, 4.0, 0.1,
+                                                unit="mm",
+                                                disabled=("e_thick_mode !== 'uniform'",),
+                                            )
+                                            _slider(
+                                                "Wall t/c root", "e_thick_root", 0.03, 0.15, 0.01,
+                                                unit="t/c",
+                                                disabled=("e_thick_mode === 'uniform'",),
+                                            )
+                                            _slider(
+                                                "Wall t/c mid", "e_thick_mid", 0.03, 0.15, 0.01,
+                                                unit="t/c",
+                                                disabled=("e_thick_mode === 'uniform'",),
+                                            )
+                                            _slider(
+                                                "Wall t/c tip", "e_thick_tip", 0.03, 0.15, 0.01,
+                                                unit="t/c",
+                                                disabled=("e_thick_mode === 'uniform'",),
+                                            )
+                                            html.Div(
+                                                "Wall = the thin dimension through the blade (not LE→TE width). "
+                                                "Uniform = same mm root→tip. Rounded plate keeps wall through "
+                                                "the section (LE/TE from the roundness sliders); NACA knives the TE.",
+                                                classes="text-caption mb-2",
+                                            )
+                                            _slider(
+                                                "LE thick / roundness", "e_le_thick", 0.0, 2.0, 0.05,
+                                                unit="×",
+                                            )
+                                            _slider(
+                                                "TE thick / roundness", "e_te_thick", 0.0, 2.0, 0.05,
+                                                unit="×",
+                                            )
+                                            html.Div(
+                                                "NACA: LE/TE scales reshape nose/tail (1 = stock). TE>1 fattens "
+                                                "the aft section. Plate: both sliders are edge roundness "
+                                                "(1 = full bullnose, ~0.2 = sharp). "
+                                                "Camber bows the plate face (slight tip→hub curve). Preview after changes.",
+                                                classes="text-caption text-medium-emphasis mb-2",
+                                            )
+                                    with v3.VExpansionPanel(title="3-D shape — wrap, sweep, rake"):
+                                        with v3.VExpansionPanelText():
+                                            _help_switch(
+                                                "e_smooth_span",
+                                                "Smooth span curves",
+                                                help_map=CONTROL_DESC,
+                                                classes="mb-2",
+                                            )
+                                            _slider("Wrap mid", "e_lean_mid", 0, 30, 1, unit="deg")
+                                            _slider("Wrap tip", "e_lean_tip", 0, 45, 1, unit="deg")
+                                            _slider("Sweep mid", "e_sweep_mid", -10, 20, 0.5, unit="mm")
+                                            _slider("Sweep tip", "e_sweep_tip", -8, 25, 0.5, unit="mm")
+                                            _slider("LE curve mid", "e_le_mid", -12, 12, 0.5, unit="mm")
+                                            _slider("LE curve tip", "e_le_tip", -12, 12, 0.5, unit="mm")
+                                            _slider("Sickle mid", "e_le_skew_mid", 0, 12, 0.5, unit="mm")
+                                            _slider("Sickle tip", "e_le_skew_tip", 0, 15, 0.5, unit="mm")
+                                            _slider("Skew mid", "e_skew_mid", -20, 20, 0.5, unit="mm")
+                                            _slider("Skew tip", "e_skew_tip", -25, 25, 0.5, unit="mm")
+                                            html.Div("{{ depth_fit_info }}", classes="text-caption")
+                                    with v3.VExpansionPanel(title="Tip — round & winglet"):
+                                        with v3.VExpansionPanelText():
+                                            _help_switch(
+                                                "e_cylindrical_tip",
+                                                "Cylindrical tip (match cover)",
+                                                help_map=CONTROL_DESC,
+                                            )
+                                            _slider("Tip round", "e_tip_round", 0.0, 1.0, 0.05, unit="0–1")
+                                            _slider("Tip round start", "e_tip_start", 0.5, 0.92, 0.02, unit="span")
+                                            _help_switch(
+                                                "e_tip_notched",
+                                                "Tip TE notches (3 boxy bites)",
+                                                help_map=CONTROL_DESC,
+                                            )
+                                            _slider(
+                                                "Tip notch depth",
+                                                "e_tip_notch_depth",
+                                                0.5,
+                                                3.0,
+                                                0.1,
+                                                unit="mm",
+                                                disabled=("!e_tip_notched",),
+                                            )
+                                            html.Div(
+                                                "Three boxy / skewed-rectangle bites on the outer trailing edge "
+                                                "(stock A12x25 style). Not spanwise owl serrations.",
+                                                classes="text-caption mb-2",
+                                            )
+                                            _slider("Winglet start", "e_winglet_span", 0.6, 0.95, 0.05, unit="span")
+                                            _slider("Winglet sweep", "e_winglet_sweep", 0, 15, 0.5, unit="mm")
+                                            _slider("Winglet lean", "e_winglet_lean", 0, 30, 1, unit="deg")
+                                            _slider("Shroud thickness", "e_shroud_thick", 0, 3, 0.8, unit="mm")
+                                            _slider(
+                                                "Shroud height",
+                                                "e_shroud_height",
+                                                0,
+                                                1,
+                                                0.1,
+                                                unit="span",
+                                                disabled=("e_shroud_thick == 0",),
+                                            )
+                                            html.Div(
+                                                "0 thickness = off. First thickness step is 0.8 mm (two walls); 1.6 mm is four walls. Height 1.0 covers the full tip; below 1.0 the hoop starts at the trailing edge and BEM still treats it as an open tip. A full ring (height 1.0) disables the winglet automatically — once the tip is fully covered a winglet only adds blockage.",
+                                                classes="text-caption mb-1",
+                                            )
+                                    with v3.VExpansionPanel(title="Hub"):
+                                        with v3.VExpansionPanelText():
+                                            _slider("Hub radius", "e_hub_radius", 15, 35, 0.5, unit="mm")
+                                            html.Div("{{ hub_fit_info }}", classes="text-caption mb-1")
+                                            _slider("Tip radius / length", "e_tip_radius", 45, 59, 0.5, unit="mm")
+                                            html.Div("{{ tip_fit_info }}", classes="text-caption mb-1")
+                                            _slider("Hub height (0=auto)", "e_hub_height", 0, 30, 0.5, unit="mm")
+                                            _slider("Blade on hub", "e_blade_hub_z", -8, 8, 0.5, unit="mm")
+                                            html.Div(
+                                                "Blade on hub: + raises blades toward the intake (more hub below). "
+                                                "Needs Hub height taller than the root span.",
+                                                classes="text-caption mb-2",
+                                            )
+                                            v3.VSelect(
+                                                label="Hub profile",
+                                                v_model=("e_hub_profile",),
+                                                items=("hub_profiles",),
+                                                density="compact",
+                                                variant="outlined",
+                                                hide_details=True,
+                                                classes="mb-3",
+                                            )
+                                            _slider("Hub nose (cone/dome)", "e_hub_nose", 0, 15, 0.5, unit="mm")
+                                    with v3.VExpansionPanel(title="Spacing — tonal noise"):
+                                        with v3.VExpansionPanelText():
+                                            _slider("Uneven spacing", "e_spacing", 0.0, 0.6, 0.05, unit="0–1")
+                                    with v3.VExpansionPanel(title="Features (bio-inspired)"):
+                                        with v3.VExpansionPanelText():
+                                            v3.VBtn(
+                                                "🎲 Randomize features",
+                                                size="x-small",
+                                                variant="tonal",
+                                                color="secondary",
+                                                block=True,
+                                                click=(randomize_features,),
+                                                classes="mb-3",
+                                            )
+                                            _slider("Tubercle amp", "e_tub_amp", 0.0, 0.10, 0.01, unit="c")
+                                            _slider("Tubercle waves", "e_tub_waves", 0, 8, 1)
+                                            _slider("Serration amp", "e_ser_amp", 0.0, 0.06, 0.005, unit="c")
+                                            _slider("Serration teeth", "e_ser_waves", 0, 12, 1)
+                                            _slider("Dimple depth", "e_dim_amp", 0.0, 0.35, 0.05, unit="t")
+                                            _slider("Dimple rows", "e_dim_rows", 0, 6, 1)
+                                            _slider("Dimple cols", "e_dim_cols", 0, 6, 1)
+
+                        with v3.VExpansionPanel(title="Assess & print"):
+                            with v3.VExpansionPanelText():
+                                html.Div(
+                                    "Assess checks printability / stress / blade vibration, then runs "
+                                    "CFD (~15–30 min) and reports free/load CFM. Rejected designs show "
+                                    "what to change (usually fewer blades or thicker mid-blade).",
+                                    classes="text-caption text-medium-emphasis mb-2",
+                                )
                                 v3.VSelect(
-                                    label="Sweep",
-                                    v_model=("sweep_param",),
-                                    items=("sweep_items",),
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                            with v3.VCol(cols=3, classes="px-1"):
-                                v3.VTextField(
-                                    label="steps",
-                                    v_model=("sweep_steps",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                            with v3.VCol(cols=3, classes="pl-1"):
-                                v3.VBtn(
-                                    "Run",
-                                    size="small",
-                                    color="success",
-                                    variant="tonal",
-                                    click=(on_sweep,),
-                                    disabled=("assess_busy",),
-                                )
-                        with v3.VRow(v_if="sweep_active", no_gutters=True, classes="mt-2 align-center"):
-                            with v3.VCol(cols=9, classes="pr-2"):
-                                v3.VProgressLinear(
-                                    model_value=("sweep_progress",),
-                                    height=8,
-                                    color="success",
-                                    rounded=True,
-                                )
-                            with v3.VCol(cols=3):
-                                v3.VBtn(
-                                    "⏹ Cancel",
-                                    size="x-small",
-                                    color="error",
-                                    variant="tonal",
-                                    block=True,
-                                    click=(cancel_sweep,),
-                                    disabled=("sweep_cancel",),
-                                )
-
-                    with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):
-                        html.Div("Optimize", classes="text-subtitle-2 mb-1")
-                        html.Div(
-                            "Multi-objective CFD search (NSGA-II). Reuses Application hose plus "
-                            "Honesty / fidelity above (refine-op, wall roughness). Defaults: "
-                            "8 trials, guided space, mountable hubs, new runs/cockpit_opt_* "
-                            "folder — ◆ diamonds merge onto the plot. Hover any switch for "
-                            "when-to-use / cost / risk. No bio-feature search.",
-                            classes="text-caption mb-2",
-                            style="white-space: pre-line",
-                        )
-                        with v3.VTooltip(location="end", open_delay=150, max_width=420):
-                            with v3.Template(v_slot_activator="{ props }"):
-                                v3.VTextField(
-                                    v_bind="props",
-                                    label="Trials",
-                                    v_model=("opt_trials",),
-                                    type="number",
+                                    label="Application (hose resistance)",
+                                    v_model=("assess_preset",),
+                                    items=("assess_preset_items",),
                                     density="compact",
                                     variant="outlined",
                                     hide_details=True,
                                     classes="mb-2",
                                 )
-                            html.Div(OPT_SEARCH_HELP["opt_trials"], classes="text-caption")
-                        _help_switch("opt_resume", "Continue the opened run", classes="mb-2")
-                        _opt_section(
-                            "Geometry stamps",
-                            "Optional part shapes stamped onto every trial "
-                            "(not free-form search knobs).",
-                        )
-                        _help_switch("opt_shroud", "Tip ring / shroud (--shroud)")
-                        _help_switch("opt_stator", "Stator vanes (--stator)")
-                        _help_switch("opt_stator_stack", "Stator + frame stack (--stator-stack)")
-                        _help_switch("opt_sickle", "Sickle leading edge (--sickle)")
-                        _help_switch("opt_stepped", "Stepped inlet casing (--stepped-inlet)")
-                        _help_switch("opt_notched", "Notched tip trailing edge (--notched-tips)")
-                        _opt_section(
-                            "Speed-ups",
-                            "Skip hopeless CFD early. Faster campaigns; can miss "
-                            "borderline winners if floors are aggressive.",
-                        )
-                        _help_switch(
-                            "opt_bem",
-                            "BEM ranking screen — skip CFD below ~32 CFM (--bem-prescreen)",
-                        )
-                        _help_switch(
-                            "opt_gp",
-                            "Catalog GP skip below ~40 CFM free (--surrogate-prescreen)",
-                        )
-                        _help_switch(
-                            "opt_gp_boost",
-                            "Boost + GP mean (--surrogate-boost)",
-                        )
-                        _help_switch(
-                            "opt_gp_nn",
-                            "NN + GP mean (--surrogate-nn)",
-                        )
-                        _help_switch(
-                            "opt_surrogate_guided",
-                            "Surrogate-guided (DoE→NSGA on GP→verify top-k)",
-                        )
-                        _opt_section(
-                            "Operating point",
-                            "Fixed nameplate RPM unless you open the PWM band.",
-                        )
-                        _help_switch("opt_search_rpm", "Search RPM in PWM band (--search-rpm)")
-                        with v3.VRow(
-                            v_show="opt_search_rpm", no_gutters=True, classes="mt-1 align-center"
-                        ):
-                            with v3.VCol(cols=6, classes="pr-1"):
-                                with v3.VTooltip(location="end", open_delay=150, max_width=420):
-                                    with v3.Template(v_slot_activator="{ props }"):
+                                html.Div(
+                                    "Case ≈ open airflow (low Pa). Heatsink ≈ fins. "
+                                    "Radiator ≈ high resistance. Sets the load CFM hose.",
+                                    classes="text-caption text-medium-emphasis mb-2",
+                                )
+                                v3.VSelect(
+                                    label="Print material (stress + vibration gate)",
+                                    v_model=("assess_material",),
+                                    items=("assess_material_items",),
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                    classes="mb-2",
+                                )
+                                html.Div(
+                                    "Used by Assess and Optimize. Pick PLA+ here before Optimize "
+                                    "if that is what you print.",
+                                    classes="text-caption text-medium-emphasis mb-2",
+                                )
+                                v3.VBtn(
+                                    "Score multi-point BEM (ranking only)",
+                                    size="small",
+                                    variant="tonal",
+                                    color="secondary",
+                                    classes="mb-1",
+                                    click=(score_multi_point_bem,),
+                                    block=True,
+                                )
+                                html.Div(
+                                    "{{ multi_point_msg }}",
+                                    classes="text-caption mb-2",
+                                    style="white-space: pre-line",
+                                )
+                                _opt_section(
+                                    "Honesty / fidelity",
+                                    "Also applied when you press Optimize (same hose + roughness).",
+                                )
+                                _help_switch(
+                                    "assess_refine_op",
+                                    "Third CFD at operating point (~50% longer)",
+                                    classes="mb-2",
+                                )
+                                _help_switch(
+                                    "assess_wall_ks",
+                                    "FDM wall roughness (ks≈0.1 mm)",
+                                    classes="mb-2",
+                                )
+                                with v3.VRow(no_gutters=True, classes="mt-2 align-center"):
+                                    with v3.VCol(cols=6, classes="pr-1"):
+                                        v3.VSelect(
+                                            label="Sweep",
+                                            v_model=("sweep_param",),
+                                            items=("sweep_items",),
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                    with v3.VCol(cols=3, classes="px-1"):
                                         v3.VTextField(
-                                            v_bind="props",
-                                            label="PWM RPM min",
-                                            v_model=("opt_rpm_min",),
+                                            label="steps",
+                                            v_model=("sweep_steps",),
                                             type="number",
                                             density="compact",
                                             variant="outlined",
                                             hide_details=True,
                                         )
-                                    html.Div(OPT_SEARCH_HELP["opt_rpm_min"], classes="text-caption")
-                            with v3.VCol(cols=6, classes="pl-1"):
+                                    with v3.VCol(cols=3, classes="pl-1"):
+                                        v3.VBtn(
+                                            "Run",
+                                            size="small",
+                                            color="success",
+                                            variant="tonal",
+                                            click=(on_sweep,),
+                                            disabled=("assess_busy",),
+                                        )
+                                with v3.VRow(
+                                    v_if="sweep_active", no_gutters=True, classes="mt-2 align-center"
+                                ):
+                                    with v3.VCol(cols=9, classes="pr-2"):
+                                        v3.VProgressLinear(
+                                            model_value=("sweep_progress",),
+                                            height=8,
+                                            color="success",
+                                            rounded=True,
+                                        )
+                                    with v3.VCol(cols=3):
+                                        v3.VBtn(
+                                            "⏹ Cancel",
+                                            size="x-small",
+                                            color="error",
+                                            variant="tonal",
+                                            block=True,
+                                            click=(cancel_sweep,),
+                                            disabled=("sweep_cancel",),
+                                        )
+
+                        with v3.VExpansionPanel(title="Optimize (hours · many CFD trials)"):
+                            with v3.VExpansionPanelText():
+                                html.Div(
+                                    "Multi-objective CFD search. Reuses Application hose + Honesty "
+                                    "above. Defaults: 8 trials. ◆ diamonds merge onto the Results "
+                                    "plot. Hover switches for when-to-use / cost / risk.",
+                                    classes="text-caption mb-2",
+                                    style="white-space: pre-line",
+                                )
                                 with v3.VTooltip(location="end", open_delay=150, max_width=420):
                                     with v3.Template(v_slot_activator="{ props }"):
                                         v3.VTextField(
                                             v_bind="props",
-                                            label="PWM RPM max",
-                                            v_model=("opt_rpm_max",),
+                                            label="Trials",
+                                            v_model=("opt_trials",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                            classes="mb-2",
+                                        )
+                                    html.Div(OPT_SEARCH_HELP["opt_trials"], classes="text-caption")
+                                _help_switch("opt_resume", "Continue the opened run", classes="mb-2")
+                                _opt_section(
+                                    "Geometry stamps",
+                                    "Optional part shapes stamped onto every trial "
+                                    "(not free-form search knobs).",
+                                )
+                                _help_switch("opt_shroud", "Tip ring / shroud")
+                                _help_switch("opt_stator", "Stator vanes")
+                                _help_switch("opt_stator_stack", "Stator + frame stack")
+                                _help_switch("opt_sickle", "Sickle leading edge")
+                                _help_switch("opt_stepped", "Stepped inlet casing")
+                                _help_switch("opt_notched", "Notched tip trailing edge")
+                                _opt_section(
+                                    "Speed-ups",
+                                    "Skip hopeless CFD early. Faster campaigns; can miss "
+                                    "borderline winners if floors are aggressive.",
+                                )
+                                _help_switch(
+                                    "opt_bem",
+                                    "BEM ranking screen — skip CFD below ~32 CFM",
+                                )
+                                _help_switch(
+                                    "opt_gp",
+                                    "Catalog GP skip below ~40 CFM free",
+                                )
+                                _help_switch(
+                                    "opt_gp_boost",
+                                    "Boost + GP mean",
+                                )
+                                _help_switch(
+                                    "opt_gp_nn",
+                                    "NN + GP mean",
+                                )
+                                _help_switch(
+                                    "opt_surrogate_guided",
+                                    "Surrogate-guided (DoE→NSGA on GP→verify top-k)",
+                                )
+                                _opt_section(
+                                    "Operating point",
+                                    "Fixed nameplate RPM unless you open the PWM band.",
+                                )
+                                _help_switch("opt_search_rpm", "Search RPM in PWM band")
+                                with v3.VRow(
+                                    v_show="opt_search_rpm", no_gutters=True, classes="mt-1 align-center"
+                                ):
+                                    with v3.VCol(cols=6, classes="pr-1"):
+                                        with v3.VTooltip(location="end", open_delay=150, max_width=420):
+                                            with v3.Template(v_slot_activator="{ props }"):
+                                                v3.VTextField(
+                                                    v_bind="props",
+                                                    label="PWM RPM min",
+                                                    v_model=("opt_rpm_min",),
+                                                    type="number",
+                                                    density="compact",
+                                                    variant="outlined",
+                                                    hide_details=True,
+                                                )
+                                            html.Div(OPT_SEARCH_HELP["opt_rpm_min"], classes="text-caption")
+                                    with v3.VCol(cols=6, classes="pl-1"):
+                                        with v3.VTooltip(location="end", open_delay=150, max_width=420):
+                                            with v3.Template(v_slot_activator="{ props }"):
+                                                v3.VTextField(
+                                                    v_bind="props",
+                                                    label="PWM RPM max",
+                                                    v_model=("opt_rpm_max",),
+                                                    type="number",
+                                                    density="compact",
+                                                    variant="outlined",
+                                                    hide_details=True,
+                                                )
+                                            html.Div(OPT_SEARCH_HELP["opt_rpm_max"], classes="text-caption")
+                                html.Div(
+                                    "{{ opt_pwm_caption }}",
+                                    v_show="opt_search_rpm",
+                                    classes="text-caption mt-1 mb-1",
+                                )
+                                html.Div(
+                                    "Noise ranking: use scripts/evaluate_noise.py (mic cal needed for absolute dB).",
+                                    classes="text-caption mt-2 text-medium-emphasis",
+                                    style="white-space: pre-line",
+                                )
+
+                        with v3.VExpansionPanel(title="Fit & seed"):
+                            with v3.VExpansionPanelText():
+                                html.Div(
+                                    "Fit to the selected fan model before Preview/Assess when tip "
+                                    "or depth is out of spec. Only changes Design sliders — Preview "
+                                    "afterward. Seed from duty fills stagger/camber magnitudes from "
+                                    "a CFM/Pa/RPM target (signs unchanged).",
+                                    classes="text-caption mb-2",
+                                )
+                                with v3.VRow(no_gutters=True):
+                                    with v3.VCol(cols=6, classes="pr-1"):
+                                        v3.VBtn(
+                                            "Fit envelope",
+                                            size="small",
+                                            variant="tonal",
+                                            color="primary",
+                                            block=True,
+                                            click=(on_fit_envelope,),
+                                            disabled=("e_tip_radius == null",),
+                                        )
+                                    with v3.VCol(cols=6, classes="pl-1"):
+                                        v3.VBtn(
+                                            "Scale to this hub",
+                                            size="small",
+                                            variant="tonal",
+                                            color="primary",
+                                            block=True,
+                                            click=(on_scale_to_hub,),
+                                            disabled=("e_tip_radius == null",),
+                                        )
+                                html.Div("{{ tip_fit_info }}", classes="text-caption mt-2")
+                                html.Div("{{ hub_fit_info }}", classes="text-caption")
+                                html.Div("{{ depth_fit_info }}", classes="text-caption mb-3")
+                                html.Div("Seed from duty", classes="text-subtitle-2 mb-1")
+                                with v3.VRow(no_gutters=True, classes="mb-1"):
+                                    with v3.VCol(cols=4, classes="pr-1"):
+                                        v3.VTextField(
+                                            label="Target CFM",
+                                            v_model=("seed_duty_cfm",),
                                             type="number",
                                             density="compact",
                                             variant="outlined",
                                             hide_details=True,
                                         )
-                                    html.Div(OPT_SEARCH_HELP["opt_rpm_max"], classes="text-caption")
-                        html.Div(
-                            "{{ opt_pwm_caption }}",
-                            v_show="opt_search_rpm",
-                            classes="text-caption mt-1 mb-1",
-                        )
-                        html.Div(
-                            "Acoustics CLI (not in-cockpit CFD): "
-                            "scripts/evaluate_noise.py --fwh | --permeable | "
-                            "--patches --patch-n 2|4. Ranking only until mic cal.",
-                            classes="text-caption mt-2 text-medium-emphasis",
-                            style="white-space: pre-line",
-                        )
-
-                    with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):
-                        html.Div(
-                            "Fit to the selected fan model — run these before Preview/Assess "
-                            "when tip or depth is out of spec. They only change Design sliders; "
-                            "click Preview afterward to refresh the 3-D view.",
-                            classes="text-caption mb-2",
-                        )
-                        with v3.VRow(no_gutters=True):
-                            with v3.VCol(cols=6, classes="pr-1"):
+                                    with v3.VCol(cols=4, classes="px-1"):
+                                        v3.VTextField(
+                                            label="ΔP (Pa)",
+                                            v_model=("seed_duty_pa",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                    with v3.VCol(cols=4, classes="pl-1"):
+                                        v3.VTextField(
+                                            label="RPM",
+                                            v_model=("seed_duty_rpm",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                v3.VSelect(
+                                    label="Vortex",
+                                    v_model=("seed_duty_vortex",),
+                                    items=("seed_duty_vortex_items",),
+                                    density="compact",
+                                    variant="outlined",
+                                    hide_details=True,
+                                    classes="mb-2",
+                                )
                                 v3.VBtn(
-                                    "Fit envelope",
+                                    "Apply stagger/camber seed",
                                     size="small",
                                     variant="tonal",
-                                    color="primary",
+                                    color="secondary",
                                     block=True,
-                                    click=(on_fit_envelope,),
+                                    click=(seed_from_duty,),
                                     disabled=("e_tip_radius == null",),
+                                    classes="mb-1",
                                 )
-                            with v3.VCol(cols=6, classes="pl-1"):
-                                v3.VBtn(
-                                    "Scale to this hub",
-                                    size="small",
-                                    variant="tonal",
+                                html.Div(
+                                    "{{ seed_duty_msg }}",
+                                    classes="text-caption",
+                                    style="white-space: pre-line",
+                                )
+
+                        with v3.VExpansionPanel(title="Export options"):
+                            with v3.VExpansionPanelText():
+                                html.Div(
+                                    "Export carves the motor cup (+ grip pads) and writes a "
+                                    "mount/frame checklist. Leave Fit switches on for A12x25.",
+                                    classes="text-caption text-medium-emphasis mb-2",
+                                )
+                                v3.VSwitch(
+                                    v_model=("preview_motor_cup",),
+                                    density="compact",
+                                    hide_details=True,
                                     color="primary",
-                                    block=True,
-                                    click=(on_scale_to_hub,),
-                                    disabled=("e_tip_radius == null",),
+                                    inset=True,
+                                    classes="mt-1",
+                                    label="Preview motor cup + grip pads (slower; matches Export)",
                                 )
-                        html.Div("{{ tip_fit_info }}", classes="text-caption mt-2")
-                        html.Div("{{ hub_fit_info }}", classes="text-caption")
-                        html.Div("{{ depth_fit_info }}", classes="text-caption")
-
-                    with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):
-                        html.Div(
-                            "Seed from duty (§20.4) — Cordier sizing + free/forced-vortex "
-                            "triangles → stagger/camber magnitudes. Signs and handedness "
-                            "are preserved. Cheap Lieblein DF / de Haller gates (no CFD).",
-                            classes="text-caption mb-2",
-                        )
-                        with v3.VRow(no_gutters=True, classes="mb-1"):
-                            with v3.VCol(cols=4, classes="pr-1"):
-                                v3.VTextField(
-                                    label="Target CFM",
-                                    v_model=("seed_duty_cfm",),
-                                    type="number",
+                                v3.VSwitch(
+                                    v_model=("export_fit_hub",),
                                     density="compact",
-                                    variant="outlined",
                                     hide_details=True,
+                                    color="primary",
+                                    inset=True,
+                                    classes="mt-1",
+                                    label="Fit hub to motor on export",
                                 )
-                            with v3.VCol(cols=4, classes="px-1"):
-                                v3.VTextField(
-                                    label="ΔP (Pa)",
-                                    v_model=("seed_duty_pa",),
-                                    type="number",
+                                v3.VSwitch(
+                                    v_model=("export_fit_frame",),
                                     density="compact",
-                                    variant="outlined",
                                     hide_details=True,
+                                    color="primary",
+                                    inset=True,
+                                    classes="mt-1",
+                                    label="Fit tip/depth to frame on export (re-Assess after)",
                                 )
-                            with v3.VCol(cols=4, classes="pl-1"):
-                                v3.VTextField(
-                                    label="RPM",
-                                    v_model=("seed_duty_rpm",),
-                                    type="number",
+                                v3.VSwitch(
+                                    v_model=("export_also_mirror",),
                                     density="compact",
-                                    variant="outlined",
                                     hide_details=True,
+                                    color="primary",
+                                    inset=True,
+                                    classes="mt-1",
+                                    label="Also export opposite-hand STL + spin meta (CW⇄CCW)",
                                 )
-                        v3.VSelect(
-                            label="Vortex",
-                            v_model=("seed_duty_vortex",),
-                            items=("seed_duty_vortex_items",),
-                            density="compact",
-                            variant="outlined",
-                            hide_details=True,
-                            classes="mb-2",
-                        )
-                        v3.VBtn(
-                            "Apply stagger/camber seed",
-                            size="small",
-                            variant="tonal",
-                            color="secondary",
-                            block=True,
-                            click=(seed_from_duty,),
-                            disabled=("e_tip_radius == null",),
-                            classes="mb-1",
-                        )
-                        html.Div(
-                            "{{ seed_duty_msg }}",
-                            classes="text-caption",
-                            style="white-space: pre-line",
-                        )
-
-                    with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):
-                        html.Div(
-                            "Modify design — hover any slider for a min/max picture + what it does",
-                            classes="text-caption mb-1",
-                        )
-                        with v3.VExpansionPanels(variant="accordion", multiple=True):
-                            with v3.VExpansionPanel(title="Planform — blades & chord"):
-                                with v3.VExpansionPanelText():
-                                    _slider("Blades", "e_n_blades", 5, 11, 1)
-                                    _slider("Chord root", "e_chord_root", 14, 50, 0.5, unit="mm")
-                                    _slider("Chord mid", "e_chord_mid", 14, 60, 0.5, unit="mm")
-                                    _slider("Chord tip", "e_chord_tip", 14, 70, 0.5, unit="mm")
-                                    html.Div(
-                                        "Chord = LE→TE blade width (planform). Not wall thickness.",
-                                        classes="text-caption mb-2",
-                                    )
-                            with v3.VExpansionPanel(title="Pitch / twist — stagger"):
-                                with v3.VExpansionPanelText():
-                                    _slider("Stagger root", "e_stagger_root", 15, 55, 1, unit="deg")
-                                    _slider("Stagger mid", "e_stagger_mid", 15, 55, 1, unit="deg")
-                                    _slider("Stagger tip", "e_stagger_tip", 15, 55, 1, unit="deg")
-                            with v3.VExpansionPanel(title="Airfoil — camber & thickness"):
-                                with v3.VExpansionPanelText():
-                                    _help_select(
-                                        "e_section_family",
-                                        "Section family",
-                                        items="section_family_items",
-                                        help_map=CONTROL_DESC,
-                                    )
-                                    html.Div(
-                                        "NACA = cambered airfoil (knife LE/TE). Rounded plate = "
-                                        "constant wall, round LE, tunable TE + camber for the slight "
-                                        "face curve — match printed PC-fan blades.",
-                                        classes="text-caption mb-2",
-                                    )
-                                    _slider("Camber root", "e_camber_root", 0.0, 0.15, 0.005, unit="c/c")
-                                    _slider("Camber mid", "e_camber_mid", 0.0, 0.15, 0.005, unit="c/c")
-                                    _slider("Camber tip", "e_camber_tip", 0.0, 0.15, 0.005, unit="c/c")
-                                    html.Div(
-                                        "Camber = the scoop in the blade face (LE→TE curve). "
-                                        "Raise tip/mid until the tip-on view matches the white reference. "
-                                        "Not wrap/sickle — those move the planform, not the face scoop. Preview after changes.",
-                                        classes="text-caption mb-2",
-                                    )
-                                    _slider("Camber position", "e_camber_pos", 0.2, 0.6, 0.05, unit="x/c")
-                                    _help_select(
-                                        "e_thick_mode",
-                                        "Thickness span",
-                                        items="thick_mode_items",
-                                        help_map=CONTROL_DESC,
-                                    )
-                                    html.Div(
-                                        "{{ thick_wall_readout }}",
-                                        classes="text-caption mb-2",
-                                    )
-                                    _slider(
-                                        "Wall thickness", "e_thick_mm", 0.8, 4.0, 0.1,
-                                        unit="mm",
-                                        disabled=("e_thick_mode !== 'uniform'",),
-                                    )
-                                    _slider(
-                                        "Wall t/c root", "e_thick_root", 0.03, 0.15, 0.01,
-                                        unit="t/c",
-                                        disabled=("e_thick_mode === 'uniform'",),
-                                    )
-                                    _slider(
-                                        "Wall t/c mid", "e_thick_mid", 0.03, 0.15, 0.01,
-                                        unit="t/c",
-                                        disabled=("e_thick_mode === 'uniform'",),
-                                    )
-                                    _slider(
-                                        "Wall t/c tip", "e_thick_tip", 0.03, 0.15, 0.01,
-                                        unit="t/c",
-                                        disabled=("e_thick_mode === 'uniform'",),
-                                    )
-                                    html.Div(
-                                        "Wall = the thin dimension through the blade (not LE→TE width). "
-                                        "Uniform = same mm root→tip. Rounded plate keeps wall through "
-                                        "the section (LE/TE from the roundness sliders); NACA knives the TE.",
-                                        classes="text-caption mb-2",
-                                    )
-                                    _slider(
-                                        "LE thick / roundness", "e_le_thick", 0.0, 2.0, 0.05,
-                                        unit="×",
-                                    )
-                                    _slider(
-                                        "TE thick / roundness", "e_te_thick", 0.0, 2.0, 0.05,
-                                        unit="×",
-                                    )
-                                    html.Div(
-                                        "NACA: LE/TE scales reshape nose/tail (1 = stock). TE>1 fattens "
-                                        "the aft section. Plate: both sliders are edge roundness "
-                                        "(1 = full bullnose, ~0.2 = sharp). "
-                                        "Camber bows the plate face (slight tip→hub curve). Preview after changes.",
-                                        classes="text-caption text-medium-emphasis mb-2",
-                                    )
-                            with v3.VExpansionPanel(title="3-D shape — wrap, sweep, rake"):
-                                with v3.VExpansionPanelText():
-                                    _help_switch(
-                                        "e_smooth_span",
-                                        "Smooth span curves",
-                                        help_map=CONTROL_DESC,
-                                        classes="mb-2",
-                                    )
-                                    _slider("Wrap mid", "e_lean_mid", 0, 30, 1, unit="deg")
-                                    _slider("Wrap tip", "e_lean_tip", 0, 45, 1, unit="deg")
-                                    _slider("Sweep mid", "e_sweep_mid", -10, 20, 0.5, unit="mm")
-                                    _slider("Sweep tip", "e_sweep_tip", -8, 25, 0.5, unit="mm")
-                                    _slider("LE curve mid", "e_le_mid", -12, 12, 0.5, unit="mm")
-                                    _slider("LE curve tip", "e_le_tip", -12, 12, 0.5, unit="mm")
-                                    _slider("Sickle mid", "e_le_skew_mid", 0, 12, 0.5, unit="mm")
-                                    _slider("Sickle tip", "e_le_skew_tip", 0, 15, 0.5, unit="mm")
-                                    _slider("Skew mid", "e_skew_mid", -20, 20, 0.5, unit="mm")
-                                    _slider("Skew tip", "e_skew_tip", -25, 25, 0.5, unit="mm")
-                                    html.Div("{{ depth_fit_info }}", classes="text-caption")
-                            with v3.VExpansionPanel(title="Tip — round & winglet"):
-                                with v3.VExpansionPanelText():
-                                    _help_switch(
-                                        "e_cylindrical_tip",
-                                        "Cylindrical tip (match cover)",
-                                        help_map=CONTROL_DESC,
-                                    )
-                                    _slider("Tip round", "e_tip_round", 0.0, 1.0, 0.05, unit="0–1")
-                                    _slider("Tip round start", "e_tip_start", 0.5, 0.92, 0.02, unit="span")
-                                    _help_switch(
-                                        "e_tip_notched",
-                                        "Tip TE notches (3 boxy bites)",
-                                        help_map=CONTROL_DESC,
-                                    )
-                                    _slider(
-                                        "Tip notch depth",
-                                        "e_tip_notch_depth",
-                                        0.5,
-                                        3.0,
-                                        0.1,
-                                        unit="mm",
-                                        disabled=("!e_tip_notched",),
-                                    )
-                                    html.Div(
-                                        "Three boxy / skewed-rectangle bites on the outer trailing edge "
-                                        "(stock A12x25 style). Not spanwise owl serrations.",
-                                        classes="text-caption mb-2",
-                                    )
-                                    _slider("Winglet start", "e_winglet_span", 0.6, 0.95, 0.05, unit="span")
-                                    _slider("Winglet sweep", "e_winglet_sweep", 0, 15, 0.5, unit="mm")
-                                    _slider("Winglet lean", "e_winglet_lean", 0, 30, 1, unit="deg")
-                                    _slider("Shroud thickness", "e_shroud_thick", 0, 3, 0.8, unit="mm")
-                                    _slider(
-                                        "Shroud height",
-                                        "e_shroud_height",
-                                        0,
-                                        1,
-                                        0.1,
-                                        unit="span",
-                                        disabled=("e_shroud_thick == 0",),
-                                    )
-                                    html.Div(
-                                        "0 thickness = off. First thickness step is 0.8 mm (two walls); 1.6 mm is four walls. Height 1.0 covers the full tip; below 1.0 the hoop starts at the trailing edge and BEM still treats it as an open tip. A full ring (height 1.0) disables the winglet automatically — once the tip is fully covered a winglet only adds blockage.",
-                                        classes="text-caption mb-1",
-                                    )
-                            with v3.VExpansionPanel(title="Hub"):
-                                with v3.VExpansionPanelText():
-                                    _slider("Hub radius", "e_hub_radius", 15, 35, 0.5, unit="mm")
-                                    html.Div("{{ hub_fit_info }}", classes="text-caption mb-1")
-                                    _slider("Tip radius / length", "e_tip_radius", 45, 59, 0.5, unit="mm")
-                                    html.Div("{{ tip_fit_info }}", classes="text-caption mb-1")
-                                    _slider("Hub height (0=auto)", "e_hub_height", 0, 30, 0.5, unit="mm")
-                                    _slider("Blade on hub", "e_blade_hub_z", -8, 8, 0.5, unit="mm")
-                                    html.Div(
-                                        "Blade on hub: + raises blades toward the intake (more hub below). "
-                                        "Needs Hub height taller than the root span.",
-                                        classes="text-caption mb-2",
-                                    )
-                                    v3.VSelect(
-                                        label="Hub profile",
-                                        v_model=("e_hub_profile",),
-                                        items=("hub_profiles",),
-                                        density="compact",
-                                        variant="outlined",
-                                        hide_details=True,
-                                        classes="mb-3",
-                                    )
-                                    _slider("Hub nose (cone/dome)", "e_hub_nose", 0, 15, 0.5, unit="mm")
-                            with v3.VExpansionPanel(title="Spacing — tonal noise"):
-                                with v3.VExpansionPanelText():
-                                    _slider("Uneven spacing", "e_spacing", 0.0, 0.6, 0.05, unit="0–1")
-                            with v3.VExpansionPanel(title="Features (bio-inspired)"):
-                                with v3.VExpansionPanelText():
-                                    v3.VBtn(
-                                        "🎲 Randomize features",
-                                        size="x-small",
-                                        variant="tonal",
-                                        color="secondary",
-                                        block=True,
-                                        click=(randomize_features,),
-                                        classes="mb-3",
-                                    )
-                                    _slider("Tubercle amp", "e_tub_amp", 0.0, 0.10, 0.01, unit="c")
-                                    _slider("Tubercle waves", "e_tub_waves", 0, 8, 1)
-                                    _slider("Serration amp", "e_ser_amp", 0.0, 0.06, 0.005, unit="c")
-                                    _slider("Serration teeth", "e_ser_waves", 0, 12, 1)
-                                    _slider("Dimple depth", "e_dim_amp", 0.0, 0.35, 0.05, unit="t")
-                                    _slider("Dimple rows", "e_dim_rows", 0, 6, 1)
-                                    _slider("Dimple cols", "e_dim_cols", 0, 6, 1)
 
                 # RIGHT — viz
                 with v3.VCol(cols=7):
@@ -1169,12 +1255,14 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     disabled=("glyph_mode === 'off'",),
                                 )
                         html.Div(
-                            "Red = geometry past the fan's nominal tip diameter or depth. "
-                            "Envelope = the max tip-dia × depth the blade must fit inside. "
-                            "3-D = solid impeller + optional velocity arrows (subsampled |U|). "
-                            "Use Arrows on/off on any Fan sub-tab (Design / Results / Library). "
-                            "Midplane |U| / pressure PNGs appear under Results when fields "
-                            "are still on disk (FRONT = inlet on the left).",
+                            "Legend — orange impeller = editable design; white = stock "
+                            "reference overlay; red = past tip/depth spec; green = case "
+                            "envelope; blue arrows = CFD velocity (|U|, subsampled). "
+                            "Arrows need a scored case on disk (Assess / Optimize). "
+                            "Without CFD, the 3-D view is schematic geometry only. "
+                            "Use Arrows on/off on Design / Results / Library. "
+                            "Midplane PNGs live under Results when fields remain on disk "
+                            "(FRONT = inlet on the left).",
                             classes="text-caption text-medium-emphasis",
                         )
                         html.Div("{{ glyph_caption }}", classes="text-caption text-medium-emphasis mt-1")
@@ -1206,9 +1294,32 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             v3.VBtn("streamlines", value="stream", size="small")
                             v3.VBtn("spanwise", value="span", size="small")
                             v3.VBtn("b2b Cp", value="b2b", size="small")
-                        html.Div(
-                            "{{ airflow_caption }}",
-                            classes="text-caption text-medium-emphasis mb-1",
+                        with v3.VRow(no_gutters=True, classes="align-center mb-1"):
+                            with v3.VCol(cols=9):
+                                html.Div(
+                                    "{{ airflow_caption }}",
+                                    classes="text-caption text-medium-emphasis",
+                                )
+                                html.Div(
+                                    "{{ airflow_progress }}",
+                                    classes="text-caption",
+                                    v_show="airflow_progress",
+                                )
+                            with v3.VCol(cols=3, classes="text-right"):
+                                v3.VBtn(
+                                    "⏹ Cancel viz",
+                                    size="small",
+                                    variant="tonal",
+                                    color="warning",
+                                    disabled=("!airflow_busy",),
+                                    click=(cancel_airflow,),
+                                )
+                        v3.VProgressLinear(
+                            indeterminate=True,
+                            color="primary",
+                            height=3,
+                            classes="mb-2",
+                            v_show="airflow_busy",
                         )
                         html.Img(
                             src=("airflow_img_uri",),
