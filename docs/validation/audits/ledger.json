@@ -42,6 +42,12 @@
       "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
       "verdict": "PASS"
     },
+    "cfd.archetype_direction": {
+      "date": "2026-10-01",
+      "fingerprint": "abfd9fff71e43569",
+      "report": "docs/validation/audits/2026-10-01-audit-07-cror-mixed-setup.md",
+      "verdict": "PASS"
+    },
     "cfd.cfm_from_outlet_flow": {
       "date": "2026-09-29",
       "fingerprint": "f9a4e8d63508dce0",

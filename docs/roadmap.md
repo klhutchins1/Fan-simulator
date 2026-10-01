@@ -171,9 +171,9 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 ## 4. New archetypes (design classes the axial fan can't cover)
 
 - [x] **4.1 Centrifugal / mixed-flow impeller (stage 1 scaffold). DONE 2026-09-13** **[impact: high]** **[effort: high]**
-  `MixedFlowArchetype`, geometry + evaluate + cockpit tab (`tests/test_mixed_flow*.py`). Remaining: high-Pa hose wins vs axial.
+  `MixedFlowArchetype`, geometry + evaluate + cockpit tab (`tests/test_mixed_flow*.py`). Remaining: high-Pa hose wins vs axial. ⚠ The 2026-09-05 mixed-vs-axial campaign solved the rotor backwards (Audit #7, fixed 2026-10-01); its "axial wins" verdict needs a re-run.
 - [x] **4.2 Counter-rotating stacked rotors (stage 1 scaffold). DONE 2026-09-13** **[impact: med]** **[effort: high]**
-  `CrorArchetype` + dual-MRF evaluate (`tests/test_cror.py`). Remaining: noise + measured static gain.
+  `CrorArchetype` + dual-MRF evaluate (`tests/test_cror.py`). Remaining: noise + measured static gain. ⚠ The 2026-09-06 dual-MRF smoke (~93% η) had both rotors backwards (Audit #7, fixed 2026-10-01).
 - [ ] **4.3 Prop compressible open-air CFD tier.** **[impact: med]** **[effort: high]** BEMT screens
   props; a real CFD pass refines finalists (tips run Mach 0.4–0.58, where BEMT/incompressible is weak).
   **Track A stage 1 (2026-09-21):** hover Wh/power budget + optional PyThrust (`--extra propulsion`) +
@@ -770,7 +770,7 @@ follow under `docs/superpowers/specs/`.
   handedness) ran correctly through it (as_built, spin +1). Props use it for external STLs. **Open:** wire
   it into the axial pipeline for any imported/non-Stock-handed rotor (today axial assumes Stock
   handedness, guarded by the search-space handedness test), and into CROR/mixed.
-  **Axial DONE 2026-09-28:** `prepare_axial_cfd(..., source="builder"|"external", orientation=, spin=)` — builder = pinned `AXIAL_BUILDER_DIRECTION` (flipped, −1) with the proof as a cross-check (raises only if CONCLUSIVE and disagreeing); external = proof must be CONCLUSIVE (`orientation_from_proof`), else raises asking for explicit `orientation=`+`spin=`; explicit = pass-through. Decision recorded in `case_meta.json` (`direction_source`, `orientation`, `spin`, `proof_verdict`). All axial scripts/objectives pass `source=`; FAN-01 uses it. `check_rotor_direction` cross-check helper added. **Left for CROR/mixed:** CROR exports front+rear as one STL with convention spins (front −1, rear opposite), so per-rotor proof is not wired; mixed-flow untouched. Do when rotors are exported separately.
+  **Axial DONE 2026-09-28:** `prepare_axial_cfd(..., source="builder"|"external", orientation=, spin=)` — builder = pinned `AXIAL_BUILDER_DIRECTION` (flipped, −1) with the proof as a cross-check (raises only if CONCLUSIVE and disagreeing); external = proof must be CONCLUSIVE (`orientation_from_proof`), else raises asking for explicit `orientation=`+`spin=`; explicit = pass-through. Decision recorded in `case_meta.json` (`direction_source`, `orientation`, `spin`, `proof_verdict`). All axial scripts/objectives pass `source=`; FAN-01 uses it. `check_rotor_direction` cross-check helper added. **Left for CROR/mixed:** CROR exports front+rear as one STL with convention spins (front −1, rear opposite), so per-rotor proof is not wired; mixed-flow untouched. Do when rotors are exported separately. **CROR/mixed/volute DONE 2026-10-01 (Audit #7):** all three were solved backwards (mixed + CROR as built at spin −1; volute spin −1 against its scroll). CROR + mixed now use flipped CFD copies (`prepare_cror_cfd`, `prepare_axial_cfd`), volute `VOLUTE_SPIN=+1`; unit `cfd.archetype_direction`. Report: `docs/validation/audits/2026-10-01-audit-07-cror-mixed-setup.md`. **Open:** CFD both-ways confirmation for mixed-flow (+ volute), pilot first.
 - [x] **19.3 Reverse-rotation run as a permanent regression check.** **DONE 2026-09-30** — cheap
   pytest locks the committed Stock v5 free-air matrix (`direction_cfd_stock_v5.json`): designed sense
   CFM must beat reversed by ≥1.3× and production stays `(flipped, spin=-1)`. Refresh evidence only via

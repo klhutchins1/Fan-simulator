@@ -43,7 +43,7 @@ def main() -> int:
     args.out.mkdir(parents=True, exist_ok=True)
 
     if args.dry_run:
-        from fansim.cror.evaluate import dual_mrf_dict, remaining_cror_tip_gap_mm, rig_for_cror
+        from fansim.cror.evaluate import prepare_cror_cfd, remaining_cror_tip_gap_mm, rig_for_cror
         from fansim.cfd.openfoam_case import MeshResolution, build_case
         from fansim.cror.geometry import export_cror_stl
         casing_id = float(spec.tip_dia_mm[1])
@@ -51,7 +51,7 @@ def main() -> int:
         rig = rig_for_cror(
             params, tip_gap_mm=remaining_cror_tip_gap_mm(params, casing_id),
             casing_id_mm=casing_id, rpm=spec.rpm)
-        dmrf = dual_mrf_dict(params, rig.omega_signed)
+        stl, rig, dmrf = prepare_cror_cfd(params, stl, rig, args.out)
         build_case(args.out / "case", stl, rig, mesh=MeshResolution(base_cell=args.base_cell),
                    n_iters=args.iters, n_subdomains=args.procs, back_pressure_pa=0.0,
                    dual_mrf=dmrf)

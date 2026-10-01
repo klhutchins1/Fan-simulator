@@ -17,6 +17,7 @@ from fansim.cfd.duct_area import require_circular_inlet_area
 from fansim.cfd.frame import export_frame_stl
 from fansim.cfd.metrics import parse_fan_metrics
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve
+from fansim.cfd.orientation import prepare_axial_cfd
 from fansim.cfd.runner import OpenFOAMRunner
 from fansim.fan_spec import A12X25, FanSpec, check_build, estimate_weight_g, over_spec_flags
 from fansim.geometry import watertight_report
@@ -170,6 +171,13 @@ def evaluate_mixed_flow(
         inlet_diameters=2.0,
         outlet_diameters=4.0,
     )
+    # Audit #7: the mixed-flow rotor is built with the axial handedness (omega_z=+1, pumps -Z, eye
+    # at +Z); the +Z duct needs it flipped about X at spin -1, and the MRF zone fitted to the real
+    # STL (the analytic +-z_span/2 + 2 mm under-sizes the blade overhang).
+    try:
+        stl, rig0 = prepare_axial_cfd(stl, rig0, workdir, source="builder")
+    except Exception as exc:  # noqa: BLE001
+        return _infeasible(f"orientation failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
     bp = _frame_blade_proxy(params, spec.rpm)
     frame_path = workdir / "frame.stl"
     try:

@@ -43,6 +43,8 @@ def test_evaluate_mixed_flow_mocked_cfd(tmp_path, monkeypatch):
     monkeypatch.setattr(ev, "watertight_report",
                         lambda stl: SimpleNamespace(ok=True, n_bodies=1,
                                                     bounds_mm=((-50, -50, -9), (50, 50, 9))))
+    # STL is faked, so skip the Audit #7 orientation (covered by tests/audit/test_cror_mixed_setup_audit.py)
+    monkeypatch.setattr(ev, "prepare_axial_cfd", lambda stl, rig, wd, **k: (stl, rig))
     monkeypatch.setattr(ev, "export_frame_stl", lambda *a, **k: Path(tmp_path / "frame.stl"))
     monkeypatch.setattr(ev, "export_casing_stl", lambda *a, **k: Path(tmp_path / "casing.stl"))
     monkeypatch.setattr(ev, "build_case", lambda *a, **k: None)
@@ -97,6 +99,8 @@ def test_mixed_solve_failure_keeps_exc_message(tmp_path, monkeypatch):
         ev, "watertight_report",
         lambda stl: SimpleNamespace(
             ok=True, n_bodies=1, bounds_mm=((-50, -50, -9), (50, 50, 9))))
+    # STL is faked, so skip the Audit #7 orientation (covered by tests/audit/test_cror_mixed_setup_audit.py)
+    monkeypatch.setattr(ev, "prepare_axial_cfd", lambda stl, rig, wd, **k: (stl, rig))
     monkeypatch.setattr(ev, "export_frame_stl", lambda *a, **k: Path(tmp_path / "frame.stl"))
     monkeypatch.setattr(ev, "export_casing_stl", lambda *a, **k: Path(tmp_path / "casing.stl"))
     monkeypatch.setattr(ev, "build_case", lambda *a, **k: None)

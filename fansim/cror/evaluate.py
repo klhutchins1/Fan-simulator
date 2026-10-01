@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import json
 from dataclasses import replace
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from fansim.cfd.duct_area import require_circular_inlet_area
 from fansim.cfd.frame import export_frame_stl
 from fansim.cfd.metrics import parse_fan_metrics
 from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve
+from fansim.cfd.orientation import DIRECTION_META_FILE, orient_impeller_for_cfd
 from fansim.cfd.runner import OpenFOAMRunner
 from fansim.cror.geometry import CrorParams, cror_axial_layout_mm, export_cror_stl
 from fansim.fan_spec import A12X25, FanSpec, check_build, estimate_weight_g, over_spec_flags
@@ -32,7 +34,11 @@ def remaining_cror_tip_gap_mm(params: CrorParams, casing_id_mm: float) -> float:
 
 
 def dual_mrf_dict(params: CrorParams, omega_front: float) -> dict:
-    """SI dual-MRF zone dict for ``build_case`` (rear Ω opposite front)."""
+    """As-built (unflipped) dual-MRF zone dict (rear Ω opposite front).
+
+    Not for CFD: solving the as-built stack at spin -1 turns both rotors backwards (Audit #7).
+    CFD uses ``prepare_cror_cfd`` / ``cfd_dual_mrf_dict`` on the flipped copy.
+    """
     lay = cror_axial_layout_mm(params)
     return {
         "front_z_min": lay["front_z_min_mm"] * MM_TO_M,
@@ -42,6 +48,96 @@ def dual_mrf_dict(params: CrorParams, omega_front: float) -> dict:
         "omega_front": float(omega_front),
         "omega_rear": -float(omega_front),
     }
+
+
+def cfd_dual_mrf_dict(params: CrorParams, omega_signed: float) -> dict:
+    """Dual-MRF zones for the CFD-oriented (flipped) CROR (Audit #7).
+
+    ``build_cror`` is built as-built like every in-house rotor: front (z~0) designed omega_z=+1,
+    rear (z>0) omega_z=-1 (its exact mirror), both pumping -Z. The duct flows +Z, so the CFD copy
+    is rotated 180 deg about X (``fansim.cfd.orientation``): z -> -z, omega -> -omega. The former
+    rear rotor is then UPSTREAM (low z) and turns +omega, the former front rotor is downstream and
+    turns ``omega_signed`` (= rig.spin * |omega| = the designed -1 for spin -1). Zones are named by
+    PHYSICAL position: ``front_*`` = upstream. ``omega_signed`` is the DOWNSTREAM rotor's.
+    """
+    lay = cror_axial_layout_mm(params)
+    return {
+        "front_z_min": -lay["rear_z_max_mm"] * MM_TO_M,
+        "front_z_max": -lay["rear_z_min_mm"] * MM_TO_M,
+        "rear_z_min": -lay["front_z_max_mm"] * MM_TO_M,
+        "rear_z_max": -lay["front_z_min_mm"] * MM_TO_M,
+        "omega_front": -float(omega_signed),
+        "omega_rear": float(omega_signed),
+    }
+
+
+def fit_cror_inner_zone_edges(stl_mm: str | Path, dual_mrf: dict, hub_radius_mm: float, *,
+                              margin_mm: float = 0.25) -> dict:
+    """Grow the INNER (gap-side) zone edges to cover each rotor's real blade extent.
+
+    The analytic band (``cror_axial_layout_mm``) uses the tip section's half depth; the actual
+    blade (root sections, camber, thickness) pokes ~0.15 mm past it into the inter-rotor gap,
+    which would be solved as stationary wall. Blades are split between the two zones at the
+    gap mid-plane.
+    """
+    import numpy as np
+    import trimesh
+
+    mesh = trimesh.load(str(stl_mm), force="mesh")
+    v = np.asarray(mesh.vertices, dtype=float)
+    z = v[np.hypot(v[:, 0], v[:, 1]) > float(hub_radius_mm) + 0.5, 2] * MM_TO_M
+    z_split = 0.5 * (float(dual_mrf["front_z_max"]) + float(dual_mrf["rear_z_min"]))
+    m = margin_mm * MM_TO_M
+    up_hi = max(float(dual_mrf["front_z_max"]), float(z[z < z_split].max()) + m)
+    dn_lo = min(float(dual_mrf["rear_z_min"]), float(z[z >= z_split].min()) - m)
+    if up_hi >= dn_lo:
+        raise ValueError("CROR MRF zones would overlap after covering the blades")
+    return {**dual_mrf, "front_z_max": up_hi, "rear_z_min": dn_lo}
+
+
+def check_cror_blades_in_zones(stl_mm: str | Path, dual_mrf: dict, hub_radius_mm: float, *,
+                               tol_m: float = 1e-6) -> None:
+    """Refuse a case where blade material (r > hub) falls outside both MRF zones.
+
+    ``check_placement`` only tests the overall envelope, so a blade poking into the inter-rotor
+    gap would be solved as a stationary wall. Hub vertices in the gap are fine (not blades).
+    """
+    import numpy as np
+    import trimesh
+
+    mesh = trimesh.load(str(stl_mm), force="mesh")
+    v = np.asarray(mesh.vertices, dtype=float)
+    blade = v[np.hypot(v[:, 0], v[:, 1]) > float(hub_radius_mm) + 0.5]
+    z = blade[:, 2] * MM_TO_M
+    inside = np.zeros(len(z), dtype=bool)
+    for lo, hi in (("front_z_min", "front_z_max"), ("rear_z_min", "rear_z_max")):
+        inside |= (z >= float(dual_mrf[lo]) - tol_m) & (z <= float(dual_mrf[hi]) + tol_m)
+    if not inside.all():
+        bad = z[~inside]
+        raise ValueError(
+            f"{int((~inside).sum())} blade vertices lie outside both MRF zones "
+            f"(z {bad.min() * 1e3:.2f}..{bad.max() * 1e3:.2f} mm)")
+
+
+def prepare_cror_cfd(params: CrorParams, stl_mm: str | Path, rig: TestRig,
+                     workdir: str | Path) -> tuple[Path, TestRig, dict]:
+    """Orient the CROR for CFD, build its dual-MRF zones, fit rig+zones to the STL.
+
+    Returns ``(oriented_stl, fitted_rig, dual_mrf)``; use these for everything downstream.
+    Writes ``workdir/direction_meta.json`` (merged into ``case_meta.json`` by ``build_case``).
+    """
+    workdir = Path(workdir)
+    dst = workdir / "impeller_cfd.stl"
+    orient_impeller_for_cfd(Path(stl_mm), dst, "flipped")
+    dmrf = cfd_dual_mrf_dict(params, rig.omega_signed)
+    rig, dmrf = fit_cror_to_stl(rig, dmrf, dst)
+    dmrf = fit_cror_inner_zone_edges(dst, dmrf, float(params.front.hub_radius))
+    check_cror_blades_in_zones(dst, dmrf, float(params.front.hub_radius))
+    (workdir / DIRECTION_META_FILE).write_text(json.dumps({
+        "direction_source": "builder", "orientation": "flipped",
+        "spin": int(rig.spin), "proof_verdict": "per-rotor (tests/audit)"}, indent=2),
+        encoding="utf-8")
+    return dst, rig, dmrf
 
 
 def rig_for_cror(
@@ -76,10 +172,9 @@ def rig_for_cror(
         mrf_z_min=z_lo - mrf_margin_mm * MM_TO_M,
         mrf_z_max=z_hi + mrf_margin_mm * MM_TO_M,
         rpm=rpm,
-        # Roadmap 19.2 (open for CROR): the front/rear spins are fixed by convention (front -1,
-        # rear opposite via dual_mrf_dict). The two rotors are exported as ONE combined STL
-        # (export_cror_stl), so fansim.cfd.orientation.check_rotor_direction cannot be applied per
-        # rotor here without slicing the mesh; skipped until the rotors are exported separately.
+        # Audit #7: CFD copy is flipped 180 deg about X (prepare_cror_cfd) at spin -1, like the
+        # axial rotor; zone omegas come from cfd_dual_mrf_dict. Per-rotor direction (front +1,
+        # rear -1 as built, both pumping -Z) is pinned by tests/audit/test_cror_mixed_setup_audit.py.
         inlet_velocity=2.0,
         spin=-1,
     )
@@ -173,8 +268,7 @@ def evaluate_cror(
         casing_id_mm=casing_id,
         rpm=spec.rpm,
     )
-    dmrf = dual_mrf_dict(params, rig0.omega_signed)
-    rig0, dmrf = fit_cror_to_stl(rig0, dmrf, stl)
+    stl, rig0, dmrf = prepare_cror_cfd(params, stl, rig0, workdir)
     gap_raw["dual_mrf"] = {k: round(float(v), 6) for k, v in dmrf.items()}
 
     frame_path = workdir / "frame.stl"

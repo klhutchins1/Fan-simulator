@@ -172,6 +172,27 @@ units:
     source: {kind: derivation, ref: "Audit #1: fixed CFD orientation is valid only without mirrored designs"}
     checks: [tests/audit/test_search_space_handedness.py]
 
+  - id: cfd.archetype_direction
+    targets:
+      - "fansim.cror.evaluate:prepare_cror_cfd"
+      - "fansim.cror.evaluate:cfd_dual_mrf_dict"
+      - "fansim.cror.evaluate:fit_cror_inner_zone_edges"
+      - "fansim.cror.evaluate:check_cror_blades_in_zones"
+      - "fansim.cror.evaluate:rig_for_cror"
+      - "fansim.centrifugal.evaluate:evaluate_mixed_flow"
+      - "fansim.centrifugal.evaluate:rig_for_mixed_flow"
+      - "fansim.volute.domain:VOLUTE_SPIN"
+      - "fansim.volute.domain:domain_for_volute"
+    claim: >
+      CROR, mixed-flow and volute CFD turn each rotor its designed way: the CROR and mixed-flow
+      CFD copies are flipped 180 deg about X like the axial rotor (spin -1 pumps the +Z duct; the
+      CROR upstream zone turns +omega, downstream -omega, each matching its rotor's geometry
+      proof), every blade vertex sits inside an MRF zone, and the volute spins +1 because its
+      scroll widens toward +theta (its flat radial blades cannot decide the direction).
+    source: {kind: derivation, ref: "Audit #7; velocity triangles (Dixon & Hall ch. 1/5); volute: swirl follows the widening scroll"}
+    checks: [tests/audit/test_cror_mixed_setup_audit.py]
+    depends_on: [audit.direction_geometry, cfd.flow_direction_convention]
+
   - id: cfd.sanity_checks
     targets: ["fansim.cfd.sanity"]
     claim: "Cheap physics/setup invariants on every fan CFD result"

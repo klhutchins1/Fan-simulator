@@ -14,6 +14,11 @@ from fansim.cfd.domain import MM_TO_M
 from fansim.volute.geometry import VoluteParams, volute_enclosure_extents_mm, volute_radii_mm
 
 DEFAULT_VOLUTE_RPM = 3000.0
+# Audit #7: the scroll's outer radius GROWS with +theta (tongue/narrow at theta=0, widest at 2pi,
+# exit stub at +X), so the collected flow must travel toward +theta: omega_z > 0 (CCW from +Z).
+# The flat radial blades are direction-symmetric, so only the scroll fixes the sense. It used to
+# be -1 (flow running down the shrinking channel toward the tongue).
+VOLUTE_SPIN = +1
 
 
 @dataclass
@@ -45,7 +50,7 @@ def domain_for_volute(
     params: VoluteParams,
     *,
     rpm: float = DEFAULT_VOLUTE_RPM,
-    spin: int = -1,
+    spin: int = VOLUTE_SPIN,
     margin_mm: float = 8.0,
     inlet_plenum_mm: float = 28.0,
     outlet_clearance_mm: float = 12.0,
