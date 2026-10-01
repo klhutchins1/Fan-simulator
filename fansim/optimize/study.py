@@ -20,6 +20,7 @@ from fansim.optimize.trial_attrs import trial_flat
 from fansim.optimize.search_space import (
     OBJECTIVE_DIRECTIONS,
     OBJECTIVE_NAMES,
+    TIP_CAP_CLEARANCE_MM,
     suggest_features,
     suggest_params,
     suggest_sickle,
@@ -27,6 +28,21 @@ from fansim.optimize.search_space import (
 )
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+
+def optimizer_max_tip_radius(spec, with_shroud: bool = False) -> float:
+    """Largest sampled tip_radius (mm) that still fits ``spec``'s frame.
+
+    Sampled blades use the BladeParams default ``cylindrical_tip``, which trims the solid to exactly
+    tip_radius, so only the frame clearance is needed (a12x25: 54.5 mm, = Stock). The old 4 mm margin
+    was for untrimmed tips whose LE/TE corners bulge past tip_radius; it applies only if that
+    default is ever turned off. A tip ring sits outside the tip, so it comes off the cap too.
+    """
+    bulge_mm = 0.0 if BladeParams().cylindrical_tip else 4.0
+    cap = spec.tip_dia_mm[1] / 2.0 - max(TIP_CAP_CLEARANCE_MM, bulge_mm)
+    if with_shroud:
+        cap = max(20.0, cap - SHROUD_DEFAULT_MM)
+    return cap
 
 
 def make_study(study_name: str, storage: str, seed: int | None = 42,
@@ -92,11 +108,7 @@ def run_study(
         print(f"WARNING: unknown material {mat!r}; using {DEFAULT_MATERIAL}")
         mat = DEFAULT_MATERIAL
     spec = get_fan_spec(fan_model)
-    # Frame-aware blade length: the built tip dia bulges ~4 mm past 2*tip_radius, so cap the sampled
-    # tip_radius at frame_max/2 - 4 so designs land INSIDE the frame instead of getting gated on dia.
-    max_tip_radius = spec.tip_dia_mm[1] / 2.0 - 4.0
-    if with_shroud:
-        max_tip_radius = max(20.0, max_tip_radius - SHROUD_DEFAULT_MM)
+    max_tip_radius = optimizer_max_tip_radius(spec, with_shroud=with_shroud)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     storage = f"sqlite:///{(out_dir / 'study.db').as_posix()}"
