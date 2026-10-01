@@ -24,42 +24,35 @@ project optimizes for (the honest north star).
 
 ## Shopping list (low-cost — ranked)
 
-**You already have:** used A12x25 (~$15), PSU (~$15), printer + PLA/PETG.
+**Already have:** used A12x25, PSU, printer + filament, **scales**, **phone dB(A) app**.
+**Maybe have:** ESP32 DevKit (check drawer before buying — only needed later for serial logging).
 
 Links below were **HTTP-checked live on 2026-09-30**. Amazon ASINs still rotate — if a
-`/dp/` page 404s, use the **search** link in the same row (those stay valid).
+`/dp/` page 404s, use the **search** link in the same row.
 Machine-readable copy: [`hardware_bom.csv`](hardware_bom.csv).
 
-### Buy first (~$45–60)
+### Still buy (~$45–60 now; +~$36 soon)
 
 | # | Item | ~$ | Buy link (checked) | If link dies |
 |---|------|----|--------------------|--------------|
 | 1 | Laser tachometer | 15–25 | [Wihsentech ~$21](https://www.amazon.com/dp/B0DBM7FJ58) · [NEIKO 20713A](https://www.amazon.com/Neiko-20713A-Digital-Tachometer-Contact/dp/B000I5LDVC) | [search: laser tach](https://www.amazon.com/s?k=non+contact+laser+tachometer) |
 | 2 | CFM anemometer | 27–37 | [BTMETER BT-6000GH](https://www.amazon.com/dp/B0D2HGR4QH) | [search: HoldPeak 866B](https://www.amazon.com/s?k=HoldPeak+866B+anemometer) · [search: CFM anemometer](https://www.amazon.com/s?k=CFM+anemometer+handheld) |
-
-Without matched RPM, CFM/Pa cannot calibrate.
-
-### Buy next (~$45–55)
-
-| # | Item | ~$ | Buy link (checked) | If link dies |
-|---|------|----|--------------------|--------------|
 | 3 | Dual-port manometer (**Pa** unit) | 35–45 | [DANOPLUS DP-103 ~$36](https://www.amazon.com/dp/B0B12T9BBC) | [search: digital manometer Pa](https://www.amazon.com/s?k=digital+manometer+differential+Pa+HVAC) |
-| 4 | Pocket scale 500 g × 0.01 g | 10–17 | [Fuzion ASTRO-500 ~$11](https://www.amazon.com/Fuzion-Digital-Pocket-Scale-ASTRO-500/dp/B0GS4WJ1KT) · [GDEALER](https://www.amazon.com/dp/B09Y92C48S) | [search: 500g 0.01g scale](https://www.amazon.com/s?k=500g+0.01g+pocket+scale) |
+
+Without matched RPM, CFM/Pa cannot calibrate. **Do not buy** another scale or sound meter.
 
 ### Optional / defer
 
 | Item | ~$ | Buy link (checked) | When |
 |------|----|--------------------|------|
-| Phone dB(A) at 1 m | 0 | (phone app) | Relative noise A/B only |
 | USB-C watt meter | 12–20 | [USB-C watt meter](https://www.amazon.com/dp/B0D95QZ9T4) · [search](https://www.amazon.com/s?k=USB-C+power+meter+watt) | Only if fan is USB-C powered |
-| ESP32 DevKit | 8–15 | [ESP32-DevKitC-VE ~$11](https://www.amazon.com/dp/B087TNPQCV) · [search](https://www.amazon.com/s?k=ESP32+DevKitC) | Later: `rig_logger.py --serial` |
-| Sensirion SDP810-500PA | 30–45 | [Sensirion SDP810-500Pa](https://www.sensirion.com/products/catalog/SDP810-500Pa) (then DigiKey/Mouser/RS) | Later automated ΔP — manometer first |
+| ESP32 DevKit | 8–15 | [ESP32-DevKitC-VE ~$11](https://www.amazon.com/dp/B087TNPQCV) · [search](https://www.amazon.com/s?k=ESP32+DevKitC) | Only if you **don’t** already have one; later `rig_logger.py --serial` |
+| Sensirion SDP810-500PA | 30–45 | [Sensirion SDP810-500Pa](https://www.sensirion.com/products/catalog/SDP810-500Pa) | Later automated ΔP — manometer first |
 | DIY plenum + orifice plates | 10–30 | (foam-core / printed) | After single-point works (§20.7) |
 
 ### Skip
 
-Lab ±250 Pa meters, AMCA chambers, calibrated mics, shaft dynos.
-([search PCE-PME 250](https://www.amazon.com/s?k=PCE+PME+250+differential+pressure) only if you insist — not worth it here.)
+Lab ±250 Pa meters, AMCA chambers, calibrated mics, shaft dynos, **extra scales**.
 
 Ingest readings via cockpit **Record measurement** or `scripts/rig_logger.py` (columns below).
 
