@@ -12,6 +12,7 @@ exempt:
   - "fansim.cfd.templates:*"
   - "fansim.cfd.timing:*"
   - "fansim.cfd.glyphs:*"
+  - "fansim.cfd.cockpit_viz:*"
   - "fansim.cfd.midplane:*"
   - "fansim.cfd.lbm_geometry_ab:*"
   - "fansim.cfd.openfoam_case:*"

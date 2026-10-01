@@ -24,8 +24,12 @@ def test_thrust_scales_with_rpm_squared():
     t2 = analyze(p, rpm=30000).thrust_n
     # ~4x from rpm^2. 30000 RPM is tip Mach ~0.58. The stall cap keeps
     # post-stall Cl at the polar value, so the high-RPM point is no longer
-    # inflated. Measured ratio is 4.47.
-    assert 3.3 < t2 / t1 < 4.57
+    # inflated. Measured ratio is 4.65 since BEMT honours station t/c (42ce15f,
+    # 4–9% sections instead of 12%): ~0.21 of it is the Prandtl–Glauert lift
+    # boost at the tip (4.44 with compressibility off), the rest is the
+    # low-Re polar gain, which thin sections feel more strongly. Both are
+    # physical departures from pure rpm^2.
+    assert 3.3 < t2 / t1 < 4.8
 
 
 def test_power_scales_faster_than_thrust():

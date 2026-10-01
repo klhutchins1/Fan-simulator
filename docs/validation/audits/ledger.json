@@ -115,8 +115,8 @@
       "verdict": "PASS"
     },
     "propeller.bemt": {
-      "date": "2026-09-30",
-      "fingerprint": "cb4624f645f58fc3",
+      "date": "2026-10-01",
+      "fingerprint": "5549c67a9a973fae",
       "report": "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md",
       "verdict": "PASS"
     },

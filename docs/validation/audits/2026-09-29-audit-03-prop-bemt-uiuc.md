@@ -163,3 +163,13 @@ docstring now documents the Prandtl tip loss, no root loss, no Glauert correctio
 tol 0.020 (passing). NeuralFoil SF static C_T/C_P has a dedicated passing test when the extra is
 installed. Optional NeuralFoil backend: `set_polar_backend("neuralfoil")` /
 `FANSIM_POLAR_BACKEND=neuralfoil` (`uv sync --extra neuralfoil`).
+
+## Re-proof 2026-10-01
+
+`propeller.bemt` went CHANGED after f7d569d (NeuralFoil Viterna 360° extension, which is inside
+`analyze`'s call closure) without a re-record. `tests/test_bemt.py::test_thrust_scales_with_rpm_squared`
+had also been failing since 42ce15f (t/c-aware polars): the 15k→30k RPM thrust ratio moved
+4.47 → 4.65. Decomposition: 4.44 with compressibility off, so ~0.21 is Prandtl–Glauert at tip
+Mach ~0.58 and the rest is the low-Re polar gain on 4–9% sections. Physical; bound widened to
+< 4.8 with the reason in the test. All unit checks re-run (25 passed, 1 strict xfail = known
+table SF static C_P, unchanged). Re-recorded PASS.
