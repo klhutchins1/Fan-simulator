@@ -51,3 +51,12 @@ the cylinder cut shortened the tip (Stock: 49.8 mm loft → 33.5 mm measured), s
 built noticeably narrower than its number, and Stock's tip sat outside the range. The measured
 range brackets Stock (33.5 mm), so the numbers are not rescaled. New studies therefore explore wider
 tips than `opt_run1` did, and the two studies are not comparable chord for chord.
+
+## Stock CFD re-check (step 4)
+
+Stock (`a12x25_reference.yaml`, measured basis) in the complete setup, with the same settings as the
+2026-09-29 v2 check (ring + frame + layers, surface/feature level 4, 16 procs), at free air:
+**56.4 CFM**, against 56.5 on 2026-09-29 (−0.2%). Converged (oscillation 0.1%). Sanity: all physics
+PASS, mesh-quality WARN (the known tip/ring skew, §19.10). The measured-chord rebuild (−0.6% volume)
+does not move Stock's CFD; the v2 validation (−6% vs published 60.1 CFM) stands. 55 min on an
+idle CPU. Evidence: `runs/chord_basis_stock_check_full/validation.json`.
