@@ -115,6 +115,40 @@ def intake_envelope_z_range(
     return z_lo, z_hi
 
 
+def frame_z_mid_from_points(r, z, hub_radius: float) -> float:
+    """Frame envelope Z mid from outer impeller points (skip motor-cup / grip pads)."""
+    import numpy as np
+
+    rr = np.asarray(r, dtype=float)
+    zz = np.asarray(z, dtype=float)
+    outer = rr > float(hub_radius) * 1.05
+    if np.any(outer):
+        zo = zz[outer]
+        return 0.5 * (float(zo.min()) + float(zo.max()))
+    return 0.5 * (float(zz.min()) + float(zz.max()))
+
+
+def out_of_spec_point_mask(
+    r,
+    z,
+    *,
+    tip_r: float,
+    hub_r: float,
+    nom_depth: float,
+    intake_extra: float = 0.0,
+):
+    """True where geometry is past tip OD or frame depth (hub-cup grips ignored for depth)."""
+    import numpy as np
+
+    rr = np.asarray(r, dtype=float)
+    zz = np.asarray(z, dtype=float)
+    zmid = frame_z_mid_from_points(rr, zz, hub_r)
+    z_lo, z_hi = intake_envelope_z_range(zmid, nom_depth, intake_extra)
+    depth_oos = ((zz < z_lo) | (zz > z_hi)) & (rr > float(hub_r) * 1.05)
+    tip_oos = rr > float(tip_r)
+    return (tip_oos | depth_oos).astype(float)
+
+
 def blade_max_dia(params) -> float:
     """Max impeller DIAMETER (mm) from section points + optional tip ring.
 

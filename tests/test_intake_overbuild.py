@@ -41,6 +41,23 @@ def test_intake_envelope_z_range_outlet_anchored():
     assert hi2 == pytest.approx(22.5)
 
 
+def test_grip_pads_not_depth_oos():
+    """Motor-cup grip tips past z_lo must not light red; blade tips past tip_r still do."""
+    import numpy as np
+
+    from fansim.cockpit.placement import out_of_spec_point_mask
+
+    # Hub grips at r=18, slightly past outlet; blade tip past OD.
+    r = np.array([18.0, 18.0, 56.0])
+    z = np.array([-13.0, 0.0, 0.0])
+    mask = out_of_spec_point_mask(
+        r, z, tip_r=55.0, hub_r=21.5, nom_depth=25.0, intake_extra=0.0,
+    )
+    assert mask[0] == 0.0  # grip tip ignored for depth
+    assert mask[1] == 0.0
+    assert mask[2] == 1.0  # tip OD oversize
+
+
 def test_fit_envelope_respects_max_depth_mm():
     spec = get_fan_spec("a12x25")
     flat = {**stock_blade_flat("a12x25"), "sweep_tip": 8.0, "sweep_mid": 6.0}

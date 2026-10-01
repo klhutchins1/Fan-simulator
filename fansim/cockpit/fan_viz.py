@@ -96,23 +96,28 @@ def bind(session) -> None:
     def _out_of_spec_mask(mesh):
         import numpy as np
 
-        from fansim.cockpit.placement import intake_envelope_z_range
+        from fansim.cockpit.placement import out_of_spec_point_mask
 
         pts = mesh.points
         r = np.hypot(pts[:, 0], pts[:, 1])
         z = pts[:, 2]
         tip_r, nom_depth, extra = _spec_limits()
-        zmid = 0.5 * (float(z.min()) + float(z.max()))
-        z_lo, z_hi = intake_envelope_z_range(zmid, nom_depth, extra)
-        mask = (r > tip_r) | (z < z_lo) | (z > z_hi)
-        return mask.astype(float)
+        hub_r = float(getattr(state, "e_hub_radius", tip_r * 0.4) or (tip_r * 0.4))
+        return out_of_spec_point_mask(
+            r, z, tip_r=tip_r, hub_r=hub_r, nom_depth=nom_depth, intake_extra=extra,
+        )
 
     def _add_envelope(mesh):
-        from fansim.cockpit.placement import intake_envelope_z_range
+        import numpy as np
 
-        zc = mesh.points[:, 2]
-        zmid = 0.5 * (float(zc.min()) + float(zc.max()))
+        from fansim.cockpit.placement import frame_z_mid_from_points, intake_envelope_z_range
+
+        pts = mesh.points
+        r = np.hypot(pts[:, 0], pts[:, 1])
+        z = pts[:, 2]
         tip_r, nom_depth, extra = _spec_limits()
+        hub_r = float(getattr(state, "e_hub_radius", tip_r * 0.4) or (tip_r * 0.4))
+        zmid = frame_z_mid_from_points(r, z, hub_r)
         z_lo, z_hi = intake_envelope_z_range(zmid, nom_depth, extra)
         height = max(z_hi - z_lo, 1e-3)
         center_z = 0.5 * (z_lo + z_hi)
