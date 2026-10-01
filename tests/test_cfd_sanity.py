@@ -676,3 +676,19 @@ def test_run_sanity_infers_meta_and_runs_metrics_checks(tmp_path):
     assert by_name["regime"].status in (PASS, WARN)
     assert by_name["duct_shape"].status == PASS
     assert "meta inferred" in by_name["duct_shape"].note
+
+
+def test_volute_case_meta_skips_duct_only_checks(tmp_path):
+    """A volute case (+Z plenum inlet, +X stub outlet) must not be inferred as an axial duct."""
+    import json as _json
+
+    from fansim.cfd.sanity import _check_duct_shape, _check_inlet_bookkeeping, _infer_case_meta
+
+    (tmp_path / "constant").mkdir()
+    (tmp_path / "constant" / "volute_domain.json").write_text(_json.dumps(
+        {"topology": "volute_radial", "outlet_area_m2": 5.6e-4, "mrf_radius_m": 0.052}))
+    meta = _infer_case_meta(tmp_path)
+    assert meta["topology"] == "volute_radial" and meta["outlet_area_m2"] == 5.6e-4
+    assert "inlet_area_m2" not in meta and "duct_shape" not in meta
+    assert _check_inlet_bookkeeping(None, meta).status == "SKIP"
+    assert _check_duct_shape(meta).status == "SKIP"

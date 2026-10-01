@@ -55,12 +55,14 @@ def verdict(designed: dict | None, reversed_: dict | None) -> dict:
         return {"verdict": "FAIL", "why": f"designed rotation does not deliver ({d_cfm:.1f} CFM)"}
     if not (designed.get("converged") and reversed_.get("converged")):
         return {"verdict": "INCONCLUSIVE", "why": "a solve did not converge"}
-    ratio = d_cfm / r_cfm if r_cfm > 0 else math.inf
+    backwards = r_cfm <= 0          # reversed rotation pumps the wrong way (or not at all)
+    ratio = None if backwards else d_cfm / r_cfm
     d_pw = d_cfm / designed["shaft_power_w"] if designed.get("shaft_power_w") else None
     r_pw = (r_cfm / reversed_["shaft_power_w"]
             if reversed_.get("shaft_power_w") and r_cfm > 0 else 0.0)
-    out = {"cfm_ratio": ratio, "cfm_per_w_designed": d_pw, "cfm_per_w_reversed": r_pw}
-    if ratio >= MIN_RATIO and d_pw is not None and d_pw >= MIN_RATIO * r_pw:
+    out = {"cfm_ratio": ratio, "reversed_pumps_backwards": backwards,
+           "cfm_per_w_designed": d_pw, "cfm_per_w_reversed": r_pw}
+    if (backwards or ratio >= MIN_RATIO) and d_pw is not None and d_pw >= MIN_RATIO * r_pw:
         return {"verdict": "PASS", **out}
     return {"verdict": "INCONCLUSIVE", "why": f"margin below {MIN_RATIO:.2f}x", **out}
 

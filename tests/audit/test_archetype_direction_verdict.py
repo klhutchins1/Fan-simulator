@@ -45,7 +45,9 @@ def test_unconverged_never_passes():
 
 def test_reversed_pumping_backwards_counts_as_designed_win():
     v = adc.verdict(_row(40.0, 1.0), _row(-8.0, 1.0))
-    assert v["verdict"] == "PASS"
+    assert v["verdict"] == "PASS" and v["reversed_pumps_backwards"] and v["cfm_ratio"] is None
+    import json
+    json.dumps(v, allow_nan=False)  # result file must serialise (the inf ratio crashed it once)
 
 
 def test_missing_solve_is_inconclusive():

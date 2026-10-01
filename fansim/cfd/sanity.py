@@ -165,6 +165,23 @@ def _infer_case_meta(case_dir: Path) -> dict | None:
     Anything else missing (MRFProperties, casing/impeller STLs) degrades individual
     fields to None rather than failing the whole inference.
     """
+    volute = case_dir / "constant" / "volute_domain.json"
+    if volute.is_file():
+        # Radial blower in a sealed scroll: +Z plenum inlet feeding the eye, +X outlet stub. The
+        # axial-duct inference below would invent a uniform duct inlet, so leave the duct-only
+        # fields out (inlet bookkeeping / duct shape SKIP) and keep what the volute records.
+        try:
+            vd = json.loads(volute.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            vd = {}
+        return {
+            "topology": vd.get("topology", "volute_radial"),
+            "outlet_area_m2": vd.get("outlet_area_m2"),
+            "tip_radius_m": vd.get("mrf_radius_m"),   # MRF zone just outside the tip: Mach bound
+            "omega_signed": _infer_omega(case_dir),
+            "inferred": True,
+        }
+
     box = _infer_box_half_width_and_zmax(case_dir)
     if box is None:
         return None
