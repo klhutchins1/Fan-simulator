@@ -11,7 +11,9 @@ from __future__ import annotations
 import random
 
 from fansim.cockpit.placement import (
+    effective_depth_max,
     fit_envelope,
+    intake_extra_mm,
     preview_changes,
     scale_to_hub,
 )
@@ -311,7 +313,15 @@ def bind(session) -> None:
             state.e_tip_notch_depth = float(flat["tip_notch_depth_mm"])
 
     def on_fit_envelope():
-        res = fit_envelope(edit_flat(), session.active_spec(), features=edit_features())
+        spec = session.active_spec()
+        extra = intake_extra_mm(
+            enabled=bool(getattr(state, "intake_overbuild", False)),
+            extra_mm=float(getattr(state, "intake_overbuild_mm", 10.0) or 0.0),
+        )
+        max_d = effective_depth_max(spec, intake_extra=extra)
+        res = fit_envelope(
+            edit_flat(), spec, features=edit_features(), max_depth_mm=max_d,
+        )
         _apply_editor_flat(res.flat)
         session._hub_fit_readout()
         session._tip_fit_readout()
@@ -319,6 +329,18 @@ def bind(session) -> None:
         state.edited_stale = True
         state.preview_msg = preview_changes(res.changes)
         state.flush()
+
+    def _refresh_intake_slider_maxes(**_):
+        extra = intake_extra_mm(
+            enabled=bool(getattr(state, "intake_overbuild", False)),
+            extra_mm=float(getattr(state, "intake_overbuild_mm", 10.0) or 0.0),
+        )
+        state.e_blade_hub_z_max = 8.0 + 0.5 * extra
+        state.e_hub_height_max = 30.0 + extra
+        state.e_hub_nose_max = 15.0 + 0.5 * extra
+
+    state.change("intake_overbuild", "intake_overbuild_mm")(_refresh_intake_slider_maxes)
+    _refresh_intake_slider_maxes()
 
     def on_scale_to_hub():
         res = scale_to_hub(edit_flat(), session.active_spec(), features=edit_features())

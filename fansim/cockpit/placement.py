@@ -79,6 +79,42 @@ def impeller_z_extent(params) -> float:
     return max(zs) - min(zs)
 
 
+def intake_extra_mm(*, enabled: bool, extra_mm: float) -> float:
+    """Clamp Design-session intake overbuild extra (mm). Off → 0; on → [0, 20]."""
+    if not enabled:
+        return 0.0
+    try:
+        v = float(extra_mm)
+    except (TypeError, ValueError):
+        return 0.0
+    return max(0.0, min(20.0, v))
+
+
+def effective_depth_max(spec: FanSpec, *, intake_extra: float = 0.0) -> float:
+    """Nominal frame depth + intake overbuild (Fit clamp target)."""
+    return float(spec.depth_mm[1]) + float(intake_extra or 0.0)
+
+
+def depth_allow_max(spec: FanSpec, *, intake_extra: float = 0.0) -> float:
+    """Hard allow gate: nominal + Library leeway_depth + intake overbuild."""
+    return (
+        float(spec.depth_mm[1])
+        + float(getattr(spec, "leeway_depth_mm", 0.0) or 0.0)
+        + float(intake_extra or 0.0)
+    )
+
+
+def intake_envelope_z_range(
+    z_mid: float, nominal_depth: float, intake_extra: float = 0.0,
+) -> tuple[float, float]:
+    """Outlet-anchored [z_lo, z_hi]: outlet at mid−nominal/2; +Z grows by intake_extra."""
+    nom = float(nominal_depth)
+    extra = float(intake_extra or 0.0)
+    z_lo = float(z_mid) - 0.5 * nom
+    z_hi = z_lo + nom + extra
+    return z_lo, z_hi
+
+
 def blade_max_dia(params) -> float:
     """Max impeller DIAMETER (mm) from section points + optional tip ring.
 
@@ -174,6 +210,7 @@ def fit_envelope(
     features=None,
     *,
     preserve_tip: bool = False,
+    max_depth_mm: float | None = None,
 ) -> PlaceResult:
     from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
     from fansim.geometry.features import features_from_flat
@@ -226,7 +263,7 @@ def fit_envelope(
             changes.append(PlaceChange("tip_radius", before=tr0, after=float(work["tip_radius"])))
 
     # 3) depth: flatten sweep + LE; if still over, gently reduce stagger
-    max_d = float(spec.depth_mm[1])
+    max_d = float(spec.depth_mm[1] if max_depth_mm is None else max_depth_mm)
 
     def depth() -> float:
         return impeller_z_extent(blade_from_flat(work, feat))

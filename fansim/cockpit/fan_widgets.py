@@ -16,13 +16,17 @@ else:
     from trame.widgets import vuetify3 as v3
 
 
-def slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None, unit: str = ""):
-    """Slider with always-visible value + unit (not only on thumb click)."""
+def slider(label: str, model: str, mn: float, mx: float | str, step: float, disabled=None, unit: str = ""):
+    """Slider with always-visible value + unit (not only on thumb click).
+
+    ``mx`` may be a float or a state variable name (str) for a reactive max.
+    """
     desc, uri = CONTROL_DESC.get(model, ""), _IMG_URI.get(model)
     extra = {}
     if disabled is not None:
         extra["disabled"] = disabled
     unit_s = f" {unit}" if unit else ""
+    max_kw = (mx,) if isinstance(mx, str) else mx
 
     def _body():
         with html.Div(classes="d-flex justify-space-between align-center text-caption mb-0"):
@@ -34,7 +38,7 @@ def slider(label: str, model: str, mn: float, mx: float, step: float, disabled=N
         v3.VSlider(
             v_model=(model,),
             min=mn,
-            max=mx,
+            max=max_kw,
             step=step,
             thumb_label="always",
             density="compact",

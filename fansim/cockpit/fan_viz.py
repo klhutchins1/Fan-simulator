@@ -81,30 +81,46 @@ def bind(session) -> None:
         render_state["glyph_arrows"] = None
         state.glyph_caption = msg
 
+    def _intake_extra():
+        from fansim.cockpit.placement import intake_extra_mm
+
+        return intake_extra_mm(
+            enabled=bool(getattr(state, "intake_overbuild", False)),
+            extra_mm=float(getattr(state, "intake_overbuild_mm", 10.0) or 0.0),
+        )
+
     def _spec_limits():
         s = session.active_spec()
-        return s.tip_dia_mm[1] / 2.0, s.depth_mm[1]
+        return s.tip_dia_mm[1] / 2.0, s.depth_mm[1], _intake_extra()
 
     def _out_of_spec_mask(mesh):
         import numpy as np
 
+        from fansim.cockpit.placement import intake_envelope_z_range
+
         pts = mesh.points
         r = np.hypot(pts[:, 0], pts[:, 1])
         z = pts[:, 2]
-        tip_r, depth_lim = _spec_limits()
+        tip_r, nom_depth, extra = _spec_limits()
         zmid = 0.5 * (float(z.min()) + float(z.max()))
-        mask = (r > tip_r) | (np.abs(z - zmid) > depth_lim / 2.0)
+        z_lo, z_hi = intake_envelope_z_range(zmid, nom_depth, extra)
+        mask = (r > tip_r) | (z < z_lo) | (z > z_hi)
         return mask.astype(float)
 
     def _add_envelope(mesh):
+        from fansim.cockpit.placement import intake_envelope_z_range
+
         zc = mesh.points[:, 2]
         zmid = 0.5 * (float(zc.min()) + float(zc.max()))
-        tip_r, depth_lim = _spec_limits()
+        tip_r, nom_depth, extra = _spec_limits()
+        z_lo, z_hi = intake_envelope_z_range(zmid, nom_depth, extra)
+        height = max(z_hi - z_lo, 1e-3)
+        center_z = 0.5 * (z_lo + z_hi)
         cyl = fan_runtime.pv.Cylinder(
-            center=(0, 0, zmid),
+            center=(0, 0, center_z),
             direction=(0, 0, 1),
             radius=tip_r,
-            height=depth_lim,
+            height=height,
             resolution=64,
         )
         plotter.add_mesh(cyl, color="seagreen", opacity=0.10)
@@ -212,7 +228,10 @@ def bind(session) -> None:
         render_state["color"] = color
         _apply_render(reset=True)
 
-    @state.change("highlight_spec", "show_envelope", "fan_model", "show_glyphs", "show_dir_cues")
+    @state.change(
+        "highlight_spec", "show_envelope", "fan_model", "show_glyphs", "show_dir_cues",
+        "intake_overbuild", "intake_overbuild_mm",
+    )
     def _on_viz_toggle(**_):
         _apply_render(reset=False)
         try:

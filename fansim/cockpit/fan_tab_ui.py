@@ -532,6 +532,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             "change under Assess & print below.",
                             classes="text-caption text-medium-emphasis mb-1",
                         )
+                        html.Div(
+                            "intake +{{ intake_overbuild_mm }} mm overbuild · "
+                            "won't drop into stock frame",
+                            v_show="intake_overbuild",
+                            classes="text-caption text-warning mb-1",
+                        )
                         v3.VAlert(
                             "{{ stale_msg }}",
                             v_if="edited_stale",
@@ -801,8 +807,14 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             html.Div("{{ hub_fit_info }}", classes="text-caption mb-1")
                                             _slider("Tip radius / length", "e_tip_radius", 45, 59, 0.5, unit="mm")
                                             html.Div("{{ tip_fit_info }}", classes="text-caption mb-1")
-                                            _slider("Hub height (0=auto)", "e_hub_height", 0, 30, 0.5, unit="mm")
-                                            _slider("Blade on hub", "e_blade_hub_z", -8, 8, 0.5, unit="mm")
+                                            _slider(
+                                                "Hub height (0=auto)", "e_hub_height", 0,
+                                                "e_hub_height_max", 0.5, unit="mm",
+                                            )
+                                            _slider(
+                                                "Blade on hub", "e_blade_hub_z", -8,
+                                                "e_blade_hub_z_max", 0.5, unit="mm",
+                                            )
                                             html.Div(
                                                 "Blade on hub: + raises blades toward the intake (more hub below). "
                                                 "Needs Hub height taller than the root span.",
@@ -817,7 +829,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 hide_details=True,
                                                 classes="mb-3",
                                             )
-                                            _slider("Hub nose (cone/dome)", "e_hub_nose", 0, 15, 0.5, unit="mm")
+                                            _slider(
+                                                "Hub nose (cone/dome)", "e_hub_nose", 0,
+                                                "e_hub_nose_max", 0.5, unit="mm",
+                                            )
                                     with v3.VExpansionPanel(title="Spacing — tonal noise"):
                                         with v3.VExpansionPanelText():
                                             _slider("Uneven spacing", "e_spacing", 0.0, 0.6, 0.05, unit="0–1")
@@ -1059,6 +1074,34 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
 
                         with v3.VExpansionPanel(title="Fit & seed"):
                             with v3.VExpansionPanelText():
+                                v3.VSwitch(
+                                    v_model=("intake_overbuild",),
+                                    density="compact",
+                                    hide_details=True,
+                                    color="primary",
+                                    inset=True,
+                                    label="Allow intake overbuild (+Z)",
+                                    classes="mb-1",
+                                )
+                                v3.VSlider(
+                                    v_model=("intake_overbuild_mm",),
+                                    min=0,
+                                    max=20,
+                                    step=1,
+                                    label="Extra intake (mm)",
+                                    thumb_label=True,
+                                    density="compact",
+                                    hide_details=True,
+                                    classes="mb-1",
+                                    disabled=("!intake_overbuild",),
+                                )
+                                html.Div(
+                                    "Stock frame depth stays nominal; on = blades/hub may "
+                                    "extend past the inlet (+Z) by Extra. Flagged over-spec "
+                                    "vs datasheet depth. CFD duct still stock — won't drop "
+                                    "into a stock frame.",
+                                    classes="text-caption text-medium-emphasis mb-2",
+                                )
                                 html.Div(
                                     "Fit to the selected fan model before Preview/Assess when tip "
                                     "or depth is out of spec. Only changes Design sliders — Preview "

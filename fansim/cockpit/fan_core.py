@@ -103,6 +103,11 @@ def apply_state_defaults(session) -> None:
     state.highlight_spec = True
     state.show_envelope = False
     state.show_dir_cues = True  # rotation (CCW) + airflow (−Z) direction cues in the 3-D view
+    state.intake_overbuild = False  # allow blades/hub past inlet (+Z) beyond nominal depth
+    state.intake_overbuild_mm = 10.0
+    state.e_blade_hub_z_max = 8.0
+    state.e_hub_height_max = 30.0
+    state.e_hub_nose_max = 15.0
     state.fan_subtab = "design"
     state.fan_ux_banner = True  # dismissible product story (§21.2a)
     state.fan_design_panels = [0]  # Geometry open; other workflow panels closed (§21.1a)
@@ -230,11 +235,21 @@ def bind(session) -> None:
         return removed
 
     def active_spec():
-        """The selected fan model with the current leeway margins applied (nominal untouched)."""
+        """The selected fan model with the current leeway margins applied (nominal untouched).
+
+        Intake overbuild (+Z) adds into ``leeway_depth_mm`` so Assess/`check_build` allow the
+        extra axial room while ``over_spec_flags`` still compares to nominal depth.
+        """
+        from fansim.cockpit.placement import intake_extra_mm
+
+        extra = intake_extra_mm(
+            enabled=bool(getattr(state, "intake_overbuild", False)),
+            extra_mm=float(getattr(state, "intake_overbuild_mm", 10.0) or 0.0),
+        )
         return dataclasses.replace(
             get_fan_spec(state.fan_model),
             leeway_tip_dia_mm=float(state.lee_tip),
-            leeway_depth_mm=float(state.lee_depth),
+            leeway_depth_mm=float(state.lee_depth) + extra,
             leeway_weight_g=float(state.lee_weight),
             over_voltage_v=float(state.lee_overvolt),
         )

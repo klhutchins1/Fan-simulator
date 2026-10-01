@@ -1249,7 +1249,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                             figure=prop_scatter_figure(prop_pareto_store, prop_user_store),
                             click=(
                                 getattr(ctx, "load_prop_row"),
-                                "[.points?.[0]?.customdata]",
+                                "[$event?.points?.[0]?.customdata]",
                             ),
                             style="width:100%;",
                         )

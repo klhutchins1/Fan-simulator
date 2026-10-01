@@ -21,11 +21,13 @@ if _RUNNING_TESTS:
     get_server = None  # type: ignore[assignment]
     SinglePageLayout = None  # type: ignore[assignment]
     v3 = None  # type: ignore[assignment]
+    html = None  # type: ignore[assignment]
     pv = None  # type: ignore[assignment]
 else:
     import pyvista as pv
     from trame.app import asynchronous, get_server
     from trame.ui.vuetify3 import SinglePageLayout
+    from trame.widgets import html
     from trame.widgets import vuetify3 as v3
 
     pv.OFF_SCREEN = True

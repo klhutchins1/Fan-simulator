@@ -52,6 +52,7 @@ session.**
   - **§22** — optional diminishing returns (22.12) only. Core reselect + first-open bake/lazy/
     slice/streamlines + disk glyphs + busy/cancel UX landed 2026-09-30.
   - **§21** — core Fan + Prop UX done 2026-09-30; optional leftover: 21.2g (tour/readiness).
+    Intake overbuild (+Z) Design switch landed 2026-09-30 (Fit & seed; asymmetric envelope).
   - Deferred (Stage 1 done, Stage 2 **not adopted** — do not start without a new Adopt):
     CST section DOFs, §7.4 CNN/FNO field predictor, §4.5 toroidal Prop topology.
   - ~~§20.2 NeuralFoil / RMS / 360°~~ — DONE 2026-09-30.
@@ -962,6 +963,9 @@ tooltips are already strong — the gap is product story, first path, and result
 - [x] **21.2f Results / 3-D readability.** **DONE 2026-09-30.** Scatter “up-right = better” +
   empty-state; 3-D color legend (orange/white/red/green/arrows; CFD vs schematic); stale
   Preview warning on Actions; Assess done/reject as alerts.
+- [x] **21.3 Intake overbuild (+Z).** **DONE 2026-09-30.** Fit & seed switch + extra mm
+  (default 10); effective depth for Fit/Assess; asymmetric green envelope / highlight;
+  wider hub sliders; over_spec still vs nominal. CFD duct unchanged.
 - [ ] **21.2g Nice later.** First-run tour; Docker/OpenFOAM readiness badge; click-to-open help
   (not hover-only); panel-header diagrams for chord/stagger/camber. **[effort: med]**
 
