@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -51,8 +52,11 @@ def test_datasheet_cli_prints_power():
         text=True,
     )
     line = proc.stdout.splitlines()[0]
-    assert line == (
-        "fpv_5inch: BEMT 1654 g, 572.6 W @ 30000 RPM | "
-        "ref_scaled 1850.0 g, 650.0 W | "
-        "thrust_ratio 0.894 | power_ratio 0.881 | within_2x=True"
-    )
+    # Format contract, not BEMT numbers (those moved with the t/c-aware polars, 42ce15f, and are
+    # covered by the propeller.bemt audit). Power and its ratio must be printed.
+    assert re.fullmatch(
+        r"fpv_5inch: BEMT \d+ g, [\d.]+ W @ 30000 RPM \| "
+        r"ref_scaled 1850\.0 g, 650\.0 W \| "
+        r"thrust_ratio [\d.]+ \| power_ratio [\d.]+ \| within_2x=True",
+        line,
+    ), line

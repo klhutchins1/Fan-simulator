@@ -16,6 +16,7 @@ import optuna
 from fansim.cfd.metrics import CFD_VERSION
 from fansim.geometry.blade import BladeParams, SHROUD_DEFAULT_MM, apply_notched_tips, apply_sickle
 from fansim.optimize.objectives import evaluate_candidate
+from fansim.optimize.trial_attrs import trial_flat
 from fansim.optimize.search_space import (
     OBJECTIVE_DIRECTIONS,
     OBJECTIVE_NAMES,
@@ -241,7 +242,7 @@ def pareto_summary(study: optuna.Study) -> list[dict]:
             continue
         names = OBJECTIVE_NAMES + (("noise_swl",) if len(t.values) == 4 else ())
         shroud = float(t.user_attrs.get("shroud_thick_mm", 0.0) or 0.0)
-        params = dict(t.params)
+        params = trial_flat(t)
         params.setdefault("shroud_thick_mm", shroud)  # --shroud stamps after sampling; carry it in params
         rows.append({
             "trial": t.number,

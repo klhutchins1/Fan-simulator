@@ -191,6 +191,10 @@ def suggest_params(trial, with_features: bool = False, space: str = "open",
     if tip is not None:
         kw["tip_radius"] = tip
     bp = BladeParams(n_blades=n_blades, stations=stations, features=features, **kw)
+    # Durable record of what the sampled chords mean, for replaying this trial later
+    # (``trial_attrs.chord_basis_for_trial``; trials without it predate the switch).
+    if hasattr(trial, "set_user_attr"):
+        trial.set_user_attr("chord_basis", bp.chord_basis)
     if with_shroud:                       # tip ring; search its TE-anchored height (recovery: 7.5)
         bp.shroud_thick_mm = SHROUD_DEFAULT_MM
         bp.shroud_height_frac = trial.suggest_float("shroud_height_frac", 0.30, 1.0)
@@ -272,6 +276,8 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
         bp.n_chord = max(8, int(p["n_chord"]))
     if "cylindrical_tip" in p:
         bp.cylindrical_tip = bool(p["cylindrical_tip"])
+    if p.get("chord_basis"):                        # absent = "measured"; legacy saves are stamped "loft"
+        bp.chord_basis = str(p["chord_basis"])
     if (
         int(p.get("tip_notch_count", 0) or 0) > 0
         or p.get("notched_tips")
@@ -354,6 +360,7 @@ def blade_to_flat(params: BladeParams) -> dict:
         le_skew_mid=float(getattr(mid, "le_skew", 0.0) or 0.0),
         le_skew_tip=float(getattr(tip, "le_skew", 0.0) or 0.0),
         cylindrical_tip=bool(getattr(params, "cylindrical_tip", True)),
+        chord_basis=str(getattr(params, "chord_basis", "measured") or "measured"),
         hub_height=float(params.hub_height_mm or 0.0),
         blade_hub_z=float(getattr(params, "blade_hub_z_mm", 0.0) or 0.0),
         hub_profile=str(params.hub_profile or "cylinder"),

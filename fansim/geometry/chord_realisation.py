@@ -18,6 +18,10 @@ import numpy as np
 from fansim.geometry.export import export_stl
 from fansim.validation.section_compare import measure_sections
 
+CHORD_BASIS_MEASURED = "measured"
+CHORD_BASIS_LOFT = "loft"
+CHORD_BASES = (CHORD_BASIS_MEASURED, CHORD_BASIS_LOFT)
+
 # Loft chord may exceed the measured target near the tip; keep headroom above recipe BOUNDS.
 _LOFT_CHORD_BOUNDS = (5.0, 90.0)
 _DEFAULT_ITERS = 2
@@ -105,8 +109,16 @@ def loft_chords_for_measured_targets(params, n_iter: int = _DEFAULT_ITERS) -> li
 
 
 def prepare_loft_chords(params):
-    """Return params whose station ``chord`` values are loft chords realizing measured targets."""
+    """Return params whose station ``chord`` values are loft chords realizing measured targets.
+
+    Legacy ``chord_basis="loft"`` params already hold loft chords and are returned unchanged.
+    """
     if not bool(getattr(params, "cylindrical_tip", True)):
+        return params
+    basis = str(getattr(params, "chord_basis", CHORD_BASIS_MEASURED) or CHORD_BASIS_MEASURED)
+    if basis not in CHORD_BASES:
+        raise ValueError(f"chord_basis must be one of {CHORD_BASES}, got {basis!r}")
+    if basis == CHORD_BASIS_LOFT:
         return params
     return with_loft_chords(params, loft_chords_for_measured_targets(params))
 
@@ -131,4 +143,5 @@ def with_loft_chords(params, loft_chords: list[float]):
             thickness=float(s.thickness) * scale,
             max_camber=float(s.max_camber) * scale,
         ))
-    return replace(deepcopy(params), stations=stations)
+    # The result holds loft chords, so mark it: preparing it again is then a no-op.
+    return replace(deepcopy(params), stations=stations, chord_basis=CHORD_BASIS_LOFT)

@@ -11,6 +11,8 @@ hub_axial_margin: 1.5
 rpm: 2000.0
 n_span: 18
 n_chord: 60
+# Legacy recipe: station chord is the LOFT chord (pre-37728b9); the cylindrical trim shortens the tip.
+chord_basis: loft
 stations:
   - {r_frac: 0.0, chord: 34.0, stagger_deg: 26.0, thickness: 0.08, max_camber: 0.05, camber_pos: 0.4, sweep: 0.0, skew: 0.0, lean_deg: 0.0}
   - {r_frac: 0.5, chord: 44.0, stagger_deg: 38.0, thickness: 0.05, max_camber: 0.06, camber_pos: 0.4, sweep: 3.0, skew: 0.0, lean_deg: 14.0}

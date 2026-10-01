@@ -31,6 +31,8 @@ le_thick_scale: 0.2
 te_thick_scale: 0.2
 tip_notch_count: 0
 tip_notch_depth_mm: 0.0
+# Legacy recipe: station chord is the LOFT chord (pre-37728b9); the cylindrical trim shortens the tip.
+chord_basis: loft
 stations:
   # chord/stagger from STL extraction; thickness ratio unchanged from the prior recipe
   # (resulting walls taper ~1.5 mm root → 2.1 mm tip on the smaller chords).

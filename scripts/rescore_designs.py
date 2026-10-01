@@ -40,6 +40,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from fansim.cfd.metrics import CFD_VERSION  # noqa: E402
+from fansim.optimize.trial_attrs import trial_flat  # noqa: E402
 from fansim.cfd.timing import format_eta  # noqa: E402
 from fansim.geometry.features import Features  # noqa: E402
 from fansim.optimize.search_space import blade_from_flat  # noqa: E402
@@ -102,7 +103,11 @@ def params_hash(bp) -> str:
             return [norm(v) for v in o]
         return o
 
-    blob = json.dumps(norm(asdict(bp)), sort_keys=True, default=str)
+    d = asdict(bp)
+    # Legacy loft-chord designs keep the hash they had before ``chord_basis`` existed.
+    if d.get("chord_basis") == "loft":
+        d.pop("chord_basis")
+    blob = json.dumps(norm(d), sort_keys=True, default=str)
     return hashlib.sha1(blob.encode()).hexdigest()[:16]
 
 
@@ -204,7 +209,7 @@ def enumerate_studies(study_dirs, include_infeasible: bool = False) -> list[Cand
                 vals = list(t.values or [])
                 feasible = bool(t.user_attrs.get("feasible", False)) and all(
                     v > INFEASIBLE_SENTINEL for v in vals[:3])
-                flat = dict(t.params)
+                flat = trial_flat(t)
                 for k in ("shroud_thick_mm", "sickle_mm"):
                     if k not in flat and t.user_attrs.get(k) is not None:
                         flat[k] = t.user_attrs[k]

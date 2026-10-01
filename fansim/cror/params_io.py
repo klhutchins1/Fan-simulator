@@ -85,6 +85,7 @@ def _blade(
             le_skew_tip=_g(flat, f"{p}le_skew_tip", default=0.0),
         ),
         cylindrical_tip=bool(flat.get(f"{p}cylindrical_tip", True)),
+        chord_basis=str(flat.get(f"{p}chord_basis") or flat.get("chord_basis") or "measured"),
     )
     tip_round = _g(flat, f"{p}tip_round", default=0.0)
     if tip_round > 0.0:
@@ -149,6 +150,7 @@ def cror_flat_from_params(params: CrorParams) -> dict:
             f"{prefix}le_skew_mid": float(getattr(mid, "le_skew", 0.0) or 0.0),
             f"{prefix}le_skew_tip": float(getattr(tip, "le_skew", 0.0) or 0.0),
             f"{prefix}cylindrical_tip": bool(getattr(blade, "cylindrical_tip", True)),
+            f"{prefix}chord_basis": str(getattr(blade, "chord_basis", "measured") or "measured"),
             f"{prefix}tip_round": 0.0,
             f"{prefix}tip_round_start": 0.80,
         }

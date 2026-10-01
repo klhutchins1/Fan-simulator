@@ -10,6 +10,7 @@ import optuna
 from fansim.cfd.metrics import CFD_VERSION
 from fansim.optimize.design import Design
 from fansim.optimize.search_space import OBJECTIVE_NAMES
+from fansim.optimize.trial_attrs import trial_flat
 
 
 def _study_storage(out_dir: Path) -> str:
@@ -48,7 +49,7 @@ def load_designs(out_dir: str | Path, study_name: str | None = None) -> list[Des
         feasible = bool(t.user_attrs.get("feasible", False))
         objectives = {name: float(v) for name, v in zip(OBJECTIVE_NAMES, t.values)}
         stl = out_dir / "trials" / f"trial_{t.number:04d}" / "impeller.stl"
-        params = dict(t.params)
+        params = trial_flat(t)
         # --shroud stamps after Optuna sampling; carry into params for cockpit round-trip
         shroud = float(t.user_attrs.get("shroud_thick_mm", 0.0) or 0.0)
         params.setdefault("shroud_thick_mm", shroud)

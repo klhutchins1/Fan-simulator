@@ -154,6 +154,12 @@ class BladeParams:
     # When True, intersect each lofted blade with a cylinder of radius tip_radius so the tip
     # face is cylindrical (matches the cover circle). False = legacy bulging LE/TE corners.
     cylindrical_tip: bool = True
+    # What station ``chord`` means under ``cylindrical_tip`` (§19.7, 37728b9):
+    #   "measured" — the cylinder-cut chord; the builder raises the loft chord to realise it.
+    #   "loft"     — legacy: the chord handed straight to the loft (the trim then shortens the
+    #                measured tip chord to ~2/3). Designs saved before 2026-09-30 use this; see
+    #                ``fansim.optimize.trial_attrs.CHORD_BASIS_CUTOFF``.
+    chord_basis: str = "measured"
     # Chordwise thickness bias (global):
     #   NACA — scale local thickness near LE / TE (1 = stock; typical 0.5–1.5).
     #   plate — ``le_thick_scale`` / ``te_thick_scale`` are LE/TE roundness in [0, 1]

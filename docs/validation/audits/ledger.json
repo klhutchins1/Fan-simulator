@@ -85,9 +85,9 @@
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
-      "date": "2026-09-30",
-      "fingerprint": "31fb5874aa9fda9c",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-10-01",
+      "fingerprint": "668d4f133277258c",
+      "report": "docs/validation/audits/2026-10-01-chord-basis.md",
       "verdict": "PASS"
     },
     "optimize.reject_dead_designs": {
@@ -97,9 +97,9 @@
       "verdict": "PASS"
     },
     "optimize.search_space_handedness": {
-      "date": "2026-09-26",
-      "fingerprint": "9f38e42d0e47269a",
-      "report": "docs/validation/audits/2026-09-26-audit-01b-direction-fix.md",
+      "date": "2026-10-01",
+      "fingerprint": "1ab6efbb8a258d37",
+      "report": "docs/validation/audits/2026-10-01-chord-basis.md",
       "verdict": "PASS"
     },
     "physics.air_properties": {

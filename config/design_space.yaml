@@ -10,6 +10,8 @@ n_span: 12              # loft sections across the span
 n_chord: 60             # points per airfoil surface
 
 # Spanwise control stations (r_frac 0 = hub, 1 = tip). Interpolated across n_span.
+# Legacy recipe: station chord is the LOFT chord (pre-37728b9); the cylindrical trim shortens the tip.
+chord_basis: loft
 stations:
   - {r_frac: 0.0, chord: 22.0, stagger_deg: 58.0, thickness: 0.09, max_camber: 0.03, camber_pos: 0.4, sweep: 0.0, skew: 0.0}
   - {r_frac: 0.5, chord: 24.0, stagger_deg: 42.0, thickness: 0.07, max_camber: 0.025, camber_pos: 0.4, sweep: 3.0, skew: 0.0}
