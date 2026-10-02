@@ -246,7 +246,7 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 
-- [ ] **5.1 Print a real-frame design + measure** CFM / static / noise / weight. Recorder is built
+- [ ] **5.1 Print a real-frame design + measure** CFM / static / noise / weight. **Pre-registered plan 2026-10-02:** `docs/validation/first_print_measure_plan.md`: genuine impeller (rig calibration) vs printed Stock recipe, predicted B/A ratio **0.89 (band 0.82–0.96)**; print STL at `exports/first_print_stock/`. Recorder is built
   (cockpit → `validation/measurements/` with material/print-type/weight fields). **Nothing is
   measured yet** — one real point changes hypothesis → result. **Print-fit kit ready**
   (`scripts/export_a12x25_print_ready.py` + mount gauge vs measured MotorMount / frame); still

@@ -53,7 +53,7 @@ def main() -> int:
     if not args.no_fit:
         placed = fit_envelope(flat, spec)
         flat = placed.flat
-        changes = [f"{c.field}: {c.before} → {c.after}" for c in placed.changes]
+        changes = [f"{c.field}: {c.before} -> {c.after}" for c in placed.changes]
 
     params = blade_from_flat(flat)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
@@ -104,7 +104,7 @@ def main() -> int:
     print(f"sheet: {out_dir / 'print_sheet.md'}")
     print(f"checklist: {out_dir / 'mount_checklist.md'}")
     print(f"mount_fits={rep.mount_fits}  gauge mount_ok={gauge.mount_ok} frame_ok={gauge.frame_ok}")
-    print("(GUI equivalent: Fan → Design → Export print STL)")
+    print("(GUI equivalent: Fan -> Design -> Export print STL)")
     for n in gauge.notes:
         print(f"  note: {n}")
     if not (rep.mount_fits and gauge.frame_ok and rep.ok):
