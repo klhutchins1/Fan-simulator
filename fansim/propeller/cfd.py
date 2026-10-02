@@ -284,6 +284,7 @@ def evaluate_prop_cfd(
     stl_mm: str | Path | None = None,
     prepare_stl: bool = True,
     direction: str = "auto",
+    postprocess_only: bool = False,
 ) -> dict:
     """Build STL, mesh, solve rhoSimpleFoam, and return prop metrics + stamps.
 
@@ -403,18 +404,22 @@ def evaluate_prop_cfd(
         tip_radius_m, z0 / 1000.0, z1 / 1000.0, rpm=rpm, spin=spin_i, **u_kw,
     )
 
-    runner = OpenFOAMRunner(workdir)
-    mesh_used = mesh if mesh is not None else MeshResolution(base_cell=float(base_cell))
-    build_prop_case(
-        workdir,
-        stl_for_cfd,
-        dom,
-        mesh=mesh_used,
-        n_iters=int(iters),
-        n_subdomains=int(procs),
-    )
-    run_mesh(runner)
-    run_solve_prop(runner, n_procs=int(procs))
+    if not postprocess_only:
+        runner = OpenFOAMRunner(workdir)
+        mesh_used = mesh if mesh is not None else MeshResolution(base_cell=float(base_cell))
+        build_prop_case(
+            workdir,
+            stl_for_cfd,
+            dom,
+            mesh=mesh_used,
+            n_iters=int(iters),
+            n_subdomains=int(procs),
+        )
+        run_mesh(runner)
+        run_solve_prop(runner, n_procs=int(procs))
+    # postprocess_only: the case in ``workdir`` was already solved (e.g. a long run whose Python
+    # wrapper died while the solver finished); redo the cheap geometry/direction steps above and
+    # read the existing postProcessing exactly as a fresh run would.
 
     out = parse_prop_metrics(workdir, omega_rad_s=omega_rad_s)
     out = normalize_metrics_sign(out, spin=spin_i)

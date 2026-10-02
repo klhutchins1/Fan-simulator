@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import re
 import sys
 import time
@@ -115,6 +114,19 @@ def _solver_clock_s(case: Path) -> float | None:
     return None
 
 
+def _solved(case: Path, iters: int) -> bool:
+    """True when the case's force history reached ``iters`` (the solve ran to completion)."""
+    hits = sorted((case / "postProcessing" / "forces").glob("*/force.dat"))
+    if not hits:
+        return False
+    rows = [ln.split()[0] for ln in hits[-1].read_text(encoding="utf-8").splitlines()
+            if ln.strip() and not ln.startswith("#")]
+    try:
+        return bool(rows) and float(rows[-1]) >= iters
+    except ValueError:
+        return False
+
+
 def _slim(res: dict) -> dict:
     keep = ("thrust_n", "thrust_g", "thrust_n_raw", "thrust_sign_ok", "torque_nm", "moment_z_nm",
             "shaft_power_w", "converged", "thrust_shift_pct", "torque_shift_pct",
@@ -131,6 +143,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--base-cell", type=float, default=0.008)
     ap.add_argument("--out", default="runs/audit_prop_cfd")
     ap.add_argument("--pilot", action="store_true")
+    ap.add_argument("--resume", action="store_true",
+                    help="reuse any case already solved to --iters (post-process it instead of "
+                         "re-meshing/solving)")
     a = ap.parse_args(argv)
     if not image_available():
         print("SKIPPED: OpenFOAM image not available")
@@ -162,7 +177,8 @@ def main(argv: list[str] | None = None) -> int:
     t0 = time.time()
     try:
         des = evaluate_prop_cfd(spec, base / "designed", rpm=rpm, params=blade, iters=a.iters,
-                                procs=a.procs, mesh=mesh)
+                                procs=a.procs, mesh=mesh,
+                                postprocess_only=a.resume and _solved(base / "designed", a.iters))
         des["wall_s"], des["cells"] = time.time() - t0, mesh_cells(base / "designed")
         rows["designed"] = des
         print(f"[designed] {des['thrust_g']:.0f} g  {des['shaft_power_w']:.1f} W  "
@@ -176,7 +192,9 @@ def main(argv: list[str] | None = None) -> int:
             rev = evaluate_prop_cfd(spec, base / "reversed", rpm=rpm,
                                     stl_mm=base / "designed" / "prop_cfd.stl", prepare_stl=False,
                                     direction="manual", spin=-int(rows["designed"]["spin"]),
-                                    iters=a.iters, procs=a.procs, mesh=mesh)
+                                    iters=a.iters, procs=a.procs, mesh=mesh,
+                                    postprocess_only=a.resume and _solved(base / "reversed",
+                                                                          a.iters))
             rev["wall_s"], rev["cells"] = time.time() - t1, mesh_cells(base / "reversed")
             rows["reversed"] = rev
             print(f"[reversed] {rev['thrust_g']:.0f} g  {rev['shaft_power_w']:.1f} W  "
