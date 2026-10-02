@@ -106,8 +106,13 @@ use the axial optimizer's validated setup: the sealed 25 mm ring plus wall-sized
 
 ## Not done
 
-- **Volute CFD confirmation:** needs either a converged reversed solve (finer mesh or transient) or
-  acceptance that the scroll proof suffices.
+- **Volute CFD confirmation: closed as INCONCLUSIVE (2026-10-02).** A finer mesh (base 4 mm,
+  220k cells, `direction_cfd_volute_fine.json`) gave designed 27.2 vs reversed 22.3 CFM (1.22×).
+  Across three runs on two meshes, designed beats reversed by 1.20–1.22× every time. But both
+  spins oscillate 17–23 % (tongue/scroll unsteadiness that steady RANS cannot settle), and each
+  mesh leaves one solve just outside the 2 % rule. **The volute direction rests on the scroll
+  geometry proof, with a consistent but unconverged CFD trend. Volute absolute numbers are a
+  ~±20 % proxy.** Converging it would need transient CFD.
 - CROR exports both rotors as one STL. The per-rotor proof meshes them separately in the test, not
   in the production path. That is fine while the builder handedness is fixed (the test pins it).
 

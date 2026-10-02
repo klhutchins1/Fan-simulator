@@ -1,0 +1,216 @@
+{
+  "machine": "volute",
+  "rpm": 3000.0,
+  "iters": 1000,
+  "mesh": {
+    "base_cell": 0.004,
+    "surf_min": 1,
+    "surf_max": 2,
+    "feature_level": 2,
+    "add_layers": false,
+    "n_surface_layers": 3
+  },
+  "cells": 219787,
+  "mesh_s": 75.41059160232544,
+  "designed_spin": 1,
+  "min_ratio": 1.1,
+  "rows": [
+    {
+      "spin": 1,
+      "designed": true,
+      "cfm": 27.157285970047205,
+      "converged": false,
+      "flow_drift_pct": 2.115707574758713,
+      "oscillation_pct": 17.814181941503215,
+      "shaft_power_w": 3.6546834405523403,
+      "eta_total": null,
+      "moment_z_nm": -0.0116332187,
+      "omega_signed": 314.1592653589793,
+      "sanity_status": "WARN",
+      "sanity": [
+        {
+          "name": "mass_balance",
+          "status": "PASS",
+          "value": 5.14949145176135e-05,
+          "limit": "<=1% PASS, <=5% WARN",
+          "note": "Q_in=-0.01282 Q_out=0.01282 m3/s"
+        },
+        {
+          "name": "energy_total",
+          "status": "PASS",
+          "value": 0.009809714443454038,
+          "limit": "eta_total < 1 (Q>0)",
+          "note": "eta_total=0.010"
+        },
+        {
+          "name": "power_sign",
+          "status": "PASS",
+          "value": -3.6546834405523403,
+          "limit": "Mz*omega < 0 (Q>0)",
+          "note": "Mz=-0.01163 omega=314.159 product=-3.65468"
+        },
+        {
+          "name": "thrust_direction",
+          "status": "PASS",
+          "value": -0.0269182955,
+          "limit": "Fz < 0 (Q>0)",
+          "note": "Fz=-0.02692 N, Q=0.01282 m3/s"
+        },
+        {
+          "name": "inlet_bookkeeping",
+          "status": "SKIP",
+          "value": null,
+          "limit": "<=5% PASS, <=15% WARN (Q>0)",
+          "note": "missing metrics or inlet_area_m2"
+        },
+        {
+          "name": "mesh_quality",
+          "status": "PASS",
+          "value": null,
+          "limit": "\"Mesh OK.\" PASS; skewness-only failures WARN; other failures FAIL",
+          "note": "max non-orthogonality=51.81651, Max skewness=2.719234"
+        },
+        {
+          "name": "y_plus",
+          "status": "WARN",
+          "value": 17.131101,
+          "limit": "<=5 or 30-300",
+          "note": "y+ avg=17.13 (buffer/over-range; min=1.06 max=61.64)"
+        },
+        {
+          "name": "regime",
+          "status": "PASS",
+          "value": 0.047169685615123726,
+          "limit": "tip Mach < 0.3",
+          "note": "tip Mach=0.047"
+        },
+        {
+          "name": "converged",
+          "status": "WARN",
+          "value": null,
+          "limit": "FanMetrics.converged",
+          "note": "flow_drift_pct=2.12%, oscillation_pct=17.81%"
+        },
+        {
+          "name": "duct_shape",
+          "status": "SKIP",
+          "value": null,
+          "limit": "ring/round PASS, square WARN",
+          "note": "missing case_meta.json"
+        }
+      ],
+      "wall_s": 300.65157437324524,
+      "sec_per_iter": 0.30065157437324525
+    },
+    {
+      "spin": -1,
+      "designed": false,
+      "cfm": 22.332800387113018,
+      "converged": true,
+      "flow_drift_pct": 0.8554080793808048,
+      "oscillation_pct": 23.30440270040672,
+      "shaft_power_w": 3.4066353797566062,
+      "eta_total": null,
+      "moment_z_nm": 0.010843657199999999,
+      "omega_signed": -314.1592653589793,
+      "sanity_status": "WARN",
+      "sanity": [
+        {
+          "name": "mass_balance",
+          "status": "PASS",
+          "value": 0.004492168662907721,
+          "limit": "<=1% PASS, <=5% WARN",
+          "note": "Q_in=-0.01054 Q_out=0.01054 m3/s"
+        },
+        {
+          "name": "energy_total",
+          "status": "PASS",
+          "value": 0.0058526281847034655,
+          "limit": "eta_total < 1 (Q>0)",
+          "note": "eta_total=0.006"
+        },
+        {
+          "name": "power_sign",
+          "status": "PASS",
+          "value": -3.4066353797566062,
+          "limit": "Mz*omega < 0 (Q>0)",
+          "note": "Mz=0.01084 omega=-314.159 product=-3.40664"
+        },
+        {
+          "name": "thrust_direction",
+          "status": "PASS",
+          "value": -0.0187411888,
+          "limit": "Fz < 0 (Q>0)",
+          "note": "Fz=-0.01874 N, Q=0.01054 m3/s"
+        },
+        {
+          "name": "inlet_bookkeeping",
+          "status": "SKIP",
+          "value": null,
+          "limit": "<=5% PASS, <=15% WARN (Q>0)",
+          "note": "missing metrics or inlet_area_m2"
+        },
+        {
+          "name": "mesh_quality",
+          "status": "PASS",
+          "value": null,
+          "limit": "\"Mesh OK.\" PASS; skewness-only failures WARN; other failures FAIL",
+          "note": "max non-orthogonality=51.81651, Max skewness=2.719234"
+        },
+        {
+          "name": "y_plus",
+          "status": "WARN",
+          "value": 18.624962,
+          "limit": "<=5 or 30-300",
+          "note": "y+ avg=18.62 (buffer/over-range; min=1.48 max=71.30)"
+        },
+        {
+          "name": "regime",
+          "status": "PASS",
+          "value": 0.047169685615123726,
+          "limit": "tip Mach < 0.3",
+          "note": "tip Mach=0.047"
+        },
+        {
+          "name": "converged",
+          "status": "PASS",
+          "value": null,
+          "limit": "FanMetrics.converged",
+          "note": "flow_drift_pct=0.86%, oscillation_pct=23.30%"
+        },
+        {
+          "name": "duct_shape",
+          "status": "SKIP",
+          "value": null,
+          "limit": "ring/round PASS, square WARN",
+          "note": "missing case_meta.json"
+        }
+      ],
+      "wall_s": 296.796448469162,
+      "sec_per_iter": 0.296796448469162
+    }
+  ],
+  "errors": [],
+  "verdict": {
+    "verdict": "INCONCLUSIVE",
+    "why": "a solve did not converge"
+  },
+  "params": {
+    "n_blades": 7,
+    "r_hub_mm": 18.0,
+    "r_tip_mm": 50.0,
+    "blade_height_mm": 20.0,
+    "blade_thick_mm": 1.2,
+    "backplate_thick_mm": 2.0,
+    "volute_clearance_mm": 3.0,
+    "volute_wall_mm": 2.0,
+    "spiral_growth_mm": 25.0,
+    "n_volute_seg": 96,
+    "outlet_width_mm": 32.0,
+    "outlet_length_mm": 40.0,
+    "outlet_height_mm": 24.0,
+    "tongue_angle_deg": 5.0,
+    "tongue_tip_clearance_mm": 1.0,
+    "tongue_fillet_mm": 1.5
+  }
+}
