@@ -518,3 +518,58 @@ def summarize(checks: list[SanityCheck]) -> str:
             parts.append(f"{c.name} {c.note}")
     detail = "; ".join(parts) if parts else "no WARN/FAIL checks"
     return f"sanity {status}: {detail}"
+
+
+# ----------------------------------------------------------------------------- props (open air)
+PROP_FM_PLAUSIBLE_MIN = 0.2   # real small props reach FM ~0.4-0.7; far below hints a setup error
+PROP_TIP_MACH_WARN = 0.7      # steady compressible MRF, no shock resolution beyond this
+
+
+def run_prop_sanity(result: dict, *, omega_signed: float, tip_radius_m: float,
+                    rho: float, static: bool = True) -> list[SanityCheck]:
+    """First-principles checks for one open-air prop CFD result (Audit #8).
+
+    ``result`` is a ``parse_prop_metrics`` dict after ``normalize_metrics_sign`` (``thrust_n`` is
+    along the designed pumping direction, ``thrust_sign_ok`` set). ``static`` enables the
+    momentum-theory figure-of-merit bound (hover / near-zero freestream only).
+    """
+    checks: list[SanityCheck] = []
+    ok_sign = result.get("thrust_sign_ok")
+    checks.append(SanityCheck(
+        "thrust_direction", SKIP if ok_sign is None else (PASS if ok_sign else FAIL),
+        result.get("thrust_n_raw"), "Fz < 0 (air pushed the designed way)",
+        result.get("thrust_sign_error", "")))
+
+    mz = result.get("moment_z_nm")
+    if mz is None:
+        checks.append(SanityCheck("power_sign", SKIP, None, "Mz*omega < 0", "no moment_z_nm"))
+    else:
+        product = float(mz) * float(omega_signed)
+        checks.append(SanityCheck("power_sign", PASS if product < 0 else FAIL, product,
+                                  "Mz*omega < 0", f"Mz={float(mz):.5f} omega={omega_signed:.1f}"))
+
+    t, p = float(result.get("thrust_n", 0.0)), float(result.get("shaft_power_w", 0.0))
+    limit = f"FM <= 1 (momentum theory); WARN < {PROP_FM_PLAUSIBLE_MIN}"
+    if not static:
+        checks.append(SanityCheck("momentum_fm", SKIP, None, limit, "forward flight"))
+    elif t <= 0 or p <= 0:
+        checks.append(SanityCheck("momentum_fm", SKIP, None, limit, "thrust or power <= 0"))
+    else:
+        area = math.pi * float(tip_radius_m) ** 2
+        p_ideal = t ** 1.5 / math.sqrt(2.0 * float(rho) * area)
+        fm = p_ideal / p
+        status = FAIL if fm > 1.0 else (WARN if fm < PROP_FM_PLAUSIBLE_MIN else PASS)
+        checks.append(SanityCheck("momentum_fm", status, fm, limit,
+                                  f"FM={fm:.3f} (P_ideal={p_ideal:.2f} W, P={p:.2f} W)"))
+
+    mach = abs(float(omega_signed)) * float(tip_radius_m) / C0_AIR
+    checks.append(SanityCheck("regime", WARN if mach > PROP_TIP_MACH_WARN else PASS, mach,
+                              f"tip Mach <= {PROP_TIP_MACH_WARN}", f"tip Mach={mach:.3f}"))
+
+    conv = result.get("converged")
+    note = (f"thrust shift {result.get('thrust_shift_pct', float('nan')):.2f}% "
+            f"osc {result.get('thrust_oscillation_pct', float('nan')):.1f}%; torque shift "
+            f"{result.get('torque_shift_pct', float('nan')):.2f}%")
+    checks.append(SanityCheck("converged", SKIP if conv is None else (PASS if conv else WARN),
+                              result.get("thrust_shift_pct"), "tail-mean shift < 2%", note))
+    return checks

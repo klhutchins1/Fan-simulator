@@ -68,7 +68,7 @@
     },
     "cfd.sanity_checks": {
       "date": "2026-10-01",
-      "fingerprint": "6f84062cd34dc18a",
+      "fingerprint": "4a00e781f19f7056",
       "report": "docs/validation/audits/2026-10-01-audit-07-cror-mixed-setup.md",
       "verdict": "PASS"
     },

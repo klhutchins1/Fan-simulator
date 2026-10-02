@@ -11,6 +11,7 @@ import trimesh
 from fansim.cfd import templates as T
 from fansim.cfd.domain import MM_TO_M
 from fansim.cfd.openfoam_case import MeshResolution, _write, run_mesh, snappy_layers_mapping
+from fansim.physics.air import R_AIR  # rho_inf = P_INF / (R_AIR T_INF) ~ 1.177 kg/m3
 
 if TYPE_CHECKING:
     from fansim.geometry.blade import BladeParams
@@ -19,6 +20,7 @@ CMU = 0.09
 TURB_INTENSITY = 0.05
 P_INF = 101325.0
 T_INF = 300.0
+STATIC_FREESTREAM_MAX = 1.5  # m/s; the default 1 m/s epsilon counts as static (hover)
 
 
 def _turb_from_u(u: float, tip_radius: float) -> tuple[float, float]:
@@ -194,27 +196,60 @@ def build_prop_case(
     return case_dir
 
 
-def parse_prop_metrics(case_dir: str | Path, omega_rad_s: float) -> dict:
-    """Parse prop thrust/torque from OpenFOAM forces output.
+def _series_convergence(values: list[float], tail_frac: float, tol_pct: float
+                        ) -> tuple[bool, float, float]:
+    """(converged, tail-mean shift %, peak-to-peak %) for one force-history column.
 
-    Reuses the fan-metrics file helpers, but does not apply rho scaling and does not
-    derive flow/CFM or pressure-rise metrics.
+    Same rule as the fan path (``fansim.cfd.metrics.convergence``): split the tail in two and
+    call it converged when the halves' means agree within ``tol_pct`` of the tail mean.
     """
-    from fansim.cfd.metrics import _last_data_row, _pp_file
+    tail = values[max(1, int(len(values) * (1.0 - tail_frac))):]
+    if len(tail) < 4:
+        return (False, 999.0, 999.0)
+    h = len(tail) // 2
+    m1, m2 = sum(tail[:h]) / h, sum(tail[h:]) / (len(tail) - h)
+    mean = sum(tail) / len(tail)
+    shift = abs(m2 - m1) / (abs(mean) + 1e-12) * 100.0
+    osc = (max(tail) - min(tail)) / (abs(mean) + 1e-12) * 100.0
+    return (shift < tol_pct, shift, osc)
+
+
+def parse_prop_metrics(case_dir: str | Path, omega_rad_s: float, *,
+                       tol_pct: float = 2.0) -> dict:
+    """Prop thrust/torque from OpenFOAM forces output: converged-tail MEAN + convergence.
+
+    Like the fan path, report the tail mean, not the final-iteration sample (a steady MRF solve
+    can settle into a limit cycle, so a phase snapshot is not reproducible). ``converged`` needs
+    both thrust and torque tail means stable within ``tol_pct``. No rho scaling (the compressible
+    forces function object already integrates the local density). No flow/CFM.
+    """
+    from fansim.cfd.metrics import TAIL_FRAC, _all_data_rows, _pp_file, _tail_mean_row
 
     case_dir = Path(case_dir)
-    force = _last_data_row(_pp_file(case_dir, "forces", "force.dat"))
-    moment = _last_data_row(_pp_file(case_dir, "forces", "moment.dat"))
+    f_path = _pp_file(case_dir, "forces", "force.dat")
+    m_path = _pp_file(case_dir, "forces", "moment.dat")
+    force = _tail_mean_row(f_path)
+    moment = _tail_mean_row(m_path)
 
     # Layout: time, total(x,y,z), pressure(x,y,z), viscous(x,y,z).
-    thrust = float(force[3])          # total force z
+    thrust = float(force[3])          # total force z (signed; normalize_metrics_sign reports it)
     torque = abs(float(moment[3]))    # total moment about z
     omega = float(omega_rad_s)
+    t_conv, t_shift, t_osc = _series_convergence(
+        [float(r[3]) for r in _all_data_rows(f_path)], TAIL_FRAC, tol_pct)
+    q_conv, q_shift, q_osc = _series_convergence(
+        [float(r[3]) for r in _all_data_rows(m_path)], TAIL_FRAC, tol_pct)
     return {
         "thrust_n": thrust,
         "thrust_g": thrust / 9.80665 * 1000.0,
         "torque_nm": torque,
+        "moment_z_nm": float(moment[3]),
         "shaft_power_w": torque * omega,
+        "converged": bool(t_conv and q_conv),
+        "thrust_shift_pct": t_shift,
+        "torque_shift_pct": q_shift,
+        "thrust_oscillation_pct": t_osc,
+        "torque_oscillation_pct": q_osc,
     }
 
 
@@ -403,4 +438,15 @@ def evaluate_prop_cfd(
         spec=spec,
     )
     out = flag_direction_suspect(out)
+    from dataclasses import asdict
+
+    from fansim.cfd.sanity import overall as sanity_overall, run_prop_sanity
+
+    # Static = the ~1 m/s epsilon freestream (momentum-theory FM bound applies); a real
+    # forward-flight point skips it.
+    checks = run_prop_sanity(out, omega_signed=dom.omega_signed, tip_radius_m=tip_radius_m,
+                             rho=P_INF / (R_AIR * T_INF),
+                             static=float(dom.u_freestream) <= STATIC_FREESTREAM_MAX)
+    out["sanity"] = [asdict(c) for c in checks]
+    out["sanity_status"] = sanity_overall(checks)
     return out
