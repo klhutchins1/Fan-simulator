@@ -48,20 +48,30 @@ for 1000 iterations. Rules were fixed before the run.
 
 Evidence: `docs/validation/audits/prop_cfd_apcsf_9x4.7.json`.
 
-## Why the validation misses (hypotheses, not yet tested)
+## Why the validation misses
 
-1. **Blade under-resolved (most likely).** The thinnest wall is 0.40 mm and the surface cells are
-   0.5 mm, about one cell across. On the A12x25, a blade meshed at ~1 cell lost ~30 % of its
-   loading (`a12x25-cfd-convergence-fixes`), and that pattern (both thrust and power low,
-   efficiency plausible) matches here.
-2. **Approximate section.** The real APC SF section is not in the UIUC data. But BEMT on the same
-   approximate geometry lands within the static tolerances, so geometry alone is unlikely to explain
-   −44 %.
-3. **Static ε-freestream / domain size** (box 5R radius, 2R upstream). This is untested for
-   recirculation at true hover.
+**Ruled out:**
 
-Next step: a surface-level ladder on the designed case (levels 4 → 5 → 6, pilot first), so mesh
-error and geometry error can be told apart.
+1. **Mesh.** At surface level 5 (2.46 M cells, `prop_cfd_apcsf_9x4.7_L5.json`) the result is 221.8 g
+   / 21.1 W, against 220.5 g / 21.6 W at level 4 (thrust +0.6 %, power −2.4 %). The loading is
+   mesh-converged.
+2. **3-D geometry.** The built STL's sections match the UIUC table: chord within 0.3 mm and β within
+   0.4° at r/R 0.3–0.9. Measured camber is 0.032 and thickness about 6 %.
+
+**Remaining suspects (untested):**
+
+3. **Open-air domain and boundary conditions (leading).** The upstream face is a fixed, uniform
+   1 m/s axial inflow (`freestreamVelocity`) only 2R ahead of the prop. A static prop draws its
+   inflow from rest in every direction, so forcing uniform inflow close upstream distorts the
+   induced field and can let the slipstream recirculate in the box. That would lower thrust and
+   power together, as observed. (The side boundaries fall back to zero-gradient, so they are not
+   the main constraint.) **Test:** a larger box with ambient-total-pressure entrainment
+   boundaries.
+4. **Low-Re sections on wall functions.** At 0.75R the chord Re is about 8×10⁴, the run has no
+   prism layers, and k-ω SST is fully turbulent. This usually costs some lift, not 44 %.
+
+Note that BEMT on the same geometry and section assumptions lands within the static tolerances.
+So the CFD setup, not the geometry, is the outlier.
 
 ## Ledger
 
