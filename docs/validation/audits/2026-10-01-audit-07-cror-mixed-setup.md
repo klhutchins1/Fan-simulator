@@ -95,6 +95,15 @@ Evidence: `docs/validation/audits/direction_cfd_mixed.json`, `direction_cfd_volu
 4. **The result file crashed on an infinite ratio** when reversed pumped backwards. The ratio is now
    null and `reversed_pumps_backwards` is true.
 
+## Follow-up: domain (2026-10-01, commit 32d3b95)
+
+The proof-3 runs above used the mixed-flow / CROR evaluate setup as it stood: the **v4
+full-length tube** (`export_casing_stl(stepped=False)`, ~0.7 m of pipe friction, −34 % on the
+A12x25 in Audit #2) and a fixed default mesh. The direction verdicts compare the two spins *within*
+one domain, so they stand. The absolute CFM numbers (73.3 / 209 CFM) are v4-domain values and are
+**not** performance claims. `evaluate_mixed_flow`, `evaluate_cror` and the direction script now
+use the axial optimizer's validated setup: the sealed 25 mm ring plus wall-sized mesh refinement.
+
 ## Not done
 
 - **Volute CFD confirmation:** needs either a converged reversed solve (finer mesh or transient) or
