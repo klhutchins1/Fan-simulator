@@ -1,4 +1,7 @@
-"""Overnight chain (2026-10-02): volute fine-mesh direction check, then the prop mesh ladder.
+"""Long-run chain (2026-10-02): volute fine mesh, prop mesh ladder, prop entrainment boundaries.
+
+Run all stages, or only those whose name contains a given word:
+  uv run python scripts/overnight_wrapup.py entrainment
 
 Each stage pilots first and logs its estimate, then runs in full. Results:
   docs/validation/audits/direction_cfd_volute_fine.json
@@ -26,6 +29,9 @@ STAGES = [
     ("prop APC 9x4.7 surface level 5, designed only", "scripts/audit_prop_cfd.py",
      ["--surf-level", "5", "--designed-only", "--tag", "L5", "--out", "runs/audit_prop_cfd_L5"],
      "runs/audit_prop_cfd_L5/pilot/pilot.json"),
+    ("prop APC 9x4.7 entrainment boundaries (level 4), designed only", "scripts/audit_prop_cfd.py",
+     ["--bc", "entrain", "--designed-only", "--tag", "entrain", "--out", "runs/audit_prop_cfd_entrain"],
+     "runs/audit_prop_cfd_entrain/pilot/pilot.json"),
 ]
 
 
@@ -37,9 +43,12 @@ def run(script: str, args: list[str]) -> int:
     return subprocess.call(PY + [str(ROOT / script)] + args, cwd=ROOT)
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    """Run every stage, or only those whose name contains one of the given words."""
+    words = [w.lower() for w in (sys.argv[1:] if argv is None else argv)]
+    stages = [st for st in STAGES if not words or any(w in st[0].lower() for w in words)]
     worst = 0
-    for name, script, args, pilot_json in STAGES:
+    for name, script, args, pilot_json in stages:
         log(f"=== {name}: pilot")
         rc = run(script, args + ["--pilot"])
         try:

@@ -112,8 +112,13 @@ def build_prop_case(
     mesh: MeshResolution | None = None,
     n_iters: int = 400,
     n_subdomains: int = 8,
+    bc: str = "freestream",
 ) -> Path:
     """Write a ready-to-run OpenFOAM compressible propeller MRF case.
+
+    ``bc`` = ``"freestream"`` (default; fixed axial freestream inflow, used by forward-flight
+    polars) or ``"entrain"`` (static prop: upstream face + sides hold ambient total pressure so
+    still air can be drawn in from any direction; downstream face holds ambient static pressure).
 
     ``impeller_stl_mm`` is a millimeter-scale STL. It is scaled mm -> m into the case.
     Domain extents come from :class:`PropOpenAir`.
@@ -145,10 +150,20 @@ def build_prop_case(
     locz = 0.5 * (zmin + zmax)
 
     # --- system/ ---
+    if bc not in ("freestream", "entrain"):
+        raise ValueError(f"bc must be 'freestream' or 'entrain', got {bc!r}")
     _write(case_dir / "system/blockMeshDict", T.BLOCK_MESH, "dictionary", "blockMeshDict", {
         "XMIN": -H, "XMAX": H, "YMIN": -H, "YMAX": H, "ZMIN": zmin, "ZMAX": zmax,
         "NX": nx, "NY": nx, "NZ": nz,
     })
+    if bc == "entrain":
+        # Side faces are open far-field here, not walls (wall-type patches also feed the
+        # turbulence model's wall distance).
+        bm = case_dir / "system/blockMeshDict"
+        text = bm.read_text(encoding="utf-8")
+        if "walls  { type wall;" not in text:
+            raise ValueError("blockMeshDict side patch not found for entrain retype")
+        bm.write_text(text.replace("walls  { type wall;", "walls  { type patch;"), encoding="utf-8")
     _write(case_dir / "system/snappyHexMeshDict", T.SNAPPY, "dictionary", "snappyHexMeshDict", {
         "FEATLVL": mesh.feature_level, "SURFMIN": mesh.surf_min, "SURFMAX": mesh.surf_max,
         "LOCX": locx, "LOCY": locy, "LOCZ": locz,
@@ -185,9 +200,13 @@ def build_prop_case(
     })
 
     # --- 0/ ---
-    _write(case_dir / "0/T", T.PROP_T, "volScalarField", "T", {"T_INF": T_INF})
-    _write(case_dir / "0/p", T.PROP_P, "volScalarField", "p", {"P_INF": P_INF})
-    _write(case_dir / "0/U", T.PROP_U, "volVectorField", "U", {"U_EPS": u_eps})
+    entrain = bc == "entrain"
+    _write(case_dir / "0/T", T.PROP_T_ENTRAIN if entrain else T.PROP_T, "volScalarField", "T",
+           {"T_INF": T_INF})
+    _write(case_dir / "0/p", T.PROP_P_ENTRAIN if entrain else T.PROP_P, "volScalarField", "p",
+           {"P_INF": P_INF})
+    _write(case_dir / "0/U", T.PROP_U_ENTRAIN if entrain else T.PROP_U, "volVectorField", "U",
+           {"U_EPS": u_eps})
     _write(case_dir / "0/k", T.PROP_K, "volScalarField", "k", {"K": k})
     _write(case_dir / "0/omega", T.PROP_OMEGA, "volScalarField", "omega", {"OMEGAT": omega_turb})
     _write(case_dir / "0/nut", T.PROP_NUT, "volScalarField", "nut", {})
@@ -285,6 +304,7 @@ def evaluate_prop_cfd(
     prepare_stl: bool = True,
     direction: str = "auto",
     postprocess_only: bool = False,
+    bc: str = "freestream",
 ) -> dict:
     """Build STL, mesh, solve rhoSimpleFoam, and return prop metrics + stamps.
 
@@ -414,6 +434,7 @@ def evaluate_prop_cfd(
             mesh=mesh_used,
             n_iters=int(iters),
             n_subdomains=int(procs),
+            bc=bc,
         )
         run_mesh(runner)
         run_solve_prop(runner, n_procs=int(procs))
@@ -431,6 +452,7 @@ def evaluate_prop_cfd(
     out["tip_radius_mm"] = tip_radius_m * 1000.0
     out["rpm"] = rpm
     out["u_freestream"] = float(dom.u_freestream)
+    out["bc"] = bc
     out["spec"] = spec_key or getattr(spec, "name", None) or str(spec)
     out["stl"] = str(stl_mm) if external else None
     out["direction_source"] = direction_source

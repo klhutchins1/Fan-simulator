@@ -289,3 +289,24 @@ def test_prop_sanity_wrong_way():
     assert bad["thrust_direction"].status == "FAIL"
     assert bad["power_sign"].status == "FAIL"      # Mz*w > 0: the air is driving the rotor
     assert bad["momentum_fm"].status == "SKIP"
+
+
+def test_build_prop_case_entrain_boundaries(tmp_path):
+    """Static-prop entrainment: ambient total pressure on upstream + sides, sides retyped patch."""
+    import trimesh
+
+    from fansim.propeller.cfd import build_prop_case, prop_open_air
+
+    stl = tmp_path / "p.stl"
+    trimesh.creation.cylinder(radius=50.0, height=8.0, sections=24).export(str(stl))
+    dom = prop_open_air(0.05, -0.004, 0.004, rpm=6000.0)
+    case = build_prop_case(tmp_path / "c", stl, dom, n_iters=10, n_subdomains=1, bc="entrain")
+    p = (case / "0/p").read_text(encoding="utf-8")
+    u = (case / "0/U").read_text(encoding="utf-8")
+    assert p.count("totalPressure") == 2 and "outlet   { type fixedValue" in p
+    assert u.count("pressureInletOutletVelocity") == 2 and "freestreamVelocity" not in u
+    assert "walls  { type patch;" in (case / "system/blockMeshDict").read_text(encoding="utf-8")
+    # default stays the freestream set used by forward-flight polars
+    case2 = build_prop_case(tmp_path / "c2", stl, dom, n_iters=10, n_subdomains=1)
+    assert "freestreamVelocity" in (case2 / "0/U").read_text(encoding="utf-8")
+    assert "walls  { type wall;" in (case2 / "system/blockMeshDict").read_text(encoding="utf-8")

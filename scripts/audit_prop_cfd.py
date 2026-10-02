@@ -146,6 +146,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--surf-level", type=int, default=None,
                     help="force the blade surface refinement level (mesh ladder); default = "
                          "wall-sized, capped at MAX_SURF_LEVEL")
+    ap.add_argument("--bc", choices=("freestream", "entrain"), default="freestream",
+                    help="open-air boundaries: fixed 1 m/s freestream inflow (default) or "
+                         "ambient-total-pressure entrainment (static prop)")
     ap.add_argument("--designed-only", action="store_true",
                     help="skip the reversed solve (mesh ladder: validation only)")
     ap.add_argument("--tag", default="",
@@ -167,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
         n = pilot_iters(a.iters)
         t0 = time.time()
         res = evaluate_prop_cfd(spec, case, rpm=rpm, params=blade, iters=n, procs=a.procs,
-                                mesh=mesh)
+                                mesh=mesh, bc=a.bc)
         total = time.time() - t0
         solve = _solver_clock_s(case) or total * 0.7
         payload = write_pilot_json(
@@ -184,7 +187,7 @@ def main(argv: list[str] | None = None) -> int:
     t0 = time.time()
     try:
         des = evaluate_prop_cfd(spec, base / "designed", rpm=rpm, params=blade, iters=a.iters,
-                                procs=a.procs, mesh=mesh,
+                                procs=a.procs, mesh=mesh, bc=a.bc,
                                 postprocess_only=a.resume and _solved(base / "designed", a.iters))
         des["wall_s"], des["cells"] = time.time() - t0, mesh_cells(base / "designed")
         rows["designed"] = des
@@ -199,7 +202,7 @@ def main(argv: list[str] | None = None) -> int:
             rev = evaluate_prop_cfd(spec, base / "reversed", rpm=rpm,
                                     stl_mm=base / "designed" / "prop_cfd.stl", prepare_stl=False,
                                     direction="manual", spin=-int(rows["designed"]["spin"]),
-                                    iters=a.iters, procs=a.procs, mesh=mesh,
+                                    iters=a.iters, procs=a.procs, mesh=mesh, bc=a.bc,
                                     postprocess_only=a.resume and _solved(base / "reversed",
                                                                           a.iters))
             rev["wall_s"], rev["cells"] = time.time() - t1, mesh_cells(base / "reversed")
@@ -214,7 +217,7 @@ def main(argv: list[str] | None = None) -> int:
     c = coeffs(des, fx) if des else None
     payload = {
         "prop": "APC SF 9x4.7 (UIUC geometry, approximate section)", "uiuc": fx,
-        "rpm": rpm, "iters": a.iters, "mesh": vars(mesh),
+        "rpm": rpm, "iters": a.iters, "mesh": vars(mesh), "bc": a.bc,
         "rows": {k: _slim(v) for k, v in rows.items()}, "errors": errors,
         "direction": direction_verdict(des, rev),
         "validation": validation_verdict(c, bool(des and des.get("converged"))),

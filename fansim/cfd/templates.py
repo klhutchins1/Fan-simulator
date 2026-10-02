@@ -1140,3 +1140,44 @@ functions
 @DES_FACE_FOS@
 }
 """
+
+
+# --- Static-prop "entrainment" boundaries (Audit #8 test) -------------------------------------
+# A static prop draws still air from every direction. Upstream face + sides hold ambient TOTAL
+# pressure and let the velocity follow the flux; the downstream face holds ambient static pressure.
+# (The default freestream set fixes a uniform 1 m/s inflow on the upstream face instead.)
+PROP_P_ENTRAIN = """@HEADER@
+dimensions [1 -1 -2 0 0 0 0];
+internalField uniform @P_INF@;
+boundaryField
+{
+    inlet    { type totalPressure; p0 uniform @P_INF@; value uniform @P_INF@; }
+    walls    { type totalPressure; p0 uniform @P_INF@; value uniform @P_INF@; }
+    outlet   { type fixedValue; value uniform @P_INF@; }
+    impeller { type zeroGradient; }
+}
+"""
+
+PROP_U_ENTRAIN = """@HEADER@
+dimensions [0 1 -1 0 0 0 0];
+internalField uniform (0 0 @U_EPS@);
+boundaryField
+{
+    inlet    { type pressureInletOutletVelocity; value uniform (0 0 0); }
+    walls    { type pressureInletOutletVelocity; value uniform (0 0 0); }
+    outlet   { type inletOutlet; inletValue uniform (0 0 0); value uniform (0 0 @U_EPS@); }
+    impeller { type noSlip; }
+}
+"""
+
+PROP_T_ENTRAIN = """@HEADER@
+dimensions [0 0 0 1 0 0 0];
+internalField uniform @T_INF@;
+boundaryField
+{
+    inlet    { type inletOutlet; inletValue uniform @T_INF@; value uniform @T_INF@; }
+    walls    { type inletOutlet; inletValue uniform @T_INF@; value uniform @T_INF@; }
+    outlet   { type inletOutlet; inletValue uniform @T_INF@; value uniform @T_INF@; }
+    impeller { type zeroGradient; }
+}
+"""
