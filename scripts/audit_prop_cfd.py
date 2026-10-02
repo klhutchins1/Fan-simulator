@@ -59,11 +59,11 @@ def apc_setup():
     return fx, blade, spec
 
 
-def mesh_for(blade, base_cell: float) -> MeshResolution:
+def mesh_for(blade, base_cell: float, surf_level: int | None = None) -> MeshResolution:
     from fansim.geometry.blade import min_blade_wall_mm
 
     m = MeshResolution.for_blade(base_cell, float(min_blade_wall_mm(blade)))
-    lvl = min(m.surf_max, MAX_SURF_LEVEL)
+    lvl = int(surf_level) if surf_level else min(m.surf_max, MAX_SURF_LEVEL)
     return MeshResolution(base_cell=base_cell, surf_min=max(1, lvl - 1), surf_max=lvl,
                           feature_level=lvl)
 
@@ -143,6 +143,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--base-cell", type=float, default=0.008)
     ap.add_argument("--out", default="runs/audit_prop_cfd")
     ap.add_argument("--pilot", action="store_true")
+    ap.add_argument("--surf-level", type=int, default=None,
+                    help="force the blade surface refinement level (mesh ladder); default = "
+                         "wall-sized, capped at MAX_SURF_LEVEL")
+    ap.add_argument("--designed-only", action="store_true",
+                    help="skip the reversed solve (mesh ladder: validation only)")
+    ap.add_argument("--tag", default="",
+                    help="suffix for the result JSON, e.g. L5 -> prop_cfd_apcsf_9x4.7_L5.json")
     ap.add_argument("--resume", action="store_true",
                     help="reuse any case already solved to --iters (post-process it instead of "
                          "re-meshing/solving)")
@@ -151,7 +158,7 @@ def main(argv: list[str] | None = None) -> int:
         print("SKIPPED: OpenFOAM image not available")
         return 2
     fx, blade, spec = apc_setup()
-    mesh = mesh_for(blade, float(a.base_cell))
+    mesh = mesh_for(blade, float(a.base_cell), a.surf_level)
     base = Path(a.out)
     rpm = float(fx["rpm"])
 
@@ -186,7 +193,7 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:  # noqa: BLE001
         errors.append(f"designed: {type(exc).__name__}: {exc}")
         print(errors[-1], flush=True)
-    if "designed" in rows:
+    if "designed" in rows and not a.designed_only:
         t1 = time.time()
         try:
             rev = evaluate_prop_cfd(spec, base / "reversed", rpm=rpm,
@@ -212,9 +219,10 @@ def main(argv: list[str] | None = None) -> int:
         "direction": direction_verdict(des, rev),
         "validation": validation_verdict(c, bool(des and des.get("converged"))),
     }
-    OUT.write_text(json.dumps(payload, indent=2, default=str, allow_nan=False) + "\n",
+    out_path = OUT.with_name(f"{OUT.stem}_{a.tag}{OUT.suffix}") if a.tag else OUT
+    out_path.write_text(json.dumps(payload, indent=2, default=str, allow_nan=False) + "\n",
                    encoding="utf-8")
-    print(f"\nDIRECTION {payload['direction']}\nVALIDATION {payload['validation']}\n-> {OUT}")
+    print(f"\nDIRECTION {payload['direction']}\nVALIDATION {payload['validation']}\n-> {out_path}")
     return 3 if errors else 0
 
 

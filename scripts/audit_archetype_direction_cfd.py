@@ -192,6 +192,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--iters", type=int, default=1000)
     ap.add_argument("--procs", type=int, default=16)
     ap.add_argument("--base-cell", type=float, default=None)
+    ap.add_argument("--tag", default="",
+                    help="suffix for the result JSON, e.g. fine -> direction_cfd_volute_fine.json")
     ap.add_argument("--out", default="runs/audit_archetype_direction")
     ap.add_argument("--pilot", action="store_true",
                     help="mesh once, solve the designed spin at max(50, iters//10) iterations, "
@@ -225,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     rows, errors = [], []
-    out = OUT_DIR / f"direction_cfd_{a.machine}.json"
+    out = OUT_DIR / f"direction_cfd_{a.machine}{'_' + a.tag if a.tag else ''}.json"
     for spin in (designed, -designed):
         try:
             row = solve_row(case, runner, setup, spin, a.iters, a.procs)
