@@ -74,10 +74,21 @@ Evidence: `docs/validation/audits/prop_cfd_apcsf_9x4.7.json`.
 
 Note that BEMT on the same geometry lands within the static tolerances (C_T 0.1039, −13 %), while
 CFD reads 0.067. The two disagree by ~36 % on the same blade, so the shortfall is in the CFD
-modelling at this Reynolds number, not in the inputs. **Next diagnostic:** spanwise thrust loading
-from the CFD wall pressure against BEMT dT/dr. A deficit concentrated at the tip points to
-tip-vortex or MRF effects; a uniform deficit points to section aerodynamics (turbulence model or
-wall treatment).
+modelling at this Reynolds number, not in the inputs. 
+
+**Spanwise loading (2026-10-02).** CFD wall-pressure thrust per radial band (the total reproduces
+the forces monitor, −2.171 N) against BEMT dT/dr on the same blade:
+
+| r/R | 0.15–0.26 | 0.26–0.36 | 0.36–0.47 | 0.47–0.57 | 0.57–0.68 | 0.68–0.79 | 0.79–0.89 | 0.89–1.00 |
+|---|---|---|---|---|---|---|---|---|
+| CFD / BEMT | 1.59 | 0.89 | 0.65 | **0.54** | 0.62 | 0.56 | 0.70 | 0.73 |
+
+The deficit is spread across mid-span (30–45 % low), and the tip holds up comparatively well. That
+rules out tip-vortex and MRF-interface effects and points to **section aerodynamics in the CFD**:
+fully turbulent k-ω SST on wall functions, with no prism layers, at chord Re ≈ 6–8×10⁴. Real
+low-Re airfoils run with laminar flow and transition, which the BEMT polars come from. **Next
+test:** prism layers (resolved near-wall, y+ ~1–5), then, if the gap remains, a transition model
+(k-ω SST-LM).
 
 ## Ledger
 
