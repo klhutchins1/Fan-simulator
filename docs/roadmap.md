@@ -174,7 +174,7 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
   `MixedFlowArchetype`, geometry + evaluate + cockpit tab (`tests/test_mixed_flow*.py`). Remaining: high-Pa hose wins vs axial. ⚠ The 2026-09-05 mixed-vs-axial campaign solved the rotor backwards (Audit #7, fixed 2026-10-01); its "axial wins" verdict needs a re-run.
 - [x] **4.2 Counter-rotating stacked rotors (stage 1 scaffold). DONE 2026-09-13** **[impact: med]** **[effort: high]**
   `CrorArchetype` + dual-MRF evaluate (`tests/test_cror.py`). Remaining: noise + measured static gain. ⚠ The 2026-09-06 dual-MRF smoke (~93% η) had both rotors backwards (Audit #7, fixed 2026-10-01).
-- [ ] **4.3 Prop compressible open-air CFD tier.** **[impact: med]** **[effort: high]** BEMT screens
+- [ ] **4.3 Prop compressible open-air CFD tier.** **Audit #8 2026-10-02:** direction PASS (APC SF 9x4.7 designed +221 g vs reversed −122 g), tail-mean metrics + prop sanity added; **validation FAIL: C_T −44 % / C_P −40 % vs UIUC** (likely blade under-resolution, wall 0.4 mm on 0.5 mm cells). Next: surface-level ladder 4→5→6. Prop CFD numbers are not performance claims until then; BEMT stays the screen. **[impact: med]** **[effort: high]** BEMT screens
   props; a real CFD pass refines finalists (tips run Mach 0.4–0.58, where BEMT/incompressible is weak).
   **Track A stage 1 (2026-09-21):** hover Wh/power budget + optional PyThrust (`--extra propulsion`) +
   quorum cross-checks in `fansim/propeller/power.py` — complements BEMT screening; **not** a substitute

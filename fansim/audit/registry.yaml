@@ -199,6 +199,22 @@ units:
     source: {kind: derivation, ref: "mass/energy conservation; Euler turbomachinery power sign; AMCA inlet bookkeeping"}
     checks: [tests/test_cfd_sanity.py]
 
+  - id: propeller.cfd_setup
+    targets:
+      - "fansim.propeller.cfd:parse_prop_metrics"
+      - "fansim.propeller.cfd:_series_convergence"
+      - "fansim.propeller.cfd:prop_open_air"
+      - "fansim.propeller.cfd:evaluate_prop_cfd"
+      - "fansim.cfd.sanity:run_prop_sanity"
+    claim: >
+      Open-air prop CFD turns the prop its designed way (APC SF 9x4.7: designed +2.16 N vs reversed
+      -1.20 N, 1.8x thrust per watt), reports converged-tail means with a convergence verdict, and
+      flags wrong thrust sign, rotor not doing work, and momentum-theory FM > 1. Absolute thrust /
+      power are NOT claimed: -44 % C_T / -40 % C_P vs UIUC at the 2.0 M cell mesh (Audit #8).
+    source: {kind: derivation, ref: "Audit #8; momentum theory (ideal static power T^1.5/sqrt(2 rho A)); UIUC APC SF 9x4.7 static"}
+    checks: [tests/test_prop_cfd.py, tests/audit/test_prop_cfd_audit.py]
+    depends_on: [propeller.thrust_sign, audit.direction_geometry]
+
   - id: propeller.bemt
     targets:
       - "fansim.propeller.bemt:analyze"

@@ -126,6 +126,12 @@
       "report": "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md",
       "verdict": "PASS"
     },
+    "propeller.cfd_setup": {
+      "date": "2026-10-02",
+      "fingerprint": "e6e87873b443a6d7",
+      "report": "docs/validation/audits/2026-10-02-audit-08-prop-cfd.md",
+      "verdict": "PASS"
+    },
     "propeller.neuralfoil_polars": {
       "date": "2026-09-30",
       "fingerprint": "041fa55a3db91096",

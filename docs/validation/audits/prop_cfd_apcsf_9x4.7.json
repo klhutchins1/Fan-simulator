@@ -1,0 +1,178 @@
+{
+  "prop": "APC SF 9x4.7 (UIUC geometry, approximate section)",
+  "uiuc": {
+    "prop_id": "UIUC_APC_SF_9x4.7_STATIC",
+    "manufacturer": "APC",
+    "diameter_in": 9.0,
+    "pitch_in": 4.7,
+    "blade_count": 2,
+    "rpm": 6026,
+    "j": 0.0,
+    "ct": 0.1192,
+    "cp": 0.0484,
+    "provenance": {
+      "site": "https://m-selig.ae.illinois.edu/props/propDB.html",
+      "file_or_table": "volume-1/data/apcsf_9x4.7_static_kt1032.txt",
+      "retrieved": "2026-09-21",
+      "notes": "Vol1 APC Slow Flyer 9x4.7; row RPM=6026 CT=0.1192 CP=0.0484; vendored for A3 Q7"
+    }
+  },
+  "rpm": 6026.0,
+  "iters": 1000,
+  "mesh": {
+    "base_cell": 0.008,
+    "surf_min": 3,
+    "surf_max": 4,
+    "feature_level": 4,
+    "add_layers": false,
+    "n_surface_layers": 3
+  },
+  "rows": {
+    "designed": {
+      "thrust_n": 2.1627075959999997,
+      "thrust_g": 220.5347999571719,
+      "thrust_n_raw": -2.1627075959999997,
+      "thrust_sign_ok": true,
+      "torque_nm": 0.0342353336,
+      "moment_z_nm": 0.0342353336,
+      "shaft_power_w": 21.603907515717992,
+      "converged": true,
+      "thrust_shift_pct": 0.01844903669301774,
+      "torque_shift_pct": 0.01377821897617868,
+      "thrust_oscillation_pct": 0.1177320505420121,
+      "torque_oscillation_pct": 0.060484294504990516,
+      "spin": -1,
+      "orientation": "flipped",
+      "direction_source": "builder",
+      "direction_crosscheck": {
+        "verdict": "CONCLUSIVE",
+        "note": "10 sections, 0 flat skipped, 0 low-quality skipped",
+        "omega_sign": 1,
+        "pump_sign": -1,
+        "chirality": -1
+      },
+      "tip_mach": 0.2102857557706334,
+      "rpm": 6026.0,
+      "u_freestream": 1.0,
+      "sanity": [
+        {
+          "name": "thrust_direction",
+          "status": "PASS",
+          "value": -2.1627075959999997,
+          "limit": "Fz < 0 (air pushed the designed way)",
+          "note": ""
+        },
+        {
+          "name": "power_sign",
+          "status": "PASS",
+          "value": -21.603907515717992,
+          "limit": "Mz*omega < 0",
+          "note": "Mz=0.03424 omega=-631.0"
+        },
+        {
+          "name": "momentum_fm",
+          "status": "PASS",
+          "value": 0.4737064860069867,
+          "limit": "FM <= 1 (momentum theory); WARN < 0.2",
+          "note": "FM=0.474 (P_ideal=10.23 W, P=21.60 W)"
+        },
+        {
+          "name": "regime",
+          "status": "PASS",
+          "value": 0.21028575577063346,
+          "limit": "tip Mach <= 0.7",
+          "note": "tip Mach=0.210"
+        },
+        {
+          "name": "converged",
+          "status": "PASS",
+          "value": 0.01844903669301774,
+          "limit": "tail-mean shift < 2%",
+          "note": "thrust shift 0.02% osc 0.1%; torque shift 0.01%"
+        }
+      ],
+      "sanity_status": "PASS",
+      "bemt_thrust_g": 357.0,
+      "wall_s": 23.13902473449707,
+      "cells": 1998250
+    },
+    "reversed": {
+      "thrust_n": -1.200971664,
+      "thrust_g": -122.46502771078809,
+      "thrust_n_raw": 1.200971664,
+      "thrust_sign_ok": false,
+      "torque_nm": 0.03446272576,
+      "moment_z_nm": -0.03446272576,
+      "shaft_power_w": 21.747401347320068,
+      "converged": true,
+      "thrust_shift_pct": 1.5299808554389263,
+      "torque_shift_pct": 1.0906919984055976,
+      "thrust_oscillation_pct": 2.7784668864570463,
+      "torque_oscillation_pct": 1.928637347519889,
+      "spin": 1,
+      "orientation": null,
+      "direction_source": "manual",
+      "direction_crosscheck": null,
+      "tip_mach": 0.21028576138517452,
+      "rpm": 6026.0,
+      "u_freestream": 1.0,
+      "sanity": [
+        {
+          "name": "thrust_direction",
+          "status": "FAIL",
+          "value": 1.200971664,
+          "limit": "Fz < 0 (air pushed the designed way)",
+          "note": "Fz=+1.201 N pushes the prop toward -Z: air went the wrong way for spin +1"
+        },
+        {
+          "name": "power_sign",
+          "status": "PASS",
+          "value": -21.747401347320068,
+          "limit": "Mz*omega < 0",
+          "note": "Mz=-0.03446 omega=631.0"
+        },
+        {
+          "name": "momentum_fm",
+          "status": "SKIP",
+          "value": null,
+          "limit": "FM <= 1 (momentum theory); WARN < 0.2",
+          "note": "thrust or power <= 0"
+        },
+        {
+          "name": "regime",
+          "status": "PASS",
+          "value": 0.21028576138517457,
+          "limit": "tip Mach <= 0.7",
+          "note": "tip Mach=0.210"
+        },
+        {
+          "name": "converged",
+          "status": "PASS",
+          "value": 1.5299808554389263,
+          "limit": "tail-mean shift < 2%",
+          "note": "thrust shift 1.53% osc 2.8%; torque shift 1.09%"
+        }
+      ],
+      "sanity_status": "FAIL",
+      "bemt_thrust_g": null,
+      "wall_s": 4058.2535741329193,
+      "cells": 1998250
+    }
+  },
+  "errors": [],
+  "direction": {
+    "verdict": "PASS",
+    "thrust_per_w_designed": 0.10010724191568192,
+    "thrust_per_w_reversed": 0.05522368603125062
+  },
+  "validation": {
+    "verdict": "FAIL",
+    "ct_tol": 0.15,
+    "cp_tol": 0.2,
+    "ct": 0.06672665295759338,
+    "cp": 0.02903218628099746,
+    "e_ct": -0.44021264297320994,
+    "e_cp": -0.40016144047525903,
+    "rho": 1.176624281484062
+  }
+}
