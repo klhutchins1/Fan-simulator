@@ -310,3 +310,20 @@ def test_build_prop_case_entrain_boundaries(tmp_path):
     case2 = build_prop_case(tmp_path / "c2", stl, dom, n_iters=10, n_subdomains=1)
     assert "freestreamVelocity" in (case2 / "0/U").read_text(encoding="utf-8")
     assert "walls  { type wall;" in (case2 / "system/blockMeshDict").read_text(encoding="utf-8")
+
+
+def test_refine_rows_carry_prop_cfd_honesty(tmp_path, monkeypatch):
+    """Every CFD-refine row says it is a direction/sanity check, not a performance number."""
+    from fansim.prop_spec import get_prop_spec
+    from fansim.propeller import cfd as prop_cfd
+    from fansim.propeller.optimize import random_prop_flat, refine_pareto_cfd
+    import random
+
+    monkeypatch.setattr(prop_cfd, "evaluate_prop_cfd",
+                        lambda *a, **k: {"thrust_g": 100.0, "bemt_thrust_g": 180.0,
+                                         "sanity_status": "PASS"})
+    spec = get_prop_spec("fpv_5inch")
+    pareto = [{"params": random_prop_flat(spec, random.Random(1))}]
+    rows = refine_pareto_cfd(spec, pareto, tmp_path, n_top=1)
+    assert rows[0]["honesty"] == prop_cfd.PROP_CFD_HONESTY
+    assert "Audit #8" in rows[0]["honesty"] and rows[0]["sanity_status"] == "PASS"

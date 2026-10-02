@@ -126,7 +126,7 @@ def refine_pareto_cfd(spec: PropSpec, pareto: list[dict], out_dir,
     """Run CFD on the top-N Pareto rows (mocked in unit tests)."""
     from pathlib import Path
 
-    from fansim.propeller.cfd import evaluate_prop_cfd
+    from fansim.propeller.cfd import PROP_CFD_HONESTY, evaluate_prop_cfd
 
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -146,6 +146,8 @@ def refine_pareto_cfd(spec: PropSpec, pareto: list[dict], out_dir,
             "params": row.get("params"),
             "direction_suspect": bool(result.get("direction_suspect", False)),
             "direction_warning": result.get("direction_warning"),
+            "sanity_status": result.get("sanity_status"),
+            "honesty": PROP_CFD_HONESTY,
         })
     return rows
 

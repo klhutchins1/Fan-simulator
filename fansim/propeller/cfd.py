@@ -21,6 +21,11 @@ TURB_INTENSITY = 0.05
 P_INF = 101325.0
 T_INF = 300.0
 STATIC_FREESTREAM_MAX = 1.5  # m/s; the default 1 m/s epsilon counts as static (hover)
+# Audit #8: open-air prop CFD reads 34-44 % low on thrust/power vs UIUC (APC SF 9x4.7) across mesh,
+# boundary and wall-treatment variants (fully turbulent RANS at chord Re < 1e5). It is proven for
+# direction and sign bookkeeping only; rank and pick props from BEMT.
+PROP_CFD_HONESTY = ("direction/sanity check only: open-air prop CFD reads ~35-45 % low on "
+                    "thrust and power at small-prop Reynolds numbers (Audit #8); use BEMT numbers")
 
 
 def _turb_from_u(u: float, tip_radius: float) -> tuple[float, float]:
@@ -453,6 +458,7 @@ def evaluate_prop_cfd(
     out["rpm"] = rpm
     out["u_freestream"] = float(dom.u_freestream)
     out["bc"] = bc
+    out["honesty"] = PROP_CFD_HONESTY
     out["spec"] = spec_key or getattr(spec, "name", None) or str(spec)
     out["stl"] = str(stl_mm) if external else None
     out["direction_source"] = direction_source

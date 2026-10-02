@@ -128,7 +128,7 @@
     },
     "propeller.cfd_setup": {
       "date": "2026-10-02",
-      "fingerprint": "c1212822e36eb54a",
+      "fingerprint": "8960b2b634cf0516",
       "report": "docs/validation/audits/2026-10-02-audit-08-prop-cfd.md",
       "verdict": "PASS"
     },
@@ -151,9 +151,9 @@
       "verdict": "PASS"
     },
     "propeller.thrust_sign": {
-      "date": "2026-09-30",
-      "fingerprint": "7d1f7f552cdfbb86",
-      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "date": "2026-10-02",
+      "fingerprint": "1345e8fc31ac8e68",
+      "report": "docs/validation/audits/2026-10-02-audit-08-prop-cfd.md",
       "verdict": "PASS"
     },
     "structural.balance": {

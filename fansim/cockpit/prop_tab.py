@@ -725,7 +725,10 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                 return
             ran = sum(1 for r in rows if not r.get("skipped"))
             skip = sum(1 for r in rows if r.get("skipped"))
-            state.prop_msg = f"✓ Prop CFD refine {ran} ran / {skip} skipped → {out} (see summary.json)"
+            state.prop_msg = (
+                f"✓ Prop CFD refine {ran} ran / {skip} skipped → {out} (see summary.json). "
+                "Direction/sanity check only: CFD thrust/power read ~35-45 % low on small props "
+                "(Audit #8), so rank and print from the BEMT numbers.")
             state.prop_refine_busy = False
             ticker.cancel()
             workdir = first_prop_cfd_workdir(rows)
@@ -922,8 +925,10 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                     v3.VAlert(
                         "Propeller tab — fast BEMT estimate (~1 s), not full CFD. "
                         "Use Analyze for instant thrust/efficiency; Optimize searches "
-                        "many BEMT designs. Optional CFD refine scores top finalists "
-                        "(Docker). Fan tab is the CFD-checked PC-fan path.",
+                        "many BEMT designs. Optional CFD refine checks finalists spin and push "
+                        "air the right way, but its thrust/power read ~35-45 % low on small "
+                        "props (Audit #8): rank and print from the BEMT numbers. Fan tab is the "
+                        "CFD-checked PC-fan path.",
                         type="info",
                         density="compact",
                         variant="tonal",
@@ -933,7 +938,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                     )
                     html.Div(
                         "Start here: pick size → tune blade → Analyze (~1 s) → "
-                        "Optimize (optional) → Export STL. CFD refine is optional honesty.",
+                        "Optimize (optional) → Export STL. CFD refine = direction check only.",
                         classes="text-caption text-medium-emphasis mb-2",
                     )
                     with v3.VCard(classes="mb-2 pa-3"):
@@ -1167,7 +1172,9 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                     classes="mt-2",
                                 )
                                 html.Div(
-                                    "CFD refine scores top-N BEMT finalists (Docker). "
+                                    "CFD refine checks top-N BEMT finalists for direction and "
+                                    "sanity (Docker); its thrust/power are not performance "
+                                    "numbers (~35-45 % low at small-prop Re, Audit #8). "
                                     "BEMT floor skips hopeless CFD. "
                                     "Smoke mesh is fast sanity-check; Refine is denser for ranking. "
                                     "Polar V∞ list feeds Analyze.",
@@ -1321,7 +1328,8 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                         classes="text-subtitle-2 mb-1",
                     )
                     html.Div(
-                        "From the best design of the last CFD refine (open-air MRF). |U|/pressure "
+                        "From the best design of the last CFD refine (open-air MRF; flow "
+                        "pattern, not a performance number, Audit #8). |U|/pressure "
                         "midplane; axial Uz (blue = thrust wake, red = reverse); streamlines by |U|.",
                         classes="text-caption text-medium-emphasis mb-2",
                     )
