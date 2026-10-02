@@ -58,20 +58,26 @@ Evidence: `docs/validation/audits/prop_cfd_apcsf_9x4.7.json`.
 2. **3-D geometry.** The built STL's sections match the UIUC table: chord within 0.3 mm and β within
    0.4° at r/R 0.3–0.9. Measured camber is 0.032 and thickness about 6 %.
 
+3. **Open-air boundary conditions.** Ambient-total-pressure entrainment boundaries (`bc="entrain"`:
+   upstream face and sides `totalPressure` / `pressureInletOutletVelocity`, downstream face at
+   ambient static pressure), with the same box and level-4 mesh, give C_T 0.0670 / C_P 0.0291,
+   against 0.0667 / 0.0290 with freestream boundaries. The boundaries do not matter here.
+   Evidence: `prop_cfd_apcsf_9x4.7_entrain.json`.
+4. **Geometry orientation.** A 0.5R slice of the CFD copy has the LE upstream (z −4.0 vs +4.0 mm,
+   consistent with a 25 mm chord at ~17°) and the convex side upstream. Camber and pitch agree
+   with the rotation.
+
 **Remaining suspects (untested):**
 
-3. **Open-air domain and boundary conditions (leading).** The upstream face is a fixed, uniform
-   1 m/s axial inflow (`freestreamVelocity`) only 2R ahead of the prop. A static prop draws its
-   inflow from rest in every direction, so forcing uniform inflow close upstream distorts the
-   induced field and can let the slipstream recirculate in the box. That would lower thrust and
-   power together, as observed. (The side boundaries fall back to zero-gradient, so they are not
-   the main constraint.) **Test:** a larger box with ambient-total-pressure entrainment
-   boundaries.
-4. **Low-Re sections on wall functions.** At 0.75R the chord Re is about 8×10⁴, the run has no
+5. **Low-Re sections on wall functions (leading).** At 0.75R the chord Re is about 8×10⁴, the run has no
    prism layers, and k-ω SST is fully turbulent. This usually costs some lift, not 44 %.
 
-Note that BEMT on the same geometry and section assumptions lands within the static tolerances.
-So the CFD setup, not the geometry, is the outlier.
+Note that BEMT on the same geometry lands within the static tolerances (C_T 0.1039, −13 %), while
+CFD reads 0.067. The two disagree by ~36 % on the same blade, so the shortfall is in the CFD
+modelling at this Reynolds number, not in the inputs. **Next diagnostic:** spanwise thrust loading
+from the CFD wall pressure against BEMT dT/dr. A deficit concentrated at the tip points to
+tip-vortex or MRF effects; a uniform deficit points to section aerodynamics (turbulence model or
+wall treatment).
 
 ## Ledger
 
