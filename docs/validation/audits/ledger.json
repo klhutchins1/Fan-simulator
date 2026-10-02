@@ -49,9 +49,9 @@
       "verdict": "PASS"
     },
     "cfd.cfm_from_outlet_flow": {
-      "date": "2026-09-29",
-      "fingerprint": "f9a4e8d63508dce0",
-      "report": "docs/validation/audits/2026-09-29-air-consolidation.md",
+      "date": "2026-10-01",
+      "fingerprint": "5afa9a376f6f94b2",
+      "report": "docs/validation/audits/2026-10-01-audit-07-cror-mixed-setup.md",
       "verdict": "PASS"
     },
     "cfd.duct_area": {
@@ -61,14 +61,14 @@
       "verdict": "PASS"
     },
     "cfd.flow_direction_convention": {
-      "date": "2026-09-30",
-      "fingerprint": "2f284917d1364b15",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-10-01",
+      "fingerprint": "b05f65bc0015c3e0",
+      "report": "docs/validation/audits/2026-10-01-audit-07-cror-mixed-setup.md",
       "verdict": "PASS"
     },
     "cfd.sanity_checks": {
       "date": "2026-10-01",
-      "fingerprint": "41f089a9b0f1dd97",
+      "fingerprint": "6f84062cd34dc18a",
       "report": "docs/validation/audits/2026-10-01-audit-07-cror-mixed-setup.md",
       "verdict": "PASS"
     },

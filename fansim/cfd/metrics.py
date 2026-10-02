@@ -109,6 +109,8 @@ class FanMetrics:
     # blade steady RANS solve settles into a limit cycle rather than a fixed point; this is
     # the swing within that cycle, reported but not judged (see convergence()).
     oscillation_pct: float = 0.0
+    # CROR only: downstream rotor's own moment about z (``moment_z_nm`` is then the net of both).
+    moment_z_rear_nm: float | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -177,6 +179,17 @@ def parse_fan_metrics(
     # Layout: time, total(x,y,z), pressure(x,y,z), viscous(x,y,z).
     torque = abs(moment[3])  # total moment about z
     thrust = force[3]  # total force z
+    moment_z = moment[3]
+    moment_z_rear = None
+    if (case_dir / "postProcessing" / "forcesRear").is_dir():
+        # CROR: each rotor has its own motor and the two react in opposite senses, so the net
+        # moment cancels. Shaft power is the sum of |M_z| * omega over the rotors (Audit #7).
+        moment_r = _tail_mean_row(_pp_file(case_dir, "forcesRear", "moment.dat"))
+        force_r = _tail_mean_row(_pp_file(case_dir, "forcesRear", "force.dat"))
+        moment_z_rear = moment_r[3]
+        torque = abs(moment[3]) + abs(moment_r[3])
+        thrust = force[3] + force_r[3]
+        moment_z = moment[3] + moment_r[3]
 
     flow = _tail_mean_row(_pp_file(case_dir, "outletFlow", "surfaceFieldValue.dat"))[-1]
     p_in = _tail_mean_row(_pp_file(case_dir, "inletP", "surfaceFieldValue.dat"))[-1]
@@ -203,6 +216,7 @@ def parse_fan_metrics(
         p_outlet_kin=p_out,
         converged=converged,
         flow_drift_pct=drift,
-        moment_z_nm=moment[3],
+        moment_z_nm=moment_z,
+        moment_z_rear_nm=moment_z_rear,
         oscillation_pct=oscillation_pct(case_dir),
     )

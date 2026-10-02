@@ -1,4 +1,4 @@
-"""Audit #7, proof 3: designed vs reversed rotation in CFD for mixed-flow and volute rotors.
+"""Audit #7, proof 3: designed vs reversed rotation in CFD for mixed-flow, volute and CROR rotors.
 
 One mesh per machine (the production CFD setup: mixed-flow flipped copy in the A12x25 duct; volute
 in its sealed scroll), then free-air solves at spin -1 and +1 on that same mesh. Same geometry,
@@ -124,7 +124,42 @@ def setup_volute(work: Path, base_cell: float):
             "rpm": DEFAULT_VOLUTE_RPM, "mesh": asdict(mesh_res)}
 
 
-MACHINES = {"mixed": (setup_mixed, 0.005), "volute": (setup_volute, 0.006)}
+def setup_cror(work: Path, base_cell: float):
+    """Production CROR CFD setup (matches evaluate_cror); reversed = both zone omegas negated."""
+    from fansim.cfd.casing import export_casing_stl
+    from fansim.cfd.frame import export_frame_stl
+    from fansim.cfd.openfoam_case import build_case
+    from fansim.cror.evaluate import prepare_cror_cfd, remaining_cror_tip_gap_mm, rig_for_cror
+    from fansim.cror.geometry import CrorParams, export_cror_stl
+    from fansim.fan_spec import get_fan_spec
+
+    spec = get_fan_spec("delta_afc1212de")    # default CROR stack is deeper than the A12x25
+    params = CrorParams()
+    casing_id = float(spec.tip_dia_mm[1])
+    stl = export_cror_stl(params, work / "impeller.stl")
+    rig = rig_for_cror(params, tip_gap_mm=remaining_cror_tip_gap_mm(params, casing_id),
+                       casing_id_mm=casing_id, rpm=spec.rpm)
+    stl, rig, dmrf = prepare_cror_cfd(params, stl, rig, work)
+    frame = export_frame_stl(params.front, rig, work / "frame.stl")
+    casing = export_casing_stl(rig, work / "casing.stl", stepped=False)
+    mesh_res = MeshResolution(base_cell=base_cell)
+    designed_spin = rig.spin
+
+    def write(spin: int, iters: int, procs: int):
+        sense = spin * designed_spin          # +1 designed, -1 both rotors reversed
+        dm = {**dmrf, "omega_front": sense * dmrf["omega_front"],
+              "omega_rear": sense * dmrf["omega_rear"]}
+        r = replace(rig, spin=spin)
+        build_case(work, stl, r, mesh=mesh_res, n_iters=iters, n_subdomains=procs,
+                   back_pressure_pa=0.0, frame_stl_mm=frame, casing_stl_mm=casing, dual_mrf=dm)
+        return r.omega_rad_s, r.omega_signed
+
+    return {"params": asdict(params), "designed_spin": designed_spin, "write": write,
+            "rpm": spec.rpm, "mesh": asdict(mesh_res)}
+
+
+MACHINES = {"mixed": (setup_mixed, 0.005), "volute": (setup_volute, 0.006),
+            "cror": (setup_cror, 0.005)}
 
 
 def solve_row(case: Path, runner, setup, spin: int, iters: int, procs: int) -> dict:

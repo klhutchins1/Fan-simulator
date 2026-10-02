@@ -163,13 +163,66 @@ def _empty_wall_snippets() -> dict[str, str]:
 
 
 def _k_omega_bc(snips: dict[str, str], k_val: float, omega_val: float) -> tuple[str, str]:
-    if not snips["PATCH"]:
-        return "", ""
-    name = snips["PATCH"].strip()
+    """k / omega wall-function lines for the snippet's patch and any rotating ``ROTOR2`` rider."""
+    names = [snips[key].strip() for key in ("ROTOR2", "PATCH") if snips.get(key, "").strip()]
     return (
-        f"    {name} {{ type kqRWallFunction; value uniform {k_val}; }}\n",
-        f"    {name} {{ type omegaWallFunction; value uniform {omega_val}; }}\n",
+        "".join(f"    {n} {{ type kqRWallFunction; value uniform {k_val}; }}\n" for n in names),
+        "".join(f"    {n} {{ type omegaWallFunction; value uniform {omega_val}; }}\n"
+                for n in names),
     )
+
+
+def split_dual_rotor_surface(surf: trimesh.Trimesh, dual_mrf: dict
+                             ) -> tuple[trimesh.Trimesh, trimesh.Trimesh]:
+    """Split a CROR surface (metres) at the inter-rotor gap: (upstream, downstream) rotor.
+
+    Faces are assigned by centroid z against the mid-plane between ``front_z_max`` and
+    ``rear_z_min`` (the zones are fitted so no blade crosses it; hub faces in the gap go to
+    whichever side their centroid is on). Each part is an open surface; together they close.
+    """
+    import numpy as np
+
+    z_split = 0.5 * (float(dual_mrf["front_z_max"]) + float(dual_mrf["rear_z_min"]))
+    up = np.asarray(surf.triangles_center)[:, 2] < z_split
+    if up.all() or not up.any():
+        raise ValueError(f"dual-rotor split at z={z_split * 1e3:.2f} mm leaves one rotor empty")
+    front = surf.submesh([np.flatnonzero(up)], append=True, repair=False)
+    rear = surf.submesh([np.flatnonzero(~up)], append=True, repair=False)
+    return front, rear
+
+
+FORCES_REAR_BLOCK = """    forcesRear
+    {
+        type            forces;
+        libs            (forces);
+        patches         (impellerRear);
+        rho             rhoInf;
+        rhoInf          @RHO@;
+        CofR            (0 0 0);
+        writeControl    timeStep;
+        writeInterval   @FOINT@;
+    }
+"""
+
+
+def add_rear_forces(control_dict: Path) -> None:
+    """Add a ``forcesRear`` monitor on ``impellerRear`` after ``forces`` (CROR only).
+
+    Copies rho / write interval from the existing ``forces`` block so both rotors sample alike.
+    """
+    import re
+
+    text = Path(control_dict).read_text(encoding="utf-8")
+    if "forcesRear" in text:
+        return
+    m = re.search(r"\n    forces\n    \{.*?\n    \}\n", text, flags=re.S)
+    if m is None:
+        raise ValueError(f"no forces block in {control_dict}")
+    block = m.group(0)
+    rho = re.search(r"rhoInf\s+([^;]+);", block).group(1).strip()
+    foint = re.search(r"writeInterval\s+([^;]+);", block).group(1).strip()
+    rear = T.render(FORCES_REAR_BLOCK, {"RHO": rho, "FOINT": foint})
+    Path(control_dict).write_text(text[:m.end()] + rear + text[m.end():], encoding="utf-8")
 
 
 _PLACEMENT_TOL_M = 1e-6
@@ -481,6 +534,14 @@ def build_case(
 
     # --- Scale the impeller STL mm -> m into the case ---
     surf.apply_scale(MM_TO_M)
+    rear_surf = None
+    if dual_mrf is not None:
+        # CROR: the two rotors spin opposite ways, so their reaction torques cancel in a single
+        # patch's net moment and power = |net Mz| * omega undercounts the shaft power (Audit #7).
+        # Split the surface at the inter-rotor gap: "impeller" = upstream rotor, "impellerRear"
+        # = downstream rotor, each with its own forces monitor; both rotate with their MRF zone.
+        surf, rear_surf = split_dual_rotor_surface(surf, dual_mrf)
+        rear_surf.export(str(case_dir / "constant/triSurface/impellerRear.stl"))
     surf.export(str(case_dir / "constant/triSurface/impeller.stl"))
 
     # --- Optional stationary frame / casing, also mm -> m into the case ---
@@ -516,6 +577,14 @@ def build_case(
 
     ks_m = wall_ks_m(wall_ks_mm)
     impeller_nut = nut_wall_bc("impeller", wall_ks_m=ks_m)
+    if rear_surf is not None:
+        rear = _extra_wall_snippets("impellerRear", mesh.feature_level, mesh.surf_min,
+                                    mesh.surf_max, ks_m=ks_m)
+        # Same wall treatment as "impeller" (noSlip in the MRF frame = rotating wall). Ride along
+        # in the stator text slots, but NOT in PATCH: nonRotatingPatches must not list it.
+        for key in ("GEOM", "FEAT", "SURF", "EXTRACT", "U", "P", "NUT"):
+            stator[key] = rear[key] + stator[key]
+        stator["ROTOR2"] = "impellerRear"
     # Printed solids get rough when ks is set; casing is a duct artifact → always smooth.
     if ks_m > 0.0:
         if frame_stl_mm is not None:
@@ -575,6 +644,8 @@ def build_case(
     _write(case_dir / "system/controlDict", T.CONTROL_DICT, "dictionary", "controlDict", {
         "ENDTIME": n_iters, "WRITEINT": write_int, "FOINT": fo_int, "RHO": RHO_AIR,
     })
+    if rear_surf is not None:
+        add_rear_forces(case_dir / "system/controlDict")
     _write(case_dir / "system/fvSchemes", T.FV_SCHEMES, "dictionary", "fvSchemes", {})
     _write(case_dir / "system/fvSolution", T.FV_SOLUTION, "dictionary", "fvSolution", {})
     _write(case_dir / "system/decomposeParDict", T.DECOMPOSE_PAR,

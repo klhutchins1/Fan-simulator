@@ -266,8 +266,41 @@ def _check_energy_total(metrics: FanMetrics | None, case_meta: dict | None) -> S
     return SanityCheck("energy_total", status, eta_total, limit, note)
 
 
-def _check_power_sign(metrics: FanMetrics | None, omega_signed: float | None) -> SanityCheck:
+def _dual_omegas(case_dir: Path | None) -> tuple[float, float] | None:
+    """(omega_front, omega_rear) from a dual-MRF MRFProperties (MRF1 = upstream), else None."""
+    if case_dir is None:
+        return None
+    path = Path(case_dir) / "constant" / "MRFProperties"
+    if not path.exists():
+        return None
+    found = _OMEGA_RE.findall(path.read_text(encoding="utf-8", errors="replace"))
+    if len(found) != 2:
+        return None
+    try:
+        return float(found[0]), float(found[1])
+    except ValueError:
+        return None
+
+
+def _check_power_sign(metrics: FanMetrics | None, omega_signed: float | None,
+                      case_dir: Path | None = None) -> SanityCheck:
     limit = "Mz*omega < 0 (Q>0)"
+    if metrics is not None and metrics.moment_z_rear_nm is not None:
+        # CROR: the net moment cancels between counter-rotating rotors, so check each rotor
+        # against its own zone omega (both must be doing work on the air).
+        omegas = _dual_omegas(case_dir)
+        if omegas is None:
+            return SanityCheck("power_sign", SKIP, None, limit, "dual rotor: zone omegas unknown")
+        if metrics.flow_m3s <= 0:
+            return SanityCheck("power_sign", SKIP, None, limit,
+                               "Q<=0, check only applies to forward flow")
+        m_rear = float(metrics.moment_z_rear_nm)
+        m_front = float(metrics.moment_z_nm) - m_rear
+        p_front, p_rear = m_front * omegas[0], m_rear * omegas[1]
+        status = PASS if (p_front < 0 and p_rear < 0) else FAIL
+        note = (f"front Mz={m_front:.5f} omega={omegas[0]:.3f} ({p_front:.5f}); "
+                f"rear Mz={m_rear:.5f} omega={omegas[1]:.3f} ({p_rear:.5f})")
+        return SanityCheck("power_sign", status, max(p_front, p_rear), limit, note)
     if metrics is None or omega_signed is None:
         return SanityCheck("power_sign", SKIP, None, limit, "missing metrics or omega_signed")
     if metrics.flow_m3s <= 0:
@@ -451,7 +484,7 @@ def run_sanity(
     return [
         _check_mass_balance(case_dir),
         _check_energy_total(metrics, case_meta),
-        _check_power_sign(metrics, omega_signed),
+        _check_power_sign(metrics, omega_signed, case_dir),
         _check_thrust_direction(metrics),
         _check_inlet_bookkeeping(metrics, case_meta),
         _check_mesh_quality(case_dir),
