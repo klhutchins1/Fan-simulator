@@ -33,6 +33,10 @@ STAGES = [
      ["--bc", "entrain", "--designed-only", "--tag", "entrain", "--out", "runs/audit_prop_cfd_entrain"],
      "runs/audit_prop_cfd_entrain/pilot/pilot.json"),
 ]
+STAGES.append(
+    ("prop APC 9x4.7 prism layers (level 4), designed only", "scripts/audit_prop_cfd.py",
+     ["--layers", "--designed-only", "--tag", "layers", "--out", "runs/audit_prop_cfd_layers"],
+     "runs/audit_prop_cfd_layers/pilot/pilot.json"))
 
 
 def log(msg: str) -> None:

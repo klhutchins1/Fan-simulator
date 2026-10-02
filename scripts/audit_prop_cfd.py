@@ -59,13 +59,14 @@ def apc_setup():
     return fx, blade, spec
 
 
-def mesh_for(blade, base_cell: float, surf_level: int | None = None) -> MeshResolution:
+def mesh_for(blade, base_cell: float, surf_level: int | None = None,
+             layers: bool = False) -> MeshResolution:
     from fansim.geometry.blade import min_blade_wall_mm
 
     m = MeshResolution.for_blade(base_cell, float(min_blade_wall_mm(blade)))
     lvl = int(surf_level) if surf_level else min(m.surf_max, MAX_SURF_LEVEL)
     return MeshResolution(base_cell=base_cell, surf_min=max(1, lvl - 1), surf_max=lvl,
-                          feature_level=lvl)
+                          feature_level=lvl, add_layers=bool(layers))
 
 
 def coeffs(res: dict, fx: dict) -> dict:
@@ -149,6 +150,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--bc", choices=("freestream", "entrain"), default="freestream",
                     help="open-air boundaries: fixed 1 m/s freestream inflow (default) or "
                          "ambient-total-pressure entrainment (static prop)")
+    ap.add_argument("--layers", action="store_true",
+                    help="prism layers on the blade (resolved near-wall, y+ ~1-5)")
     ap.add_argument("--designed-only", action="store_true",
                     help="skip the reversed solve (mesh ladder: validation only)")
     ap.add_argument("--tag", default="",
@@ -161,7 +164,7 @@ def main(argv: list[str] | None = None) -> int:
         print("SKIPPED: OpenFOAM image not available")
         return 2
     fx, blade, spec = apc_setup()
-    mesh = mesh_for(blade, float(a.base_cell), a.surf_level)
+    mesh = mesh_for(blade, float(a.base_cell), a.surf_level, a.layers)
     base = Path(a.out)
     rpm = float(fx["rpm"])
 
