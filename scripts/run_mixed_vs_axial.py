@@ -94,7 +94,8 @@ def _write_summary_md(out: Path, payload: dict) -> None:
         "# Mixed-flow vs axial campaign",
         "",
         f"**Date:** {payload['date']}",
-        f"**Axial base:** `{payload['base_json']}` trial {payload['base_trial']}",
+        f"**Axial base:** `{payload['base_json']}`"
+        + (f" trial {payload['base_trial']}" if payload.get("base_trial") is not None else ""),
         f"**Mixed-flow:** default `MixedFlowParams` "
         f"(nB={payload['mixed_params'].get('n_blades')}, "
         f"stagger={payload['mixed_params'].get('stagger_deg')}°)",
@@ -282,7 +283,8 @@ def main() -> int:
         json.dumps(mixed_flat, indent=2), encoding="utf-8")
 
     print(
-        f"[base] axial trial {args.base_trial} nB={axial_params.n_blades}  "
+        f"[base] axial {('trial ' + str(args.base_trial)) if args.base_json else 'Stock A12x25'} "
+        f"nB={axial_params.n_blades}  "
         f"mixed nB={mixed_params.n_blades} stagger={mixed_params.stagger_deg}°  "
         f"hose={preset_name or 'custom'} {load_pa:g} Pa @ 50 CFM  "
         f"cell={args.base_cell} iters={args.iters} procs={args.procs}",
@@ -336,7 +338,7 @@ def main() -> int:
     payload = {
         "date": date.today().isoformat(),
         "base_json": str(args.base_json) if args.base_json else "stock:a12x25_reference",
-        "base_trial": args.base_trial,
+        "base_trial": args.base_trial if args.base_json else None,
         "mixed_params": mixed_flat,
         "preset": preset_name,
         "load_pa": load_pa,
