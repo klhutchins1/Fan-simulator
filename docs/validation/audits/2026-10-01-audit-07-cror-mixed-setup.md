@@ -60,6 +60,7 @@ designed ≥ 1.10× reversed on CFM and on CFM/W, with both solves converged.
 | machine | designed | reversed | verdict |
 |---|---|---|---|
 | mixed-flow (250k cells) | **+73.3 CFM**, 0.80 W, converged | **−44.3 CFM** (pumps backwards), 0.66 W, converged | **PASS** |
+| CROR (309k cells, Delta AFC1212DE spec, 3900 rpm) | **+209.0 CFM**, 9.47 W, converged; each rotor does work (front M_z·ω −4.31 W, rear −5.16 W) | **−186.1 CFM** (pumps backwards), 4.66 W, converged | **PASS** |
 | volute (102k cells) | 29.7 / 30.5 CFM (two runs), 3.70 W, converged | 24.7 / 25.0 CFM, 3.42 W, oscillating (20–24%), drift 6.5% on the second run | **INCONCLUSIVE** (reversed unconverged) |
 
 - **Mixed-flow:** spun backwards, the rotor drives air against the duct. The old 2026-09-05 campaign
@@ -84,13 +85,20 @@ Evidence: `docs/validation/audits/direction_cfd_mixed.json`, `direction_cfd_volu
    patch, giving η_total 0.008: at free air the jet dissipates in the box before reaching the outlet
    face. Volute scoring never used this area; only the new sanity path did. The designed row in
    `direction_cfd_volute.json` still shows the old energy FAIL, which is this bug.
-3. **The result file crashed on an infinite ratio** when reversed pumped backwards. The ratio is now
+3. **CROR shaft power counted only the net torque.** Both rotors shared one `impeller` patch, so their
+   opposite reaction torques cancelled. On the designed CROR solve the net M_z is 0.0021 N·m, against
+   0.0106 + 0.0127 N·m per rotor, so the old bookkeeping read **0.85 W instead of 9.47 W (11× low)**.
+   That explains the 2026-09-06 smoke's ~93% efficiency. Dual-MRF cases now split the surface at the
+   inter-rotor gap into `impeller` (upstream) and `impellerRear` (downstream, a rotating wall with its
+   own `forcesRear` monitor). Torque is the sum of |M_z| over both rotors, and `power_sign` checks
+   each rotor against its zone ω. A mesh dry run confirmed both patches (5314 / 4495 faces).
+4. **The result file crashed on an infinite ratio** when reversed pumped backwards. The ratio is now
    null and `reversed_pumps_backwards` is true.
 
 ## Not done
 
 - **Volute CFD confirmation:** needs either a converged reversed solve (finer mesh or transient) or
-  acceptance that the scroll proof suffices. CROR CFD both-ways (dual MRF) has not been run.
+  acceptance that the scroll proof suffices.
 - CROR exports both rotors as one STL. The per-rotor proof meshes them separately in the test, not
   in the production path. That is fine while the builder handedness is fixed (the test pins it).
 
