@@ -210,7 +210,8 @@ units:
       Open-air prop CFD turns the prop its designed way (APC SF 9x4.7: designed +2.16 N vs reversed
       -1.20 N, 1.8x thrust per watt), reports converged-tail means with a convergence verdict, and
       flags wrong thrust sign, rotor not doing work, and momentum-theory FM > 1. Absolute thrust /
-      power are NOT claimed: -44 % C_T / -40 % C_P vs UIUC at the 2.0 M cell mesh (Audit #8).
+      power are NOT claimed: 34-44 % low vs UIUC across mesh, boundary and wall-treatment variants
+      (fully turbulent RANS at chord Re < 1e5; Audit #8). Use BEMT for prop performance.
     source: {kind: derivation, ref: "Audit #8; momentum theory (ideal static power T^1.5/sqrt(2 rho A)); UIUC APC SF 9x4.7 static"}
     checks: [tests/test_prop_cfd.py, tests/audit/test_prop_cfd_audit.py]
     depends_on: [propeller.thrust_sign, audit.direction_geometry]

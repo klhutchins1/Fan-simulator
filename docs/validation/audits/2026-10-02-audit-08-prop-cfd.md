@@ -86,9 +86,27 @@ the forces monitor, −2.171 N) against BEMT dT/dr on the same blade:
 The deficit is spread across mid-span (30–45 % low), and the tip holds up comparatively well. That
 rules out tip-vortex and MRF-interface effects and points to **section aerodynamics in the CFD**:
 fully turbulent k-ω SST on wall functions, with no prism layers, at chord Re ≈ 6–8×10⁴. Real
-low-Re airfoils run with laminar flow and transition, which the BEMT polars come from. **Next
-test:** prism layers (resolved near-wall, y+ ~1–5), then, if the gap remains, a transition model
-(k-ω SST-LM).
+low-Re airfoils run with laminar flow and transition, which the BEMT polars come from. 
+
+**Prism layers (2026-10-02).** Three layers on the blade (avg 2.74, 0.35 mm, 90 % of target; first
+cell ~0.11 mm, so y+ ~5–10) give 232.6 g / 23.7 W: C_T −41 %, C_P −34 %
+(`prop_cfd_apcsf_9x4.7_layers.json`). That is +5.5 % thrust and +10 % power over wall functions.
+The near-wall treatment matters a little but does not close the gap.
+
+## Conclusion (2026-10-02)
+
+Five controlled variations (surface level 4/5, freestream vs entrainment boundaries, wall
+functions vs layers), with geometry and orientation verified, all leave prop CFD **34–44 % low**
+against UIUC. The deficit is mid-span section aerodynamics. The remaining explanation is the
+**turbulence model at low Re**: fully turbulent k-ω SST at chord Re 6–8×10⁴ grows a turbulent
+boundary layer that separates early on thin cambered sections and decambers them, while the real
+prop runs largely laminar. This is a known limitation of fully turbulent RANS for small props.
+
+**Decision:** prop CFD is **not a performance predictor for small props (chord Re < ~10⁵)**. Use
+BEMT (UIUC-validated, Audit #3) for prop performance. Prop CFD stays proven for direction and
+bookkeeping only. Closing the gap would need a transition model (k-ω SST-LM) on a y+ ≈ 1 mesh
+(first cell ~0.01 mm). That is a multi-hour run with an uncertain payoff, recorded as an open item,
+not pursued now.
 
 ## Ledger
 

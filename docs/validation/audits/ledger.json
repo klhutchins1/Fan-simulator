@@ -128,7 +128,7 @@
     },
     "propeller.cfd_setup": {
       "date": "2026-10-02",
-      "fingerprint": "e6e87873b443a6d7",
+      "fingerprint": "c1212822e36eb54a",
       "report": "docs/validation/audits/2026-10-02-audit-08-prop-cfd.md",
       "verdict": "PASS"
     },
