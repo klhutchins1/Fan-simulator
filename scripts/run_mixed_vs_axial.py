@@ -1,13 +1,11 @@
 """Head-to-head: axial (four-bar frame) vs mixed-flow at high-Pa hose.
 
-Same mesh / hose / print penalty. Axial uses the stator-campaign baseline
-(``opt_realframe2``-class params); mixed-flow uses default ``MixedFlowParams``.
+Same domain (CFD v5 ring + frame), mesh rule, hose and print penalty. Axial defaults to the Stock
+A12x25 recipe (the validated axial design); mixed-flow uses default ``MixedFlowParams``.
 No Optuna — fixed A/B ranking under radiator (or heatsink) impedance (roadmap §4.1).
 
 Usage:
-    uv run python scripts/run_mixed_vs_axial.py \\
-        --base-json runs/opt_realframe2/pareto.json --base-trial 47 \\
-        --preset heatsink --out runs/campaign_mixed_vs_axial
+    uv run python scripts/run_mixed_vs_axial.py --preset case --out runs/campaign_mixed_vs_axial_v5
 """
 
 from __future__ import annotations
@@ -39,13 +37,25 @@ VARIANTS = [
 
 
 def _load_base(path: Path, trial: int) -> dict:
+    """Axial params from a saved pareto/design JSON, stamped with its chord basis.
+
+    Unstamped files predate or postdate the measured-chord switch (37728b9); classify by mtime,
+    as ``scripts/migrate_chord_basis.py`` does, so a legacy loft design builds as it was scored.
+    """
+    from datetime import datetime, timezone
+
+    from fansim.optimize.trial_attrs import chord_basis_at
+
     data = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(data, list):
-        row = next(r for r in data if int(r["trial"]) == trial)
-        return dict(row["params"])
-    if isinstance(data, dict) and "params" in data:
-        return dict(data["params"])
-    raise ValueError(f"unrecognized base json shape in {path}")
+        flat = dict(next(r for r in data if int(r["trial"]) == trial)["params"])
+    elif isinstance(data, dict) and "params" in data:
+        flat = dict(data["params"])
+    else:
+        raise ValueError(f"unrecognized base json shape in {path}")
+    flat.setdefault("chord_basis", chord_basis_at(
+        datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)))
+    return flat
 
 
 def _metric_slice(res) -> dict:
@@ -220,8 +230,10 @@ def _takeaway(results: list[dict], *, load_pa: float) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="mixed-flow vs axial OpenFOAM campaign")
-    ap.add_argument("--base-json", default="runs/opt_realframe2/pareto.json",
-                    help="axial BladeParams source (same as stator campaign)")
+    ap.add_argument("--base-json", default=None,
+                    help="axial params from a saved pareto/design JSON; default: the Stock "
+                         "A12x25 recipe (the validated axial design; the old opt_realframe2 "
+                         "baseline no longer exists)")
     ap.add_argument("--base-trial", type=int, default=47)
     ap.add_argument("--out", default="runs/campaign_mixed_vs_axial")
     ap.add_argument("--preset", default="heatsink",
@@ -241,7 +253,12 @@ def main() -> int:
 
     preset = (args.preset or "").strip() or None
     load_pa, preset_name = resolve_load(preset, args.load_pa)
-    flat = _load_base(Path(args.base_json), args.base_trial)
+    if args.base_json:
+        flat = _load_base(Path(args.base_json), args.base_trial)
+    else:
+        from fansim.optimize.search_space import stock_blade_flat
+
+        flat = stock_blade_flat("a12x25")
     axial_params = blade_from_flat(flat)
     mixed_params = MixedFlowParams()
     out = Path(args.out)
@@ -318,7 +335,7 @@ def main() -> int:
     takeaway = _takeaway(results, load_pa=load_pa)
     payload = {
         "date": date.today().isoformat(),
-        "base_json": str(args.base_json),
+        "base_json": str(args.base_json) if args.base_json else "stock:a12x25_reference",
         "base_trial": args.base_trial,
         "mixed_params": mixed_flat,
         "preset": preset_name,

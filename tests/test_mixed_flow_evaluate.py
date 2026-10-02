@@ -46,10 +46,8 @@ def test_evaluate_mixed_flow_mocked_cfd(tmp_path, monkeypatch):
     # STL is faked, so skip the Audit #7 orientation (covered by tests/audit/test_cror_mixed_setup_audit.py)
     monkeypatch.setattr(ev, "prepare_axial_cfd", lambda stl, rig, wd, **k: (stl, rig))
     monkeypatch.setattr(ev, "export_frame_stl", lambda *a, **k: Path(tmp_path / "frame.stl"))
-    monkeypatch.setattr(ev, "export_casing_stl", lambda *a, **k: Path(tmp_path / "casing.stl"))
     monkeypatch.setattr(ev, "build_case", lambda *a, **k: None)
     monkeypatch.setattr(ev, "run_mesh", lambda *a, **k: None)
-    monkeypatch.setattr(ev, "require_circular_inlet_area", lambda *a, **k: 0.0095)
     monkeypatch.setattr(ev, "run_solve", lambda *a, **k: None)
     monkeypatch.setattr(ev, "parse_fan_metrics", lambda *a, **k: next(seq))
     monkeypatch.setattr(ev, "OpenFOAMRunner", lambda workdir: SimpleNamespace())
@@ -102,10 +100,8 @@ def test_mixed_solve_failure_keeps_exc_message(tmp_path, monkeypatch):
     # STL is faked, so skip the Audit #7 orientation (covered by tests/audit/test_cror_mixed_setup_audit.py)
     monkeypatch.setattr(ev, "prepare_axial_cfd", lambda stl, rig, wd, **k: (stl, rig))
     monkeypatch.setattr(ev, "export_frame_stl", lambda *a, **k: Path(tmp_path / "frame.stl"))
-    monkeypatch.setattr(ev, "export_casing_stl", lambda *a, **k: Path(tmp_path / "casing.stl"))
     monkeypatch.setattr(ev, "build_case", lambda *a, **k: None)
     monkeypatch.setattr(ev, "run_mesh", lambda *a, **k: None)
-    monkeypatch.setattr(ev, "require_circular_inlet_area", lambda *a, **k: 0.0095)
 
     def boom(*_a, **_k):
         raise RuntimeError("disk full")

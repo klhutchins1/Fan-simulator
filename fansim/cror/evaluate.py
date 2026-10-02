@@ -7,14 +7,19 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
-from fansim.cfd.casing import export_casing_stl
 from fansim.cfd.domain import MM_TO_M, OPTIMIZER_TIP_GAP_MM, TestRig
-from fansim.cfd.duct_area import require_circular_inlet_area
 from fansim.cfd.frame import export_frame_stl
 from fansim.cfd.metrics import parse_fan_metrics
-from fansim.cfd.openfoam_case import MeshResolution, build_case, run_mesh, run_solve
+from fansim.cfd.openfoam_case import (
+    OPTIMIZER_SURF_MAX_FLOOR,
+    MeshResolution,
+    build_case,
+    run_mesh,
+    run_solve,
+)
 from fansim.cfd.orientation import DIRECTION_META_FILE, orient_impeller_for_cfd
 from fansim.cfd.runner import OpenFOAMRunner
+from fansim.geometry.blade import min_blade_wall_mm
 from fansim.cror.geometry import CrorParams, cror_axial_layout_mm, export_cror_stl
 from fansim.fan_spec import A12X25, FanSpec, check_build, estimate_weight_g, over_spec_flags
 from fansim.geometry import watertight_report
@@ -233,7 +238,7 @@ def evaluate_cror(
         "archetype": "cror",
         "rotation": "dual_MRF",
         "stator": "frame",
-        "duct": "circular" if circular_duct else "square",
+        "duct": "ring" if circular_duct else "square",
         **SCREENING_GRID_STAMP,
     }
     if remaining < floor:
@@ -277,32 +282,30 @@ def evaluate_cror(
     except Exception as exc:  # noqa: BLE001
         return _infeasible(f"frame failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
+    # Same validated domain + mesh rule as the axial optimizer (CFD v5, Audit #2): the sealed
+    # 25 mm frame ring (circular_duct) instead of the v4 full-length tube (~0.7 m of pipe
+    # friction, -34 % on the A12x25), and surface refinement sized to the thinnest blade wall
+    # (a thin plate meshed at ~1 cell loses ~30 % of its loading).
     casing_path = None
-    if circular_duct:
-        casing_path = workdir / "casing.stl"
-        try:
-            export_casing_stl(rig0, casing_path, stepped=False)
-        except Exception as exc:  # noqa: BLE001
-            return _infeasible(f"casing failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
+    duct = "ring" if circular_duct else "square"
+    mesh0 = MeshResolution.for_blade(
+        base_cell, min(min_blade_wall_mm(params.front), min_blade_wall_mm(params.rear)), min_surf_max=OPTIMIZER_SURF_MAX_FLOOR)
 
     runner = OpenFOAMRunner(workdir)
     try:
         build_case(
-            workdir, stl, rig0, mesh=MeshResolution(base_cell=base_cell),
+            workdir, stl, rig0, mesh=mesh0,
             n_iters=iters, n_subdomains=procs, back_pressure_pa=0.0,
-            frame_stl_mm=frame_path, casing_stl_mm=casing_path, dual_mrf=dmrf)
+            frame_stl_mm=frame_path, casing_stl_mm=casing_path, duct=duct, dual_mrf=dmrf)
         run_mesh(runner)
-        if circular_duct:
-            gap_raw["inlet_area_m2"] = require_circular_inlet_area(
-                workdir, rig0.duct_radius)
     except Exception as exc:  # noqa: BLE001
         return _infeasible(f"mesh failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
     def solve_at(back_pa: float):
         build_case(
-            workdir, stl, rig0, mesh=MeshResolution(base_cell=base_cell),
+            workdir, stl, rig0, mesh=mesh0,
             n_iters=iters, n_subdomains=procs, back_pressure_pa=back_pa,
-            frame_stl_mm=frame_path, casing_stl_mm=casing_path, dual_mrf=dmrf)
+            frame_stl_mm=frame_path, casing_stl_mm=casing_path, duct=duct, dual_mrf=dmrf)
         run_solve(runner, n_procs=procs)
         return parse_fan_metrics(workdir, omega_rad_s=rig0.omega_rad_s)
 

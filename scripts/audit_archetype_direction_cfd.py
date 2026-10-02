@@ -29,7 +29,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
-from fansim.cfd.openfoam_case import MeshResolution, run_mesh, run_solve  # noqa: E402
+from fansim.cfd.openfoam_case import (  # noqa: E402
+    OPTIMIZER_SURF_MAX_FLOOR,
+    MeshResolution,
+    run_mesh,
+    run_solve,
+)
+from fansim.geometry.blade import min_blade_wall_mm  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.cfd.sanity import overall as sanity_overall, run_sanity  # noqa: E402
 from fansim.cfd.timing import mesh_cells, pilot_iters, write_pilot_json  # noqa: E402
@@ -76,7 +82,6 @@ def setup_mixed(work: Path, base_cell: float):
         rig_for_mixed_flow,
     )
     from fansim.centrifugal.geometry import MixedFlowParams, export_mixed_flow_stl
-    from fansim.cfd.casing import export_casing_stl
     from fansim.cfd.frame import export_frame_stl
     from fansim.cfd.openfoam_case import build_case
     from fansim.cfd.orientation import prepare_axial_cfd
@@ -90,8 +95,9 @@ def setup_mixed(work: Path, base_cell: float):
                              inlet_diameters=2.0, outlet_diameters=4.0)
     stl, rig = prepare_axial_cfd(stl, rig, work, source="builder")
     frame = export_frame_stl(_frame_blade_proxy(params, A12X25.rpm), rig, work / "frame.stl")
-    casing = export_casing_stl(rig, work / "casing.stl", stepped=False)
-    mesh_res = MeshResolution(base_cell=base_cell)
+    casing = None   # v5 ring domain, same as evaluate_mixed_flow / the axial optimizer
+    wall = float(params.thickness) * min(params.chord_root, params.chord_mm, params.chord_tip)
+    mesh_res = MeshResolution.for_blade(base_cell, wall, min_surf_max=OPTIMIZER_SURF_MAX_FLOOR)
     designed_spin = rig.spin
 
     def write(spin: int, iters: int, procs: int):
@@ -126,7 +132,6 @@ def setup_volute(work: Path, base_cell: float):
 
 def setup_cror(work: Path, base_cell: float):
     """Production CROR CFD setup (matches evaluate_cror); reversed = both zone omegas negated."""
-    from fansim.cfd.casing import export_casing_stl
     from fansim.cfd.frame import export_frame_stl
     from fansim.cfd.openfoam_case import build_case
     from fansim.cror.evaluate import prepare_cror_cfd, remaining_cror_tip_gap_mm, rig_for_cror
@@ -141,8 +146,9 @@ def setup_cror(work: Path, base_cell: float):
                        casing_id_mm=casing_id, rpm=spec.rpm)
     stl, rig, dmrf = prepare_cror_cfd(params, stl, rig, work)
     frame = export_frame_stl(params.front, rig, work / "frame.stl")
-    casing = export_casing_stl(rig, work / "casing.stl", stepped=False)
-    mesh_res = MeshResolution(base_cell=base_cell)
+    casing = None   # v5 ring domain, same as evaluate_cror / the axial optimizer
+    wall = min(min_blade_wall_mm(params.front), min_blade_wall_mm(params.rear))
+    mesh_res = MeshResolution.for_blade(base_cell, wall, min_surf_max=OPTIMIZER_SURF_MAX_FLOOR)
     designed_spin = rig.spin
 
     def write(spin: int, iters: int, procs: int):

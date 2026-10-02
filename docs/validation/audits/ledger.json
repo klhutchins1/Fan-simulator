@@ -44,7 +44,7 @@
     },
     "cfd.archetype_direction": {
       "date": "2026-10-01",
-      "fingerprint": "abfd9fff71e43569",
+      "fingerprint": "83eccb52033d734c",
       "report": "docs/validation/audits/2026-10-01-audit-07-cror-mixed-setup.md",
       "verdict": "PASS"
     },
