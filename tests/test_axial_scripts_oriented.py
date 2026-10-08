@@ -13,7 +13,12 @@ AXIAL_SCRIPTS = [
     "run_loaded_ladder.py",
 ]
 # Non-axial or audit tooling that deliberately controls orientation itself.
-EXEMPT = {"audit_direction_cfd.py", "evaluate_cror.py"}
+EXEMPT = {
+    "audit_direction_cfd.py", "evaluate_cror.py",
+    # Audit #7: mixed-flow/volute/CROR, each oriented by its own production path, then spin
+    # deliberately overridden to compare designed vs reversed rotation.
+    "audit_archetype_direction_cfd.py",
+}
 
 
 def _calls(path: Path) -> set[str]:
