@@ -109,7 +109,10 @@ def bind(session) -> None:
             + (
                 "✓ fits."
                 if d <= max_d
-                else f"✗ over by {d-max_d:.1f} mm — use Fit envelope, or add Extra-depth leeway."
+                else f"✗ over by {d-max_d:.1f} mm — " + (
+                    "turn off Allow intake overbuild (Fit & seed), then Fit envelope."
+                    if getattr(state, "intake_overbuild", False)
+                    else "use Fit envelope, or add Extra-depth leeway.")
             )
         )
 

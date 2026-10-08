@@ -179,6 +179,12 @@ def _load_assessed_designs(assess_dirs) -> list[Design]:
                 extra["cfd_stale"] = cfd_is_stale(extra.get("cfd_version"))
                 if tid != orig:
                     extra["orig_trial"] = orig
+                # Re-scored by scripts/refresh_stale_designs.py: the current score's case (STL +
+                # flow field) lives elsewhere under runs/; open that, not the old-solver case.
+                if extra.get("case_dir"):
+                    moved = assess_dir.parent.parent / extra["case_dir"] / "impeller.stl"
+                    if moved.exists():
+                        stl = moved
                 out.append(
                     Design(
                         trial=tid,

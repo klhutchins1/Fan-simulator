@@ -90,6 +90,33 @@ def intake_extra_mm(*, enabled: bool, extra_mm: float) -> float:
     return max(0.0, min(20.0, v))
 
 
+def intake_overbuild_note(depth_mm: float | None, nominal_mm: float,
+                          extra_mm: float) -> tuple[str, bool]:
+    """(caption, is_warning) for the Design Actions card while intake overbuild is on.
+
+    The old caption said "won't drop into stock frame" whenever the switch was on, even for a
+    design that fits, and Fit envelope can't clear it (with the switch on, Fit targets
+    nominal + extra). Say what the design actually measures and how to get back to stock.
+    """
+    if extra_mm <= 0:
+        return "", False
+    if depth_mm is None:
+        return (f"intake overbuild on (+{extra_mm:.0f} mm allowed) — depth unknown", True)
+    if depth_mm > nominal_mm + 0.05:
+        return (
+            f"intake overbuild on: impeller {depth_mm:.1f} mm deep vs {nominal_mm:.0f} mm stock "
+            f"frame (+{depth_mm - nominal_mm:.1f} mm) — won't drop into a stock frame. To make "
+            "it fit: Fit & seed → turn off \"Allow intake overbuild\", then Fit envelope. "
+            "(Optimize ignores this switch and always uses the stock depth.)",
+            True,
+        )
+    return (
+        f"intake overbuild on (+{extra_mm:.0f} mm allowed), but this impeller is "
+        f"{depth_mm:.1f} mm deep — still fits the {nominal_mm:.0f} mm stock frame.",
+        False,
+    )
+
+
 def effective_depth_max(spec: FanSpec, *, intake_extra: float = 0.0) -> float:
     """Nominal frame depth + intake overbuild (Fit clamp target)."""
     return float(spec.depth_mm[1]) + float(intake_extra or 0.0)

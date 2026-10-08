@@ -538,10 +538,14 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             classes="text-caption text-medium-emphasis mb-1",
                         )
                         html.Div(
-                            "intake +{{ intake_overbuild_mm }} mm overbuild · "
-                            "won't drop into stock frame",
-                            v_show="intake_overbuild",
+                            "{{ intake_note }}",
+                            v_show="intake_overbuild && intake_note && intake_note_warn",
                             classes="text-caption text-warning mb-1",
+                        )
+                        html.Div(
+                            "{{ intake_note }}",
+                            v_show="intake_overbuild && intake_note && !intake_note_warn",
+                            classes="text-caption text-medium-emphasis mb-1",
                         )
                         v3.VAlert(
                             "{{ stale_msg }}",

@@ -267,7 +267,9 @@ def design_provenance(d, opened_run: str = "") -> str:
         label = f"Assessed under {extra['source_run']}"
     if when and when[:10] in label:          # same day as the run's start stamp
         when = f"done {when[11:]}"
-    return f"{label} · {when}" if when else label
+    line = f"{label} · {when}" if when else label
+    name = extra.get("display_name")
+    return f"{name} · {line} · trial {getattr(d, 'trial', '?')}" if name else line
 
 
 def scatter_figure(study_designs, user_designs=(), stock_ref: dict | None = None,
@@ -296,7 +298,7 @@ def scatter_figure(study_designs, user_designs=(), stock_ref: dict | None = None
             ),
             customdata=[d.trial for d in designs],
             text=[design_provenance(d, opened_run) for d in designs],
-            hovertemplate="#%{customdata} · %{text}<br>free %{x:.1f} CFM"
+            hovertemplate="%{text}<br>free %{x:.1f} CFM"
                           "<br>load %{y:.1f} CFM<br>eff %{marker.color:.1f} %<extra></extra>",
         )
 

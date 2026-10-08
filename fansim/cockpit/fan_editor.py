@@ -13,10 +13,13 @@ import random
 from fansim.cockpit.placement import (
     effective_depth_max,
     fit_envelope,
+    impeller_z_extent,
     intake_extra_mm,
+    intake_overbuild_note,
     preview_changes,
     scale_to_hub,
 )
+from fansim.fan_spec import get_fan_spec
 from fansim.geometry.blade import normalize_shroud_thick_mm, uniform_thickness_tc
 from fansim.geometry.features import Features
 from fansim.optimize.search_space import blade_from_flat
@@ -346,6 +349,25 @@ def bind(session) -> None:
 
     state.change("intake_overbuild", "intake_overbuild_mm")(_refresh_intake_slider_maxes)
     _refresh_intake_slider_maxes()
+
+    def _refresh_intake_note(**_):
+        """Measured depth vs the stock frame while intake overbuild is on (not a static flag)."""
+        extra = intake_extra_mm(
+            enabled=bool(getattr(state, "intake_overbuild", False)),
+            extra_mm=float(getattr(state, "intake_overbuild_mm", 10.0) or 0.0),
+        )
+        depth = None
+        if extra > 0:
+            try:
+                depth = impeller_z_extent(session.build_edit_params())
+            except Exception:  # noqa: BLE001 — readout only
+                depth = None
+        nominal = float(get_fan_spec(state.fan_model).depth_mm[1])
+        state.intake_note, state.intake_note_warn = intake_overbuild_note(depth, nominal, extra)
+
+    state.change("intake_overbuild", "intake_overbuild_mm", "fan_model", *EDITOR_VARS)(
+        _refresh_intake_note)
+    _refresh_intake_note()
 
     def on_scale_to_hub():
         res = scale_to_hub(edit_flat(), session.active_spec(), features=edit_features())

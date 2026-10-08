@@ -14,10 +14,11 @@ from pathlib import Path
 
 from fansim.catalog import load_catalog, results_for_hub
 from fansim.cockpit.data import Design, feasible_designs, load_designs
+from fansim.cockpit.design_names import REGISTRY_FILE as NAMES_FILE
+from fansim.cockpit.design_names import assign_display_names, dropdown_title
 from fansim.cockpit.errors import log_caught
 from fansim.cockpit.fan_helpers import _has_real_cfm
 from fansim.cockpit.figures import (
-    design_provenance,
     filter_fitting_designs,
     pareto_front,
     scatter_figure,
@@ -111,6 +112,8 @@ def apply_state_defaults(session) -> None:
     state.show_dir_cues = True  # rotation (CCW) + airflow (−Z) direction cues in the 3-D view
     state.intake_overbuild = False  # allow blades/hub past inlet (+Z) beyond nominal depth
     state.intake_overbuild_mm = 10.0
+    state.intake_note = ""
+    state.intake_note_warn = False
     state.e_blade_hub_z_max = 8.0
     state.e_hub_height_max = 30.0
     state.e_hub_nose_max = 15.0
@@ -204,19 +207,13 @@ def bind(session) -> None:
     study_name = session.study_name
 
     def _label(d, best_ids=frozenset()):
-        """``#id ✪ · Opt 2026-10-01 10:01 · free 48.3 · load 36.7 · η 17.9``."""
+        """``F12 ✪ · 9 blades, tubercles · Assess Sep 30 · free 48.3 · load 36.7 · η 17.9``."""
         tag = ""
         if id(d) in best_ids:
             tag = "  ✪"          # best overall across everything listed
         elif d.is_pareto:
             tag = "  ★"          # best within its own run
-        stale = "  ⧗" if d.extra.get("cfd_stale") else ""
-        bits = [design_provenance(d, run_dir.name)]
-        for key, lab in (("cfm_free", "free"), ("cfm_load", "load"), ("efficiency", "η")):
-            v = d.objectives.get(key)
-            if isinstance(v, (int, float)) and v > -1e5:
-                bits.append(f"{lab} {v:.1f}")
-        return {"title": f"#{d.trial}{tag}{stale} · " + " · ".join(bits), "value": d.trial}
+        return {"title": dropdown_title(d, tag=tag), "value": d.trial}
 
     def _design_id(d: Design) -> str | None:
         """Catalog design_id (<run>_t<trial>) for a loaded Design, if we can infer it."""
@@ -292,6 +289,7 @@ def bind(session) -> None:
             if (did in allowed) or nominal_fits_spec(d.params, spec):
                 out.append(d)
                 seen.add(id(d))
+        assign_display_names(out, run_dir.parent / NAMES_FILE, opened_run=run_dir.name)
         return out
 
     def _resync_study_from_disk() -> int:
@@ -352,7 +350,8 @@ def bind(session) -> None:
         best = frozenset(pareto_front(scored))
         items = [_label(d, best) for d in scored]
         if stale:
-            items.append({"title": "— Unscored on this hub —", "value": None, "disabled": True})
+            items.append({"title": "— ⧗ Needs re-run (scored by an old solver) —", "value": None,
+                          "disabled": True})
             items += [_label(d) for d in stale]
         ref_item = _register_reference_design()
         if ref_item is not None:
