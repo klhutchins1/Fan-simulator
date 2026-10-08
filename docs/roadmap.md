@@ -1053,7 +1053,7 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 
 ### 23.A Correctness — HIGH
 
-- [ ] **23.1 Stock recipe cut from 7 stations to 3 through the flat dict.** *(verified 2026-10-08:
+- [x] **23.1 Stock recipe cut from 7 stations to 3 through the flat dict.** *(verified 2026-10-08:
   `blade_from_flat(stock_blade_flat())` → 3 stations at r/R 0, 0.5, 1.0; the YAML gives 7.)*
   `blade_to_flat()` (`fansim/optimize/search_space.py` ~314–383) only has root/mid/tip slots;
   `stock_blade_flat()` feeds it the 7-station refit recipe and silently drops r/R 0.22/0.38/0.69/0.84
@@ -1067,13 +1067,14 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   dict (or route Stock via `load_blade_params`), raise when flattening would drop stations, regenerate
   the golden deliberately, re-Assess Stock, re-check the print-ready export. May explain 23.15.
   **[impact: high]** **[effort: med]**
+  **DONE 2026-10-08 — flat dicts carry `stations`/`station_slots`; slot edits apply as interpolated deltas; editor keeps the recipe; golden regenerated (vol −0.21 %, tip section ≤ 0.94 mm). Stock A/B and audit rows still used the 3-station build — redo when next run.**
 - [ ] **23.2 (UI-1) Volute Export STLs fails:** `TypeError: object of type 'PosixPath' has no len()`
   after Preview → Export. A `Path` is passed where str/list is expected; seen on Linux — verify on
   Windows. **[impact: high]** **[effort: low]**
 
 ### 23.B Input validation — MEDIUM
 
-- [ ] **23.3 No validation on axial `BladeParams` / `blade_from_flat` / mixed-flow params.**
+- [x] **23.3 No validation on axial `BladeParams` / `blade_from_flat` / mixed-flow params.**
   `hub_radius 60 > tip_radius 50` exports a "valid" 120 mm disc; `chord_mid=-5` builds;
   `n_blades=0` → `ZeroDivisionError` (`blade.py:280` `blade_solidity`, also `:784`);
   `tip_radius=NaN` → OCCT "Courbes non jointives"; `n_blades=1` builds an unbalanced single blade
@@ -1081,13 +1082,15 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   "Null TopoDS_Shape". Volute and wind already validate. Add `__post_init__` checks with clear
   `ValueError`s; the cockpit editor and YAML loader can go outside the optimizer bounds.
   **[impact: med]** **[effort: low–med]**
+  **DONE 2026-10-08 — `validate_blade_params` at `build_impeller` / `build_impeller_preview`; MixedFlowParams checks n_blades ≥ 2, z_span > 0.**
 
 ### 23.C BEM pre-screen — MEDIUM (ranking-inverting, not absolute error)
 
-- [ ] **23.4 Free delivery falls back to the sweep's max flow when Δp never crosses zero**
+- [x] **23.4 Free delivery falls back to the sweep's max flow when Δp never crosses zero**
   (`fansim/fan_bem.py:198–203`, `pq_curve`). A fan with 0 blades reports 129 CFM; hub > tip returns
   0/0 silently. Return None/NaN plus a flag when there is no crossing, and never rank it.
   **[impact: med]** **[effort: low]**
+  **DONE 2026-10-08 — `FanCurve.free_status` (crossed / beyond_sweep / no_rise); no_rise → 0 CFM; `bem_screen_cfm` → (0, 0).**
 - [ ] **23.5 Polar angle of attack clamped to the table edges — no post-stall model**
   (`fansim/propeller/polars.py:76–86` `_interp_alpha`, used at `fan_bem.py:142`). For α ≳ 30° cl pins
   at 0.769 and cd at 0.10; for α ≲ −10° cl pins at −0.276; drag-driven swirl then still gives a
@@ -1098,15 +1101,17 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 
 ### 23.D Tests / CI
 
-- [ ] **23.6 `motor_side()` returns None for a 5 mm centre bore** (`fansim/audit/direction.py:272–283`;
+- [x] **23.6 `motor_side()` returns None for a 5 mm centre bore** (`fansim/audit/direction.py:272–283`;
   `tests/audit/test_direction_geometry.py::test_motor_side_with_centre_bore[±1]` fail on Linux). The
   first probe radius (0.1·tip = 5.000000000000001) lands on the bore wall; `r_root` takes the first
   radius with ≥ 3 loops without skipping the bore or checking the blade count. Possibly
   platform-sensitive (no embree on Linux), but the logic flaw is real. Audited unit — re-prove after.
   **[impact: med]** **[effort: low]**
-- [ ] **23.7 Ruff "critical" CI gate red: F811** — `fansim/cockpit/fan_viz.py:46` redefines `Path`
+  **DONE 2026-10-08 — root radius must keep its loop count 1 % of tip further out; forced Linux case added as a test.**
+- [x] **23.7 Ruff "critical" CI gate red: F811** — `fansim/cockpit/fan_viz.py:46` redefines `Path`
   (also an invalid `# noqa` at `tests/test_cockpit_errors.py:48`). *(verified 2026-10-08: still
   fails.)* CI goes red on push. **[impact: low]** **[effort: low]**
+  **DONE 2026-10-08 — duplicate `Path` import removed; noqa-looking comment reworded.**
 - [ ] **23.8 `scripts/audit_archetype_direction_cfd.py` not registered with the orientation guard**
   (`tests/test_axial_scripts_oriented.py::test_no_unlisted_script_calls_build_case`). *(verified
   2026-10-08: still fails here; a fix session was started 2026-10-07.)* Register it or exempt it with
@@ -1117,10 +1122,11 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 
 ### 23.E Math / naming — LOW
 
-- [ ] **23.10 `meanline.camber_from_turning_rad` gives ~2× camber** (`m = |ε|/4`). A circular arc
+- [x] **23.10 `meanline.camber_from_turning_rad` gives ~2× camber** (`m = |ε|/4`). A circular arc
   gives `(c/2)·tan(θ/4) ≈ θ/8`; NACA 4-digit at p = 0.4 gives ≈ θ/8.3. At 10/20/30° turning:
   code 0.0436/0.0873/0.131 vs 0.0218/0.0437/0.0658. The rest of meanline matched hand calculations.
   Affects cockpit seeds only. **[impact: low]** **[effort: low]**
+  **DONE 2026-10-08 — Carter's rule (θ = ε/(1 − m/√σ), m = 0.23 + β2/500) + circular arc ½·tan(θ/4).**
 - [ ] **23.11 Two "solidity" definitions.** `blade_solidity` (`blade.py:261–282`) returns c·cosβ/s
   while its docstring says chord/pitch; `meanline.solidity` returns c/s (default 7-blade fan:
   1.58/1.13/0.69 vs 1.76/1.26/0.75). Used by the `--loadcap` floors (`objectives.py:323`) and
@@ -1128,13 +1134,15 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 
 ### 23.F Docs / setup / platform — LOW (but release blockers for a public repo)
 
-- [ ] **23.12 README quickstart test command fails after the documented `uv sync`** — pytest is only in
+- [x] **23.12 README quickstart test command fails after the documented `uv sync`** — pytest is only in
   `[dev]`; RECOVERY_TODO's `--extra optim` doesn't add it either. Document `uv sync --extra dev`
   (CI already uses it). **[impact: low]** **[effort: low]**
-- [ ] **23.13 Hard-coded Windows paths:** `scripts/evaluate_noise.py:23–25` and
+  **DONE 2026-10-08 — README/RECOVERY_TODO use `uv sync --extra dev` and CI's marker set.**
+- [x] **23.13 Hard-coded Windows paths:** `scripts/evaluate_noise.py:23–25` and
   `scripts/evaluate_shutoff.py:27–29` (`E:/Projects/programming_2/FluidX3D`, `C:\msys64\ucrt64\bin`;
   README says `../FluidX3D`); `scripts/import_prop_stls.py` usage example uses
   `C:/Users/Kimball/Downloads/...`. Move to env vars / config. **[impact: low]** **[effort: low]**
+  **DONE 2026-10-08 — `fansim/external_tools.py` (`FANSIM_FLUIDX3D`, `FANSIM_MSYS_BIN`); personal paths removed.**
 - [ ] **23.14 Recovery leftovers:** RECOVERED-FROM-CHAT banners still in `README.md`,
   `scripts/cockpit.py`, `scripts/export_finalists.py`, `scripts/validate_stl.py`,
   `scripts/run_baseline.py` and others (only `fansim/*.py` were stripped);
@@ -1191,8 +1199,9 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [ ] **23.32 `_trim_blade_to_tip_cylinder` can return an untrimmed blade** when all 4 intersect
   retries come back empty (`blade.py:1080–1084`), contrary to its comment. Not seen in 23 builds.
   **[effort: low]**
-- [ ] **23.33 `build_impeller_preview` doesn't check `len(blade_angles_deg) == n_blades`**
+- [x] **23.33 `build_impeller_preview` doesn't check `len(blade_angles_deg) == n_blades`**
   (`blade.py:841–844`); `build_impeller` does. **[effort: low]**
+  **DONE 2026-10-08 — covered by `validate_blade_params` (23.3).**
 - [ ] **23.34 `chord_realisation._station_measure_fracs` hard-codes `f < 0.47` as "inside the hub"**
   — that's the A12x25 hub ratio; wrong for hub ratios ≳ 0.47. **[effort: low]**
 - [ ] **23.35 Prop pitch twist evaluated at hub_r / 0.5(hub+R) but lofted at 4.5 / 34.0 mm**
