@@ -17,6 +17,8 @@ before any CFD is spent on them.
 
 from __future__ import annotations
 
+import json
+import shutil
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -62,6 +64,10 @@ from fansim.structural.stress import centrifugal_root_stress
 
 INFEASIBLE = -1.0e6      # rejected value for MAXIMIZED objectives (optimizer avoids them)
 INFEASIBLE_NOISE = 1.0e6  # rejected value for the MINIMIZED noise objective (high = bad)
+# Free-air metrics written as soon as that solve finishes, so a run killed during the load solve
+# still reports its free-air result (fansim.optimize.isolated_eval.partial_free_note).
+PARTIAL_FREE_FILE = "_partial_free.json"
+FREE_HISTORY_DIR = "free_history"  # free-air outletFlow + moment histories, kept past the load solve
 
 # Layered GCI campaign (roadmap §1.5 / §10.8): p≈0.28, GCI_fine≈21%, not asymptotic.
 # Do not quote screening CFM with a 3–5% bar. Shared by axial / mixed / CROR / volute evaluate.
@@ -172,6 +178,7 @@ def evaluate_candidate(
     stator_n_extra: int | None = None,
     stepped_inlet: bool = False,
     rpm: float | None = None,
+    parallel_mesh: bool = False,
 ) -> ObjectiveResult:
     """Gate, mesh once, solve at free-delivery and at ``load_pa``, return objectives.
 
@@ -179,7 +186,10 @@ def evaluate_candidate(
     means each blade carries more load (higher diffusion factor -> more broadband noise), so a floor
     forces the search to spread load over enough blade area rather than overloading a few blades.
     ``require_mountable`` gates (pre-CFD) designs whose hub is too small to house the fan model's
-    motor — so the search only produces impellers that can actually be mounted."""
+    motor — so the search only produces impellers that can actually be mounted.
+
+    ``parallel_mesh`` runs snappyHexMesh on ``procs`` ranks instead of one (meshing was ~9 min
+    serial on a 1M-cell case); the mesh is equivalent but not bit-identical to serial."""
     if stator and stator_stack:
         raise ValueError("cannot combine stator and stator_stack")
     workdir = Path(workdir)
@@ -374,7 +384,8 @@ def evaluate_candidate(
                    n_iters=iters, n_subdomains=procs, back_pressure_pa=0.0,
                    frame_stl_mm=frame_path, casing_stl_mm=casing_path,
                    stator_stl_mm=stator_path, wall_ks_mm=wall_ks_mm)
-        run_mesh(runner)
+        # parallel_mesh: snappyHexMesh on ``procs`` ranks (see openfoam_case.mesh_pipeline).
+        run_mesh(runner, n_procs=procs if parallel_mesh else 1)
     except Exception as exc:
         return _infeasible(f"mesh failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
@@ -414,6 +425,20 @@ def evaluate_candidate(
                 noise_swl = INFEASIBLE_NOISE
         else:
             m_free = solve_at(0.0, "free")
+            try:
+                (workdir / PARTIAL_FREE_FILE).write_text(
+                    json.dumps(m_free.to_dict()), encoding="utf-8")
+                # The load solve wipes postProcessing; keep the free-air iteration history
+                # (screening-tier audits replay it, e.g. scripts/screen_rank_audit.py).
+                hist = workdir / FREE_HISTORY_DIR
+                for fo, name in (("outletFlow", "surfaceFieldValue.dat"),
+                                 ("forces", "moment.dat")):
+                    src = sorted((workdir / "postProcessing" / fo).glob(f"*/{name}"))
+                    if src:
+                        (hist / fo).mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(src[-1], hist / fo / name)
+            except Exception:  # noqa: BLE001 - salvage file is best-effort
+                pass
             m_load = solve_at(load_pa, "load")
             if with_noise:  # default: cheap calibrated LOADING proxy (no reconstruct; tracks LBM
                 # dipole better than Proudman -- blade count + per-blade thrust). See acoustics/loading.

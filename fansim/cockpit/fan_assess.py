@@ -39,6 +39,7 @@ from fansim.fan_spec import (
 )
 from fansim.geometry.features import Features
 from fansim.manufacturability import check_printability
+from fansim.isolated_job import stall_timeout
 from fansim.optimize.isolated_eval import cfd_eval_timeout, evaluate_candidate_isolated
 from fansim.optimize.presets import assess_load
 from fansim.optimize.search_space import blade_from_flat
@@ -144,6 +145,8 @@ def bind(session) -> None:
             material=str(state.assess_material or "PETG"),
             wall_ks_mm=ks,
             proc_holder=assess_proc,
+            # Stock A/B 2026-10-07: same objectives within 0.15%, mesh 4 min faster.
+            parallel_mesh=True,
         )
 
     def _cfd_progress_hint(workdir: Path | None) -> str:
@@ -331,8 +334,8 @@ def bind(session) -> None:
             state.assess_busy = True
             state.assess_cancel = False
             t0 = time.time()
-            budget_m = max(1, int(round(cfd_eval_timeout() / 60.0)))
-            note = f"typically 15–30 min free+load; timeout {budget_m} min"
+            note = (f"typically 30–40 min free+load; stops only if stalled "
+                    f"{stall_timeout() / 60:.0f} min (cap {cfd_eval_timeout() / 3600:.0f} h)")
             wd_holder: list = [None]
             state.assess_msg = busy_caption("Assess", 0, note=note)
             state.flush()

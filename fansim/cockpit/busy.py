@@ -8,6 +8,7 @@ stage hint. True percent is rare (sweep only); everything else is honest-indeter
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -50,17 +51,32 @@ def cfd_stage_hint(workdir: Path | None) -> str:
         if (wd / "impeller.stl").exists():
             return "meshing…"
         return "building geometry…"
-    max_t = 0
-    p0 = wd / "processor0"
-    if p0.is_dir():
-        for child in p0.iterdir():
-            if child.is_dir() and child.name.isdigit():
-                max_t = max(max_t, int(child.name))
-    if max_t <= 0 and not (wd / "logs" / "decomposePar.log").exists():
-        return "meshing done — starting free delivery…"
-    if max_t < 500:
-        return f"solving… time={max_t}/500 (free or load)"
-    return f"solving… time={max_t}/500 (finishing / second hose point)"
+    # simpleFoam.log streams live (fansim.cfd.runner), so the hint shows the actual iteration.
+    # Axial evals drop _partial_free.json once free-air is done; other archetypes don't, so the
+    # phase is only named when known.
+    phase = "load solve (free-air done)" if (wd / "_partial_free.json").exists() else "solve"
+    it = _live_iteration(wd / "logs" / "simpleFoam.log")
+    if it is None:
+        if not (wd / "logs" / "decomposePar.log").exists():
+            return "meshing done — starting solve…"
+        return f"{phase}: starting…"
+    return f"{phase}: iteration {it}"
+
+
+_TIME_RE = re.compile(r"^Time = (\d+)\s*$", re.MULTILINE)
+
+
+def _live_iteration(log: Path) -> int | None:
+    """Last ``Time = N`` in a (possibly still growing) simpleFoam log; reads only the tail."""
+    try:
+        with open(log, "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - 16384))
+            tail = f.read().decode("utf-8", errors="replace")
+    except OSError:
+        return None
+    hits = _TIME_RE.findall(tail)
+    return int(hits[-1]) if hits else None
 
 
 async def run_busy_ticker(

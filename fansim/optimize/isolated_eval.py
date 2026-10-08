@@ -11,24 +11,37 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import sys
 import tempfile
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 
 from fansim.fan_spec import A12X25, FanSpec, fan_spec_to_dict
-from fansim.optimize.objectives import ObjectiveResult
+from fansim.isolated_job import run_watched, stall_timeout
+from fansim.optimize.objectives import PARTIAL_FREE_FILE, ObjectiveResult
 
-# Wall-clock budget for one Assess (geometry + mesh + free+load simpleFoam, optional refine-op).
-# Successful Windows/Docker runs already take ~16–18 min; the old 1200s default killed in-progress
-# load solves (~21 min). Override with env FANSIM_CFD_EVAL_TIMEOUT (seconds).
-DEFAULT_CFD_EVAL_TIMEOUT_S = 3600.0
+# HARD CAP for one Assess (geometry + mesh + free+load simpleFoam, optional refine-op). The real
+# guard is the no-progress watchdog (fansim.isolated_job.stall_timeout, 15 min): a run that keeps
+# writing output may finish even when a busy desktop slows it 2-3x (measured 2026-10-07: the same
+# 1.07M-cell solve varied 69-140 s per 60 iters). The old flat 3600 s killed such runs near the end.
+# Override with env FANSIM_CFD_EVAL_TIMEOUT (seconds).
+DEFAULT_CFD_EVAL_TIMEOUT_S = 3.0 * 3600.0
 ENV_CFD_EVAL_TIMEOUT = "FANSIM_CFD_EVAL_TIMEOUT"
 
 
+def partial_free_note(workdir: str | Path) -> str:
+    """Salvage text for a killed eval whose free-air solve had already finished ('' if none)."""
+    try:
+        m = json.loads((Path(workdir) / PARTIAL_FREE_FILE).read_text(encoding="utf-8"))
+        return (f"; the free-air solve had finished: {float(m['cfm']):.1f} CFM raw CFD "
+                f"(before motor derate / print penalty, "
+                f"{'converged' if m.get('converged') else 'UNCONVERGED'})")
+    except Exception:  # noqa: BLE001 — salvage is best-effort
+        return ""
+
+
 def cfd_eval_timeout(override: float | None = None) -> float:
-    """Resolve CFD subprocess timeout: explicit override > env > default."""
+    """Resolve the CFD subprocess hard cap: explicit override > env > default."""
     if override is not None:
         return float(override)
     raw = os.environ.get(ENV_CFD_EVAL_TIMEOUT)
@@ -38,23 +51,6 @@ def cfd_eval_timeout(override: float | None = None) -> float:
         except ValueError:
             pass
     return float(DEFAULT_CFD_EVAL_TIMEOUT_S)
-
-
-def _terminate_worker(proc: subprocess.Popen) -> None:
-    """Kill an eval worker and its children (Windows needs taskkill /T for the Docker tree)."""
-    if proc.poll() is not None:
-        return
-    if sys.platform == "win32":
-        subprocess.run(
-            ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-            capture_output=True, text=True,
-        )
-    else:
-        proc.kill()
-    try:
-        proc.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        proc.kill()
 
 
 def eval_job_dict(
@@ -71,6 +67,7 @@ def eval_job_dict(
     refine_op: bool = False,
     material: str = "PETG",
     wall_ks_mm: float | None = None,
+    parallel_mesh: bool = False,
 ) -> dict:
     """JSON payload for ``_eval_worker`` (includes the Assess/optimizer hose)."""
     feat = asdict(features) if is_dataclass(features) else dict(features or {})
@@ -81,6 +78,7 @@ def eval_job_dict(
         "load_pa": float(load_pa),
         "refine_op": bool(refine_op),
         "material": str(material or "PETG"),
+        "parallel_mesh": bool(parallel_mesh),
     }
     if wall_ks_mm is not None and float(wall_ks_mm) > 0:
         job["wall_ks_mm"] = float(wall_ks_mm)
@@ -102,14 +100,16 @@ def evaluate_candidate_isolated(
     material: str = "PETG",
     wall_ks_mm: float | None = None,
     proc_holder: list | None = None,
+    parallel_mesh: bool = False,
 ) -> ObjectiveResult:
     """Run evaluate_candidate in a subprocess and return its ObjectiveResult.
 
     ``flat`` may be a merged geometry+feature dict (feature keys are ignored by blade_from_flat).
     ``features`` is a Features dataclass or a plain dict. Raises TimeoutError if the evaluation
-    exceeds ``timeout`` (default ``DEFAULT_CFD_EVAL_TIMEOUT_S`` / ``FANSIM_CFD_EVAL_TIMEOUT``),
-    or RuntimeError if the worker process fails / crashes natively (non-zero exit) -- the caller
-    shows the message instead of dying.
+    exceeds ``timeout`` (default ``DEFAULT_CFD_EVAL_TIMEOUT_S`` / ``FANSIM_CFD_EVAL_TIMEOUT``)
+    or stalls (no new case output for ``stall_timeout()``) -- the message carries the free-air
+    result if that solve had finished -- or RuntimeError if the worker process fails / crashes
+    natively (non-zero exit). The caller shows the message instead of dying.
 
     ``proc_holder``, when provided as a one-slot list, receives the live ``Popen`` so the cockpit
     Cancel button can terminate the worker mid-solve.
@@ -125,39 +125,22 @@ def evaluate_candidate_isolated(
         refine_op=refine_op,
         material=material,
         wall_ks_mm=wall_ks_mm,
+        parallel_mesh=parallel_mesh,
     )
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as jf:
         json.dump(job, jf)
         jobfile = jf.name
-    proc: subprocess.Popen | None = None
+    (workdir / PARTIAL_FREE_FILE).unlink(missing_ok=True)
     try:
-        proc = subprocess.Popen(
-            [sys.executable, "-m", "fansim.optimize._eval_worker", jobfile],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-        )
-        if proc_holder is not None:
-            if len(proc_holder) == 0:
-                proc_holder.append(proc)
-            else:
-                proc_holder[0] = proc
         try:
-            stdout, stderr = proc.communicate(timeout=timeout_s)
-        except subprocess.TimeoutExpired as exc:
-            _terminate_worker(proc)
-            try:
-                from fansim.cfd.runner import kill_cfd_containers
-                kill_cfd_containers()
-            except Exception:  # noqa: BLE001
-                pass
-            raise TimeoutError(
-                f"CFD evaluation exceeded {timeout_s:.0f}s "
-                f"(free+load often needs 15–40 min on Windows/Docker; "
-                f"set {ENV_CFD_EVAL_TIMEOUT}=SECONDS to raise)"
-            ) from exc
-        returncode = proc.returncode
+            returncode, _stdout, stderr = run_watched(
+                [sys.executable, "-m", "fansim.optimize._eval_worker", jobfile],
+                watch_dir=workdir, hard_timeout_s=timeout_s, stall_s=stall_timeout(),
+                label="CFD evaluation", proc_holder=proc_holder,
+            )
+        except TimeoutError as exc:
+            raise TimeoutError(f"{exc}{partial_free_note(workdir)}") from exc
     finally:
-        if proc_holder is not None and proc_holder and proc_holder[0] is proc:
-            proc_holder[0] = None
         Path(jobfile).unlink(missing_ok=True)
     if returncode != 0 or not out.exists():
         tail = (stderr or "").strip()[-300:] or "native crash (no output)"

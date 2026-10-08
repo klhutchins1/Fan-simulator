@@ -736,9 +736,47 @@ MESH_PIPELINE = [
 ]
 
 
-def run_mesh(runner) -> None:
-    """Run the serial meshing pipeline in the container."""
-    for cmd in MESH_PIPELINE:
+# Clear stale decomposition, function-object output AND reconstructed time dirs (everything numeric
+# but 0/) before a fresh solve. A case folder can be reused (re-Assess of a saved design); an old
+# reconstructed time dir left at the case root belongs to an earlier mesh and was read by the
+# airflow view against the new one ("mesh and field do not match", 2026-10-07).
+CLEAN_BEFORE_SOLVE = (
+    "rm -rf processor* postProcessing; "
+    "for d in [0123456789]*; do case \"$d\" in 0|*[!0123456789.e+-]*) ;; "
+    "*) if [ -d \"$d\" ]; then rm -rf \"$d\"; fi;; esac; done"
+)
+
+
+def mesh_pipeline(n_procs: int = 1) -> list[str]:
+    """Meshing commands; ``n_procs`` > 1 runs snappyHexMesh in parallel.
+
+    Serial snappy was the single biggest fixed cost of an Assess (~7 of ~9 min of meshing on a
+    1M-cell mesh, one core busy). The parallel path decomposes the background block mesh,
+    snaps on ``n_procs`` ranks, then reconstructs to ``constant/polyMesh`` and deletes the
+    processor dirs, so topoSet / renumberMesh / checkMesh and every solve downstream see the
+    same single-region case as before. The parallel mesh is not bit-identical to the serial
+    one (load balancing changes refinement order), so it is opt-in per caller and was A/B'd on
+    Stock before becoming the Assess default (docs/validation/audits/2026-10-07-assess-speed.md).
+    """
+    if not n_procs or n_procs <= 1:
+        return list(MESH_PIPELINE)
+    mpi = f"mpirun --allow-run-as-root --oversubscribe -np {int(n_procs)}"
+    return [
+        "surfaceFeatureExtract",
+        "blockMesh",
+        "decomposePar -force -no-fields",
+        f"{mpi} snappyHexMesh -parallel -overwrite",
+        "reconstructParMesh -constant",
+        "rm -rf processor*",
+        "topoSet",
+        "renumberMesh -overwrite",
+        "checkMesh -allTopology",
+    ]
+
+
+def run_mesh(runner, n_procs: int = 1) -> None:
+    """Run the meshing pipeline in the container (serial snappy unless ``n_procs`` > 1)."""
+    for cmd in mesh_pipeline(n_procs):
         runner.run(cmd)
 
 
@@ -752,7 +790,7 @@ def run_solve(runner, n_procs: int = 8, reconstruct: bool = False) -> None:
     # On restart, OpenFOAM ROTATES function-object files (old surfaceFieldValue.dat ->
     # surfaceFieldValue_0.dat) and writes the new run to the suffixed name -- which the
     # metrics parser would miss -- so wipe postProcessing to keep the canonical filename.
-    runner.run("rm -rf processor* postProcessing", check=False)
+    runner.run(CLEAN_BEFORE_SOLVE, check=False)
     if n_procs and n_procs > 1:
         runner.run("decomposePar -force")
         mpi = f"mpirun --allow-run-as-root --oversubscribe -np {n_procs}"
@@ -954,7 +992,7 @@ def apply_urans_transient(
 
 def run_solve_urans(runner, n_procs: int = 8) -> None:
     """URANS (frozen-rotor MRF)."""
-    runner.run("rm -rf processor* postProcessing", check=False)
+    runner.run(CLEAN_BEFORE_SOLVE, check=False)
     if n_procs and n_procs > 1:
         runner.run("decomposePar -force")
         mpi = f"mpirun --allow-run-as-root --oversubscribe -np {n_procs}"
@@ -967,7 +1005,7 @@ def run_solve_urans(runner, n_procs: int = 8) -> None:
 
 def run_solve_des(runner, n_procs: int = 8, reconstruct: bool = False) -> None:
     """Solve with pimpleFoam (DES transient), parallel via MPI when ``n_procs`` > 1."""
-    runner.run("rm -rf processor* postProcessing", check=False)
+    runner.run(CLEAN_BEFORE_SOLVE, check=False)
     if n_procs and n_procs > 1:
         runner.run("decomposePar -force")
         mpi = f"mpirun --allow-run-as-root --oversubscribe -np {n_procs}"

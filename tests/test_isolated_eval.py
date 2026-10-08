@@ -51,3 +51,11 @@ def test_eval_worker_source_passes_load_pa():
     text = Path("fansim/optimize/_eval_worker.py").read_text(encoding="utf-8")
     assert "eval_kwargs_from_job" in text
     assert "load_pa" in text
+
+
+def test_parallel_mesh_flag_round_trips_and_defaults_off():
+    spec = get_fan_spec("a12x25")
+    on = eval_job_dict({}, {}, ".", spec, procs=8, base_cell=0.006, iters=10, out="x.json",
+                       parallel_mesh=True)
+    assert eval_kwargs_from_job(on)["parallel_mesh"] is True
+    assert eval_kwargs_from_job({})["parallel_mesh"] is False

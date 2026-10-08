@@ -94,5 +94,6 @@ def evaluate_mixed_flow_isolated(
         label="mixed-flow evaluate",
         require_paths=[out],
         stderr_tail=200,
+        watch_dir=workdir,
     )
     return load_objective_result(out)

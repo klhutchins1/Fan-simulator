@@ -26,6 +26,7 @@ def eval_kwargs_from_job(job: dict) -> dict:
         "load_pa": float(job.get("load_pa", 1.0)),
         "refine_op": bool(job.get("refine_op", False)),
         "material": str(job.get("material") or "PETG"),
+        "parallel_mesh": bool(job.get("parallel_mesh", False)),
     }
     if job.get("wall_ks_mm") is not None and float(job["wall_ks_mm"]) > 0:
         kw["wall_ks_mm"] = float(job["wall_ks_mm"])

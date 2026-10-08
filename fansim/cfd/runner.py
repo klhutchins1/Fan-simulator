@@ -29,6 +29,27 @@ def _label_args() -> list[str]:
     return args
 
 
+def log_name(foam_command: str) -> str:
+    """Log basename for a command: the OpenFOAM app, not the ``mpirun`` launcher.
+
+    ``mpirun ... -np 8 simpleFoam -parallel`` -> ``simpleFoam`` (it used to be ``mpirun``, so
+    potentialFoam's log was overwritten by simpleFoam's and neither was identifiable).
+    """
+    tokens = foam_command.split()
+    if tokens and tokens[0] == "mpirun":
+        rest = tokens[1:]
+        i = 0
+        while i < len(rest):
+            tok = rest[i]
+            if tok in ("-np", "-n", "--np", "--bind-to", "--map-by", "-x", "--mca"):
+                i += 3 if tok == "--mca" else 2
+            elif tok.startswith("-"):
+                i += 1
+            else:
+                return tok.replace("/", "_")
+    return tokens[0].replace("/", "_") if tokens else "command"
+
+
 @dataclass
 class CommandResult:
     command: str
@@ -55,27 +76,36 @@ class OpenFOAMRunner:
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
     def run(self, foam_command: str, check: bool = True) -> CommandResult:
-        """Run one OpenFOAM command (sourced env) in the container, logging output."""
+        """Run one OpenFOAM command (sourced env) in the container, logging output.
+
+        stdout streams to ``logs/<name>.log`` WHILE the command runs (not only on exit), so a
+        killed or timed-out solve still leaves its iteration history on disk, and the parent's
+        stall watchdog (``fansim.isolated_job.watch_process``) sees progress as the log grows.
+        """
         mount = f"{self.case_dir}:/case"
         full = (
             "source /usr/lib/openfoam/openfoam2406/etc/bashrc >/dev/null 2>&1; "
             f"cd /case && {foam_command}"
         )
-        proc = subprocess.run(
-            ["docker", "run", "--rm", *_label_args(), "-v", mount, "-w", "/case", self.image,
-             "bash", "-lc", full],
-            capture_output=True, text=True,
-        )
-        name = foam_command.split()[0].replace("/", "_")
-        (self.log_dir / f"{name}.log").write_text(
-            proc.stdout + "\n===STDERR===\n" + proc.stderr, encoding="utf-8"
-        )
-        result = CommandResult(foam_command, proc.returncode, proc.stdout, proc.stderr)
+        log_path = self.log_dir / f"{log_name(foam_command)}.log"
+        err_path = log_path.with_suffix(".stderr.tmp")
+        with open(log_path, "w", encoding="utf-8") as out, open(err_path, "w", encoding="utf-8") as err:
+            proc = subprocess.run(
+                ["docker", "run", "--rm", *_label_args(), "-v", mount, "-w", "/case", self.image,
+                 "bash", "-lc", full],
+                stdout=out, stderr=err, text=True,
+            )
+        stderr = err_path.read_text(encoding="utf-8", errors="replace")
+        err_path.unlink(missing_ok=True)
+        with open(log_path, "a", encoding="utf-8") as out:
+            out.write("\n===STDERR===\n" + stderr)
+        stdout = log_path.read_text(encoding="utf-8", errors="replace").split("\n===STDERR===\n")[0]
+        result = CommandResult(foam_command, proc.returncode, stdout, stderr)
         if check and not result.ok:
-            tail = "\n".join(proc.stdout.splitlines()[-25:])
+            tail = "\n".join(stdout.splitlines()[-25:])
             raise RuntimeError(
                 f"OpenFOAM command failed ({proc.returncode}): {foam_command}\n{tail}\n"
-                f"{proc.stderr[-1000:]}"
+                f"{stderr[-1000:]}"
             )
         return result
 
@@ -91,17 +121,22 @@ def kill_cfd_containers(*, session: str | None = None, timeout: float = 30.0) ->
     """``docker kill`` OpenFOAM containers tagged by ``_label_args`` (best-effort).
 
     When ``session`` is set (or ``FANSIM_CFD_SESSION`` is in the environment), only that
-    session's containers are killed; otherwise every ``fansim_cfd=1`` container is reaped.
+    session's containers are killed; otherwise every ``fansim_cfd=1`` container that does NOT
+    belong to some session is reaped (background jobs set their own session to stay safe).
     Returns how many container IDs were passed to ``docker kill``.
     """
     sess = session if session is not None else os.environ.get("FANSIM_CFD_SESSION")
     filt = f"label=fansim_cfd_session={sess}" if sess else "label=fansim_cfd=1"
     try:
         out = subprocess.run(
-            ["docker", "ps", "-q", "--filter", filt],
+            ["docker", "ps", "--filter", filt, "--format",
+             '{{.ID}} {{.Label "fansim_cfd_session"}}'],
             capture_output=True, text=True, timeout=min(20.0, timeout),
         )
-        ids = out.stdout.split()
+        rows = [ln.split() for ln in out.stdout.splitlines() if ln.strip()]
+        # Unscoped cleanup (a cockpit with no session) must not kill containers another
+        # session owns, e.g. an overnight audit (2026-10-07: a cockpit restart killed one).
+        ids = [r[0] for r in rows if sess or len(r) == 1]
         if not ids:
             return 0
         subprocess.run(

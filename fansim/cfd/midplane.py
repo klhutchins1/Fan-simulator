@@ -165,7 +165,17 @@ def has_reconstructed_fields(case_dir: str | Path) -> bool:
             best, best_dir = t, p
     if best_dir is None:
         return False
-    return (best_dir / "U").is_file()
+    u = best_dir / "U"
+    if not u.is_file():
+        return False
+    # A reconstructed field older than the mesh belongs to an earlier solve on an earlier mesh
+    # (re-Assessing a design reuses its folder): reading it against the new mesh gives VTK's
+    # "Number of cells/points in mesh and field do not match". Treat it as absent so the caller
+    # reconstructs from the current solve.
+    owner = case_dir / "constant" / "polyMesh" / "owner"
+    if owner.is_file() and u.stat().st_mtime < owner.stat().st_mtime:
+        return False
+    return True
 
 
 def has_decomposed_fields(case_dir: str | Path) -> bool:

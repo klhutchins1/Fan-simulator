@@ -230,6 +230,10 @@ def run_study(
         trial.set_user_attr("n_blades", params.n_blades)
         trial.set_user_attr("runtime_s", result.runtime_s)
         trial.set_user_attr("cfd_version", CFD_VERSION)  # so stale (pre-fix) scores are detectable
+        # The hose the load score is on; without it, load CFM across runs can't be compared
+        # (2026-10-07: had to be inferred from result.json's system-curve k).
+        trial.set_user_attr("load_pa", float(load_pa))
+        trial.set_user_attr("refine_op", bool(refine_op))
         if with_noise:
             trial.set_user_attr("noise_swl", result.noise_swl)
         if "sanity_status" in result.raw:

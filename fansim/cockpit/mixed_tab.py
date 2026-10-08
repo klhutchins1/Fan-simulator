@@ -26,6 +26,7 @@ from fansim.cockpit.tab_shell import (
     render_left_shell,
 )
 from fansim.fan_spec import A12X25
+from fansim.isolated_job import stall_timeout
 from fansim.optimize.isolated_eval import cfd_eval_timeout
 from fansim.optimize.presets import assess_load
 
@@ -352,8 +353,8 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
         load_pa, _ = assess_load(str(state.mf_assess_preset or "case"))
         state.mf_assess_busy = True
         wd_holder: list = [workdir]
-        budget_m = max(1, int(round(cfd_eval_timeout() / 60.0)))
-        note = f"hose {state.mf_assess_preset}; typically 15–30 min; timeout {budget_m} min"
+        note = (f"hose {state.mf_assess_preset}; typically 15–30 min; stops only if stalled "
+                f"{stall_timeout() / 60:.0f} min (cap {cfd_eval_timeout() / 3600:.0f} h)")
         ticker, _t0 = spawn_busy_ticker(
             action="Assess",
             msg_attr="mf_msg",

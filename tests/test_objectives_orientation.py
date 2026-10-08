@@ -33,7 +33,7 @@ def test_build_case_gets_flipped_rotor_and_fitted_rig(tmp_path, monkeypatch):
 
     monkeypatch.setattr(objectives, "build_case", fake_build_case)
     # run_mesh would otherwise shell out to Docker between the two build_case calls.
-    monkeypatch.setattr(objectives, "run_mesh", lambda runner: None)
+    monkeypatch.setattr(objectives, "run_mesh", lambda runner, n_procs=1: None)
 
     params = load_blade_params("config/problems/a12x25_reference.yaml")
     result = objectives.evaluate_candidate(params, workdir=tmp_path)
