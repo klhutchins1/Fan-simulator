@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
+
 from fansim.geometry.blade import (BladeParams, RadialStation, shroud_is_full,
     open_tip_rmax_mm, SHROUD_DEFAULT_MM, normalize_shroud_thick_mm)
 from fansim.geometry.features import Features
@@ -210,6 +212,62 @@ def suggest_params(trial, with_features: bool = False, space: str = "open",
     return bp
 
 
+# Full-recipe carriage (roadmap §23.1). The flat dict has root/mid/tip slots only, so a recipe with
+# more stations (Stock: 7) was silently cut to 3. blade_to_flat now also stores the full station list
+# plus the slot values it derived from it; blade_from_flat rebuilds every station and applies any
+# slot EDIT as a delta interpolated (piecewise-linear in r_frac) between the root/mid/tip stations.
+# Unedited -> the exact recipe; edited -> the recipe shifted the same way a 3-station edit would be.
+FLAT_STATIONS = "stations"
+FLAT_STATION_SLOTS = "station_slots"
+FLAT_STATION_SLOT_R = "station_slot_r"
+STATION_PAYLOAD_KEYS = (FLAT_STATIONS, FLAT_STATION_SLOTS, FLAT_STATION_SLOT_R)
+_STATION_FIELDS = ("r_frac", "chord", "stagger_deg", "thickness", "max_camber", "camber_pos",
+                   "sweep", "skew", "lean_deg", "le_sweep", "le_skew")
+# station field -> flat keys at (root, mid, tip); None = no slot (fixed at the recipe value)
+_SLOT_KEYS = (
+    ("chord", ("chord_root", "chord_mid", "chord_tip")),
+    ("stagger_deg", ("stagger_root", "stagger_mid", "stagger_tip")),
+    ("thickness", ("thickness_root", "thickness_mid", "thickness_tip")),
+    ("max_camber", ("camber_root", "camber_mid", "camber_tip")),
+    ("sweep", (None, "sweep_mid", "sweep_tip")),
+    ("skew", (None, "skew_mid", "skew_tip")),
+    ("lean_deg", (None, "lean_mid", "lean_tip")),
+    ("le_sweep", ("le_sweep_root", "le_sweep_mid", "le_sweep_tip")),
+    ("le_skew", ("le_skew_root", "le_skew_mid", "le_skew_tip")),
+)
+
+
+def _slot_value(p: dict, key: str, original: float) -> float:
+    """Flat value for a slot key with blade_from_flat's fallbacks (camber_* -> max_camber)."""
+    if key in p and p[key] is not None:
+        return float(p[key])
+    if key.startswith("camber_") and p.get("max_camber") is not None:
+        return float(p["max_camber"])
+    return float(original)
+
+
+def _stations_from_payload(p: dict) -> list[RadialStation]:
+    """Every recipe station, with slot edits applied as interpolated deltas."""
+    slots = p[FLAT_STATION_SLOTS]
+    r_nodes = [float(r) for r in p[FLAT_STATION_SLOT_R]]
+    out = []
+    for raw in p[FLAT_STATIONS]:
+        st = {k: float(raw[k]) for k in _STATION_FIELDS if k in raw}
+        r = st["r_frac"]
+        for field_name, keys in _SLOT_KEYS:
+            deltas = [
+                0.0 if k is None or k not in slots else _slot_value(p, k, slots[k]) - float(slots[k])
+                for k in keys
+            ]
+            if any(deltas):
+                st[field_name] = st.get(field_name, 0.0) + float(np.interp(r, r_nodes, deltas))
+        if "camber_pos" in slots:
+            st["camber_pos"] = st.get("camber_pos", CAMBER_POS) + (
+                _slot_value(p, "camber_pos", slots["camber_pos"]) - float(slots["camber_pos"]))
+        out.append(RadialStation(**st))
+    return out
+
+
 def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
     """Rebuild a BladeParams from a flat param dict (inverse of suggest_params).
 
@@ -242,6 +300,8 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
                       p.get("lean_tip", 0.0), le_sweep=p.get("le_sweep_tip", 0.0),
                       le_skew=p.get("le_skew_tip", 0.0)),
     ]
+    if p.get(FLAT_STATIONS):                            # full recipe carried (§23.1)
+        stations = _stations_from_payload(p)
     kw: dict[str, object] = {}
     if "hub_radius" in p:
         kw["hub_radius"] = float(p["hub_radius"])
@@ -312,7 +372,11 @@ OBJECTIVE_DIRECTIONS = ("maximize", "maximize", "maximize")
 
 # --- spliced from transcript edit-history (recovery 2026-09-12) ---
 def blade_to_flat(params: BladeParams) -> dict:
-    """Flatten a 3-station ``BladeParams`` into the cockpit / ``blade_from_flat`` dict.
+    """Flatten a ``BladeParams`` into the cockpit / ``blade_from_flat`` dict.
+
+    The editor slots are root/mid/tip (stations nearest r/R 0, 0.5, 1). A recipe with more
+    stations (e.g. 7-station Stock) also carries ``stations`` + the slot values it derived, so
+    ``blade_from_flat`` rebuilds it exactly and applies slot edits across all stations (§23.1).
 
     Bio-features and post-loft stamps (winglet / tip-round / sickle / notches) are not
     reverse-engineered — start clean so the stock reference is editable from the yaml
@@ -378,6 +442,20 @@ def blade_to_flat(params: BladeParams) -> dict:
         tip_round=0.0, tip_round_start=0.80,
         winglet_span=0.85, winglet_sweep=0.0, winglet_lean=0.0,
     )
+    # The root/mid/tip slots lose information unless the recipe IS three stations at 0/0.5/1 with a
+    # plain root (blade_from_flat fixes root sweep/skew/lean at 0). Otherwise carry it all (§23.1).
+    lossless = (
+        len(st) == 3
+        and [float(x.r_frac) for x in st] == [0.0, 0.5, 1.0]
+        and not any(float(getattr(root, k)) for k in ("sweep", "skew", "lean_deg"))
+    )
+    if not lossless:
+        flat[FLAT_STATIONS] = [
+            {k: float(getattr(x, k)) for k in _STATION_FIELDS} for x in st
+        ]
+        slot_keys = [k for _, keys in _SLOT_KEYS for k in keys if k is not None and k in flat]
+        flat[FLAT_STATION_SLOTS] = {k: float(flat[k]) for k in slot_keys + ["camber_pos"]}
+        flat[FLAT_STATION_SLOT_R] = [float(root.r_frac), float(mid.r_frac), float(tip.r_frac)]
     return flat
 
 

@@ -50,9 +50,16 @@ def test_a12x25_stock_keeps_root_mid_camber_split():
     assert abs(float(flat["camber_mid"]) - 0.0834) < 1e-9
     assert abs(float(flat["camber_tip"]) - 0.0971) < 1e-9
     bp = blade_from_flat(flat, Features())
+    # Since §23.1 the flat carries all 7 recipe stations, so every station keeps its own camber.
+    from fansim.geometry.config import load_blade_params
+
+    yaml = sorted(load_blade_params("config/problems/a12x25_reference.yaml").stations,
+                  key=lambda s: s.r_frac)
     st = sorted(bp.stations, key=lambda s: s.r_frac)
+    assert [s.max_camber for s in st] == [s.max_camber for s in yaml]
     assert abs(st[0].max_camber - 0.037) < 1e-9
-    assert abs(st[1].max_camber - 0.0834) < 1e-9
+    mid = min(st, key=lambda s: abs(s.r_frac - 0.5))
+    assert abs(mid.max_camber - 0.0834) < 1e-9
 
 
 def test_blade_to_flat_emits_thick_mode():

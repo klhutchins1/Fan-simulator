@@ -22,7 +22,7 @@ from fansim.cockpit.placement import (
 from fansim.fan_spec import get_fan_spec
 from fansim.geometry.blade import normalize_shroud_thick_mm, uniform_thickness_tc
 from fansim.geometry.features import Features
-from fansim.optimize.search_space import blade_from_flat
+from fansim.optimize.search_space import FLAT_STATIONS, STATION_PAYLOAD_KEYS, blade_from_flat
 
 EDITOR_VARS = (
     "e_n_blades", "e_stagger_root", "e_stagger_mid", "e_stagger_tip",
@@ -44,8 +44,20 @@ def bind(session) -> None:
     state = session.state
     sel_sig = session.sel_sig
 
+    # Full station recipe of the loaded design (e.g. 7-station Stock). The sliders only hold
+    # root/mid/tip, so the recipe rides alongside and edit_flat() hands it back; blade_from_flat
+    # applies slider edits across all stations (roadmap §23.1). Server-side only, not trame state.
+    station_payload: list = [None]
+
+    def _set_station_payload(p: dict) -> None:
+        if p.get(FLAT_STATIONS):
+            station_payload[0] = {k: p[k] for k in STATION_PAYLOAD_KEYS if k in p}
+        else:
+            station_payload[0] = None
+
     def _init_editor(p: dict, feat: Features | None = None):
         feat = feat or Features()
+        _set_station_payload(p)
         state.e_n_blades = int(p.get("n_blades", 7))
         state.e_stagger_root = float(p.get("stagger_root", 26.0))
         state.e_stagger_mid = float(p.get("stagger_mid", 26.0))
@@ -234,9 +246,13 @@ def bind(session) -> None:
             section_family=str(state.e_section_family or "naca"),
             spacing_spread=state.e_spacing,
             spacing_seed=0,
+            **(station_payload[0] or {}),
         )
 
     def _apply_editor_flat(flat: dict) -> None:
+        # A complete design flat replaces the recipe; a partial update (no slot keys) keeps it.
+        if FLAT_STATIONS in flat or ("chord_root" in flat and "stagger_mid" in flat):
+            _set_station_payload(flat)
         mapping = {
             "n_blades": ("e_n_blades", int),
             "stagger_root": ("e_stagger_root", float),
