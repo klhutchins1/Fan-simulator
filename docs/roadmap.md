@@ -7,7 +7,7 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-09-30**. **§12** + **§13** + **§7.6** + **§14.1–14.6** closed in code.
+- Last reviewed: **2026-10-08** (§23 QA bug list added). Previously **2026-09-30**. **§12** + **§13** + **§7.6** + **§14.1–14.6** closed in code.
   Stock close-ref fidelity (§2.7–2.8). **§13.22–13.24** / **§14.3b** /
   **§14.6** / **§15.1–15.6** landed 2026-09-16. Still **not shippable** until Validation P–Q /
   print+measure — see `a12x25_pq_report.md`. **§21** cockpit UX + **§22** design-switch
@@ -37,6 +37,7 @@ session.**
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
+**→ Next: §23 Phase-1 QA list (2026-10-08) — start with 23.1 (Stock 7→3 stations, verified) and the release blockers 23.12–23.14.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -1040,6 +1041,186 @@ Reselect is warm after 22.1–22.3. Measured first-open cost on `design_9014` (8
 - [ ] **22.12 Later / diminishing returns.** Smaller CFD mesh or FOAM→VTU extract for viz-only;
   parallel PNG renders (VTK off-screen is mostly lock-serialized on Windows — limited win).
   **[effort: med–high]** Parked — only reopen if first-open still feels slow after 22.5–22.11.
+
+---
+
+## 23. Phase-1 QA bug list (external review, 2026-10-08)
+
+Source: Phase-1 QA pass on Linux (8 cores, 16 GB; no Docker/OpenFOAM/CFD). Built 21 valid configs
+across every archetype; 25 STLs all watertight / single-body / consistent winding; pytest fast suite
+1513 passed, 3 failed, 18 skipped (22 docker/slow deselected). Items are the reviewer's unless
+marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" means everywhere.
+
+### 23.A Correctness — HIGH
+
+- [ ] **23.1 Stock recipe cut from 7 stations to 3 through the flat dict.** *(verified 2026-10-08:
+  `blade_from_flat(stock_blade_flat())` → 3 stations at r/R 0, 0.5, 1.0; the YAML gives 7.)*
+  `blade_to_flat()` (`fansim/optimize/search_space.py` ~314–383) only has root/mid/tip slots;
+  `stock_blade_flat()` feeds it the 7-station refit recipe and silently drops r/R 0.22/0.38/0.69/0.84
+  (re-labels 0.533 as 0.5). Measured stagger differs by up to 9° (r/R 0.45: 35.3° YAML vs 26.6° flat).
+  Single-blade volume barely moves (2074 vs 2083 mm³), so weight/volume gates don't catch it.
+  **Reaches:** cockpit "◆ Reference", `scripts/export_a12x25_print_ready.py`, Fit,
+  `fansim/validation/blade_golden.py` (the golden is frozen on the truncated build), the `fan_trials`
+  stock load, `scripts/a12x25_recipe_sensitivity.py`, and the 2026-10-07 `ab_assess_speed.py` /
+  `screen_rank_audit.py` "stock" rows (relative conclusions stand — both arms used the same
+  geometry — but that "stock" is not the validated recipe). Fix: carry N stations through the flat
+  dict (or route Stock via `load_blade_params`), raise when flattening would drop stations, regenerate
+  the golden deliberately, re-Assess Stock, re-check the print-ready export. May explain 23.15.
+  **[impact: high]** **[effort: med]**
+- [ ] **23.2 (UI-1) Volute Export STLs fails:** `TypeError: object of type 'PosixPath' has no len()`
+  after Preview → Export. A `Path` is passed where str/list is expected; seen on Linux — verify on
+  Windows. **[impact: high]** **[effort: low]**
+
+### 23.B Input validation — MEDIUM
+
+- [ ] **23.3 No validation on axial `BladeParams` / `blade_from_flat` / mixed-flow params.**
+  `hub_radius 60 > tip_radius 50` exports a "valid" 120 mm disc; `chord_mid=-5` builds;
+  `n_blades=0` → `ZeroDivisionError` (`blade.py:280` `blade_solidity`, also `:784`);
+  `tip_radius=NaN` → OCCT "Courbes non jointives"; `n_blades=1` builds an unbalanced single blade
+  silently; mixed-flow `n_blades=0` / `z_span_mm=-5` pass `__post_init__`, then fail with
+  "Null TopoDS_Shape". Volute and wind already validate. Add `__post_init__` checks with clear
+  `ValueError`s; the cockpit editor and YAML loader can go outside the optimizer bounds.
+  **[impact: med]** **[effort: low–med]**
+
+### 23.C BEM pre-screen — MEDIUM (ranking-inverting, not absolute error)
+
+- [ ] **23.4 Free delivery falls back to the sweep's max flow when Δp never crosses zero**
+  (`fansim/fan_bem.py:198–203`, `pq_curve`). A fan with 0 blades reports 129 CFM; hub > tip returns
+  0/0 silently. Return None/NaN plus a flag when there is no crossing, and never rank it.
+  **[impact: med]** **[effort: low]**
+- [ ] **23.5 Polar angle of attack clamped to the table edges — no post-stall model**
+  (`fansim/propeller/polars.py:76–86` `_interp_alpha`, used at `fan_bem.py:142`). For α ≳ 30° cl pins
+  at 0.769 and cd at 0.10; for α ≲ −10° cl pins at −0.276; drag-driven swirl then still gives a
+  positive Euler Δp. A stagger-89° "paddle" beats Stock (74.8 vs 58.2 CFM); reversed stagger gives
+  +36.8 Pa at η 0.55. Add a post-stall extension (flat-plate cl/cd, cd → ~1.2–2 at 90°) and flag
+  designs outside the table. Optimizer bounds (stagger ≤ 48°) mostly avoid it; the editor does not.
+  Re-run the Audit #4 ranking check afterwards. **[impact: med]** **[effort: med]**
+
+### 23.D Tests / CI
+
+- [ ] **23.6 `motor_side()` returns None for a 5 mm centre bore** (`fansim/audit/direction.py:272–283`;
+  `tests/audit/test_direction_geometry.py::test_motor_side_with_centre_bore[±1]` fail on Linux). The
+  first probe radius (0.1·tip = 5.000000000000001) lands on the bore wall; `r_root` takes the first
+  radius with ≥ 3 loops without skipping the bore or checking the blade count. Possibly
+  platform-sensitive (no embree on Linux), but the logic flaw is real. Audited unit — re-prove after.
+  **[impact: med]** **[effort: low]**
+- [ ] **23.7 Ruff "critical" CI gate red: F811** — `fansim/cockpit/fan_viz.py:46` redefines `Path`
+  (also an invalid `# noqa` at `tests/test_cockpit_errors.py:48`). *(verified 2026-10-08: still
+  fails.)* CI goes red on push. **[impact: low]** **[effort: low]**
+- [ ] **23.8 `scripts/audit_archetype_direction_cfd.py` not registered with the orientation guard**
+  (`tests/test_axial_scripts_oriented.py::test_no_unlisted_script_calls_build_case`). *(verified
+  2026-10-08: still fails here; a fix session was started 2026-10-07.)* Register it or exempt it with
+  a reason. **[impact: low–med]** **[effort: low]**
+- [ ] **23.9 Test-suite memory:** one pytest process grows to 4–6 GB (OCCT/VTK accumulation); the full
+  fast suite was OOM-killed twice on a 16 GB box. Isolate per file in CI (or chunk) and find the
+  leak. **[impact: med for contributors]** **[effort: med]**
+
+### 23.E Math / naming — LOW
+
+- [ ] **23.10 `meanline.camber_from_turning_rad` gives ~2× camber** (`m = |ε|/4`). A circular arc
+  gives `(c/2)·tan(θ/4) ≈ θ/8`; NACA 4-digit at p = 0.4 gives ≈ θ/8.3. At 10/20/30° turning:
+  code 0.0436/0.0873/0.131 vs 0.0218/0.0437/0.0658. The rest of meanline matched hand calculations.
+  Affects cockpit seeds only. **[impact: low]** **[effort: low]**
+- [ ] **23.11 Two "solidity" definitions.** `blade_solidity` (`blade.py:261–282`) returns c·cosβ/s
+  while its docstring says chord/pitch; `meanline.solidity` returns c/s (default 7-blade fan:
+  1.58/1.13/0.69 vs 1.76/1.26/0.75). Used by the `--loadcap` floors (`objectives.py:323`) and
+  `printability_score.py:110`. Pick one meaning and rename the other. **[impact: low]** **[effort: low]**
+
+### 23.F Docs / setup / platform — LOW (but release blockers for a public repo)
+
+- [ ] **23.12 README quickstart test command fails after the documented `uv sync`** — pytest is only in
+  `[dev]`; RECOVERY_TODO's `--extra optim` doesn't add it either. Document `uv sync --extra dev`
+  (CI already uses it). **[impact: low]** **[effort: low]**
+- [ ] **23.13 Hard-coded Windows paths:** `scripts/evaluate_noise.py:23–25` and
+  `scripts/evaluate_shutoff.py:27–29` (`E:/Projects/programming_2/FluidX3D`, `C:\msys64\ucrt64\bin`;
+  README says `../FluidX3D`); `scripts/import_prop_stls.py` usage example uses
+  `C:/Users/Kimball/Downloads/...`. Move to env vars / config. **[impact: low]** **[effort: low]**
+- [ ] **23.14 Recovery leftovers:** RECOVERED-FROM-CHAT banners still in `README.md`,
+  `scripts/cockpit.py`, `scripts/export_finalists.py`, `scripts/validate_stl.py`,
+  `scripts/run_baseline.py` and others (only `fansim/*.py` were stripped);
+  `fansim/cockpit/app.py.INCOMPLETE_990base` still in the tree; root-level recovery/handoff files
+  (`CHAT_RECOVERY`, `HANDOFF_TO_CURSOR.md`, `_tmp*.stl`, …). **[impact: low]** **[effort: low]**
+
+### 23.G Cockpit UI (browser pass at 1024×594, no CFD clicked)
+
+- [ ] **23.15 (UI-2)** Unedited "◆ Reference" shows "⚠ Edited since assessment" on first load; Reset
+  clears it. Re-check after 23.1. **[impact: med]** **[effort: low]**
+- [ ] **23.16 (UI-3)** Reset leaves the Fan 3-D viewer as empty axes instead of the reference fan.
+  **[impact: med]** **[effort: low]**
+- [ ] **23.17 (UI-4)** Fan "Preview (sec)" takes ~65 s per run (worker ~160% CPU, ~6 GB RAM); the
+  progress bar jumps back and forth and the spinner looks stuck. CROR Preview ~70 s / Export ~40 s,
+  stuck near 20%. Make progress honest and find why preview is that heavy. **[impact: med]**
+  **[effort: med]**
+- [ ] **23.18 (UI-5)** Prop 5" FPV reports 2087 g thrust / 743 W (implausible); the polar starts
+  "J=0.00 eta=-". Related to Audit #8 (prop numbers are not a performance predictor).
+  **[impact: med]** **[effort: med]**
+- [ ] **23.19 (UI-6)** Export STL takes ~2 min and saves only server-side
+  (`exports/design_100000_*.stl/.step`), with no browser download; "design_100000" is a confusing name
+  for the reference (use the F-name from `fansim/cockpit/design_names.py`). **[impact: low]**
+  **[effort: low–med]**
+- [ ] **23.20 (UI-7)** After Randomize, the previous "Saved …design_100000…stl" message stays on
+  screen. **[impact: low]** **[effort: low]**
+- [ ] **23.21 (UI-8)** Slider tooltip and side label disagree (Chord root 18.0 vs 17.75 mm; 25.0 vs
+  25.12 — step rounding); tooltips overlap the "Blades" label. **[impact: low]** **[effort: low]**
+- [ ] **23.22 (UI-9)** First-load 3-D view poorly framed under dense schematic arrows; the U colour bar
+  reads 3.00/3.00/3.00 (zero range). The first render was an extreme close-up — reset the camera after
+  Preview. **[impact: low]** **[effort: low]**
+- [ ] **23.23 (UI-10)** Volute Preview shows only an opaque casing box hiding the impeller; "RPM" and
+  "Load Pa@50CFM" labels are clipped by the Outlet panel. **[impact: low]** **[effort: low]**
+- [ ] **23.24 (UI-11)** Mixed/Prop/Volute sliders show no numeric values; the viewer shows a blurry
+  leftover render before the first Preview. **[impact: low]** **[effort: low]**
+- [ ] **23.25 (UI-12)** Mixed-flow Preview renders a flat, unshaded silhouette. **[impact: low]**
+  **[effort: low]**
+- [ ] **23.26 (UI-13)** Prop Stop and CROR CFD refine look enabled (solid red/orange) while disabled.
+  **[impact: low]** **[effort: low]**
+- [ ] **23.27 (UI-14)** Tab hover tooltip covers neighbouring tab names after clicking.
+  **[impact: low]** **[effort: low]**
+- [ ] **23.28 (UI-15)** Console 405 on `POST /paraview/` at load (trame-vtk probe). Likely benign;
+  silence or document. **[impact: low]** **[effort: low]**
+- [ ] **23.29 Shared trame state across browser clients** — a new browser opened on the CROR tab
+  another client had left. Probably by design; decide and document (matters for a public release).
+  **[impact: low]** **[effort: low]**
+
+### 23.H Suspicious, unconfirmed — verify before fixing
+
+- [ ] **23.30 Stock YAML blades hang ~0.94 mm below the hub** (bbox z_min −9.10 vs hub bottom
+  −8.16); the print-ready path after Fit is fine. **[effort: low]**
+- [ ] **23.31 `_root_axial_span` uses `params.stations[0]` without sorting** (`blade.py:626`), while
+  `_interp_stations` / `tip_section_points` sort — unsorted YAML/`blade_angles` stations would size
+  the hub from the wrong station. **[effort: low]**
+- [ ] **23.32 `_trim_blade_to_tip_cylinder` can return an untrimmed blade** when all 4 intersect
+  retries come back empty (`blade.py:1080–1084`), contrary to its comment. Not seen in 23 builds.
+  **[effort: low]**
+- [ ] **23.33 `build_impeller_preview` doesn't check `len(blade_angles_deg) == n_blades`**
+  (`blade.py:841–844`); `build_impeller` does. **[effort: low]**
+- [ ] **23.34 `chord_realisation._station_measure_fracs` hard-codes `f < 0.47` as "inside the hub"**
+  — that's the A12x25 hub ratio; wrong for hub ratios ≳ 0.47. **[effort: low]**
+- [ ] **23.35 Prop pitch twist evaluated at hub_r / 0.5(hub+R) but lofted at 4.5 / 34.0 mm**
+  (root_embed; `propeller/geometry.py:64–67`). Small, mostly at the root. **[effort: low]**
+- [ ] **23.36 Mixed-flow blades lofted along a straight eye→tip diagonal on a conical hub** — only the
+  root section attaches; the motor-cup-to-cone wall is ~1.66 mm at z = +2 mm (printability).
+  **[effort: med]**
+- [ ] **23.37 Wind scaffold:** `tip_speed_ratio` is unused by the geometry; Cp saturates at ≥ 4 blades
+  (5 and 10 give 0.4267). Labelled as a scaffold — keep it out of any release claims. **[effort: med]**
+
+### 23.I Related open threads from 2026-10-07/08 (Assess speed + screening audit)
+
+- [ ] **23.38 Quick screen with a load point.** Free-air-only quick tiers FAILED the pre-registered
+  rank audit (ρ_load 0.55/0.60; `docs/validation/audits/2026-10-07-screen-rank-audit.md`). Next
+  candidate: coarse mesh, free + load, 300 iterations each (~6 min) — needs its own pre-registered
+  test. Redo the audit's "stock" row after 23.1. **[impact: high for exploration speed]**
+  **[effort: med]**
+- [ ] **23.39 Wall-adaptive mesh gives thick blades ~0.35M cells vs thin ~1M** (surface level-3 floor
+  vs level 4) — a resolution difference inside Assess rankings. Measure whether it biases
+  comparisons. **[impact: med]** **[effort: med]**
+- [ ] **23.40 Flutter gate is order-of-magnitude (§19.18) but a hard reject** — it rejected t9001/9002/
+  9003/9005 and a thin Stock variant (t9002 at 0.91× the limit). Consider a warning band near the
+  limit. **[impact: med]** **[effort: low]**
+- [ ] **23.41 Hide duplicate designs** — t9009/9010/9011 score identically to t9008 after the v5
+  refresh. **[impact: low]** **[effort: low]**
+- [ ] **23.42 Commit the 2026-10-07/08 work** (watchdog, live logs, parallel mesh, F-names, refresh,
+  stale-viz fix, intake note, optimizer hose stamp) — still uncommitted at review time.
+  **[effort: low]**
 
 ---
 
