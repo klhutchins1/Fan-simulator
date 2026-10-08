@@ -172,6 +172,8 @@ def bem_screen_cfm(params, rpm: float, load_pa: float, tip_gap_mm: float,
 
     curve = pq_curve(params, rpm, tip_gap_mm=tip_gap_mm, stator=stator)
     q0 = float(curve.free_delivery_cfm)
+    if q0 <= 0.0:                     # no pressure rise at all (pq_curve free_status "no_rise")
+        return 0.0, 0.0
     if float(load_pa) <= 0.0:
         return q0, q0
     q1 = probe_flow_cfm(curve, load_pa)

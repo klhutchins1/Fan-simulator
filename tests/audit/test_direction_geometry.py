@@ -292,3 +292,14 @@ def test_real_obj6_7_8_radial_impellers_are_inconclusive(stl):
     mesh = trimesh.load(str(stl), force="mesh")
     p = prove_direction(mesh)
     assert p.verdict == "INCONCLUSIVE", p.note
+
+
+@pytest.mark.parametrize("side", [+1, -1])
+def test_motor_side_when_first_probe_lands_on_the_bore_wall(side, monkeypatch):
+    # QA 2026-10-08 (roadmap §23.6): on Linux the tip radius came out 50.00000000000001, so the
+    # first probe (0.1*tip) sat exactly on the 5 mm bore wall, the cut returned spurious loops,
+    # r_root was taken there and every band fell inside the empty bore -> None. Force that case.
+    from fansim.audit import direction
+
+    monkeypatch.setattr(direction, "_tip_radius", lambda mesh: 50.00000000000001)
+    assert motor_side(cambered_blade_fan(cup_side=side, bore_r=5.000000000000001)) == side

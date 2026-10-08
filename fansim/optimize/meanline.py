@@ -134,9 +134,24 @@ def de_haller_ratio(w1: float, w2: float) -> float:
     return float(w2) / max(float(w1), 1e-12)
 
 
-def camber_from_turning_rad(turning_rad: float) -> float:
-    """NACA-ish max-camber fraction from flow turning: m ≈ |ε|/4 (circular-arc approx)."""
-    return min(max(abs(float(turning_rad)) / 4.0, CAMBER_MIN), CAMBER_MAX)
+def camber_from_turning_rad(turning_rad: float, solidity: float = 1.0,
+                            beta2_ax_deg: float = 0.0) -> float:
+    """Max-camber fraction for a circular-arc section that turns the flow by ``turning_rad``.
+
+    The blade must be cambered more than the flow turns, because the flow leaves the trailing
+    edge with deviation δ. Carter's rule (Dixon & Hall, *Fluid Mechanics and Thermodynamics of
+    Turbomachinery*, ch. 3): δ = m·θ/√σ with m = 0.23 + β2/500 (circular arc, max camber at
+    mid-chord, β2 in degrees from axial), so the camber angle is θ = ε / (1 − m/√σ). A circular
+    arc of camber angle θ has max camber (c/2)·tan(θ/4) ≈ θ/8.
+
+    The old rule m = |ε|/4 assumed θ = 2ε, about twice the camber at σ ≈ 1 (QA 2026-10-08,
+    roadmap §23.10). Only seeds the cockpit meanline recipe; CFD/BEM still score the design.
+    """
+    eps = abs(float(turning_rad))
+    m_carter = 0.23 + abs(float(beta2_ax_deg)) / 500.0
+    denom = max(1.0 - m_carter / math.sqrt(max(float(solidity), 1e-6)), 0.2)
+    theta = eps / denom
+    return min(max(0.5 * math.tan(theta / 4.0), CAMBER_MIN), CAMBER_MAX)
 
 
 def stagger_from_disk_deg(beta1_ax_rad: float, beta2_ax_rad: float) -> float:
@@ -232,8 +247,8 @@ def velocity_triangle_station(
     beta2 = math.atan2(abs(w_theta2), max(cz, 1e-12))
     turning = beta1 - beta2
     stag = stagger_from_disk_deg(beta1, beta2)
-    cam = camber_from_turning_rad(turning)
     sol = solidity(n_blades, chord_m, r_m)
+    cam = camber_from_turning_rad(turning, sol, math.degrees(beta2))
     df = lieblein_df(w1, w2, abs(cu2), sol)
     dh = de_haller_ratio(w1, w2)
     return StationTriangle(

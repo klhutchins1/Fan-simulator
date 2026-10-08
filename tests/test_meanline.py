@@ -95,9 +95,16 @@ def test_lieblein_df_fails_when_highly_diffusing():
 
 
 def test_camber_from_turning():
-    # 20° turning → ε=π/9 → m=ε/4
+    # Carter's rule + circular arc (Dixon & Hall ch. 3). 20° turning, σ = 1, β2 = 0:
+    # θ = ε / (1 − 0.23) ≈ 25.97°, max camber = ½·tan(θ/4) ≈ 0.0569.
     eps = math.radians(20.0)
-    assert camber_from_turning_rad(eps) == pytest.approx(eps / 4.0)
+    theta = eps / (1.0 - 0.23)
+    assert camber_from_turning_rad(eps, 1.0, 0.0) == pytest.approx(0.5 * math.tan(theta / 4.0))
+    assert camber_from_turning_rad(eps, 1.0, 0.0) == pytest.approx(0.0569, abs=5e-4)
+    # no-deviation circular arc would be ≈ ε/8; the old ε/4 rule was ~2× that
+    assert eps / 8.0 < camber_from_turning_rad(eps) < eps / 4.0
+    # higher solidity guides the flow better -> less over-camber needed
+    assert camber_from_turning_rad(eps, 2.0) < camber_from_turning_rad(eps, 0.7)
     assert camber_from_turning_rad(math.radians(80.0)) == pytest.approx(CAMBER_MAX)
 
 

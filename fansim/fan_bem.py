@@ -67,6 +67,11 @@ class FanCurve:
     peak_efficiency: float
     peak_eff_cfm: float
     converged: bool = True       # False if any point up to free delivery failed to converge (post-free-delivery windmill region ignored)
+    # "crossed": static rise crosses 0 inside the sweep (normal). "beyond_sweep": still positive at
+    # the last point (free delivery reported at the sweep end, a lower bound). "no_rise": static
+    # rise never positive (no blades, reversed/stalled blades, hub >= tip) -> free delivery 0, so a
+    # dead design ranks last instead of at the sweep's max flow (roadmap §23.4).
+    free_status: str = "crossed"
 
 
 def _interp_geometry(params: BladeParams):
@@ -186,6 +191,9 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
     tip_r = params.tip_radius / 1000.0
     hub_r = params.hub_radius / 1000.0
     area = math.pi * (tip_r * tip_r - hub_r * hub_r)
+    if area <= 0.0 or int(params.n_blades) <= 0:
+        return FanCurve(points=[], free_delivery_cfm=0.0, shutoff_dp_pa=0.0, peak_efficiency=0.0,
+                        peak_eff_cfm=0.0, converged=False, free_status="no_rise")
     v_tip = (rpm * 2.0 * math.pi / 60.0) * tip_r
     q_max = 0.6 * v_tip * area                            # generous upper bound on flow
     flows = np.linspace(0.02 * q_max, q_max, n_points)
@@ -195,12 +203,16 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
            for q in flows]
 
     # free delivery: interpolate where static rise crosses 0 (high-flow end)
-    free_cfm = pts[-1].flow_cfm
-    for a, b in zip(pts, pts[1:]):
-        if a.dp_static_pa > 0.0 >= b.dp_static_pa:
-            t = a.dp_static_pa / (a.dp_static_pa - b.dp_static_pa)
-            free_cfm = round(a.flow_cfm + t * (b.flow_cfm - a.flow_cfm), 1)
-            break
+    if not any(p.dp_static_pa > 0.0 for p in pts):
+        free_cfm, free_status = 0.0, "no_rise"
+    else:
+        free_cfm, free_status = pts[-1].flow_cfm, "beyond_sweep"
+        for a, b in zip(pts, pts[1:]):
+            if a.dp_static_pa > 0.0 >= b.dp_static_pa:
+                t = a.dp_static_pa / (a.dp_static_pa - b.dp_static_pa)
+                free_cfm = round(a.flow_cfm + t * (b.flow_cfm - a.flow_cfm), 1)
+                free_status = "crossed"
+                break
     # Shut-off: Q→0 linear intercept from the lowest-flow points (§10.7), not max(ΔP)
     # which can sit off the loading branch on a coarse sweep.
     from fansim.analyze.fan_curve import shut_off_pa as _shut_off_pa
@@ -214,4 +226,5 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
     return FanCurve(points=pts, free_delivery_cfm=free_cfm, shutoff_dp_pa=round(shutoff, 2),
                     peak_efficiency=peak.efficiency, peak_eff_cfm=peak.flow_cfm,
                     converged=all(p.converged for p in pts if p.flow_cfm <= free_cfm + 1e-9
-                                  or p.dp_static_pa > 0.0))
+                                  or p.dp_static_pa > 0.0),
+                    free_status=free_status)

@@ -767,6 +767,47 @@ def build_hub(params: BladeParams, z_bottom: float, z_top: float) -> cq.Solid:
     return _cylinder_hub(params, z_bottom, z_top)
 
 
+def validate_blade_params(params: BladeParams) -> None:
+    """Raise ``ValueError`` for an impeller that can't be a real fan (roadmap §23.3, §23.33).
+
+    The optimizer stays inside its bounds, but the cockpit editor and YAML loader can leave them;
+    before this, hub > tip exported a "valid" disc, chord < 0 built, 0 blades divided by zero and a
+    NaN radius failed deep inside OCCT.
+    """
+    def finite(x) -> bool:
+        try:
+            return math.isfinite(float(x))
+        except (TypeError, ValueError):
+            return False
+
+    n = params.n_blades
+    whole = finite(n) and not isinstance(n, bool) and float(n) == int(float(n))
+    if not whole or int(float(n)) < 2:
+        raise ValueError(f"n_blades must be an integer >= 2 (a single blade can't be balanced), got {n!r}")
+    hub, tip = params.hub_radius, params.tip_radius
+    if not (finite(hub) and finite(tip)) or float(hub) <= 0.0 or float(tip) <= 0.0:
+        raise ValueError(f"hub_radius and tip_radius must be positive numbers, got {hub!r} / {tip!r}")
+    if float(hub) >= float(tip):
+        raise ValueError(f"hub_radius {float(hub):.2f} mm must be < tip_radius {float(tip):.2f} mm "
+                         "(otherwise there is no blade span)")
+    if len(params.stations) < 2:
+        raise ValueError(f"need at least 2 radial stations, got {len(params.stations)}")
+    for i, st in enumerate(params.stations):
+        for name in ("r_frac", "chord", "stagger_deg", "thickness", "max_camber", "camber_pos",
+                     "sweep", "skew", "lean_deg", "le_sweep", "le_skew"):
+            if not finite(getattr(st, name)):
+                raise ValueError(f"station {i} {name} is not a finite number: {getattr(st, name)!r}")
+        if not 0.0 <= float(st.r_frac) <= 1.0:
+            raise ValueError(f"station {i} r_frac {st.r_frac} must be within 0..1")
+        if float(st.chord) <= 0.0:
+            raise ValueError(f"station {i} chord must be > 0 mm, got {st.chord}")
+        if float(st.thickness) <= 0.0:
+            raise ValueError(f"station {i} thickness must be > 0, got {st.thickness}")
+    if params.blade_angles_deg is not None and len(params.blade_angles_deg) != int(float(n)):
+        raise ValueError(
+            f"blade_angles_deg has {len(params.blade_angles_deg)} entries, expected n_blades={n}")
+
+
 def build_impeller(params: BladeParams | None = None) -> cq.Workplane:
     """Build the full impeller: N patterned blades fused onto a hub.
 
@@ -774,6 +815,7 @@ def build_impeller(params: BladeParams | None = None) -> cq.Workplane:
     """
     cq = _cq()
     params = params or BladeParams()
+    validate_blade_params(params)
     blade = build_blade_solid(params)
 
     z_bottom, z_top = _hub_axial_range(params, blade)
@@ -826,6 +868,7 @@ def build_impeller_preview(
     import trimesh
 
     params = params or BladeParams()
+    validate_blade_params(params)
     if screen:
         params = with_screen_loft(params)
     blade = build_blade_solid(params)

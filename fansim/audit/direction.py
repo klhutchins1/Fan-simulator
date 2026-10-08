@@ -270,9 +270,15 @@ def motor_side(mesh: trimesh.Trimesh, n: int = 64, min_depth_mm: float = 2.0) ->
     tip = _tip_radius(mesh)
 
     r_root = None
+    step = 0.01 * tip
     for f in np.linspace(0.1, 0.6, 26):
         r0 = f * tip
-        if sum(1 for _ in _section_loops(mesh, r0)) >= 3:
+        n0 = sum(1 for _ in _section_loops(mesh, r0))
+        # Blade roots give the same loop count just outward; a cut that coincides with a
+        # cylindrical wall (a centre bore at exactly r0) returns spurious loops that vanish a
+        # hair further out. Without this, r_root landed on the bore wall and every probe band
+        # fell inside the empty bore (QA 2026-10-08, roadmap §23.6).
+        if n0 >= 3 and sum(1 for _ in _section_loops(mesh, r0 + step)) == n0:
             r_root = r0
             break
     if r_root is None:

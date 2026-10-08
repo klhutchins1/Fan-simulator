@@ -48,6 +48,14 @@ class MixedFlowParams:
     n_chord: int = 48
 
     def __post_init__(self) -> None:
+        try:
+            n_ok = float(self.n_blades) == int(float(self.n_blades)) and int(float(self.n_blades)) >= 2
+        except (TypeError, ValueError, OverflowError):
+            n_ok = False
+        if not n_ok:
+            raise ValueError(f"n_blades must be an integer >= 2, got {self.n_blades!r}")
+        if not (float(self.z_span_mm) > 0.0):          # also rejects NaN
+            raise ValueError(f"z_span_mm must be > 0, got {self.z_span_mm!r}")
         if self.r_eye_mm >= self.r_back_mm:
             raise ValueError(
                 f"eye radius {self.r_eye_mm:.1f} mm must be < back hub {self.r_back_mm:.1f} mm")
