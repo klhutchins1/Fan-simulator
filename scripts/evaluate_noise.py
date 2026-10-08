@@ -20,9 +20,11 @@ from pathlib import Path
 import numpy as np
 
 PROJECT = Path(__file__).resolve().parent.parent
-FLUIDX3D = Path("E:/Projects/programming_2/FluidX3D")
-EXE = FLUIDX3D / "bin" / "FluidX3D.exe"
-UCRT = r"C:\msys64\ucrt64\bin"
+from fansim.external_tools import fluidx3d_dir, fluidx3d_exe, msys_bin  # noqa: E402
+
+FLUIDX3D = fluidx3d_dir()          # env FANSIM_FLUIDX3D (default ../FluidX3D)
+EXE = fluidx3d_exe()
+UCRT = msys_bin()                  # env FANSIM_MSYS_BIN (Windows msys2 runtime)
 CFG = PROJECT / "build" / "noise_job.cfg"
 from fansim.physics.air import C0_AIR as C0
 R_OBS, PREF = 1.0, 20e-6

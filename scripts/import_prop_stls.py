@@ -2,7 +2,7 @@
 
 Usage:
     uv run python scripts/import_prop_stls.py \\
-        --src "C:/Users/Kimball/Downloads/radial+impeller_stls" \\
+        --src path/to/downloaded_stls \\
         --dst validation/reference/drone_radial
 """
 

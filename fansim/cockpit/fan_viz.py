@@ -43,8 +43,6 @@ _GLYPH_MAX = {"coarse": 250, "medium": 500, "fine": 800}
 
 
 def bind(session) -> None:
-    from pathlib import Path
-
     state, ctrl = session.state, session.ctrl
     plotter = session.plotter
     spawn_busy_ticker = session.spawn_busy_ticker

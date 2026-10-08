@@ -24,9 +24,16 @@ sys.path.insert(0, str(PROJECT))
 
 from fansim.cfd.lbm_shutoff import PUBLISHED_SHUTOFF_PA, settle_shutoff  # noqa: E402
 
-FLUIDX3D = Path("E:/Projects/programming_2/FluidX3D")
-EXE = FLUIDX3D / "bin" / "FluidX3D.exe"
-UCRT = r"C:\msys64\ucrt64\bin"
+from fansim.external_tools import (  # noqa: E402
+    fluidx3d_dir,
+    fluidx3d_exe,
+    missing_fluidx3d_message,
+    msys_bin,
+)
+
+FLUIDX3D = fluidx3d_dir()          # env FANSIM_FLUIDX3D (default ../FluidX3D)
+EXE = fluidx3d_exe()
+UCRT = msys_bin()                  # env FANSIM_MSYS_BIN (Windows msys2 runtime)
 CFG = PROJECT / "build" / "noise_job.cfg"  # shared job cfg; mode=shutoff selects the case
 DEFAULT_STL = PROJECT / "build" / "a12x25_real_capped.stl"
 
@@ -64,7 +71,7 @@ def evaluate_shutoff(
     if not stl_path.exists():
         raise FileNotFoundError(stl_path)
     if not EXE.exists():
-        raise FileNotFoundError(f"FluidX3D exe missing: {EXE}")
+        raise FileNotFoundError(missing_fluidx3d_message())
     if dia_mm is None:
         import trimesh
 

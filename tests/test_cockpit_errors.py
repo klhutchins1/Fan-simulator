@@ -45,7 +45,7 @@ def test_fan_tab_has_no_bare_silent_pass():
     for name in modules:
         text = (root / name).read_text(encoding="utf-8")
         combined += text
-        # Bare ``except Exception:`` / ``except Exception:  # noqa`` followed by only ``pass``.
+        # Bare ``except Exception:`` (with or without a noqa tag) followed by only ``pass``.
         bad = re.findall(
             r"except Exception(?: as \w+)?(?:[^\n]*)?:\n[ \t]+pass\b",
             text,

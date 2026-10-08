@@ -74,19 +74,20 @@ optimize  ─►  browse/tweak in the cockpit  ─►  export print files  ─�
 
 - Python **3.12** via [`uv`](https://docs.astral.sh/uv/) (system 3.13+ lacks CAD-kernel wheels).
 - CFD: OpenFOAM in Docker (`opencfd/openfoam-default:2406`).
-- GPU noise: FluidX3D compiled at `../FluidX3D` (msys2 ucrt64), optional.
+- GPU noise: FluidX3D compiled at `../FluidX3D` (msys2 ucrt64), optional. Elsewhere: set
+  `FANSIM_FLUIDX3D` (and `FANSIM_MSYS_BIN` for the msys2 runtime on Windows).
 - Print materials: PLA, PLA+, PETG (default), ABS, TPU.
 
 ## Quickstart
 
 ```bash
-uv sync                                                   # core + cockpit + optimizer (Python 3.12)
-uv run python -m pytest -q -m "not docker"                # fast tests (no CFD)
+uv sync --extra dev                                       # core + cockpit + optimizer + pytest/ruff (Python 3.12)
+uv run python -m pytest -q -m "not docker and not slow"   # fast tests (no CFD), same as CI
 uv run python scripts/cockpit.py --run runs/opt_mountable --reload
 ```
 
 `--reload` auto-restarts the cockpit when you edit source — no manual restart.
-Optional: `uv sync --extra surrogate` (sklearn) · `uv sync --extra dev` (pytest/ruff/mypy).
+Optional: `uv sync --extra dev --extra surrogate` adds sklearn. Plain `uv sync` has no pytest.
 
 ## Key commands
 

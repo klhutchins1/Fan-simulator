@@ -5,7 +5,7 @@ Cursor's 221 agent transcripts (no backup existed). It now **imports end-to-end,
 geometry, and passes ~529 / 622 non-docker tests**, all committed and pushed to
 `git@gitea:klhutchins/Fan-simulator.git`. This file tracks what's left.
 
-Run the suite: `uv run --extra optim python -m pytest -m "not docker and not slow" -q`
+Run the suite: `uv run --extra dev python -m pytest -m "not docker and not slow" -q`
 
 ## Provenance / trust
 
