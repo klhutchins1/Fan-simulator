@@ -290,7 +290,19 @@ def bind(session) -> None:
             flat, feat, preview_stl, timeout=300.0,
             preview=mount is None,
             motor_mount=mount,
+            progress_path=_preview_progress_path(),
         )
+
+    def _preview_progress_path():
+        return preview_stl.with_name(preview_stl.name + ".progress.json")
+
+    def _preview_stage_hint() -> str:
+        """Ticker hint: the worker's build stage; drives the determinate Preview bar (§23.17)."""
+        from fansim.geometry.isolated import progress_caption, read_progress
+
+        pct, text = progress_caption(read_progress(_preview_progress_path()))
+        state.preview_pct = pct
+        return text
 
     def do_preview():
         if state.preview_busy or state.assess_busy:
@@ -312,11 +324,13 @@ def bind(session) -> None:
                 heavy = "features are heavy — up to ~2 min"
             elif int(getattr(params, "tip_notch_count", 0) or 0) > 0:
                 heavy = "tip TE notches — first build can take ~30–60 s"
+            state.preview_pct = 0
             ticker, _t0 = spawn_busy_ticker(
                 action="Preview",
                 msg_attr="preview_msg",
                 busy_attr="preview_busy",
                 note=heavy,
+                hint_fn=_preview_stage_hint,
             )
             state.flush()
             loop = asyncio.get_running_loop()
@@ -329,12 +343,14 @@ def bind(session) -> None:
                     "finish, or turn notches off briefly to tweak Sickle/Wrap, then re-enable."
                 )
                 state.preview_busy = False
+                state.preview_pct = 0
                 ticker.cancel()
                 state.flush()
                 return
             except Exception as exc:  # noqa: BLE001
                 state.preview_msg = f"⚠ Geometry failed: {type(exc).__name__}: {exc}"
                 state.preview_busy = False
+                state.preview_pct = 0
                 ticker.cancel()
                 state.flush()
                 return
@@ -371,6 +387,7 @@ def bind(session) -> None:
                 f"{tone_line}{print_warn}"
             )
             state.preview_busy = False
+            state.preview_pct = 0
             ticker.cancel()
             try:
                 ctrl.view_update()

@@ -647,7 +647,8 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             classes="text-caption",
                         )
                         html.Div("{{ opt_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
-                        busy_bar("preview_busy", "assess_busy", "export_busy", "opt_running", color="success")
+                        busy_bar("preview_busy", "assess_busy", "export_busy", "opt_running", color="success",
+                                 value="preview_pct")
 
                     with v3.VExpansionPanels(
                         v_model=("fan_design_panels",),

@@ -103,6 +103,7 @@ def apply_state_defaults(session) -> None:
     state.opt_running = False
     state.opt_cancel = False
     state.preview_busy = False
+    state.preview_pct = 0  # determinate Preview bar (build stages; 0 = sweep)
     state.assess_msg = ""
     state.assess_busy = False
     state.assess_cancel = False
