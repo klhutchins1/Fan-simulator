@@ -34,6 +34,12 @@ check above); everything else, including the golden geometry, was green.
 Not taken from the QA patch (yet): its UIUC GWS 5×4.3 regression points (η 0.646 at J 0.572; static
 CT0 0.149) — to be transcribed from the UIUC source files directly before they become a check.
 
+## Third pass (same day): a measured-prop check for the BEMT
+
+| Unit | Change | Checks | Verdict |
+|------|--------|--------|---------|
+| `propeller.bemt` | New registered check `tests/test_prop_uiuc_gws.py`: UIUC Propeller DB GWS Direct-Drive 5×4.3 (2 blades), read from the unmodified source files (sha256 verified against the QA bot's `SOURCES.md`; `tests/data/uiuc_gws_5x4.3/`). Tolerances proposed by the QA bot before this geometry was run. The source geometry includes the r/R 1.00 station (c/R 0.0176) that the QA transcription had dropped. | the unit's checks + the new file | **PASS** — η 0.606 vs measured 0.646 at J 0.572 (tol ±0.10); static CT0 0.1365 vs 0.149 at 7407 rpm (−8.4 %, tol ±15 %) |
+
 ## Command evidence
 
 ```

@@ -122,7 +122,7 @@
     },
     "propeller.bemt": {
       "date": "2026-10-09",
-      "fingerprint": "d7572840a1b4b8ea",
+      "fingerprint": "60e1af266cfacab1",
       "report": "docs/validation/audits/2026-10-09-ledger-refresh.md",
       "verdict": "PASS"
     },
