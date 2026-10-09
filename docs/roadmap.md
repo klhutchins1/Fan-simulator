@@ -1068,9 +1068,10 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   the golden deliberately, re-Assess Stock, re-check the print-ready export. May explain 23.15.
   **[impact: high]** **[effort: med]**
   **DONE 2026-10-08 — flat dicts carry `stations`/`station_slots`; slot edits apply as interpolated deltas; editor keeps the recipe; golden regenerated (vol −0.21 %, tip section ≤ 0.94 mm). Stock A/B and audit rows still used the 3-station build — redo when next run.**
-- [ ] **23.2 (UI-1) Volute Export STLs fails:** `TypeError: object of type 'PosixPath' has no len()`
+- [x] **23.2 (UI-1) Volute Export STLs fails:** `TypeError: object of type 'PosixPath' has no len()`
   after Preview → Export. A `Path` is passed where str/list is expected; seen on Linux — verify on
   Windows. **[impact: high]** **[effort: low]**
+  **DONE 2026-10-08 — not Linux-only: `len(rel := path.relative_to(exports)).parts` called len() on a Path in the post-export list refresh, so every export after the first reported failure although the STLs were written. Moved to tested `volute_export_rows()`.**
 
 ### 23.B Input validation — MEDIUM
 
@@ -1098,6 +1099,7 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   +36.8 Pa at η 0.55. Add a post-stall extension (flat-plate cl/cd, cd → ~1.2–2 at 90°) and flag
   designs outside the table. Optimizer bounds (stagger ≤ 48°) mostly avoid it; the editor does not.
   Re-run the Audit #4 ranking check afterwards. **[impact: med]** **[effort: med]**
+  **INVESTIGATED 2026-10-08, NOT FIXED. Root cause is structural, not only the clamp: (1) blade drag's tangential push is counted as useful Euler pressure; (2) near shut-off the swirl hits the 0.95·U cap for every geometry (shut-off ≈ 38–39 Pa for all). Tried (a) Viterna–Corrigan post-stall in `polars._interp_alpha`: continuous, Audit #4 numbers unchanged, but the paddle still beat Stock AND the prop BEMT static (J=0) inflow iteration stopped converging (Audit #3 check) → reverted; (b) subtracting profile-drag dissipation in `fan_bem`: paddle/reversed fixed, but Audit #4 pre-registered criteria FAIL (ρ 0.714 → 0.126, v1 > v2 lost, Stock shut-off negative) → reverted. Mitigation in place: BEM is not shown in the cockpit; its only consumer is the optimizer pre-screen, whose stagger bounds (≤ 48°) keep sections inside the polar tables. A real fix needs a BEM re-derivation + re-calibration against CFD (new Audit #4 run).**
 
 ### 23.D Tests / CI
 
@@ -1127,10 +1129,11 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   code 0.0436/0.0873/0.131 vs 0.0218/0.0437/0.0658. The rest of meanline matched hand calculations.
   Affects cockpit seeds only. **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — Carter's rule (θ = ε/(1 − m/√σ), m = 0.23 + β2/500) + circular arc ½·tan(θ/4).**
-- [ ] **23.11 Two "solidity" definitions.** `blade_solidity` (`blade.py:261–282`) returns c·cosβ/s
+- [x] **23.11 Two "solidity" definitions.** `blade_solidity` (`blade.py:261–282`) returns c·cosβ/s
   while its docstring says chord/pitch; `meanline.solidity` returns c/s (default 7-blade fan:
   1.58/1.13/0.69 vs 1.76/1.26/0.75). Used by the `--loadcap` floors (`objectives.py:323`) and
   `printability_score.py:110`. Pick one meaning and rename the other. **[impact: low]** **[effort: low]**
+  **DONE 2026-10-08 — kept the formula (it is the overlap measure the docstring describes, and the --loadcap floors are tuned on it); docstrings now say PROJECTED vs cascade c/s and cross-reference.**
 
 ### 23.F Docs / setup / platform — LOW (but release blockers for a public repo)
 

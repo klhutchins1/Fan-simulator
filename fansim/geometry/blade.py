@@ -259,9 +259,16 @@ def open_tip_rmax_mm(params: BladeParams) -> float:
 
 
 def blade_solidity(params: BladeParams) -> dict[str, float]:
-    """Solidity = blade chord / circumferential pitch, at hub/mid/tip.
+    """PROJECTED (overlap) solidity = chord·cos(stagger) / circumferential pitch, at hub/mid/tip.
 
-    Solidity > 1 means adjacent blades OVERLAP (no see-through gap) — a first-order driver of
+    Stagger is measured from the rotation plane, so chord·cos(stagger) is the blade's tangential
+    footprint seen along the axis. This is NOT the cascade solidity c/s used for diffusion loading
+    (Lieblein DF) — that one is ``fansim.optimize.meanline.solidity``; at the default 7-blade fan
+    the two read 1.58/1.13/0.69 vs 1.76/1.26/0.75 (QA 2026-10-08, roadmap §23.11). The
+    ``--loadcap`` floors (``min_sol_mid`` / ``min_sol_tip``) and printability score are tuned on
+    this projected value.
+
+    Projected solidity > 1 means adjacent blades OVERLAP (no see-through gap) — a first-order driver of
     static pressure and the defining look of high-pressure fans like the A12x25. Reported so
     overlap is an explicit, optimizable quantity rather than an accident of the parameters.
 

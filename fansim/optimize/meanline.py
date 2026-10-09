@@ -110,7 +110,10 @@ def axial_cz(q_m3s: float, hub_r_m: float, tip_r_m: float) -> float:
 
 
 def solidity(n_blades: int, chord_m: float, r_m: float) -> float:
-    """Cascade solidity σ = c / s with pitch s = 2πr / N."""
+    """Cascade solidity σ = c / s with pitch s = 2πr / N.
+
+    Not ``geometry.blade.blade_solidity``, which is the PROJECTED overlap measure c·cos(stagger)/s.
+    """
     if r_m <= 0.0 or n_blades <= 0:
         raise ValueError("r_m and n_blades must be positive")
     pitch = 2.0 * math.pi * float(r_m) / float(n_blades)

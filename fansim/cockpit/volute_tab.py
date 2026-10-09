@@ -48,6 +48,37 @@ else:
     from trame.widgets import vuetify3 as v3
 
 
+
+def volute_export_rows(exports: Path, limit: int = 24) -> list[dict]:
+    """Newest-first ``{title, value}`` rows for volute STLs under ``exports``.
+
+    (The inline version had ``len(rel := ...).parts`` — ``len()`` of a Path — so every Export after
+    the first reported "Export failed: object of type 'PosixPath' has no len()" even though the
+    STLs were written. QA 2026-10-08, roadmap §23.2.)
+    """
+    rows: list[dict] = []
+    if not exports.is_dir():
+        return rows
+    candidates: list[Path] = []
+    for path in exports.rglob("*.stl"):
+        if not path.is_file():
+            continue
+        try:
+            rel = path.relative_to(exports)
+        except ValueError:
+            continue
+        if path.name.lower().startswith("volute") or (
+            rel.parts and rel.parts[0].lower().startswith("volute")
+        ):
+            candidates.append(path)
+    for path in sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True):
+        rel = path.relative_to(exports)
+        title = f"{rel.parts[0]}/{path.name}" if len(rel.parts) > 1 else path.name
+        rows.append({"title": title, "value": str(path.resolve())})
+        if len(rows) >= limit:
+            break
+    return rows
+
 def setup_volute_tab(ctx: CockpitCtx) -> None:
     """Init volute_* state and controllers (call before SinglePageLayout)."""
     state, ctrl = ctx.state, ctx.ctrl
@@ -130,29 +161,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
             ctrl.volute_fig_update(volute_scatter_figure(volute_design_store))
 
     def _refresh_volute_export_items():
-        rows: list[dict] = []
-        exports = Path("exports")
-        if exports.is_dir():
-            candidates: list[Path] = []
-            for path in exports.rglob("*.stl"):
-                if not path.is_file():
-                    continue
-                try:
-                    rel = path.relative_to(exports)
-                except ValueError:
-                    continue
-                if path.name.lower().startswith("volute") or (
-                    rel.parts and rel.parts[0].lower().startswith("volute")
-                ):
-                    candidates.append(path)
-            for path in sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True):
-                if len(rel := path.relative_to(exports)).parts > 1:
-                    title = f"{rel.parts[0]}/{path.name}"
-                else:
-                    title = path.name
-                rows.append({"title": title, "value": str(path.resolve())})
-                if len(rows) >= 24:
-                    break
+        rows = volute_export_rows(Path("exports"))
         state.volute_export_items = rows
 
     _refresh_volute_export_items()
