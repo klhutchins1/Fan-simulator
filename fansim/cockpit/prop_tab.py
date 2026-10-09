@@ -68,6 +68,30 @@ else:
     from trame.widgets import vuetify3 as v3
 
 
+
+def prop_reference_line(spec, perf) -> str:
+    """Compare BEMT thrust/power with the class's typical figures (roadmap §23.18).
+
+    A 5" FPV prop reading 2087 g / 743 W looked implausible with nothing to compare against; the
+    preset's own typical figures (1850 g / 650 W at 30k rpm) put that at about +13 % / +14 %,
+    consistent with the open BEMT over-prediction (Audit #3). The reference is moved to the
+    evaluated RPM with the affinity laws (thrust ∝ n², power ∝ n³).
+    """
+    ref_t, ref_p, ref_n = (getattr(spec, k, None) for k in ("ref_thrust_g", "ref_power_w", "ref_rpm"))
+    n = float(getattr(spec, "rpm_max", 0.0) or 0.0)
+    if not ref_t or not ref_n or n <= 0:
+        return ""
+    k = n / float(ref_n)
+    t_ref = float(ref_t) * k * k
+    bits = [f"Typical for this class @ {n:.0f} rpm: {t_ref:.0f} g"]
+    dt = 100.0 * (float(perf.thrust_g) / t_ref - 1.0)
+    tail = f"BEMT thrust {dt:+.0f}%"
+    if ref_p:
+        p_ref = float(ref_p) * k ** 3
+        bits.append(f"{p_ref:.0f} W")
+        tail += f", power {100.0 * (float(perf.power_w) / p_ref - 1.0):+.0f}%"
+    return " / ".join(bits) + f" → {tail} (BEMT is a ranking estimate, not a measurement)"
+
 def prop_cfd_mesh_knobs(preset: str) -> tuple[float, int]:
     p = (preset or "smoke").strip().lower()
     if p == "refine":
@@ -428,6 +452,9 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                 f"Figure of merit {perf.figure_of_merit:.2f}   (0.6–0.8 = a good real prop)",
                 f"Polar backend: {get_polar_backend()}",
             ]
+            ref_line = prop_reference_line(spec, perf)
+            if ref_line:
+                lines.insert(2, ref_line)
             nz = estimate_prop_noise(params, spec.rpm_max, perf)
             lines.append(
                 f"🔉 Noise {nz['rel_dba']:.0f} (relative) · tip Mach {nz['tip_mach']:.2f} · "

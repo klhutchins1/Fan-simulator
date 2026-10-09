@@ -1167,6 +1167,7 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [ ] **23.18 (UI-5)** Prop 5" FPV reports 2087 g thrust / 743 W (implausible); the polar starts
   "J=0.00 eta=-". Related to Audit #8 (prop numbers are not a performance predictor).
   **[impact: med]** **[effort: med]**
+  **PARTLY DONE 2026-10-08 — readout now compares with the preset's typical class figures (affinity-scaled): 2087 g / 743 W vs 1850 g / 650 W at 30k rpm = +13 % / +14 %, so high but not absurd. "J=0.00 η=—" is correct (η undefined at V=0). REAL ISSUE FOUND: forward-flight η reads 2–7 % at J 0.08–0.31, where a P/D≈0.86 prop should give ~30–50 % — BEMT forward thrust collapses too fast. That is the open Audit #3 C_T(J) failure (`propeller.bemt` xfails); fix there, not in the UI.**
 - [ ] **23.19 (UI-6)** Export STL takes ~2 min and saves only server-side
   (`exports/design_100000_*.stl/.step`), with no browser download; "design_100000" is a confusing name
   for the reference (use the F-name from `fansim/cockpit/design_names.py`). **[impact: low]**
