@@ -1245,9 +1245,10 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [ ] **23.39 Wall-adaptive mesh gives thick blades ~0.35M cells vs thin ~1M** (surface level-3 floor
   vs level 4) — a resolution difference inside Assess rankings. Measure whether it biases
   comparisons. **[impact: med]** **[effort: med]**
-- [ ] **23.40 Flutter gate is order-of-magnitude (§19.18) but a hard reject** — it rejected t9001/9002/
+- [x] **23.40 Flutter gate is order-of-magnitude (§19.18) but a hard reject** — it rejected t9001/9002/
   9003/9005 and a thin Stock variant (t9002 at 0.91× the limit). Consider a warning band near the
   limit. **[impact: med]** **[effort: low]**
+  **DONE 2026-10-08 (user decision) — warning, not a reject, until print/measure data exists. `evaluate_candidate` stamps `raw.vibration_warning` and prefixes the result reason; Optimize and Assess now score these designs. Revisit with print data.**
 - [x] **23.41 Hide duplicate designs** — t9009/9010/9011 score identically to t9008 after the v5
   refresh. **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — Results lists byte-identical geometry once (oldest kept), `collapse_identical_designs`; nothing deleted on disk.**

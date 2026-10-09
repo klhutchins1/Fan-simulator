@@ -215,8 +215,10 @@ def evaluate_candidate(
         return _infeasible(f"root bending: {bend.reason}", t0)
     # Resonance gate (UI Assess material picker / §7.6 flutter) — stamps beam_regime (§19.18).
     flutter = flutter_report(params, material=material)
-    if not flutter.ok:
-        return _infeasible(flutter.reason, t0)
+    # WARNING, not a reject (user decision 2026-10-08): the Euler-Bernoulli beam model is
+    # order-of-magnitude (§19.18) and unverified against printed blades. Stamped on the result;
+    # revisit once print/measure data exists (roadmap §23.40).
+    vibration_warning = "" if flutter.ok else f"⚠ vibration risk (unverified until prints): {flutter.reason}"
 
     if tip_gap_mm is None:
         tip_gap_mm = OPTIMIZER_TIP_GAP_MM
@@ -232,6 +234,7 @@ def evaluate_candidate(
         "f1_hz": float(flutter.f1_hz),
         "bpf_hz": float(flutter.bpf_hz),
         "f1_bpf_margin": float(flutter.margin),
+        "vibration_warning": vibration_warning,
         **SCREENING_GRID_STAMP,
     }
     if remaining < floor:
@@ -545,9 +548,9 @@ def evaluate_candidate(
         gap_raw["cfm_op_alg"] = refined.cfm_op_alg
         gap_raw["op_cfd"] = refined.op_cfd
 
-    conv_note = ""
+    conv_note = vibration_warning
     if derate < 0.995:
-        conv_note = (
+        conv_note += ("  " if conv_note else "") + (
             f"motor-limited: {actual_rpm:.0f} RPM "
             f"({derate * 100:.0f}% of {target_rpm:.0f})")
     if not (m_free.converged and m_load.converged):

@@ -874,7 +874,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         with v3.VExpansionPanel(title="Assess & print"):
                             with v3.VExpansionPanelText():
                                 html.Div(
-                                    "Assess checks printability / stress / blade vibration, then runs "
+                                    "Assess checks printability / stress (blade vibration is a warning), then runs "
                                     "CFD (~15–30 min) and reports free/load CFM. Rejected designs show "
                                     "what to change (usually fewer blades or thicker mid-blade).",
                                     classes="text-caption text-medium-emphasis mb-2",
@@ -894,7 +894,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     classes="text-caption text-medium-emphasis mb-2",
                                 )
                                 v3.VSelect(
-                                    label="Print material (stress + vibration gate)",
+                                    label="Print material (stress gate + vibration warning)",
                                     v_model=("assess_material",),
                                     items=("assess_material_items",),
                                     density="compact",
