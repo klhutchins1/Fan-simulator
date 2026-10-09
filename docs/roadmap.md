@@ -1199,11 +1199,13 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [x] **23.27 (UI-14)** Tab hover tooltip covers neighbouring tab names after clicking.
   **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — tab tooltips open below the tabs after 400 ms.**
-- [ ] **23.28 (UI-15)** Console 405 on `POST /paraview/` at load (trame-vtk probe). Likely benign;
+- [x] **23.28 (UI-15)** Console 405 on `POST /paraview/` at load (trame-vtk probe). Likely benign;
   silence or document. **[impact: low]** **[effort: low]**
-- [ ] **23.29 Shared trame state across browser clients** — a new browser opened on the CROR tab
+  **INVESTIGATED 2026-10-08, left as is — one POST at ~4 s after a normal load from the trame-vtk client probing for a session launcher (bursts only on reconnect after a server restart). Harmless; suppressing it means patching third-party JS. Documented in the README.**
+- [x] **23.29 Shared trame state across browser clients** — a new browser opened on the CROR tab
   another client had left. Probably by design; decide and document (matters for a public release).
   **[impact: low]** **[effort: low]**
+  **DONE 2026-10-08 — by design (trame state is server-side); README now says one browser tab per cockpit, or a second cockpit on another --port.**
 
 ### 23.H Suspicious, unconfirmed — verify before fixing
 

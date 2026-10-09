@@ -85,6 +85,7 @@ uv run python scripts/cockpit.py --run runs/opt_mountable --reload
 ```
 
 `--reload` auto-restarts the cockpit when you edit source — no manual restart.
+The cockpit is a single-user app: every browser tab connected to one cockpit shares the same state (switching a tab or design in one shows in all). Open one tab per cockpit, or start a second cockpit on another `--port`. A one-off `POST /paraview/ 405` in the browser console at load is the trame-vtk client probing for a launcher; it is harmless.
 Optional: `uv sync --extra dev --extra surrogate` adds sklearn. Plain `uv sync` has no pytest.
 
 ## Key commands
