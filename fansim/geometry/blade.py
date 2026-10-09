@@ -821,13 +821,13 @@ def validate_blade_params(params: BladeParams) -> None:
             f"blade_angles_deg has {len(params.blade_angles_deg)} entries, expected n_blades={n}")
 
 
-def build_impeller(params: BladeParams | None = None) -> cq.Workplane:
-    """Build the full impeller: N patterned blades fused onto a hub.
+def build_impeller_parts(params: BladeParams):
+    """Unfused impeller parts ``(hub, blades, ring_or_None)`` exactly as ``build_impeller`` fuses them.
 
-    Returns a CadQuery ``Workplane`` wrapping the fused solid.
+    Split out so print export can carve the motor cup into the simple hub before the expensive
+    fuse with the blades (roadmap §23.19).
     """
     cq = _cq()
-    params = params or BladeParams()
     validate_blade_params(params)
     blade = build_blade_solid(params)
 
@@ -843,12 +843,25 @@ def build_impeller(params: BladeParams | None = None) -> cq.Workplane:
             raise ValueError(
                 f"blade_angles_deg has {len(angles)} entries, expected n_blades={params.n_blades}")
     blades = [blade.rotate(cq.Vector(0, 0, 0), cq.Vector(0, 0, 1), a) for a in angles]
+    return hub, blades, _shroud_solid(params)
 
+
+def fuse_impeller(hub, blades, ring=None):
+    """Fuse ``build_impeller_parts`` output in the canonical order (hub + blades, then ring)."""
     fused = hub.fuse(*blades).clean()
-    ring = _shroud_solid(params)
     if ring is not None:
         fused = fused.fuse(ring).clean()
-    return cq.Workplane(obj=fused)
+    return fused
+
+
+def build_impeller(params: BladeParams | None = None) -> cq.Workplane:
+    """Build the full impeller: N patterned blades fused onto a hub.
+
+    Returns a CadQuery ``Workplane`` wrapping the fused solid.
+    """
+    cq = _cq()
+    params = params or BladeParams()
+    return cq.Workplane(obj=fuse_impeller(*build_impeller_parts(params)))
 
 
 def build_impeller_screen(params: BladeParams | None = None) -> cq.Workplane:
@@ -1145,6 +1158,11 @@ def _trim_blade_to_tip_cylinder(blade: cq.Solid, tip_radius: float) -> cq.Solid:
         r_max = max((math.hypot(v.x, v.y) for v in verts), default=0.0)
         if r_max <= R + 0.05:
             return blade
-        raise RuntimeError(
-            f"tip trim failed: blade/cylinder intersection empty after 4 tries (R={R:.2f} mm)")
+        # Raising broke the audited "prop builder never raises" guarantee (random prop flats hit
+        # this). Keep the untrimmed blade but say so; a real fix is open (roadmap §23.32).
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "tip trim failed: intersection empty after 4 tries (R=%.2f mm); blade left untrimmed", R)
+        return blade
     return max(solids, key=lambda s: abs(float(s.Volume())))

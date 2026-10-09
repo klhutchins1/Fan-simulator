@@ -74,7 +74,8 @@ def bore_hub(model: cq.Workplane, bore: BoreSpec) -> cq.Workplane:
     return cq.Workplane(obj=result)
 
 
-def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float):
+def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float, *,
+                      z_bounds: tuple[float, float] | None = None):
     """Hollow the hub into a CUP that slips over the fan's motor: a cavity from the REAR (-Z) face + a
     central through-bore (bearing/shaft passage), optionally with axial grip cylinders.
 
@@ -103,6 +104,12 @@ def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float):
                 f"motor (need >= {need:.1f} mm; widen the hub or this can't be mounted)")
     shape = model.val()
     bb = shape.BoundingBox()
+    if z_bounds is not None:
+        # Carving a part (the bare hub) of a larger model: position the cup and bore from the WHOLE
+        # model's axial extent, exactly as when carving the fused impeller.
+        from types import SimpleNamespace
+
+        bb = SimpleNamespace(zmin=float(z_bounds[0]), zmax=float(z_bounds[1]))
     eps = 0.5
     cav_r = float(mount.cavity_dia_mm) / 2.0 + clear
     cav_h = float(mount.cavity_depth_mm) + eps
@@ -210,7 +217,27 @@ def build_impeller_with_mount(params: BladeParams, mount) -> tuple[cq.Workplane,
     CFD/Assess keep using ``build_impeller`` alone (solid hub). Print + optional preview
     use this so the STL includes the hub opening that matches the commercial motor.
     """
-    model = build_impeller(params)
+    import math
+
+    from fansim.geometry.blade import build_impeller_parts, fuse_impeller
+
+    hub, blades, ring = build_impeller_parts(params)
+    # Fast path (roadmap §23.19): carving the fused 9-blade impeller was ~3 of ~4.5 min of an export.
+    # When no blade reaches into the cup/grip zone, carve the bare hub and fuse the blades after:
+    # identical solid (Stock A/B: volume and bounds equal), ~3x faster. Otherwise the original order.
+    # Only the CUTS (cavity, bore) depend on order; grip pads are added material and a union
+    # commutes, so the blades just have to stay outside the cavity radius.
+    reach = float(mount.cavity_dia_mm) / 2.0 + float(getattr(mount, "grip_clearance_mm", 0.0) or 0.0)
+    verts, _faces = blades[0].tessellate(0.2)
+    r_min = min(math.hypot(v.x, v.y) for v in verts)
+    if r_min > reach + 0.05:
+        bb = cq.Compound.makeCompound([hub, *blades] + ([ring] if ring is not None else [])).BoundingBox()
+        carved, fits, msg = carve_motor_mount(
+            cq.Workplane(obj=hub), mount, params.hub_radius, z_bounds=(bb.zmin, bb.zmax))
+        if fits:
+            return cq.Workplane(obj=fuse_impeller(carved.val(), blades, ring)), True, msg
+        return cq.Workplane(obj=fuse_impeller(hub, blades, ring)), fits, msg
+    model = cq.Workplane(obj=fuse_impeller(hub, blades, ring))
     return carve_motor_mount(model, mount, params.hub_radius)
 
 

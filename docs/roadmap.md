@@ -1174,7 +1174,7 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   (`exports/design_100000_*.stl/.step`), with no browser download; "design_100000" is a confusing name
   for the reference (use the F-name from `fansim/cockpit/design_names.py`). **[impact: low]**
   **[effort: low–med]**
-  **PARTLY DONE 2026-10-08 — files named by design (`a12x25_stock_reference_…`, `F12_…`), and a "⬇ Download STL" link served from `exports/` (`/fansim_exports/`; verified 200, 5 MB). Export now runs in an isolated worker (`fansim.cockpit._export_worker`): caption keeps ticking, a native crash can't take the cockpit down; output byte-identical. STILL OPEN: Stock export takes ~4 min (full fuse + motor-cup carve + STEP) — profile before optimising.**
+  **PARTLY DONE 2026-10-08 — files named by design (`a12x25_stock_reference_…`, `F12_…`), and a "⬇ Download STL" link served from `exports/` (`/fansim_exports/`; verified 200, 5 MB). Export now runs in an isolated worker (`fansim.cockpit._export_worker`): caption keeps ticking, a native crash can't take the cockpit down; output byte-identical. Export Stock ~4.5 min → ~1.2 min (+STEP): the motor cup is carved into the bare hub before the blade fuse (identical solid: volume 0.0004 %, bounds 0.0001 mm); falls back to the old order if a blade reaches the cavity.**
 - [x] **23.20 (UI-7)** After Randomize, the previous "Saved …design_100000…stl" message stays on
   screen. **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — export message clears on any edit (incl. Randomize) and on loading a design; kept while an export runs.**
@@ -1218,10 +1218,11 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   `_interp_stations` / `tip_section_points` sort — unsorted YAML/`blade_angles` stations would size
   the hub from the wrong station. **[effort: low]**
   **DONE 2026-10-08 — root = innermost station by r_frac; test with shuffled stations.**
-- [x] **23.32 `_trim_blade_to_tip_cylinder` can return an untrimmed blade** when all 4 intersect
+- [ ] **23.32 `_trim_blade_to_tip_cylinder` can return an untrimmed blade** when all 4 intersect
   retries come back empty (`blade.py:1080–1084`), contrary to its comment. Not seen in 23 builds.
   **[effort: low]**
   **DONE 2026-10-08 — raises RuntimeError ("tip trim failed") instead of returning the untrimmed blade.**
+  **REOPENED 2026-10-08 — raising broke `test_random_prop_flat_designs_never_raise_in_the_builder_path` (audited prop builder guarantee). Now warns and keeps the blade (old behaviour + a log line). Needs a real fix: a trim that works for those prop flats.**
 - [x] **23.33 `build_impeller_preview` doesn't check `len(blade_angles_deg) == n_blades`**
   (`blade.py:841–844`); `build_impeller` does. **[effort: low]**
   **DONE 2026-10-08 — covered by `validate_blade_params` (23.3).**
