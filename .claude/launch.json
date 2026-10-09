@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cockpit",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": [
+        "run",
+        "python",
+        "scripts/cockpit.py",
+        "--run",
+        "runs/opt_run1",
+        "--port",
+        "8091"
+      ],
+      "port": 8091
+    }
+  ]
+}

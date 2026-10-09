@@ -1304,10 +1304,21 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 
 - [x] **23.53 QA browser re-test (2026-10-09) reopened UI-4, UI-9, UI-20.**
   **DONE 2026-10-09 —**
-  **UI-4: the bar swept until the worker's first stage, which landed only after the CAD kernel loaded (~30 s on the QA box), so the sweep read "65 %" then "50 %". The bar is now determinate from the first frame ("starting build process"), the worker reports stage 1/5 before its heavy imports, and the value never decreases. QA's 66 s Preview was the motor-cup path: `preview_motor_cup` defaulted ON behind a switch in the Assess & print panel — now OFF (Preview ~15 s here; Export always carves the cup).**
+  **UI-4: the bar swept until the worker's first stage, which landed only after the CAD kernel loaded (~30 s on the QA box), so the sweep read "65 %" then "50 %". The bar is now determinate from the first frame ("starting build process"), the worker reports stage 1/5 before its heavy imports, and the value never decreases. QA's 66 s Preview was the motor-cup path: `preview_motor_cup` defaulted ON behind a switch in the Fan tab's Export options panel — now OFF (Preview ~15 s here; Export always carves the cup).**
   **UI-9: the viewer card was a fixed 400 px; on a wide/zoomed-out window the canvas was ~2.8:1 and the fan (height-limited) filled ~1/3 of the width. All five tabs now use `VTK_VIEW_STYLE` (3:2, ≥ 400 px, ≤ 75vh): 1131×754 at a 1970-px window.**
   **UI-20: the dropdown's shown value (not just its label) reads "✎ Edited copy of ◆ Reference …" while edited.**
   **Browser-verified (Windows) at 1024×594 and 1970×1140.**
+- [x] **23.54 (UI-4, QA r3) Preview stages still not visible.** Stage 1 landed only after the worker's
+  `python -m` package import had loaded CadQuery (~2.2 s); stages 2/3/5 lasted milliseconds.
+  **DONE 2026-10-09 — the parent writes stage 1 "loading CAD kernel" before spawning; stages are now the
+  four that take time (kernel / preparing design (chord fit) / build / write); ticker 0.5 s. Measured:
+  stage 1 at 0.05 s, build stage 3.0–5.6 s, total 5.6 s (fast path).**
+- [ ] **23.55 Motor-cup fuse peaks ~7.6 GB** (QA r3, Linux): the Preview-with-cup worker and
+  `test_mount_gauge::test_gauge_accepts_carved_stock_export` (8.2 GB, the suite's peak) both run the
+  in-process OCCT fuse of the carved hub + 9 blades. On a 16 GB box with a browser open that is the likely
+  cause of the 7–10 s stall QA saw at the end of a cup Preview. Measure where the fuse allocates; options:
+  fuse blades pairwise, tessellate per part, or run that test in an isolated worker. **[impact: med]**
+  **[effort: med]**
 ---
 
 ## Recently shipped (context, so we don't re-add)

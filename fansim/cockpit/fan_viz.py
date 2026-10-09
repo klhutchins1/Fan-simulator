@@ -353,6 +353,7 @@ def bind(session) -> None:
                 busy_attr="preview_busy",
                 note=heavy,
                 hint_fn=_preview_stage_hint,
+                interval=0.5,  # stages can be ~1-2 s long; a 1 s poll skipped them (QA r3)
             )
             state.flush()
             loop = asyncio.get_running_loop()
