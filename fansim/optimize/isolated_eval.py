@@ -68,6 +68,7 @@ def eval_job_dict(
     material: str = "PETG",
     wall_ks_mm: float | None = None,
     parallel_mesh: bool = False,
+    surf_max_floor: int | None = None,
 ) -> dict:
     """JSON payload for ``_eval_worker`` (includes the Assess/optimizer hose)."""
     feat = asdict(features) if is_dataclass(features) else dict(features or {})
@@ -80,6 +81,8 @@ def eval_job_dict(
         "material": str(material or "PETG"),
         "parallel_mesh": bool(parallel_mesh),
     }
+    if surf_max_floor is not None:
+        job["surf_max_floor"] = int(surf_max_floor)
     if wall_ks_mm is not None and float(wall_ks_mm) > 0:
         job["wall_ks_mm"] = float(wall_ks_mm)
     return job
@@ -101,6 +104,7 @@ def evaluate_candidate_isolated(
     wall_ks_mm: float | None = None,
     proc_holder: list | None = None,
     parallel_mesh: bool = False,
+    surf_max_floor: int | None = None,
 ) -> ObjectiveResult:
     """Run evaluate_candidate in a subprocess and return its ObjectiveResult.
 
@@ -126,6 +130,7 @@ def evaluate_candidate_isolated(
         material=material,
         wall_ks_mm=wall_ks_mm,
         parallel_mesh=parallel_mesh,
+        surf_max_floor=surf_max_floor,
     )
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as jf:
         json.dump(job, jf)

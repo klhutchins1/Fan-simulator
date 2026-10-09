@@ -29,6 +29,7 @@ QUICK_ITERS = 300
 class QuickResult:
     ok: bool
     cfm_free_raw: float = 0.0     # signed CFD free-air CFM at rated RPM (no derate / print penalty)
+    cfm_load_raw: float | None = None  # signed CFD CFM at the load back-pressure (Q3 tier only)
     torque_nm: float = 0.0
     converged: bool = False
     flow_drift_pct: float = 999.0
@@ -40,7 +41,8 @@ class QuickResult:
 
 def quick_free_air(params, workdir, spec, *, base_cell: float = QUICK_BASE_CELL,
                    surf_level: int = QUICK_SURF_LEVEL, iters: int = QUICK_ITERS,
-                   procs: int = 8) -> QuickResult:
+                   procs: int = 8, load_pa: float | None = None) -> QuickResult:
+    """Coarse free-air solve; with ``load_pa`` also a second solve at that back-pressure (Q3)."""
     from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM, remaining_tip_gap_mm, rig_for_impeller
     from fansim.cfd.frame import export_frame_stl
     from fansim.cfd.metrics import parse_fan_metrics
@@ -78,13 +80,21 @@ def quick_free_air(params, workdir, spec, *, base_cell: float = QUICK_BASE_CELL,
         run_mesh(runner, n_procs=procs)
         run_solve(runner, n_procs=procs)
         m = parse_fan_metrics(workdir, omega_rad_s=rig0.omega_rad_s)
+        m_load = None
+        if load_pa is not None:
+            build_case(workdir, stl, rig0, mesh=mesh, n_iters=iters, n_subdomains=procs,
+                       back_pressure_pa=float(load_pa), frame_stl_mm=frame)
+            run_solve(runner, n_procs=procs)
+            m_load = parse_fan_metrics(workdir, omega_rad_s=rig0.omega_rad_s)
     except Exception as exc:  # noqa: BLE001
         return QuickResult(False, reason=f"cfd failed: {type(exc).__name__}: {exc}",
                            cells=mesh_cells(workdir), wall_s=round(time.time() - t0, 1))
     return QuickResult(True, cfm_free_raw=float(m.cfm), torque_nm=float(m.torque_nm),
+                       cfm_load_raw=None if m_load is None else float(m_load.cfm),
                        converged=bool(m.converged), flow_drift_pct=float(m.flow_drift_pct),
                        cells=mesh_cells(workdir), wall_s=round(time.time() - t0, 1),
-                       extra={"base_cell": base_cell, "surf_level": surf_level, "iters": iters})
+                       extra={"base_cell": base_cell, "surf_level": surf_level, "iters": iters,
+                              "load_pa": load_pa})
 
 
 def main() -> int:
@@ -100,7 +110,8 @@ def main() -> int:
                          base_cell=float(job.get("base_cell", QUICK_BASE_CELL)),
                          surf_level=int(job.get("surf_level", QUICK_SURF_LEVEL)),
                          iters=int(job.get("iters", QUICK_ITERS)),
-                         procs=int(job.get("procs", 8)))
+                         procs=int(job.get("procs", 8)),
+                         load_pa=job.get("load_pa"))
     Path(job["out"]).write_text(json.dumps(asdict(res)), encoding="utf-8")
     sys.stdout.flush()
     os._exit(0)  # skip the known OCP/VTK teardown segfault; the result is already written

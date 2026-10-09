@@ -28,6 +28,8 @@ def eval_kwargs_from_job(job: dict) -> dict:
         "material": str(job.get("material") or "PETG"),
         "parallel_mesh": bool(job.get("parallel_mesh", False)),
     }
+    if job.get("surf_max_floor") is not None:
+        kw["surf_max_floor"] = int(job["surf_max_floor"])
     if job.get("wall_ks_mm") is not None and float(job["wall_ks_mm"]) > 0:
         kw["wall_ks_mm"] = float(job["wall_ks_mm"])
     return kw

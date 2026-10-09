@@ -59,3 +59,12 @@ def test_parallel_mesh_flag_round_trips_and_defaults_off():
                        parallel_mesh=True)
     assert eval_kwargs_from_job(on)["parallel_mesh"] is True
     assert eval_kwargs_from_job({})["parallel_mesh"] is False
+
+
+def test_surf_max_floor_round_trips_only_when_set():
+    spec = get_fan_spec("a12x25")
+    on = eval_job_dict({}, {}, ".", spec, procs=8, base_cell=0.006, iters=10, out="x.json",
+                       surf_max_floor=4)
+    assert eval_kwargs_from_job(on)["surf_max_floor"] == 4
+    off = eval_job_dict({}, {}, ".", spec, procs=8, base_cell=0.006, iters=10, out="x.json")
+    assert "surf_max_floor" not in eval_kwargs_from_job(off)

@@ -83,8 +83,8 @@ def _read(path: Path) -> dict | None:
         return None
 
 
-def run_full(name: str, flat: dict) -> dict:
-    out = OUT / name / "full" / "result.json"
+def run_full(name: str, flat: dict, sub: str = "full", **eval_kw) -> dict:
+    out = OUT / name / sub / "result.json"
     # Resume: keep finished results (a gate rejection is a result); retry crashes/kills.
     if (done := _read(out)) is not None and not done.get("error"):
         return done
@@ -95,11 +95,13 @@ def run_full(name: str, flat: dict) -> dict:
         res = evaluate_candidate_isolated(
             flat, features_from_flat(flat), out.parent, spec=get_fan_spec(SPEC), procs=8,
             base_cell=0.006, iters=500, load_pa=load_pa, refine_op=False, material="PETG",
-            parallel_mesh=True)
+            parallel_mesh=True, **eval_kw)
         row.update(feasible=res.feasible, reason=res.reason, cfm_free=res.cfm_free,
                    cfm_load=res.cfm_load, efficiency=res.efficiency,
                    free_raw_cfm=res.raw.get("free", {}).get("cfm"),
-                   converged=res.raw.get("converged"))
+                   load_raw_cfm=res.raw.get("load", {}).get("cfm"),
+                   converged=res.raw.get("converged"),
+                   vibration_warning=res.raw.get("vibration_warning", ""), **eval_kw)
     except Exception as exc:  # noqa: BLE001 — record, move on to the next design
         row.update(feasible=False, error=f"{type(exc).__name__}: {exc}")
     row["wall_s"] = round(time.time() - t0, 1)
@@ -107,15 +109,16 @@ def run_full(name: str, flat: dict) -> dict:
     return row
 
 
-def run_quick(name: str, flat: dict) -> dict:
-    wd = OUT / name / "quick"
+def run_quick(name: str, flat: dict, sub: str = "quick", load_pa: float | None = None) -> dict:
+    wd = OUT / name / sub
     out = wd / "result.json"
     if (done := _read(out)) is not None and done.get("ok"):
         return done  # failed/killed quick runs are retried on resume
     wd.mkdir(parents=True, exist_ok=True)
     job = wd / "_job.json"
     job.write_text(json.dumps({"flat": flat, "workdir": str(wd), "out": str(out),
-                               "spec": fan_spec_to_dict(get_fan_spec(SPEC))}), encoding="utf-8")
+                               "spec": fan_spec_to_dict(get_fan_spec(SPEC)),
+                               "load_pa": load_pa}), encoding="utf-8")
     t0 = time.time()
     try:
         code, _o, err = run_watched([sys.executable, "-m", "fansim.optimize.quick_screen",

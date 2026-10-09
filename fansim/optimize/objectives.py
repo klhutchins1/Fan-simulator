@@ -179,6 +179,7 @@ def evaluate_candidate(
     stepped_inlet: bool = False,
     rpm: float | None = None,
     parallel_mesh: bool = False,
+    surf_max_floor: int | None = None,
 ) -> ObjectiveResult:
     """Gate, mesh once, solve at free-delivery and at ``load_pa``, return objectives.
 
@@ -380,8 +381,10 @@ def evaluate_candidate(
     # Adapt surface refinement to the blade's thinnest wall: a thin plate meshed to ~1 cell
     # loses ~30% of its loading and reads an artificially low, mesh-sensitive CFM (the a12x25
     # refit investigation). Thick blades keep the cheap baseline level.
+    # surf_max_floor: override the Assess floor (mesh-fairness check, roadmap §23.39).
     mesh0 = MeshResolution.for_blade(
-        base_cell, min_blade_wall_mm(params), min_surf_max=OPTIMIZER_SURF_MAX_FLOOR)
+        base_cell, min_blade_wall_mm(params),
+        min_surf_max=OPTIMIZER_SURF_MAX_FLOOR if surf_max_floor is None else int(surf_max_floor))
     try:
         build_case(workdir, stl, rig0, mesh=mesh0,
                    n_iters=iters, n_subdomains=procs, back_pressure_pa=0.0,
