@@ -171,9 +171,9 @@ def release_observers(handler, client_id) -> int:
 
 
 def install() -> None:
-    """Patch wslink's handler once per process (idempotent)."""
+    """Patch wslink's handler once per process (idempotent). ``FANSIM_WS_GUARD=0`` skips it."""
     global _installed  # noqa: PLW0603
-    if _installed:
+    if _installed or os.environ.get("FANSIM_WS_GUARD", "1") == "0":
         return
     from wslink.protocol import WslinkHandler
 
