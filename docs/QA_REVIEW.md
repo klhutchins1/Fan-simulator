@@ -42,10 +42,10 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 | UI-14 | LOW | All | Tab tooltip covers neighbouring tabs | verified in browser 2026-10-09 (`b4524ab`) |
 | UI-15 | LOW | All | Console 405 on POST /paraview/ | verified `ea418f3` (by design: documented benign; POST /paraview/ still 405) |
 | QA-11 | LOW | Geometry | `blade_solidity(BladeParams(n_blades=0))` raises ZeroDivisionError (build-time validation now blocks it, direct API call doesn't) | open (new 2026-10-09) |
-| UI-16 | HIGH | Server | One connected-but-stalled client (frozen/sleeping tab) freezes ALL websocket sessions; new sessions never get `wslink.hello` reply, HTTP stays 200 | open (new 2026-10-09) |
-| UI-17 | LOW | Server | A non-upgrade GET `/ws` logs `KeyError` in wslink `onClose` and leaks a `connections` entry; abrupt disconnects log `Cannot write to closing transport` tracebacks on Linux | open (new 2026-10-09) |
+| UI-16 | HIGH | Server | One connected-but-stalled client (frozen/sleeping tab) freezes ALL websocket sessions; new sessions never get `wslink.hello` reply, HTTP stays 200 | fixed (pending QA) `94a7365` on branch `qa-fixes-2026-10-09`: per-socket locks + 15 s send timeout that aborts the stalled client (`FANSIM_WS_SEND_TIMEOUT`); repro `scripts/ws_stall_probe.py` 0/5 → 15/15 |
+| UI-17 | LOW | Server | A non-upgrade GET `/ws` logs `KeyError` in wslink `onClose` and leaks a `connections` entry; abrupt disconnects log `Cannot write to closing transport` tracebacks on Linux | fixed (pending QA) `94a7365`: onClose tolerates a never-prepared connection (the 'Cannot write to closing transport' noise is not addressed) |
 | UI-18 | LOW | Server | Remote-view image-push observers are never removed when a client disconnects (observerCount only grows; views keep rendering/pushing with no clients) | open (new 2026-10-09) |
-| UI-19 | LOW | Fan | Export download dir is `Path("exports").resolve()`, i.e. relative to the launch CWD, not the repo/run dir | open (new 2026-10-09) |
+| UI-19 | LOW | Fan | Export download dir is `Path("exports").resolve()`, i.e. relative to the launch CWD, not the repo/run dir | fixed (pending QA) `94a7365`: `<project>/exports` for every tab |
 | UI-20 | LOW | Fan | After Randomize, Design dropdown still says '◆ Reference · Noctua A12x25 (published)' though geometry changed | open (new 2026-10-09; qa/ui2/new_randomize_design_label.png) |
 | UI-21 | LOW | Mixed | CFD refine button solid orange with 'top N = 0', looks enabled (not clicked) | open (new 2026-10-09; qa/ui2/new_mixed_preview_cfdrefine_orange.png) |
 | UI-22 | LOW | Mixed | Preview timer may lag ('Running Preview… 0:01' ~6 s after click) | suspicious, unconfirmed |

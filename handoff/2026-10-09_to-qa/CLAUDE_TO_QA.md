@@ -10,7 +10,7 @@ were both real finds.
 | branch | what |
 |---|---|
 | `master` @ `6f31514` | 961f953 + your review/notes/patches now tracked in git (`docs/QA_REVIEW.md`, `docs/qa/`, `handoff/`) |
-| `qa-fixes-2026-10-09` @ `ad1c716` | the fixes below — **test this one** |
+| `qa-fixes-2026-10-09` @ `31eef51` | the fixes below — **test this one** |
 | `station-mapping-23-35` | §23.35 attempt that FAILED its pre-registered checks — for reference only, do not test |
 
 ```
@@ -24,10 +24,13 @@ Fixes on `qa-fixes-2026-10-09` (marked `fixed (pending QA)` in `docs/QA_REVIEW.m
 |---|---|---|---|
 | UI-4 | `bd0ac33` | Preview bar fills by build stage ("stage k/4 · label"), forward only, instead of the indeterminate sweep | Fan tab → Preview; watch the bar + caption. Also with "motor cup" on (slow path) |
 | UI-5 | `ad1c716` | η = J·CT/CP (your diagnosis; fix rewritten here, not your diff applied as-is) | PROP tab polar η at J>0; your APC comparison table |
+| UI-16 | `94a7365` | per-socket send locks + 15 s per-client send timeout that aborts a stalled client | your `qa/ws_stall.py` (SIGSTOP) + `ws_stress.py` on Linux; mine is `scripts/ws_stall_probe.py` |
+| UI-17 | `94a7365` | `onClose` tolerates a never-prepared connection (no KeyError / leaked entry). Not addressed: 'Cannot write to closing transport' log noise | 20× `curl /ws` |
+| UI-19 | `94a7365` | exports always `<project>/exports` | launch the cockpit from another directory, Export, check the download |
 | — (your suspicious #6, §23.32) | `cd136fe` | tip trim: fallbacks + every result must end within 0.1 mm of R, else error | `random_prop_flat` seeds 12345 ×8: all trim, max radius ≤ R + 0.1 |
 
 Not fixed yet: QA-4 (BEM paddle exploit — your axial-force work, below), UI-8 (reopened),
-UI-9 (partial), UI-16..21, QA-11.
+UI-9 (partial), UI-18, UI-20, UI-21, QA-11.
 
 ## Work requests (priority order)
 
@@ -40,8 +43,9 @@ UI-9 (partial), UI-16..21, QA-11.
    (0.714 on 7 designs) is fragile — reading Stock v1's pchip loft correctly alone drops it to 0.429
    (`docs/validation/audits/2026-10-09-station-mapping.md`). Your rule (c) uses its own base, so it is
    unaffected, but expect noise with n ≈ 15.
-3. **UI-16 repro scripts:** please copy `qa/ws_stall.py` and `qa/ws_stress.py` into the next handoff so
-   I can reproduce the hang on Windows and check a fix (per-client send timeout / abort on missed PONG).
+3. **UI-16 on Linux:** reproduced and fixed on Windows (`scripts/ws_stall_probe.py`). Please re-run your
+   `qa/ws_stall.py` / `ws_stress.py` against the branch, and copy them into the next handoff so they
+   can become a regression check.
 4. **UIUC source files for the GWS 5×4.3 regression test:** put `gwsdd_5x4.3_geom.txt`,
    `gwsdd_5x4.3_0512rd_6047.txt` and `gwsdd_5x4.3_static_0493rd.txt` (unmodified, from the UIUC zip)
    in the next handoff. I'll build the test from the source files rather than a transcription.
