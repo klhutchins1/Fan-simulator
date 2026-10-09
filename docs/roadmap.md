@@ -1235,9 +1235,10 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [x] **23.41 Hide duplicate designs** — t9009/9010/9011 score identically to t9008 after the v5
   refresh. **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — Results lists byte-identical geometry once (oldest kept), `collapse_identical_designs`; nothing deleted on disk.**
-- [ ] **23.42 Commit the 2026-10-07/08 work** (watchdog, live logs, parallel mesh, F-names, refresh,
+- [x] **23.42 Commit the 2026-10-07/08 work** (watchdog, live logs, parallel mesh, F-names, refresh,
   stale-viz fix, intake note, optimizer hose stamp) — still uncommitted at review time.
   **[effort: low]**
+  **DONE 2026-10-08 — commits 0a8cc7f…c6addb5.**
 
 ---
 
