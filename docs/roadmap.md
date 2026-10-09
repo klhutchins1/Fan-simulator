@@ -1184,13 +1184,15 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   reads 3.00/3.00/3.00 (zero range). The first render was an extreme close-up — reset the camera after
   Preview. **[impact: low]** **[effort: low]**
   **PARTLY DONE 2026-10-08 — colour bar only shown when arrow speeds differ (schematic no-CFD arrows are one speed → solid colour, no 3.00/3.00 bar). First-load framing looked fine at 800 px wide in the browser check; re-check at the reviewer's 1024×594 before closing.**
-- [ ] **23.23 (UI-10)** Volute Preview shows only an opaque casing box hiding the impeller; "RPM" and
+- [x] **23.23 (UI-10)** Volute Preview shows only an opaque casing box hiding the impeller; "RPM" and
   "Load Pa@50CFM" labels are clipped by the Outlet panel. **[impact: low]** **[effort: low]**
+  **DONE 2026-10-08 — preview splits the two bodies: casing translucent (largest body), impeller solid inside; RPM/Load fields get room so their labels aren't clipped. Checked in the browser.**
 - [x] **23.24 (UI-11)** Mixed/Prop/Volute sliders show no numeric values; the viewer shows a blurry
   leftover render before the first Preview. **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — Mixed/Prop/Volute/CROR sliders use the shared slider (label + exact value). The blurry leftover render before first Preview is not addressed.**
-- [ ] **23.25 (UI-12)** Mixed-flow Preview renders a flat, unshaded silhouette. **[impact: low]**
+- [x] **23.25 (UI-12)** Mixed-flow Preview renders a flat, unshaded silhouette. **[impact: low]**
   **[effort: low]**
+  **DONE 2026-10-08 — cause: `plotter.clear()` also calls `remove_all_lights()`, so after the first preview Mixed (and Volute) rendered unlit. Now `clear_actors()`. Checked in the browser.**
 - [x] **23.26 (UI-13)** Prop Stop and CROR CFD refine look enabled (solid red/orange) while disabled.
   **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — tonal variant, like the Fan tab's Cancel buttons; verified disabled+tonal in the browser.**

@@ -257,10 +257,12 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
         mf_plotter = ensure_plotter(ctx, "mf_plotter")
         if mf_plotter is None:
             return
-        mf_plotter.clear()
-        mf_plotter.add_axes()
+        # clear_actors, not clear(): clear() also removes every light, so previews rendered as a
+        # flat unlit silhouette (§23.25). Axes stay from make_white_plotter.
+        mf_plotter.clear_actors()
         mesh = pv.read(str(path))
-        mf_plotter.add_mesh(mesh, color="lightsteelblue")
+        # smooth shading like Prop/CROR — without it the preview read as a flat silhouette (§23.25)
+        mf_plotter.add_mesh(mesh, color="lightsteelblue", smooth_shading=True)
         mf_plotter.reset_camera()
         ctrl.mf_view_update()
 

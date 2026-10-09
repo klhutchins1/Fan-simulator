@@ -50,6 +50,26 @@ else:
 
 
 
+
+def split_volute_preview(mesh):
+    """(casing, [rotor parts]) from the two-body preview STL; (None, []) if it doesn't split.
+
+    The casing encloses the impeller, so it is the body with the largest bounding box.
+    """
+    try:
+        bodies = list(mesh.split_bodies())
+    except Exception:  # noqa: BLE001 — viz only
+        return None, []
+    if len(bodies) < 2:
+        return None, []
+
+    def _extent(b):
+        x0, x1, y0, y1, z0, z1 = b.bounds
+        return (x1 - x0) * (y1 - y0) * (z1 - z0)
+
+    bodies.sort(key=_extent, reverse=True)
+    return bodies[0].extract_surface(), [b.extract_surface() for b in bodies[1:]]
+
 def volute_export_rows(exports: Path, limit: int = 24) -> list[dict]:
     """Newest-first ``{title, value}`` rows for volute STLs under ``exports``.
 
@@ -259,10 +279,18 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
         volute_plotter = ensure_plotter(ctx, "volute_plotter")
         if volute_plotter is None:
             return
-        volute_plotter.clear()
-        volute_plotter.add_axes()
+        # clear_actors, not clear(): clear() also removes every light, so previews rendered as a
+        # flat unlit silhouette (§23.25). Axes stay from make_white_plotter.
+        volute_plotter.clear_actors()
         mesh = pv.read(str(path))
-        volute_plotter.add_mesh(mesh, color="lightsteelblue")
+        casing, rotor = split_volute_preview(mesh)
+        if casing is None:
+            volute_plotter.add_mesh(mesh, color="lightsteelblue", smooth_shading=True)
+        else:
+            # The opaque casing hid the impeller (§23.23): casing translucent, impeller solid.
+            volute_plotter.add_mesh(casing, color="lightgray", opacity=0.25, smooth_shading=True)
+            for part in rotor:
+                volute_plotter.add_mesh(part, color="cadetblue", smooth_shading=True)
         volute_plotter.reset_camera()
         ctrl.volute_view_update()
 
@@ -583,7 +611,8 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                                     _slider("Outlet width (mm)", "volute_out_w", 20.0, 50.0, 1.0)
                                     _slider("Outlet length (mm)", "volute_out_l", 20.0, 60.0, 1.0)
                                     _slider("Outlet height (mm)", "volute_out_h", 12.0, 40.0, 1.0)
-                        with v3.VRow(no_gutters=True, classes="mt-1"):
+                        # mt-4: outlined labels float above the border and were clipped by the panels (§23.23)
+                        with v3.VRow(no_gutters=True, classes="mt-4"):
                             with v3.VCol(cols=6, classes="pr-1"):
                                 v3.VTextField(
                                     label="RPM",
