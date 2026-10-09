@@ -1,0 +1,40 @@
+{
+  "stl": "/workspace/fansim/qa/r4_export/stock/stock.stl",
+  "spec": "Noctua NF-A12x25",
+  "mount_fits_carve": true,
+  "mount_msg": "cup cavity 37 mm x 13 mm deep + 20 mm center bore + 20\u00d7\u00d82.4 mm grip pads (+0.70 mm into cup, +0.35 mm radial clearance)",
+  "params": {
+    "n_blades": 9,
+    "hub_radius": 21.5,
+    "tip_radius": 54.5,
+    "rpm": 2000.0
+  },
+  "gauge": {
+    "tip_od_mm": 109.00000246877943,
+    "hub_od_mm": 43.00000126722687,
+    "axial_depth_mm": 17.442708015441895,
+    "cavity_dia_mm": 38.06045292366437,
+    "cavity_depth_mm": 13.000000238418579,
+    "rear_bore_dia_mm": 20.000000590858072,
+    "watertight": true,
+    "mount_ok": true,
+    "frame_ok": true,
+    "hub_wall_ok": true,
+    "notes": [
+      "gauge OK vs MotorMount + frame envelope"
+    ]
+  },
+  "motor_mount": {
+    "cavity_dia_mm": 37.25,
+    "cavity_depth_mm": 13.0,
+    "rear_bore_dia_mm": 20.0,
+    "shaft_dia_mm": 3.0,
+    "min_wall_mm": 1.2,
+    "min_hub_height_mm": 15.0,
+    "grip_count": 20,
+    "grip_dia_mm": 2.4,
+    "grip_clearance_mm": 0.35,
+    "grip_protrude_mm": 0.7,
+    "provenance": "measured cup 2026-08-31; confirm when commercial hub arrives"
+  }
+}

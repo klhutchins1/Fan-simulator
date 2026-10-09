@@ -1,0 +1,51 @@
+{
+ "strategy": "B",
+ "wall_s": 70.6,
+ "rep_ok": true,
+ "mount_fits": true,
+ "gauge": {
+  "watertight": true,
+  "frame_ok": true,
+  "mount_ok": true
+ },
+ "stages": [
+  {
+   "stage": "build_parts",
+   "hwm_mb": 1906,
+   "s": 11.26
+  },
+  {
+   "stage": "carve_hub",
+   "hwm_mb": 1908,
+   "s": 0.23
+  },
+  {
+   "stage": "fuse",
+   "hwm_mb": 6313,
+   "s": 33.44
+  },
+  {
+   "stage": "export_stl",
+   "hwm_mb": 6278,
+   "s": 5.07
+  },
+  {
+   "stage": "export_step",
+   "hwm_mb": 6281,
+   "s": 16.88
+  },
+  {
+   "stage": "watertight_report",
+   "hwm_mb": 6283,
+   "s": 0.34
+  },
+  {
+   "stage": "gauge",
+   "hwm_mb": 6284,
+   "s": 0.14
+  }
+ ],
+ "env": {
+  "MALLOC_ARENA_MAX": "2"
+ }
+}

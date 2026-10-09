@@ -1,0 +1,108 @@
+{
+ "main": {
+  "faces": 53702,
+  "watertight": true,
+  "winding_consistent": true,
+  "is_volume": true,
+  "bodies": 1,
+  "euler": 0,
+  "volume_mm3": 25055.6431744545,
+  "tip_dia_mm": 108.94000501172482,
+  "depth_mm": 21.99563503265381,
+  "zmin": -9.885262489318848,
+  "zmax": 12.110372543334961,
+  "cup_found": false,
+  "blade_count_0p8R": 10,
+  "lean_centers_deg": {
+   "0.2": -8.25,
+   "0.3": -4.625,
+   "0.4": -0.625,
+   "0.5": 3.375,
+   "0.6": 7.5,
+   "0.7": 11.625,
+   "0.8": 15.75,
+   "0.9": -16.375
+  },
+  "handedness_sign": -1.0
+ },
+ "as_designed": {
+  "faces": 53702,
+  "watertight": true,
+  "winding_consistent": true,
+  "is_volume": true,
+  "bodies": 1,
+  "euler": 0,
+  "volume_mm3": 25055.6431744545,
+  "tip_dia_mm": 108.94000501172482,
+  "depth_mm": 21.99563503265381,
+  "zmin": -9.885262489318848,
+  "zmax": 12.110372543334961,
+  "cup_found": false,
+  "blade_count_0p8R": 10,
+  "lean_centers_deg": {
+   "0.2": -8.25,
+   "0.3": -4.625,
+   "0.4": -0.625,
+   "0.5": 3.375,
+   "0.6": 7.5,
+   "0.7": 11.625,
+   "0.8": 15.75,
+   "0.9": -16.375
+  },
+  "handedness_sign": -1.0
+ },
+ "mirrored": {
+  "faces": 53702,
+  "watertight": true,
+  "winding_consistent": true,
+  "is_volume": true,
+  "bodies": 1,
+  "euler": 0,
+  "volume_mm3": 25055.6431744545,
+  "tip_dia_mm": 108.94000501172482,
+  "depth_mm": 21.99563503265381,
+  "zmin": -9.885262489318848,
+  "zmax": 12.110372543334961,
+  "cup_found": false,
+  "blade_count_0p8R": 10,
+  "lean_centers_deg": {
+   "0.2": 8.25,
+   "0.3": 4.625,
+   "0.4": 0.625,
+   "0.5": -3.375,
+   "0.6": -7.5,
+   "0.7": -11.625,
+   "0.8": -15.75,
+   "0.9": 16.375
+  },
+  "handedness_sign": 1.0
+ },
+ "mirror": {
+  "hausdorff_max_p99_mm": {
+   "reflect_x": [
+    0.00042806600371261437,
+    4.223529132269803e-05
+   ],
+   "reflect_y": [
+    1.3393921329655594e-10,
+    1.0150704855788043e-12
+   ]
+  },
+  "vol_rel_diff": 0.0
+ },
+ "main_vs_as_designed_hausdorff": [
+  1.3871749213287045e-10,
+  9.098229527817748e-13
+ ],
+ "sidecars": [
+  "9504.export.json",
+  "9504.md",
+  "9504.step",
+  "9504_as_designed.handedness.json",
+  "9504_as_designed.step",
+  "9504_mirrored.handedness.json",
+  "9504_mirrored.step",
+  "9504_mount_checklist.md",
+  "9504_print_fit.json"
+ ]
+}

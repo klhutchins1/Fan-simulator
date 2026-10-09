@@ -1,0 +1,64 @@
+{
+ "k_eta": 0.9418,
+ "tip_gap": 0.5,
+ "budget_w": 0.6720000000000002,
+ "cfd": {
+  "raw_free": 54.794,
+  "raw_probe": 41.75,
+  "scored_eff": 17.888,
+  "eta_op_raw": 18.993416861329372
+ },
+ "cfd_implied_derate": 0.9536998978292331,
+ "euler": {
+  "q_free": 58.2,
+  "q_probe": 48.055988857938715,
+  "q_op": 48.61154621772515,
+  "p_op": 7.561863762169691,
+  "eta_direct": 0.273,
+  "eta_direct_scored": 0.2571114,
+  "eta_free": 0.001,
+  "eta_probe": 0.282,
+  "shaft_max_w": 0.65,
+  "derate": 1.0,
+  "t": 0.9452329702712113,
+  "eta_cfdproc": 0.26661046464621035,
+  "eta_cfdproc_scored": 0.2510937356038009,
+  "peak_eff": 0.536,
+  "at_cfd_probe": {
+   "dp": 11.96,
+   "shaft_w": 0.63,
+   "eta": 0.372
+  },
+  "at_cfd_free": {
+   "dp": 2.92,
+   "shaft_w": 0.61,
+   "eta": 0.124
+  }
+ },
+ "axial_force": {
+  "q_free": 59.8,
+  "q_probe": 51.21220043572985,
+  "q_op": 50.90019056467927,
+  "p_op": 8.290654078466128,
+  "eta_direct": 0.312,
+  "eta_direct_scored": 0.2938416,
+  "eta_free": 0.006,
+  "eta_probe": 0.305,
+  "shaft_max_w": 0.64,
+  "derate": 1.0,
+  "t": 1.036331759808264,
+  "eta_cfdproc": 0.305,
+  "eta_cfdproc_scored": 0.287249,
+  "peak_eff": 0.474,
+  "at_cfd_probe": {
+   "dp": 14.66,
+   "shaft_w": 0.64,
+   "eta": 0.453
+  },
+  "at_cfd_free": {
+   "dp": 4.99,
+   "shaft_w": 0.61,
+   "eta": 0.212
+  }
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "which": "9504",
+ "rc": 0,
+ "wall_s": 88.4,
+ "changes": [
+  "PlaceChange(field='hub_height', before=0.0, after=15.0, unit='mm')",
+  "PlaceChange(field='tip_radius', before=54.47025051684037, after=54.47, unit='mm')"
+ ],
+ "fitted": {
+  "n_blades": 10,
+  "tip_radius": 54.47,
+  "hub_radius": 23.73689331334957,
+  "hub_height": 15.0
+ }
+}
