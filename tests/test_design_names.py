@@ -95,3 +95,9 @@ def test_identical_geometry_is_listed_once_keeping_the_oldest():
     other = _d(9012, completed="2026-09-14 10:00", tubercle_amp=0.05)
     kept = collapse_identical_designs(dups + [a, other])
     assert sorted(d.trial for d in kept) == [9008, 9012]
+
+
+def test_bem_screen_design_asks_for_assess():
+    d = _d(9501, completed="2026-10-08 22:18", stale=True, n_blades=9)
+    d.extra.update(bem_screen=True, display_name="F30")
+    assert dropdown_title(d) == "⧗ F30 · 9 blades · BEM screen Oct 8 · needs Assess (BEM estimate only)"

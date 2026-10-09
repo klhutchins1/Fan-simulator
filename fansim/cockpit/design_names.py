@@ -34,6 +34,8 @@ def origin_word(d) -> str:
     extra = getattr(d, "extra", None) or {}
     if extra.get("is_reference"):
         return "Reference"
+    if extra.get("bem_screen"):
+        return "BEM screen"
     if extra.get("source") == "cockpit_opt" or int(d.trial) < 9000:
         return "Optimizer"
     return "Assess"
@@ -134,6 +136,8 @@ def dropdown_title(d, *, tag: str = "") -> str:
     where = " ".join(b for b in (origin_word(d), short_date(extra.get("completed", ""))) if b)
     head = f"{name}{tag} · {shape_summary(d.params)} · {where}"
     if extra.get("cfd_stale"):
+        if extra.get("bem_screen"):  # QA-bot BEM shortlist: never had CFD (runs/bem_screen_*)
+            return f"⧗ {head} · needs Assess (BEM estimate only)"
         return f"⧗ {head} · needs re-run (old solver)"
     bits = [head]
     for key, lab in (("cfm_free", "free"), ("cfm_load", "load"), ("efficiency", "η")):
