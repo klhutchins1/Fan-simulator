@@ -1161,11 +1161,12 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [x] **23.16 (UI-3)** Reset leaves the Fan 3-D viewer as empty axes instead of the reference fan.
   **[impact: med]** **[effort: low]**
   **DONE 2026-10-08 — Reset re-selects the design; the Reference has no Assess mesh, so `select()` cleared the view and never redrew. The cached-Stock draw is now a shared `_show_stock_preview()` used by both the startup load and the Reference branch of `select()`. Checked in the browser.**
-- [ ] **23.17 (UI-4)** Fan "Preview (sec)" takes ~65 s per run (worker ~160% CPU, ~6 GB RAM); the
+- [x] **23.17 (UI-4)** Fan "Preview (sec)" takes ~65 s per run (worker ~160% CPU, ~6 GB RAM); the
   progress bar jumps back and forth and the spinner looks stuck. CROR Preview ~70 s / Export ~40 s,
   stuck near 20%. Make progress honest and find why preview is that heavy. **[impact: med]**
   **[effort: med]**
   **PARTLY DONE 2026-10-08 — cause: chord realisation (build→measure fixed point, §19.7) was ~20 of ~23 s and re-ran in every fresh worker. (1) measurement builds skip the tip-cylinder boolean and cut at the true tip radius (chords within 0.029 mm of before on 5 designs; limit 0.05 set beforehand); (2) disk cache of realised chords (`~/.cache/fansim/loft_chords`, `FANSIM_CACHE_DIR`). Cockpit Preview of Stock: 25.5 s → 11.4 s new design, 5.4 s repeat; Assess/Export of a previewed design reuse the cache. Progress bar jumping back and forth NOT addressed yet.**
+  **DONE 2026-10-09 — the "jumping" was Vuetify's indeterminate sweep. The build worker now writes its stage (reading design → realising chords → lofting/fusing/carving → writing) to `<stl>.progress.json`; the Preview caption shows "stage k/4 · …" and the bar fills by stage, forward only. Verified live (motor-cup preview: 50 % → 75 % → done).**
 - [ ] **23.18 (UI-5)** Prop 5" FPV reports 2087 g thrust / 743 W (implausible); the polar starts
   "J=0.00 eta=-". Related to Audit #8 (prop numbers are not a performance predictor).
   **[impact: med]** **[effort: med]**
@@ -1218,11 +1219,12 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   `_interp_stations` / `tip_section_points` sort — unsorted YAML/`blade_angles` stations would size
   the hub from the wrong station. **[effort: low]**
   **DONE 2026-10-08 — root = innermost station by r_frac; test with shuffled stations.**
-- [ ] **23.32 `_trim_blade_to_tip_cylinder` can return an untrimmed blade** when all 4 intersect
+- [x] **23.32 `_trim_blade_to_tip_cylinder` can return an untrimmed blade** when all 4 intersect
   retries come back empty (`blade.py:1080–1084`), contrary to its comment. Not seen in 23 builds.
   **[effort: low]**
   **DONE 2026-10-08 — raises RuntimeError ("tip trim failed") instead of returning the untrimmed blade.**
   **REOPENED 2026-10-08 — raising broke `test_random_prop_flat_designs_never_raise_in_the_builder_path` (audited prop builder guarantee). Now warns and keeps the blade (old behaviour + a log line). Needs a real fix: a trim that works for those prop flats.**
+  **DONE 2026-10-09 — those prop lofts (~3400 faces) defeat the plain intersect. Fallbacks: outer-ring cut, 0.1 µm fuzzy common, ShapeFix + common, each on a copy (a fuzzy boolean raises its inputs' tolerances in place). Every result must end within 0.1 mm of R — OCCT can return the whole blade as "trimmed" — else RuntimeError. 8/8 random props trim; fan geometry unchanged; ledger refreshed (`2026-10-09-ledger-refresh.md`).**
 - [x] **23.33 `build_impeller_preview` doesn't check `len(blade_angles_deg) == n_blades`**
   (`blade.py:841–844`); `build_impeller` does. **[effort: low]**
   **DONE 2026-10-08 — covered by `validate_blade_params` (23.3).**
@@ -1232,6 +1234,7 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [ ] **23.35 Prop pitch twist evaluated at hub_r / 0.5(hub+R) but lofted at 4.5 / 34.0 mm**
   (root_embed; `propeller/geometry.py:64–67`). Small, mostly at the root. **[effort: low]**
   **INVESTIGATED 2026-10-08, deeper than reported — prop twist is computed at hub-mapped radii (6.0 / 34.75 mm) but the loft maps stations from hub − root_embed (4.5 / 34.0 mm): ~0.5° pitch at mid on a 5×4.3. The same split exists for every archetype: BEMT (`propeller.bemt._interp_geom`) and the docstring treat `hub_radius` as the canonical r_frac origin, all builders use `hub_radius − root_embed`. Fixing only the prop twist would move the error into the analysis. Proper fix = one shared station→radius mapping for builders and analyses; it shifts validated Stock by ~1 mm at mid-span, so it needs an A/B + re-audit. Deferred (props after fans).**
+  **ATTEMPTED 2026-10-09 — FAILED pre-registered checks, not merged (`docs/validation/audits/2026-10-09-station-mapping.md`, branch `station-mapping-23-35`). Analyses moved to the builders' mapping + the builders' pchip interpolation: Audit #4 ρ 0.714 → 0.429, Audit #3 APC C_T RMS 0.0203 > 0.020. Post-verdict split: mapping alone keeps ρ 0.714; the pchip read drops it (Stock v1 BEM 61.9 → 58.4 vs CFD 77.4). Next attempt needs its own pre-registration and goes with the §23.5 BEM rework.**
 - [x] **23.36 Mixed-flow blades lofted along a straight eye→tip diagonal on a conical hub** — only the
   root section attaches; the motor-cup-to-cone wall is ~1.66 mm at z = +2 mm (printability).
   **[effort: med]**
