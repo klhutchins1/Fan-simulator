@@ -145,10 +145,10 @@ units:
     depends_on: [cfd.flow_direction_convention, physics.air_properties]
 
   - id: optimize.reject_dead_designs
-    targets: ["fansim.optimize.system_curve:score_operating_point"]
-    claim: "Zero/negative free delivery is rejected (SystemCurveError), never scored"
+    targets: ["fansim.optimize.system_curve:score_operating_point", "fansim.optimize.system_curve:bem_exploit_reason", "fansim.optimize.system_curve:EXPLOIT_MIN_PEAK_EFF"]
+    claim: "Zero/negative free delivery is rejected (SystemCurveError), never scored; blades the axial-force BEM says cannot pump (no rise, peak eta < 5 %) are refused before CFD"
     source: {kind: derivation, ref: "a fan that does not deliver has no operating point"}
-    checks: [tests/audit/test_dead_design_guard.py]
+    checks: [tests/audit/test_dead_design_guard.py, tests/test_bem_exploit_guard.py]
 
   - id: propeller.thrust_sign
     targets:
@@ -246,9 +246,9 @@ units:
     targets:
       - "fansim.fan_bem:operating_point"
       - "fansim.fan_bem:pq_curve"
-    claim: "Axial-fan BEM never beats momentum theory, gives zero static rise at its free delivery, and ranks designs like CFD (RANKING-ONLY screening)"
-    source: {kind: datasheet, ref: "Audit #4: CFD v5 Stock v1/v2 + re-scored designs; Euler turbomachinery + blade-element theory"}
-    checks: [tests/audit/test_fan_bem_audit.py, tests/test_math_consistency.py]
+    claim: "Axial-fan BEM never beats momentum theory, gives zero static rise at its free delivery, and ranks designs like CFD (RANKING-ONLY screening). Opt-in axial_force model: static rise = blade axial force / annulus area with a Viterna post-stall polar; Stock fit 59.8 CFM / 22.1 Pa; paddles and wrong-hand blades are not fans (QA-4)"
+    source: {kind: datasheet, ref: "Audit #4: CFD v5 Stock v1/v2 + re-scored designs; Euler turbomachinery + blade-element theory; QA rules a/b/b2/c/d 2026-10-09"}
+    checks: [tests/audit/test_fan_bem_audit.py, tests/test_math_consistency.py, tests/test_fan_bem.py]
     depends_on: [physics.air_properties]
 
   - id: structural.deflection

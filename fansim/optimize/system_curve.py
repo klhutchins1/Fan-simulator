@@ -183,6 +183,31 @@ def bem_screen_cfm(params, rpm: float, load_pa: float, tip_gap_mm: float,
     return q0, q_op
 
 
+# A design whose axial-force BEM peak efficiency is below this does not pump air, it churns it (QA
+# paddle: 0.9 %). Lowest of 93 real designs (CFD-scored, saved, both QA shortlists): 28.8 %.
+EXPLOIT_MIN_PEAK_EFF = 0.05
+
+
+def bem_exploit_reason(params, rpm: float, tip_gap_mm: float | None = None) -> str:
+    """Why the axial-force BEM says these blades are not a fan ('' when they are).
+
+    The Euler BEM can be exploited: drag-driven swirl from a paddle (stagger near 90°) or a
+    wrong-hand blade counts as useful pressure, so such designs scored as good fans (QA-4). The
+    axial-force model takes the static rise from the blades' axial push, which drag and negative
+    lift reduce. Used only to refuse a design before CFD, never to rank (it ranks no better than
+    Euler: ρ 0.809 vs 0.827 on 16 CFD designs).
+    """
+    from fansim.fan_bem import pq_curve
+
+    curve = pq_curve(params, rpm, tip_gap_mm=tip_gap_mm, pressure_model="axial_force")
+    if curve.free_status == "no_rise":
+        return "blades make no pressure (wrong hand or fully stalled?)"
+    if float(curve.peak_efficiency) < EXPLOIT_MIN_PEAK_EFF:
+        return (f"blades churn air instead of pumping it (peak efficiency "
+                f"{100.0 * float(curve.peak_efficiency):.1f} % < {100 * EXPLOIT_MIN_PEAK_EFF:.0f} %; paddle-like?)")
+    return ""
+
+
 def bem_load_cfm(params, rpm: float, load_pa: float, tip_gap_mm: float,
                  *, stator: bool = False) -> float:
     """BEM 2-point fan line ∩ ΔP = k Q² — same operating point CFD uses for cfm_load."""
