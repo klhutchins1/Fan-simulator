@@ -33,10 +33,10 @@ Thumbs.db
 .DS_Store
 
 # Recovery archaeology / one-shot scratch (do not ship)
-CHAT_RECOVERY/
+archive/recovery-2026-09/CHAT_RECOVERY/
 .superpowers/sdd/
 docs/validation/_provenance_rg.txt
 docs/validation/_suite_raw.txt
-scripts/_patch_roadmap_*.py
-scripts/_fix_roadmap_*.py
+archive/recovery-2026-09/scripts/_patch_roadmap_*.py
+archive/recovery-2026-09/scripts/_fix_roadmap_*.py
 scripts/_smoke_ui_review_after.py

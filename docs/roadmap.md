@@ -1,5 +1,3 @@
-<!-- RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md. -->
-
 # Fan-simulator — Engineering Roadmap & TODO
 
 **Master plan of open work.** Combines the 2026-09-01 engineering review (major sim-fidelity and
@@ -1146,11 +1144,12 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   README says `../FluidX3D`); `scripts/import_prop_stls.py` usage example uses
   `C:/Users/Kimball/Downloads/...`. Move to env vars / config. **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — `fansim/external_tools.py` (`FANSIM_FLUIDX3D`, `FANSIM_MSYS_BIN`); personal paths removed.**
-- [ ] **23.14 Recovery leftovers:** RECOVERED-FROM-CHAT banners still in `README.md`,
+- [x] **23.14 Recovery leftovers:** RECOVERED-FROM-CHAT banners still in `README.md`,
   `scripts/cockpit.py`, `scripts/export_finalists.py`, `scripts/validate_stl.py`,
   `scripts/run_baseline.py` and others (only `fansim/*.py` were stripped);
   `fansim/cockpit/app.py.INCOMPLETE_990base` still in the tree; root-level recovery/handoff files
   (`CHAT_RECOVERY`, `HANDOFF_TO_CURSOR.md`, `_tmp*.stl`, …). **[impact: low]** **[effort: low]**
+  **DONE 2026-10-08 — moved to `archive/recovery-2026-09/` (git mv, history kept): `CHAT_RECOVERY/`, the 7 root recovery/handoff files, `app.py.INCOMPLETE_990base` + its note, and the one-shot roadmap/header scripts. Line-1 RECOVERED-FROM-CHAT banners stripped from 85 files. Untracked root `_tmp*.stl` left alone (not in git).**
 
 ### 23.G Cockpit UI (browser pass at 1024×594, no CFD clicked)
 

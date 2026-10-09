@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """Auto-design a propeller blade for a size/RPM envelope, then optionally export the picked design.
 
 BEMT is instant, so this runs hundreds of trials in a second and prints the thrust<->efficiency

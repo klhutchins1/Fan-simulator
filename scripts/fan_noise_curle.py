@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """Curle compact-dipole aeroacoustics from an LBM fan force history.
 
 Reads build/fan_force_history.csv (t_s, Fx_N, Fy_N, Fz_N) produced by the FluidX3D noise setup

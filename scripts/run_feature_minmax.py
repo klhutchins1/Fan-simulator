@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """How big is each lever's effect? — a one-at-a-time (OAT) MIN/MAX sweep.
 
 Takes the best design from a run, and for each key parameter evaluates it at its MIN and its MAX (all

@@ -1,5 +1,3 @@
-<!-- RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md. -->
-
 # Fan design rules (data-driven)
 
 From `opt_v3`: **14 feasible trials**, **14 noise-scored** (LBM control-volume dipole, relative). Spearman rank correlations below; sign = direction, magnitude = strength (|rho|>0.5 notable at this n). Correlational, screening-fidelity — **design guidance to test, not law**.

@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """Probe whether the steady CFD has multiple solution branches (bistability).
 
 The adversarial review's central suspicion: the bimodal ~49-vs-~60 CFM-load results are a

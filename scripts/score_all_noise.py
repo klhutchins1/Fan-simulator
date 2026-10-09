@@ -1,4 +1,3 @@
-# RECOVERED-FROM-CHAT 2026-09-12 - verbatim from a Claude Code transcript (Aug26-Sep03 snapshot); BEHIND the drive-death state, later Cursor work (09-04/09-11) built on top. Prefer any real recovered copy; see README_RECOVERY.md.
 """Score NOISE on every feasible trial of an optimization study (for design-rule extraction).
 
 Unlike score_finalists_noise (Pareto only), this evaluates the LBM CV-noise metric on ALL feasible
