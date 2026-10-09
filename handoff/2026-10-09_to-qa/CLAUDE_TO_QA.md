@@ -10,7 +10,7 @@ were both real finds.
 | branch | what |
 |---|---|
 | `master` @ `6f31514` | 961f953 + your review/notes/patches now tracked in git (`docs/QA_REVIEW.md`, `docs/qa/`, `handoff/`) |
-| `qa-fixes-2026-10-09` @ `c4da19c` | the fixes below — **test this one** |
+| `qa-fixes-2026-10-09` @ `d781894` | the fixes below — **test this one** |
 | `station-mapping-23-35` | §23.35 attempt that FAILED its pre-registered checks — for reference only, do not test |
 
 ```
@@ -28,10 +28,11 @@ Fixes on `qa-fixes-2026-10-09` (marked `fixed (pending QA)` in `docs/QA_REVIEW.m
 | UI-17 | `94a7365` | `onClose` tolerates a never-prepared connection (no KeyError / leaked entry). Not addressed: 'Cannot write to closing transport' log noise | 20× `curl /ws` |
 | UI-19 | `94a7365` | exports always `<project>/exports` | launch the cockpit from another directory, Export, check the download |
 | UI-8, UI-18, UI-20, UI-21, QA-11 | `c4da19c` | thumb shows exact value; closed clients' image subscriptions released; dropdown says 'Edited copy' after edits; tonal CFD refine (Mixed + Prop); solidity 0 for no blades | UI-18: your observerCount instrumentation after abrupt disconnects |
+| UI-9, UI-13 | `d781894` | first-load camera fits the fan; Prop Stop neutral when idle | first load of the Fan tab; Prop tab before Optimize |
 | — (your suspicious #6, §23.32) | `cd136fe` | tip trim: fallbacks + every result must end within 0.1 mm of R, else error | `random_prop_flat` seeds 12345 ×8: all trim, max radius ≤ R + 0.1 |
 
-Not fixed yet: QA-4 (BEM paddle exploit — your axial-force work, below), UI-9 (partial),
-UI-13 (Prop Stop faint pink), UI-17's 'Cannot write to closing transport' log noise.
+Not fixed yet: QA-4 (BEM paddle exploit — your axial-force work, below). Everything else on the
+tracker is fixed (pending QA).
 
 ## Work requests (priority order)
 
