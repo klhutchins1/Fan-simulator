@@ -280,3 +280,19 @@ def test_colour_bar_only_when_speeds_differ():
     assert _has_speed_range({"U_mag": np.array([1.0, 2.5, 4.0])}) is True
     assert _has_speed_range({"U_mag": np.full(50, 3.0)}) is False
     assert _has_speed_range({}) is False
+
+
+def test_export_basename_is_readable():
+    """Roadmap §23.19: the Stock reference exported as design_100000."""
+    from types import SimpleNamespace
+
+    from fansim.cockpit.fan_export import export_basename
+
+    ref = SimpleNamespace(extra={"is_reference": True, "fan_model": "a12x25"})
+    named = SimpleNamespace(extra={"display_name": "F12"})
+    unnamed = SimpleNamespace(extra={})
+    by = {100000: ref, 9005: named, 9006: unnamed}
+    assert export_basename(100000, by) == "a12x25_stock_reference"
+    assert export_basename(9005, by) == "F12"
+    assert export_basename(9006, by) == "design_9006"
+    assert export_basename(None, by) == "fan"

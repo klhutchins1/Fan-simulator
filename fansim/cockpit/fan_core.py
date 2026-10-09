@@ -54,6 +54,7 @@ def apply_state_defaults(session) -> None:
         "(~15–30 min)."
     )
     state.export_msg = ""
+    state.export_download = ""
     state.export_busy = False
     state.export_fit_hub = True
     state.export_fit_frame = True

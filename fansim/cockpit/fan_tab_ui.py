@@ -639,6 +639,13 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             style="white-space: pre-line",
                         )
                         html.Div("{{ export_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
+                        html.A(
+                            "⬇ Download STL",
+                            href=("export_download",),
+                            download=True,
+                            v_show="export_download",
+                            classes="text-caption",
+                        )
                         html.Div("{{ opt_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
                         busy_bar("preview_busy", "assess_busy", "export_busy", "opt_running", color="success")
 

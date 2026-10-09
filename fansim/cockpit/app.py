@@ -65,6 +65,9 @@ def load_study_designs(run_dir: str | Path, study_name: str | None = None) -> li
         return []
 
 
+EXPORTS_URL_PREFIX = "fansim_exports"
+
+
 def build_server(run_dir: str | Path, study_name: str | None = None):
     """Create the cockpit Trame server for the given run folder."""
     run_dir = Path(run_dir)
@@ -91,6 +94,10 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
     server = get_server(client_type="vue3")
     state, ctrl = server.state, server.controller
     _quiet_connection_reset(server)
+    # Serve exports/ so Export can offer a browser download, not only a server-side path (§23.19).
+    _exports = Path("exports").resolve()
+    _exports.mkdir(parents=True, exist_ok=True)
+    server.enable_module({"serve": {EXPORTS_URL_PREFIX: str(_exports)}})
 
     # Fan plotter only at startup; Mixed/Volute/Prop construct on first visit (§12.3).
     from fansim.cockpit.plotters import make_white_plotter

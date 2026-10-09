@@ -7,6 +7,8 @@ and model fit-readouts through ``session``.
 
 from __future__ import annotations
 
+import re
+
 import asyncio
 import logging
 from pathlib import Path
@@ -17,6 +19,21 @@ from fansim.cockpit.placement import prepare_export_flat, preview_changes
 
 _log = logging.getLogger(__name__)
 
+
+
+def export_basename(trial, by_trial) -> str:
+    """Readable export file stem: the design's F-name, ``a12x25_stock_reference`` or ``fan``.
+
+    Was ``design_<trial>``, so the Stock reference exported as ``design_100000`` (§23.19).
+    """
+    if trial is None:
+        return "fan"
+    d = (by_trial or {}).get(int(trial))
+    extra = getattr(d, "extra", None) or {}
+    if extra.get("is_reference"):
+        return f"{extra.get('fan_model') or 'a12x25'}_stock_reference"
+    name = str(extra.get("display_name") or f"design_{int(trial)}")
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", name).strip("_") or "fan"
 
 def bind(session) -> None:
     state = session.state
@@ -104,8 +121,7 @@ def bind(session) -> None:
         params = session.build_edit_params()
         exports = Path("exports")
         exports.mkdir(exist_ok=True)
-        tid = state.selected_trial
-        base = f"design_{tid}" if tid is not None else "fan"
+        base = export_basename(state.selected_trial, session.by_trial)
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         out = exports / f"{base}_{stamp}.stl"
 
@@ -178,6 +194,7 @@ def bind(session) -> None:
                 f"✓ Saved {out.resolve()} (+ .step)  ({wt}{mnt})"
                 f"{mirror_note}{gauge_txt}{extra}"
             )
+            state.export_download = f"fansim_exports/{out.name}"   # served by app.py (§23.19)
             state.export_busy = False
             ticker.cancel()
             state.flush()
