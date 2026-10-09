@@ -44,6 +44,7 @@ from fansim.centrifugal.persist import (
     save_mixed_design_json,
 )
 from fansim.cockpit.busy import cfd_stage_hint
+from fansim.cockpit.paths import exports_dir
 
 _RUNNING_TESTS = "pytest" in sys.modules
 
@@ -148,7 +149,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
 
     def _refresh_mf_export_items():
         rows: list[dict] = []
-        exports = Path("exports")
+        exports = exports_dir()
         if exports.is_dir():
             candidates = [
                 p
@@ -312,7 +313,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             state.mf_msg = f"⚠ Invalid params: {exc}"
             state.flush()
             return
-        exports = Path("exports")
+        exports = exports_dir()
         exports.mkdir(exist_ok=True)
         stamp = time.strftime("%Y%m%d_%H%M%S")
         out = exports / f"mixed_flow_{stamp}.stl"

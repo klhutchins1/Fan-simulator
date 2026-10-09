@@ -25,6 +25,7 @@ from fansim.cockpit.figures import cror_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
 from fansim.cror.geometry import CrorParams, export_cror_stl
 from fansim.cror.noise import estimate_cror_noise
+from fansim.cockpit.paths import exports_dir
 from fansim.cror.optimize import (
     cror_stack_depth_mm,
     refine_pareto_cfd as refine_cror_pareto_cfd,
@@ -131,7 +132,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
 
     def _refresh_cror_export_items():
         rows: list[dict] = []
-        exports = Path("exports")
+        exports = exports_dir()
         if exports.is_dir():
             candidates = [
                 p
@@ -532,7 +533,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
             )
             state.flush()
             loop = asyncio.get_running_loop()
-            exports = Path("exports")
+            exports = exports_dir()
             exports.mkdir(exist_ok=True)
             out = exports / "cror_cockpit.stl"
             try:

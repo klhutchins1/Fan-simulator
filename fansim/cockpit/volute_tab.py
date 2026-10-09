@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
+from fansim.cockpit.paths import exports_dir
 from fansim.cockpit.busy import cfd_stage_hint
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.fan_widgets import slider as _shared_slider
@@ -182,7 +183,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
             ctrl.volute_fig_update(volute_scatter_figure(volute_design_store))
 
     def _refresh_volute_export_items():
-        rows = volute_export_rows(Path("exports"))
+        rows = volute_export_rows(exports_dir())
         state.volute_export_items = rows
 
     _refresh_volute_export_items()
@@ -341,7 +342,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
             state.flush()
             return
         stamp = time.strftime("%Y%m%d_%H%M%S")
-        out_dir = Path("exports") / f"volute_{stamp}"
+        out_dir = exports_dir() / f"volute_{stamp}"
         state.volute_export_busy = True
         ticker, _t0 = spawn_busy_ticker(
             action="Export",

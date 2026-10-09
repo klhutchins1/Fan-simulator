@@ -18,6 +18,7 @@ from pathlib import Path
 _log = logging.getLogger(__name__)
 
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
+from fansim.cockpit.paths import exports_dir
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.data import design_dropdown_items
@@ -787,7 +788,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
 
     def _refresh_prop_export_items():
         rows: list[dict] = []
-        for folder, kind in ((Path("exports"), "STL"), (Path("exports") / "pythrust", "PyThrust")):
+        for folder, kind in ((exports_dir(), "STL"), (exports_dir() / "pythrust", "PyThrust")):
             if not folder.is_dir():
                 continue
             for path in sorted(folder.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True):
@@ -811,7 +812,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         if state.prop_busy or state.prop_refine_busy or state.prop_export_busy:
             return
         spec = prop_editor_spec()
-        exports = Path("exports")
+        exports = exports_dir()
         exports.mkdir(exist_ok=True)
         out = exports / f"prop_{state.prop_model}.stl"
 
@@ -853,7 +854,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         if state.prop_busy or state.prop_refine_busy or state.prop_export_busy:
             return
         spec = prop_editor_spec()
-        out_dir = Path("exports") / "pythrust"
+        out_dir = exports_dir() / "pythrust"
         from fansim.propeller.pythrust_export import prop_id_for_export
 
         prop_id = prop_id_for_export(state.prop_model)
