@@ -1252,10 +1252,11 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   test. Redo the audit's "stock" row after 23.1. **[impact: high for exploration speed]**
   **[effort: med]**
   **DONE 2026-10-09 — Q3 (8 mm, level 3, free + 8 Pa, 300 iters, ~4 min) PASSED its pre-registered audit on 11 designs: ρ_load 0.936, ρ_free 0.964, full top-3 all in Q3 top-5 (`2026-10-08-overnight-checks.md` §B). Usable to pick which ideas get a full Assess; numbers are rank-only (raw, run high).**
-- [ ] **23.39 Wall-adaptive mesh gives thick blades ~0.35M cells vs thin ~1M** (surface level-3 floor
+- [x] **23.39 Wall-adaptive mesh gives thick blades ~0.35M cells vs thin ~1M** (surface level-3 floor
   vs level 4) — a resolution difference inside Assess rankings. Measure whether it biases
   comparisons. **[impact: med]** **[effort: med]**
   **MEASURED 2026-10-09 — FAIL: level 3 scores the three thick designs 3.3–7.1 % high vs level 4 (order among them unchanged). Walls > ~2.25 mm get level 3; Stock and all thin designs get 4. Pending decision: raise the Assess floor to 4 (≈3× cells, thick designs only) or compare like with like.**
+  **DONE 2026-10-09 (user decision) — axial Assess/optimizer floor raised to level 4 (`ASSESS_SURF_MAX_FLOOR`): thick designs ~7.5 → ~20.5 min, same as thin. New scores stamp `surf_max`; older thick-wall scores show "⧗ needs re-run (coarse mesh)" (exactly t9006/9008/9015 today, which already have level-4 results from the check). Mixed/CROR keep floor 3 (untested at 4; Audit #7 setup); the quick screen keeps its own level 3.**
 - [x] **23.40 Flutter gate is order-of-magnitude (§19.18) but a hard reject** — it rejected t9001/9002/
   9003/9005 and a thin Stock variant (t9002 at 0.91× the limit). Consider a warning band near the
   limit. **[impact: med]** **[effort: low]**

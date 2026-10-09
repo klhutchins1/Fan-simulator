@@ -101,3 +101,22 @@ def test_bem_screen_design_asks_for_assess():
     d = _d(9501, completed="2026-10-08 22:18", stale=True, n_blades=9)
     d.extra.update(bem_screen=True, display_name="F30")
     assert dropdown_title(d) == "⧗ F30 · 9 blades · BEM screen Oct 8 · needs Assess (BEM estimate only)"
+
+
+def test_coarse_mesh_scores_are_flagged_for_rerun():
+    """§23.39: thick walls were floored at level 3 and scored 3-7 % high; thin designs stay current."""
+    from fansim.cockpit.data import coarse_mesh_stale, stale_reason
+    from fansim.optimize.search_space import stock_blade_flat
+
+    flat = dict(stock_blade_flat())                          # Stock walls 2.22 mm -> level 4
+    assert not coarse_mesh_stale({}, flat)
+    thick = {**flat, "thickness_root": 0.2, "thickness_mid": 0.2, "thickness_tip": 0.2}
+    assert coarse_mesh_stale({}, thick)                      # legacy (unstamped) thick score
+    assert not coarse_mesh_stale({"surf_max": 4}, thick)     # re-run at the new floor
+    assert stale_reason({"cfd_version": 5, "surf_max": 3}, flat) == "coarse mesh"
+    assert stale_reason({"cfd_version": 0}, flat) == "old solver"
+    assert not coarse_mesh_stale({}, {"not": "a fan"})       # other archetypes: no judgement
+
+    s = _d(9006, completed="2026-10-08 10:00", stale=True)
+    s.extra.update(display_name="F7", stale_reason="coarse mesh")
+    assert dropdown_title(s).endswith("needs re-run (coarse mesh)")

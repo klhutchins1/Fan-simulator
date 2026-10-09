@@ -196,8 +196,9 @@ def _load_assessed_designs(assess_dirs) -> list[Design]:
                     when = stl if stl.exists() else jf
                     extra["completed"] = datetime.fromtimestamp(
                         when.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
-                from fansim.cockpit.data import cfd_is_stale
-                extra["cfd_stale"] = cfd_is_stale(extra.get("cfd_version"))
+                from fansim.cockpit.data import stale_reason
+                extra["stale_reason"] = stale_reason(extra, d.get("params", {}))
+                extra["cfd_stale"] = bool(extra["stale_reason"])
                 if tid != orig:
                     extra["orig_trial"] = orig
                 # Re-scored by scripts/refresh_stale_designs.py: the current score's case (STL +

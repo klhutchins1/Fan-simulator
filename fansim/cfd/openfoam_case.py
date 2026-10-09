@@ -29,6 +29,12 @@ WALL_CELLS_ACROSS = 3  # target cells through the thinnest blade wall (finest ce
 # relative to thin ones (adaptive-only moved CFM 1–4% in the v2 check). Validation scripts omit
 # the floor and keep pure wall-adaptive levels.
 OPTIMIZER_SURF_MAX_FLOOR = 3
+# Axial-fan Assess / optimizer floor (§23.39, 2026-10-09): the pre-registered mesh-fairness check
+# FAILED at 3 — thick walls (> ~2.25 mm, wall-adaptive level 3) scored 3.3-7.1 % high vs level 4
+# (docs/validation/audits/2026-10-08-overnight-checks.md §C). Every axial design is now scored at
+# level 4 (thick: ~7.5 -> ~20.5 min, same as thin). Mixed / CROR keep OPTIMIZER_SURF_MAX_FLOOR:
+# untested at 4 and their own setup audit (#7) used 3. The quick screen pins its own level.
+ASSESS_SURF_MAX_FLOOR = 4
 
 
 def surface_level_for_wall(

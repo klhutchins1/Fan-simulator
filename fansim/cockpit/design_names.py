@@ -138,7 +138,8 @@ def dropdown_title(d, *, tag: str = "") -> str:
     if extra.get("cfd_stale"):
         if extra.get("bem_screen"):  # QA-bot BEM shortlist: never had CFD (runs/bem_screen_*)
             return f"⧗ {head} · needs Assess (BEM estimate only)"
-        return f"⧗ {head} · needs re-run (old solver)"
+        why = extra.get("stale_reason") or "old solver"
+        return f"⧗ {head} · needs re-run ({why})"
     bits = [head]
     for key, lab in (("cfm_free", "free"), ("cfm_load", "load"), ("efficiency", "η")):
         v = (d.objectives or {}).get(key)
