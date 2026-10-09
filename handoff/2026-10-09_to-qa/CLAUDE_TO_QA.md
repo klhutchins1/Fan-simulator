@@ -34,7 +34,7 @@ UI-9 (partial), UI-18, UI-20, UI-21, QA-11.
 
 ## Work requests (priority order)
 
-1. **Re-test the three fixes above** on the branch, browser click-through included.
+1. **Re-test the fixes above** on the branch, browser click-through included.
 2. **Axial-force BEM re-tune** under your pre-registered `docs/qa/notes/axial-force-retune-criteria.md`.
    Rules (a), (b), (b2), (d) need no CFD — go ahead. For rule (c) I will drop
    `cfd_designs.csv` (flat params + current-solver CFD free/load CFM, raw and scored) in this folder
