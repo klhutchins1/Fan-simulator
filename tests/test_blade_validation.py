@@ -68,11 +68,14 @@ def test_tip_trim_raises_instead_of_returning_untrimmed(monkeypatch):
 
     from fansim.geometry.blade import _trim_blade_to_tip_cylinder
 
-    blade = cq.Solid.makeBox(10, 10, 10, cq.Vector(40, 0, 0))
+    blade = cq.Solid.makeBox(10, 10, 10, cq.Vector(40, 0, 0))   # reaches r ≈ 50 mm
     empty = cq.Compound.makeCompound([])
     monkeypatch.setattr(cq.Solid, "intersect", lambda self, other: empty)
     with pytest.raises(RuntimeError, match="tip trim failed"):
         _trim_blade_to_tip_cylinder(blade, 45.0)
+    # already inside the cylinder (e.g. a rounded tip): nothing to trim, keep it
+    inside = cq.Solid.makeBox(5, 5, 5, cq.Vector(30, 0, 0))     # r <= ~35.4 mm
+    assert _trim_blade_to_tip_cylinder(inside, 45.0) is inside
 
 
 def test_hub_measure_cut_follows_the_hub_not_a12x25():

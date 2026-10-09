@@ -1164,6 +1164,7 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   progress bar jumps back and forth and the spinner looks stuck. CROR Preview ~70 s / Export ~40 s,
   stuck near 20%. Make progress honest and find why preview is that heavy. **[impact: med]**
   **[effort: med]**
+  **PARTLY DONE 2026-10-08 — cause: chord realisation (build→measure fixed point, §19.7) was ~20 of ~23 s and re-ran in every fresh worker. (1) measurement builds skip the tip-cylinder boolean and cut at the true tip radius (chords within 0.029 mm of before on 5 designs; limit 0.05 set beforehand); (2) disk cache of realised chords (`~/.cache/fansim/loft_chords`, `FANSIM_CACHE_DIR`). Cockpit Preview of Stock: 25.5 s → 11.4 s new design, 5.4 s repeat; Assess/Export of a previewed design reuse the cache. Progress bar jumping back and forth NOT addressed yet.**
 - [ ] **23.18 (UI-5)** Prop 5" FPV reports 2087 g thrust / 743 W (implausible); the polar starts
   "J=0.00 eta=-". Related to Audit #8 (prop numbers are not a performance predictor).
   **[impact: med]** **[effort: med]**

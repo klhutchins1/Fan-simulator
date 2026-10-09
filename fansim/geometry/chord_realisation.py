@@ -65,8 +65,11 @@ def measure_station_chords(params) -> list[float | None]:
         return [None] * len(params.stations)
     with tempfile.TemporaryDirectory() as td:
         stl = Path(td) / "blade.stl"
-        export_stl(build_blade_solid(params, _chord_realized=True), stl)
-        rows = measure_sections(stl, uniq)
+        # Untrimmed: all measured radii are <= 0.99·tip, where the tip trim removes nothing, so
+        # skip the expensive boolean and cut at the true tip radius (the mesh's own outer radius
+        # is larger untrimmed). Same chords within 0.05 mm on the 2026-10-08 A/B (roadmap §23.17).
+        export_stl(build_blade_solid(params, _chord_realized=True, _trim_tip=False), stl)
+        rows = measure_sections(stl, uniq, tip_radius_mm=float(params.tip_radius))
     by_f = {round(r["r_frac"], 4): r for r in rows}
     out: list[float | None] = []
     for f in fracs:
@@ -81,6 +84,55 @@ def measure_station_chords(params) -> list[float | None]:
     return out
 
 
+# Disk cache for the build→measure fixed point (roadmap §23.17). Preview, Assess and Export of the
+# same design each run in a fresh worker process, so the in-process cache never hit and every one
+# re-ran the iteration. Keyed on the full params + iteration count + LOFT_CACHE_VERSION (bump it
+# whenever the measurement/update rule changes). FANSIM_CACHE_DIR overrides the location.
+LOFT_CACHE_VERSION = 2   # 2: untrimmed measurement builds at the true tip radius
+
+
+def _cache_dir() -> Path:
+    import os
+
+    root = os.environ.get("FANSIM_CACHE_DIR")
+    base = Path(root) if root else Path.home() / ".cache" / "fansim"
+    return base / "loft_chords"
+
+
+def _cache_key(params, n_iter: int) -> str:
+    import hashlib
+    import json
+    from dataclasses import asdict
+
+    blob = json.dumps({"v": LOFT_CACHE_VERSION, "n_iter": int(n_iter), "p": asdict(params)},
+                      sort_keys=True, default=str)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:32]
+
+
+def _cache_get(key: str, n: int) -> list[float] | None:
+    import json
+
+    try:
+        vals = json.loads((_cache_dir() / f"{key}.json").read_text(encoding="utf-8"))
+        return [float(v) for v in vals] if len(vals) == n else None
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def _cache_put(key: str, loft: list[float]) -> None:
+    import json
+    import os
+
+    try:
+        d = _cache_dir()
+        d.mkdir(parents=True, exist_ok=True)
+        tmp = d / f"{key}.{os.getpid()}.tmp"
+        tmp.write_text(json.dumps([float(v) for v in loft]), encoding="utf-8")
+        os.replace(tmp, d / f"{key}.json")
+    except OSError:
+        pass  # cache is an optimisation only
+
+
 def loft_chords_for_measured_targets(params, n_iter: int = _DEFAULT_ITERS) -> list[float]:
     """Return per-station loft chords that realize ``station.chord`` as measured chord.
 
@@ -92,6 +144,10 @@ def loft_chords_for_measured_targets(params, n_iter: int = _DEFAULT_ITERS) -> li
     targets = [float(s.chord) for s in params.stations]
     if not bool(getattr(params, "cylindrical_tip", True)):
         return list(targets)
+    key = _cache_key(params, n_iter)
+    cached = _cache_get(key, len(targets))
+    if cached is not None:
+        return cached
 
     # Screen loft lowers n_span; measuring on that mesh under-reads tip chord and under-compensates.
     from fansim.geometry.blade import SCREEN_N_SPAN
@@ -112,6 +168,7 @@ def loft_chords_for_measured_targets(params, n_iter: int = _DEFAULT_ITERS) -> li
             if m is None or m < _MIN_MEAS_MM or tgt <= 0.0:
                 continue
             loft[i] = float(np.clip(loft[i] * tgt / m, lo, hi))
+    _cache_put(key, loft)
     return loft
 
 

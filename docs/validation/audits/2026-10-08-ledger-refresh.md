@@ -34,6 +34,12 @@ Not kept (both reverted, see roadmap §23.5): a Viterna–Corrigan post-stall ex
 `propeller.polars` (broke `test_prandtl_factor_bounded_and_inflow_iteration_converges` at J = 0) and a
 profile-drag loss in `fan_bem` (Audit #4 ρ 0.714 → 0.126). Neither was recorded.
 
+## Third pass (same day)
+
+| Unit | Change | Checks | Verdict |
+|------|--------|--------|---------|
+| `geometry.stock_handedness` | §23.17 `build_blade_solid(_trim_tip=False)` for chord-measurement builds only (measured radii ≤ 0.99·tip, where the trim removes nothing); realised loft chords within 0.029 mm of before on 5 designs (limit 0.05, set before measuring). §23.32 follow-up: a blade already inside the tip cylinder (rounded tip) is returned instead of raising. | `tests/audit/test_stock_handedness.py` + golden | **PASS** |
+
 ## Command evidence
 
 ```

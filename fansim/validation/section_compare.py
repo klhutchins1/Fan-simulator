@@ -93,10 +93,12 @@ def _circ_median_mod(theta_deg: list[float], pitch_deg: float) -> float:
     return float(np.degrees(np.angle(np.mean(np.exp(1j * ph)))) * pitch_deg / 360.0)
 
 
-def measure_sections(stl_path, radii_frac=DEFAULT_RADII) -> list[dict]:
+def measure_sections(stl_path, radii_frac=DEFAULT_RADII, *,
+                     tip_radius_mm: float | None = None) -> list[dict]:
+    """``tip_radius_mm`` overrides the mesh-derived tip (needed for an untrimmed blade)."""
     mesh = trimesh.load(str(stl_path), force="mesh")
     mesh.merge_vertices()
-    tip = _tip_radius(mesh)
+    tip = float(tip_radius_mm) if tip_radius_mm else _tip_radius(mesh)
     proof = prove_direction(mesh)
     omega_sign = int(proof.omega_sign) if proof.omega_sign is not None else +1
     # First pass: blade count from the outermost-but-one radius loops.

@@ -530,7 +530,8 @@ def apply_tip_shape(params: BladeParams, tip_round: float = 0.0,
     return params
 
 
-def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False) -> cq.Solid:
+def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False,
+                      _trim_tip: bool = True) -> cq.Solid:
     """Loft one blade solid from hub to tip (raising loft resolution for active features).
 
     When ``cylindrical_tip`` is on, station ``chord`` is treated as the desired *measured*
@@ -594,7 +595,9 @@ def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False) -> 
         wires.append(cq.Wire.makePolygon(pts, close=True))
 
     blade = cq.Solid.makeLoft(wires, True)
-    if bool(getattr(params, "cylindrical_tip", True)):
+    # _trim_tip=False only for chord-measurement builds (chord_realisation): every measured radius
+    # is <= 0.99·tip, where the trim removes nothing, and the boolean was ~2/3 of preview time.
+    if _trim_tip and bool(getattr(params, "cylindrical_tip", True)):
         blade = _trim_blade_to_tip_cylinder(blade, float(params.tip_radius))
     return blade
 
@@ -1134,8 +1137,14 @@ def _trim_blade_to_tip_cylinder(blade: cq.Solid, tip_radius: float) -> cq.Solid:
         # Some CadQuery builds return a single Solid from intersect.
         if isinstance(cut, cq.Solid) or cut.ShapeType() == "Solid":
             return cut
-        # Never fall through untrimmed: corners outside tip_radius would hit the frame in print
-        # and in CFD. Fail loudly instead (callers report "geometry failed"). Roadmap §23.32.
+        # A blade already inside the cylinder (e.g. a rounded tip) needs no trim, and OCCT can
+        # return an empty intersection for it — keep it. Only a blade that actually crosses
+        # tip_radius must not fall through untrimmed: its corners would hit the frame in print
+        # and in CFD, so fail loudly (callers report "geometry failed"). Roadmap §23.32.
+        verts, _faces = blade.tessellate(0.2)
+        r_max = max((math.hypot(v.x, v.y) for v in verts), default=0.0)
+        if r_max <= R + 0.05:
+            return blade
         raise RuntimeError(
             f"tip trim failed: blade/cylinder intersection empty after 4 tries (R={R:.2f} mm)")
     return max(solids, key=lambda s: abs(float(s.Volume())))
