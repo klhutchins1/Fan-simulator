@@ -514,7 +514,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     click=(show_fan_about,),
                                 )
                         v3.VSelect(
-                            label="Design (unlocks Preview / Assess / Export)",
+                            # After Randomize / slider edits the geometry is no longer the selected
+                            # design; say so on the dropdown itself (QA UI-20, §23.47).
+                            label=("edited_stale ? '✎ Edited copy of this design (not saved)' "
+                                   ": 'Design (unlocks Preview / Assess / Export)'",),
+                            base_color=("edited_stale ? 'warning' : undefined",),
+                            color=("edited_stale ? 'warning' : 'primary'",),
                             v_model=("selected_trial",),
                             items=("trial_items",),
                             density="compact",

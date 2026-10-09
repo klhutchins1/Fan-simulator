@@ -797,6 +797,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                                 v3.VBtn(
                                     "CFD refine",
                                     color="warning",
+                                    variant="tonal",  # solid orange looked enabled at top N = 0 (UI-21)
                                     size="small",
                                     block=True,
                                     click=(getattr(ctx, "refine_mixed_cfd"),),

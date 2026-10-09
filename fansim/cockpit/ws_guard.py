@@ -18,6 +18,12 @@ waits to flush the very buffer that is stuck.
 It also makes ``onClose`` tolerate a connection whose handshake never completed (``curl /ws``):
 wslink registers the connection before ``prepare()`` but only creates its unchunker after, so
 ``onClose`` raised ``KeyError`` and leaked the ``connections`` entry (UI-17).
+
+And it releases a gone client's image-push subscriptions (UI-18): the VTK web protocol counts
+``viewport.image.push.observer.add`` calls per view but has no disconnect hook, so a tab that
+vanished without ``observer.remove`` kept its views rendering and pushing images forever. The
+handler now remembers each client's adds/removes and, on close, calls the protocol's own
+``observer.remove`` for whatever that client still held.
 """
 
 from __future__ import annotations
@@ -33,6 +39,9 @@ _log = logging.getLogger(__name__)
 
 ENV_SEND_TIMEOUT = "FANSIM_WS_SEND_TIMEOUT"
 DEFAULT_SEND_TIMEOUT_S = 15.0
+
+OBSERVER_ADD = "viewport.image.push.observer.add"
+OBSERVER_REMOVE = "viewport.image.push.observer.remove"
 
 _installed = False
 _locks: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
@@ -121,6 +130,46 @@ async def _send_wrapped_error(self, rpcid, code, message, data=None, client_id=N
     await _fan_out(self, packed, websockets)
 
 
+def _observed(handler) -> dict:
+    if not hasattr(handler, "_fansim_observed"):
+        handler._fansim_observed = {}
+    return handler._fansim_observed
+
+
+def _track_observers(handler, rpc, client_id) -> None:
+    """Count this client's image-push subscriptions per view id (UI-18)."""
+    if not isinstance(rpc, dict):
+        return
+    method, args = rpc.get("method"), rpc.get("args") or []
+    if method not in (OBSERVER_ADD, OBSERVER_REMOVE) or not args:
+        return
+    views = _observed(handler).setdefault(client_id, {})
+    view = str(args[0])
+    views[view] = views.get(view, 0) + (1 if method == OBSERVER_ADD else -1)
+    if views[view] <= 0:
+        del views[view]
+
+
+def release_observers(handler, client_id) -> int:
+    """Undo the subscriptions a closed client still held; returns how many were released."""
+    views = _observed(handler).pop(client_id, {})
+    entry = getattr(handler, "functionMap", {}).get(OBSERVER_REMOVE)
+    if not views or entry is None:
+        return 0
+    obj, func = entry
+    released = 0
+    for view, count in views.items():
+        for _ in range(count):
+            try:
+                func(obj, view)
+                released += 1
+            except Exception as exc:  # noqa: BLE001 — view already gone; nothing to release
+                _log.debug("observer release for view %s skipped: %s", view, exc)
+    if released:
+        _log.info("released %d image subscription(s) of a closed client", released)
+    return released
+
+
 def install() -> None:
     """Patch wslink's handler once per process (idempotent)."""
     global _installed  # noqa: PLW0603
@@ -129,12 +178,21 @@ def install() -> None:
     from wslink.protocol import WslinkHandler
 
     orig_on_close = WslinkHandler.onClose
+    orig_on_complete = WslinkHandler.onCompleteMessage
+
+    async def on_complete_message(self, rpc, client_id):
+        _track_observers(self, rpc, client_id)
+        await orig_on_complete(self, rpc, client_id)
 
     async def on_close(self, client_id):
         self.unchunkers.setdefault(client_id, None)  # handshake never completed (UI-17)
-        await orig_on_close(self, client_id)
+        try:
+            await orig_on_close(self, client_id)
+        finally:
+            release_observers(self, client_id)
 
     WslinkHandler.sendWrappedMessage = _send_wrapped_message
     WslinkHandler.sendWrappedError = _send_wrapped_error
+    WslinkHandler.onCompleteMessage = on_complete_message
     WslinkHandler.onClose = on_close
     _installed = True

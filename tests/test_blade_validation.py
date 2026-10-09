@@ -89,3 +89,12 @@ def test_hub_measure_cut_follows_the_hub_not_a12x25():
         RadialStation(0.0, 30, 30), RadialStation(0.15, 30, 30), RadialStation(1.0, 30, 25)])
     fb = _station_measure_fracs(big_hub)
     assert fb[0] is None and fb[1] is None and fb[2] == 0.99     # 0.15 sits within 4.1 mm of hub
+
+
+def test_blade_solidity_of_a_bladeless_rotor_is_zero():
+    """QA-11: a direct call with n_blades=0 used to divide by zero."""
+    from fansim.geometry.blade import blade_solidity
+
+    assert blade_solidity(_bp(n_blades=0)) == {"hub": 0.0, "mid": 0.0, "tip": 0.0}
+    seven = blade_solidity(_bp(n_blades=7))
+    assert blade_solidity(_bp(n_blades=14))["mid"] == pytest.approx(2 * seven["mid"])

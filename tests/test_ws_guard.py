@@ -94,3 +94,29 @@ def test_send_timeout_env(monkeypatch, raw, want):
     if raw == "":
         monkeypatch.delenv(ws_guard.ENV_SEND_TIMEOUT)
     assert ws_guard.send_timeout_s() == want
+
+
+def test_closed_client_releases_its_image_subscriptions():
+    """UI-18: a tab that vanished without observer.remove must not keep views rendering."""
+    from wslink.protocol import WslinkHandler
+
+    ws_guard.install()
+    removed = []
+
+    class _Proto:
+        def remove(self, view):
+            removed.append(view)
+
+    h = WslinkHandler.__new__(WslinkHandler)
+    h.unchunkers, h.serverProtocol = {"a": None, "b": None}, None
+    h.functionMap = {ws_guard.OBSERVER_REMOVE: (_Proto(), _Proto.remove)}
+    add = {"method": ws_guard.OBSERVER_ADD, "args": ["7"]}
+    for rpc, cid in ((add, "a"), (add, "a"), (add, "b"),
+                     ({"method": ws_guard.OBSERVER_REMOVE, "args": ["7"]}, "a")):
+        ws_guard._track_observers(h, rpc, cid)
+    asyncio.run(h.onClose("a"))
+    assert removed == ["7"]                 # a added twice, removed once itself -> one left to release
+    asyncio.run(h.onClose("b"))
+    assert removed == ["7", "7"]
+    asyncio.run(h.onClose("never-subscribed"))
+    assert removed == ["7", "7"]

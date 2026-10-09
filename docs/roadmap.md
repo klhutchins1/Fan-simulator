@@ -1278,14 +1278,19 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   in 3–12 ms, frozen client dropped after 15 s, browser tab unaffected.**
 - [x] **23.44 (UI-17) `GET /ws` without upgrade → `KeyError` in `onClose`, leaks a `connections` entry.**
   **DONE 2026-10-09 — `ws_guard` makes `onClose` tolerate a never-prepared connection; 5 plain GETs, no KeyError.**
-- [ ] **23.45 (UI-18) Image-push observers never removed on disconnect** (views keep rendering for gone
+- [x] **23.45 (UI-18) Image-push observers never removed on disconnect** (views keep rendering for gone
   clients). **[effort: med]**
+  **DONE 2026-10-09 — `ws_guard` records each client's `viewport.image.push.observer.add/remove` and, on close, calls the protocol's own `observer.remove` for what it still held (unit-tested through the real `onClose`; live observerCount check left to QA on Linux).**
 - [x] **23.46 (UI-19) Exports folder relative to the launch directory.**
   **DONE 2026-10-09 — `fansim/cockpit/paths.exports_dir()` (= `<project>/exports`) used by every tab and the download route.**
-- [ ] **23.47 (UI-20) After Randomize the Design dropdown still says "◆ Reference".** **[effort: low]**
-- [ ] **23.48 (UI-21) Mixed "CFD refine" looks enabled with top N = 0.** **[effort: low]**
-- [ ] **23.49 (QA-11) `blade_solidity(n_blades=0)` raises ZeroDivisionError on a direct call.** **[effort: low]**
-- [ ] **23.50 (UI-8 reopened) Slider tooltip vs side label disagree** (Chord root 18.0 vs 17.75 mm). **[effort: low]**
+- [x] **23.47 (UI-20) After Randomize the Design dropdown still says "◆ Reference".** **[effort: low]**
+  **DONE 2026-10-09 — while the editor differs from the loaded design the dropdown label reads "✎ Edited copy of this design (not saved)" in warning colour; Reset restores it. Verified in the browser.**
+- [x] **23.48 (UI-21) Mixed "CFD refine" looks enabled with top N = 0.** **[effort: low]**
+  **DONE 2026-10-09 — tonal variant (as §23.26), also on Prop's CFD refine; an AST scan found no other solid coloured button with a `disabled` binding. Verified disabled+tonal in the browser.**
+- [x] **23.49 (QA-11) `blade_solidity(n_blades=0)` raises ZeroDivisionError on a direct call.** **[effort: low]**
+  **DONE 2026-10-09 — computed as B·c·cosβ/(2πr): 0 for a bladeless rotor, same value otherwise; non-positive radius raises a clear ValueError.**
+- [x] **23.50 (UI-8 reopened) Slider tooltip vs side label disagree** (Chord root 18.0 vs 17.75 mm). **[effort: low]**
+  **DONE 2026-10-09 — Vuetify's thumb text is the value snapped to the step; the thumb-label slot now shows the model value itself. Browser: Stock Chord root thumb 17.75 = side label 17.75.**
 
 ---
 

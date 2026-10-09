@@ -284,8 +284,10 @@ def blade_solidity(params: BladeParams) -> dict[str, float]:
         r = r_hub + (r_tip - r_hub) * rf
         chord = float(interp["chord"][i])
         beta = np.radians(float(interp["stagger_deg"][i]))
-        pitch = 2.0 * np.pi * r / params.n_blades
-        out[name] = float(chord * np.cos(beta) / pitch)
+        if r <= 0.0:
+            raise ValueError(f"blade_solidity needs a positive radius ({name} r = {r} mm)")
+        # B·c·cosβ / (2πr) == c·cosβ / pitch, and 0 for a bladeless rotor (QA-11; was ÷0)
+        out[name] = float(int(params.n_blades) * chord * np.cos(beta) / (2.0 * np.pi * r))
     return out
 
 

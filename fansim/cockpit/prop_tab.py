@@ -1230,6 +1230,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                         v3.VBtn(
                                             "CFD refine",
                                             color="warning",
+                                            variant="tonal",  # same as Mixed/CROR: solid looked enabled (UI-21)
                                             size="small",
                                             block=True,
                                             click=(getattr(ctx, "refine_prop_cfd"),),
