@@ -1315,17 +1315,22 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     max="20",
                                     disabled=("glyph_mode === 'off'",),
                                 )
-                        html.Div(
-                            "Legend — orange impeller = editable design; white = stock "
-                            "reference overlay; red = past tip/depth spec; green = case "
-                            "envelope; blue arrows = CFD velocity (|U|, subsampled). "
-                            "Arrows need a scored case on disk (Assess / Optimize). "
-                            "Without CFD, the 3-D view is schematic geometry only. "
-                            "Use Arrows on/off on Design / Results / Library. "
-                            "Midplane PNGs live under Results when fields remain on disk "
-                            "(FRONT = inlet on the left).",
-                            classes="text-caption text-medium-emphasis",
-                        )
+                        # Collapsed: the legend paragraph pushed the 3-D view below the fold on
+                        # short screens (1024x594, roadmap §23.22).
+                        with v3.VExpansionPanels(variant="accordion", classes="mt-1"):
+                            with v3.VExpansionPanel(title="Legend"):
+                                with v3.VExpansionPanelText():
+                                    html.Div(
+                                        "Legend — orange impeller = editable design; white = stock "
+                                        "reference overlay; red = past tip/depth spec; green = case "
+                                        "envelope; blue arrows = CFD velocity (|U|, subsampled). "
+                                        "Arrows need a scored case on disk (Assess / Optimize). "
+                                        "Without CFD, the 3-D view is schematic geometry only. "
+                                        "Use Arrows on/off on Design / Results / Library. "
+                                        "Midplane PNGs live under Results when fields remain on disk "
+                                        "(FRONT = inlet on the left).",
+                                        classes="text-caption text-medium-emphasis",
+                                    )
                         html.Div("{{ glyph_caption }}", classes="text-caption text-medium-emphasis mt-1")
                     with v3.VCard(style=f"height:{VTK_HEIGHT_PX}px;", classes="mb-2"):
                         view = plotter_ui(plotter)

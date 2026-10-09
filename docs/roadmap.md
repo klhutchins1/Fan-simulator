@@ -1180,10 +1180,11 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [x] **23.21 (UI-8)** Slider tooltip and side label disagree (Chord root 18.0 vs 17.75 mm; 25.0 vs
   25.12 — step rounding); tooltips overlap the "Blades" label. **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — thumb label shows only while dragging (it rounded to the step and overlapped neighbours); the side label shows the exact value.**
-- [ ] **23.22 (UI-9)** First-load 3-D view poorly framed under dense schematic arrows; the U colour bar
+- [x] **23.22 (UI-9)** First-load 3-D view poorly framed under dense schematic arrows; the U colour bar
   reads 3.00/3.00/3.00 (zero range). The first render was an extreme close-up — reset the camera after
   Preview. **[impact: low]** **[effort: low]**
   **PARTLY DONE 2026-10-08 — colour bar only shown when arrow speeds differ (schematic no-CFD arrows are one speed → solid colour, no 3.00/3.00 bar). First-load framing looked fine at 800 px wide in the browser check; re-check at the reviewer's 1024×594 before closing.**
+  **DONE 2026-10-08 (framing) — at 1024×594 the long legend paragraph pushed the 3-D view below the fold; it is now a collapsed "Legend" panel. Checked at 1024×594 in the browser. Side note: after many reconnects the test server stopped accepting new websocket sessions (HTTP still 200) until restarted — matches the reviewer's KeyError/ClientConnectionReset notes; not investigated further.**
 - [x] **23.23 (UI-10)** Volute Preview shows only an opaque casing box hiding the impeller; "RPM" and
   "Load Pa@50CFM" labels are clipped by the Outlet panel. **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — preview splits the two bodies: casing translucent (largest body), impeller solid inside; RPM/Load fields get room so their labels aren't clipped. Checked in the browser.**
