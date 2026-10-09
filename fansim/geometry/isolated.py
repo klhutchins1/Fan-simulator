@@ -34,15 +34,20 @@ def read_progress(path: str | Path | None) -> dict | None:
         return None
 
 
-def progress_caption(p: dict | None) -> tuple[int, str]:
-    """(percent for a determinate bar, 'stage 2/4 · realising chords'); (0, '') when unknown.
+STARTING_PCT = 2   # bar value before the worker's first stage lands (a sliver, not the sweep)
 
-    The bar shows completed stages, so it only ever moves forward (QA UI-4, roadmap §23.17).
+
+def progress_caption(p: dict | None, prev_pct: int = 0) -> tuple[int, str]:
+    """(percent for a determinate bar, 'stage 3/5 · realising chords').
+
+    Before the worker reports anything: a small fixed value and "starting build process". The bar
+    shows completed stages and never goes below ``prev_pct``, so it only moves forward; it never
+    falls back to the indeterminate sweep, which read as a bar jumping 65 % → 50 % (QA UI-4).
     """
     if not p:
-        return 0, ""
+        return max(prev_pct, STARTING_PCT), "starting build process"
     k, n = int(p["stage"]), int(p["of"])
-    return max(1, int(100 * (k - 1) / n)), f"stage {k}/{n} · {p['label']}"
+    return max(prev_pct, STARTING_PCT, int(100 * (k - 1) / n)), f"stage {k}/{n} · {p['label']}"
 
 
 def build_stl_isolated(flat: dict, features, out_path: str | Path, timeout: float = 300.0,

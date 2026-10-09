@@ -318,7 +318,8 @@ def bind(session) -> None:
         """Ticker hint: the worker's build stage; drives the determinate Preview bar (§23.17)."""
         from fansim.geometry.isolated import progress_caption, read_progress
 
-        pct, text = progress_caption(read_progress(_preview_progress_path()))
+        pct, text = progress_caption(read_progress(_preview_progress_path()),
+                                     int(getattr(state, "preview_pct", 0) or 0))
         state.preview_pct = pct
         return text
 
@@ -342,7 +343,10 @@ def bind(session) -> None:
                 heavy = "features are heavy — up to ~2 min"
             elif int(getattr(params, "tip_notch_count", 0) or 0) > 0:
                 heavy = "tip TE notches — first build can take ~30–60 s"
-            state.preview_pct = 0
+            # Determinate from the first frame: the shared bar only sweeps while this is 0.
+            from fansim.geometry.isolated import progress_caption
+
+            state.preview_pct, _ = progress_caption(None)
             ticker, _t0 = spawn_busy_ticker(
                 action="Preview",
                 msg_attr="preview_msg",

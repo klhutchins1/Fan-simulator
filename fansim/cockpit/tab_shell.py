@@ -7,6 +7,10 @@ from typing import Any, Callable
 # Locked across tabs. A missing slot is omitted, not replaced with a spacer.
 ACTION_SLOTS = ("preview", "score", "export", "optimize", "stop", "randomize")
 VTK_HEIGHT_PX = 400
+# 3-D viewer card: height follows the column width (3:2) between VTK_HEIGHT_PX and 75 % of the
+# window. A fixed 400 px on a wide column gave a ~2.8:1 canvas, so the fan (limited by height)
+# filled only ~1/3 of the viewer width (QA UI-9 re-test).
+VTK_VIEW_STYLE = f"width:100%;aspect-ratio:3 / 2;min-height:{VTK_HEIGHT_PX}px;max-height:75vh;"
 SCATTER_HEIGHT_PX = 360
 
 

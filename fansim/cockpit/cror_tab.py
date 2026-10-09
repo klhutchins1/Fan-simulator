@@ -17,7 +17,7 @@ from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.data import design_dropdown_items
 from fansim.cockpit.tab_shell import (
     SCATTER_HEIGHT_PX,
-    VTK_HEIGHT_PX,
+    VTK_VIEW_STYLE,
     render_action_row,
     render_left_shell,
 )
@@ -824,7 +824,7 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                         v_for="line in cror_readout",
                         classes="text-body-2",
                     )
-                with v3.VCard(style=f"height:{VTK_HEIGHT_PX}px;", classes="mb-2"):
+                with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
                     cror_view = plotter_ui(cror_plotter)
                     ctrl.cror_view_update = cror_view.update
                 with v3.VCard(classes="mb-2 pa-2", v_show="cror_subtab === 'results'"):

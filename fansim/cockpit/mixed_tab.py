@@ -22,7 +22,7 @@ from fansim.cockpit.figures import mf_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
 from fansim.cockpit.tab_shell import (
     SCATTER_HEIGHT_PX,
-    VTK_HEIGHT_PX,
+    VTK_VIEW_STYLE,
     render_action_row,
     render_left_shell,
 )
@@ -865,7 +865,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
             with v3.VCol(cols=7):
                 with v3.VCard(classes="mb-2 pa-3"):
                     html.Div("{{ line }}", v_for="line in mf_readout", classes="text-body-2")
-                with v3.VCard(style=f"height:{VTK_HEIGHT_PX}px;", classes="mb-2"):
+                with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
                     mf_view = plotter_ui(mf_plotter)
                     ctrl.mf_view_update = mf_view.update
                 with v3.VCard(classes="mb-2 pa-2", v_show="mf_subtab === 'results'"):

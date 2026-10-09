@@ -1301,6 +1301,12 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [x] **23.52 (UI-13 re-test) Prop Stop still faint pink while disabled.**
   **DONE 2026-10-09 — colour is bound to `prop_opt_running` (red only when there is something to stop); browser: disabled, neutral.**
 
+- [x] **23.53 QA browser re-test (2026-10-09) reopened UI-4, UI-9, UI-20.**
+  **DONE 2026-10-09 —**
+  **UI-4: the bar swept until the worker's first stage, which landed only after the CAD kernel loaded (~30 s on the QA box), so the sweep read "65 %" then "50 %". The bar is now determinate from the first frame ("starting build process"), the worker reports stage 1/5 before its heavy imports, and the value never decreases. QA's 66 s Preview was the motor-cup path: `preview_motor_cup` defaulted ON behind a switch in the Assess & print panel — now OFF (Preview ~15 s here; Export always carves the cup).**
+  **UI-9: the viewer card was a fixed 400 px; on a wide/zoomed-out window the canvas was ~2.8:1 and the fan (height-limited) filled ~1/3 of the width. All five tabs now use `VTK_VIEW_STYLE` (3:2, ≥ 400 px, ≤ 75vh): 1131×754 at a 1970-px window.**
+  **UI-20: the dropdown's shown value (not just its label) reads "✎ Edited copy of ◆ Reference …" while edited.**
+  **Browser-verified (Windows) at 1024×594 and 1970×1140.**
 ---
 
 ## Recently shipped (context, so we don't re-add)
