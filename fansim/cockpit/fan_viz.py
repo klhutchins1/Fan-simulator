@@ -42,6 +42,17 @@ _GLYPH_STRIDE = {"coarse": 4, "medium": 2, "fine": 1}
 _GLYPH_MAX = {"coarse": 250, "medium": 500, "fine": 800}
 
 
+def _has_speed_range(arrows) -> bool:
+    """True when the glyphs carry a non-trivial |U| spread worth a colour bar."""
+    try:
+        import numpy as np
+
+        u = np.asarray(arrows["U_mag"], dtype=float)
+        return u.size > 0 and float(np.nanmax(u) - np.nanmin(u)) > 1e-6
+    except Exception:  # noqa: BLE001 — missing array: fall back to a solid colour
+        return False
+
+
 def bind(session) -> None:
     state, ctrl = session.state, session.ctrl
     plotter = session.plotter
@@ -207,6 +218,10 @@ def bind(session) -> None:
                 _add_direction_cues(mesh)
         if state.show_glyphs and render_state.get("glyph_arrows") is not None:
             try:
+                if not _has_speed_range(render_state["glyph_arrows"]):
+                    # Schematic (no-CFD) arrows all have one speed: a |U| bar reading 3.00/3.00 told
+                    # the user nothing (§23.22). Solid colour, no bar.
+                    raise ValueError("no |U| range")
                 plotter.add_mesh(
                     render_state["glyph_arrows"],
                     scalars="U_mag",

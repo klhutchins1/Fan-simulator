@@ -1178,6 +1178,7 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [ ] **23.22 (UI-9)** First-load 3-D view poorly framed under dense schematic arrows; the U colour bar
   reads 3.00/3.00/3.00 (zero range). The first render was an extreme close-up — reset the camera after
   Preview. **[impact: low]** **[effort: low]**
+  **PARTLY DONE 2026-10-08 — colour bar only shown when arrow speeds differ (schematic no-CFD arrows are one speed → solid colour, no 3.00/3.00 bar). First-load framing looked fine at 800 px wide in the browser check; re-check at the reviewer's 1024×594 before closing.**
 - [ ] **23.23 (UI-10)** Volute Preview shows only an opaque casing box hiding the impeller; "RPM" and
   "Load Pa@50CFM" labels are clipped by the Outlet panel. **[impact: low]** **[effort: low]**
 - [ ] **23.24 (UI-11)** Mixed/Prop/Volute sliders show no numeric values; the viewer shows a blurry

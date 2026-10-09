@@ -269,3 +269,14 @@ def test_randomize_clears_the_previous_export_message(bound_ctx):
     st.flush()
     assert st.edited_stale is True
     assert st.export_msg == ""
+
+
+def test_colour_bar_only_when_speeds_differ():
+    """Roadmap §23.22: schematic arrows (one speed) showed a 3.00/3.00 colour bar."""
+    import numpy as np
+
+    from fansim.cockpit.fan_viz import _has_speed_range
+
+    assert _has_speed_range({"U_mag": np.array([1.0, 2.5, 4.0])}) is True
+    assert _has_speed_range({"U_mag": np.full(50, 3.0)}) is False
+    assert _has_speed_range({}) is False
