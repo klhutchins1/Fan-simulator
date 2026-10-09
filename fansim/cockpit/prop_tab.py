@@ -1022,8 +1022,10 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                 },
                                 "stop": {
                                     "label": "Stop",
-                                    "color": "error",
-                                    "variant": "tonal",   # solid red looked enabled while disabled (§23.26)
+                                    # Red only while there is something to stop: a disabled tonal
+                                    # red still read faint pink (§23.26, QA UI-13 re-test).
+                                    "color": ("prop_opt_running ? 'error' : undefined",),
+                                    "variant": "tonal",
                                     "size": "small",
                                     "click": (getattr(ctx, "stop_prop_optimize"),),
                                     "disabled": ("!prop_opt_running",),

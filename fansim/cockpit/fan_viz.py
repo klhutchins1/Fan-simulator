@@ -239,7 +239,25 @@ def bind(session) -> None:
                 except Exception as exc:  # noqa: BLE001
                     log_caught(_log, "glyph overlay", exc, level=logging.DEBUG)
         if reset:
-            plotter.reset_camera()
+            bounds = _frame_bounds(mesh)
+            plotter.reset_camera(bounds=bounds)
+            if bounds is not None:
+                # reset_camera fits a bounding SPHERE, generous for this oblique view: the cue
+                # ring used ~45 % of the viewer height. 1.5x keeps it inside with a margin.
+                plotter.camera.zoom(1.5)
+
+    def _frame_bounds(mesh):
+        """Camera fit around the fan (+ the rotation-cue ring at 1.3·tip), not the whole scene.
+
+        Fitting every actor included the schematic flow-arrow cloud, which reaches far past the
+        tip, so the fan came up at ~1/4 of the viewer (QA UI-9).
+        """
+        if mesh is None:
+            return None
+        x0, x1, y0, y1, z0, z1 = (float(v) for v in mesh.bounds)
+        cx, cy = 0.5 * (x0 + x1), 0.5 * (y0 + y1)
+        half = 0.5 * max(x1 - x0, y1 - y0) * 1.45
+        return (cx - half, cx + half, cy - half, cy + half, z0, z1)
 
     def _draw(path, color: str):
         render_state["path"] = str(path)

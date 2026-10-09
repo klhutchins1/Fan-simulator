@@ -1291,6 +1291,13 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   **DONE 2026-10-09 — computed as B·c·cosβ/(2πr): 0 for a bladeless rotor, same value otherwise; non-positive radius raises a clear ValueError.**
 - [x] **23.50 (UI-8 reopened) Slider tooltip vs side label disagree** (Chord root 18.0 vs 17.75 mm). **[effort: low]**
   **DONE 2026-10-09 — Vuetify's thumb text is the value snapped to the step; the thumb-label slot now shows the model value itself. Browser: Stock Chord root thumb 17.75 = side label 17.75.**
+- [x] **23.51 (UI-9 partial) First-load fan small (~1/4 of the viewer).** `reset_camera()` fitted every actor,
+  including the schematic flow-arrow cloud that reaches far past the tip.
+  **DONE 2026-10-09 — fit to the fan (+ the 1.3·tip rotation-cue ring) and zoom 1.5× (the bounding-sphere fit
+  is generous for the oblique view); browser: fan fills the viewer, cues visible. The missing |U| bar on the
+  Stock first load is by design (schematic arrows have one speed, §23.22).**
+- [x] **23.52 (UI-13 re-test) Prop Stop still faint pink while disabled.**
+  **DONE 2026-10-09 — colour is bound to `prop_opt_running` (red only when there is something to stop); browser: disabled, neutral.**
 
 ---
 
