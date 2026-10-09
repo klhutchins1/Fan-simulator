@@ -48,7 +48,7 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 | UI-19 | LOW | Fan | Export download dir is `Path("exports").resolve()`, i.e. relative to the launch CWD, not the repo/run dir | fixed (pending QA) `94a7365`: `<project>/exports` for every tab |
 | UI-20 | LOW | Fan | After Randomize, Design dropdown still says '◆ Reference · Noctua A12x25 (published)' though geometry changed | fixed (pending QA) `c4da19c`: dropdown label reads '✎ Edited copy of this design (not saved)' while edited |
 | UI-21 | LOW | Mixed | CFD refine button solid orange with 'top N = 0', looks enabled (not clicked) | fixed (pending QA) `c4da19c`: tonal variant (also Prop CFD refine) |
-| UI-22 | LOW | Mixed | Preview timer may lag ('Running Preview… 0:01' ~6 s after click) | suspicious, unconfirmed |
+| UI-22 | LOW | Mixed | Preview timer may lag ('Running Preview… 0:01' ~6 s after click) | not reproduced (Windows, branch `d781894`): caption '0:00' 0.1 s after click, ticks every ~1 s, ready at 9.7 s; likely the UI-16 send blocking while headless clients were attached — please re-check on the branch |
 
 ## Details
 (Numbered bugs below map to QA-n.)
