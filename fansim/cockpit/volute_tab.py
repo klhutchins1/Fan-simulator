@@ -14,6 +14,7 @@ from pathlib import Path
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
 from fansim.cockpit.busy import cfd_stage_hint
 from fansim.cockpit.context import CockpitCtx
+from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.data import design_dropdown_items
 from fansim.cockpit.figures import volute_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
@@ -536,22 +537,9 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
     volute_plotter = ensure_plotter(ctx, "volute_plotter")
     volute_design_store = getattr(ctx, "volute_design_store", [])
 
-    def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None):
-        extra = {}
-        if disabled is not None:
-            extra["disabled"] = disabled
-        v3.VSlider(
-            v_model=(model,),
-            min=mn,
-            max=mx,
-            step=step,
-            label=label,
-            thumb_label=True,
-            density="compact",
-            hide_details=True,
-            classes="mb-1",
-            **extra,
-        )
+    def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None, **_kw):
+        # Shared slider: label + exact value always visible (these tabs showed no numbers; §23.24).
+        _shared_slider(label, model, mn, mx, step, disabled=disabled)
 
     _volute_busy_expr = (
         "volute_preview_busy || volute_export_busy || volute_assess_busy || volute_opt_busy"

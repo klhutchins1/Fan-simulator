@@ -13,6 +13,7 @@ from pathlib import Path
 
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
 from fansim.cockpit.context import CockpitCtx
+from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.data import design_dropdown_items
 from fansim.cockpit.tab_shell import (
     SCATTER_HEIGHT_PX,
@@ -568,21 +569,8 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
     cror_plotter = ensure_plotter(ctx, "cror_plotter")
 
     def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None, **_kw):
-        extra = {}
-        if disabled is not None:
-            extra["disabled"] = disabled
-        v3.VSlider(
-            v_model=(model,),
-            min=mn,
-            max=mx,
-            step=step,
-            label=label,
-            thumb_label=True,
-            density="compact",
-            hide_details=True,
-            classes="mb-1",
-            **extra,
-        )
+        # Shared slider: label + exact value always visible (these tabs showed no numbers; §23.24).
+        _shared_slider(label, model, mn, mx, step, disabled=disabled)
 
     _cror_busy_expr = (
         "cror_preview_busy || cror_opt_busy || cror_refine_busy || "
@@ -763,6 +751,7 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                                 v3.VBtn(
                                     "CFD refine",
                                     color="warning",
+                                    variant="tonal",  # solid orange looked enabled while disabled (§23.26)
                                     size="small",
                                     block=True,
                                     click=(getattr(ctx, "refine_cror_cfd"),),

@@ -19,6 +19,7 @@ _log = logging.getLogger(__name__)
 
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
 from fansim.cockpit.context import CockpitCtx
+from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.data import design_dropdown_items
 from fansim.cockpit.figures import prop_mission_figure, prop_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
@@ -900,22 +901,9 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
     prop_pareto_store = getattr(ctx, "prop_pareto_store")  # set by setup_prop_tab
     prop_user_store = getattr(ctx, "prop_user_store")  # set by setup_prop_tab
 
-    def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None):
-        extra = {}
-        if disabled is not None:
-            extra["disabled"] = disabled
-        v3.VSlider(
-            v_model=(model,),
-            min=mn,
-            max=mx,
-            step=step,
-            label=label,
-            thumb_label=True,
-            density="compact",
-            hide_details=True,
-            classes="mb-1",
-            **extra,
-        )
+    def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None, **_kw):
+        # Shared slider: label + exact value always visible (these tabs showed no numbers; §23.24).
+        _shared_slider(label, model, mn, mx, step, disabled=disabled)
 
     # ---- PROPELLER TAB -------------------------------------------------------------
     with html.Div(v_show="active_tab === 'propeller'"):
@@ -1007,6 +995,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                 "stop": {
                                     "label": "Stop",
                                     "color": "error",
+                                    "variant": "tonal",   # solid red looked enabled while disabled (§23.26)
                                     "size": "small",
                                     "click": (getattr(ctx, "stop_prop_optimize"),),
                                     "disabled": ("!prop_opt_running",),

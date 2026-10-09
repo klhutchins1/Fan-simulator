@@ -15,6 +15,7 @@ from pathlib import Path
 _log = logging.getLogger(__name__)
 
 from fansim.cockpit.context import CockpitCtx
+from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
 from fansim.cockpit.data import design_dropdown_items
 from fansim.cockpit.figures import mf_scatter_figure
@@ -644,22 +645,9 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
     mf_plotter = ensure_plotter(ctx, "mf_plotter")
     mf_design_store = getattr(ctx, "mf_design_store")  # set by setup_mixed_tab
 
-    def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None):
-        extra = {}
-        if disabled is not None:
-            extra["disabled"] = disabled
-        v3.VSlider(
-            v_model=(model,),
-            min=mn,
-            max=mx,
-            step=step,
-            label=label,
-            thumb_label=True,
-            density="compact",
-            hide_details=True,
-            classes="mb-1",
-            **extra,
-        )
+    def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None, **_kw):
+        # Shared slider: label + exact value always visible (these tabs showed no numbers; §23.24).
+        _shared_slider(label, model, mn, mx, step, disabled=disabled)
 
     _mf_busy_expr = (
         "mf_preview_busy || mf_export_busy || mf_assess_busy || "

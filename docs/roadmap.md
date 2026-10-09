@@ -1174,22 +1174,26 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [x] **23.20 (UI-7)** After Randomize, the previous "Saved …design_100000…stl" message stays on
   screen. **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — export message clears on any edit (incl. Randomize) and on loading a design; kept while an export runs.**
-- [ ] **23.21 (UI-8)** Slider tooltip and side label disagree (Chord root 18.0 vs 17.75 mm; 25.0 vs
+- [x] **23.21 (UI-8)** Slider tooltip and side label disagree (Chord root 18.0 vs 17.75 mm; 25.0 vs
   25.12 — step rounding); tooltips overlap the "Blades" label. **[impact: low]** **[effort: low]**
+  **DONE 2026-10-08 — thumb label shows only while dragging (it rounded to the step and overlapped neighbours); the side label shows the exact value.**
 - [ ] **23.22 (UI-9)** First-load 3-D view poorly framed under dense schematic arrows; the U colour bar
   reads 3.00/3.00/3.00 (zero range). The first render was an extreme close-up — reset the camera after
   Preview. **[impact: low]** **[effort: low]**
   **PARTLY DONE 2026-10-08 — colour bar only shown when arrow speeds differ (schematic no-CFD arrows are one speed → solid colour, no 3.00/3.00 bar). First-load framing looked fine at 800 px wide in the browser check; re-check at the reviewer's 1024×594 before closing.**
 - [ ] **23.23 (UI-10)** Volute Preview shows only an opaque casing box hiding the impeller; "RPM" and
   "Load Pa@50CFM" labels are clipped by the Outlet panel. **[impact: low]** **[effort: low]**
-- [ ] **23.24 (UI-11)** Mixed/Prop/Volute sliders show no numeric values; the viewer shows a blurry
+- [x] **23.24 (UI-11)** Mixed/Prop/Volute sliders show no numeric values; the viewer shows a blurry
   leftover render before the first Preview. **[impact: low]** **[effort: low]**
+  **DONE 2026-10-08 — Mixed/Prop/Volute/CROR sliders use the shared slider (label + exact value). The blurry leftover render before first Preview is not addressed.**
 - [ ] **23.25 (UI-12)** Mixed-flow Preview renders a flat, unshaded silhouette. **[impact: low]**
   **[effort: low]**
-- [ ] **23.26 (UI-13)** Prop Stop and CROR CFD refine look enabled (solid red/orange) while disabled.
+- [x] **23.26 (UI-13)** Prop Stop and CROR CFD refine look enabled (solid red/orange) while disabled.
   **[impact: low]** **[effort: low]**
-- [ ] **23.27 (UI-14)** Tab hover tooltip covers neighbouring tab names after clicking.
+  **DONE 2026-10-08 — tonal variant, like the Fan tab's Cancel buttons; verified disabled+tonal in the browser.**
+- [x] **23.27 (UI-14)** Tab hover tooltip covers neighbouring tab names after clicking.
   **[impact: low]** **[effort: low]**
+  **DONE 2026-10-08 — tab tooltips open below the tabs after 400 ms.**
 - [ ] **23.28 (UI-15)** Console 405 on `POST /paraview/` at load (trame-vtk probe). Likely benign;
   silence or document. **[impact: low]** **[effort: low]**
 - [ ] **23.29 Shared trame state across browser clients** — a new browser opened on the CROR tab

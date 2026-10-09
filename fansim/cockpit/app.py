@@ -148,26 +148,36 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
             with v3.VContainer(fluid=True, classes="pa-2") as _tabs_box:
                 with v3.VTabs(v_model=("active_tab",), color="primary", classes="mb-3"):
                     with v3.VTooltip(
+                        location="bottom",  # beside the tab it covered the next tab name (§23.27)
+                        open_delay=400,
                         text="Fan — CFD-checked axial PC-fan blades (printable STL)",
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
                             v3.VTab("Fan · CFD", value="fan", v_bind="props")
                     with v3.VTooltip(
+                        location="bottom",  # beside the tab it covered the next tab name (§23.27)
+                        open_delay=400,
                         text="Mixed-flow — drop-in impeller (rough / proxy estimates)",
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
                             v3.VTab("Mixed · proxy", value="mixed", v_bind="props")
                     with v3.VTooltip(
+                        location="bottom",  # beside the tab it covered the next tab name (§23.27)
+                        open_delay=400,
                         text="Volute — radial blower (rough / relative proxy)",
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
                             v3.VTab("Volute · proxy", value="volute", v_bind="props")
                     with v3.VTooltip(
+                        location="bottom",  # beside the tab it covered the next tab name (§23.27)
+                        open_delay=400,
                         text="Propeller — fast BEMT estimate (~1 s); CFD refine optional",
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
                             v3.VTab("Prop · BEMT", value="propeller", v_bind="props")
                     with v3.VTooltip(
+                        location="bottom",  # beside the tab it covered the next tab name (§23.27)
+                        open_delay=400,
                         text="CROR — stacked rotors (BEMT proxy, not full CFD)",
                     ):
                         with v3.Template(v_slot_activator="{ props }"):

@@ -40,7 +40,10 @@ def slider(label: str, model: str, mn: float, mx: float | str, step: float, disa
             min=mn,
             max=max_kw,
             step=step,
-            thumb_label="always",
+            # Thumb label only while dragging: an always-on thumb shows the value rounded to the step
+            # (Chord root 18.0) beside the exact side label (17.75), and overlapped neighbouring
+            # labels (QA 2026-10-08, roadmap §23.21). The side label shows the exact value at rest.
+            thumb_label=True,
             density="compact",
             hide_details=True,
             classes="mt-0 mb-2",
