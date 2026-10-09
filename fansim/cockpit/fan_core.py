@@ -59,7 +59,10 @@ def apply_state_defaults(session) -> None:
     state.export_fit_hub = True
     state.export_fit_frame = True
     state.export_also_mirror = False  # §19.4 CW⇄CCW pair beside the primary STL
-    state.preview_motor_cup = True
+    # Off by default: Preview is for quick shape iteration (~10 s); with the cup it is the full
+    # boolean build (~1 min) — QA's "Preview (sec)" took 66 s with the switch on and hidden.
+    # Export always carves the cup; the switch (Assess & print panel) still turns it on.
+    state.preview_motor_cup = False
     state.assess_preset = "case"
     state.assess_preset_items = assess_preset_items()
     state.assess_refine_op = False
@@ -103,6 +106,7 @@ def apply_state_defaults(session) -> None:
     state.opt_running = False
     state.opt_cancel = False
     state.preview_busy = False
+    state.preview_pct = 0  # determinate Preview bar (build stages; 0 = sweep)
     state.assess_msg = ""
     state.assess_busy = False
     state.assess_cancel = False

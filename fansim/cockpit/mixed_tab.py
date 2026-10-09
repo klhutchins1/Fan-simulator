@@ -22,7 +22,7 @@ from fansim.cockpit.figures import mf_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
 from fansim.cockpit.tab_shell import (
     SCATTER_HEIGHT_PX,
-    VTK_HEIGHT_PX,
+    VTK_VIEW_STYLE,
     render_action_row,
     render_left_shell,
 )
@@ -44,6 +44,7 @@ from fansim.centrifugal.persist import (
     save_mixed_design_json,
 )
 from fansim.cockpit.busy import cfd_stage_hint
+from fansim.cockpit.paths import exports_dir
 
 _RUNNING_TESTS = "pytest" in sys.modules
 
@@ -148,7 +149,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
 
     def _refresh_mf_export_items():
         rows: list[dict] = []
-        exports = Path("exports")
+        exports = exports_dir()
         if exports.is_dir():
             candidates = [
                 p
@@ -312,7 +313,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             state.mf_msg = f"⚠ Invalid params: {exc}"
             state.flush()
             return
-        exports = Path("exports")
+        exports = exports_dir()
         exports.mkdir(exist_ok=True)
         stamp = time.strftime("%Y%m%d_%H%M%S")
         out = exports / f"mixed_flow_{stamp}.stl"
@@ -796,6 +797,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                                 v3.VBtn(
                                     "CFD refine",
                                     color="warning",
+                                    variant="tonal",  # solid orange looked enabled at top N = 0 (UI-21)
                                     size="small",
                                     block=True,
                                     click=(getattr(ctx, "refine_mixed_cfd"),),
@@ -863,7 +865,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
             with v3.VCol(cols=7):
                 with v3.VCard(classes="mb-2 pa-3"):
                     html.Div("{{ line }}", v_for="line in mf_readout", classes="text-body-2")
-                with v3.VCard(style=f"height:{VTK_HEIGHT_PX}px;", classes="mb-2"):
+                with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
                     mf_view = plotter_ui(mf_plotter)
                     ctrl.mf_view_update = mf_view.update
                 with v3.VCard(classes="mb-2 pa-2", v_show="mf_subtab === 'results'"):

@@ -239,7 +239,25 @@ def bind(session) -> None:
                 except Exception as exc:  # noqa: BLE001
                     log_caught(_log, "glyph overlay", exc, level=logging.DEBUG)
         if reset:
-            plotter.reset_camera()
+            bounds = _frame_bounds(mesh)
+            plotter.reset_camera(bounds=bounds)
+            if bounds is not None:
+                # reset_camera fits a bounding SPHERE, generous for this oblique view: the cue
+                # ring used ~45 % of the viewer height. 1.5x keeps it inside with a margin.
+                plotter.camera.zoom(1.5)
+
+    def _frame_bounds(mesh):
+        """Camera fit around the fan (+ the rotation-cue ring at 1.3·tip), not the whole scene.
+
+        Fitting every actor included the schematic flow-arrow cloud, which reaches far past the
+        tip, so the fan came up at ~1/4 of the viewer (QA UI-9).
+        """
+        if mesh is None:
+            return None
+        x0, x1, y0, y1, z0, z1 = (float(v) for v in mesh.bounds)
+        cx, cy = 0.5 * (x0 + x1), 0.5 * (y0 + y1)
+        half = 0.5 * max(x1 - x0, y1 - y0) * 1.45
+        return (cx - half, cx + half, cy - half, cy + half, z0, z1)
 
     def _draw(path, color: str):
         render_state["path"] = str(path)
@@ -290,7 +308,20 @@ def bind(session) -> None:
             flat, feat, preview_stl, timeout=300.0,
             preview=mount is None,
             motor_mount=mount,
+            progress_path=_preview_progress_path(),
         )
+
+    def _preview_progress_path():
+        return preview_stl.with_name(preview_stl.name + ".progress.json")
+
+    def _preview_stage_hint() -> str:
+        """Ticker hint: the worker's build stage; drives the determinate Preview bar (§23.17)."""
+        from fansim.geometry.isolated import progress_caption, read_progress
+
+        pct, text = progress_caption(read_progress(_preview_progress_path()),
+                                     int(getattr(state, "preview_pct", 0) or 0))
+        state.preview_pct = pct
+        return text
 
     def do_preview():
         if state.preview_busy or state.assess_busy:
@@ -312,11 +343,16 @@ def bind(session) -> None:
                 heavy = "features are heavy — up to ~2 min"
             elif int(getattr(params, "tip_notch_count", 0) or 0) > 0:
                 heavy = "tip TE notches — first build can take ~30–60 s"
+            # Determinate from the first frame: the shared bar only sweeps while this is 0.
+            from fansim.geometry.isolated import progress_caption
+
+            state.preview_pct, _ = progress_caption(None)
             ticker, _t0 = spawn_busy_ticker(
                 action="Preview",
                 msg_attr="preview_msg",
                 busy_attr="preview_busy",
                 note=heavy,
+                hint_fn=_preview_stage_hint,
             )
             state.flush()
             loop = asyncio.get_running_loop()
@@ -329,12 +365,14 @@ def bind(session) -> None:
                     "finish, or turn notches off briefly to tweak Sickle/Wrap, then re-enable."
                 )
                 state.preview_busy = False
+                state.preview_pct = 0
                 ticker.cancel()
                 state.flush()
                 return
             except Exception as exc:  # noqa: BLE001
                 state.preview_msg = f"⚠ Geometry failed: {type(exc).__name__}: {exc}"
                 state.preview_busy = False
+                state.preview_pct = 0
                 ticker.cancel()
                 state.flush()
                 return
@@ -371,6 +409,7 @@ def bind(session) -> None:
                 f"{tone_line}{print_warn}"
             )
             state.preview_busy = False
+            state.preview_pct = 0
             ticker.cancel()
             try:
                 ctrl.view_update()

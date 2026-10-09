@@ -30,10 +30,8 @@ exempt:
   - "fansim.propeller.polar:PolarPoint"
   - "fansim.propeller.polar:parse_float_list"
   - "fansim.propeller.polar:resolve_sweep"
-  - "fansim.propeller.polar:advance_ratio"
   - "fansim.propeller.polar:cfd_bc_u"
   - "fansim.propeller.polar:finalize_cfd_polar_result"
-  - "fansim.propeller.polar:nondim"
   - "fansim.propeller.polar:run_bemt_polar"
   - "fansim.propeller.polar:run_cfd_polar"
   - "fansim.acoustics.case:*"
@@ -80,7 +78,6 @@ exempt:
   - "fansim.cfd.spanwise:total_pressure_kin"
   - "fansim.propeller.cfd:*"
   - "fansim.propeller.noise:prop_fwh_from_mean_thrust"
-  - "fansim.propeller.polar:v_inf_from_j"
   - "fansim.propeller.polar:write_polar_artifacts"
   - "fansim.centrifugal.geometry:*"
   - "fansim.centrifugal.optimize:*"
@@ -229,7 +226,20 @@ units:
       Table SF static C_P remains a known FAIL (~-21%, not claimed). NeuralFoil opt-in clears
       SF static C_T and C_P within the same tols (regression test; not the process default).
     source: {kind: datasheet, ref: "UIUC PropDB APC SF 9x4.7 / E 9x6; Audit #3 + §20.2 C_P split"}
-    checks: [tests/audit/test_prop_bemt_audit.py, tests/test_bemt.py, tests/test_bemt_catalog.py]
+    checks: [tests/audit/test_prop_bemt_audit.py, tests/test_bemt.py, tests/test_bemt_catalog.py, tests/test_prop_uiuc_gws.py]
+    depends_on: [physics.air_properties]
+
+  - id: propeller.polar_coefficients
+    targets:
+      - "fansim.propeller.polar:nondim"
+      - "fansim.propeller.polar:advance_ratio"
+      - "fansim.propeller.polar:v_inf_from_j"
+    claim: >
+      J = V/(nD), CT = T/(rho n^2 D^4), CP = P/(rho n^3 D^5) with n in rev/s; propulsive efficiency
+      eta = J*CT/CP = T*V/P (None at J = 0). Was exempt as scaffolding; the eta line carried an extra
+      2*pi (6.3x low) until QA UI-5 / roadmap 23.18 (2026-10-09).
+    source: {kind: derivation, ref: "standard n-based propeller coefficients; APC PER3 header Pe = Ct*J/Cp"}
+    checks: [tests/test_prop_polar.py]
     depends_on: [physics.air_properties]
 
   - id: fan.bem_prescreen

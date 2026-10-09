@@ -18,6 +18,7 @@ from pathlib import Path
 _log = logging.getLogger(__name__)
 
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
+from fansim.cockpit.paths import exports_dir
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.data import design_dropdown_items
@@ -25,7 +26,7 @@ from fansim.cockpit.figures import prop_mission_figure, prop_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
 from fansim.cockpit.tab_shell import (
     SCATTER_HEIGHT_PX,
-    VTK_HEIGHT_PX,
+    VTK_VIEW_STYLE,
     render_action_row,
     render_left_shell,
 )
@@ -787,7 +788,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
 
     def _refresh_prop_export_items():
         rows: list[dict] = []
-        for folder, kind in ((Path("exports"), "STL"), (Path("exports") / "pythrust", "PyThrust")):
+        for folder, kind in ((exports_dir(), "STL"), (exports_dir() / "pythrust", "PyThrust")):
             if not folder.is_dir():
                 continue
             for path in sorted(folder.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True):
@@ -811,7 +812,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         if state.prop_busy or state.prop_refine_busy or state.prop_export_busy:
             return
         spec = prop_editor_spec()
-        exports = Path("exports")
+        exports = exports_dir()
         exports.mkdir(exist_ok=True)
         out = exports / f"prop_{state.prop_model}.stl"
 
@@ -853,7 +854,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         if state.prop_busy or state.prop_refine_busy or state.prop_export_busy:
             return
         spec = prop_editor_spec()
-        out_dir = Path("exports") / "pythrust"
+        out_dir = exports_dir() / "pythrust"
         from fansim.propeller.pythrust_export import prop_id_for_export
 
         prop_id = prop_id_for_export(state.prop_model)
@@ -1021,8 +1022,10 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                 },
                                 "stop": {
                                     "label": "Stop",
-                                    "color": "error",
-                                    "variant": "tonal",   # solid red looked enabled while disabled (§23.26)
+                                    # Red only while there is something to stop: a disabled tonal
+                                    # red still read faint pink (§23.26, QA UI-13 re-test).
+                                    "color": ("prop_opt_running ? 'error' : undefined",),
+                                    "variant": "tonal",
                                     "size": "small",
                                     "click": (getattr(ctx, "stop_prop_optimize"),),
                                     "disabled": ("!prop_opt_running",),
@@ -1229,6 +1232,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                         v3.VBtn(
                                             "CFD refine",
                                             color="warning",
+                                            variant="tonal",  # same as Mixed/CROR: solid looked enabled (UI-21)
                                             size="small",
                                             block=True,
                                             click=(getattr(ctx, "refine_prop_cfd"),),
@@ -1335,7 +1339,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
             with v3.VCol(cols=7):
                 with v3.VCard(classes="mb-2 pa-3"):
                     html.Div("{{ line }}", v_for="line in prop_readout", classes="text-body-2")
-                with v3.VCard(style=f"height:{VTK_HEIGHT_PX}px;", classes="mb-2"):
+                with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
                     prop_view = plotter_ui(prop_plotter)
                     ctrl.prop_view_update = prop_view.update
                 with v3.VCard(classes="mb-2 pa-2", v_show="prop_subtab === 'results'"):

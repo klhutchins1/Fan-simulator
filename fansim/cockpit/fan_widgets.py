@@ -35,20 +35,23 @@ def slider(label: str, model: str, mn: float, mx: float | str, step: float, disa
                 f"{{{{ {model} }}}}{unit_s}",
                 classes="font-weight-medium text-no-wrap ml-2",
             )
-        v3.VSlider(
+        with v3.VSlider(
             v_model=(model,),
             min=mn,
             max=max_kw,
             step=step,
-            # Thumb label only while dragging: an always-on thumb shows the value rounded to the step
-            # (Chord root 18.0) beside the exact side label (17.75), and overlapped neighbouring
-            # labels (QA 2026-10-08, roadmap §23.21). The side label shows the exact value at rest.
+            # Thumb label only while dragging (an always-on one overlapped neighbouring labels,
+            # §23.21). Vuetify's default thumb text is the value SNAPPED to the step, so a recipe
+            # value between steps read "18.0" on the thumb vs "17.75" beside it (QA UI-8, §23.50);
+            # show the model value itself, same as the side label.
             thumb_label=True,
             density="compact",
             hide_details=True,
             classes="mt-0 mb-2",
             **extra,
-        )
+        ):
+            with v3.Template(v_slot_thumb_label=True):
+                html.Span(f"{{{{ {model} }}}}")
 
     if not desc and not uri:
         _body()

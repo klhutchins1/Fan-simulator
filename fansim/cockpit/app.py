@@ -94,8 +94,13 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
     server = get_server(client_type="vue3")
     state, ctrl = server.state, server.controller
     _quiet_connection_reset(server)
+    from fansim.cockpit.ws_guard import install as _guard_websockets
+
+    _guard_websockets()  # one frozen tab must not freeze every session (QA UI-16)
     # Serve exports/ so Export can offer a browser download, not only a server-side path (§23.19).
-    _exports = Path("exports").resolve()
+    from fansim.cockpit.paths import exports_dir
+
+    _exports = exports_dir()
     _exports.mkdir(parents=True, exist_ok=True)
     server.enable_module({"serve": {EXPORTS_URL_PREFIX: str(_exports)}})
 

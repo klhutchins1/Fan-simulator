@@ -12,7 +12,7 @@ import sys
 
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.fan_copy import CONTROL_DESC, OPT_SEARCH_HELP
-from fansim.cockpit.tab_shell import VTK_HEIGHT_PX, render_action_row
+from fansim.cockpit.tab_shell import VTK_VIEW_STYLE, render_action_row
 from fansim.cockpit.fan_widgets import help_select, help_switch, opt_section, slider
 from fansim.cockpit.figures import filter_fitting_designs, scatter_figure
 from fansim.fan_spec import published_scatter_point
@@ -513,8 +513,14 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     variant="tonal",
                                     click=(show_fan_about,),
                                 )
-                        v3.VSelect(
-                            label="Design (unlocks Preview / Assess / Export)",
+                        with v3.VSelect(
+                            # After Randomize / slider edits the geometry is no longer the selected
+                            # design; say so on the dropdown itself (QA UI-20, §23.47). The label alone
+                            # was too small: the shown VALUE must say it too (QA re-test).
+                            label=("edited_stale ? '✎ Edited copy (not saved) — based on:' "
+                                   ": 'Design (unlocks Preview / Assess / Export)'",),
+                            base_color=("edited_stale ? 'warning' : undefined",),
+                            color=("edited_stale ? 'warning' : 'primary'",),
                             v_model=("selected_trial",),
                             items=("trial_items",),
                             density="compact",
@@ -522,7 +528,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             hide_details=True,
                             classes="mb-2",
                             update_modelValue=(select, "[$event]"),
-                        )
+                        ):
+                            with v3.Template(v_slot_selection="{ item }"):
+                                html.Span(
+                                    "{{ edited_stale ? '✎ Edited copy of ' + item.title : item.title }}",
+                                    classes=("edited_stale ? 'text-warning font-weight-medium' : ''",),
+                                )
                         html.Div(
                             "Buttons stay disabled until a design is selected "
                             "(tip radius loaded). Use the reference entry or Results scatter.",
@@ -647,7 +658,8 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             classes="text-caption",
                         )
                         html.Div("{{ opt_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
-                        busy_bar("preview_busy", "assess_busy", "export_busy", "opt_running", color="success")
+                        busy_bar("preview_busy", "assess_busy", "export_busy", "opt_running", color="success",
+                                 value="preview_pct")
 
                     with v3.VExpansionPanels(
                         v_model=("fan_design_panels",),
@@ -1332,7 +1344,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         classes="text-caption text-medium-emphasis",
                                     )
                         html.Div("{{ glyph_caption }}", classes="text-caption text-medium-emphasis mt-1")
-                    with v3.VCard(style=f"height:{VTK_HEIGHT_PX}px;", classes="mb-2"):
+                    with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
                         view = plotter_ui(plotter)
                     with v3.VCard(classes="mb-2 pa-2", v_show="fan_subtab === 'results'"):
                         html.Div("Duct airflow — slices, streamlines & spanwise", classes="text-subtitle-2 mb-1")

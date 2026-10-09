@@ -16,6 +16,7 @@ from types import SimpleNamespace
 
 from fansim.cockpit import fan_runtime
 from fansim.cockpit.errors import log_caught
+from fansim.cockpit.paths import exports_dir
 from fansim.cockpit.placement import prepare_export_flat, preview_changes
 
 _log = logging.getLogger(__name__)
@@ -160,7 +161,7 @@ def bind(session) -> None:
                 grew_h_from = ch.before
         params = session.build_edit_params()
         flat_x, feat_x = session.edit_flat(), session.edit_features()
-        exports = Path("exports")
+        exports = exports_dir()
         exports.mkdir(exist_ok=True)
         base = export_basename(state.selected_trial, session.by_trial)
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")

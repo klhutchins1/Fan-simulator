@@ -5,7 +5,9 @@ usual propeller definitions at air density ``ρ``:
 
 - ``CT = T / (ρ n² D⁴)``
 - ``CP = P / (ρ n³ D⁵)``
-- ``η = J·CT / (2π·CP)`` when ``CP > 0`` and ``J > 0`` (else ``None``)
+- ``η = J·CT / CP`` (= T·V∞ / P) when ``CP > 0`` and ``J > 0`` (else ``None``: η is undefined in
+  static/hover, so the polar's J = 0 row shows "—"). The 2π form belongs to the ω-based C_Q
+  convention, not this n-based C_P; with it every η read 2π (6.3×) too low (QA UI-5, §23.18).
 """
 
 from __future__ import annotations
@@ -96,7 +98,7 @@ def nondim(
     j = advance_ratio(v_inf, rpm, d)
     ct = float(thrust_n) / (rho * n * n * d**4)
     cp = float(power_w) / (rho * n**3 * d**5)
-    eta = (j * ct / (2.0 * math.pi * cp)) if (cp > 0.0 and j > 0.0) else None
+    eta = (j * ct / cp) if (cp > 0.0 and j > 0.0) else None
     return {"CT": ct, "CP": cp, "eta": eta, "J": j}
 
 

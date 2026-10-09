@@ -284,8 +284,10 @@ def blade_solidity(params: BladeParams) -> dict[str, float]:
         r = r_hub + (r_tip - r_hub) * rf
         chord = float(interp["chord"][i])
         beta = np.radians(float(interp["stagger_deg"][i]))
-        pitch = 2.0 * np.pi * r / params.n_blades
-        out[name] = float(chord * np.cos(beta) / pitch)
+        if r <= 0.0:
+            raise ValueError(f"blade_solidity needs a positive radius ({name} r = {r} mm)")
+        # B·c·cosβ / (2πr) == c·cosβ / pitch, and 0 for a bladeless rotor (QA-11; was ÷0)
+        out[name] = float(int(params.n_blades) * chord * np.cos(beta) / (2.0 * np.pi * r))
     return out
 
 
@@ -1137,32 +1139,76 @@ def _trim_blade_to_tip_cylinder(blade: cq.Solid, tip_radius: float) -> cq.Solid:
     # OCCT's first boolean on a freshly lofted solid can spuriously return an empty compound
     # (seen after the LE-leads mirror); an identical retry / slightly different cutter succeeds.
     # Falling through untrimmed would silently leave blade corners outside ``tip_radius``.
-    solids: list = []
-    cut = None
     for k in range(4):
         cyl = cq.Solid.makeCylinder(R, h + 0.37 * k, cq.Vector(0, 0, z0 - 0.19 * k),
                                     cq.Vector(0, 0, 1))
-        cut = blade.intersect(cyl)
-        solids = list(cut.Solids()) if hasattr(cut, "Solids") else []
-        if solids:
-            break
-    if not solids:
-        # Some CadQuery builds return a single Solid from intersect.
-        if isinstance(cut, cq.Solid) or cut.ShapeType() == "Solid":
-            return cut
-        # A blade already inside the cylinder (e.g. a rounded tip) needs no trim, and OCCT can
-        # return an empty intersection for it — keep it. Only a blade that actually crosses
-        # tip_radius must not fall through untrimmed: its corners would hit the frame in print
-        # and in CFD, so fail loudly (callers report "geometry failed"). Roadmap §23.32.
-        verts, _faces = blade.tessellate(0.2)
-        r_max = max((math.hypot(v.x, v.y) for v in verts), default=0.0)
-        if r_max <= R + 0.05:
-            return blade
-        # Raising broke the audited "prop builder never raises" guarantee (random prop flats hit
-        # this). Keep the untrimmed blade but say so; a real fix is open (roadmap §23.32).
-        import logging
-
-        logging.getLogger(__name__).warning(
-            "tip trim failed: intersection empty after 4 tries (R=%.2f mm); blade left untrimmed", R)
+        if (out := _trimmed_within(blade.intersect(cyl), R)) is not None:
+            return out
+    # A blade already inside the cylinder (e.g. a rounded tip) needs no trim, and OCCT can
+    # return an empty intersection for it — keep it.
+    r_max = _max_radius(blade)
+    if r_max <= R + 0.05:
         return blade
-    return max(solids, key=lambda s: abs(float(s.Volume())))
+    # Many-faced prop lofts (random_prop_flat, ~3400 faces) defeat the plain boolean on every
+    # retry (§23.32). Fallbacks: cutting away an outer ring, a 0.1 µm fuzzy common, ShapeFix then
+    # common. Each gets its own copy: a fuzzy boolean can raise its inputs' tolerances in place,
+    # which then breaks the next strategy.
+    cyl = cq.Solid.makeCylinder(R, h, cq.Vector(0, 0, z0), cq.Vector(0, 0, 1))
+    ring = cq.Solid.makeCylinder(R + 50.0, h, cq.Vector(0, 0, z0), cq.Vector(0, 0, 1)).cut(cyl)
+    for attempt in (lambda: blade.copy().cut(ring),
+                    lambda: _fuzzy_common(blade.copy(), cyl, 1e-4),
+                    lambda: blade.copy().fix().intersect(cyl)):
+        try:
+            out = _trimmed_within(attempt(), R)
+        except Exception:  # noqa: BLE001 — try the next strategy
+            out = None
+        if out is not None:
+            return out
+    # Corners past tip_radius would hit the frame in print and in CFD: fail loudly (callers
+    # report "geometry failed") rather than pass an untrimmed blade on.
+    raise RuntimeError(f"tip trim failed: blade crosses R={R:.2f} mm (reaches {r_max:.2f} mm) "
+                       "and no intersection ended at R")
+
+
+def _trimmed_within(shape, R: float):
+    """Largest solid of a trim result, or None if empty or still reaching past ``R``.
+
+    OCCT can "succeed" by handing back the whole untrimmed blade (seen with a 0.01 mm fuzzy
+    value), so a result only counts if it really ends at the tip cylinder."""
+    solids = _solids_of(shape)
+    if not solids:
+        return None
+    best = max(solids, key=lambda s: abs(float(s.Volume())))
+    return best if _max_radius(best) <= R + TIP_TRIM_TOL_MM else None
+
+
+TIP_TRIM_TOL_MM = 0.1   # a trimmed blade may reach this far past tip_radius (boolean edge noise)
+
+
+def _max_radius(shape: cq.Shape) -> float:
+    verts, _faces = shape.tessellate(0.2)
+    return max((math.hypot(v.x, v.y) for v in verts), default=0.0)
+
+
+def _solids_of(shape) -> list:
+    if isinstance(shape, cq.Solid):
+        return [shape]
+    return list(shape.Solids()) if hasattr(shape, "Solids") else []
+
+
+def _fuzzy_common(a: cq.Shape, b: cq.Shape, fuzzy: float) -> cq.Shape:
+    """Boolean common with OCCT's fuzzy tolerance (mm): near-coincident faces count as touching."""
+    from OCP.BRepAlgoAPI import BRepAlgoAPI_Common
+    from OCP.TopTools import TopTools_ListOfShape
+
+    args, tools = TopTools_ListOfShape(), TopTools_ListOfShape()
+    args.Append(a.wrapped)
+    tools.Append(b.wrapped)
+    op = BRepAlgoAPI_Common()
+    op.SetArguments(args)
+    op.SetTools(tools)
+    op.SetFuzzyValue(float(fuzzy))
+    op.Build()
+    if not op.IsDone():
+        return cq.Compound.makeCompound([])
+    return cq.Shape.cast(op.Shape())

@@ -1161,15 +1161,17 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [x] **23.16 (UI-3)** Reset leaves the Fan 3-D viewer as empty axes instead of the reference fan.
   **[impact: med]** **[effort: low]**
   **DONE 2026-10-08 — Reset re-selects the design; the Reference has no Assess mesh, so `select()` cleared the view and never redrew. The cached-Stock draw is now a shared `_show_stock_preview()` used by both the startup load and the Reference branch of `select()`. Checked in the browser.**
-- [ ] **23.17 (UI-4)** Fan "Preview (sec)" takes ~65 s per run (worker ~160% CPU, ~6 GB RAM); the
+- [x] **23.17 (UI-4)** Fan "Preview (sec)" takes ~65 s per run (worker ~160% CPU, ~6 GB RAM); the
   progress bar jumps back and forth and the spinner looks stuck. CROR Preview ~70 s / Export ~40 s,
   stuck near 20%. Make progress honest and find why preview is that heavy. **[impact: med]**
   **[effort: med]**
   **PARTLY DONE 2026-10-08 — cause: chord realisation (build→measure fixed point, §19.7) was ~20 of ~23 s and re-ran in every fresh worker. (1) measurement builds skip the tip-cylinder boolean and cut at the true tip radius (chords within 0.029 mm of before on 5 designs; limit 0.05 set beforehand); (2) disk cache of realised chords (`~/.cache/fansim/loft_chords`, `FANSIM_CACHE_DIR`). Cockpit Preview of Stock: 25.5 s → 11.4 s new design, 5.4 s repeat; Assess/Export of a previewed design reuse the cache. Progress bar jumping back and forth NOT addressed yet.**
+  **DONE 2026-10-09 — the "jumping" was Vuetify's indeterminate sweep. The build worker now writes its stage (reading design → realising chords → lofting/fusing/carving → writing) to `<stl>.progress.json`; the Preview caption shows "stage k/4 · …" and the bar fills by stage, forward only. Verified live (motor-cup preview: 50 % → 75 % → done).**
 - [ ] **23.18 (UI-5)** Prop 5" FPV reports 2087 g thrust / 743 W (implausible); the polar starts
   "J=0.00 eta=-". Related to Audit #8 (prop numbers are not a performance predictor).
   **[impact: med]** **[effort: med]**
   **PARTLY DONE 2026-10-08 — readout now compares with the preset's typical class figures (affinity-scaled): 2087 g / 743 W vs 1850 g / 650 W at 30k rpm = +13 % / +14 %, so high but not absurd. "J=0.00 η=—" is correct (η undefined at V=0). REAL ISSUE FOUND: forward-flight η reads 2–7 % at J 0.08–0.31, where a P/D≈0.86 prop should give ~30–50 % — BEMT forward thrust collapses too fast. That is the open Audit #3 C_T(J) failure (`propeller.bemt` xfails); fix there, not in the UI.**
+  **CORRECTED 2026-10-09 (QA bot) — the low η was not BEMT: `polar.nondim` divided by an extra 2π (η = J·CT/CP, not J·CT/(2π·CP)), so every forward-flight η was 6.3× low; with the fix the preset reads 0.25/0.35/0.44 at J 0.16/0.24/0.31 vs APC 0.26/0.34–0.39/0.42–0.46. `nondim` was audit-exempt; now unit `propeller.polar_coefficients`. Open follow-ups: static CT0 creeps up with rpm (+60 % 4k→30k; measured is flat) and the PROP headline should say "@ 30,000 rpm (max), static".**
 - [ ] **23.19 (UI-6)** Export STL takes ~2 min and saves only server-side
   (`exports/design_100000_*.stl/.step`), with no browser download; "design_100000" is a confusing name
   for the reference (use the F-name from `fansim/cockpit/design_names.py`). **[impact: low]**
@@ -1218,11 +1220,12 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   `_interp_stations` / `tip_section_points` sort — unsorted YAML/`blade_angles` stations would size
   the hub from the wrong station. **[effort: low]**
   **DONE 2026-10-08 — root = innermost station by r_frac; test with shuffled stations.**
-- [ ] **23.32 `_trim_blade_to_tip_cylinder` can return an untrimmed blade** when all 4 intersect
+- [x] **23.32 `_trim_blade_to_tip_cylinder` can return an untrimmed blade** when all 4 intersect
   retries come back empty (`blade.py:1080–1084`), contrary to its comment. Not seen in 23 builds.
   **[effort: low]**
   **DONE 2026-10-08 — raises RuntimeError ("tip trim failed") instead of returning the untrimmed blade.**
   **REOPENED 2026-10-08 — raising broke `test_random_prop_flat_designs_never_raise_in_the_builder_path` (audited prop builder guarantee). Now warns and keeps the blade (old behaviour + a log line). Needs a real fix: a trim that works for those prop flats.**
+  **DONE 2026-10-09 — those prop lofts (~3400 faces) defeat the plain intersect. Fallbacks: outer-ring cut, 0.1 µm fuzzy common, ShapeFix + common, each on a copy (a fuzzy boolean raises its inputs' tolerances in place). Every result must end within 0.1 mm of R — OCCT can return the whole blade as "trimmed" — else RuntimeError. 8/8 random props trim; fan geometry unchanged; ledger refreshed (`2026-10-09-ledger-refresh.md`).**
 - [x] **23.33 `build_impeller_preview` doesn't check `len(blade_angles_deg) == n_blades`**
   (`blade.py:841–844`); `build_impeller` does. **[effort: low]**
   **DONE 2026-10-08 — covered by `validate_blade_params` (23.3).**
@@ -1232,6 +1235,7 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [ ] **23.35 Prop pitch twist evaluated at hub_r / 0.5(hub+R) but lofted at 4.5 / 34.0 mm**
   (root_embed; `propeller/geometry.py:64–67`). Small, mostly at the root. **[effort: low]**
   **INVESTIGATED 2026-10-08, deeper than reported — prop twist is computed at hub-mapped radii (6.0 / 34.75 mm) but the loft maps stations from hub − root_embed (4.5 / 34.0 mm): ~0.5° pitch at mid on a 5×4.3. The same split exists for every archetype: BEMT (`propeller.bemt._interp_geom`) and the docstring treat `hub_radius` as the canonical r_frac origin, all builders use `hub_radius − root_embed`. Fixing only the prop twist would move the error into the analysis. Proper fix = one shared station→radius mapping for builders and analyses; it shifts validated Stock by ~1 mm at mid-span, so it needs an A/B + re-audit. Deferred (props after fans).**
+  **ATTEMPTED 2026-10-09 — FAILED pre-registered checks, not merged (`docs/validation/audits/2026-10-09-station-mapping.md`, branch `station-mapping-23-35`). Analyses moved to the builders' mapping + the builders' pchip interpolation: Audit #4 ρ 0.714 → 0.429, Audit #3 APC C_T RMS 0.0203 > 0.020. Post-verdict split: mapping alone keeps ρ 0.714; the pchip read drops it (Stock v1 BEM 61.9 → 58.4 vs CFD 77.4). Next attempt needs its own pre-registration and goes with the §23.5 BEM rework.**
 - [x] **23.36 Mixed-flow blades lofted along a straight eye→tip diagonal on a conical hub** — only the
   root section attaches; the motor-cup-to-cone wall is ~1.66 mm at z = +2 mm (printability).
   **[effort: med]**
@@ -1242,14 +1246,17 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 
 ### 23.I Related open threads from 2026-10-07/08 (Assess speed + screening audit)
 
-- [ ] **23.38 Quick screen with a load point.** Free-air-only quick tiers FAILED the pre-registered
+- [x] **23.38 Quick screen with a load point.** Free-air-only quick tiers FAILED the pre-registered
   rank audit (ρ_load 0.55/0.60; `docs/validation/audits/2026-10-07-screen-rank-audit.md`). Next
   candidate: coarse mesh, free + load, 300 iterations each (~6 min) — needs its own pre-registered
   test. Redo the audit's "stock" row after 23.1. **[impact: high for exploration speed]**
   **[effort: med]**
-- [ ] **23.39 Wall-adaptive mesh gives thick blades ~0.35M cells vs thin ~1M** (surface level-3 floor
+  **DONE 2026-10-09 — Q3 (8 mm, level 3, free + 8 Pa, 300 iters, ~4 min) PASSED its pre-registered audit on 11 designs: ρ_load 0.936, ρ_free 0.964, full top-3 all in Q3 top-5 (`2026-10-08-overnight-checks.md` §B). Usable to pick which ideas get a full Assess; numbers are rank-only (raw, run high).**
+- [x] **23.39 Wall-adaptive mesh gives thick blades ~0.35M cells vs thin ~1M** (surface level-3 floor
   vs level 4) — a resolution difference inside Assess rankings. Measure whether it biases
   comparisons. **[impact: med]** **[effort: med]**
+  **MEASURED 2026-10-09 — FAIL: level 3 scores the three thick designs 3.3–7.1 % high vs level 4 (order among them unchanged). Walls > ~2.25 mm get level 3; Stock and all thin designs get 4. Pending decision: raise the Assess floor to 4 (≈3× cells, thick designs only) or compare like with like.**
+  **DONE 2026-10-09 (user decision) — axial Assess/optimizer floor raised to level 4 (`ASSESS_SURF_MAX_FLOOR`): thick designs ~7.5 → ~20.5 min, same as thin. New scores stamp `surf_max`; older thick-wall scores show "⧗ needs re-run (coarse mesh)" (exactly t9006/9008/9015 today, which already have level-4 results from the check). Mixed/CROR keep floor 3 (untested at 4; Audit #7 setup); the quick screen keeps its own level 3.**
 - [x] **23.40 Flutter gate is order-of-magnitude (§19.18) but a hard reject** — it rejected t9001/9002/
   9003/9005 and a thin Stock variant (t9002 at 0.91× the limit). Consider a warning band near the
   limit. **[impact: med]** **[effort: low]**
@@ -1262,6 +1269,45 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   **[effort: low]**
   **DONE 2026-10-08 — commits 0a8cc7f…c6addb5.**
 
+
+### 23.H QA re-test 2026-10-09 (new items; `docs/QA_REVIEW.md`)
+
+- [x] **23.43 (UI-16, HIGH) One stalled client freezes every websocket session.** wslink sends to all
+  clients under one global lock with no timeout; a tab that stops reading blocks it forever (aiohttp's
+  missed-PONG `transport.close()` waits on the same full buffer).
+  **DONE 2026-10-09 — `fansim/cockpit/ws_guard.py`: per-socket locks + per-client send timeout
+  (`FANSIM_WS_SEND_TIMEOUT`, 15 s) that ABORTS the stalled transport. `scripts/ws_stall_probe.py`
+  (frozen client + busy broadcaster + hello probes): before 0/5 probes answered in 75 s; after 15/15
+  in 3–12 ms, frozen client dropped after 15 s, browser tab unaffected.**
+- [x] **23.44 (UI-17) `GET /ws` without upgrade → `KeyError` in `onClose`, leaks a `connections` entry.**
+  **DONE 2026-10-09 — `ws_guard` makes `onClose` tolerate a never-prepared connection; 5 plain GETs, no KeyError.**
+- [x] **23.45 (UI-18) Image-push observers never removed on disconnect** (views keep rendering for gone
+  clients). **[effort: med]**
+  **DONE 2026-10-09 — `ws_guard` records each client's `viewport.image.push.observer.add/remove` and, on close, calls the protocol's own `observer.remove` for what it still held (unit-tested through the real `onClose`; live observerCount check left to QA on Linux).**
+- [x] **23.46 (UI-19) Exports folder relative to the launch directory.**
+  **DONE 2026-10-09 — `fansim/cockpit/paths.exports_dir()` (= `<project>/exports`) used by every tab and the download route.**
+- [x] **23.47 (UI-20) After Randomize the Design dropdown still says "◆ Reference".** **[effort: low]**
+  **DONE 2026-10-09 — while the editor differs from the loaded design the dropdown label reads "✎ Edited copy of this design (not saved)" in warning colour; Reset restores it. Verified in the browser.**
+- [x] **23.48 (UI-21) Mixed "CFD refine" looks enabled with top N = 0.** **[effort: low]**
+  **DONE 2026-10-09 — tonal variant (as §23.26), also on Prop's CFD refine; an AST scan found no other solid coloured button with a `disabled` binding. Verified disabled+tonal in the browser.**
+- [x] **23.49 (QA-11) `blade_solidity(n_blades=0)` raises ZeroDivisionError on a direct call.** **[effort: low]**
+  **DONE 2026-10-09 — computed as B·c·cosβ/(2πr): 0 for a bladeless rotor, same value otherwise; non-positive radius raises a clear ValueError.**
+- [x] **23.50 (UI-8 reopened) Slider tooltip vs side label disagree** (Chord root 18.0 vs 17.75 mm). **[effort: low]**
+  **DONE 2026-10-09 — Vuetify's thumb text is the value snapped to the step; the thumb-label slot now shows the model value itself. Browser: Stock Chord root thumb 17.75 = side label 17.75.**
+- [x] **23.51 (UI-9 partial) First-load fan small (~1/4 of the viewer).** `reset_camera()` fitted every actor,
+  including the schematic flow-arrow cloud that reaches far past the tip.
+  **DONE 2026-10-09 — fit to the fan (+ the 1.3·tip rotation-cue ring) and zoom 1.5× (the bounding-sphere fit
+  is generous for the oblique view); browser: fan fills the viewer, cues visible. The missing |U| bar on the
+  Stock first load is by design (schematic arrows have one speed, §23.22).**
+- [x] **23.52 (UI-13 re-test) Prop Stop still faint pink while disabled.**
+  **DONE 2026-10-09 — colour is bound to `prop_opt_running` (red only when there is something to stop); browser: disabled, neutral.**
+
+- [x] **23.53 QA browser re-test (2026-10-09) reopened UI-4, UI-9, UI-20.**
+  **DONE 2026-10-09 —**
+  **UI-4: the bar swept until the worker's first stage, which landed only after the CAD kernel loaded (~30 s on the QA box), so the sweep read "65 %" then "50 %". The bar is now determinate from the first frame ("starting build process"), the worker reports stage 1/5 before its heavy imports, and the value never decreases. QA's 66 s Preview was the motor-cup path: `preview_motor_cup` defaulted ON behind a switch in the Assess & print panel — now OFF (Preview ~15 s here; Export always carves the cup).**
+  **UI-9: the viewer card was a fixed 400 px; on a wide/zoomed-out window the canvas was ~2.8:1 and the fan (height-limited) filled ~1/3 of the width. All five tabs now use `VTK_VIEW_STYLE` (3:2, ≥ 400 px, ≤ 75vh): 1131×754 at a 1970-px window.**
+  **UI-20: the dropdown's shown value (not just its label) reads "✎ Edited copy of ◆ Reference …" while edited.**
+  **Browser-verified (Windows) at 1024×594 and 1970×1140.**
 ---
 
 ## Recently shipped (context, so we don't re-add)

@@ -28,6 +28,41 @@ def cfd_is_stale(cfd_version) -> bool:
         return True
 
 
+ASSESS_BASE_CELL_M = 0.006   # the Assess background cell the legacy floor was applied to
+
+
+def coarse_mesh_stale(extra: dict | None, params: dict | None) -> bool:
+    """True when an axial score was meshed below the current Assess floor (§23.39).
+
+    New scores carry ``surf_max``. Older ones were floored at level 3, so they are coarse exactly
+    when the design's thinnest wall maps to a level below the floor (thick walls, > ~2.25 mm),
+    which scored 3-7 % high vs level 4. Thin designs were already at 4 and stay current.
+    """
+    from fansim.cfd.openfoam_case import ASSESS_SURF_MAX_FLOOR, surface_level_for_wall
+
+    extra = extra or {}
+    if extra.get("surf_max") is not None:
+        return int(extra["surf_max"]) < ASSESS_SURF_MAX_FLOOR
+    try:
+        from fansim.geometry.blade import min_blade_wall_mm
+        from fansim.optimize.search_space import blade_from_flat
+
+        wall = min_blade_wall_mm(blade_from_flat(dict(params or {})))
+    except Exception:  # noqa: BLE001 — not an axial flat dict: nothing to judge
+        return False
+    return surface_level_for_wall(ASSESS_BASE_CELL_M, wall) < ASSESS_SURF_MAX_FLOOR
+
+
+def stale_reason(extra: dict | None, params: dict | None) -> str:
+    """'' when the score is current, else why it must be re-run ('old solver' / 'coarse mesh')."""
+    extra = extra or {}
+    if cfd_is_stale(extra.get("cfd_version")):
+        return "old solver"
+    if coarse_mesh_stale(extra, params):
+        return "coarse mesh"
+    return ""
+
+
 def load_designs(out_dir: str | Path, study_name: str | None = None) -> list[Design]:
     """Read all completed trials from a run directory's Optuna study + trial STLs."""
     out_dir = Path(out_dir)
@@ -67,7 +102,11 @@ def load_designs(out_dir: str | Path, study_name: str | None = None) -> list[Des
                                  if t.datetime_complete else None),
                    "runtime_s": t.user_attrs.get("runtime_s"),
                    "cfd_version": t.user_attrs.get("cfd_version"),
-                   "cfd_stale": cfd_is_stale(t.user_attrs.get("cfd_version"))},
+                   "surf_max": t.user_attrs.get("surf_max"),
+                   "cfd_stale": bool(_reason := stale_reason(
+                       {"cfd_version": t.user_attrs.get("cfd_version"),
+                        "surf_max": t.user_attrs.get("surf_max")}, params)),
+                   "stale_reason": _reason},
         ))
     return designs
 

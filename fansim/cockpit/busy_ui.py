@@ -16,9 +16,13 @@ def make_busy_expr() -> Callable[..., str]:
 
 
 def make_busy_bar(v3: Any, busy_expr: Callable[..., str]) -> Callable[..., None]:
-    def busy_bar(*flags: str, color: str = "primary") -> None:
+    def busy_bar(*flags: str, color: str = "primary", value: str | None = None) -> None:
+        """``value``: a 0-100 state var; while it is > 0 the bar fills by stage instead of
+        sweeping back and forth (the sweep read as "stuck", QA UI-4)."""
+        stage = {"indeterminate": (f"!({value} > 0)",), "model_value": (value,)} if value else {
+            "indeterminate": True}
         v3.VProgressLinear(
-            indeterminate=True,
+            **stage,
             height=6,
             color=color,
             rounded=True,

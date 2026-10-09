@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from fansim.cfd.metrics import CFD_VERSION  # noqa: E402
-from fansim.cockpit.data import cfd_is_stale  # noqa: E402
+from fansim.cockpit.data import stale_reason  # noqa: E402
 from fansim.cockpit.score_caption import stamp_score_extra  # noqa: E402
 from fansim.fan_spec import get_fan_spec  # noqa: E402
 from fansim.geometry.features import features_from_flat  # noqa: E402
@@ -53,7 +53,7 @@ def stale_designs() -> list[tuple[str, int, Path]]:
             d = json.loads(jf.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
-        if d.get("feasible", True) and cfd_is_stale((d.get("extra") or {}).get("cfd_version")):
+        if d.get("feasible", True) and stale_reason(d.get("extra"), d.get("params")):
             out.append((jf.parents[2].name, int(d["trial"]), jf))
     return out
 
