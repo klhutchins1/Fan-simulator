@@ -14,13 +14,15 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 - **Re-test 2026-10-09:** `master` @ `961f9534674c375bbc0a730a34979d859a1be05d` (commit date 2026-10-08 21:56 MDT), cloned from `fansim_master.bundle`; `uv sync --extra dev`; Linux, no Docker/OpenFOAM/CFD. Code items re-run with the original repros (`qa/retest_code.py`); UI items checked headlessly (curl, wslink websocket client, code + regression tests). "needs browser pass" = fix claimed in a commit, not yet confirmed by clicking.
 - **Re-test 2026-10-09 (2):** branch `qa-fixes-2026-10-09` @ `d781894` (from `fansim_2026-10-09.bundle`; forks from 961f953; `station-mapping-23-35` not tested). Bundle `master` is `6b7f3bf`, not the `6f31514` named in the brief: 6f31514 is an ancestor of master (6 docs-only commits on top, docs/handoff + one `.gitignore` line) and is NOT an ancestor of the branch. Fix tests: 59 passed, 1 skipped, 1 xfailed (`test_ws_guard`, `test_tip_trim`, `test_build_progress`, `test_prop_polar`, `test_blade_validation`, `audit/test_prop_bemt_audit`, `test_volute_export_rows`). The full fast suite was not re-run on the branch. Websocket checks: `handoff/2026-10-09_from-qa/ws/`, run on 961f953 and d781894 side by side. Browser steps still to do: `docs/qa/browser_checklist_2026-10-09.md`.
 
+- **Re-test 2026-10-09 (3):** `master` @ `e48a32d` (merge of `qa-fixes-2026-10-09`; clone `/workspace/fansim/repo-r3`), Linux, no CFD. Full fast suite run in one process (see below). Browser rows for UI-4/9/20/23: `docs/qa/browser_checklist_2026-10-09_r3.md` (results pending).
+
 ## Tracker
 | ID | Sev | Area | Summary | Status |
 |---|---|---|---|---|
 | QA-1 | HIGH | Geometry/Stock | 7-station Stock A12x25 recipe cut to 3 stations by `blade_to_flat`/`stock_blade_flat` | verified `20aed3e` |
 | QA-2 | MED | Geometry | No validation for axial/mixed-flow inputs (hub>tip, neg chord, 0 blades, NaN) | verified `e5ed908` (validation at build; `BladeParams` itself still accepts bad values) |
 | QA-3 | MED | BEM | Free delivery falls back to sweep max when pressure never > 0 (0 blades = 129 CFM) | verified `e5ed908` |
-| QA-4 | MED | BEM/polars | AoA clamped to table edges; paddles/reversed blades score as good fans | not yet fixed: patch not applied on d781894 (`fan_bem.py` unchanged). QA clone with `docs/qa/patches/axial-force-pressure.diff` passes pre-registered rules a, b, b2, d (Stock 59.8 CFM / 22.08 Pa; paddle 14.0 CFM, η 0.009; reversed −22.5 / −19.2 Pa; top-5 66.7–68.5 CFM; default `euler` byte-identical); rule c pending tonight's `cfd_designs.csv`. Criteria sha256 `17e1e9c4…f7e2` |
+| QA-4 | MED | BEM/polars | AoA clamped to table edges; paddles/reversed blades score as good fans | not yet fixed: patch not applied on d781894 (`fan_bem.py` unchanged). QA clone with `docs/qa/patches/axial-force-pressure.diff` passes pre-registered rules a, b, b2, d (Stock 59.8 CFM / 22.08 Pa; paddle 14.0 CFM, η 0.009; reversed −22.5 / −19.2 Pa; top-5 66.7–68.5 CFM; default `euler` byte-identical); rule c pending tonight's `cfd_designs.csv`. Criteria sha256 `17e1e9c4…f7e2`. **Round 3 (2026-10-09, master e48a32d):** the patch is still not on master. Rule (c) **PASSES** on 16 CFD designs: Spearman ρ axial 0.809 vs euler 0.827, each with 2/3 of the CFD top 3. The new pre-registered check (prereg commit `5913a74` on `prereg/round3`, criteria sha256 `66db0018…bdf75e`), "all 5 BEM-screen picks above Stock in axial mode", **FAILS**: only 1/5 is above Stock (9501, 1.056). Cause: the BEM over-rates Stock's efficiency (29.4 % vs CFD 17.9 %). Still open |
 | QA-5 | MED | Audit/tests | `motor_side()` returns None with 5 mm centre bore (2 failing tests) | verified `e5ed908` |
 | QA-6 | LOW | CI | Ruff F811 in `fansim/cockpit/fan_viz.py:46` fails "Ruff critical" | verified `5f5b29b` |
 | QA-7 | LOW/MED | Tests | `audit_archetype_direction_cfd.py` not registered with rotor-orientation guard | verified `97b9258` |
@@ -30,12 +32,12 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 | UI-1 | HIGH | Volute | Export STLs fails: `TypeError: object of type 'PosixPath' has no len()` (verify on Windows) | verified in browser 2026-10-09 (Volute Export STLs succeeded, `ca1f8c9`) |
 | UI-2 | MED | Fan | Unedited Reference shows "Edited since assessment" on load | verified in browser 2026-10-09 (`1e344ec`) |
 | UI-3 | MED | Fan | Reset leaves 3-D viewer empty | verified in browser 2026-10-09 (`d4e9010`) |
-| UI-4 | MED | Fan/CROR | Preview ~65-70 s, progress bar jumps/looks stuck | fixed (pending QA) `0354b3c`: bar determinate from the first frame ('starting build process' → 'stage k/5'), never decreases, no sweep; worker reports stage 1 before loading the CAD kernel. The 66 s was the motor-cup path: `preview_motor_cup` defaulted ON (switch in the Assess & print panel) — now OFF, Preview ~15 s on Windows |
+| UI-4 | MED | Fan/CROR | Preview ~65-70 s, progress bar jumps/looks stuck | **reopened (browser r3, master e48a32d, 2026-10-09).** B1a (motor cup off): 'starting build process' 2 % for 0–2.2 s, then straight to 'stage 4/5 · lofting blades + hub' 60 % at 3.4 s, done ~6.8 s; stages 1, 2, 3 and 5 never shown; never backwards, no freeze. B1b (cup on): 2 % → 'stage 4/5 · building + carving motor cup' 60 % from 3.2 s to ~53 s → 'stage 5/5 · writing STL' 80 % → done ~65 s; stages 1–3 never shown; ~7–10 s freeze during 5/5 (timer stalled 0:53→0:56) and the bar lost its numeric value. B1c restarts at 2 % (OK) but repeats the B1b freeze (~7 s at 0:57). Screenshots `docs/qa/screenshots/2026-10-09-r3/B1b_bar_midrun.png`, `B1c_bar_midrun_0m06.png`. **Diagnosis:** see 'Round 3 browser results' below. Previous: fixed (pending QA) `0354b3c`: bar determinate from the first frame ('starting build process' → 'stage k/5'), never decreases, no sweep; worker reports stage 1 before loading the CAD kernel. The 66 s was the motor-cup path: `preview_motor_cup` defaulted ON (switch in the Assess & print panel) — now OFF, Preview ~15 s on Windows. **History — QA round 2 browser on d781894: reopened (browser, Linux, d781894): caption is 'Running Preview… m:ss', 'stage k/4' appears only late (3/4 ~0:32, 4/4 ~1:01); bar ~65% at 0:01 then drops to ~50% at 0:32 (still goes backwards); stock Preview ~66 s; stage 3/4 says 'carving motor cup' with motor cup off; UI unresponsive for seconds during Preview. docs/qa/screenshots/2026-10-09/B1_FAIL_*.png** |
 | UI-5 | MED | Prop | 5" FPV prop reports 2087 g / 743 W (implausible) | verified `ad1c716`, incl. browser B5: Prop tab shows η 25%/35%/44% at J 0.16/0.24/0.31; static 2087 g / 743 W (plausible vs APC). Follow-up CT0 creep → QA-12 |
 | UI-6 | LOW | Fan | Export only saved server-side, ~2 min, `design_100000` name | verified in browser B6: download link works (5.0 MB STL downloaded), file in repo/exports; export still ~75 s. docs/qa/screenshots/2026-10-09/B6_PASS_export_link.png |
 | UI-7 | LOW | Fan | Stale "Saved..." message after Randomize | verified in browser 2026-10-09 (`c6fb753`) |
 | UI-8 | LOW | Fan | Slider tooltip vs side label disagree; tooltip overlaps label | verified in browser B2 `c4da19c`: Chord root tooltip 17.75 = label 17.75 mm (minor: aria value reports 18; tooltip slightly overlaps end of label text). docs/qa/screenshots/2026-10-09/B2_PASS_chord_root_tooltip.png |
-| UI-9 | LOW | Fan | Poor first-load framing; colour bar zero range | fixed (pending QA) `0354b3c`: viewer card was a fixed 400 px, so a wide (zoomed-out) column gave a ~2.8:1 canvas and a height-limited fan; all tabs now 3:2, ≥ 400 px, ≤ 75vh (1131×754 at a 1970-px window) |
+| UI-9 | LOW | Fan | Poor first-load framing; colour bar zero range | **verified (browser r3, `0354b3c`)**: Fan tab 1102×735 = 3:2 at 100 %, fan fills ~2/3 of the width, centred (B3a); still fine at 75 % zoom (B3b). The other 4 tabs' frames are 3:2 and not clipped, but their model framing wasn't judged because nothing was previewed there. Screenshots `B3a_framing_zoom100.png`, `B3b_framing_*.png`. Previous: fixed (pending QA) `0354b3c`: viewer card was a fixed 400 px, so a wide (zoomed-out) column gave a ~2.8:1 canvas and a height-limited fan; all tabs now 3:2, ≥ 400 px, ≤ 75vh (1131×754 at a 1970-px window). **History — QA round 2 browser on d781894: reopened (browser B3): after reload the fan fills only ~1/3 of viewer width, centred, ringed by arrows (normal reload, not hard reload). docs/qa/screenshots/2026-10-09/B3_FAIL_fan_small_in_viewer_after_reload.png** |
 | UI-10 | LOW | Volute | Casing hides impeller; clipped labels | verified in browser 2026-10-09 (`8e975bf`) |
 | UI-11 | LOW | Mixed/Prop/Volute | No slider values; leftover blurry render | verified in browser 2026-10-09 (viewers clean before Preview) |
 | UI-12 | LOW | Mixed | Flat unshaded preview | verified in browser 2026-10-09 (`8e975bf`) |
@@ -47,11 +49,11 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 | UI-17 | LOW | Server | A non-upgrade GET `/ws` logs `KeyError` in wslink `onClose` and leaks a `connections` entry; abrupt disconnects log `Cannot write to closing transport` tracebacks on Linux | verified `94a7365`: 20× `curl /ws` gives 0 KeyErrors and `connections` back to 0 (961f953: +20 KeyErrors, 20 leaked entries). The 'Cannot write to closing transport' log noise is also gone in this run (0 vs 15 on 961f953) |
 | UI-18 | LOW | Server | Remote-view image-push observers are never removed when a client disconnects (observerCount only grows; views keep rendering/pushing with no clients) | verified `c4da19c`: `observerCount` stays at `{}` after 30 aborted observer sessions and after 506 stress cycles (961f953: 30, growing to 538) |
 | UI-19 | LOW | Fan | Export download dir is `Path("exports").resolve()`, i.e. relative to the launch CWD, not the repo/run dir | verified `94a7365` + browser B6 (file lands in repo/exports) |
-| UI-20 | LOW | Fan | After Randomize, Design dropdown still says '◆ Reference · Noctua A12x25 (published)' though geometry changed | fixed (pending QA) `0354b3c`: the selected value itself now reads '✎ Edited copy of ◆ Reference …' (label: '✎ Edited copy (not saved) — based on:') |
+| UI-20 | LOW | Fan | After Randomize, Design dropdown still says '◆ Reference · Noctua A12x25 (published)' though geometry changed | **verified (browser r3, `0354b3c`)**: while edited, the shown value and label read as specified; Reset restores both (B7). Screenshots `B7_dropdown_edited.png`, `B7_dropdown_after_reset.png`. Previous: fixed (pending QA) `0354b3c`: the selected value itself now reads '✎ Edited copy of ◆ Reference …' (label: '✎ Edited copy (not saved) — based on:'). **History — QA round 2 browser on d781894: reopened (browser B7): only the small caption above the field reads '✎ Edited copy of this design (not saved)'; the selected dropdown value still shows '◆ Reference · Noctua A12x25 (published)'. docs/qa/screenshots/2026-10-09/B7_FAIL_dropdown_still_reference.png** |
 | UI-21 | LOW | Mixed | CFD refine button solid orange with 'top N = 0', looks enabled (not clicked) | verified in browser B8: CFD refine on Mixed/Prop is pale tonal disabled (not clicked). docs/qa/screenshots/2026-10-09/B8_PASS_mixed_cfd_refine_tonal.png |
 | UI-22 | LOW | Mixed | Preview timer may lag ('Running Preview… 0:01' ~6 s after click) | verified / not reproduced on Linux branch d781894 (B9): '0:00' 0.13 s after click, ticks ~1 s, done ~3.9 s |
-| QA-12 | LOW | Prop/BEMT | Static CT0 creeps up ~60% from 4k to 30k rpm (measured: flat). Diagnosis `docs/qa/notes/prop-ct0-rpm-creep.md`: ~44% from the analytic fallback below Re 4e4 (`fansim/propeller/polars.py:151`), ~44% from real table Re effects, ~15% from Mach. No patch yet | open (new 2026-10-09) |
-| UI-23 | LOW | All | Browser console `TypeError: n[i[e]] is not a function` in `assets/index-*.js` from `invokeConnectionClose`, twice, on page reload (B10) | upstream / not ours (2026-10-09): an unhandled rejection in trame-client's close callbacks while the page unloads. Captured once on the branch (7 stale tabs connected, reload during start-up); not reproduced with 1 or 2 tabs with the guard on, with the guard off (`FANSIM_WS_GUARD=0`), or on master. Harmless (page is going away). Please note client count / timing if you see it again |
+| QA-12 | LOW | Prop/BEMT | Static CT0 creeps up ~60% from 4k to 30k rpm (measured: flat). Diagnosis `docs/qa/notes/prop-ct0-rpm-creep.md`: ~44% from the analytic fallback below Re 4e4 (`fansim/propeller/polars.py:151`), ~44% from real table Re effects, ~15% from Mach. No patch yet | open (new 2026-10-09). **Round 3:** the pre-registered low-Re polar blend (criteria sha256 `e91b2804…6844`) **FAILS**. It removes the 66 % jump at Re 4e4, but creep stays at +62 %, and GWS rules R3 (0.160→0.196) and R4 (0.0080→0.0100) get worse. Record-only patch: `docs/qa/patches/prop-lowre-polar-blend.diff`. The root cause is the analytic low-Re formula itself. GWS regression test `e7d8174` verified: its data files are byte-identical to the UIUC zip extract. Still open |
+| UI-23 | LOW | All | Browser console `TypeError: n[i[e]] is not a function` in `assets/index-*.js` from `invokeConnectionClose`, twice, on page reload (B10) | **still open (browser r3, master e48a32d)**: the `TypeError: n[i[e]] is not a function` from `invokeConnectionClose` fired once per reload, 3/3, with **one** tab connected, at unload. That contradicts 'not reproduced with 1–2 tabs'. Screenshot `B10_console_after_3_reloads.png`. Previous: upstream / not ours (2026-10-09): an unhandled rejection in trame-client's close callbacks while the page unloads. Captured once on the branch (7 stale tabs connected, reload during start-up); not reproduced with 1 or 2 tabs with the guard on, with the guard off (`FANSIM_WS_GUARD=0`), or on master. Harmless (page is going away). Please note client count / timing if you see it again. **History — QA round 2: opened 2026-10-09 (seen twice on page reload during B10, Linux, d781894).** |
 
 ## Details
 (Numbered bugs below map to QA-n.)
@@ -266,3 +268,67 @@ Screenshots in /workspace/fansim/qa/ui/. Browser viewport was 1024x594.
 | log counts | KeyError 20, closing-transport 15, No PONG 1 | 0, 0, 0 |
 
 Observation (not filed): server RSS rose by about 60–100 MB during the stall test (903→966, and 952→1009 with 1500 pushes) and did not drop after the client was dropped. That looks like allocator retention, not growth: it stayed flat over the next 70 cycles.
+
+
+## Re-test 2026-10-09 (3): master @ e48a32d
+
+**Non-browser items:**
+
+| item | result |
+|---|---|
+| UI-16 / UI-17 / UI-18 on master (regression) | still verified. 1 frozen client + 200 pushes: probes 0.33–0.39 s, 200/200 pushes. 20× `curl /ws`: 0 KeyErrors, 0 leaked connections. Observers `{}` after aborted sessions and after 506 cycles (0 errors). Log: `handoff/2026-10-09_from-qa-2/ws_regression_e48a32d.log` |
+| `9482929` `FANSIM_WS_GUARD=0` | verified: with it set, 20× `curl /ws` gives 20 KeyErrors and 20 leaked connections, i.e. the 961f953 behaviour |
+| `e7d8174` QA-12 GWS test | verified: `tests/test_prop_uiuc_gws.py` passes (3 tests), and its three data files are byte-identical to the UIUC zip extract and the QA handoff copies |
+| `19fcc45` §23.39 mesh floor | verified in code only (no CFD): `ASSESS_SURF_MAX_FLOOR = 4` is used by axial Assess / `objectives.py`, and `surf_max` is stamped on the trial; `test_design_names` passes (9) |
+| UI-4 / UI-9 / UI-20 (`0354b3c`) | headless pre-checks pass: `preview_motor_cup` = False on load, `preview_pct` = 0; the served template has `aspect-ratio:3 / 2` and the `✎ Edited copy of` selection slot. **Browser pass still needed** (checklist B1a–c, B3a–b, B7) |
+| UI-23 | no headless check possible; checklist B10 |
+
+**Linux fast suite, one process (§23.9):**
+- **Result:** 1573 passed, 18 skipped, 23 deselected, 1 xfailed, 0 failed, in 20 min 44 s. No OOM.
+- **Peak:** 8192 MB, held by **`tests/test_mount_gauge.py::test_gauge_accepts_carved_stock_export`**. That test alone peaks at 7.7 GB in the in-process OCCT fuse of the motor-cup hub + 9 blades. `MALLOC_ARENA_MAX=2` brings it to 6.4 GB.
+- **Top 5 files by peak:** test_mount_gauge 8192, audit/test_cror_mixed_setup_audit 6454, test_cror 6402, test_notched_tips 4220, test_isolated_build 3532 (MB).
+- **Comparison:** round 2 was 8.2 GB / 1555 passed; Windows was 2.47 GB.
+- **Data and scripts:** `handoff/2026-10-09_from-qa-2/memory/`.
+
+**Research results from the other QA worker (round 3; details in `handoff/2026-10-09_from-qa-2/README.md`):**
+- **QA-4 and QA-12:** see their tracker rows.
+- **Noise leads #1 (rotor–strut tone, Tyler–Sofrin) and #2 (ECMA-418-1 tonality via MoSQITo):** worth-it/proposed, small effort. Notes: `docs/qa/notes/noise-lead-1-rotor-strut.md`, `noise-lead-2-ecma418.md`.
+- **Screen r3:**
+  - What it is: axial-force mode, `max_camber` up to 0.10, 30-design shortlist in `handoff/2026-10-09_from-qa-2/screen_r3/`.
+  - Top 5: T06592, T05252, T04536, S03681, S01272.
+  - They beat Stock only under the axial model; euler ranks them below Stock. They sit at the edges of the search space, so CFD on them mainly tests the axial model.
+
+
+## Round 3 browser results (master e48a32d, 2026-10-09 14:40 MDT) and B1 diagnosis
+
+Checklist with results: `docs/qa/browser_checklist_2026-10-09_r3.md`. Screenshots: `docs/qa/screenshots/2026-10-09-r3/` (11 png).
+- **Verdicts:** UI-4 **reopened**; UI-9 **verified** (other tabs' model framing not judged); UI-20 **verified**; UI-23 **still open** (1 tab, at unload).
+- **Checklist correction:** the motor-cup switch is in the Fan tab's **'Export options'** panel (`fan_tab_ui.py:1220`), not 'Assess & print'. Claude's changelog and the `fan_core.py` comment say 'Assess & print'.
+- Also seen in the console (no action): the trame-vtk warning 'Set value to model directly labels'.
+
+**B1 / UI-4 diagnosis (code reading plus 3 headless timing runs; scripts in `handoff/2026-10-09_from-qa-2/b1/`):**
+
+1. **Stage 1 isn't written before the CAD kernel loads.**
+   - `_build_worker.main()` does write stage 1 before its own imports.
+   - But the worker is started as `python -m fansim.geometry._build_worker`, and that imports the package `fansim/geometry/__init__.py` first. The package imports `fansim.geometry.blade` (CadQuery/OCP) before `main()` runs.
+   - Measured with a 20 ms poll of the progress file: stage 1 appears only at **2.1–2.2 s**, which is the kernel load. That matches the browser's 2.2 s of 'starting build process'.
+2. **Stages 2 and 3 are written but last only milliseconds.**
+   - 'reading design' and 'realising chords' (chords are disk-cached) take under 20 ms each, so a 20 ms poll never caught them.
+   - Stage 4 lands at **+0.36 s** after stage 1. The UI ticker samples about once a second, so 1–3 can never be seen.
+   - Stage 5 in the fast path ('writing mesh') lasts about 70 ms (4.93 s → 5.0 s), so it's missed too.
+   - Net: the bar is effectively 2 % → 60 % → done.
+   - Possible fixes (proposals, not done):
+     - write stage 1 from a module with no package import, or have the parent write it before spawning;
+     - split stage 4, the only long one;
+     - or have the caption show the latest stage *reached* rather than the current one.
+3. **The 'lofting blades + hub' label** is the fast-path (motor cup off) build label at `_build_worker.py:31`. The cup path says 'building + carving motor cup', and the full non-cup build says 'building + fusing solid'. It's correct, but the changelog's stage list didn't name it.
+4. **Freeze during 'writing STL' (cup on):**
+   - Headless, with the cockpit itself triggering the Preview (`trigger__11`, motor cup on) and a second session timing a `trame.state.get` round trip every 0.25 s:
+     - the event loop stayed responsive through stages 4 and 5 (0.02 s);
+     - stage 5 ran 52.2 → 55.1 s;
+     - the only block was **1.6 s** at completion, when the cockpit process loads the STL, re-renders the remote view and runs `spec_status` on the loop.
+   - Measured pieces: `pv.read` of the 4.7 MB cup STL 0.07 s; `trimesh.load` + volume 0.22 s; `grade_printability` 0.04 s. So the rest is the VTK render and image push.
+   - The worker itself peaks at **7.6 GB RSS** during the cup build (the same fuse that sets the test-suite peak). On the 16 GB, no-swap box with Chrome open, the extra 7–10 s stall in the browser run is most likely **memory pressure** around the end of the fuse and the tessellation, not GIL or main-thread STL reading. `run_worker_module` uses `subprocess.run`, which releases the GIL. I couldn't confirm this headlessly: my run had 10 GB available.
+   - **The lost numeric value** on the bar was not reproduced headlessly: `preview_pct` went 60 → 80 → 0 together with `preview_busy` → False. It may be the client-side bar while frames were delayed. Unexplained.
+   - Headless Preview times on this box: fast path 5.0 s (worker); motor cup 52.6 s (worker), 56.8 s end to end.
+5. Cockpit state was reset afterwards: `preview_motor_cup` = False (the default), not busy.

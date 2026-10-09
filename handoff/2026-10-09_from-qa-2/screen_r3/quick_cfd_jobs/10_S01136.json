@@ -1,0 +1,65 @@
+{
+ "flat": {
+  "n_blades": 10,
+  "stagger_root": 28.538945071399212,
+  "stagger_mid": 40.49264255166054,
+  "stagger_tip": 21.569736536592245,
+  "chord_root": 32.419340662658215,
+  "chord_mid": 30.89628755301237,
+  "chord_tip": 33.219058034941554,
+  "sweep_mid": 1.1823511868715286,
+  "sweep_tip": 8.660379186272621,
+  "lean_mid": 9.944522202014923,
+  "lean_tip": 23.863393161445856,
+  "max_camber": 0.09308614768087864,
+  "thickness_root": 0.07955108041875064,
+  "thickness_mid": 0.06041350644081831,
+  "thickness_tip": 0.04148372046649456,
+  "camber_pos": 0.34376365076750515,
+  "hub_radius": 27.230535909417085,
+  "tip_radius": 54.0424110381864,
+  "chord_basis": "measured"
+ },
+ "workdir": "runs/bem_screen_quick/10_S01136",
+ "out": "runs/bem_screen_quick/10_S01136/result.json",
+ "spec": {
+  "name": "Noctua NF-A12x25",
+  "tip_dia_mm": [
+   95.0,
+   110.0
+  ],
+  "hub_dia_mm": [
+   30.0,
+   60.0
+  ],
+  "depth_mm": [
+   10.0,
+   25.0
+  ],
+  "rpm": 2000.0,
+  "voltage_v": 12.0,
+  "max_current_a": 0.14,
+  "motor_efficiency": 0.4,
+  "max_weight_g": 65.0,
+  "material": "PETG",
+  "ref_cfm": 60.1,
+  "ref_static_pa": 22.9,
+  "ref_noise_dba": 22.6,
+  "motor_mount": {
+   "cavity_dia_mm": 37.25,
+   "cavity_depth_mm": 13.0,
+   "rear_bore_dia_mm": 20.0,
+   "shaft_dia_mm": 3.0,
+   "min_wall_mm": 1.2,
+   "min_hub_height_mm": 15.0,
+   "grip_count": 20,
+   "grip_dia_mm": 2.4,
+   "grip_clearance_mm": 0.35,
+   "grip_protrude_mm": 0.7
+  },
+  "leeway_tip_dia_mm": 0.0,
+  "leeway_depth_mm": 0.0,
+  "leeway_weight_g": 0.0,
+  "over_voltage_v": 0.0
+ }
+}

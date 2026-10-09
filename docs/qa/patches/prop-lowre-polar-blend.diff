@@ -1,0 +1,139 @@
+diff --git a/fansim/propeller/bemt.py b/fansim/propeller/bemt.py
+index d853dbe..8ac69ab 100644
+--- a/fansim/propeller/bemt.py
++++ b/fansim/propeller/bemt.py
+@@ -36,6 +36,13 @@ G = 9.80665
+ # (§19.15 / §20.2). Override with ``set_polar_backend`` or env ``FANSIM_POLAR_BACKEND``.
+ _POLAR_BACKEND = "table"
+ 
++# QA-12: below the lowest polar table (Re 4e4) the table path used to switch HARD to the analytic
++# low-Re polar (cl −0.09 / cd +0.013 at α = 0 across Re 39,999 → 40,000), which made static CT0 of a
++# 5" prop creep up with rpm. The prop BEMT now blends: weight w = smoothstep in log Re from
++# Re_lo / LOW_RE_BLEND_RATIO (pure analytic, as before) to Re_lo (pure table). Fan BEM callers
++# (`_cl_cd`) keep the old switch, so fan results are unchanged.
++LOW_RE_BLEND_RATIO = 2.0
++
+ 
+ def get_polar_backend() -> str:
+     import os
+@@ -93,8 +100,14 @@ def _section_aero(
+     camber: float,
+     re: float | None = None,
+     thickness: float = 0.12,
++    *,
++    low_re_blend: bool = False,
+ ) -> tuple[float, float, bool, float]:
+-    """Incompressible `(cl, cd, stalled, cl_cap)` from the same branch as `_cl_cd`."""
++    """Incompressible `(cl, cd, stalled, cl_cap)` from the same branch as `_cl_cd`.
++
++    ``low_re_blend=True`` (prop BEMT): below the lowest table Re, blend the analytic polar into
++    that table smoothly instead of switching at the table edge (QA-12).
++    """
+     if re is not None and get_polar_backend() == "neuralfoil":
+         from fansim.propeller.neuralfoil_polars import section_neuralfoil
+ 
+@@ -107,9 +120,38 @@ def _section_aero(
+         tab = section_table(alpha_rad, camber, re, thickness=thickness)
+         if tab is not None:
+             return tab
++        if low_re_blend:
++            blended = _low_re_blend(alpha_rad, camber, float(re), thickness)
++            if blended is not None:
++                return blended
+     return _analytic_section(alpha_rad, camber, re)
+ 
+ 
++def _low_re_blend(alpha_rad: float, camber: float, re: float, thickness: float):
++    """Smoothstep(log Re) blend of the analytic polar (at Re) into the lowest table (at Re_lo)."""
++    from fansim.propeller.polars import lowest_table_re, section_table
++
++    if not math.isfinite(re) or re <= 0.0:
++        return None
++    re_lo = lowest_table_re(camber, thickness)
++    if re_lo is None or re >= re_lo:
++        return None
++    re_a = re_lo / LOW_RE_BLEND_RATIO
++    if re <= re_a:
++        return None
++    hi = section_table(alpha_rad, camber, re_lo, thickness=thickness)
++    if hi is None:
++        return None
++    lo = _analytic_section(alpha_rad, camber, re)
++    x = (math.log10(re) - math.log10(re_a)) / (math.log10(re_lo) - math.log10(re_a))
++    w = x * x * (3.0 - 2.0 * x)
++    cl = w * hi[0] + (1.0 - w) * lo[0]
++    cd = w * hi[1] + (1.0 - w) * lo[1]
++    stalled = hi[2] if w >= 0.5 else lo[2]
++    cap = w * hi[3] + (1.0 - w) * lo[3]
++    return cl, cd, stalled, cap
++
++
+ def _interp_geom(params: BladeParams):
+     """Return callables chord(r_mm), twist_deg(r_mm) over the actual radius, from the blade stations."""
+     st = sorted(params.stations, key=lambda s: s.r_frac)
+@@ -157,6 +199,7 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float
+             alpha = beta - phi
+             cl, cd, stalled, cl_cap = _section_aero(
+                 alpha, camber, re=math.sqrt(W2) * c / NU_AIR, thickness=thickness,
++                low_re_blend=True,
+             )
+             mach = math.sqrt(W2) / C_AIR
+             cl, cd = _compressibility_cl_cd(
+diff --git a/fansim/propeller/polars.py b/fansim/propeller/polars.py
+index 5fa3289..9261cc6 100644
+--- a/fansim/propeller/polars.py
++++ b/fansim/propeller/polars.py
+@@ -172,6 +172,14 @@ def section_table(
+     return None
+ 
+ 
++def lowest_table_re(camber: float, thickness: float = _DEFAULT_THICKNESS) -> float | None:
++    """Lowest tabulated Reynolds number of the family `section_table` would use, or None."""
++    fam = family_for_camber(camber, thickness)
++    if not load_polar_family(fam):
++        return None
++    return float(_polar_re_levels(fam)[0])
++
++
+ def cl_cd_table(
+     alpha_rad: float,
+     camber: float,
+diff --git a/tests/test_prop_lowre_blend.py b/tests/test_prop_lowre_blend.py
+new file mode 100644
+index 0000000..f3d096d
+--- /dev/null
++++ b/tests/test_prop_lowre_blend.py
+@@ -0,0 +1,33 @@
++"""QA-12: prop BEMT blends the analytic low-Re polar into the lowest table (Re 4e4) instead of switching."""
++from __future__ import annotations
++
++import math
++
++import pytest
++
++from fansim.propeller.bemt import LOW_RE_BLEND_RATIO, _analytic_section, _cl_cd, _section_aero
++from fansim.propeller.polars import lowest_table_re, section_table
++
++CAM, TH = 0.04, 0.0633
++
++
++@pytest.mark.parametrize("a_deg", [0.0, 4.0, 8.0])
++def test_no_jump_at_lowest_table(a_deg):
++    a = math.radians(a_deg)
++    lo = _section_aero(a, CAM, re=39_999.0, thickness=TH, low_re_blend=True)
++    hi = _section_aero(a, CAM, re=40_000.0, thickness=TH, low_re_blend=True)
++    assert lo[0] == pytest.approx(hi[0], rel=0.01) and lo[1] == pytest.approx(hi[1], rel=0.01)
++
++
++def test_blend_end_points_and_fan_path_unchanged():
++    re_lo = lowest_table_re(CAM, TH)
++    assert re_lo == pytest.approx(4.0e4)
++    a = math.radians(4.0)
++    re_a = re_lo / LOW_RE_BLEND_RATIO
++    assert _section_aero(a, CAM, re=re_a, thickness=TH, low_re_blend=True) == _analytic_section(a, CAM, re_a)
++    mid = _section_aero(a, CAM, re=math.sqrt(re_a * re_lo), thickness=TH, low_re_blend=True)
++    t, f = section_table(a, CAM, re_lo, thickness=TH), _analytic_section(a, CAM, math.sqrt(re_a * re_lo))
++    assert min(t[0], f[0]) <= mid[0] <= max(t[0], f[0])
++    # default (fan BEM `_cl_cd`) keeps the old hard switch
++    assert _section_aero(a, CAM, re=30_000.0, thickness=TH)[:2] == _analytic_section(a, CAM, 30_000.0)[:2]
++    assert _cl_cd(a, CAM, re=30_000.0) == pytest.approx(_analytic_section(a, CAM, 30_000.0)[:2])

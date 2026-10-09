@@ -1,0 +1,4 @@
+max_camber bounds (0.0, 0.1) pressure_model axial_force
+sobol 4096 done in 203s; feasible 153
+tpe 2500 done in 515s; feasible 2145
+total 6596 in 719s

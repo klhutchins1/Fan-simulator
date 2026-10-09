@@ -1,0 +1,110 @@
+{
+ "T06592": {
+  "euler": {
+   "free": 54.7,
+   "load": 45.7,
+   "eff": 22.5,
+   "score": 0.952,
+   "ff": null
+  },
+  "axial_force": {
+   "free": 66.3,
+   "load": 59.2,
+   "eff": 46.4,
+   "score": 1.325,
+   "ff": null
+  }
+ },
+ "T05252": {
+  "euler": {
+   "free": 53.3,
+   "load": 45.3,
+   "eff": 22.0,
+   "score": 0.934,
+   "ff": null
+  },
+  "axial_force": {
+   "free": 63.4,
+   "load": 57.2,
+   "eff": 42.2,
+   "score": 1.246,
+   "ff": null
+  }
+ },
+ "T04536": {
+  "euler": {
+   "free": 51.0,
+   "load": 44.4,
+   "eff": 20.8,
+   "score": 0.899,
+   "ff": null
+  },
+  "axial_force": {
+   "free": 59.8,
+   "load": 54.6,
+   "eff": 38.0,
+   "score": 1.158,
+   "ff": null
+  }
+ },
+ "S03681": {
+  "euler": {
+   "free": 53.8,
+   "load": 45.2,
+   "eff": 22.4,
+   "score": 0.941,
+   "ff": null
+  },
+  "axial_force": {
+   "free": 60.5,
+   "load": 53.2,
+   "eff": 32.0,
+   "score": 1.085,
+   "ff": null
+  }
+ },
+ "S01272": {
+  "euler": {
+   "free": 51.8,
+   "load": 44.3,
+   "eff": 21.2,
+   "score": 0.908,
+   "ff": null
+  },
+  "axial_force": {
+   "free": 58.4,
+   "load": 52.5,
+   "eff": 31.9,
+   "score": 1.067,
+   "ff": null
+  }
+ },
+ "REF_9504": {
+  "euler": {
+   "free": 54.9,
+   "load": 45.7,
+   "eff": 23.2,
+   "score": 0.962,
+   "ff": null
+  },
+  "axial_force": {
+   "free": 58.8,
+   "load": 48.6,
+   "eff": 26.9,
+   "score": 0.986,
+   "ff": null
+  }
+ },
+ "STOCK": {
+  "euler": {
+   "free": 55.3,
+   "load": 46.2,
+   "eff": 25.7
+  },
+  "axial_force": {
+   "free": 56.8,
+   "load": 48.3,
+   "eff": 29.4
+  }
+ }
+}

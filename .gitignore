@@ -46,3 +46,4 @@ handoff/**/*.zip
 handoff/*.zip
 docs/QA_REVIEW.md.bak
 handoff/**/*.bundle
+handoff/**/*.jsonl.gz

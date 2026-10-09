@@ -1,0 +1,65 @@
+n_blades: 10
+hub_radius: 23.259753684001044
+tip_radius: 52.99754456290975
+root_embed: 2.0
+hub_axial_margin: 1.5
+hub_height_mm: null
+blade_hub_z_mm: 0.0
+hub_profile: cylinder
+hub_nose_mm: 0.0
+rpm: 2000.0
+n_span: 18
+n_chord: 60
+features:
+  tubercle_amp: 0.0
+  tubercle_waves: 0
+  serration_amp: 0.0
+  serration_waves: 0
+  dimple_amp: 0.0
+  dimple_rows: 0
+  dimple_cols: 0
+shroud_thick_mm: 0.0
+shroud_height_frac: 1.0
+blade_angles_deg: null
+tip_notch_count: 0
+tip_notch_depth_mm: 0.0
+cylindrical_tip: true
+chord_basis: measured
+le_thick_scale: 1.0
+te_thick_scale: 1.0
+section_family: naca
+span_interp: linear
+stations:
+- r_frac: 0.0
+  chord: 18.000226017087698
+  stagger_deg: 29.829630821943283
+  thickness: 0.09828858663327991
+  max_camber: 0.03669327571988106
+  camber_pos: 0.35485677905380725
+  sweep: 0.0
+  skew: 0.0
+  lean_deg: 0.0
+  le_sweep: 0.0
+  le_skew: 0.0
+- r_frac: 0.5
+  chord: 29.335085332393646
+  stagger_deg: 37.62249867618084
+  thickness: 0.07823243785649538
+  max_camber: 0.03669327571988106
+  camber_pos: 0.35485677905380725
+  sweep: 6.887865051627159
+  skew: 0.0
+  lean_deg: 3.7798272036015987
+  le_sweep: 0.0
+  le_skew: 0.0
+- r_frac: 1.0
+  chord: 26.404022358357906
+  stagger_deg: 18.643225889652967
+  thickness: 0.06720784913748504
+  max_camber: 0.03669327571988106
+  camber_pos: 0.35485677905380725
+  sweep: 8.24856362119317
+  skew: 0.0
+  lean_deg: 40.962549559772015
+  le_sweep: 0.0
+  le_skew: 0.0
