@@ -1112,10 +1112,11 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   (also an invalid `# noqa` at `tests/test_cockpit_errors.py:48`). *(verified 2026-10-08: still
   fails.)* CI goes red on push. **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — duplicate `Path` import removed; noqa-looking comment reworded.**
-- [ ] **23.8 `scripts/audit_archetype_direction_cfd.py` not registered with the orientation guard**
+- [x] **23.8 `scripts/audit_archetype_direction_cfd.py` not registered with the orientation guard**
   (`tests/test_axial_scripts_oriented.py::test_no_unlisted_script_calls_build_case`). *(verified
   2026-10-08: still fails here; a fix session was started 2026-10-07.)* Register it or exempt it with
   a reason. **[impact: low–med]** **[effort: low]**
+  **DONE 2026-10-08 — exempted with reason (orients via each machine's production path, then flips spin on purpose); cherry-picked from the fix session.**
 - [ ] **23.9 Test-suite memory:** one pytest process grows to 4–6 GB (OCCT/VTK accumulation); the full
   fast suite was OOM-killed twice on a 16 GB box. Isolate per file in CI (or chunk) and find the
   leak. **[impact: med for contributors]** **[effort: med]**
