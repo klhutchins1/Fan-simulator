@@ -14,12 +14,10 @@ import sys
 
 def main() -> int:
     job = json.loads(open(sys.argv[1]).read())
+    # Stage 1/4 "loading CAD kernel" is written by the PARENT (build_stl_isolated) before it spawns
+    # us: ``python -m fansim.geometry._build_worker`` imports the fansim.geometry package — and with
+    # it CadQuery/OCP — before main() runs, so a write here landed only after the kernel had loaded.
     prog = job.get("progress")
-    if prog:
-        # Before the heavy imports: loading CadQuery/OCP can take ~30 s on a slow box, and until
-        # the first stage lands the caller has nothing honest to show (QA UI-4 re-test).
-        with open(prog, "w", encoding="utf-8") as fh:
-            json.dump({"stage": 1, "of": 5, "label": "loading CAD kernel"}, fh)
     from fansim.geometry.features import Features
     from fansim.optimize.search_space import blade_from_flat
 
@@ -30,13 +28,13 @@ def main() -> int:
     fast = bool(job.get("preview")) and not mount_dict
     build_label = ("lofting blades + hub" if fast else
                    "building + carving motor cup" if mount_dict else "building + fusing solid")
-    write_progress(prog, 2, 5, "reading design")
+    # Stages are the parts that take visible time (QA r3: sub-second stages were never seen at a
+    # ~1 s poll). Reading the design and realising chords are one stage: the chords are disk-cached
+    # after the first Preview of a design, so this is ~ms, or the ~20 s chord fit for a new one.
+    write_progress(prog, 2, 4, "preparing design (chord fit)")
     params = blade_from_flat(job["flat"], Features(**job.get("features", {})))
-    # The build realises loft chords itself; doing it first (disk-cached, so the build reuses it)
-    # lets the caller show the stage that dominates a new design's Preview (§23.17).
-    write_progress(prog, 3, 5, "realising chords")
-    prepare_loft_chords(params)
-    write_progress(prog, 4, 5, build_label)
+    prepare_loft_chords(params)  # disk-cached; the build below reuses it
+    write_progress(prog, 3, 4, build_label)
     if fast:
         # FAST path: non-fused visual mesh (skips the ~140s boolean fuse). Write an accurate volume
         # sidecar so the caller's weight/spec check doesn't rely on the overlapping mesh's own volume.
@@ -45,7 +43,7 @@ def main() -> int:
         # Dense = recipe loft + finer tessellation (gold ✕ / LE overlay); default stays screen loft.
         mesh, volume_mm3 = build_impeller_preview(
             params, tol=(0.05 if dense else 0.15), screen=not dense)
-        write_progress(prog, 5, 5, "writing mesh")
+        write_progress(prog, 4, 4, "writing mesh")
         mesh.export(job["out"])
         open(job["out"] + ".meta.json", "w").write(json.dumps({"volume_mm3": volume_mm3}))
     elif mount_dict:
@@ -54,12 +52,12 @@ def main() -> int:
         from fansim.manufacturability.print_export import build_impeller_with_mount
 
         model, _fits, _msg = build_impeller_with_mount(params, MotorMount(**mount_dict))
-        write_progress(prog, 5, 5, "writing STL")
+        write_progress(prog, 4, 4, "writing STL")
         export_stl(model, job["out"])
     else:
         from fansim.geometry import build_impeller, export_stl
         model = build_impeller(params)
-        write_progress(prog, 5, 5, "writing STL")
+        write_progress(prog, 4, 4, "writing STL")
         export_stl(model, job["out"])
     sys.stdout.flush()
     os._exit(0)  # skip OCP/VTK teardown segfault (the STL is already written)

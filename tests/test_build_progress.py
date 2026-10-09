@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fansim.geometry.isolated import (
     build_stl_isolated,
     progress_caption,
@@ -34,4 +36,20 @@ def test_preview_worker_reports_every_stage(tmp_path):
     prog.write_text("stale")                       # a leftover file from an earlier run is cleared
     build_stl_isolated(stock_blade_flat(), {}, out, preview=True, progress_path=prog)
     assert out.exists()
-    assert read_progress(prog) == {"stage": 5, "of": 5, "label": "writing mesh"}
+    assert read_progress(prog) == {"stage": 4, "of": 4, "label": "writing mesh"}
+
+
+def test_parent_records_the_kernel_load_stage_before_spawning(tmp_path, monkeypatch):
+    """QA r3: the worker imports CadQuery before its own code runs, so stage 1 is the parent's."""
+    import fansim.geometry.isolated as iso
+
+    prog = tmp_path / "p.progress.json"
+    seen = {}
+
+    def fake_worker(module, job, **kw):
+        seen["at_spawn"] = read_progress(prog)
+        Path(job["out"]).write_text('solid x' + chr(10) + 'endsolid x' + chr(10))
+
+    monkeypatch.setattr(iso, "run_worker_module", fake_worker)
+    iso.build_stl_isolated({}, {}, tmp_path / "p.stl", preview=True, progress_path=prog)
+    assert seen["at_spawn"] == {"stage": 1, "of": 4, "label": "loading CAD kernel"}

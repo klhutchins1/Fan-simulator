@@ -78,7 +78,9 @@ def build_stl_isolated(flat: dict, features, out_path: str | Path, timeout: floa
     if motor_mount is not None and not preview:
         job["motor_mount"] = dict(motor_mount)
     if progress_path is not None:
-        Path(progress_path).unlink(missing_ok=True)
+        # Stage 1 is the worker's interpreter + CadQuery/OCP import (~2 s; ~30 s on a slow box),
+        # which happens before any worker code can run, so the parent records it (QA UI-4 r3).
+        write_progress(progress_path, 1, 4, "loading CAD kernel")
         job["progress"] = str(progress_path)
     run_worker_module(
         "fansim.geometry._build_worker",
