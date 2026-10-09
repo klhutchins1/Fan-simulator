@@ -24,6 +24,16 @@ Stock golden (`validation/reference/a12x25_blade_golden.json`) regenerated delib
 volume −0.21 %, tip radius and depth unchanged, bounds ≤ 0.05 mm, tip-section samples ≤ 0.94 mm
 (the tip now follows the real r/R 0.84 and 1.0 stations). The close-ref envelope check still passes.
 
+## Second pass (same day)
+
+| Unit | Change | Checks | Verdict |
+|------|--------|--------|---------|
+| `geometry.stock_handedness` | §23.31 `_root_axial_span` takes the innermost station by `r_frac` (was `stations[0]`); §23.32 `_trim_blade_to_tip_cylinder` raises instead of returning an untrimmed blade; §23.34 chord-measure hub cutoff derived from the design's hub (A12x25 unchanged: 0.4697 vs 0.47). | `tests/audit/test_stock_handedness.py` | **PASS** — Stock geometry unchanged (stations already ordered; trim never failed; no station near the cutoff) |
+
+Not kept (both reverted, see roadmap §23.5): a Viterna–Corrigan post-stall extension in
+`propeller.polars` (broke `test_prandtl_factor_bounded_and_inflow_iteration_converges` at J = 0) and a
+profile-drag loss in `fan_bem` (Audit #4 ρ 0.714 → 0.126). Neither was recorded.
+
 ## Command evidence
 
 ```

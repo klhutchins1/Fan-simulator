@@ -28,19 +28,26 @@ _DEFAULT_ITERS = 2
 _MIN_MEAS_MM = 2.0
 
 
+HUB_MEASURE_MARGIN_MM = 4.1
+
+
 def _station_measure_fracs(params) -> list[float | None]:
     tip = float(params.tip_radius)
     r0 = float(params.hub_radius) - float(params.root_embed)
     span = tip - r0
     if tip <= 0.0 or span <= 0.0:
         return [float(s.r_frac) for s in params.stations]
+    # Sections closer than HUB_MEASURE_MARGIN_MM to the hub merge into the hub cup. This was a
+    # hard-coded 0.47 (the A12x25: (21.5 + 4.1) / 54.5); derive it per design so larger-hub fans
+    # don't measure inside the hub annulus (QA 2026-10-08, roadmap §23.34).
+    hub_cut = (float(params.hub_radius) + HUB_MEASURE_MARGIN_MM) / tip
     out: list[float | None] = []
     for s in params.stations:
         f = (r0 + span * float(s.r_frac)) / tip
         # Tip wire sits on the cut cylinder; measure just inboard (same as fit_recipe tip @ 0.99).
         if f >= 0.995:
             out.append(0.99)
-        elif f < 0.47:
+        elif f < hub_cut:
             # Inside / at the hub cup — no reliable blade section.
             out.append(None)
         else:

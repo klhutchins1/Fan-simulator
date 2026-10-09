@@ -629,8 +629,11 @@ def _root_axial_span(params: BladeParams) -> tuple[float, float]:
     """Axial (z) min/max of the blade ROOT section — the zone the hub must cover to fuse cleanly.
 
     Only the root attaches to the hub, so this (not the swept-tip bounding box) is what sets the
-    minimum hub height. Features are ignored here (negligible axial effect for sizing)."""
-    st = params.stations[0]
+    minimum hub height. Features are ignored here (negligible axial effect for sizing).
+
+    The root is the station with the smallest ``r_frac``, not ``stations[0]``: YAML / blade-angle
+    recipes need not list stations in order (QA 2026-10-08, roadmap §23.31)."""
+    st = min(params.stations, key=lambda s: s.r_frac)
     r = params.hub_radius - params.root_embed
     pts = _section_points_3d(
         r=r, r_frac=st.r_frac, chord=st.chord, stagger_deg=st.stagger_deg, thickness=st.thickness,
@@ -1131,5 +1134,8 @@ def _trim_blade_to_tip_cylinder(blade: cq.Solid, tip_radius: float) -> cq.Solid:
         # Some CadQuery builds return a single Solid from intersect.
         if isinstance(cut, cq.Solid) or cut.ShapeType() == "Solid":
             return cut
-        return blade
+        # Never fall through untrimmed: corners outside tip_radius would hit the frame in print
+        # and in CFD. Fail loudly instead (callers report "geometry failed"). Roadmap §23.32.
+        raise RuntimeError(
+            f"tip trim failed: blade/cylinder intersection empty after 4 tries (R={R:.2f} mm)")
     return max(solids, key=lambda s: abs(float(s.Volume())))

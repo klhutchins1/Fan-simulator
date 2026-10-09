@@ -1196,17 +1196,20 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 
 - [ ] **23.30 Stock YAML blades hang ~0.94 mm below the hub** (bbox z_min −9.10 vs hub bottom
   −8.16); the print-ready path after Fit is fine. **[effort: low]**
-- [ ] **23.31 `_root_axial_span` uses `params.stations[0]` without sorting** (`blade.py:626`), while
+- [x] **23.31 `_root_axial_span` uses `params.stations[0]` without sorting** (`blade.py:626`), while
   `_interp_stations` / `tip_section_points` sort — unsorted YAML/`blade_angles` stations would size
   the hub from the wrong station. **[effort: low]**
-- [ ] **23.32 `_trim_blade_to_tip_cylinder` can return an untrimmed blade** when all 4 intersect
+  **DONE 2026-10-08 — root = innermost station by r_frac; test with shuffled stations.**
+- [x] **23.32 `_trim_blade_to_tip_cylinder` can return an untrimmed blade** when all 4 intersect
   retries come back empty (`blade.py:1080–1084`), contrary to its comment. Not seen in 23 builds.
   **[effort: low]**
+  **DONE 2026-10-08 — raises RuntimeError ("tip trim failed") instead of returning the untrimmed blade.**
 - [x] **23.33 `build_impeller_preview` doesn't check `len(blade_angles_deg) == n_blades`**
   (`blade.py:841–844`); `build_impeller` does. **[effort: low]**
   **DONE 2026-10-08 — covered by `validate_blade_params` (23.3).**
-- [ ] **23.34 `chord_realisation._station_measure_fracs` hard-codes `f < 0.47` as "inside the hub"**
+- [x] **23.34 `chord_realisation._station_measure_fracs` hard-codes `f < 0.47` as "inside the hub"**
   — that's the A12x25 hub ratio; wrong for hub ratios ≳ 0.47. **[effort: low]**
+  **DONE 2026-10-08 — cutoff = (hub_radius + 4.1 mm) / tip (A12x25 → 0.4697, unchanged).**
 - [ ] **23.35 Prop pitch twist evaluated at hub_r / 0.5(hub+R) but lofted at 4.5 / 34.0 mm**
   (root_embed; `propeller/geometry.py:64–67`). Small, mostly at the root. **[effort: low]**
 - [ ] **23.36 Mixed-flow blades lofted along a straight eye→tip diagonal on a conical hub** — only the
