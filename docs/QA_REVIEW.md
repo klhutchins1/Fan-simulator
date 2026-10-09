@@ -51,7 +51,7 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 | UI-21 | LOW | Mixed | CFD refine button solid orange with 'top N = 0', looks enabled (not clicked) | verified in browser B8: CFD refine on Mixed/Prop is pale tonal disabled (not clicked). docs/qa/screenshots/2026-10-09/B8_PASS_mixed_cfd_refine_tonal.png |
 | UI-22 | LOW | Mixed | Preview timer may lag ('Running Preview… 0:01' ~6 s after click) | verified / not reproduced on Linux branch d781894 (B9): '0:00' 0.13 s after click, ticks ~1 s, done ~3.9 s |
 | QA-12 | LOW | Prop/BEMT | Static CT0 creeps up ~60% from 4k to 30k rpm (measured: flat). Diagnosis `docs/qa/notes/prop-ct0-rpm-creep.md`: ~44% from the analytic fallback below Re 4e4 (`fansim/propeller/polars.py:151`), ~44% from real table Re effects, ~15% from Mach. No patch yet | open (new 2026-10-09) |
-| UI-23 | LOW | All | Browser console `TypeError: n[i[e]] is not a function` in `assets/index-*.js` from `invokeConnectionClose`, twice, on page reload (B10) | open (new 2026-10-09) |
+| UI-23 | LOW | All | Browser console `TypeError: n[i[e]] is not a function` in `assets/index-*.js` from `invokeConnectionClose`, twice, on page reload (B10) | upstream / not ours (2026-10-09): an unhandled rejection in trame-client's close callbacks while the page unloads. Captured once on the branch (7 stale tabs connected, reload during start-up); not reproduced with 1 or 2 tabs with the guard on, with the guard off (`FANSIM_WS_GUARD=0`), or on master. Harmless (page is going away). Please note client count / timing if you see it again |
 
 ## Details
 (Numbered bugs below map to QA-n.)
