@@ -62,6 +62,8 @@ def bind(session) -> None:
             session._init_editor(p)
             session._set_baseline()
             state.preview_msg = "Reference stock loaded. Preview geometry, or Assess to run CFD."
+            if not (state.preview_busy or state.assess_busy):
+                _show_stock_preview(str(state.fan_model or "a12x25"), session.active_spec())
             try:
                 ctrl.view_update()
             except Exception as exc:  # noqa: BLE001
@@ -223,64 +225,17 @@ def bind(session) -> None:
             return
         state.flush()
 
-    def load_stock_reference():
-        if state.preview_busy or state.assess_busy:
-            return
-        key = str(state.fan_model or "a12x25")
-        try:
-            flat = stock_blade_flat(key)
-        except KeyError:
-            state.preview_msg = (
-                f"⚠ No parametric stock geometry for '{key}'. "
-                "Switch Fan model to a12x25 (Noctua) to load the reference blade."
-            )
-            state.flush()
-            return
-        except FileNotFoundError as exc:
-            state.preview_msg = f"⚠ Stock geometry file missing: {exc}"
-            state.flush()
-            return
+    def _show_stock_preview(key: str, spec) -> None:
+        """Draw the (cached) parametric Stock mesh + schematic arrows for the current editor flat.
 
-        from fansim.cockpit.placement import fit_envelope
+        Shared by the startup Stock load and Reset / re-select of the Reference, which used to
+        clear the 3-D view and leave empty axes (the Reference has no Assess mesh; §23.16).
+        """
         from fansim.cockpit.stock_cache import (
             stock_cache_hit,
             stock_cache_paths,
             write_stock_cache_meta,
         )
-
-        spec = session.active_spec()
-        # Bake frame/mount fit so gold ✕ lands inside the housing (tip gap 0.5 mm).
-        fitted = fit_envelope(flat, spec, features=Features())
-        flat = fitted.flat
-        load_pa, hose = assess_load(str(state.assess_preset or "case"))
-        pub = published_scatter_point(spec, load_pa)
-        session._init_editor(flat, Features())
-        session._set_baseline()      # fresh Stock = unedited (was: compared against the previous design)
-        state.selected_trial = None
-        state.fan_subtab = "design"
-        fit_note = ""
-        if fitted.changes:
-            bits = ", ".join(f"{c.field}→{c.after:g}" for c in fitted.changes[:4])
-            fit_note = f" Frame-fit applied ({bits})."
-        state.info_lines = [
-            f"Stock reference — {spec.name} (parametric, not OEM CAD)",
-            (
-                f"Published free {pub['cfm_free']:.1f} CFM · hose-est load "
-                f"{pub['cfm_load']:.1f} CFM ({hose})"
-                if pub
-                else "No published CFM on this fan model."
-            ),
-            "Sliders = Stock recipe (frame-fitted). Edit then Preview / Assess for CFD ◆."
-            + fit_note,
-        ]
-        state.preview_msg = "Loading stock 3-D preview…"
-        state.stale_msg = (
-            "Stock reference loaded — geometry is a parametric stand-in for the real fan. "
-            "Edit freely; re-Assess after changes for CFD numbers."
-        )
-        session._clear_airflow("Stock reference — no CFD case (Assess to generate airflow viz).")
-        state.glyph_caption = "Loading schematic flow arrows…"
-        state.flush()
 
         flat_s, feat_s = session.edit_flat(), session.edit_features()
         cache_stl, _cache_meta = stock_cache_paths(key)
@@ -345,6 +300,62 @@ def bind(session) -> None:
                     log_caught(_log, "view_update (stock preview)", exc, level=logging.DEBUG)
 
         fan_runtime.asynchronous.create_task(task())
+
+    def load_stock_reference():
+        if state.preview_busy or state.assess_busy:
+            return
+        key = str(state.fan_model or "a12x25")
+        try:
+            flat = stock_blade_flat(key)
+        except KeyError:
+            state.preview_msg = (
+                f"⚠ No parametric stock geometry for '{key}'. "
+                "Switch Fan model to a12x25 (Noctua) to load the reference blade."
+            )
+            state.flush()
+            return
+        except FileNotFoundError as exc:
+            state.preview_msg = f"⚠ Stock geometry file missing: {exc}"
+            state.flush()
+            return
+
+        from fansim.cockpit.placement import fit_envelope
+
+        spec = session.active_spec()
+        # Bake frame/mount fit so gold ✕ lands inside the housing (tip gap 0.5 mm).
+        fitted = fit_envelope(flat, spec, features=Features())
+        flat = fitted.flat
+        load_pa, hose = assess_load(str(state.assess_preset or "case"))
+        pub = published_scatter_point(spec, load_pa)
+        session._init_editor(flat, Features())
+        session._set_baseline()      # fresh Stock = unedited (was: compared against the previous design)
+        state.selected_trial = None
+        state.fan_subtab = "design"
+        fit_note = ""
+        if fitted.changes:
+            bits = ", ".join(f"{c.field}→{c.after:g}" for c in fitted.changes[:4])
+            fit_note = f" Frame-fit applied ({bits})."
+        state.info_lines = [
+            f"Stock reference — {spec.name} (parametric, not OEM CAD)",
+            (
+                f"Published free {pub['cfm_free']:.1f} CFM · hose-est load "
+                f"{pub['cfm_load']:.1f} CFM ({hose})"
+                if pub
+                else "No published CFM on this fan model."
+            ),
+            "Sliders = Stock recipe (frame-fitted). Edit then Preview / Assess for CFD ◆."
+            + fit_note,
+        ]
+        state.preview_msg = "Loading stock 3-D preview…"
+        state.stale_msg = (
+            "Stock reference loaded — geometry is a parametric stand-in for the real fan. "
+            "Edit freely; re-Assess after changes for CFD numbers."
+        )
+        session._clear_airflow("Stock reference — no CFD case (Assess to generate airflow viz).")
+        state.glyph_caption = "Loading schematic flow arrows…"
+        state.flush()
+
+        _show_stock_preview(key, spec)
 
     session.select = select
     session.save_measurement = save_measurement

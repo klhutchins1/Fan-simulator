@@ -1156,8 +1156,9 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [x] **23.15 (UI-2)** Unedited "◆ Reference" shows "⚠ Edited since assessment" on first load; Reset
   clears it. Re-check after 23.1. **[impact: med]** **[effort: low]**
   **DONE 2026-10-08 — NOT caused by 23.1, and not cosmetic. The browser re-sends `e_thick_mode` after a design loads; the tapered branch of `_on_thick_mode` overwrote the station t/c with UNIFORM-wall values, so the Reference came up with 2.36/2.36/2.36 mm walls (0.133/0.0939/0.0704) instead of its tapered recipe (2.22/2.42/2.44 mm). Any cockpit Preview/Assess/Export of "Stock" used those walls. Fix keeps t/c on a tapered switch; startup Stock load now takes a fresh baseline. Regression test in `test_fan_tab_setup_smoke.py` fails on the old code; verified in the browser.**
-- [ ] **23.16 (UI-3)** Reset leaves the Fan 3-D viewer as empty axes instead of the reference fan.
+- [x] **23.16 (UI-3)** Reset leaves the Fan 3-D viewer as empty axes instead of the reference fan.
   **[impact: med]** **[effort: low]**
+  **DONE 2026-10-08 — Reset re-selects the design; the Reference has no Assess mesh, so `select()` cleared the view and never redrew. The cached-Stock draw is now a shared `_show_stock_preview()` used by both the startup load and the Reference branch of `select()`. Checked in the browser.**
 - [ ] **23.17 (UI-4)** Fan "Preview (sec)" takes ~65 s per run (worker ~160% CPU, ~6 GB RAM); the
   progress bar jumps back and forth and the spinner looks stuck. CROR Preview ~70 s / Export ~40 s,
   stuck near 20%. Make progress honest and find why preview is that heavy. **[impact: med]**
