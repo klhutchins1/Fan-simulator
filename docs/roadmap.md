@@ -1120,6 +1120,7 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [ ] **23.9 Test-suite memory:** one pytest process grows to 4–6 GB (OCCT/VTK accumulation); the full
   fast suite was OOM-killed twice on a 16 GB box. Isolate per file in CI (or chunk) and find the
   leak. **[impact: med for contributors]** **[effort: med]**
+  **PARTLY DONE 2026-10-08 — measured on Windows (per-file private bytes): full fast suite 1565 passed in 31 min, peak 2.47 GB, end 1.66 GB, with drops of up to 670 MB → no leak; ~1.3 GB is the one-time OCCT/VTK/SciPy import. Linux growth is most likely glibc keeping freed arenas: conftest now runs gc + `malloc_trim(0)` after every test file. NOT verified on Linux (no Linux box here) — re-run the reviewer's 16 GB case to close.**
 
 ### 23.E Math / naming — LOW
 
