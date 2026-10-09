@@ -33,7 +33,7 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 | UI-5 | MED | Prop | 5" FPV prop reports 2087 g / 743 W (implausible) | fixed (pending QA) `ad1c716` on branch `qa-fixes-2026-10-09`: η = J·CT/CP (QA diagnosis; fix rewritten, UIUC regression test pending source files) |
 | UI-6 | LOW | Fan | Export only saved server-side, ~2 min, `design_100000` name | verified in browser (download link + clear name `a12x25_stock_reference_*.stl`); export still ~60-75 s |
 | UI-7 | LOW | Fan | Stale "Saved..." message after Randomize | verified in browser 2026-10-09 (`c6fb753`) |
-| UI-8 | LOW | Fan | Slider tooltip vs side label disagree; tooltip overlaps label | reopened: tooltip overlap fixed, but values still disagree (Chord root tooltip 18.0 vs label 17.75 mm) — qa/ui2/ui8_tooltip_mismatch.png |
+| UI-8 | LOW | Fan | Slider tooltip vs side label disagree; tooltip overlaps label | fixed (pending QA) `c4da19c`: thumb label shows the model value (Stock Chord root 17.75 = side label) |
 | UI-9 | LOW | Fan | Poor first-load framing; colour bar zero range | partly fixed: fan centred but small (~1/4 of viewer); no U m/s colour bar shown on stock first load, so range not checkable |
 | UI-10 | LOW | Volute | Casing hides impeller; clipped labels | verified in browser 2026-10-09 (`8e975bf`) |
 | UI-11 | LOW | Mixed/Prop/Volute | No slider values; leftover blurry render | verified in browser 2026-10-09 (viewers clean before Preview) |
@@ -41,13 +41,13 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 | UI-13 | LOW | Prop/CROR | Disabled buttons look enabled | verified (mostly): disabled buttons faded; PROP Stop still faint pink |
 | UI-14 | LOW | All | Tab tooltip covers neighbouring tabs | verified in browser 2026-10-09 (`b4524ab`) |
 | UI-15 | LOW | All | Console 405 on POST /paraview/ | verified `ea418f3` (by design: documented benign; POST /paraview/ still 405) |
-| QA-11 | LOW | Geometry | `blade_solidity(BladeParams(n_blades=0))` raises ZeroDivisionError (build-time validation now blocks it, direct API call doesn't) | open (new 2026-10-09) |
+| QA-11 | LOW | Geometry | `blade_solidity(BladeParams(n_blades=0))` raises ZeroDivisionError (build-time validation now blocks it, direct API call doesn't) | fixed (pending QA) `c4da19c`: solidity = B·c·cosβ/(2πr) → 0 for no blades |
 | UI-16 | HIGH | Server | One connected-but-stalled client (frozen/sleeping tab) freezes ALL websocket sessions; new sessions never get `wslink.hello` reply, HTTP stays 200 | fixed (pending QA) `94a7365` on branch `qa-fixes-2026-10-09`: per-socket locks + 15 s send timeout that aborts the stalled client (`FANSIM_WS_SEND_TIMEOUT`); repro `scripts/ws_stall_probe.py` 0/5 → 15/15 |
 | UI-17 | LOW | Server | A non-upgrade GET `/ws` logs `KeyError` in wslink `onClose` and leaks a `connections` entry; abrupt disconnects log `Cannot write to closing transport` tracebacks on Linux | fixed (pending QA) `94a7365`: onClose tolerates a never-prepared connection (the 'Cannot write to closing transport' noise is not addressed) |
-| UI-18 | LOW | Server | Remote-view image-push observers are never removed when a client disconnects (observerCount only grows; views keep rendering/pushing with no clients) | open (new 2026-10-09) |
+| UI-18 | LOW | Server | Remote-view image-push observers are never removed when a client disconnects (observerCount only grows; views keep rendering/pushing with no clients) | fixed (pending QA) `c4da19c`: a closed client's `observer.add`s are released via the protocol's `observer.remove` (please confirm observerCount on Linux) |
 | UI-19 | LOW | Fan | Export download dir is `Path("exports").resolve()`, i.e. relative to the launch CWD, not the repo/run dir | fixed (pending QA) `94a7365`: `<project>/exports` for every tab |
-| UI-20 | LOW | Fan | After Randomize, Design dropdown still says '◆ Reference · Noctua A12x25 (published)' though geometry changed | open (new 2026-10-09; qa/ui2/new_randomize_design_label.png) |
-| UI-21 | LOW | Mixed | CFD refine button solid orange with 'top N = 0', looks enabled (not clicked) | open (new 2026-10-09; qa/ui2/new_mixed_preview_cfdrefine_orange.png) |
+| UI-20 | LOW | Fan | After Randomize, Design dropdown still says '◆ Reference · Noctua A12x25 (published)' though geometry changed | fixed (pending QA) `c4da19c`: dropdown label reads '✎ Edited copy of this design (not saved)' while edited |
+| UI-21 | LOW | Mixed | CFD refine button solid orange with 'top N = 0', looks enabled (not clicked) | fixed (pending QA) `c4da19c`: tonal variant (also Prop CFD refine) |
 | UI-22 | LOW | Mixed | Preview timer may lag ('Running Preview… 0:01' ~6 s after click) | suspicious, unconfirmed |
 
 ## Details
