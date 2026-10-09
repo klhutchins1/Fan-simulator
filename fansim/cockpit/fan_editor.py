@@ -628,19 +628,14 @@ def bind(session) -> None:
                 f"(t/c {th_r:.3f} / {th_m:.3f} / {th_t:.3f})"
             )
         else:
-            mm = float(getattr(state, "e_thick_mm", 2.0) or 2.0)
-            th_r, th_m, th_t = uniform_thickness_tc(
-                mm,
-                float(state.e_chord_root),
-                float(state.e_chord_mid),
-                float(state.e_chord_tip),
-            )
-            state.e_thick_root = round(th_r, 4)
-            state.e_thick_mid = round(th_m, 4)
-            state.e_thick_tip = round(th_t, 4)
-            ar = th_r * float(state.e_chord_root)
-            am = th_m * float(state.e_chord_mid)
-            at = th_t * float(state.e_chord_tip)
+            # Keep the station t/c as they are. They were overwritten with UNIFORM-wall values here,
+            # and loading a design fires this handler after _init_editor: the Stock Reference came
+            # up with 2.36/2.36/2.36 mm walls instead of its tapered recipe and showed "Edited since
+            # assessment" (roadmap §23.15). A manual Uniform -> Tapered switch needs no re-seed:
+            # _sync_uniform_tc already keeps t/c equal to the uniform wall while Uniform is active.
+            ar = float(state.e_thick_root) * float(state.e_chord_root)
+            am = float(state.e_thick_mid) * float(state.e_chord_mid)
+            at = float(state.e_thick_tip) * float(state.e_chord_tip)
             state.thick_wall_readout = (
                 f"Wall ≈ {ar:.2f} / {am:.2f} / {at:.2f} mm root/mid/tip "
                 f"(t/c sliders — tip was historically too thin at 3%)"

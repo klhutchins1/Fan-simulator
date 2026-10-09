@@ -232,3 +232,23 @@ def test_async_handler_bodies_execute(bound_ctx, monkeypatch, tmp_path):
                 _drive(coro, canned)
             else:
                 coro.close()
+
+
+def test_reference_keeps_tapered_walls_when_browser_resends_mode(bound_ctx):
+    """Roadmap §23.15: the browser re-sends ``e_thick_mode`` after load; the tapered branch of the
+    thickness-mode handler overwrote the Stock recipe t/c with uniform-wall values (2.36 mm
+    everywhere) and the unedited Reference showed "Edited since assessment"."""
+    from fansim.cockpit.fan_core import A12X25_REF_TRIAL
+
+    st = bound_ctx.state
+    st.ready()        # as when a browser connects; before this, flush() runs no @state.change
+    bound_ctx.fan_hub_designs()
+    bound_ctx.fan_select(A12X25_REF_TRIAL)
+    st.flush()
+    before = (st.e_thick_root, st.e_thick_mid, st.e_thick_tip)
+    assert st.e_thick_mode == "tapered"
+    assert before == pytest.approx((0.1249, 0.0965, 0.0727))   # Stock recipe t/c
+    st.dirty("e_thick_mode")                                    # what the browser does on mount
+    st.flush()
+    assert (st.e_thick_root, st.e_thick_mid, st.e_thick_tip) == before
+    assert st.edited_stale is False

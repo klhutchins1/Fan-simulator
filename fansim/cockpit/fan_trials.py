@@ -255,9 +255,9 @@ def bind(session) -> None:
         load_pa, hose = assess_load(str(state.assess_preset or "case"))
         pub = published_scatter_point(spec, load_pa)
         session._init_editor(flat, Features())
+        session._set_baseline()      # fresh Stock = unedited (was: compared against the previous design)
         state.selected_trial = None
         state.fan_subtab = "design"
-        state.edited_stale = False
         fit_note = ""
         if fitted.changes:
             bits = ", ".join(f"{c.field}→{c.after:g}" for c in fitted.changes[:4])
