@@ -121,9 +121,9 @@
       "verdict": "PASS"
     },
     "propeller.bemt": {
-      "date": "2026-10-01",
-      "fingerprint": "5549c67a9a973fae",
-      "report": "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md",
+      "date": "2026-10-09",
+      "fingerprint": "d7572840a1b4b8ea",
+      "report": "docs/validation/audits/2026-10-09-ledger-refresh.md",
       "verdict": "PASS"
     },
     "propeller.cfd_setup": {
@@ -142,6 +142,12 @@
       "date": "2026-09-30",
       "fingerprint": "064c70702bc0a505",
       "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "verdict": "PASS"
+    },
+    "propeller.polar_coefficients": {
+      "date": "2026-10-09",
+      "fingerprint": "54d04179cc0e10ae",
+      "report": "docs/validation/audits/2026-10-09-ledger-refresh.md",
       "verdict": "PASS"
     },
     "propeller.polars": {

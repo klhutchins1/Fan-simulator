@@ -24,6 +24,16 @@ unmerged on branch `station-mapping-23-35`.
 The full registered-check suite was also run once with §23.35 applied (583 tests: 1 failed, the P1
 check above); everything else, including the golden geometry, was green.
 
+## Second pass (same day): prop efficiency (QA UI-5, §23.18)
+
+| Unit | Change | Checks | Verdict |
+|------|--------|--------|---------|
+| `propeller.polar_coefficients` (**new**) | `nondim` / `advance_ratio` / `v_inf_from_j` were on the registry's *exempt* list ("scaffolding"), though `nondim` makes an equation claim — which is how the bug below escaped the audit. Registered now. Fix found by the QA bot: η = J·CT/CP (= T·V/P); the code divided by an extra 2π (the ω-based C_Q form), so every forward-flight η was 6.3× low (~6 % where APC publishes ~35 %). Fix written here after review (`docs/qa/patches/prop-solver-fix.diff` was not applied as-is). | `tests/test_prop_polar.py` (identity now also pinned to T·V/P) | **PASS** |
+| `propeller.bemt` | No solver change; its audit test's efficiency bound `j·ct/(2π·cp)·2π < 1` simplified to `j·ct/cp < 1` (same value). | `tests/audit/test_prop_bemt_audit.py`, `tests/test_bemt.py`, `tests/test_bemt_catalog.py` | **PASS** |
+
+Not taken from the QA patch (yet): its UIUC GWS 5×4.3 regression points (η 0.646 at J 0.572; static
+CT0 0.149) — to be transcribed from the UIUC source files directly before they become a check.
+
 ## Command evidence
 
 ```

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from pathlib import Path
 
 import pytest
@@ -40,7 +39,8 @@ def test_nondim_forward_eta_positive():
     rpm, d, v = 21000.0, 0.127, 15.0
     nd = nondim(1.5, 80.0, rpm=rpm, diameter_m=d, v_inf=v)
     j = advance_ratio(v, rpm, d)
-    assert nd["eta"] == pytest.approx(j * nd["CT"] / (2.0 * math.pi * nd["CP"]))
+    assert nd["eta"] == pytest.approx(j * nd["CT"] / nd["CP"])
+    assert nd["eta"] == pytest.approx(1.5 * v / 80.0)    # η is T·V/P, whatever the normalisation
 
 
 def test_resolve_sweep_merges_v_and_j():

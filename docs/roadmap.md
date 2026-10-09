@@ -1171,6 +1171,7 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   "J=0.00 eta=-". Related to Audit #8 (prop numbers are not a performance predictor).
   **[impact: med]** **[effort: med]**
   **PARTLY DONE 2026-10-08 — readout now compares with the preset's typical class figures (affinity-scaled): 2087 g / 743 W vs 1850 g / 650 W at 30k rpm = +13 % / +14 %, so high but not absurd. "J=0.00 η=—" is correct (η undefined at V=0). REAL ISSUE FOUND: forward-flight η reads 2–7 % at J 0.08–0.31, where a P/D≈0.86 prop should give ~30–50 % — BEMT forward thrust collapses too fast. That is the open Audit #3 C_T(J) failure (`propeller.bemt` xfails); fix there, not in the UI.**
+  **CORRECTED 2026-10-09 (QA bot) — the low η was not BEMT: `polar.nondim` divided by an extra 2π (η = J·CT/CP, not J·CT/(2π·CP)), so every forward-flight η was 6.3× low; with the fix the preset reads 0.25/0.35/0.44 at J 0.16/0.24/0.31 vs APC 0.26/0.34–0.39/0.42–0.46. `nondim` was audit-exempt; now unit `propeller.polar_coefficients`. Open follow-ups: static CT0 creeps up with rpm (+60 % 4k→30k; measured is flat) and the PROP headline should say "@ 30,000 rpm (max), static".**
 - [ ] **23.19 (UI-6)** Export STL takes ~2 min and saves only server-side
   (`exports/design_100000_*.stl/.step`), with no browser download; "design_100000" is a confusing name
   for the reference (use the F-name from `fansim/cockpit/design_names.py`). **[impact: low]**

@@ -71,7 +71,7 @@ def test_ct_reaches_zero_at_finite_J_and_falls_monotonically(blade):
         if ct <= 1e-6:
             break
         _, _, cp = _coeffs(blade, 6026.0, j)
-        assert 0.0 < j * ct / (2.0 * math.pi * cp) * 2.0 * math.pi < 1.0
+        assert 0.0 < j * ct / cp < 1.0
 
 
 def test_prandtl_factor_bounded_and_inflow_iteration_converges(blade, monkeypatch):
