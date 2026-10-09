@@ -132,6 +132,27 @@ def _depth_drivers(flat: dict, top: int = 3) -> list[tuple[str, float]]:
     return out[:top]
 
 
+def collapse_identical_designs(designs: list) -> list:
+    """Drop exact repeats: same geometry params -> keep the earliest (``completed``, then trial).
+
+    Re-Assessing one design under several ids (opt_run1 t9008/9009/9010/9011, 2026-10-08) listed it
+    four times in Results. Only byte-identical params collapse; nothing is deleted on disk.
+    Roadmap §23.41.
+    """
+    import json as _json
+
+    seen: dict[str, object] = {}
+    order = sorted(designs, key=lambda d: (str((d.extra or {}).get("completed") or ""), d.trial))
+    for d in order:
+        try:
+            key = _json.dumps(d.params, sort_keys=True, default=str)
+        except (TypeError, ValueError):
+            key = f"trial:{d.trial}"
+        seen.setdefault(key, d)
+    keep = {id(d) for d in seen.values()}
+    return [d for d in designs if id(d) in keep]
+
+
 def _load_assessed_designs(assess_dirs) -> list[Design]:
     """Reload designs the user assessed in earlier cockpit sessions (persisted as design.json).
 

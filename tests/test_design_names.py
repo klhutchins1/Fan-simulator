@@ -85,3 +85,13 @@ def test_loader_follows_case_dir_of_a_refreshed_design(tmp_path):
         "extra": {"cfd_version": 5, "case_dir": "screen_rank_audit/t9005/full"}}))
     (d,) = _load_assessed_designs([runs / "opt_run1" / "cockpit_assess"])
     assert d.stl_path == new_case / "impeller.stl" and d.extra["cfd_stale"] is False
+
+
+def test_identical_geometry_is_listed_once_keeping_the_oldest():
+    from fansim.cockpit.fan_helpers import collapse_identical_designs
+
+    a = _d(9008, completed="2026-09-15 10:00")
+    dups = [_d(t, completed=f"2026-09-1{6 + i} 10:00") for i, t in enumerate((9009, 9010, 9011))]
+    other = _d(9012, completed="2026-09-14 10:00", tubercle_amp=0.05)
+    kept = collapse_identical_designs(dups + [a, other])
+    assert sorted(d.trial for d in kept) == [9008, 9012]

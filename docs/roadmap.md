@@ -1194,8 +1194,9 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 
 ### 23.H Suspicious, unconfirmed — verify before fixing
 
-- [ ] **23.30 Stock YAML blades hang ~0.94 mm below the hub** (bbox z_min −9.10 vs hub bottom
+- [x] **23.30 Stock YAML blades hang ~0.94 mm below the hub** (bbox z_min −9.10 vs hub bottom
   −8.16); the print-ready path after Fit is fine. **[effort: low]**
+  **VERIFIED 2026-10-08, not a defect — the 0.94 mm is at mid-span (r 26.7–40.7 mm; hub r 21.5) from blade rake, not at the root; same in the YAML and cockpit builds now. Printing hub-face-down needs support under that edge.**
 - [x] **23.31 `_root_axial_span` uses `params.stations[0]` without sorting** (`blade.py:626`), while
   `_interp_stations` / `tip_section_points` sort — unsorted YAML/`blade_angles` stations would size
   the hub from the wrong station. **[effort: low]**
@@ -1231,8 +1232,9 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
 - [ ] **23.40 Flutter gate is order-of-magnitude (§19.18) but a hard reject** — it rejected t9001/9002/
   9003/9005 and a thin Stock variant (t9002 at 0.91× the limit). Consider a warning band near the
   limit. **[impact: med]** **[effort: low]**
-- [ ] **23.41 Hide duplicate designs** — t9009/9010/9011 score identically to t9008 after the v5
+- [x] **23.41 Hide duplicate designs** — t9009/9010/9011 score identically to t9008 after the v5
   refresh. **[impact: low]** **[effort: low]**
+  **DONE 2026-10-08 — Results lists byte-identical geometry once (oldest kept), `collapse_identical_designs`; nothing deleted on disk.**
 - [ ] **23.42 Commit the 2026-10-07/08 work** (watchdog, live logs, parallel mesh, F-names, refresh,
   stale-viz fix, intake note, optimizer hose stamp) — still uncommitted at review time.
   **[effort: low]**

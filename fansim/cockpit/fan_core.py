@@ -17,7 +17,7 @@ from fansim.cockpit.data import Design, feasible_designs, load_designs
 from fansim.cockpit.design_names import REGISTRY_FILE as NAMES_FILE
 from fansim.cockpit.design_names import assign_display_names, dropdown_title
 from fansim.cockpit.errors import log_caught
-from fansim.cockpit.fan_helpers import _has_real_cfm
+from fansim.cockpit.fan_helpers import _has_real_cfm, collapse_identical_designs
 from fansim.cockpit.figures import (
     filter_fitting_designs,
     pareto_front,
@@ -289,6 +289,7 @@ def bind(session) -> None:
             if (did in allowed) or nominal_fits_spec(d.params, spec):
                 out.append(d)
                 seen.add(id(d))
+        out = collapse_identical_designs(out)
         assign_display_names(out, run_dir.parent / NAMES_FILE, opened_run=run_dir.name)
         return out
 
