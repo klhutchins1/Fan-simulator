@@ -45,3 +45,4 @@ scripts/_smoke_ui_review_after.py
 handoff/**/*.zip
 handoff/*.zip
 docs/QA_REVIEW.md.bak
+handoff/**/*.bundle

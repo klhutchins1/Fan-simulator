@@ -29,8 +29,8 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 | UI-1 | HIGH | Volute | Export STLs fails: `TypeError: object of type 'PosixPath' has no len()` (verify on Windows) | verified in browser 2026-10-09 (Volute Export STLs succeeded, `ca1f8c9`) |
 | UI-2 | MED | Fan | Unedited Reference shows "Edited since assessment" on load | verified in browser 2026-10-09 (`1e344ec`) |
 | UI-3 | MED | Fan | Reset leaves 3-D viewer empty | verified in browser 2026-10-09 (`d4e9010`) |
-| UI-4 | MED | Fan/CROR | Preview ~65-70 s, progress bar jumps/looks stuck | not yet fixed (partly: faster; browser shows Fan Preview ~57 s on Linux box, button still says '(sec)', bar is an indeterminate loop reporting 0%) |
-| UI-5 | MED | Prop | 5" FPV prop reports 2087 g / 743 W (implausible) | not yet fixed; root cause found: extra 2π in eta at `fansim/propeller/polar.py:99` (eta 6.3× low; thrust/power plausible vs APC). Patch `docs/qa/patches/prop-solver-fix.diff` |
+| UI-4 | MED | Fan/CROR | Preview ~65-70 s, progress bar jumps/looks stuck | fixed (pending QA) `bd0ac33` on branch `qa-fixes-2026-10-09`: bar fills by build stage with 'stage k/4' caption (was: indeterminate loop) |
+| UI-5 | MED | Prop | 5" FPV prop reports 2087 g / 743 W (implausible) | fixed (pending QA) `ad1c716` on branch `qa-fixes-2026-10-09`: η = J·CT/CP (QA diagnosis; fix rewritten, UIUC regression test pending source files) |
 | UI-6 | LOW | Fan | Export only saved server-side, ~2 min, `design_100000` name | verified in browser (download link + clear name `a12x25_stock_reference_*.stl`); export still ~60-75 s |
 | UI-7 | LOW | Fan | Stale "Saved..." message after Randomize | verified in browser 2026-10-09 (`c6fb753`) |
 | UI-8 | LOW | Fan | Slider tooltip vs side label disagree; tooltip overlaps label | reopened: tooltip overlap fixed, but values still disagree (Chord root tooltip 18.0 vs label 17.75 mm) — qa/ui2/ui8_tooltip_mismatch.png |
