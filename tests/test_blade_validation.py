@@ -63,15 +63,16 @@ def test_root_axial_span_uses_the_innermost_station_not_list_order():
     assert _root_axial_span(shuffled) == _root_axial_span(ordered)
 
 
-def test_tip_trim_raises_instead_of_returning_untrimmed(monkeypatch):
+def test_tip_trim_falls_back_when_the_plain_intersect_is_empty(monkeypatch):
     import cadquery as cq
 
-    from fansim.geometry.blade import _trim_blade_to_tip_cylinder
+    from fansim.geometry.blade import TIP_TRIM_TOL_MM, _max_radius, _trim_blade_to_tip_cylinder
 
-    blade = cq.Solid.makeBox(10, 10, 10, cq.Vector(40, 0, 0))   # reaches r ≈ 50 mm
+    blade = cq.Solid.makeBox(10, 10, 10, cq.Vector(40, 0, 0))   # reaches r ≈ 53.9 mm
     empty = cq.Compound.makeCompound([])
     monkeypatch.setattr(cq.Solid, "intersect", lambda self, other: empty)
-    assert _trim_blade_to_tip_cylinder(blade, 45.0) is blade   # warns, keeps it (§23.32 reopened)
+    out = _trim_blade_to_tip_cylinder(blade, 45.0)               # outer-ring cut (§23.32)
+    assert _max_radius(out) <= 45.0 + TIP_TRIM_TOL_MM and out.Volume() < blade.Volume()
     # already inside the cylinder (e.g. a rounded tip): nothing to trim, keep it
     inside = cq.Solid.makeBox(5, 5, 5, cq.Vector(30, 0, 0))     # r <= ~35.4 mm
     assert _trim_blade_to_tip_cylinder(inside, 45.0) is inside
