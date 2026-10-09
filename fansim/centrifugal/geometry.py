@@ -228,5 +228,20 @@ def export_mixed_flow_stl(
         mount = A12X25.motor_mount
     model = build_mixed_flow(params)
     if mount is not None:
-        model, _fits, _msg = carve_motor_mount(model, mount, params.r_back_mm)
+        model, _fits, _msg = carve_motor_mount(
+            model, mount, cup_wall_hub_radius_mm(params, mount, model.val().BoundingBox().zmin))
     return export_stl(model, path)
+
+
+def cup_wall_hub_radius_mm(params: MixedFlowParams, mount, model_zmin: float) -> float:
+    """Hub radius that actually surrounds the motor cup: the CONE radius at the cup ceiling.
+
+    The hub narrows from ``r_back`` (rear) to ``r_eye`` (front), so the cup wall is thinnest at
+    the ceiling. carve_motor_mount cuts from the model's lowest point (blades can hang below the
+    hub) up ``cavity_depth``; checking against ``r_back`` overstated the wall (the default design
+    has ~1.5 mm there vs the 1.2 mm minimum; QA 2026-10-08, roadmap §23.36).
+    """
+    z_min, z_max = _hub_z_range(params)
+    z_ceiling = float(model_zmin) + float(mount.cavity_depth_mm)
+    t = min(max((z_ceiling - z_min) / (z_max - z_min), 0.0), 1.0)
+    return float(params.r_back_mm + t * (params.r_eye_mm - params.r_back_mm))

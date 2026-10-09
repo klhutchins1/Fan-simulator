@@ -1229,9 +1229,10 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   **DONE 2026-10-08 — cutoff = (hub_radius + 4.1 mm) / tip (A12x25 → 0.4697, unchanged).**
 - [ ] **23.35 Prop pitch twist evaluated at hub_r / 0.5(hub+R) but lofted at 4.5 / 34.0 mm**
   (root_embed; `propeller/geometry.py:64–67`). Small, mostly at the root. **[effort: low]**
-- [ ] **23.36 Mixed-flow blades lofted along a straight eye→tip diagonal on a conical hub** — only the
+- [x] **23.36 Mixed-flow blades lofted along a straight eye→tip diagonal on a conical hub** — only the
   root section attaches; the motor-cup-to-cone wall is ~1.66 mm at z = +2 mm (printability).
   **[effort: med]**
+  **DONE 2026-10-08 — (1) "only the root attaches": not a defect; the build fuses hub + blades and raises unless the result is one solid. (2) cup wall: the carve check used r_back (28 mm) but the cone is narrowest at the cup ceiling (model bottom + 13 mm = +2.26 mm, cone r 20.49 mm → ~1.5 mm wall, ≥ the 1.2 mm minimum, so the default design is fine). The check now uses the cone radius at the ceiling (`cup_wall_hub_radius_mm`), so a narrower eye fails instead of printing a paper-thin wall.**
 - [ ] **23.37 Wind scaffold:** `tip_speed_ratio` is unused by the geometry; Cp saturates at ≥ 4 blades
   (5 and 10 give 0.4267). Labelled as a scaffold — keep it out of any release claims. **[effort: med]**
 
