@@ -1173,7 +1173,7 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   (`exports/design_100000_*.stl/.step`), with no browser download; "design_100000" is a confusing name
   for the reference (use the F-name from `fansim/cockpit/design_names.py`). **[impact: low]**
   **[effort: low–med]**
-  **PARTLY DONE 2026-10-08 — files named by design (`a12x25_stock_reference_…`, `F12_…`), and a "⬇ Download STL" link served from `exports/` (`/fansim_exports/`; verified 200, 5 MB). STILL OPEN: export took ~4 min for Stock and runs in-process in a thread, freezing the busy caption (GIL) — move it to an isolated worker like Preview.**
+  **PARTLY DONE 2026-10-08 — files named by design (`a12x25_stock_reference_…`, `F12_…`), and a "⬇ Download STL" link served from `exports/` (`/fansim_exports/`; verified 200, 5 MB). Export now runs in an isolated worker (`fansim.cockpit._export_worker`): caption keeps ticking, a native crash can't take the cockpit down; output byte-identical. STILL OPEN: Stock export takes ~4 min (full fuse + motor-cup carve + STEP) — profile before optimising.**
 - [x] **23.20 (UI-7)** After Randomize, the previous "Saved …design_100000…stl" message stays on
   screen. **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — export message clears on any edit (incl. Randomize) and on loading a design; kept while an export runs.**

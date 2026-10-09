@@ -191,13 +191,13 @@ def test_async_handler_bodies_execute(bound_ctx, monkeypatch, tmp_path):
         feasible=True, reason="", over_spec=[],
         cfm_free=10.0, cfm_load=8.0, efficiency=40.0, actual_rpm=2000.0, raw={},
     )
-    rep = SimpleNamespace(ok=True, mount_fits=None, mount_msg="")
 
     def canned(fn, *args):
         name = getattr(fn, "__name__", "")
         return {
             "_blocking_eval": result,
-            "_do_export": (rep, None),
+            "_export_isolated": {"ok": True, "mount_fits": None, "mount_msg": "",
+                                 "mirror_note": "", "gauge": None},
             "_ensure_stock_preview": tmp_path / "stock.stl",
             "poll_merge": 0,
             "get_item": None,  # ends the optimize log loop immediately
