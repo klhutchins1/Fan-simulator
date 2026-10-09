@@ -1,0 +1,89 @@
+diff --git a/fansim/propeller/polar.py b/fansim/propeller/polar.py
+index a8bfe98..aa47a22 100644
+--- a/fansim/propeller/polar.py
++++ b/fansim/propeller/polar.py
+@@ -5,7 +5,9 @@ usual propeller definitions at air density ``ρ``:
+ 
+ - ``CT = T / (ρ n² D⁴)``
+ - ``CP = P / (ρ n³ D⁵)``
+-- ``η = J·CT / (2π·CP)`` when ``CP > 0`` and ``J > 0`` (else ``None``)
++- ``η = J·CT / CP`` (= T·V / P) when ``CP > 0`` and ``J > 0`` (else ``None``: η is undefined in
++  static/hover, so the polar's J = 0 row shows "—"). The 2π form belongs to the ω-based C_Q
++  convention, not to this n-based C_P; with it η read 2π (6.3x) too low (UI-5, §23.18).
+ """
+ 
+ from __future__ import annotations
+@@ -96,7 +98,7 @@ def nondim(
+     j = advance_ratio(v_inf, rpm, d)
+     ct = float(thrust_n) / (rho * n * n * d**4)
+     cp = float(power_w) / (rho * n**3 * d**5)
+-    eta = (j * ct / (2.0 * math.pi * cp)) if (cp > 0.0 and j > 0.0) else None
++    eta = (j * ct / cp) if (cp > 0.0 and j > 0.0) else None   # n-based CT/CP: η = J·CT/CP = T·V/P
+     return {"CT": ct, "CP": cp, "eta": eta, "J": j}
+ 
+ 
+diff --git a/tests/test_prop_polar.py b/tests/test_prop_polar.py
+index 5b8a97e..3437544 100644
+--- a/tests/test_prop_polar.py
++++ b/tests/test_prop_polar.py
+@@ -40,7 +40,8 @@ def test_nondim_forward_eta_positive():
+     rpm, d, v = 21000.0, 0.127, 15.0
+     nd = nondim(1.5, 80.0, rpm=rpm, diameter_m=d, v_inf=v)
+     j = advance_ratio(v, rpm, d)
+-    assert nd["eta"] == pytest.approx(j * nd["CT"] / (2.0 * math.pi * nd["CP"]))
++    assert nd["eta"] == pytest.approx(j * nd["CT"] / nd["CP"])
++    assert nd["eta"] == pytest.approx(1.5 * v / 80.0)          # η is T·V/P, whatever the normalisation
+ 
+ 
+ def test_resolve_sweep_merges_v_and_j():
+@@ -193,3 +194,50 @@ def test_cli_scripts_declare_flags():
+         assert "--spec" in text
+     assert "--dry-run" in cfd
+     assert "--bemt-floor" in cfd
++
++
++# --- UI-5 / §23.18: forward-flight efficiency vs one UIUC measurement ----------------------------
++# GWS Direct Drive 5x4.3 (2 blades), UIUC Propeller Database vol. 2 (Brandt/Deters/Selig),
++# https://m-selig.ae.illinois.edu/props/volume-2/data/gwsdd_5x4.3_geom.txt and
++# gwsdd_5x4.3_0512rd_6047.txt (6047 rpm): J = 0.5716 -> CT 0.0559, CP 0.0494, eta 0.646;
++# gwsdd_5x4.3_static_0493rd.txt: CT0 = 0.149 at 7407 rpm.
++_GWS_5X43_GEOM = [  # r/R, c/R, beta (deg)
++    (0.15, 0.2436, 21.718), (0.20, 0.2485, 22.308), (0.25, 0.2500, 23.043), (0.30, 0.2518, 23.914),
++    (0.35, 0.2537, 24.680), (0.40, 0.2544, 25.213), (0.45, 0.2541, 25.489), (0.50, 0.2525, 25.434),
++    (0.55, 0.2491, 25.042), (0.60, 0.2432, 24.109), (0.65, 0.2340, 22.749), (0.70, 0.2228, 21.280),
++    (0.75, 0.2099, 19.775), (0.80, 0.1953, 18.319), (0.85, 0.1790, 17.045), (0.90, 0.1610, 15.929),
++    (0.95, 0.1324, 14.610)]
++
++
++def _gws_5x43():
++    from fansim.geometry.blade import BladeParams, RadialStation
++
++    r_tip = 2.5 * 25.4
++    hub = _GWS_5X43_GEOM[0][0] * r_tip
++    st = [RadialStation((rr * r_tip - hub) / (r_tip - hub), cr * r_tip, b, 0.08, 0.04, 0.4)
++          for rr, cr, b in _GWS_5X43_GEOM]
++    st[-1].r_frac = 1.0          # last measured station (0.95 R) carried to the tip; camber assumed 4 %
++    return BladeParams(n_blades=2, hub_radius=hub, tip_radius=r_tip, stations=st)
++
++
++def test_bemt_polar_eta_matches_uiuc_gws_5x43():
++    """Measured eta 0.646 at J = 0.572; tolerance +-0.10 absolute (the old 2π formula gave 0.10)."""
++    from fansim.propeller.polar import run_bemt_polar
++
++    rpm, d, j = 6047.0, 0.127, 0.571573
++    v = v_inf_from_j(j, rpm, d)
++    (pt,) = run_bemt_polar(_gws_5x43(), rpm, [v], diameter_m=d)
++    assert pt.J == pytest.approx(j, rel=1e-6)
++    assert pt.eta == pytest.approx(0.646, abs=0.10)
++    assert pt.eta == pytest.approx(pt.thrust_n * v / pt.power_w, rel=1e-3)
++
++
++def test_bemt_static_ct_matches_uiuc_gws_5x43():
++    """Static CT0 0.149 at 7407 rpm, within +-15 % (Audit #3 static tolerance)."""
++    from fansim.propeller.bemt import analyze
++
++    rpm, d = 7407.0, 0.127
++    perf = analyze(_gws_5x43(), rpm)
++    nd = nondim(perf.thrust_n, perf.power_w, rpm=rpm, diameter_m=d, v_inf=0.0)
++    assert nd["CT"] == pytest.approx(0.149, rel=0.15)
++    assert nd["eta"] is None

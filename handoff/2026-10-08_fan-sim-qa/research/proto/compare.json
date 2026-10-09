@@ -1,0 +1,1004 @@
+{
+ "carter_ref": 0.7815008909468731,
+ "base": {
+  "stock7": {
+   "free": 58.2,
+   "shut": 38.87,
+   "peak_eff": 0.536,
+   "q8": 48.7,
+   "conv": true,
+   "pmax_w": 0.65
+  },
+  "01_S00948": {
+   "free": 63.2,
+   "shut": 40.08,
+   "peak_eff": 0.545,
+   "q8": 52.7,
+   "conv": true,
+   "pmax_w": 0.86
+  },
+  "02_T06567": {
+   "free": 64.1,
+   "shut": 40.49,
+   "peak_eff": 0.539,
+   "q8": 52.1,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "03_T06478": {
+   "free": 63.0,
+   "shut": 40.44,
+   "peak_eff": 0.539,
+   "q8": 51.8,
+   "conv": true,
+   "pmax_w": 0.84
+  },
+  "04_T06559": {
+   "free": 63.4,
+   "shut": 41.08,
+   "peak_eff": 0.539,
+   "q8": 52.5,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "05_T05663": {
+   "free": 64.3,
+   "shut": 41.6,
+   "peak_eff": 0.541,
+   "q8": 52.8,
+   "conv": true,
+   "pmax_w": 0.94
+  },
+  "06_S03681": {
+   "free": 61.3,
+   "shut": 41.35,
+   "peak_eff": 0.541,
+   "q8": 52.0,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "paddle89": {
+   "free": 62.5,
+   "shut": 38.86,
+   "peak_eff": 0.549,
+   "q8": 45.8,
+   "conv": true,
+   "pmax_w": 1.47
+  },
+  "rev-45": {
+   "free": 7.6,
+   "shut": 37.97,
+   "peak_eff": 0.528,
+   "q8": 7.5,
+   "conv": true,
+   "pmax_w": 0.05
+  },
+  "rev-60": {
+   "free": 7.6,
+   "shut": 37.97,
+   "peak_eff": 0.528,
+   "q8": 7.5,
+   "conv": true,
+   "pmax_w": 0.05
+  },
+  "zero_blades": {
+   "free": null,
+   "shut": 0.07,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 0.0
+  },
+  "_s": 0.15
+ },
+ "9a_bv_plate": {
+  "stock7": {
+   "free": 51.1,
+   "shut": 40.11,
+   "peak_eff": 0.498,
+   "q8": 45.2,
+   "conv": true,
+   "pmax_w": 0.6
+  },
+  "01_S00948": {
+   "free": 63.2,
+   "shut": 40.08,
+   "peak_eff": 0.545,
+   "q8": 52.7,
+   "conv": true,
+   "pmax_w": 0.86
+  },
+  "02_T06567": {
+   "free": 64.1,
+   "shut": 40.49,
+   "peak_eff": 0.539,
+   "q8": 52.1,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "03_T06478": {
+   "free": 63.0,
+   "shut": 40.44,
+   "peak_eff": 0.539,
+   "q8": 51.8,
+   "conv": true,
+   "pmax_w": 0.84
+  },
+  "04_T06559": {
+   "free": 63.4,
+   "shut": 41.08,
+   "peak_eff": 0.539,
+   "q8": 52.5,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "05_T05663": {
+   "free": 64.3,
+   "shut": 41.6,
+   "peak_eff": 0.541,
+   "q8": 52.8,
+   "conv": true,
+   "pmax_w": 0.94
+  },
+  "06_S03681": {
+   "free": 61.3,
+   "shut": 41.35,
+   "peak_eff": 0.541,
+   "q8": 52.0,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "paddle89": {
+   "free": 81.6,
+   "shut": 40.11,
+   "peak_eff": 0.496,
+   "q8": 59.1,
+   "conv": true,
+   "pmax_w": 2.64
+  },
+  "rev-45": {
+   "free": 28.0,
+   "shut": 40.75,
+   "peak_eff": 0.563,
+   "q8": 24.3,
+   "conv": true,
+   "pmax_w": 0.17
+  },
+  "rev-60": {
+   "free": 28.0,
+   "shut": 40.75,
+   "peak_eff": 0.563,
+   "q8": 24.3,
+   "conv": true,
+   "pmax_w": 0.17
+  },
+  "zero_blades": {
+   "free": null,
+   "shut": 0.07,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 0.0
+  },
+  "_s": 0.33
+ },
+ "9b_bv_plate+poststall": {
+  "stock7": {
+   "free": 50.8,
+   "shut": 38.88,
+   "peak_eff": 0.491,
+   "q8": 45.1,
+   "conv": true,
+   "pmax_w": 0.6
+  },
+  "01_S00948": {
+   "free": 63.2,
+   "shut": 39.1,
+   "peak_eff": 0.488,
+   "q8": 52.7,
+   "conv": true,
+   "pmax_w": 0.86
+  },
+  "02_T06567": {
+   "free": 64.1,
+   "shut": 39.5,
+   "peak_eff": 0.477,
+   "q8": 52.6,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "03_T06478": {
+   "free": 63.0,
+   "shut": 39.49,
+   "peak_eff": 0.478,
+   "q8": 52.0,
+   "conv": true,
+   "pmax_w": 0.85
+  },
+  "04_T06559": {
+   "free": 63.4,
+   "shut": 39.82,
+   "peak_eff": 0.478,
+   "q8": 52.7,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "05_T05663": {
+   "free": 64.3,
+   "shut": 40.48,
+   "peak_eff": 0.478,
+   "q8": 53.1,
+   "conv": true,
+   "pmax_w": 0.94
+  },
+  "06_S03681": {
+   "free": 61.3,
+   "shut": 39.66,
+   "peak_eff": 0.487,
+   "q8": 52.0,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "paddle89": {
+   "free": 95.8,
+   "shut": 38.3,
+   "peak_eff": 0.446,
+   "q8": 71.6,
+   "conv": true,
+   "pmax_w": 3.65
+  },
+  "rev-45": {
+   "free": 94.8,
+   "shut": 38.3,
+   "peak_eff": 0.446,
+   "q8": 69.8,
+   "conv": true,
+   "pmax_w": 3.67
+  },
+  "rev-60": {
+   "free": 97.9,
+   "shut": 38.3,
+   "peak_eff": 0.446,
+   "q8": 72.2,
+   "conv": true,
+   "pmax_w": 4.0
+  },
+  "zero_blades": {
+   "free": null,
+   "shut": 0.07,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 0.0
+  },
+  "_s": 0.74
+ },
+ "ps_only_viterna": {
+  "stock7": {
+   "free": 58.2,
+   "shut": 40.29,
+   "peak_eff": 0.51,
+   "q8": 48.7,
+   "conv": true,
+   "pmax_w": 0.65
+  },
+  "01_S00948": {
+   "free": 63.2,
+   "shut": 39.1,
+   "peak_eff": 0.488,
+   "q8": 52.7,
+   "conv": true,
+   "pmax_w": 0.86
+  },
+  "02_T06567": {
+   "free": 64.1,
+   "shut": 39.5,
+   "peak_eff": 0.477,
+   "q8": 52.6,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "03_T06478": {
+   "free": 63.0,
+   "shut": 39.49,
+   "peak_eff": 0.478,
+   "q8": 52.0,
+   "conv": true,
+   "pmax_w": 0.85
+  },
+  "04_T06559": {
+   "free": 63.4,
+   "shut": 39.82,
+   "peak_eff": 0.478,
+   "q8": 52.7,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "05_T05663": {
+   "free": 64.3,
+   "shut": 40.48,
+   "peak_eff": 0.478,
+   "q8": 53.1,
+   "conv": true,
+   "pmax_w": 0.94
+  },
+  "06_S03681": {
+   "free": 61.3,
+   "shut": 39.66,
+   "peak_eff": 0.487,
+   "q8": 52.0,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "paddle89": {
+   "free": 95.1,
+   "shut": 38.3,
+   "peak_eff": 0.446,
+   "q8": 71.2,
+   "conv": true,
+   "pmax_w": 3.55
+  },
+  "rev-45": {
+   "free": 94.7,
+   "shut": 38.3,
+   "peak_eff": 0.446,
+   "q8": 69.7,
+   "conv": true,
+   "pmax_w": 3.67
+  },
+  "rev-60": {
+   "free": 97.7,
+   "shut": 38.3,
+   "peak_eff": 0.446,
+   "q8": 72.1,
+   "conv": true,
+   "pmax_w": 3.98
+  },
+  "zero_blades": {
+   "free": null,
+   "shut": 0.07,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 0.0
+  },
+  "_s": 0.29
+ },
+ "8_koch_cap": {
+  "stock7": {
+   "free": 58.2,
+   "shut": 13.72,
+   "peak_eff": 0.344,
+   "q8": 46.9,
+   "conv": true,
+   "pmax_w": 0.65
+  },
+  "01_S00948": {
+   "free": 62.6,
+   "shut": 13.16,
+   "peak_eff": 0.334,
+   "q8": 45.4,
+   "conv": true,
+   "pmax_w": 0.86
+  },
+  "02_T06567": {
+   "free": 63.6,
+   "shut": 13.1,
+   "peak_eff": 0.339,
+   "q8": 45.0,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "03_T06478": {
+   "free": 62.3,
+   "shut": 13.03,
+   "peak_eff": 0.336,
+   "q8": 44.8,
+   "conv": true,
+   "pmax_w": 0.84
+  },
+  "04_T06559": {
+   "free": 62.8,
+   "shut": 13.05,
+   "peak_eff": 0.327,
+   "q8": 44.7,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "05_T05663": {
+   "free": 62.9,
+   "shut": 13.74,
+   "peak_eff": 0.341,
+   "q8": 45.4,
+   "conv": true,
+   "pmax_w": 0.94
+  },
+  "06_S03681": {
+   "free": 60.6,
+   "shut": 13.13,
+   "peak_eff": 0.323,
+   "q8": 44.5,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "paddle89": {
+   "free": 62.5,
+   "shut": 15.79,
+   "peak_eff": 0.506,
+   "q8": 45.8,
+   "conv": true,
+   "pmax_w": 1.47
+  },
+  "rev-45": {
+   "free": 7.5,
+   "shut": 11.52,
+   "peak_eff": 0.16,
+   "q8": 7.4,
+   "conv": true,
+   "pmax_w": 0.05
+  },
+  "rev-60": {
+   "free": 7.5,
+   "shut": 11.52,
+   "peak_eff": 0.16,
+   "q8": 7.4,
+   "conv": true,
+   "pmax_w": 0.05
+  },
+  "zero_blades": {
+   "free": null,
+   "shut": 0.07,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 0.0
+  },
+  "_s": 0.18
+ },
+ "6_carter": {
+  "stock7": {
+   "free": 56.3,
+   "shut": 38.83,
+   "peak_eff": 0.528,
+   "q8": 46.8,
+   "conv": true,
+   "pmax_w": 0.65
+  },
+  "01_S00948": {
+   "free": 62.1,
+   "shut": 42.43,
+   "peak_eff": 0.586,
+   "q8": 52.1,
+   "conv": true,
+   "pmax_w": 0.86
+  },
+  "02_T06567": {
+   "free": 63.6,
+   "shut": 43.38,
+   "peak_eff": 0.594,
+   "q8": 52.2,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "03_T06478": {
+   "free": 62.4,
+   "shut": 43.2,
+   "peak_eff": 0.59,
+   "q8": 51.7,
+   "conv": true,
+   "pmax_w": 0.84
+  },
+  "04_T06559": {
+   "free": 62.9,
+   "shut": 43.9,
+   "peak_eff": 0.592,
+   "q8": 52.5,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "05_T05663": {
+   "free": 63.4,
+   "shut": 43.76,
+   "peak_eff": 0.578,
+   "q8": 52.4,
+   "conv": true,
+   "pmax_w": 0.94
+  },
+  "06_S03681": {
+   "free": 60.1,
+   "shut": 43.75,
+   "peak_eff": 0.582,
+   "q8": 51.3,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "paddle89": {
+   "free": 66.9,
+   "shut": 42.8,
+   "peak_eff": 0.635,
+   "q8": 49.0,
+   "conv": true,
+   "pmax_w": 1.47
+  },
+  "rev-45": {
+   "free": 7.6,
+   "shut": 27.07,
+   "peak_eff": 0.376,
+   "q8": 7.5,
+   "conv": true,
+   "pmax_w": 0.05
+  },
+  "rev-60": {
+   "free": 7.6,
+   "shut": 25.63,
+   "peak_eff": 0.356,
+   "q8": 7.5,
+   "conv": true,
+   "pmax_w": 0.05
+  },
+  "zero_blades": {
+   "free": null,
+   "shut": 0.07,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 0.0
+  },
+  "_s": 0.2
+ },
+ "11_bracket": {
+  "stock7": {
+   "free": 58.2,
+   "shut": 38.85,
+   "peak_eff": 0.536,
+   "q8": 48.7,
+   "conv": true,
+   "pmax_w": 0.65
+  },
+  "01_S00948": {
+   "free": 63.2,
+   "shut": 40.08,
+   "peak_eff": 0.545,
+   "q8": 52.7,
+   "conv": true,
+   "pmax_w": 0.86
+  },
+  "02_T06567": {
+   "free": 64.1,
+   "shut": 40.48,
+   "peak_eff": 0.539,
+   "q8": 52.1,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "03_T06478": {
+   "free": 63.0,
+   "shut": 40.44,
+   "peak_eff": 0.539,
+   "q8": 51.8,
+   "conv": true,
+   "pmax_w": 0.84
+  },
+  "04_T06559": {
+   "free": 63.4,
+   "shut": 41.08,
+   "peak_eff": 0.539,
+   "q8": 52.5,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "05_T05663": {
+   "free": 64.3,
+   "shut": 41.6,
+   "peak_eff": 0.541,
+   "q8": 52.8,
+   "conv": true,
+   "pmax_w": 0.94
+  },
+  "06_S03681": {
+   "free": 61.3,
+   "shut": 41.35,
+   "peak_eff": 0.541,
+   "q8": 52.0,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "paddle89": {
+   "free": 62.5,
+   "shut": 38.86,
+   "peak_eff": 0.549,
+   "q8": 45.8,
+   "conv": true,
+   "pmax_w": 1.47
+  },
+  "rev-45": {
+   "free": 7.6,
+   "shut": 37.95,
+   "peak_eff": 0.528,
+   "q8": 7.5,
+   "conv": true,
+   "pmax_w": 0.05
+  },
+  "rev-60": {
+   "free": 7.6,
+   "shut": 37.95,
+   "peak_eff": 0.528,
+   "q8": 7.5,
+   "conv": true,
+   "pmax_w": 0.05
+  },
+  "zero_blades": {
+   "free": null,
+   "shut": 0.07,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 0.0
+  },
+  "_s": 0.49
+ },
+ "combo_9b+8": {
+  "stock7": {
+   "free": 50.8,
+   "shut": 13.72,
+   "peak_eff": 0.292,
+   "q8": 45.1,
+   "conv": true,
+   "pmax_w": 0.6
+  },
+  "01_S00948": {
+   "free": 62.6,
+   "shut": 13.16,
+   "peak_eff": 0.224,
+   "q8": 45.4,
+   "conv": true,
+   "pmax_w": 0.86
+  },
+  "02_T06567": {
+   "free": 63.6,
+   "shut": 13.1,
+   "peak_eff": 0.21,
+   "q8": 45.0,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "03_T06478": {
+   "free": 62.3,
+   "shut": 13.03,
+   "peak_eff": 0.214,
+   "q8": 44.8,
+   "conv": true,
+   "pmax_w": 0.85
+  },
+  "04_T06559": {
+   "free": 62.8,
+   "shut": 13.05,
+   "peak_eff": 0.207,
+   "q8": 44.7,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "05_T05663": {
+   "free": 62.9,
+   "shut": 13.74,
+   "peak_eff": 0.214,
+   "q8": 45.4,
+   "conv": true,
+   "pmax_w": 0.94
+  },
+  "06_S03681": {
+   "free": 60.6,
+   "shut": 13.13,
+   "peak_eff": 0.221,
+   "q8": 44.5,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "paddle89": {
+   "free": 73.8,
+   "shut": 15.79,
+   "peak_eff": 0.183,
+   "q8": 50.8,
+   "conv": true,
+   "pmax_w": 3.65
+  },
+  "rev-45": {
+   "free": 49.8,
+   "shut": 8.07,
+   "peak_eff": 0.093,
+   "q8": 35.3,
+   "conv": true,
+   "pmax_w": 3.67
+  },
+  "rev-60": {
+   "free": 49.8,
+   "shut": 8.07,
+   "peak_eff": 0.093,
+   "q8": 35.3,
+   "conv": true,
+   "pmax_w": 4.0
+  },
+  "zero_blades": {
+   "free": null,
+   "shut": 0.07,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 0.0
+  },
+  "_s": 0.88
+ },
+ "8_koch_x1.67": {
+  "stock7": {
+   "free": 58.2,
+   "shut": 22.88,
+   "peak_eff": 0.536,
+   "q8": 48.7,
+   "conv": true,
+   "pmax_w": 0.65
+  },
+  "01_S00948": {
+   "free": 63.2,
+   "shut": 21.93,
+   "peak_eff": 0.545,
+   "q8": 52.7,
+   "conv": true,
+   "pmax_w": 0.86
+  },
+  "02_T06567": {
+   "free": 64.1,
+   "shut": 21.84,
+   "peak_eff": 0.539,
+   "q8": 52.1,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "03_T06478": {
+   "free": 63.0,
+   "shut": 21.72,
+   "peak_eff": 0.539,
+   "q8": 51.8,
+   "conv": true,
+   "pmax_w": 0.84
+  },
+  "04_T06559": {
+   "free": 63.4,
+   "shut": 21.75,
+   "peak_eff": 0.535,
+   "q8": 52.5,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "05_T05663": {
+   "free": 64.3,
+   "shut": 22.91,
+   "peak_eff": 0.541,
+   "q8": 52.8,
+   "conv": true,
+   "pmax_w": 0.94
+  },
+  "06_S03681": {
+   "free": 61.3,
+   "shut": 21.89,
+   "peak_eff": 0.536,
+   "q8": 52.0,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "paddle89": {
+   "free": 62.5,
+   "shut": 27.94,
+   "peak_eff": 0.549,
+   "q8": 45.8,
+   "conv": true,
+   "pmax_w": 1.47
+  },
+  "rev-45": {
+   "free": 7.6,
+   "shut": 19.22,
+   "peak_eff": 0.267,
+   "q8": 7.5,
+   "conv": true,
+   "pmax_w": 0.05
+  },
+  "rev-60": {
+   "free": 7.6,
+   "shut": 19.22,
+   "peak_eff": 0.267,
+   "q8": 7.5,
+   "conv": true,
+   "pmax_w": 0.05
+  },
+  "zero_blades": {
+   "free": null,
+   "shut": 0.07,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 0.0
+  },
+  "_s": 0.19
+ },
+ "X_axialforce": {
+  "stock7": {
+   "free": 53.3,
+   "shut": 3.94,
+   "peak_eff": 0.323,
+   "q8": 44.1,
+   "conv": true,
+   "pmax_w": 0.65
+  },
+  "01_S00948": {
+   "free": 57.9,
+   "shut": 3.76,
+   "peak_eff": 0.32,
+   "q8": 47.9,
+   "conv": true,
+   "pmax_w": 0.86
+  },
+  "02_T06567": {
+   "free": 59.0,
+   "shut": 3.63,
+   "peak_eff": 0.298,
+   "q8": 46.1,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "03_T06478": {
+   "free": 58.2,
+   "shut": 3.58,
+   "peak_eff": 0.299,
+   "q8": 46.1,
+   "conv": true,
+   "pmax_w": 0.84
+  },
+  "04_T06559": {
+   "free": 58.6,
+   "shut": 3.68,
+   "peak_eff": 0.303,
+   "q8": 46.9,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "05_T05663": {
+   "free": 59.3,
+   "shut": 3.83,
+   "peak_eff": 0.303,
+   "q8": 47.1,
+   "conv": true,
+   "pmax_w": 0.94
+  },
+  "06_S03681": {
+   "free": 56.9,
+   "shut": 3.54,
+   "peak_eff": 0.313,
+   "q8": 47.9,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "paddle89": {
+   "free": 53.5,
+   "shut": 3.45,
+   "peak_eff": 0.273,
+   "q8": 38.2,
+   "conv": true,
+   "pmax_w": 1.47
+  },
+  "rev-45": {
+   "free": null,
+   "shut": -6.91,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 0.05
+  },
+  "rev-60": {
+   "free": null,
+   "shut": -6.91,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 0.05
+  },
+  "zero_blades": {
+   "free": null,
+   "shut": 0.07,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 0.0
+  },
+  "_s": 0.18
+ },
+ "X_axialforce+ps": {
+  "stock7": {
+   "free": 53.4,
+   "shut": 5.42,
+   "peak_eff": 0.29,
+   "q8": 44.0,
+   "conv": true,
+   "pmax_w": 0.65
+  },
+  "01_S00948": {
+   "free": 58.0,
+   "shut": 7.83,
+   "peak_eff": 0.254,
+   "q8": 47.8,
+   "conv": true,
+   "pmax_w": 0.86
+  },
+  "02_T06567": {
+   "free": 59.0,
+   "shut": 7.56,
+   "peak_eff": 0.212,
+   "q8": 45.8,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "03_T06478": {
+   "free": 58.2,
+   "shut": 7.48,
+   "peak_eff": 0.22,
+   "q8": 45.7,
+   "conv": true,
+   "pmax_w": 0.85
+  },
+  "04_T06559": {
+   "free": 58.6,
+   "shut": 7.9,
+   "peak_eff": 0.223,
+   "q8": 46.6,
+   "conv": true,
+   "pmax_w": 0.88
+  },
+  "05_T05663": {
+   "free": 59.3,
+   "shut": 8.0,
+   "peak_eff": 0.217,
+   "q8": 46.7,
+   "conv": true,
+   "pmax_w": 0.94
+  },
+  "06_S03681": {
+   "free": 56.9,
+   "shut": 7.97,
+   "peak_eff": 0.268,
+   "q8": 47.9,
+   "conv": true,
+   "pmax_w": 0.87
+  },
+  "paddle89": {
+   "free": 8.0,
+   "shut": 0.29,
+   "peak_eff": 0.002,
+   "q8": 5.2,
+   "conv": true,
+   "pmax_w": 3.55
+  },
+  "rev-45": {
+   "free": null,
+   "shut": -6.64,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 3.67
+  },
+  "rev-60": {
+   "free": null,
+   "shut": -5.71,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 3.98
+  },
+  "zero_blades": {
+   "free": null,
+   "shut": 0.07,
+   "peak_eff": 0.0,
+   "q8": null,
+   "conv": true,
+   "pmax_w": 0.0
+  },
+  "_s": 0.34
+ }
+}
