@@ -47,3 +47,4 @@ handoff/*.zip
 docs/QA_REVIEW.md.bak
 handoff/**/*.bundle
 handoff/**/*.jsonl.gz
+.claude/launch.json
