@@ -1266,6 +1266,27 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   **[effort: low]**
   **DONE 2026-10-08 — commits 0a8cc7f…c6addb5.**
 
+
+### 23.H QA re-test 2026-10-09 (new items; `docs/QA_REVIEW.md`)
+
+- [x] **23.43 (UI-16, HIGH) One stalled client freezes every websocket session.** wslink sends to all
+  clients under one global lock with no timeout; a tab that stops reading blocks it forever (aiohttp's
+  missed-PONG `transport.close()` waits on the same full buffer).
+  **DONE 2026-10-09 — `fansim/cockpit/ws_guard.py`: per-socket locks + per-client send timeout
+  (`FANSIM_WS_SEND_TIMEOUT`, 15 s) that ABORTS the stalled transport. `scripts/ws_stall_probe.py`
+  (frozen client + busy broadcaster + hello probes): before 0/5 probes answered in 75 s; after 15/15
+  in 3–12 ms, frozen client dropped after 15 s, browser tab unaffected.**
+- [x] **23.44 (UI-17) `GET /ws` without upgrade → `KeyError` in `onClose`, leaks a `connections` entry.**
+  **DONE 2026-10-09 — `ws_guard` makes `onClose` tolerate a never-prepared connection; 5 plain GETs, no KeyError.**
+- [ ] **23.45 (UI-18) Image-push observers never removed on disconnect** (views keep rendering for gone
+  clients). **[effort: med]**
+- [x] **23.46 (UI-19) Exports folder relative to the launch directory.**
+  **DONE 2026-10-09 — `fansim/cockpit/paths.exports_dir()` (= `<project>/exports`) used by every tab and the download route.**
+- [ ] **23.47 (UI-20) After Randomize the Design dropdown still says "◆ Reference".** **[effort: low]**
+- [ ] **23.48 (UI-21) Mixed "CFD refine" looks enabled with top N = 0.** **[effort: low]**
+- [ ] **23.49 (QA-11) `blade_solidity(n_blades=0)` raises ZeroDivisionError on a direct call.** **[effort: low]**
+- [ ] **23.50 (UI-8 reopened) Slider tooltip vs side label disagree** (Chord root 18.0 vs 17.75 mm). **[effort: low]**
+
 ---
 
 ## Recently shipped (context, so we don't re-add)
