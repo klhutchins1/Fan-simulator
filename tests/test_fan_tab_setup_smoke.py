@@ -252,3 +252,20 @@ def test_reference_keeps_tapered_walls_when_browser_resends_mode(bound_ctx):
     st.flush()
     assert (st.e_thick_root, st.e_thick_mid, st.e_thick_tip) == before
     assert st.edited_stale is False
+
+
+def test_randomize_clears_the_previous_export_message(bound_ctx):
+    """Roadmap §23.20: "Saved …design_100000…stl" stayed on screen after Randomize."""
+    from fansim.cockpit.fan_core import A12X25_REF_TRIAL
+
+    st = bound_ctx.state
+    st.ready()
+    bound_ctx.fan_hub_designs()
+    bound_ctx.fan_select(A12X25_REF_TRIAL)
+    st.flush()
+    st.export_msg = "✓ Saved exports/design_100000_x.stl"
+    st.flush()
+    bound_ctx.fan_randomize_geometry()
+    st.flush()
+    assert st.edited_stale is True
+    assert st.export_msg == ""

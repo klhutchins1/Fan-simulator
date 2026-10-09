@@ -587,6 +587,7 @@ def bind(session) -> None:
         sel_sig[0] = _editor_sig()
         state.edited_stale = False
         state.stale_msg = ""
+        state.export_msg = ""        # a "Saved …stl" line belongs to the previous design (§23.20)
 
     def _recompute_stale(**_):
         session._hub_fit_readout()
@@ -595,6 +596,8 @@ def bind(session) -> None:
         if sel_sig[0] is None:
             return
         stale = _editor_sig() != sel_sig[0]
+        if stale and not state.export_busy:
+            state.export_msg = ""    # edited (e.g. Randomize): the last export no longer matches (§23.20)
         state.edited_stale = stale
         state.stale_msg = (
             "⚠ Edited since assessment — the shown CFM/efficiency are for the "

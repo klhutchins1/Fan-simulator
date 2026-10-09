@@ -1170,8 +1170,9 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   (`exports/design_100000_*.stl/.step`), with no browser download; "design_100000" is a confusing name
   for the reference (use the F-name from `fansim/cockpit/design_names.py`). **[impact: low]**
   **[effort: low–med]**
-- [ ] **23.20 (UI-7)** After Randomize, the previous "Saved …design_100000…stl" message stays on
+- [x] **23.20 (UI-7)** After Randomize, the previous "Saved …design_100000…stl" message stays on
   screen. **[impact: low]** **[effort: low]**
+  **DONE 2026-10-08 — export message clears on any edit (incl. Randomize) and on loading a design; kept while an export runs.**
 - [ ] **23.21 (UI-8)** Slider tooltip and side label disagree (Chord root 18.0 vs 17.75 mm; 25.0 vs
   25.12 — step rounding); tooltips overlap the "Blades" label. **[impact: low]** **[effort: low]**
 - [ ] **23.22 (UI-9)** First-load 3-D view poorly framed under dense schematic arrows; the U colour bar
