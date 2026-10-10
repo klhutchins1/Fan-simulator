@@ -230,15 +230,20 @@ def build_impeller_with_mount(params: BladeParams, mount) -> tuple[cq.Workplane,
     reach = float(mount.cavity_dia_mm) / 2.0 + float(getattr(mount, "grip_clearance_mm", 0.0) or 0.0)
     verts, _faces = blades[0].tessellate(0.2)
     r_min = min(math.hypot(v.x, v.y) for v in verts)
+    # The cup is measured from the hub's motor face, not the model's lowest point: a blade corner
+    # or ring below the face used to eat into the 13 mm of grip (QA-16; blades are now also cut
+    # at that face, clip_blade_below).
+    hub_face = float(hub.BoundingBox().zmin)
     if r_min > reach + 0.05:
         bb = cq.Compound.makeCompound([hub, *blades] + ([ring] if ring is not None else [])).BoundingBox()
         carved, fits, msg = carve_motor_mount(
-            cq.Workplane(obj=hub), mount, params.hub_radius, z_bounds=(bb.zmin, bb.zmax))
+            cq.Workplane(obj=hub), mount, params.hub_radius, z_bounds=(hub_face, bb.zmax))
         if fits:
             return cq.Workplane(obj=fuse_impeller(carved.val(), blades, ring)), True, msg
         return cq.Workplane(obj=fuse_impeller(hub, blades, ring)), fits, msg
     model = cq.Workplane(obj=fuse_impeller(hub, blades, ring))
-    return carve_motor_mount(model, mount, params.hub_radius)
+    return carve_motor_mount(model, mount, params.hub_radius,
+                             z_bounds=(hub_face, float(model.val().BoundingBox().zmax)))
 
 
 def export_print_ready(

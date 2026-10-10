@@ -85,6 +85,7 @@ def prop_blade_params(
     return BladeParams(
         n_blades=spec.n_blades, hub_radius=hub_r, tip_radius=R,
         root_embed=1.5, hub_axial_margin=1.0, stations=stations,
+        clip_below_hub=False,  # props have no frame struts below the hub
         cylindrical_tip=bool(cylindrical_tip),
     )
 

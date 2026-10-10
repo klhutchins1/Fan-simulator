@@ -40,6 +40,16 @@ CT0 0.149) — to be transcribed from the UIUC source files directly before they
 |------|--------|--------|---------|
 | `propeller.bemt` | New registered check `tests/test_prop_uiuc_gws.py`: UIUC Propeller DB GWS Direct-Drive 5×4.3 (2 blades), read from the unmodified source files (sha256 verified against the QA bot's `SOURCES.md`; `tests/data/uiuc_gws_5x4.3/`). Tolerances proposed by the QA bot before this geometry was run. The source geometry includes the r/R 1.00 station (c/R 0.0176) that the QA transcription had dropped. | the unit's checks + the new file | **PASS** — η 0.606 vs measured 0.646 at J 0.572 (tol ±0.10); static CT0 0.1365 vs 0.149 at 7407 rpm (−8.4 %, tol ±15 %) |
 
+## Fifth pass (same day): memory-tiered fuse + hub-face clip (user decisions)
+
+| Unit | Change | Checks | Verdict |
+|------|--------|--------|---------|
+| `geometry.stock_handedness` | (1) `fuse_impeller` runs the OCCT fuse per memory tier (`fansim.resources`: parallel / serial / one blade at a time, from free RAM). Same solid: Stock cup build volume 27395.3277 mm³ serial and per-blade (Windows: 4.64 GB / 79 s, 4.18 GB / 282 s). (2) **Fan blades are cut at the hub's motor face** (`clip_blade_below`, `BladeParams.clip_below_hub`, off for props / wind / CROR): the frame struts sit there. Stock golden regenerated deliberately: z_min −9.049 → −8.159 mm (the hub face), depth −0.89 mm, volume −0.153 %, tip section ≤ 0.001 mm, all else unchanged. Handedness unaffected. | `tests/audit/test_stock_handedness.py` + golden + reference geometry | **PASS** |
+
+The clip changes the CFD geometry of 6 CFD-scored designs (Stock 0.94 mm, stock_thin 0.76, t9015 0.98,
+bem_9502/9504/9505 3.5–3.8 mm). Their saved scores are flagged "needs re-run (blade below hub)" and Stock is
+re-Assessed after the screen-r3 run (measurement).
+
 ## Command evidence
 
 ```
