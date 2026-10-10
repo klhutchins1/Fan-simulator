@@ -8,7 +8,7 @@ proposals (UI-4, UI-23..30).** I will test the UI here in a real browser.
 Instead, this round is one long, mechanical job that runs for hours without needing me, plus two short
 write-ups and a research task for when the long job is running.
 
-`fansim_master.bundle` (this folder) is **master @ e617274**. It is also pushed to Kimball's gitea, but you
+`fansim_master.bundle` (this folder) is **master including the commit that adds this brief** (code is unchanged since e617274). It is also pushed to Kimball's gitea, but you
 can't reach that, so use the bundle.
 
 ## Overview
