@@ -97,3 +97,17 @@ def test_axial_force_zero_blades_and_efficiency_bounds():
     assert pq_curve(BladeParams(n_blades=0), 2000.0, pressure_model=AX).free_delivery_cfm == 0.0
     c = pq_curve(_stock7(), 2000.0, pressure_model=AX)
     assert all(0.0 <= p.efficiency < 1.0 for p in c.points)
+
+
+def test_axial_force_efficiency_never_exceeds_one():
+    """QA r4 E_rand1396 (11 blades, chords 48/58/50 mm): peak η 111 % before the energy bound."""
+    from fansim.optimize.search_space import blade_from_flat, stock_blade_flat
+
+    flat = {**stock_blade_flat(), "n_blades": 11, "stagger_root": 51.145, "stagger_mid": 33.679,
+            "stagger_tip": 24.794, "chord_root": 48.465, "chord_mid": 58.483, "chord_tip": 50.157,
+            "max_camber": 0.0048, "thickness_root": 0.08, "thickness_mid": 0.06,
+            "thickness_tip": 0.04, "camber_pos": 0.4, "hub_radius": 21.5, "tip_radius": 54.5,
+            "sweep_mid": 0, "sweep_tip": 0, "lean_mid": 0, "lean_tip": 0}
+    c = pq_curve(blade_from_flat(flat), 2000.0, pressure_model=AX)
+    assert all(0.0 <= p.efficiency <= 1.0 + 1e-9 for p in c.points)
+    assert c.peak_efficiency >= 0.99            # the bound is active on this design

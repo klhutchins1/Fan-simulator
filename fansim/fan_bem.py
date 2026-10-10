@@ -233,6 +233,10 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
     if axial:
         dp_static = (ax_force / area if B > 0 and area > 0 else 0.0) \
             - AX_K_FRICTION * 0.5 * rho * Vx * Vx        # axial force per annulus area minus friction
+        if flow_m3s > 0.0 and power > 0.0:
+            # Energy bound: the static rise cannot exceed the shaft work per unit volume (air power
+            # <= shaft power). Without it dense 11-blade designs read peak η up to 115 % (QA r4).
+            dp_static = min(dp_static, power / flow_m3s)
     else:
         dp_static = dp_total - swirl_loss \
             - K_FRICTION * 0.5 * rho * Vx * Vx           # endwall/duct/blade friction (grows with flow)

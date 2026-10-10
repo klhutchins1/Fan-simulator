@@ -86,7 +86,7 @@
     },
     "fan.bem_prescreen": {
       "date": "2026-10-09",
-      "fingerprint": "33f727f5ad0177d8",
+      "fingerprint": "412a11c53ec561fc",
       "report": "docs/validation/audits/2026-10-09-ledger-refresh.md",
       "verdict": "PASS"
     },
