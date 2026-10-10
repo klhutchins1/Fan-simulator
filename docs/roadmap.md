@@ -1392,6 +1392,102 @@ The work is split into three sub-projects, done in order.
     - a queue.
   - Pre-register what counts as a defect: any (b) or (c) case.
   - **No fix until Kimball picks one.** **[impact: high: wrong saved results]** **[effort: med]**
+
+## 25. QA round 6 findings (2026-10-10)
+
+Sources:
+- `handoff/2026-10-09_from-qa-5/` (the stress test was partial: n = 120 of 801 designs, stopped early);
+- `docs/qa/notes/direction-attempt-2.md`, `docs/qa/notes/motor-efficiency.md`, `docs/qa/benchmarks/`.
+
+The builder held up well: in 120 designs there were 0 printability, below-hub, tip-radius or determinism
+failures.
+
+- [ ] **25.1 (QA-18) The motor cup goes straight through hubs shorter than 13 mm.**
+  - The cup Preview path (`build_stl_isolated(motor_mount=…)` → `build_impeller_with_mount`) never
+    applies `MotorMount.min_hub_height_mm` (15 mm). Only Export's `prepare_export_flat(fit_hub=True)`
+    grows the hub.
+  - Seen in 3 of 29 cup builds (auto hubs 10.9–12.7 mm).
+  - **Verified in code 2026-10-10:** `min_hub_height_mm` is read only in `cockpit/placement.py` and
+    the gauge.
+  - **Fix:** grow the hub to the minimum (or refuse with a message) inside `build_impeller_with_mount`,
+    so every cup path is covered.
+  - Repro: `handoff/2026-10-09_from-qa-5/stress/repro/A-F2_cup_through_short_hub.json`.
+  - **[impact: high: unprintable mount]** **[effort: low]**
+- [ ] **25.2 (QA-21) Tip trim raises on a featured, high-lean, wide-tip blade** from the optimizer's own
+  `--extended --features` space (S5_0007).
+  - The error: "blade crosses R=52.55 mm (reaches 56.09 mm) and no intersection ended at R".
+  - **Reproduced on master 2026-10-10.**
+  - Fix one of two ways: make the trim robust for featured surfaces that bulge more than 3 mm past R,
+    or refuse cleanly in `validate_blade_params` with a reason. The optimizer then marks it infeasible
+    instead of erroring.
+  - Repro: `handoff/2026-10-09_from-qa-5/stress/repro/A-F1_tip_trim_build_fail.json`.
+  - **[impact: med]** **[effort: med]**
+- [ ] **25.3 (QA-19) Direction check attempt 2: option (a).**
+  - **The rule:**
+    - refuse on chirality (mirror), as today;
+    - otherwise refuse only when the proof is CONCLUSIVE, |design camber| ≥ 0.02, **and** the split
+      disagrees with the design camber's sign.
+  - **The QA review found:**
+    - it removes 7 of 7 false refusals;
+    - it adds 0 new refusals;
+    - it still catches 95 of 95 mirrors.
+    - (Partial data. Chirality was derived, not logged.)
+  - **Steps:**
+    1. Pre-register the QA's P1–P5 criteria, including the new P3a (a mesh-vs-design mismatch is
+       caught) and P3b (`validate_blade_params` refuses a station camber ≤ −0.02).
+    2. Implement.
+    3. **External STLs:** refuse when the median measured camber ratio is < 0.045 and ask for an explicit
+       orientation. Today a lean artifact there silently sets the *wrong spin*.
+    4. Mixed flow: pass `max_camber`.
+    5. `check_rotor_direction` has no callers: delete it, or wire it into CROR.
+    6. Then run 9605, 9606, 9620 and 9630 through CFD (Q3, plus a full Assess if any beats Stock).
+    7. Separately: 8 of the 24 INCONCLUSIVE are properly cambered blades whose sections disagree. That is
+       a second proof weakness.
+  - **[impact: high]** **[effort: med]**
+- [ ] **25.4 (QA-20) The memory tiers give equal solids but not byte-identical STLs.**
+  - Volume and vertex count match 11 of 11 times, but the sha256 differs every time.
+  - Fix the `fansim/resources.py` docstring and the `TIERS` comment ("same solid", not
+    "byte-identical").
+  - **[impact: low]** **[effort: trivial]**
+- [ ] **25.5 Featured designs blow the 8gb tier's memory budget.**
+  - S5 featured P builds at the forced 8gb tier peaked at 7.6 GB, above its 6.5 GB `min_free_gb`.
+  - Measure the peak RAM of featured builds per tier, then either raise the tier floors for featured
+    designs or run them serially.
+  - **[impact: med: freezes on 8 GB machines]** **[effort: med]**
+- [ ] **25.6 Motor-efficiency assumption: decision needed (Kimball).**
+  - The QA research proposes η_motor 0.50 (range 0.40–0.65). It also notes that 1.68 W (0.14 A) is a
+    start-up maximum; the measured draw at 2000 rpm is 1.3–1.5 W (Cybenetics).
+  - At 0.50 × 1.68 W, the 5–7 % derate on Stock and the audited designs disappears. At 0.50 × 1.50 W
+    it is about 1–3 %.
+  - This changes saved scores, so the options are:
+    - (a) adopt 0.50, re-score everything, and report the 0.40/0.65 sensitivity (flag any ranking
+      flips);
+    - (b) keep 0.40 and document it.
+  - Either way, make the input power a named constant with its citations. Note: the derate uses the
+    *leeway* budget (over-voltage), so check which voltage the comparison should use.
+  - **[impact: med]** **[effort: low code / med re-score]**
+- [ ] **25.7 Second real-world CFD validation case: `lt120`** (Lin & Tsai 2011 fan via Tutar & Cam 2025,
+  CC BY 4.0).
+  - 7 blades, 120 mm rotor, 2000 rpm, a full 10-station table, 5 measured static points.
+  - Both BEM models are 5–35 % off mid-curve on the three full-geometry fans. A CFD match on lt120
+    would be the first evidence beyond Stock that the CFD numbers transfer.
+  - **Prerequisites:**
+    - the QA bot converts lt120 to `BladeParams` and reports anything our builder can't represent
+      (round 7);
+    - the rig is unknown, so pre-register the comparison as mid-curve shape and level within a stated
+      band.
+  - The rotor (Ø120) exceeds the a12x25 frame, so use a matching rig or duct.
+  - **[impact: high]** **[effort: med–high, CFD]**
+- [ ] **25.8 Benchmark licences before any public release.**
+  - `nv150` data is CC BY-NC-ND (not MIT-compatible): remove it or keep it out of the release.
+  - The NF-A12x25 reference STL's origin is undocumented: Kimball to confirm the source before
+    releasing `validation/reference/a12x25_impeller.stl` or anything fitted to it.
+  - Cybenetics data is cited only, never stored.
+  - **[impact: high for release]** **[effort: low]**
+- [ ] **25.9 Finish the stress test** (681 designs left) **with chirality and INCONCLUSIVE reasons logged**.
+  QA round 7, run at lower parallelism. The QA box froze for 6.1 of 7.1 h under memory pressure.
+- [ ] **25.10 Near-stall flag** (Task E, carried over). A cheap BEM/geometry flag for Q3's blind spot
+  (9610).
 ---
 
 ## Recently shipped (context, so we don't re-add)
