@@ -38,6 +38,26 @@ which flips chirality. New rule:
 
 Any FAIL → do not merge; report.
 
-## Result
+## Result (2026-10-09) — **FAIL (P3). Not merged**; code reverted.
 
-_pending_
+| id | verdict | evidence |
+|---|---|---|
+| P1 | PASS | 46 builder STLs (Stock, 16 CFD-dataset designs, 30 screen-r3 designs incl. 9605 / 9606): 0 refused |
+| P2 | PASS | y-mirrored Stock, t9005, bem_9504, 9605: all refused as mirrored (chirality flip) |
+| P3 | **FAIL** | Stock with negated camber builds (volume 41686 vs 41970 mm³), and the proof reads the flip: (−1, +1), median measured camber 0.0441. But that is below 0.05, so the split was untrusted and the backwards blade **passed** |
+| P4 | not run | (FAIL above) |
+
+**Why it failed:** the proof's measured `camber_ratio` (|a|·(c/2)²/c from a quadratic fit of the cut) is on
+a different scale from the design `max_camber`. Real Stock (design 0.083–0.097) measures only **0.0375**.
+The lean artifact on 9605 measures 0.031–0.038, so **genuine camber and lean-curvature overlap on this
+metric, and no camber-magnitude threshold can separate them.** 0.05 made the split untrusted everywhere.
+
+**What a next attempt needs (new pre-registration):** a discriminator that is not camber magnitude.
+Options:
+- (a) The builder knows the design: compare the measured split against the sign of the design's
+  camber, and refuse only on disagreement with real design camber, e.g. |max_camber| ≥ 0.02.
+- (b) Cut normal to the blade's stacking line instead of on cylinders, which removes the lean curvature.
+- (c) Use chirality alone for low-camber designs (|design camber| < 0.02, where "backwards" barely
+  matters aerodynamically).
+
+Chirality-based mirror detection (P2) worked and should be kept in any version.
