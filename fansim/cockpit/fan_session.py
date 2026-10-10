@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import tempfile
 import threading
-from pathlib import Path
 from typing import Any
 
 from fansim.cockpit.context import CockpitCtx
@@ -72,7 +70,9 @@ class FanSession:
             "glyph_cloud": None,
             "glyph_arrows": None,
         }
-        self.preview_stl = Path(tempfile.gettempdir()) / "fansim_cockpit_preview.stl"
+        from fansim.cockpit.paths import session_tmp
+
+        self.preview_stl = session_tmp("fansim_cockpit_preview.stl")  # per-cockpit (QA UI-30)
 
     def expose_to_ctx(self) -> None:
         """Copy public handlers onto ``ctx`` for ``render_fan_tab``."""

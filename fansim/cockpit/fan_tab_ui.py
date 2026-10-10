@@ -586,15 +586,6 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "loading": ("assess_busy",),
                                     "disabled": (_action_busy,),
                                 },
-                                "export": {
-                                    "label": "Export STL",
-                                    "size": "small",
-                                    "variant": "tonal",
-                                    "color": "primary",
-                                    "click": (export_stl_current,),
-                                    "loading": ("export_busy",),
-                                    "disabled": (_action_busy,),
-                                },
                                 "optimize": {
                                     "label": "Optimize (hours)",
                                     "color": "success",
@@ -648,14 +639,6 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             variant="tonal",
                             classes="mt-1",
                             style="white-space: pre-line",
-                        )
-                        html.Div("{{ export_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
-                        html.A(
-                            "⬇ Download STL",
-                            href=("export_download",),
-                            download=True,
-                            v_show="export_download",
-                            classes="text-caption",
                         )
                         html.Div("{{ opt_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
                         busy_bar("preview_busy", "assess_busy", "export_busy", "opt_running", color="success",
@@ -1217,50 +1200,6 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     style="white-space: pre-line",
                                 )
 
-                        with v3.VExpansionPanel(title="Export options"):
-                            with v3.VExpansionPanelText():
-                                html.Div(
-                                    "Export carves the motor cup (+ grip pads) and writes a "
-                                    "mount/frame checklist. Leave Fit switches on for A12x25.",
-                                    classes="text-caption text-medium-emphasis mb-2",
-                                )
-                                v3.VSwitch(
-                                    v_model=("preview_motor_cup",),
-                                    density="compact",
-                                    hide_details=True,
-                                    color="primary",
-                                    inset=True,
-                                    classes="mt-1",
-                                    label="Preview motor cup + grip pads (slower; matches Export)",
-                                )
-                                v3.VSwitch(
-                                    v_model=("export_fit_hub",),
-                                    density="compact",
-                                    hide_details=True,
-                                    color="primary",
-                                    inset=True,
-                                    classes="mt-1",
-                                    label="Fit hub to motor on export",
-                                )
-                                v3.VSwitch(
-                                    v_model=("export_fit_frame",),
-                                    density="compact",
-                                    hide_details=True,
-                                    color="primary",
-                                    inset=True,
-                                    classes="mt-1",
-                                    label="Fit tip/depth to frame on export (re-Assess after)",
-                                )
-                                v3.VSwitch(
-                                    v_model=("export_also_mirror",),
-                                    density="compact",
-                                    hide_details=True,
-                                    color="primary",
-                                    inset=True,
-                                    classes="mt-1",
-                                    label="Also export opposite-hand STL + spin meta (CW⇄CCW)",
-                                )
-
                 # RIGHT — viz
                 with v3.VCol(cols=7):
                     with v3.VCard(classes="pa-2 mb-2"):
@@ -1346,6 +1285,59 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         html.Div("{{ glyph_caption }}", classes="text-caption text-medium-emphasis mt-1")
                     with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
                         view = plotter_ui(plotter)
+                    # Print / export sits right under the viewer, with the switches that decide what
+                    # Export writes (QA UI-24: they were ~2 screens below the Export button).
+                    with v3.VCard(classes="pa-2 mb-2", v_show="fan_subtab === 'design'"):
+                        with v3.VRow(no_gutters=True, classes="align-center"):
+                            with v3.VCol(cols=8):
+                                html.Div("Print / export", classes="text-subtitle-2")
+                                html.Div(
+                                    "Export STL writes a print-ready file: motor cup + grip pads carved "
+                                    "into the hub, plus a mount/frame checklist.",
+                                    classes="text-caption text-medium-emphasis",
+                                )
+                            with v3.VCol(cols=4, classes="text-right"):
+                                v3.VBtn(
+                                    "Export STL",
+                                    size="small",
+                                    color="primary",
+                                    click=(export_stl_current,),
+                                    loading=("export_busy",),
+                                    disabled=(_action_busy,),
+                                )
+                        with v3.VRow(no_gutters=True, classes="mt-1"):
+                            with v3.VCol(cols=6, classes="pr-1"):
+                                v3.VSwitch(
+                                    v_model=("export_fit_hub",),
+                                    density="compact", hide_details=True, color="primary", inset=True,
+                                    label="Fit hub to the motor",
+                                )
+                                v3.VSwitch(
+                                    v_model=("export_fit_frame",),
+                                    density="compact", hide_details=True, color="primary", inset=True,
+                                    label="Fit tip + depth to the frame",
+                                )
+                            with v3.VCol(cols=6, classes="pl-1"):
+                                v3.VSwitch(
+                                    v_model=("export_also_mirror",),
+                                    density="compact", hide_details=True, color="primary", inset=True,
+                                    label="Also export the mirror-image fan (CW + CCW)",
+                                )
+                                v3.VSwitch(
+                                    v_model=("preview_motor_cup",),
+                                    density="compact", hide_details=True, color="primary", inset=True,
+                                    label="Show the motor cup in Preview (slower)",
+                                    disabled=("!cup_build_ok",),
+                                )
+                        html.Div("{{ memory_tier_note }}", classes="text-caption text-medium-emphasis mt-1")
+                        html.Div("{{ export_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
+                        html.A(
+                            "⬇ Download STL",
+                            href=("export_download",),
+                            download=True,
+                            v_show="export_download",
+                            classes="text-caption",
+                        )
                     with v3.VCard(classes="mb-2 pa-2", v_show="fan_subtab === 'results'"):
                         html.Div("Duct airflow — slices, streamlines & spanwise", classes="text-subtitle-2 mb-1")
                         html.Div(

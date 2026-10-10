@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import asyncio
 import sys
-import tempfile
 import time
 from pathlib import Path
 
@@ -25,7 +24,7 @@ from fansim.cockpit.figures import cror_scatter_figure
 from fansim.cockpit.plotters import ensure_plotter
 from fansim.cror.geometry import CrorParams, export_cror_stl
 from fansim.cror.noise import estimate_cror_noise
-from fansim.cockpit.paths import exports_dir
+from fansim.cockpit.paths import exports_dir, session_tmp
 from fansim.cror.optimize import (
     cror_stack_depth_mm,
     refine_pareto_cfd as refine_cror_pareto_cfd,
@@ -66,7 +65,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
 
     # ---- CROR tab (counter-rotating stacked rotors, §4.2) ---------------------------------
     cror_pareto_store: list[dict] = []
-    cror_preview_stl = Path(tempfile.gettempdir()) / "fansim_cror_preview.stl"
+    cror_preview_stl = session_tmp("fansim_cror_preview.stl")  # per-cockpit (QA UI-30)
 
     # Shared objects for render + callbacks (kept per-session).
     ctx.cror_pareto_store = cror_pareto_store  # type: ignore[attr-defined]

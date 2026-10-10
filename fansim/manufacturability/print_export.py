@@ -287,11 +287,16 @@ def export_handedness_pair(
     designed_omega: int = +1,
     tolerance: float = 0.02,
     angular_tolerance: float = 0.1,
+    as_designed_stl: str | Path | None = None,
 ) -> dict[str, Path]:
     """Export as-designed + mirrored STLs with paired ``*.handedness.json`` spin metadata (§19.4).
 
     Returns paths keyed ``as_designed_stl``, ``as_designed_meta``, ``mirrored_stl``, ``mirrored_meta``.
+    ``as_designed_stl``: an already-exported as-designed STL (+ its ``.step``) to copy instead of
+    building it again — the cockpit Export just wrote it (QA-17: a third full build, ~1 min).
     """
+    import shutil
+
     from fansim.geometry.handedness import handedness_variants, write_handedness_meta
 
     out_dir = Path(out_dir)
@@ -300,10 +305,16 @@ def export_handedness_pair(
     for variant in handedness_variants(params, designed_omega=designed_omega):
         stl = out_dir / f"{stem}_{variant.label}.stl"
         meta = out_dir / f"{stem}_{variant.label}.handedness.json"
-        export_print_ready(
-            variant.params, stl, bore=bore, mount=mount,
-            tolerance=tolerance, angular_tolerance=angular_tolerance,
-        )
+        if variant.label == "as_designed" and as_designed_stl is not None and Path(as_designed_stl).exists():
+            src = Path(as_designed_stl)
+            shutil.copyfile(src, stl)
+            if src.with_suffix(".step").exists():
+                shutil.copyfile(src.with_suffix(".step"), stl.with_suffix(".step"))
+        else:
+            export_print_ready(
+                variant.params, stl, bore=bore, mount=mount,
+                tolerance=tolerance, angular_tolerance=angular_tolerance,
+            )
         write_handedness_meta(variant, meta)
         paths[f"{variant.label}_stl"] = stl
         paths[f"{variant.label}_meta"] = meta

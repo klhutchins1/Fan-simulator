@@ -298,8 +298,10 @@ def bind(session) -> None:
 
         from fansim.geometry.isolated import build_stl_isolated
 
+        from fansim.resources import current_tier
+
         mount = None
-        if bool(getattr(state, "preview_motor_cup", False)):
+        if bool(getattr(state, "preview_motor_cup", False)) and current_tier().cup_build_ok:
             spec = session.active_spec()
             if spec.motor_mount is not None:
                 mount = asdict(spec.motor_mount)
@@ -343,9 +345,14 @@ def bind(session) -> None:
                 heavy = "features are heavy — up to ~2 min"
             elif int(getattr(params, "tip_notch_count", 0) or 0) > 0:
                 heavy = "tip TE notches — first build can take ~30–60 s"
-            # Determinate from the first frame: the shared bar only sweeps while this is 0.
+            # Determinate from the first frame: the shared bar only sweeps while this is 0. Clear the
+            # last run's progress file first, or the first tick reads its "4/4" and max() pins the
+            # bar at 75 % (QA UI-4 r4).
+            from fansim.cockpit.fan_core import refresh_memory_tier
             from fansim.geometry.isolated import progress_caption
 
+            _preview_progress_path().unlink(missing_ok=True)
+            refresh_memory_tier(state)
             state.preview_pct, _ = progress_caption(None)
             ticker, _t0 = spawn_busy_ticker(
                 action="Preview",
@@ -377,15 +384,19 @@ def bind(session) -> None:
                 ticker.cancel()
                 state.flush()
                 return
+            def _readouts():
+                """STL load + spec + printability (~3 s): off the event loop (QA UI-4 r4 freeze)."""
+                _, status = session.spec_status(preview_stl, params, flat)
+                try:
+                    from fansim.manufacturability.printability_score import grade_printability
+
+                    return status, "\n🖨 " + grade_printability(params).summary
+                except Exception:  # noqa: BLE001
+                    return status, ""
+
+            status, print_line = await loop.run_in_executor(None, _readouts)
             _draw(preview_stl, "darkorange")
             feats = "features ON" if params.features.active else "smooth"
-            _, status = session.spec_status(preview_stl, params, flat)
-            try:
-                from fansim.manufacturability.printability_score import grade_printability
-
-                print_line = "\n🖨 " + grade_printability(params).summary
-            except Exception:  # noqa: BLE001
-                print_line = ""
             tone_line = ""
             if params.blade_angles_deg is not None:
                 try:
