@@ -31,7 +31,26 @@ import screen_rank_audit as sra  # noqa: E402
 
 EXCLUDE = {"stock_dimples"}
 COLUMNS = ["design_id", "geometry", "flat", "rpm", "cfd_free_cfm", "cfd_load_cfm", "scored_free",
-           "scored_load", "scored_eff", "surf_level", "source"]
+           "scored_load", "scored_eff", "surf_level", "source",
+           # what turns raw CFD into the scores (docs/how-scores-are-computed.md; QA-14)
+           "shaft_power_rated_w", "derate", "actual_rpm", "p_free_pa", "p_probe_pa",
+           "eta_free_pct", "eta_load_pct", "print_k_cfm", "print_k_eta", "print_k_fsi"]
+RAW_KEYS = ("shaft_power_rated_w", "derate", "actual_rpm", "p_free_pa", "p_probe_pa",
+            "print_k_cfm", "print_k_eta", "print_k_fsi")
+
+
+def _raw(case_dir) -> dict:
+    """The correction stamps the Assess saved next to its result (``_eval_result.json`` raw)."""
+    try:
+        raw = json.loads((case_dir / "_eval_result.json").read_text(encoding="utf-8"))["raw"]
+    except (OSError, ValueError, KeyError):
+        return {}
+    out = {k: round(float(raw[k]), 5) for k in RAW_KEYS if raw.get(k) is not None}
+    for key, solve in (("eta_free_pct", "free"), ("eta_load_pct", "load")):
+        eff = (raw.get(solve) or {}).get("efficiency")
+        if eff is not None:
+            out[key] = round(100.0 * float(eff), 4)
+    return out
 
 
 def _level(flat: dict) -> int:
@@ -70,6 +89,7 @@ def rows() -> list[dict]:
             "scored_eff": round(float(r["efficiency"]), 3),
             "surf_level": lvl,
             "source": str((sra.OUT / name / ("full_floor4" if floor4 else "full")).relative_to(ROOT)),
+            **_raw(sra.OUT / name / ("full_floor4" if floor4 else "full")),
         })
     return out
 

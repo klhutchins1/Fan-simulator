@@ -9,12 +9,16 @@ cockpit. First target: a **Noctua NF-A12x25**-class blade.
 The honest north star is **validated relative gains + a real "fan showdown"** against a printed baseline,
 not beating a molded LCP fan on absolute numbers with a home print.
 
-Plan: `../../.claude/plans/i-want-a-plan-smooth-sifakis.md`.
 Read [`docs/adversarial-review.md`](docs/adversarial-review.md) — it documents what is validated vs. not.
 Other docs: [`docs/high-accuracy-plan.md`](docs/high-accuracy-plan.md),
 [`docs/design-rules.md`](docs/design-rules.md), [`docs/a12x25-reference.md`](docs/a12x25-reference.md).
 
 ## Status (honest)
+
+> **Reading the scores:** the CFM / efficiency shown for a design are CFD results after a motor-power
+> limit, a two-point fan-line estimate and a printed-part knockdown. A design the CFD measured at
+> 54.8 CFM shows 49.6. Every step, with a worked example, is in
+> [`docs/how-scores-are-computed.md`](docs/how-scores-are-computed.md).
 
 **Built & working:**
 - Parametric geometry → watertight STL (NACA sections lofted through radial stations, circumferential
@@ -95,7 +99,8 @@ uv run python scripts/cockpit.py --run runs/opt_mountable --reload
 
 `--reload` auto-restarts the cockpit when you edit source — no manual restart.
 The cockpit is a single-user app: every browser tab connected to one cockpit shares the same state (switching a tab or design in one shows in all). Open one tab per cockpit, or start a second cockpit on another `--port`. A one-off `POST /paraview/ 405` in the browser console at load is the trame-vtk client probing for a launcher; it is harmless.
-Optional: `uv sync --extra dev --extra surrogate` adds sklearn. Plain `uv sync` has no pytest.
+Optional: `uv sync --extra dev --extra surrogate` adds sklearn; `--extra propulsion` adds PyThrust (without it two prop test modules show as skipped). Plain `uv sync` has no pytest.
+On a fresh clone `runs/`, `catalog/catalog.db`, `config/fan_models/` and `build/` don't exist yet: they are created by the first optimizer run, `scripts/catalog.py build`, the first saved user fan model and the first script export. The cockpit starts fine with an empty run folder.
 
 ## Key commands
 

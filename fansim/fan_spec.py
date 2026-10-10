@@ -355,7 +355,7 @@ def load_fan_models_dir(directory: str | Path = "config/fan_models") -> list[str
 # make a variant, SAVE it under a new name -> it becomes a USER model (a YAML in config/fan_models/)
 # that you can freely edit or delete. This is the "delete-and-recreate" the user asked about, but the
 # built-in stays put as the source of truth.
-USER_MODELS_DIR = Path("config/fan_models")
+USER_MODELS_DIR = Path(__file__).resolve().parents[1] / "config" / "fan_models"  # project-anchored (D8)
 _BUILTIN_MODELS = frozenset(_REGISTRY)   # snapshot BEFORE any YAML/user models are loaded
 
 
