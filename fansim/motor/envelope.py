@@ -69,4 +69,4 @@ def check_envelope(shaft_power_w: float, envelope: MotorEnvelope,
 
 # stock NF-A12x25 PWM motor (see [[fan-sim-a12x25-specs]]); efficiency assumed, not published
 A12X25_MOTOR = MotorEnvelope(name="Noctua NF-A12x25", rated_rpm=2000.0,
-                             max_input_power_w=1.68, motor_efficiency=0.40)
+                             max_input_power_w=1.68, motor_efficiency=0.50)  # audit 2026-10-10

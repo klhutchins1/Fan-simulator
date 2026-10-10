@@ -47,7 +47,7 @@ def stamp_score_extra(
     raw = raw or {}
     if raw.get("duct"):
         extra["duct"] = raw["duct"]
-    for key in ("print_k_cfm", "print_k_eta", "surf_max", "hub_clip"):
+    for key in ("print_k_cfm", "print_k_eta", "surf_max", "hub_clip", "motor_eff"):
         if raw.get(key) is not None:
             extra[key] = raw[key]
     for key in ("beam_regime_ok", "beam_aspect", "beam_regime_warn", "f1_bpf_margin"):

@@ -137,3 +137,8 @@ build/                 one-off / reference STLs
 
 Case internals (mesh, `processor*`, logs) are regenerable and safe to prune once solved — the results
 (`study.db` / `result.json` / catalog) and STLs are always kept, and any case can be re-meshed + re-run.
+
+## Licence and credits
+
+The code is MIT (`LICENSE`). Third-party models and data keep their own licences and need credit; see
+[`THIRD_PARTY.md`](THIRD_PARTY.md). The Stock A12x25 shape is "A12x25" by MajorHardware on Thingiverse (CC BY 4.0).

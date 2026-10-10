@@ -86,6 +86,8 @@ def stale_reason(extra: dict | None, params: dict | None) -> str:
         return "coarse mesh"
     if below_hub_stale(extra, params):
         return "blade below hub"
+    if extra.get("motor_model_stale"):  # refine_op score made at the old motor derate (2026-10-10)
+        return "old motor model"
     return ""
 
 

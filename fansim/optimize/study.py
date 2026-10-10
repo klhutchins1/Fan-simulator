@@ -232,6 +232,8 @@ def run_study(
         trial.set_user_attr("cfd_version", CFD_VERSION)  # so stale (pre-fix) scores are detectable
         if result.raw.get("surf_max") is not None:   # mesh level actually used (§23.39 floor)
             trial.set_user_attr("surf_max", int(result.raw["surf_max"]))
+        if result.raw.get("motor_eff") is not None:  # motor budget the derate used
+            trial.set_user_attr("motor_eff", float(result.raw["motor_eff"]))
         if result.raw.get("hub_clip") is not None:   # blades cut at the hub face
             trial.set_user_attr("hub_clip", bool(result.raw["hub_clip"]))
         # The hose the load score is on; without it, load CFM across runs can't be compared
