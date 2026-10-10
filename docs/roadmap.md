@@ -1402,7 +1402,7 @@ Sources:
 The builder held up well: in 120 designs there were 0 printability, below-hub, tip-radius or determinism
 failures.
 
-- [ ] **25.1 (QA-18) The motor cup goes straight through hubs shorter than 13 mm.**
+- [x] **25.1 (QA-18) The motor cup goes straight through hubs shorter than 13 mm.**
   - The cup Preview path (`build_stl_isolated(motor_mount=…)` → `build_impeller_with_mount`) never
     applies `MotorMount.min_hub_height_mm` (15 mm). Only Export's `prepare_export_flat(fit_hub=True)`
     grows the hub.
@@ -1412,7 +1412,8 @@ failures.
   - **Fix:** grow the hub to the minimum (or refuse with a message) inside `build_impeller_with_mount`,
     so every cup path is covered.
   - Repro: `handoff/2026-10-09_from-qa-5/stress/repro/A-F2_cup_through_short_hub.json`.
-  - **[impact: high: unprintable mount]** **[effort: low]**
+  - **DONE 2026-10-10: `mount_hub_params` grows the hub inside `build_impeller_with_mount`; tests reproduce
+    the repro (10.9 mm hub) and check the cup floor.** **[impact: high: unprintable mount]** **[effort: low]**
 - [ ] **25.2 (QA-21) Tip trim raises on a featured, high-lean, wide-tip blade** from the optimizer's own
   `--extended --features` space (S5_0007).
   - The error: "blade crosses R=52.55 mm (reaches 56.09 mm) and no intersection ended at R".
@@ -1444,7 +1445,7 @@ failures.
     7. Separately: 8 of the 24 INCONCLUSIVE are properly cambered blades whose sections disagree. That is
        a second proof weakness.
   - **[impact: high]** **[effort: med]**
-- [ ] **25.4 (QA-20) The memory tiers give equal solids but not byte-identical STLs.**
+- [x] **25.4 (QA-20) The memory tiers give equal solids but not byte-identical STLs.**
   - Volume and vertex count match 11 of 11 times, but the sha256 differs every time.
   - Fix the `fansim/resources.py` docstring and the `TIERS` comment ("same solid", not
     "byte-identical").
@@ -1454,7 +1455,11 @@ failures.
   - Measure the peak RAM of featured builds per tier, then either raise the tier floors for featured
     designs or run them serially.
   - **[impact: med: freezes on 8 GB machines]** **[effort: med]**
-- [ ] **25.6 Motor-efficiency assumption: decision needed (Kimball).**
+- [x] **25.6 Motor-efficiency assumption.** **DONE 2026-10-10 (Kimball: use the researched value): 0.50,
+  input stays 1.68 W rated. Stock is no longer slowed (the real fan holds 2000 rpm). 21 saved scores
+  re-derated without CFD, t9005 70.1/51.8/32.0, Stock 51.9/42.7/18.3. Audit
+  `docs/validation/audits/2026-10-10-motor-efficiency.md` (M1 PASS, M2 (a) FAIL on 3 old unaffected
+  files / (b) PASS, M3 reported).**
   - The QA research proposes η_motor 0.50 (range 0.40–0.65). It also notes that 1.68 W (0.14 A) is a
     start-up maximum; the measured draw at 2000 rpm is 1.3–1.5 W (Cybenetics).
   - At 0.50 × 1.68 W, the 5–7 % derate on Stock and the audited designs disappears. At 0.50 × 1.50 W
@@ -1469,8 +1474,9 @@ failures.
 - [ ] **25.7 Second real-world CFD validation case: `lt120`** (Lin & Tsai 2011 fan via Tutar & Cam 2025,
   CC BY 4.0).
   - 7 blades, 120 mm rotor, 2000 rpm, a full 10-station table, 5 measured static points.
-  - Both BEM models are 5–35 % off mid-curve on the three full-geometry fans. A CFD match on lt120
-    would be the first evidence beyond Stock that the CFD numbers transfer.
+  - Both BEM models are 5–35 % off mid-curve on the three full-geometry fans. FAN-01 (a large
+    research fan, `validation/reference/fan01/`) is already a CFD check; lt120 would be the first at
+    **PC-fan size** besides Stock.
   - **Prerequisites:**
     - the QA bot converts lt120 to `BladeParams` and reports anything our builder can't represent
       (round 7);
@@ -1480,8 +1486,9 @@ failures.
   - **[impact: high]** **[effort: med–high, CFD]**
 - [ ] **25.8 Benchmark licences before any public release.**
   - `nv150` data is CC BY-NC-ND (not MIT-compatible): remove it or keep it out of the release.
-  - The NF-A12x25 reference STL's origin is undocumented: Kimball to confirm the source before
-    releasing `validation/reference/a12x25_impeller.stl` or anything fitted to it.
+  - **DONE 2026-10-10:** the NF-A12x25 reference STL is "A12x25" by MajorHardware (Thingiverse
+    5893432, CC BY 4.0). It is credited in `THIRD_PARTY.md` and `validation/reference/README.md`.
+  - Still open: the source of `validation/reference/drone_radial/` STLs.
   - Cybenetics data is cited only, never stored.
   - **[impact: high for release]** **[effort: low]**
 - [ ] **25.9 Finish the stress test** (681 designs left) **with chirality and INCONCLUSIVE reasons logged**.

@@ -211,12 +211,41 @@ def recommend_print_settings(material: str = DEFAULT_MATERIAL) -> dict:
     }
 
 
+def mount_hub_params(params: BladeParams, mount) -> tuple[BladeParams, str]:
+    """Grow the hub so the motor cup has a floor (QA-18).
+
+    The hub must be at least ``mount.min_hub_height_mm`` tall, and never shorter than the cup plus
+    one wall. Export's ``fit_hub`` already did this, but the cup Preview path did not, so a short
+    auto hub (10.9 mm seen) got a 13 mm cup cut straight through it. Returns ``(params, note)``;
+    ``params`` is returned unchanged (same object, empty note) when the hub is already tall enough.
+    """
+    import dataclasses
+
+    from fansim.geometry.blade import _hub_axial_range
+
+    need = max(float(getattr(mount, "min_hub_height_mm", 0.0) or 0.0),
+               float(mount.cavity_depth_mm) + float(getattr(mount, "min_wall_mm", 0.0) or 0.0))
+    z0, z1 = _hub_axial_range(params)
+    have = z1 - z0
+    if have >= need - 1e-6:
+        return params, ""
+    grown = dataclasses.replace(params, hub_height_mm=need)
+    return grown, f"hub grown {have:.1f} → {need:.1f} mm to hold the motor cup"
+
+
 def build_impeller_with_mount(params: BladeParams, mount) -> tuple[cq.Workplane, bool, str]:
     """Build the aero impeller solid and carve the motor cup (+ grips) into the hub.
 
     CFD/Assess keep using ``build_impeller`` alone (solid hub). Print + optional preview
     use this so the STL includes the hub opening that matches the commercial motor.
+    A hub too short for the cup is grown first (``mount_hub_params``); the message says so.
     """
+    params, grow_note = mount_hub_params(params, mount)
+    model, fits, msg = _carve_with_mount(params, mount)
+    return model, fits, (f"{grow_note}; {msg}" if grow_note and msg else (grow_note or msg))
+
+
+def _carve_with_mount(params: BladeParams, mount) -> tuple[cq.Workplane, bool, str]:
     import math
 
     from fansim.geometry.blade import build_impeller_parts, fuse_impeller

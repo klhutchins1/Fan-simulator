@@ -22,9 +22,10 @@ from fansim.fan_spec import (
 
 
 def test_a12x25_power_budget():
-    # 12 V x 0.14 A = 1.68 W electrical; x0.40 efficiency = ~0.67 W shaft
+    # 12 V x 0.14 A = 1.68 W electrical; x0.50 efficiency (audit 2026-10-10) = 0.84 W shaft,
+    # above Stock's ~0.77 W, so Stock runs at its rated 2000 rpm like the real fan.
     assert A12X25.max_power_w == pytest.approx(1.68)
-    assert A12X25.max_shaft_power_w == pytest.approx(0.672)
+    assert A12X25.max_shaft_power_w == pytest.approx(0.84)
 
 
 def test_registry():
@@ -39,7 +40,8 @@ def test_delta_is_a_different_regime():
     """The Delta industrial fan (different company) must be a genuinely different envelope."""
     delta = get_fan_spec("delta_afc1212de")
     assert delta.max_power_w == pytest.approx(19.2)          # 12 V x 1.60 A
-    assert delta.max_shaft_power_w > 10 * A12X25.max_shaft_power_w  # ~11x the power budget
+    assert delta.max_power_w > 10 * A12X25.max_power_w  # ~11x the electrical budget
+    assert delta.max_shaft_power_w > 5 * A12X25.max_shaft_power_w  # 9x shaft (a12x25 motor 0.50, Delta 0.40)
     assert delta.rpm == 3900.0
     assert delta.depth_mm[1] == 38.0                          # 38 mm thick vs 25 mm
     # a 2 W / 30 mm-deep design is REJECTED on the Noctua but fits the Delta

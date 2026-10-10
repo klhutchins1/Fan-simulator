@@ -400,6 +400,7 @@ def evaluate_candidate(
         min_surf_max=ASSESS_SURF_MAX_FLOOR if surf_max_floor is None else int(surf_max_floor))
     gap_raw["surf_max"] = int(mesh0.surf_max)  # stamped so coarser-mesh scores can be flagged
     gap_raw["hub_clip"] = bool(getattr(params, "clip_below_hub", True))  # blades cut at the hub face
+    gap_raw["motor_eff"] = float(spec.motor_efficiency)  # derate budget this score used (audit 2026-10-10)
     try:
         build_case(workdir, stl, rig0, mesh=mesh0,
                    n_iters=iters, n_subdomains=procs, back_pressure_pa=0.0,

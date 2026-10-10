@@ -7,7 +7,7 @@ checks and optional CFD (`scripts/run_a12x25_validation.py --stl …`).
 
 | Field | Value |
 |-------|--------|
-| Provenance | User-provided close reference to NF-A12x25 (not OEM CAD / not a licensed Noctua mesh) |
+| Provenance | "A12x25" by MajorHardware, Thingiverse thing 5893432 (https://www.thingiverse.com/thing:5893432), **CC BY 4.0**. A close community model of the NF-A12x25, not OEM CAD / not a licensed Noctua mesh. See `THIRD_PARTY.md` |
 | Source file | `A12x25_Fan.STL` (Downloads); prepared into this path |
 | Prep | Thin axis reoriented to **+Z** (OpenFOAM MRF), bounds-centered |
 | Silhouette (approx.) | **9** blades, tip ~**55.3 mm**, hub vertex p5 ~**19.2 mm**, axial ~**16.7 mm** |

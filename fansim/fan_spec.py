@@ -264,7 +264,9 @@ _REGISTRY: dict[str, FanSpec] = {
         # max_weight_g is a *printed* mass budget (default estimate uses DEFAULT_PRINT_INFILL
         # for FDM; pass infill_frac=1.0 for solid). ~65 g leaves headroom for thick/high-solidity
         # blades under typical sparse fill; tune per model/print settings.
-        motor_efficiency=0.40, max_weight_g=65.0, material="PETG",
+        # 0.50: researched (docs/qa/notes/motor-efficiency.md; audit 2026-10-10-motor-efficiency):
+        # 0.40 slowed Stock to 1907 rpm although the real fan holds 2000 rpm.
+        motor_efficiency=0.50, max_weight_g=65.0, material="PETG",
         ref_cfm=60.1, ref_static_pa=22.9, ref_noise_dba=22.6,
         # Motor interface: REAL MEASURED 2026-08-31 (user printed a fan + measured; the old 50 mm was a
         # WRONG Google value that made the printed hub oversize). Motor hub the printed cup slips over =
