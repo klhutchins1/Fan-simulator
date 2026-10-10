@@ -1320,6 +1320,78 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   cause of the 7–10 s stall QA saw at the end of a cup Preview. Measure where the fuse allocates; options:
   fuse blades pairwise, tessellate per part, or run that test in an isolated worker. **[impact: med]**
   **[effort: med]**
+
+## 24. Newcomer clarity — flow report, simple/expert, start page (2026-10-10)
+
+Kimball's review of the Fan Results screen:
+- the airflow pictures look wrong (blocky, a flat pressure picture, streamlines with no fan);
+- the Mixed, Volute, Prop and CROR tabs don't say what they are for;
+- there is too much text everywhere.
+
+The decision is a **Simple / Expert switch, defaulting to Simple**:
+- simple mode is written for a first-time hobbyist, and Kimball signs off on every word of it;
+- expert mode keeps today's detail, marked "not reviewed for plain language" (no expert is available to
+  verify it).
+
+The work is split into three sub-projects, done in order.
+
+- [ ] **24.1 Flow report card "How the air moves"** (sub-project 1).
+  - Spec: `docs/superpowers/specs/2026-10-10-flow-report-card-design.md`.
+  - Plan: `docs/superpowers/plans/2026-10-10-flow-report-card.md` (9 tasks).
+  - It replaces "Duct airflow" on Fan → Results. One row per question, each with a ✓/⚠/✕ verdict
+    against Stock and a picture beside Stock's:
+    - air direction (backflow share);
+    - push along the blade (5 bands);
+    - wasted spin;
+    - dead or blocked air (including tip leakage);
+    - a noise hint (Proudman, relative only).
+  - The shared picture fixes also reach the other tabs: smooth shading, pressure in Pa, a
+    percentile colour range, the rotor outline, and streamlines rebuilt as a side view with a
+    see-through fan.
+  - The global Simple/Expert switch is introduced here.
+  - **The verdict thresholds are fixed in advance and checked on real runs before the UI work**
+    (`docs/validation/audits/2026-10-10-flow-report-checks.md`):
+    - Stock against itself: all ✓;
+    - Stock's run-to-run pair: "similar" on every row;
+    - 9610 (stalls under load): ≥ 1 ⚠;
+    - t9005: no ✕.
+  - No new CFD, no score change. **[impact: high]** **[effort: high]**
+- [ ] **24.2 Text clean-up across the app (sub-project 2; needs its own design pass).**
+  - Decide what each screen shows by default in simple mode, and move the rest into tooltips,
+    "more info" panels, expert mode or a help page.
+  - Remove the duplicate information that appears after a run.
+  - Examples from the review: the Results glossary paragraph, the "Gold ✕ = …" line, the long design
+    caption lines.
+  - Keep the viewer above the fold at 768p.
+  - Reuses the 24.1 switch. **[impact: high]** **[effort: high]**
+- [ ] **24.3 Start page and plain tab descriptions (sub-project 3; after 24.2).**
+  - A start page, or a "what is this tab for?" panel, saying in plain words what each tab does and how
+    much to trust it. For example: Mixed, Volute and CROR are rough estimates rather than the full
+    simulation, and Prop is a fast estimate.
+  - Decide whether the experimental tabs are hidden in simple mode.
+  - Rename "proxy" and "BEMT" in the tab labels. **[impact: high]** **[effort: med]**
+- [ ] **24.4 Changing settings while something is running — investigate (owner: QA bot, round 7, after
+  its round-6 stress test).**
+  - **Question:** while Assess, Optimize, Preview, Export or a flow picture is running, does changing a
+    setting (a slider, hose, material, fan model, mesh options, or selecting another design) do any of
+    the following?
+    - (a) change the run that is already going;
+    - (b) get ignored, but then get recorded *with* that run's results;
+    - (c) attach the run's results to the wrong design;
+    - (d) do nothing harmful.
+  - **Method:**
+    - Read the code for when each job snapshots its inputs: Assess / `objectives` params, `assess_*`
+      state, the export flat dict, and the save path of `selected_trial`.
+    - List every setting each job reads after it has started.
+    - Then reproduce the risky cases in the browser with a short run (Preview / Export, and a pilot
+      Assess if the bot can run CFD; otherwise read the code only).
+  - **Output:** a table of job × setting → a, b, c or d, with evidence.
+  - **Recommendation per job**, one of:
+    - lock the controls while it runs;
+    - snapshot at start and show "this run uses the settings from when you pressed Assess";
+    - a queue.
+  - Pre-register what counts as a defect: any (b) or (c) case.
+  - **No fix until Kimball picks one.** **[impact: high: wrong saved results]** **[effort: med]**
 ---
 
 ## Recently shipped (context, so we don't re-add)
