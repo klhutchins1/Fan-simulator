@@ -36,6 +36,9 @@ class CrorParams:
     axial_gap_mm: float = 8.0  # clear space between front TE band and rear LE band
 
     def __post_init__(self) -> None:
+        # CROR builds its own hub/stack; the PC-fan hub-face clip does not apply to its rotors.
+        self.front.clip_below_hub = False
+        self.rear.clip_below_hub = False
         # Opposite swirl: mirror rear stagger about the rotation plane.
         for s in self.rear.stations:
             s.stagger_deg = -abs(float(s.stagger_deg))
@@ -103,7 +106,9 @@ def build_cror(params: CrorParams | None = None) -> cq.Workplane:
         for k in range(rear.n_blades)
     ]
     hub = _hub_cylinder(front, layout["hub_z0_mm"], layout["hub_z1_mm"])
-    fused = hub.fuse(*front_pat, *rear_pat).clean()
+    from fansim.geometry.blade import fuse_many
+
+    fused = fuse_many(hub, (*front_pat, *rear_pat))  # memory-tiered (fansim.resources)
     solids = fused.Solids()
     if len(solids) != 1:
         raise ValueError(f"CROR fuse produced {len(solids)} solids; expected 1")

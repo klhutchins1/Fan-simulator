@@ -7,12 +7,11 @@ from __future__ import annotations
 
 import asyncio
 import sys
-import tempfile
 import time
 from pathlib import Path
 
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
-from fansim.cockpit.paths import exports_dir
+from fansim.cockpit.paths import exports_dir, session_tmp
 from fansim.cockpit.busy import cfd_stage_hint
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.fan_widgets import slider as _shared_slider
@@ -118,7 +117,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
     from fansim.volute.params_io import volute_params_from_flat
 
     _v0 = _VoluteDefaults()
-    volute_preview_stl = Path(tempfile.gettempdir()) / "fansim_volute_preview.stl"
+    volute_preview_stl = session_tmp("fansim_volute_preview.stl")  # per-cockpit (QA UI-30)
     _volute_runs = runs_root if runs_root.exists() else Path("runs")
     volute_design_store: list[dict] = load_all_volute_pareto(_volute_runs)
 

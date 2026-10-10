@@ -92,7 +92,7 @@
     },
     "geometry.stock_handedness": {
       "date": "2026-10-09",
-      "fingerprint": "a171766be94d40c2",
+      "fingerprint": "9fd3e0337080e567",
       "report": "docs/validation/audits/2026-10-09-ledger-refresh.md",
       "verdict": "PASS"
     },

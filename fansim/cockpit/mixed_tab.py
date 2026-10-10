@@ -8,7 +8,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import sys
-import tempfile
 import time
 from pathlib import Path
 
@@ -44,7 +43,7 @@ from fansim.centrifugal.persist import (
     save_mixed_design_json,
 )
 from fansim.cockpit.busy import cfd_stage_hint
-from fansim.cockpit.paths import exports_dir
+from fansim.cockpit.paths import exports_dir, session_tmp
 
 _RUNNING_TESTS = "pytest" in sys.modules
 
@@ -79,7 +78,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
     from fansim.centrifugal.params_io import mixed_params_from_flat
 
     _mf0 = _MFDefaults()
-    mf_preview_stl = Path(tempfile.gettempdir()) / "fansim_mf_preview.stl"
+    mf_preview_stl = session_tmp("fansim_mf_preview.stl")  # per-cockpit (QA UI-30)
     mf_design_store: list[dict] = load_all_mixed_designs(
         runs_root if runs_root.exists() else Path("runs")
     )

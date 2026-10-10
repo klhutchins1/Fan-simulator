@@ -61,7 +61,7 @@ def do_export(params, out, spec, also_mirror: bool = False) -> dict:
     if also_mirror:
         try:
             paths = export_handedness_pair(
-                params, out.parent, stem=out.stem, mount=mount,
+                params, out.parent, stem=out.stem, mount=mount, as_designed_stl=out,
             )
             mirror_note = (
                 f"\n↳ Opposite-hand pair: {paths['mirrored_stl'].name} "
@@ -135,6 +135,16 @@ def bind(session) -> None:
 
     def export_stl_current():
         if state.export_busy or state.preview_busy or state.assess_busy:
+            return
+        from fansim.cockpit.fan_core import refresh_memory_tier
+
+        refresh_memory_tier(state)
+        if not state.cup_build_ok:
+            # The print-ready STL fuses the carved hub + blades: ~4.5 GB even on the leanest path.
+            state.export_msg = (
+                "⚠ Not enough free memory for a print-ready export (needs about 5 GB free). "
+                "Close other programs and try again.")
+            state.flush()
             return
         from datetime import datetime
 

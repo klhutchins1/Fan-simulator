@@ -13,7 +13,7 @@
 | Check | Acceptance (parametric envelope) | Notes |
 |-------|----------------------------------|--------|
 | Blade count | `n_blades == 9` | Must match published NF-A12x25 (nine-blade A-series) |
-| Tip radius | **55.0–57.0 mm** | Nominal ~56.5 mm in approximate fit; bands match `tests/test_a12x25_reference_geometry.py` |
+| Tip radius | **54.0–54.5 mm** | The 110 mm frame ID with 0.5 mm tip clearance caps it at 54.5 mm; the Stock recipe is 54.5 (`tests/test_a12x25_reference_geometry.py`). The old 55–57 band predated the frame-ID correction |
 | Hub radius | **20.0–23.0 mm** | ~43 mm hub OD band (STL vertex p5 may read slightly lower — soft band in silhouette test) |
 | Axial depth | Impeller fits **25 mm** frame class | Fan form factor is 120×120×25 mm; blade stack + hub margins must not exceed the printable depth budget used by `FanSpec` for `a12x25` (impeller depth within the documented min/max envelope, not a generic 120×38 industrial slot) |
 | LE sickle character | Visible tip-weighted LE sweep / sickle | NF-A12x25 planform is not a straight radial blade; reference recipe must encode non-trivial tip LE skew or sickle (e.g. `sickle_mm` / station sweep), not a flat-paddle placeholder |

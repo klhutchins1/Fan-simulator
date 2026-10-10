@@ -10,7 +10,6 @@ import dataclasses
 import logging
 import random
 import sys
-import tempfile
 import threading
 import time
 from pathlib import Path
@@ -18,7 +17,7 @@ from pathlib import Path
 _log = logging.getLogger(__name__)
 
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
-from fansim.cockpit.paths import exports_dir
+from fansim.cockpit.paths import exports_dir, session_tmp
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.data import design_dropdown_items
@@ -162,7 +161,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     spawn_busy_ticker = ctx.spawn_busy_ticker
 
     # ---- PROPELLER ARCHETYPE ---------------------------------------------------------------
-    prop_preview_stl = Path(tempfile.gettempdir()) / "fansim_prop_preview.stl"
+    prop_preview_stl = session_tmp("fansim_prop_preview.stl")  # per-cockpit (QA UI-30)
     prop_pareto_store: list[dict] = []  # Optimize rows (click index base)
     prop_user_store: list[dict] = []  # Analyze rows (appended after Optimize in click index)
 

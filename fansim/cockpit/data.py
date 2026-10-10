@@ -53,6 +53,30 @@ def coarse_mesh_stale(extra: dict | None, params: dict | None) -> bool:
     return surface_level_for_wall(ASSESS_BASE_CELL_M, wall) < ASSESS_SURF_MAX_FLOOR
 
 
+HUB_CLIP_TOL_MM = 0.05
+
+
+def below_hub_stale(extra: dict | None, params: dict | None) -> bool:
+    """True when a score was computed on blades that reached below the hub face (pre-clip rule).
+
+    Since 2026-10-09 fan blades are cut at the hub's motor face (the frame struts sit there); a
+    design that hung lower now builds differently from what was scored. New scores stamp
+    ``hub_clip``.
+    """
+    extra = extra or {}
+    if extra.get("hub_clip"):
+        return False
+    if extra.get("hub_overhang_mm") is not None:   # exact, from scripts/stamp_hub_overhang.py
+        return float(extra["hub_overhang_mm"]) > HUB_CLIP_TOL_MM
+    try:  # section-point estimate (misses the loft's realised chords on 'measured' designs)
+        from fansim.cockpit.placement import blade_overhang_below_hub_mm
+        from fansim.optimize.search_space import blade_from_flat
+
+        return blade_overhang_below_hub_mm(blade_from_flat(dict(params or {}))) > HUB_CLIP_TOL_MM
+    except Exception:  # noqa: BLE001 — not an axial flat dict: nothing to judge
+        return False
+
+
 def stale_reason(extra: dict | None, params: dict | None) -> str:
     """'' when the score is current, else why it must be re-run ('old solver' / 'coarse mesh')."""
     extra = extra or {}
@@ -60,6 +84,8 @@ def stale_reason(extra: dict | None, params: dict | None) -> str:
         return "old solver"
     if coarse_mesh_stale(extra, params):
         return "coarse mesh"
+    if below_hub_stale(extra, params):
+        return "blade below hub"
     return ""
 
 
@@ -105,7 +131,8 @@ def load_designs(out_dir: str | Path, study_name: str | None = None) -> list[Des
                    "surf_max": t.user_attrs.get("surf_max"),
                    "cfd_stale": bool(_reason := stale_reason(
                        {"cfd_version": t.user_attrs.get("cfd_version"),
-                        "surf_max": t.user_attrs.get("surf_max")}, params)),
+                        "surf_max": t.user_attrs.get("surf_max"),
+                        "hub_clip": t.user_attrs.get("hub_clip")}, params)),
                    "stale_reason": _reason},
         ))
     return designs

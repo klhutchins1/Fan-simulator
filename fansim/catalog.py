@@ -19,8 +19,10 @@ from pathlib import Path
 
 from validation.store import load_store, make_design_id, sim_vs_real
 
-CATALOG_DB = Path("catalog/catalog.db")
-REMOVED_LIST = Path("catalog/removed.json")   # design_ids excluded from the catalog (reversible)
+_ROOT = Path(__file__).resolve().parents[1]
+# Project-anchored, not relative to the launch directory (QA docs audit D6, same class as UI-19).
+CATALOG_DB = _ROOT / "catalog" / "catalog.db"
+REMOVED_LIST = _ROOT / "catalog" / "removed.json"   # design_ids excluded from the catalog (reversible)
 
 
 def load_removed(path: str | Path = REMOVED_LIST) -> set[str]:

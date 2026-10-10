@@ -31,6 +31,7 @@ def blade_params_from_wind(params: WindTurbineParams) -> BladeParams:
         hub_radius=hub_r_mm,
         tip_radius=tip_r_mm,
         root_embed=2.0,
+        clip_below_hub=False,  # no frame struts below a turbine hub
         hub_axial_margin=2.0,
         stations=stations,
         n_span=12,

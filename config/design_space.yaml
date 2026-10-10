@@ -1,4 +1,6 @@
-# Baseline impeller design vector (approximates the Noctua NF-A12x25 envelope).
+# Generic 7-blade baseline design vector for scripts/run_baseline.py and run_fan_curve.py.
+# NOT the Noctua NF-A12x25 (9 blades, tip 54.5 mm, 110 mm frame ID): that recipe is
+# config/problems/a12x25_reference.yaml (QA docs audit D20).
 # Distances in millimeters, angles in degrees. Loaded by fansim.geometry.config.
 n_blades: 7
 hub_radius: 21.5        # ~43 mm hub diameter

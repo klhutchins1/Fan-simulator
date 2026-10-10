@@ -40,7 +40,12 @@ def blade_z_extent(params) -> float:
             section_family=str(getattr(params, "section_family", "naca") or "naca"),
         )
         zs += [v.z for v in pts]
-    return max(zs) - min(zs)
+    lo = min(zs)
+    if bool(getattr(params, "clip_below_hub", True)):
+        from fansim.geometry.blade import _hub_axial_range
+
+        lo = max(lo, _hub_axial_range(params)[0])  # blades are cut at the hub face (clip_blade_below)
+    return max(zs) - lo
 
 
 def blade_max_dia(params) -> float:

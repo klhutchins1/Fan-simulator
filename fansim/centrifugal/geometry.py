@@ -177,7 +177,9 @@ def build_mixed_flow(params: MixedFlowParams | None = None) -> cq.Workplane:
         blade.rotate(cq.Vector(0, 0, 0), cq.Vector(0, 0, 1), k * 360.0 / params.n_blades)
         for k in range(params.n_blades)
     ]
-    fused = hub.fuse(*blades).clean()
+    from fansim.geometry.blade import fuse_many
+
+    fused = fuse_many(hub, blades)  # memory-tiered (fansim.resources)
     solids = fused.Solids()
     if len(solids) != 1:
         raise ValueError(f"Mixed-flow fuse produced {len(solids)} solids; expected 1")

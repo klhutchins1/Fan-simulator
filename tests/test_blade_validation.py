@@ -98,3 +98,21 @@ def test_blade_solidity_of_a_bladeless_rotor_is_zero():
     assert blade_solidity(_bp(n_blades=0)) == {"hub": 0.0, "mid": 0.0, "tip": 0.0}
     seven = blade_solidity(_bp(n_blades=7))
     assert blade_solidity(_bp(n_blades=14))["mid"] == pytest.approx(2 * seven["mid"])
+
+
+def test_fan_blades_never_reach_below_the_hub_face():
+    """User rule 2026-10-09: the hub's motor face is the lowest point (frame struts sit there)."""
+    import copy
+
+    from fansim.geometry.blade import _hub_axial_range, build_blade_solid, clip_blade_below
+    from fansim.geometry.config import load_blade_params
+
+    p = load_blade_params("config/problems/a12x25_reference.yaml")   # hangs 0.94 mm unclipped
+    z_face = _hub_axial_range(p)[0]
+    blade = build_blade_solid(p)
+    assert blade.BoundingBox().zmin < z_face - 0.5
+    clipped = clip_blade_below(p, blade, z_face)
+    assert clipped.BoundingBox().zmin >= z_face - 0.01 and clipped.isValid()
+    off = copy.copy(p)
+    off.clip_below_hub = False                                      # props / wind / CROR
+    assert clip_blade_below(off, blade, z_face) is blade

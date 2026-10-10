@@ -28,6 +28,17 @@ def blade_z_extent(params) -> float:
     return zmax - zmin
 
 
+def blade_overhang_below_hub_mm(params) -> float:
+    """How far the UNCLIPPED blade sections reach below the hub's motor face (0 if they don't)."""
+    import copy
+
+    from fansim.geometry.blade import _hub_axial_range
+
+    raw = copy.copy(params)
+    raw.clip_below_hub = False
+    return max(0.0, _hub_axial_range(params)[0] - _blade_z_bounds(raw)[0])
+
+
 def _blade_z_bounds(params) -> tuple[float, float]:
     from fansim.geometry.blade import _interp_stations, _section_points_3d
 
@@ -59,7 +70,12 @@ def _blade_z_bounds(params) -> tuple[float, float]:
             section_family=str(getattr(params, "section_family", "naca") or "naca"),
         )
         zs += [v.z for v in pts]
-    return min(zs), max(zs)
+    lo = min(zs)
+    if bool(getattr(params, "clip_below_hub", True)):
+        from fansim.geometry.blade import _hub_axial_range
+
+        lo = max(lo, _hub_axial_range(params)[0])  # blades are cut at the hub face (clip_blade_below)
+    return lo, max(zs)
 
 
 def impeller_z_extent(params) -> float:

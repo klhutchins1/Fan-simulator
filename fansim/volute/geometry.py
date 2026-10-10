@@ -100,7 +100,9 @@ def build_radial_impeller(params: VoluteParams | None = None) -> cq.Workplane:
         blade0.rotate((0, 0, 0), (0, 0, 1), k * 360.0 / params.n_blades)
         for k in range(params.n_blades)
     ]
-    fused = bp.fuse(hub, *blades).clean()
+    from fansim.geometry.blade import fuse_many
+
+    fused = fuse_many(bp, (hub, *blades))  # memory-tiered (fansim.resources)
     solids = fused.Solids()
     if len(solids) != 1:
         raise ValueError(f"radial impeller fuse produced {len(solids)} solids; expected 1")

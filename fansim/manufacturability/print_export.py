@@ -230,15 +230,20 @@ def build_impeller_with_mount(params: BladeParams, mount) -> tuple[cq.Workplane,
     reach = float(mount.cavity_dia_mm) / 2.0 + float(getattr(mount, "grip_clearance_mm", 0.0) or 0.0)
     verts, _faces = blades[0].tessellate(0.2)
     r_min = min(math.hypot(v.x, v.y) for v in verts)
+    # The cup is measured from the hub's motor face, not the model's lowest point: a blade corner
+    # or ring below the face used to eat into the 13 mm of grip (QA-16; blades are now also cut
+    # at that face, clip_blade_below).
+    hub_face = float(hub.BoundingBox().zmin)
     if r_min > reach + 0.05:
         bb = cq.Compound.makeCompound([hub, *blades] + ([ring] if ring is not None else [])).BoundingBox()
         carved, fits, msg = carve_motor_mount(
-            cq.Workplane(obj=hub), mount, params.hub_radius, z_bounds=(bb.zmin, bb.zmax))
+            cq.Workplane(obj=hub), mount, params.hub_radius, z_bounds=(hub_face, bb.zmax))
         if fits:
             return cq.Workplane(obj=fuse_impeller(carved.val(), blades, ring)), True, msg
         return cq.Workplane(obj=fuse_impeller(hub, blades, ring)), fits, msg
     model = cq.Workplane(obj=fuse_impeller(hub, blades, ring))
-    return carve_motor_mount(model, mount, params.hub_radius)
+    return carve_motor_mount(model, mount, params.hub_radius,
+                             z_bounds=(hub_face, float(model.val().BoundingBox().zmax)))
 
 
 def export_print_ready(
@@ -282,11 +287,16 @@ def export_handedness_pair(
     designed_omega: int = +1,
     tolerance: float = 0.02,
     angular_tolerance: float = 0.1,
+    as_designed_stl: str | Path | None = None,
 ) -> dict[str, Path]:
     """Export as-designed + mirrored STLs with paired ``*.handedness.json`` spin metadata (§19.4).
 
     Returns paths keyed ``as_designed_stl``, ``as_designed_meta``, ``mirrored_stl``, ``mirrored_meta``.
+    ``as_designed_stl``: an already-exported as-designed STL (+ its ``.step``) to copy instead of
+    building it again — the cockpit Export just wrote it (QA-17: a third full build, ~1 min).
     """
+    import shutil
+
     from fansim.geometry.handedness import handedness_variants, write_handedness_meta
 
     out_dir = Path(out_dir)
@@ -295,10 +305,16 @@ def export_handedness_pair(
     for variant in handedness_variants(params, designed_omega=designed_omega):
         stl = out_dir / f"{stem}_{variant.label}.stl"
         meta = out_dir / f"{stem}_{variant.label}.handedness.json"
-        export_print_ready(
-            variant.params, stl, bore=bore, mount=mount,
-            tolerance=tolerance, angular_tolerance=angular_tolerance,
-        )
+        if variant.label == "as_designed" and as_designed_stl is not None and Path(as_designed_stl).exists():
+            src = Path(as_designed_stl)
+            shutil.copyfile(src, stl)
+            if src.with_suffix(".step").exists():
+                shutil.copyfile(src.with_suffix(".step"), stl.with_suffix(".step"))
+        else:
+            export_print_ready(
+                variant.params, stl, bore=bore, mount=mount,
+                tolerance=tolerance, angular_tolerance=angular_tolerance,
+            )
         write_handedness_meta(variant, meta)
         paths[f"{variant.label}_stl"] = stl
         paths[f"{variant.label}_meta"] = meta

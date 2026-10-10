@@ -127,6 +127,9 @@ class BladeParams:
     hub_radius: float = 21.5  # mm (~43 mm hub diameter)
     tip_radius: float = 56.5  # mm (~113 mm impeller diameter, inside a 120 mm frame)
     root_embed: float = 2.0  # mm the blade root sinks into the hub for a clean fuse
+    # PC fans: nothing may reach below the hub's motor face (-Z); the frame struts sit right there.
+    # Blades are cut at that plane (props / wind turbines have no struts and turn this off).
+    clip_below_hub: bool = True
     hub_axial_margin: float = 1.5  # mm the hub extends beyond the blade ROOT z-span each side
     # Hub axial height, mm. None = AUTO: just tall enough to cover the blade ROOTS (+margins) so
     # swept tips no longer inflate the hub / depth. Set a number to force a taller hub (clamped to
@@ -823,6 +826,38 @@ def validate_blade_params(params: BladeParams) -> None:
             f"blade_angles_deg has {len(params.blade_angles_deg)} entries, expected n_blades={n}")
 
 
+CLIP_TOL_MM = 1e-3
+
+
+def clip_blade_below(params: BladeParams, blade, z_floor: float):
+    """Cut the blade at the hub's motor face ``z_floor`` when ``params.clip_below_hub``.
+
+    On an A12x25-type fan the frame struts sit just below the hub face, so a trailing corner that
+    hangs lower (Stock recipe 0.94 mm, some optimizer designs ~3.8 mm) would strike them, and the
+    motor cup — measured from the lowest point — lost that much grip in the hub (QA-16).
+    """
+    if not bool(getattr(params, "clip_below_hub", True)):
+        return blade
+    cq = _cq()
+    bb = blade.BoundingBox()
+    if float(bb.zmin) >= z_floor - CLIP_TOL_MM:
+        return blade
+    span = 4.0 * max(float(params.tip_radius), abs(bb.xmin), abs(bb.xmax), abs(bb.ymin), abs(bb.ymax))
+    depth = float(z_floor - bb.zmin) + 10.0
+    below = cq.Solid.makeBox(2 * span, 2 * span, depth, cq.Vector(-span, -span, z_floor - depth))
+    for attempt in (lambda: blade.cut(below), lambda: blade.copy().fix().cut(below)):
+        try:
+            solids = _solids_of(attempt())
+        except Exception:  # noqa: BLE001 — try the next strategy
+            solids = []
+        if solids:
+            out = max(solids, key=lambda s: abs(float(s.Volume())))
+            if float(out.BoundingBox().zmin) >= z_floor - 0.01:
+                return out
+    raise RuntimeError(f"hub-face clip failed: blade reaches z={bb.zmin:.2f} below the hub "
+                       f"face z={z_floor:.2f} and no cut ended there")
+
+
 def build_impeller_parts(params: BladeParams):
     """Unfused impeller parts ``(hub, blades, ring_or_None)`` exactly as ``build_impeller`` fuses them.
 
@@ -835,6 +870,7 @@ def build_impeller_parts(params: BladeParams):
 
     z_bottom, z_top = _hub_axial_range(params, blade)
     hub = build_hub(params, z_bottom, z_top)
+    blade = clip_blade_below(params, blade, z_bottom)
 
     # Blade angular positions: equal spacing by default, or a custom (e.g. balanced-uneven) pattern.
     if params.blade_angles_deg is None:
@@ -848,11 +884,39 @@ def build_impeller_parts(params: BladeParams):
     return hub, blades, _shroud_solid(params)
 
 
-def fuse_impeller(hub, blades, ring=None):
-    """Fuse ``build_impeller_parts`` output in the canonical order (hub + blades, then ring)."""
-    fused = hub.fuse(*blades).clean()
+def _fuse(base, tools, *, parallel: bool):
+    """``base.fuse(*tools)`` with OCCT's parallel flag exposed (CadQuery always passes True)."""
+    from OCP.BRepAlgoAPI import BRepAlgoAPI_Fuse
+
+    return base._bool_op((base,), tuple(tools), BRepAlgoAPI_Fuse(), parallel=parallel)
+
+
+def fuse_many(base, tools, *, tier=None):
+    """``base.fuse(*tools).clean()`` run the way the memory tier allows (any archetype's hub + blades)."""
+    from fansim.resources import current_tier
+
+    tier = tier or current_tier()
+    if tier.fuse_one_blade_at_a_time:
+        fused = base
+        for tool in tools:
+            fused = _fuse(fused, (tool,), parallel=False)
+        return fused.clean()
+    return _fuse(base, tools, parallel=tier.fuse_parallel).clean()
+
+
+def fuse_impeller(hub, blades, ring=None, *, tier=None):
+    """Fuse ``build_impeller_parts`` output in the canonical order (hub + blades, then ring).
+
+    How the fuse runs follows the memory tier (``fansim.resources``): parallel when there is room
+    (~7.7 GB peak for a 9-blade cup impeller), serial (~4.9 GB), or serial one blade at a time
+    (~4.5 GB). Every strategy gives the same solid (QA round 4); only peak RAM and time differ.
+    """
+    from fansim.resources import current_tier
+
+    tier = tier or current_tier()
+    fused = fuse_many(hub, blades, tier=tier)
     if ring is not None:
-        fused = fused.fuse(ring).clean()
+        fused = fuse_many(fused, (ring,), tier=tier)
     return fused
 
 
@@ -902,6 +966,7 @@ def build_impeller_preview(
     blade = build_blade_solid(params)
     z_bottom, z_top = _hub_axial_range(params, blade)
     hub = build_hub(params, z_bottom, z_top)
+    blade = clip_blade_below(params, blade, z_bottom)
 
     def _tm(shape: cq.Solid) -> "trimesh.Trimesh":
         verts, faces = shape.tessellate(tol)

@@ -40,6 +40,17 @@ _log = logging.getLogger(__name__)
 A12X25_REF_TRIAL = 100000
 
 
+def refresh_memory_tier(state) -> None:
+    """Publish the current memory tier (free RAM changes) to the Print / export card."""
+    from fansim.resources import current_tier
+
+    tier = current_tier()
+    state.cup_build_ok = bool(tier.cup_build_ok)
+    state.memory_tier_note = f"Memory: {tier.name.upper()} tier — {tier.note}."
+    if not tier.cup_build_ok:
+        state.preview_motor_cup = False
+
+
 def apply_state_defaults(session) -> None:
     """Seed all Fan-tab reactive state (order-independent literal defaults)."""
     from fansim.manufacturability.materials import DEFAULT_MATERIAL, MATERIALS
@@ -61,8 +72,9 @@ def apply_state_defaults(session) -> None:
     state.export_also_mirror = False  # §19.4 CW⇄CCW pair beside the primary STL
     # Off by default: Preview is for quick shape iteration (~10 s); with the cup it is the full
     # boolean build (~1 min) — QA's "Preview (sec)" took 66 s with the switch on and hidden.
-    # Export always carves the cup; the switch (Fan tab → Export options) still turns it on.
+    # Export always carves the cup; the switch (Fan tab → Print / export card) still turns it on.
     state.preview_motor_cup = False
+    refresh_memory_tier(state)
     state.assess_preset = "case"
     state.assess_preset_items = assess_preset_items()
     state.assess_refine_op = False

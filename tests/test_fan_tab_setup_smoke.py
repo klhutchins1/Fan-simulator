@@ -199,6 +199,7 @@ def test_async_handler_bodies_execute(bound_ctx, monkeypatch, tmp_path):
             "_export_isolated": {"ok": True, "mount_fits": None, "mount_msg": "",
                                  "mirror_note": "", "gauge": None},
             "_ensure_stock_preview": tmp_path / "stock.stl",
+            "_readouts": ("✓ fits (stub)", ""),   # Preview's spec + printability, off the loop
             "poll_merge": 0,
             "get_item": None,  # ends the optimize log loop immediately
         }.get(name)  # default None (e.g. _build_preview_stl)
