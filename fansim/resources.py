@@ -1,8 +1,9 @@
 """Memory tiers: pick the CAD strategy that fits the RAM actually free on this machine.
 
 The heavy step is the boolean fuse of the hub + N lofted blades (motor-cup Preview, Export, the
-mount gauge). Its peak depends only on how it is run; every strategy gives a byte-identical solid
-(QA round 4, ``docs/qa/notes/cup-fuse-memory.md``, Stock A12x25 with motor cup, Linux):
+mount gauge). Its peak depends only on how it is run; every strategy gives the same solid (equal
+volume and vertex count; the STL files differ only in face order, so they are NOT byte-identical:
+QA-20, round 6) (QA round 4, ``docs/qa/notes/cup-fuse-memory.md``, Stock A12x25 with motor cup, Linux):
 
 =============================================  =========  ======
 strategy                                         peak RAM   time

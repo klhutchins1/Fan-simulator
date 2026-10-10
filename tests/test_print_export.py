@@ -167,3 +167,48 @@ def test_readme_flags_placeholder_bore(tmp_path):
     md = print_readme("t", p, "PETG", rep, bal, recommend_print_settings("PETG"),
                       BoreSpec(bore_dia_mm=5.0), {"cfm_free": 80.0})
     assert "PLACEHOLDER" in md and "5.00 mm" in md and "Balance" in md
+
+
+def _qa18_short_hub_params():
+    import json
+    from pathlib import Path
+
+    from fansim.geometry.features import Features
+    from fansim.optimize.search_space import blade_from_flat
+    d = json.loads((Path(__file__).parent / "data" / "qa18_short_hub_flat.json").read_text(encoding="utf-8"))
+    return blade_from_flat(d["flat"], Features(**d["features"]))
+
+
+def test_mount_hub_params_grows_short_hub_to_mount_minimum():
+    """QA-18: a hub shorter than the cup must be grown before carving (min_hub_height_mm)."""
+    from fansim.fan_spec import get_fan_spec
+    from fansim.geometry.blade import _hub_axial_range
+    from fansim.manufacturability.print_export import mount_hub_params
+
+    mount = get_fan_spec("a12x25").motor_mount
+    p = _qa18_short_hub_params()
+    z0, z1 = _hub_axial_range(p)
+    assert z1 - z0 < 13.0  # the repro really is shorter than the 13 mm cup
+    grown, note = mount_hub_params(p, mount)
+    g0, g1 = _hub_axial_range(grown)
+    assert g1 - g0 >= 15.0 - 1e-6
+    assert "hub" in note and "15.0" in note
+    same, note2 = mount_hub_params(grown, mount)  # already tall enough: unchanged, no note
+    assert same is grown and note2 == ""
+
+
+def test_motor_cup_has_a_floor_on_a_short_hub():
+    """QA-18 end to end: the carved cup on a formerly too-short hub leaves solid above 13 mm."""
+    import cadquery as cq
+
+    from fansim.fan_spec import get_fan_spec
+    from fansim.manufacturability.print_export import build_impeller_with_mount
+
+    mount = get_fan_spec("a12x25").motor_mount
+    carved, fits, msg = build_impeller_with_mount(_qa18_short_hub_params(), mount)
+    assert fits, msg
+    solid = carved.val()
+    zmin = solid.BoundingBox().zmin
+    # Between the rear bore (r 10) and the cavity wall (r 18.6) the floor sits 13 mm above the face.
+    probe = cq.Vector(14.0, 0.0, zmin + mount.cavity_depth_mm + 0.5)
+    assert solid.isInside(probe), "cup goes straight through the hub (no floor)"
