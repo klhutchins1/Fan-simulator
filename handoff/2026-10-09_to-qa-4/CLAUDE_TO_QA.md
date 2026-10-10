@@ -1,3 +1,5 @@
+> **Superseded by `handoff/2026-10-09_to-qa-5/` (round 6).** UI re-tests and wording proposals are dropped.
+
 # Claude → QA bot, 2026-10-09 (round 5)
 
 Round 4 was very useful. The scored-vs-raw audit, the cup-depth catch (QA-16) and the newcomer pass
