@@ -47,6 +47,48 @@ K_TIP_LEAK = 9.0             # tip-clearance leakage knockdown in the outer span
 N_ITER_MAX = 50               # cap on the per-element swirl fixed-point iteration
 DEFAULT_TIP_GAP_MM = 0.5      # blade-to-shroud gap (leakage grows the loss near the tip)
 
+# --- Opt-in "axial_force" pressure model (QA-4, roadmap §23.5; proposed and tested by the QA bot,
+# re-implemented here). Static rise = the blades' AXIAL force per annulus area,
+# B·½ρW1²c·(cl·cosφ1 − cd·sinφ1), referenced to the INLET relative velocity W1 (cascade practice),
+# with the polar continued past stall (Viterna–Corrigan). Blade drag and negative lift now LOWER the
+# pressure, so a paddle or a wrong-hand blade no longer scores as a fan (in the Euler model the swirl
+# that drag drives counted as useful work). Two empirical buckets, fitted on the Stock 7-station
+# recipe's free CFM and shut-off only (datasheet 60.1 CFM / 22.9 Pa; 2 knobs, 2 targets = a fit):
+# Stock 59.8 CFM / 22.1 Pa. Held-out checks (QA rules b, b2, c): paddle 14 CFM at η 0.9 %, reversed
+# blades no rise, ranking vs 16 CFD designs ρ 0.809 (Euler 0.827). It is NOT a better ranker; it is
+# the model that cannot be exploited — used as the pre-CFD exploit guard (system_curve).
+PRESSURE_MODELS = ("euler", "axial_force")
+AX_SLIP = 0.65                # deviation / under-turning on the axial force (cf. SLIP)
+AX_K_FRICTION = 1.9           # friction / secondary static loss ~ K × axial dynamic head (cf. K_FRICTION)
+CD_90 = 1.8                   # flat-plate drag at 90° incidence (literature 1.2–2.0; fixed, not tuned)
+
+
+def _viterna(cl_s: float, cd_s: float, a_s: float, a: float) -> tuple[float, float]:
+    """Viterna–Corrigan post-stall cl/cd at incidence ``a`` (rad), continued from stall point ``a_s``."""
+    b1 = CD_90
+    s_s, c_s = math.sin(a_s), math.cos(a_s)
+    a2 = (cl_s - b1 * s_s * c_s) * s_s / max(c_s * c_s, 1e-6)
+    b2 = (cd_s - b1 * s_s * s_s) / max(c_s, 1e-6)
+    sa, ca = math.sin(a), max(abs(math.cos(a)), 1e-3)
+    cl = 0.5 * b1 * math.sin(2.0 * a) + a2 * ca * ca / max(abs(sa), 1e-3) * math.copysign(1.0, sa)
+    cd = b1 * sa * sa + b2 * ca
+    return cl, max(cd, cd_s)
+
+
+def _cl_cd_post_stall(alpha: float, camber: float, re: float) -> tuple[float, float]:
+    """The shared low-Re polar inside its stall band, Viterna–Corrigan beyond it (the table polar
+    clamps cl/cd at its edges, so a 60–90° paddle would otherwise keep cl ≈ 0.77, cd ≈ 0.10)."""
+    stall = math.radians(max(8.0, min(15.0, 10.0 + 3.0 * math.log10(max(re, 5000.0) / 20000.0))))
+    if -stall <= alpha <= stall:
+        return _cl_cd(alpha, camber, re=re)
+    edge = stall if alpha > stall else -stall
+    cl_s, cd_s = _cl_cd(edge, camber, re=re)
+    return _viterna(cl_s, cd_s, edge, alpha)
+
+
+def _table_polar(alpha: float, camber: float, re: float) -> tuple[float, float]:
+    return _cl_cd(alpha, camber, re=re)
+
 
 @dataclass
 class FanPoint:
@@ -105,12 +147,19 @@ _GeomFns = tuple[
 def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
                     n_elem: int = 20, rho: float = RHO_AIR,
                     tip_gap_mm: float | None = None, *, stator: bool = False,
-                    geom: _GeomFns | None = None) -> FanPoint:
+                    geom: _GeomFns | None = None,
+                    pressure_model: str = "euler") -> FanPoint:
     """Blade-element + Euler performance at one flow rate. Angles are measured from the TANGENTIAL
     (rotation) plane, matching the geometry's stagger convention (chord axial component = sin(stagger)).
 
     ``stator=True`` recovers exit swirl into static pressure (ideal OGV); default loses it as KE.
+    ``pressure_model="axial_force"`` (opt-in) takes the static rise from the blades' axial force with
+    a post-stall polar; ``stator`` does not apply there. The default ``"euler"`` is unchanged.
     """
+    if pressure_model not in PRESSURE_MODELS:
+        raise ValueError(f"pressure_model must be one of {PRESSURE_MODELS}, got {pressure_model!r}")
+    axial = pressure_model == "axial_force"
+    polar = _cl_cd_post_stall if axial else _table_polar
     tip_gap_mm = _effective_tip_gap_mm(params, tip_gap_mm)
     hub_r = params.hub_radius / 1000.0
     tip_r = params.tip_radius / 1000.0
@@ -123,6 +172,7 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
 
     dp0_num = 0.0        # mass-weighted Euler total-pressure rise
     swirl_ke = 0.0       # mass-weighted swirl dynamic head (lost without a stator)
+    ax_force = 0.0       # useful blade axial force over the span [N] (axial_force model)
     power = 0.0
     mass = 0.0
     converged = True
@@ -144,7 +194,7 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
             W = math.hypot(Vx, U - vth_m)
             re = W * c / NU_AIR                           # local blade Reynolds number
             alpha = beta - phi                            # incidence
-            cl, cd = _cl_cd(alpha, camb, re=re)           # Re-aware low-Re polar (§7.2)
+            cl, cd = polar(alpha, camb, re)               # Re-aware low-Re polar (§7.2)
             # tangential (rotation-direction) blade force per unit span, all blades (prop-BEMT decomposition)
             f_theta = 0.5 * rho * W * W * c * B * (cl * math.sin(phi) + cd * math.cos(phi))
             # angular-momentum balance: B-blade tangential force = rate of swirl momentum
@@ -168,14 +218,28 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
         dp0_num += rho * U * vth_eff * dm                 # useful Euler total-pressure rise
         swirl_ke += 0.5 * rho * vth_eff * vth_eff * dm    # swirl dynamic head (lost, no stator)
         power += dm * U * vth                             # shaft work (full blade force; deviation = loss)
+        if axial and B > 0:
+            phi1 = math.atan2(Vx, U)                      # inlet relative flow angle (no swirl yet)
+            w1 = math.hypot(Vx, U)
+            cl1, cd1 = polar(beta - phi1, camb, w1 * c / NU_AIR)
+            f_x = 0.5 * rho * w1 * w1 * c * B * (cl1 * math.cos(phi1) - cd1 * math.sin(phi1))
+            ax_force += AX_SLIP * leak * f_x * dr         # deviation + gap leakage, as for the swirl
         mass += dm
 
     if mass <= 0:
         return FanPoint(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, converged)
     dp_total = dp0_num / mass
     swirl_loss = 0.0 if stator else (swirl_ke / mass)
-    dp_static = dp_total - swirl_loss \
-        - K_FRICTION * 0.5 * rho * Vx * Vx               # endwall/duct/blade friction (grows with flow)
+    if axial:
+        dp_static = (ax_force / area if B > 0 and area > 0 else 0.0) \
+            - AX_K_FRICTION * 0.5 * rho * Vx * Vx        # axial force per annulus area minus friction
+        if flow_m3s > 0.0 and power > 0.0:
+            # Energy bound: the static rise cannot exceed the shaft work per unit volume (air power
+            # <= shaft power). Without it dense 11-blade designs read peak η up to 115 % (QA r4).
+            dp_static = min(dp_static, power / flow_m3s)
+    else:
+        dp_static = dp_total - swirl_loss \
+            - K_FRICTION * 0.5 * rho * Vx * Vx           # endwall/duct/blade friction (grows with flow)
     flow_cfm = flow_m3s * CFM_PER_M3S
     air_power = flow_m3s * max(dp_static, 0.0)
     eff = air_power / power if power > 1e-6 else 0.0
@@ -185,7 +249,7 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
 
 def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 20,
              rho: float = RHO_AIR, tip_gap_mm: float | None = None, *,
-             stator: bool = False) -> FanCurve:
+             stator: bool = False, pressure_model: str = "euler") -> FanCurve:
     """Sweep flow from near-shutoff to past free-delivery -> the fan's P-Q curve + key points."""
     tip_gap_mm = _effective_tip_gap_mm(params, tip_gap_mm)
     tip_r = params.tip_radius / 1000.0
@@ -199,7 +263,8 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
     flows = np.linspace(0.02 * q_max, q_max, n_points)
     geom = _interp_geometry(params)
     pts = [operating_point(params, rpm, float(q), n_elem=n_elem, rho=rho,
-                           tip_gap_mm=tip_gap_mm, stator=stator, geom=geom)
+                           tip_gap_mm=tip_gap_mm, stator=stator, geom=geom,
+                           pressure_model=pressure_model)
            for q in flows]
 
     # free delivery: interpolate where static rise crosses 0 (high-flow end)

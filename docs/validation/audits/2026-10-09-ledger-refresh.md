@@ -40,6 +40,19 @@ CT0 0.149) — to be transcribed from the UIUC source files directly before they
 |------|--------|--------|---------|
 | `propeller.bemt` | New registered check `tests/test_prop_uiuc_gws.py`: UIUC Propeller DB GWS Direct-Drive 5×4.3 (2 blades), read from the unmodified source files (sha256 verified against the QA bot's `SOURCES.md`; `tests/data/uiuc_gws_5x4.3/`). Tolerances proposed by the QA bot before this geometry was run. The source geometry includes the r/R 1.00 station (c/R 0.0176) that the QA transcription had dropped. | the unit's checks + the new file | **PASS** — η 0.606 vs measured 0.646 at J 0.572 (tol ±0.10); static CT0 0.1365 vs 0.149 at 7407 rpm (−8.4 %, tol ±15 %) |
 
+## Fourth pass (same day): axial-force BEM + pre-CFD exploit guard (QA-4)
+
+| Unit | Change | Checks | Verdict |
+|------|--------|--------|---------|
+| `fan.bem_prescreen` | Opt-in `pressure_model="axial_force"` in `operating_point` / `pq_curve` (QA bot's model, re-implemented after review, not applied as a diff). Default `euler` unchanged (Stock 58.2 CFM / 38.87 Pa, asserted). Reproduces the QA numbers exactly: Stock 59.8 / 22.08 Pa, paddle 89° 14.0 CFM η 0.9 %, reversed −45°/−60° no rise (−22.5 / −19.2 Pa). QA's pre-registered rule (c) on 16 CFD designs: ρ 0.809 (Euler 0.827) — PASS; it is not a better ranker. | unit checks + `tests/test_fan_bem.py` (new cases) | **PASS** |
+| `optimize.reject_dead_designs` | New `bem_exploit_reason`: refuses a design before CFD when the axial-force BEM finds no pressure rise or peak η < 5 %. Always on in `evaluate_candidate` (`exploit_guard=True`). Threshold margin: paddle 0.9 %; lowest of 93 real designs (16 CFD-scored, every saved design, both QA shortlists) 28.8 %; none of the 93 has no rise. | `tests/audit/test_dead_design_guard.py`, `tests/test_bem_exploit_guard.py` | **PASS** |
+
+## Axial-force energy bound (same day, branch `axial-force-bem`)
+
+| Unit | Change | Checks | Verdict |
+|------|--------|--------|---------|
+| `fan.bem_prescreen` | axial_force static rise capped at shaft work per volume (air power ≤ shaft power). QA r4 found peak η up to 115 % on dense 11-blade editor designs; E_rand1396 111 % → 100 %. QA reference cases unchanged (Stock 59.8 / 22.08 Pa, paddle 14.0 CFM η 0.9 %, reversed no rise). | unit checks + `tests/test_fan_bem.py` | **PASS** |
+
 ## Command evidence
 
 ```

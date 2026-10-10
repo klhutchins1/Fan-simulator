@@ -1090,7 +1090,7 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   0/0 silently. Return None/NaN plus a flag when there is no crossing, and never rank it.
   **[impact: med]** **[effort: low]**
   **DONE 2026-10-08 — `FanCurve.free_status` (crossed / beyond_sweep / no_rise); no_rise → 0 CFM; `bem_screen_cfm` → (0, 0).**
-- [ ] **23.5 Polar angle of attack clamped to the table edges — no post-stall model**
+- [x] **23.5 Polar angle of attack clamped to the table edges — no post-stall model**
   (`fansim/propeller/polars.py:76–86` `_interp_alpha`, used at `fan_bem.py:142`). For α ≳ 30° cl pins
   at 0.769 and cd at 0.10; for α ≲ −10° cl pins at −0.276; drag-driven swirl then still gives a
   positive Euler Δp. A stagger-89° "paddle" beats Stock (74.8 vs 58.2 CFM); reversed stagger gives
@@ -1098,6 +1098,7 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   designs outside the table. Optimizer bounds (stagger ≤ 48°) mostly avoid it; the editor does not.
   Re-run the Audit #4 ranking check afterwards. **[impact: med]** **[effort: med]**
   **INVESTIGATED 2026-10-08, NOT FIXED. Root cause is structural, not only the clamp: (1) blade drag's tangential push is counted as useful Euler pressure; (2) near shut-off the swirl hits the 0.95·U cap for every geometry (shut-off ≈ 38–39 Pa for all). Tried (a) Viterna–Corrigan post-stall in `polars._interp_alpha`: continuous, Audit #4 numbers unchanged, but the paddle still beat Stock AND the prop BEMT static (J=0) inflow iteration stopped converging (Audit #3 check) → reverted; (b) subtracting profile-drag dissipation in `fan_bem`: paddle/reversed fixed, but Audit #4 pre-registered criteria FAIL (ρ 0.714 → 0.126, v1 > v2 lost, Stock shut-off negative) → reverted. Mitigation in place: BEM is not shown in the cockpit; its only consumer is the optimizer pre-screen, whose stagger bounds (≤ 48°) keep sections inside the polar tables. A real fix needs a BEM re-derivation + re-calibration against CFD (new Audit #4 run).**
+  **DONE 2026-10-09 (user decision: exploit guard, not ranker) — the QA bot's axial-force pressure model (static rise from the blades' axial force, Viterna post-stall polar, 2 knobs fitted on Stock) re-implemented as opt-in `pressure_model="axial_force"`; Euler default unchanged. Passed QA's pre-registered rules a, b, b2, d and (c) vs 16 CFD designs (ρ 0.809 vs Euler 0.827 — no ranking gain); failed its own "all 5 picks beat Stock" check (1/5; it over-rates Stock's η). Used only in the new always-on pre-CFD guard `system_curve.bem_exploit_reason` (no rise or peak η < 5 % → refuse; paddle 0.9 %, lowest of 93 real designs 28.8 %). Ranking stays with the Q3 quick CFD screen. Whether the axial model ranks in new territory: `2026-10-09-screen-r3-cfd.md`.**
 
 ### 23.D Tests / CI
 

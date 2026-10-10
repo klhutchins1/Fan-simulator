@@ -35,3 +35,79 @@ def test_faster_rpm_more_pressure_and_flow():
 def test_operating_point_types():
     p = operating_point(BladeParams(), rpm=2000, flow_m3s=0.02)
     assert p.power_w > 0 and p.dp_total_pa >= p.dp_static_pa   # total >= static (swirl loss)
+
+
+# --- opt-in axial-force pressure model (QA-4) --------------------------------------------------
+import copy  # noqa: E402
+
+import pytest  # noqa: E402
+
+from fansim.geometry.config import load_blade_params  # noqa: E402
+
+AX = "axial_force"
+
+
+def _stock7():
+    return load_blade_params("config/problems/a12x25_reference.yaml")
+
+
+def _restagger(p, deg):
+    q = copy.deepcopy(p)
+    for s in q.stations:
+        s.stagger_deg = deg
+    return q
+
+
+def test_default_pressure_model_is_euler_and_unchanged():
+    p = _stock7()
+    a, b = pq_curve(p, 2000.0), pq_curve(p, 2000.0, pressure_model="euler")
+    assert a == b
+    assert a.free_delivery_cfm == pytest.approx(58.2, abs=0.05)
+    assert a.shutoff_dp_pa == pytest.approx(38.87, abs=0.01)
+
+
+def test_unknown_pressure_model_rejected():
+    with pytest.raises(ValueError):
+        operating_point(_stock7(), 2000.0, 0.02, pressure_model="bogus")
+
+
+def test_axial_force_stock_calibration():
+    """QA rule (a): Stock 7-station within 60.1 CFM ±10 % and 22.9 Pa ±25 % (datasheet; a fit)."""
+    c = pq_curve(_stock7(), 2000.0, pressure_model=AX)
+    assert c.free_status == "crossed"
+    assert 54.1 <= c.free_delivery_cfm <= 66.1 and 17.2 <= c.shutoff_dp_pa <= 28.6
+
+
+@pytest.mark.parametrize("stagger", [89.0, -45.0, -60.0])
+def test_axial_force_paddle_and_reversed_are_not_fans(stagger):
+    """QA rule (b): the Euler exploits (paddle 62.5 CFM at η 0.55; reversed blades +38 Pa) are gone."""
+    stock = pq_curve(_stock7(), 2000.0, pressure_model=AX)
+    c = pq_curve(_restagger(_stock7(), stagger), 2000.0, pressure_model=AX)
+    assert c.free_status == "no_rise" or (
+        c.free_delivery_cfm < 0.5 * stock.free_delivery_cfm
+        and c.peak_efficiency < 0.5 * stock.peak_efficiency)
+
+
+def test_axial_force_reversed_blade_gives_negative_pressure():
+    pt = operating_point(_restagger(_stock7(), -45.0), 2000.0, 0.005, pressure_model=AX)
+    assert pt.dp_static_pa < 0.0
+
+
+def test_axial_force_zero_blades_and_efficiency_bounds():
+    assert pq_curve(BladeParams(n_blades=0), 2000.0, pressure_model=AX).free_delivery_cfm == 0.0
+    c = pq_curve(_stock7(), 2000.0, pressure_model=AX)
+    assert all(0.0 <= p.efficiency < 1.0 for p in c.points)
+
+
+def test_axial_force_efficiency_never_exceeds_one():
+    """QA r4 E_rand1396 (11 blades, chords 48/58/50 mm): peak η 111 % before the energy bound."""
+    from fansim.optimize.search_space import blade_from_flat, stock_blade_flat
+
+    flat = {**stock_blade_flat(), "n_blades": 11, "stagger_root": 51.145, "stagger_mid": 33.679,
+            "stagger_tip": 24.794, "chord_root": 48.465, "chord_mid": 58.483, "chord_tip": 50.157,
+            "max_camber": 0.0048, "thickness_root": 0.08, "thickness_mid": 0.06,
+            "thickness_tip": 0.04, "camber_pos": 0.4, "hub_radius": 21.5, "tip_radius": 54.5,
+            "sweep_mid": 0, "sweep_tip": 0, "lean_mid": 0, "lean_tip": 0}
+    c = pq_curve(blade_from_flat(flat), 2000.0, pressure_model=AX)
+    assert all(0.0 <= p.efficiency <= 1.0 + 1e-9 for p in c.points)
+    assert c.peak_efficiency >= 0.99            # the bound is active on this design

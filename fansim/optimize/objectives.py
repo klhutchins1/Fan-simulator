@@ -48,6 +48,7 @@ from fansim.manufacturability.fdm_rules import check_printability
 from fansim.optimize.system_curve import (
     REF_CFM,
     SystemCurveError,
+    bem_exploit_reason,
     bem_screen_cfm,
     derated_probe_pa,
     refine_operating_metrics,
@@ -165,6 +166,7 @@ def evaluate_candidate(
     spec: FanSpec = A12X25,
     require_mountable: bool = False,
     bem_prescreen_cfm: float = 0.0,
+    exploit_guard: bool = True,
     tip_gap_mm: float | None = None,
     surrogate_prescreen_cfm: float = 0.0,
     surrogate=None,
@@ -256,6 +258,17 @@ def evaluate_candidate(
         gap_raw["beam_regime_warn"] = flutter.reason
     if not defl.ok:
         return _infeasible(defl.reason, t0, raw=gap_raw)
+
+    # --- Exploit guard (QA-4): always on, ~0.1 s. Refuse blades the axial-force BEM says cannot pump
+    # (paddles, wrong-hand blades) instead of spending a ~20 min CFD run on them. Never ranks. ---
+    if exploit_guard:
+        try:
+            why = bem_exploit_reason(params, target_rpm, remaining)
+        except Exception as exc:  # noqa: BLE001 - the guard must never break the eval
+            why = ""
+            gap_raw["exploit_guard_error"] = f"{type(exc).__name__}: {exc}"
+        if why:
+            return _infeasible(f"bem-guard: {why} (axial-force BEM; skipped CFD)", t0, raw=gap_raw)
 
     # --- BEM pre-screen (roadmap §7.1c): reject clearly-non-viable designs before CFD.
     # Floor is on hose operating CFM (same axis as CFD cfm_load), not free-delivery.
