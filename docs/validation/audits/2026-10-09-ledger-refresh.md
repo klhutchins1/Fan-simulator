@@ -62,6 +62,11 @@ The clip changes the CFD geometry of 6 CFD-scored designs (Stock 0.94 mm, stock_
 bem_9502/9504/9505 3.5–3.8 mm). Their saved scores are flagged "needs re-run (blade below hub)" and Stock is
 re-Assessed after the screen-r3 run (measurement).
 
+**Stock re-Assess with the clip (2026-10-09 20:04–20:23, same settings, `runs/screen_rank_audit/stock_hubclip`):**
+raw CFD free / load 54.79 / 41.75 → 54.63 / 41.88 CFM (−0.3 % / +0.3 %); scored 49.61 / 40.70 / 17.89 % →
+49.76 / 40.97 / 18.26 % (motor-limited 1907 → 1919 rpm). Within run-to-run spread: cutting the 0.94 mm
+trailing corner does not change Stock's performance.
+
 ## Command evidence
 
 ```
