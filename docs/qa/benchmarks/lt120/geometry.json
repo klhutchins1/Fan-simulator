@@ -1,0 +1,336 @@
+{
+ "fan_id": "lt120",
+ "full_geometry": true,
+ "n_blades": {
+  "value": 7,
+  "status": "published"
+ },
+ "hub_radius_mm": {
+  "value": 25.0,
+  "status": "published",
+  "note": "hub diameter 50 mm"
+ },
+ "tip_radius_mm": {
+  "value": 60.0,
+  "status": "published",
+  "note": "rotor diameter 120 mm"
+ },
+ "rpm": {
+  "value": 2000,
+  "status": "published"
+ },
+ "tip_gap_mm": {
+  "value": 0.5,
+  "status": "assumed",
+  "note": "not reported; fansim default"
+ },
+ "section_family": {
+  "value": "naca",
+  "status": "published",
+  "note": "NACA 4-digit sections"
+ },
+ "stations": [
+  {
+   "r_mm": {
+    "value": 23.0,
+    "status": "published"
+   },
+   "chord_mm": {
+    "value": 18.6,
+    "status": "published"
+   },
+   "stagger_deg": {
+    "value": 39.9,
+    "status": "assumed",
+    "note": "published 'setting angle'; assumed measured from the rotation plane (it decreases hub->tip, i.e. normal fan twist)"
+   },
+   "max_camber": {
+    "value": 0.04,
+    "status": "derived",
+    "note": "NACA 4420 first digit"
+   },
+   "camber_pos": {
+    "value": 0.4,
+    "status": "derived",
+    "note": "NACA 4420 second digit"
+   },
+   "thickness": {
+    "value": 0.2,
+    "status": "derived",
+    "note": "NACA 4420 last two digits"
+   }
+  },
+  {
+   "r_mm": {
+    "value": 26.7,
+    "status": "published"
+   },
+   "chord_mm": {
+    "value": 21.2,
+    "status": "published"
+   },
+   "stagger_deg": {
+    "value": 39.7,
+    "status": "assumed",
+    "note": "published 'setting angle'; assumed measured from the rotation plane (it decreases hub->tip, i.e. normal fan twist)"
+   },
+   "max_camber": {
+    "value": 0.04,
+    "status": "derived",
+    "note": "NACA 4418 first digit"
+   },
+   "camber_pos": {
+    "value": 0.4,
+    "status": "derived",
+    "note": "NACA 4418 second digit"
+   },
+   "thickness": {
+    "value": 0.18,
+    "status": "derived",
+    "note": "NACA 4418 last two digits"
+   }
+  },
+  {
+   "r_mm": {
+    "value": 30.4,
+    "status": "published"
+   },
+   "chord_mm": {
+    "value": 23.6,
+    "status": "published"
+   },
+   "stagger_deg": {
+    "value": 39.5,
+    "status": "assumed",
+    "note": "published 'setting angle'; assumed measured from the rotation plane (it decreases hub->tip, i.e. normal fan twist)"
+   },
+   "max_camber": {
+    "value": 0.04,
+    "status": "derived",
+    "note": "NACA 4416 first digit"
+   },
+   "camber_pos": {
+    "value": 0.4,
+    "status": "derived",
+    "note": "NACA 4416 second digit"
+   },
+   "thickness": {
+    "value": 0.16,
+    "status": "derived",
+    "note": "NACA 4416 last two digits"
+   }
+  },
+  {
+   "r_mm": {
+    "value": 34.2,
+    "status": "published"
+   },
+   "chord_mm": {
+    "value": 26.2,
+    "status": "published"
+   },
+   "stagger_deg": {
+    "value": 39.3,
+    "status": "assumed",
+    "note": "published 'setting angle'; assumed measured from the rotation plane (it decreases hub->tip, i.e. normal fan twist)"
+   },
+   "max_camber": {
+    "value": 0.04,
+    "status": "derived",
+    "note": "NACA 4414 first digit"
+   },
+   "camber_pos": {
+    "value": 0.4,
+    "status": "derived",
+    "note": "NACA 4414 second digit"
+   },
+   "thickness": {
+    "value": 0.14,
+    "status": "derived",
+    "note": "NACA 4414 last two digits"
+   }
+  },
+  {
+   "r_mm": {
+    "value": 37.9,
+    "status": "published"
+   },
+   "chord_mm": {
+    "value": 28.9,
+    "status": "published"
+   },
+   "stagger_deg": {
+    "value": 38.9,
+    "status": "assumed",
+    "note": "published 'setting angle'; assumed measured from the rotation plane (it decreases hub->tip, i.e. normal fan twist)"
+   },
+   "max_camber": {
+    "value": 0.04,
+    "status": "derived",
+    "note": "NACA 4412 first digit"
+   },
+   "camber_pos": {
+    "value": 0.4,
+    "status": "derived",
+    "note": "NACA 4412 second digit"
+   },
+   "thickness": {
+    "value": 0.12,
+    "status": "derived",
+    "note": "NACA 4412 last two digits"
+   }
+  },
+  {
+   "r_mm": {
+    "value": 41.6,
+    "status": "published"
+   },
+   "chord_mm": {
+    "value": 31.6,
+    "status": "published"
+   },
+   "stagger_deg": {
+    "value": 38.6,
+    "status": "assumed",
+    "note": "published 'setting angle'; assumed measured from the rotation plane (it decreases hub->tip, i.e. normal fan twist)"
+   },
+   "max_camber": {
+    "value": 0.04,
+    "status": "derived",
+    "note": "NACA 4410 first digit"
+   },
+   "camber_pos": {
+    "value": 0.4,
+    "status": "derived",
+    "note": "NACA 4410 second digit"
+   },
+   "thickness": {
+    "value": 0.1,
+    "status": "derived",
+    "note": "NACA 4410 last two digits"
+   }
+  },
+  {
+   "r_mm": {
+    "value": 45.3,
+    "status": "published"
+   },
+   "chord_mm": {
+    "value": 34.2,
+    "status": "published"
+   },
+   "stagger_deg": {
+    "value": 38.2,
+    "status": "assumed",
+    "note": "published 'setting angle'; assumed measured from the rotation plane (it decreases hub->tip, i.e. normal fan twist)"
+   },
+   "max_camber": {
+    "value": 0.04,
+    "status": "derived",
+    "note": "NACA 4408 first digit"
+   },
+   "camber_pos": {
+    "value": 0.4,
+    "status": "derived",
+    "note": "NACA 4408 second digit"
+   },
+   "thickness": {
+    "value": 0.08,
+    "status": "derived",
+    "note": "NACA 4408 last two digits"
+   }
+  },
+  {
+   "r_mm": {
+    "value": 49.1,
+    "status": "published"
+   },
+   "chord_mm": {
+    "value": 36.6,
+    "status": "published"
+   },
+   "stagger_deg": {
+    "value": 37.7,
+    "status": "assumed",
+    "note": "published 'setting angle'; assumed measured from the rotation plane (it decreases hub->tip, i.e. normal fan twist)"
+   },
+   "max_camber": {
+    "value": 0.04,
+    "status": "derived",
+    "note": "NACA 4406 first digit"
+   },
+   "camber_pos": {
+    "value": 0.4,
+    "status": "derived",
+    "note": "NACA 4406 second digit"
+   },
+   "thickness": {
+    "value": 0.06,
+    "status": "derived",
+    "note": "NACA 4406 last two digits"
+   }
+  },
+  {
+   "r_mm": {
+    "value": 52.8,
+    "status": "published"
+   },
+   "chord_mm": {
+    "value": 39.1,
+    "status": "published"
+   },
+   "stagger_deg": {
+    "value": 37.0,
+    "status": "assumed",
+    "note": "published 'setting angle'; assumed measured from the rotation plane (it decreases hub->tip, i.e. normal fan twist)"
+   },
+   "max_camber": {
+    "value": 0.04,
+    "status": "derived",
+    "note": "NACA 4406 first digit"
+   },
+   "camber_pos": {
+    "value": 0.4,
+    "status": "derived",
+    "note": "NACA 4406 second digit"
+   },
+   "thickness": {
+    "value": 0.06,
+    "status": "derived",
+    "note": "NACA 4406 last two digits"
+   }
+  },
+  {
+   "r_mm": {
+    "value": 56.5,
+    "status": "published"
+   },
+   "chord_mm": {
+    "value": 41.6,
+    "status": "published"
+   },
+   "stagger_deg": {
+    "value": 36.0,
+    "status": "assumed",
+    "note": "published 'setting angle'; assumed measured from the rotation plane (it decreases hub->tip, i.e. normal fan twist)"
+   },
+   "max_camber": {
+    "value": 0.04,
+    "status": "derived",
+    "note": "NACA 4406 first digit"
+   },
+   "camber_pos": {
+    "value": 0.4,
+    "status": "derived",
+    "note": "NACA 4406 second digit"
+   },
+   "thickness": {
+    "value": 0.06,
+    "status": "derived",
+    "note": "NACA 4406 last two digits"
+   }
+  }
+ ],
+ "bem_mapping": "r_frac=(r-hub)/(tip-hub); segment 1 (r=23.0 < hub 25.0) placed at r_frac 0; segment 10 values reused at r_frac 1 (no extrapolation)",
+ "source_note": "Table radii 23.0-56.5 mm do not span the stated 25-60 mm annulus; the paper gives no explanation."
+}

@@ -1,0 +1,32 @@
+{
+ "fan_id": "delta-afb0612hhb",
+ "full_geometry": false,
+ "curve_only": true,
+ "frame_size_mm": {
+  "value": 60,
+  "status": "published",
+  "note": "model family size, not the rotor diameter"
+ },
+ "rpm": {
+  "value": 4500,
+  "status": "published",
+  "note": "rated speed (REF.) at 12 V"
+ },
+ "input_power_w": {
+  "value": 1.44,
+  "status": "published",
+  "note": "rated electrical input at 12 V"
+ },
+ "n_blades": {
+  "value": null,
+  "status": "unknown"
+ },
+ "hub_radius_mm": {
+  "value": null,
+  "status": "unknown"
+ },
+ "tip_radius_mm": {
+  "value": null,
+  "status": "unknown"
+ }
+}

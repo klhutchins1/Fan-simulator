@@ -1,0 +1,34 @@
+{
+ "fan_id": "nf-a12x25",
+ "full_geometry": true,
+ "geometry_source": {
+  "value": "config/problems/a12x25_reference.yaml @ 31228d0",
+  "status": "derived",
+  "note": "stations fitted to validation/reference/a12x25_impeller.stl (user-provided, not OEM CAD); fit tolerance from the yaml header: stagger 1.5 deg, chord 3%, camber 0.005, t/c 10%"
+ },
+ "n_blades": {
+  "value": 9,
+  "status": "published",
+  "note": "Noctua; also in the repo recipe"
+ },
+ "hub_radius_mm": {
+  "value": 21.5,
+  "status": "derived",
+  "note": "repo recipe"
+ },
+ "tip_radius_mm": {
+  "value": 54.5,
+  "status": "derived",
+  "note": "repo recipe"
+ },
+ "rpm": {
+  "value": 2000,
+  "status": "published",
+  "note": "Noctua max speed"
+ },
+ "tip_gap_mm": {
+  "value": 0.5,
+  "status": "published",
+  "note": "per docs/validation/a12x25_pq_report.md"
+ }
+}
