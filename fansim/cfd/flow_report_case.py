@@ -115,7 +115,13 @@ def latest_time(case_dir) -> str:
                     times.append((float(d.name), d.name))
                 except ValueError:
                     pass
-    return max(times)[1] if times else "0"
+    if not times:
+        return "0"
+    name = max(times)[1]
+    # Steady runs end at the same time; the folder's mtime tells a re-run into it apart (review).
+    stamps = [root / name for root in roots if (root / name).is_dir()]
+    mtime = max((d.stat().st_mtime for d in stamps), default=0.0)
+    return f"{name}@{int(mtime)}"
 
 
 def load_or_compute_metrics(case_dir, *, mesh=None, loader=None) -> FlowMetrics:

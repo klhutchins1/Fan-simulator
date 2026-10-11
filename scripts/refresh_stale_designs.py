@@ -104,7 +104,8 @@ def apply(jf: Path, case: Path, res: ObjectiveResult) -> str:
     extra["cfd_stale"] = False
     if res.feasible:
         load_pa, _ = assess_load(PRESET)
-        stamp_score_extra(extra, res.raw, load_pa=load_pa, preset=PRESET, refine_op=False)
+        stamp_score_extra(extra, res.raw, load_pa=load_pa, preset=PRESET, refine_op=False,
+                          case_dir=extra.get("case_dir"))
         extra["actual_rpm"] = round(res.actual_rpm)
         extra["over_spec"] = list(res.over_spec)
         d["objectives"] = {"cfm_free": res.cfm_free, "cfm_load": res.cfm_load,

@@ -44,3 +44,20 @@ def test_side_view_matches_midplane_orientation_and_crops_to_fan():
     assert pos[1] > 0 and tuple(up) == (1.0, 0.0, 0.0) and focal == (0.0, 0.0, 0.0)
     x0, x1, y0, y1, z0, z1 = side_view_box(0.05, 0.0)
     assert (z0, z1) == pytest.approx((-0.075, 0.2)) and x1 == pytest.approx(0.06)
+
+
+def test_push_chart_holds_the_shared_matplotlib_lock(tmp_path, monkeypatch):
+    """Review: pyplot is not thread-safe; spanwise plots run beside the report in executor threads."""
+    from fansim.cfd import flow_report_viz as frv
+    from fansim.cfd import spanwise
+
+    seen = []
+    real = frv._push_unlocked
+
+    def spy(*a, **k):
+        seen.append(spanwise._PLOT_LOCK.locked())
+        return real(*a, **k)
+
+    monkeypatch.setattr(frv, "_push_unlocked", spy)
+    frv._push([1, 2, 3, 4, 5], None, tmp_path / "p.png")
+    assert seen == [True]

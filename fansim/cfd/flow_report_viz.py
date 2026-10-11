@@ -128,6 +128,14 @@ def _side(g, case_dir, field, cmap, clim, title, path, z_fan, tip_r, highlight_p
 
 
 def _push(bands, stock_bands, path):
+    """Push bars under the shared pyplot lock (pyplot is not thread-safe; spanwise plots run too)."""
+    from fansim.cfd.spanwise import _PLOT_LOCK
+
+    with _PLOT_LOCK:
+        return _push_unlocked(bands, stock_bands, path)
+
+
+def _push_unlocked(bands, stock_bands, path):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt

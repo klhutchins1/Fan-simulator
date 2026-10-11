@@ -94,3 +94,58 @@ def test_pictures_are_rendered_once_per_run(tmp_path, monkeypatch):
     (tmp_path / "flow_face.png").unlink()
     ffr._pictures_cached(tmp_path, None, key="v2|750|ref")  # file gone: re-render
     assert len(calls) == 3
+
+
+def _metrics():
+    from fansim.cfd.flow_report import FlowMetrics
+    return FlowMetrics(0.05, False, [1, 2, 3, 4, 5], 0.2, 0.05, 0.8, 60.0, 2.5)
+
+
+def test_stock_without_saved_flow_falls_back_to_no_comparison(tmp_path, monkeypatch):
+    """Review: a pruned Stock run must not blank every design's card."""
+    from fansim.cfd.flow_report import FlowReportUnavailable
+    ref = tmp_path / "ref"
+    ref.mkdir()
+
+    def metrics(cd, **k):
+        if Path(cd) == ref:
+            raise FlowReportUnavailable("no saved flow fields")
+        return _metrics()
+
+    monkeypatch.setattr(ffr, "load_or_compute_metrics", metrics)
+    monkeypatch.setattr(ffr, "first_mismatch", lambda a, b: None)
+    monkeypatch.setattr(ffr, "_pictures", lambda *a, **k: {})
+    out = ffr.build_report(tmp_path, ref)
+    assert len(out["flow_rows"]) == 5
+    assert "Stock's saved run has no flow data" in out["flow_msg"]
+
+
+def test_picture_failure_keeps_the_verdicts(tmp_path, monkeypatch):
+    """Review: a VTK error in one picture must not throw away the verdict rows."""
+    monkeypatch.setattr(ffr, "load_or_compute_metrics", lambda cd, **k: _metrics())
+
+    def boom(*a, **k):
+        raise RuntimeError("vtk")
+
+    monkeypatch.setattr(ffr, "_pictures", boom)
+    out = ffr.build_report(tmp_path, None)
+    assert len(out["flow_rows"]) == 5 and all(r["img"] == "" for r in out["flow_rows"])
+
+
+def test_superseded_build_is_skipped_and_builds_are_single_flight():
+    """Review: clicking through designs must not start one full-mesh build per click."""
+    import threading
+    gen, lock, calls = [1], threading.Lock(), []
+    assert ffr._run_if_current(gen, 1, lock, lambda: calls.append("a") or "a") == "a"
+    gen[0] = 3
+    assert ffr._run_if_current(gen, 2, lock, lambda: calls.append("b") or "b") is None
+    assert calls == ["a"]
+    lock.acquire()
+    got = []
+    t = threading.Thread(target=lambda: got.append(ffr._run_if_current(gen, 3, lock, lambda: "c")))
+    t.start()
+    t.join(0.2)
+    assert got == []          # waits while another build holds the lock
+    lock.release()
+    t.join(2)
+    assert got == ["c"]

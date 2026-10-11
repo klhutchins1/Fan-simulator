@@ -69,7 +69,13 @@ def _pictures_cached(case_dir, metrics, *, key: str, out_dir=None, **kw) -> dict
             return pics
     except (OSError, ValueError, AttributeError):
         pass
-    pics = _pictures(case_dir, metrics, out_dir=out_dir, **kw)
+    try:
+        pics = _pictures(case_dir, metrics, out_dir=out_dir, **kw)
+    except Exception as exc:  # noqa: BLE001 - verdicts still show without pictures
+        _log.warning("flow pictures failed for %s: %s: %s", case_dir, type(exc).__name__, exc)
+        return {}
+    if not pics:
+        return {}
     try:
         out.mkdir(parents=True, exist_ok=True)
         stamp.write_text(json.dumps({"key": key, "pictures": {k: str(v) for k, v in pics.items()},
@@ -118,7 +124,11 @@ def build_report(case_dir, ref_dir) -> dict:
         if why:
             msg = f"Stock hasn't been tested this way, so no comparison ({why})."
         else:
-            stock, scales, stock_pics = _stock_pack(ref_dir)
+            try:
+                stock, scales, stock_pics = _stock_pack(ref_dir)
+            except FlowReportUnavailable:  # pruned reference: still judge this design on its own
+                stock, scales, stock_pics = None, None, {}
+                msg = "Stock's saved run has no flow data, so no comparison."
     pics = _pictures_cached(case_dir, m, key=_key(case_dir, ref_dir if stock else None),
                             scales=scales, stock_bands=stock.band_dp0_pa if stock else None)
     rows = judge(m, stock)
@@ -150,11 +160,26 @@ def _apply_if_current(state, *, token, payload: dict) -> bool:
     return True
 
 
+def _run_if_current(gen: list, my_gen: int, lock, fn):
+    """One build at a time; a build superseded by a newer pick is skipped before it starts."""
+    with lock:
+        if gen[0] != my_gen:
+            return None
+        return fn()
+
+
 def bind(session) -> None:
     state = session.state
+    import threading
+
     from fansim.cockpit import fan_runtime
 
+    gen = [0]                 # bumped on every pick (spec: airflow_gen-style generation)
+    lock = threading.Lock()   # single-flight: each build loads a full mesh
+
     def _schedule_flow_report(d):
+        gen[0] += 1
+        my_gen = gen[0]
         msg = card_message(d)
         state.flow_rows, state.flow_overall, state.flow_numbers = [], "", []
         if msg is not None:
@@ -167,7 +192,10 @@ def bind(session) -> None:
         async def task():
             try:
                 loop = asyncio.get_running_loop()
-                payload = await loop.run_in_executor(None, lambda: build_report(case, get_reference()))
+                payload = await loop.run_in_executor(None, lambda: _run_if_current(
+                    gen, my_gen, lock, lambda: build_report(case, get_reference())))
+                if payload is None:  # superseded by a newer pick before it started
+                    return
             except FlowReportUnavailable as exc:
                 payload = {"flow_msg": f"Couldn't read this run's flow ({exc}). Re-run Assess."}
             except Exception as exc:  # noqa: BLE001

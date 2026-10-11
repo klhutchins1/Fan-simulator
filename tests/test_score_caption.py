@@ -70,3 +70,13 @@ def test_stamp_score_extra_off_does_not_invent_op_cfd():
     )
     assert extra["refine_op"] is False
     assert "op_cfd" not in extra
+
+
+def test_fresh_assess_clears_an_old_scored_case_pointer():
+    """Review finding: after a re-Assess the score lives in the design's own folder again."""
+    from fansim.cockpit.score_caption import stamp_score_extra
+    extra = {"case_dir": "screen_rank_audit/t9005/full"}
+    stamp_score_extra(extra, {}, load_pa=8.0, preset="case")
+    assert "case_dir" not in extra
+    stamp_score_extra(extra, {}, load_pa=8.0, preset="case", case_dir="screen_rank_audit/x/full")
+    assert extra["case_dir"] == "screen_rank_audit/x/full"

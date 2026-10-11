@@ -65,7 +65,7 @@ def test_compute_and_cache(tmp_path):
     m2 = frc.load_or_compute_metrics(case, loader=loader)
     assert m1 == m2 and len(calls) == 1
     data = json.loads(frc.report_json_path(case).read_text())
-    assert data["version"] == FLOW_REPORT_VERSION and data["time"] == "500"
+    assert data["version"] == FLOW_REPORT_VERSION and data["time"].startswith("500@")
 
 
 def test_cache_invalidated_by_version(tmp_path):
@@ -106,3 +106,14 @@ def test_mesh_level_read_from_snappy_dict_when_not_stamped(tmp_path):
     assert frc.test_settings(case)["surf_max"] == 4
     bare = _case(tmp_path / "bare", surf_max=None)
     assert frc.test_settings(bare)["surf_max"] is None
+
+
+def test_rerun_at_same_time_invalidates_cache(tmp_path):
+    """Review: steady runs end at the same time; a re-Assess into the same folder must not reuse."""
+    import os
+    case = _case(tmp_path)
+    frc.load_or_compute_metrics(case, loader=lambda cd: _grid())
+    t = case / "500"
+    os.utime(t, (t.stat().st_atime + 100, t.stat().st_mtime + 100))
+    m = frc.load_or_compute_metrics(case, loader=lambda cd: _grid(uz=2.0))
+    assert m.mean_uz_exit == pytest.approx(2.0)
