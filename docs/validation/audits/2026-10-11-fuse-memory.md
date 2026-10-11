@@ -25,3 +25,7 @@ The fuse takes it to 6.5 GB.
 face count (×1.15 headroom). It raises `MemoryError` with a plain message when free RAM is short.
 It doesn't block when free RAM can't be read or the tier is forced. The tier table's GB figures are
 for Stock-like designs; the docstring now says so.
+
+## Ledger
+
+`geometry.stock_handedness` re-recorded on 2026-10-11 after the full suite (1704 passed, 0 failed), which includes its registered checks and its dependants'.
