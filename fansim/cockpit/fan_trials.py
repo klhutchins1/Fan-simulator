@@ -114,6 +114,7 @@ def bind(session) -> None:
         else:
             state.preview_msg = "Edit the sliders below, then press Preview geometry."
         session._schedule_airflow(d)
+        session._schedule_flow_report(d)
         try:
             ctrl.view_update()
         except Exception as exc:  # noqa: BLE001

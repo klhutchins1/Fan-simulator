@@ -18,6 +18,7 @@ from fansim.cockpit import (
     fan_core,
     fan_editor,
     fan_export,
+    fan_flow_report,
     fan_library,
     fan_models,
     fan_optimize,
@@ -46,6 +47,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
     fan_models.bind(session)
     fan_editor.bind(session)
     fan_viz.bind(session)
+    fan_flow_report.bind(session)
     fan_library.bind(session)
     fan_export.bind(session)
     fan_assess.bind(session)

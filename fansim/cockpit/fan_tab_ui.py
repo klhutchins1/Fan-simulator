@@ -1338,8 +1338,46 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             v_show="export_download",
                             classes="text-caption",
                         )
-                    with v3.VCard(classes="mb-2 pa-2", v_show="fan_subtab === 'results'"):
+                    with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'results'"):
+                        html.Div("How the air moves", classes="text-subtitle-1 mb-1")
+                        html.Div("{{ flow_overall }}", classes="text-body-2 font-weight-medium mb-2",
+                                 v_show="flow_overall")
+                        html.Div("{{ flow_msg }}", classes="text-caption text-medium-emphasis mb-2",
+                                 v_show="flow_msg")
+                        v3.VProgressLinear(indeterminate=True, height=3, color="primary",
+                                           classes="mb-2", v_show="flow_busy")
+                        with v3.VRow(v_for="row in flow_rows", key="row.key", dense=True,
+                                     classes="mb-2 align-center"):
+                            with v3.VCol(cols=12, md=4):
+                                html.Div("{{ row.icon }} {{ row.title }}",
+                                         classes="text-subtitle-2")
+                                html.Div("{{ row.text }}", classes="text-body-2")
+                            with v3.VCol(cols=6, md=4):
+                                html.Div("This design", classes="text-caption")
+                                html.Img(src=("row.img",), v_show="row.img",
+                                         style="width:100%;cursor:zoom-in;border-radius:4px;",
+                                         click="flow_zoom_src = row.img; flow_zoom = true")
+                            with v3.VCol(cols=6, md=4):
+                                html.Div("Stock", classes="text-caption")
+                                html.Img(src=("row.stock_img",), v_show="row.stock_img",
+                                         style="width:100%;cursor:zoom-in;border-radius:4px;",
+                                         click="flow_zoom_src = row.stock_img; flow_zoom = true")
+                        with html.Div(v_show="ui_mode === 'expert' && flow_numbers.length"):
+                            html.Div("Technical detail, not reviewed for plain language",
+                                     classes="text-caption text-disabled mt-2")
+                            with html.Table(classes="text-caption"):
+                                with html.Tr(v_for="n in flow_numbers", key="n.name"):
+                                    html.Td("{{ n.name }}", classes="pr-4")
+                                    html.Td("{{ n.design }}", classes="pr-4")
+                                    html.Td("{{ n.stock }}")
+                        with v3.VDialog(v_model=("flow_zoom",), max_width="1100"):
+                            with v3.VCard(classes="pa-2", click="flow_zoom = false"):
+                                html.Img(src=("flow_zoom_src",), style="width:100%;")
+                    with v3.VCard(classes="mb-2 pa-2",
+                                  v_show="fan_subtab === 'results' && ui_mode === 'expert'"):
                         html.Div("Duct airflow — slices, streamlines & spanwise", classes="text-subtitle-2 mb-1")
+                        html.Div("Technical detail, not reviewed for plain language",
+                                 classes="text-caption text-disabled mb-1")
                         html.Div(
                             "|U| / pressure midplane: cut through the duct center, flow left → "
                             "right (FRONT/inlet LEFT, OUTLET RIGHT); brighter = faster. "

@@ -155,6 +155,20 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
 
     with SinglePageLayout(server) as layout:
         layout.title.set_text("Fan Simulator — printable blade designer")
+        with layout.toolbar:
+            from trame.widgets import client as _client
+
+            v3.VSpacer()
+            with v3.VBtnToggle(v_model=("ui_mode",), mandatory=True, density="compact",
+                               variant="outlined", color="primary", classes="mr-2"):
+                v3.VBtn("Simple", value="simple", size="small")
+                v3.VBtn("Expert", value="expert", size="small")
+            # Remember the choice per browser (localStorage key fansim.ui_mode, §24).
+            _client.ClientTriggers(mounted=(
+                "try { const s = window.localStorage.getItem('fansim.ui_mode');"
+                " if (s === 'simple' || s === 'expert') { ui_mode = s; } } catch (e) {}"))
+            _client.ClientStateChange(value="ui_mode", change=(
+                "try { window.localStorage.setItem('fansim.ui_mode', ui_mode); } catch (e) {}"))
         state.trame__title = "Fan Simulator"
         with layout.content:
             with v3.VContainer(fluid=True, classes="pa-2") as _tabs_box:
