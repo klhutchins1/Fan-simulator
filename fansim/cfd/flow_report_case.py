@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import numpy as np
@@ -55,6 +56,18 @@ def _json(path: Path) -> dict:
         return {}
 
 
+_IMPELLER_LEVEL = re.compile(r"impeller\s*\{\s*level\s*\(\s*\d+\s+(\d+)\s*\)")
+
+
+def _snappy_surf_max(case_dir: Path) -> int | None:
+    """Mesh level from the case's own snappyHexMeshDict (runs before 2026-10-09 didn't stamp it)."""
+    try:
+        m = _IMPELLER_LEVEL.search((case_dir / "system" / "snappyHexMeshDict").read_text(encoding="utf-8"))
+    except OSError:
+        return None
+    return int(m.group(1)) if m else None
+
+
 def test_settings(case_dir) -> dict:
     case_dir = Path(case_dir)
     raw = _json(case_dir / "_eval_result.json").get("raw") or {}
@@ -65,7 +78,10 @@ def test_settings(case_dir) -> dict:
         bp = round(float(raw["p_probe_pa"]) / (der * der) * 2.0) / 2.0
     except (KeyError, TypeError, ValueError, ZeroDivisionError):
         bp = None
-    return {"back_pressure_pa": bp, "surf_max": raw.get("surf_max"),
+    surf = raw.get("surf_max")
+    if surf is None:
+        surf = _snappy_surf_max(case_dir)
+    return {"back_pressure_pa": bp, "surf_max": surf,
             "cfd_version": meta.get("cfd_version"), "rpm": meta.get("rpm"),
             "duct_shape": meta.get("duct_shape"), "casing": meta.get("casing")}
 

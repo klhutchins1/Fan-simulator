@@ -94,3 +94,15 @@ def test_reference_missing_returns_none(tmp_path, monkeypatch):
     import shutil
     shutil.rmtree(case)
     assert fr.get_reference() is None  # deleted reference reads as missing
+
+
+def test_mesh_level_read_from_snappy_dict_when_not_stamped(tmp_path):
+    """Runs before 2026-10-09 didn't stamp surf_max; the case's own mesh settings still state it."""
+    case = _case(tmp_path, surf_max=None)
+    (case / "system").mkdir()
+    (case / "system" / "snappyHexMeshDict").write_text(
+        "refinementSurfaces\n{\n    impeller { level (3 4); patchInfo { type wall; } }\n"
+        "    frame { level (3 4); patchInfo { type wall; } }\n}\n")
+    assert frc.test_settings(case)["surf_max"] == 4
+    bare = _case(tmp_path / "bare", surf_max=None)
+    assert frc.test_settings(bare)["surf_max"] is None
