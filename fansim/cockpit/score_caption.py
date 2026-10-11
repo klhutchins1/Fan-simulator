@@ -38,8 +38,18 @@ def score_caption(extra: dict) -> str:
 def stamp_score_extra(
     extra: dict, raw: dict | None, *, load_pa: float, preset: str,
     refine_op: bool = False,
+    case_dir: str | None = None,
 ) -> dict:
-    """Copy curve / duct / print-k stamps plus the hose used for this Assess."""
+    """Copy curve / duct / print-k stamps plus the hose used for this Assess.
+
+    ``case_dir`` (relative to runs/) names the CFD case behind this score when it is not the design's
+    own folder (``scripts/refresh_stale_designs.py``). A plain Assess scores in the design's folder,
+    so any old pointer is dropped; otherwise airflow pictures would show the previous run.
+    """
+    if case_dir:
+        extra["case_dir"] = case_dir
+    else:
+        extra.pop("case_dir", None)
     extra.update(curve_provenance(raw))
     extra["load_pa"] = float(load_pa)
     extra["preset"] = preset

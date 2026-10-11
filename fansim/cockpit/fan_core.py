@@ -59,6 +59,15 @@ def apply_state_defaults(session) -> None:
     state = session.state
 
     state.selected_trial = None
+    state.ui_mode = "simple"  # Simple / Expert switch (roadmap §24)
+    state.flow_rows = []
+    state.flow_overall = ""
+    # First load shows the reference, which has no flow simulation (§24).
+    state.flow_msg = "No flow simulation for this design yet. Run Assess to see how the air moves."
+    state.flow_busy = False
+    state.flow_numbers = []
+    state.flow_zoom = False
+    state.flow_zoom_src = ""
     state.info_lines = ["Select a design (click a point or use the dropdown)."]
     state.preview_msg = (
         "Stock / reference loaded — press Preview to refresh 3-D, or Assess to run CFD "

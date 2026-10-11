@@ -1,6 +1,6 @@
 # Flow report card ("How the air moves") — design
 
-Date: 2026-10-10 · Status: approved in conversation, awaiting spec review · Roadmap §24
+Date: 2026-10-10 · Status: implemented 2026-10-10 (branch flow-report-card; thresholds and push definition updated per the audit) · Roadmap §24.1
 
 ## Why
 
@@ -61,7 +61,7 @@ volume, which stands in for area within the slab.
 |---|---|
 | `backflow_frac` | weighted share of slab samples with Uz < 0 |
 | `net_reversed` | weighted mean Uz < 0 |
-| `band_dp0_pa[5]` | 5 equal radial bands, hub to tip: ρ·(mean p0 at exit − mean p0 at inlet), where p0 = p + ½\|U\|² (kinematic, then × ρ = `RHO_AMCA`) |
+| `band_dp0_pa[5]` | 5 equal radial bands, hub to tip: ρ·(mean p_u at exit − mean p_u at inlet), where p_u = p + ½Uz², the useful push. **Swirl is excluded:** it is the separate spin row. Changed 2026-10-10 after F-check run 1; see the audit |
 | `swirl_frac` | Σw·Uθ² / Σw·(Uz² + Uθ²) on the exit slab |
 | `dead_frac` | weighted share of samples with \|Uz\| < 0.10 · (weighted mean Uz) |
 | `tip_band_uz_ratio` | mean Uz in the outer 10 % of the span ÷ mean Uz over the whole span |
@@ -75,10 +75,10 @@ volume, which stands in for area within the slab.
 | row | ✓ | ⚠ | ✕ |
 |---|---|---|---|
 | Air direction | Δbackflow ≤ +0.02 | Δbackflow > +0.02 | `net_reversed` |
-| Push along the blade | per band: "stronger" if > +10 %, "similar" if within ±10 %, "weaker" if < −10 % of Stock's band | — | — |
+| Push along the blade | per band: "stronger" if > +15 %, "similar" if within ±15 %, "weaker" if < −15 % of Stock's band (**was ±10 %**: Stock run-to-run is 14.3 %, audit 2026-10-10-flow-report-checks) | — | — |
 | Wasted spin | swirl_frac ≤ 1.10 × Stock | above that | — |
 | Dead or blocked air | dead_frac ≤ Stock + 0.02 **and** tip ratio ≥ 0.90 × Stock | either fails | — |
-| Noise hint | ΔSWL ≤ +1.0 dB | ΔSWL > +1.0 dB | — |
+| Noise hint | ΔSWL ≤ +2.8 dB | ΔSWL > +2.8 dB (**was 1.0 dB**: Stock run-to-run is 2.75 dB, same audit) | — |
 
 - **Overall line:** "Better than Stock at: …" lists the rows that are ✓ and strictly better than Stock.
   "Worse at: …" lists the ⚠/✕ rows. The push row counts as better when the stronger bands outnumber

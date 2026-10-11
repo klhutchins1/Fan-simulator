@@ -31,7 +31,7 @@ from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION
 from fansim.cfd.spanwise import ensure_spanwise_artifacts, find_cached_spanwise
 from fansim.cockpit.airflow_panel import pick_airflow_uri, png_data_uri
 from fansim.cockpit import fan_runtime
-from fansim.cockpit.data import Design
+from fansim.cockpit.data import Design, scored_case_dir
 from fansim.cockpit.errors import log_caught
 from fansim.manufacturability import check_printability
 from fansim.manufacturability.fdm_rules import preview_unprintable_note
@@ -655,7 +655,8 @@ def bind(session) -> None:
         fan_runtime.asynchronous.create_task(task())
 
     def _schedule_airflow(d: Design):
-        case = Path(d.stl_path).parent if d.has_model else None
+        # The run behind the score: refreshed designs keep old fields in their own folder.
+        case = scored_case_dir(d) if d.has_model else None
         if case is None or d.extra.get("cfd_stale"):
             _clear_airflow("Airflow not available for this design")
             _apply_render(reset=False)
