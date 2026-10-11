@@ -13,7 +13,9 @@ serial fuse, all blades at once                   4.9 GB     85 s
 serial fuse, one blade at a time                  4.5 GB    200 s
 =============================================  =========  ======
 
-(~1.9 GB of that is the process itself: imports + lofts.) The tier is chosen from the RAM that is
+(~1.9 GB of that is the process itself: imports + lofts.) These figures are for Stock-like blades.
+Surface features multiply the face count and the fuse peak with it (featured 9-blade: 6.5 GB on
+every strategy); ``check_fuse_memory`` below refuses a build that would not fit (roadmap 25.5). The tier is chosen from the RAM that is
 *available* when the build starts, not the installed total: a 32 GB desktop with a CFD VM holding
 12 GB has ~9 GB free and must not start a 7.7 GB fuse.
 
@@ -131,3 +133,37 @@ def current_tier() -> MemoryTier:
         return _BY_NAME[forced]
     free = free_ram_bytes()
     return _BY_NAME["8gb"] if free is None else tier_for_free_gb(free / GB)
+
+
+# --- Fuse peak from the face count (roadmap 25.5) ------------------------------------------------
+# The fuse's peak RAM grows with how many faces it joins, whatever the strategy above. Measured on
+# Windows 2026-10-11 (docs/validation/audits/2026-10-11-fuse-memory.md): 9-blade plain design,
+# 18 084 faces -> 2.0 GB; featured S5_0011 (tubercles + serrations + dimples), 71 229 faces -> 6.5 GB
+# (6.0 GB even one blade at a time). Both fit ~0.37 GB (process + imports) + 86 kB per face.
+FUSE_BASE_GB = 0.37
+FUSE_GB_PER_FACE = 8.6e-5
+FUSE_MARGIN = 1.15  # headroom over the estimate before a build is allowed
+
+
+def fuse_peak_estimate_gb(n_faces: int) -> float:
+    return FUSE_BASE_GB + FUSE_GB_PER_FACE * float(n_faces)
+
+
+def check_fuse_memory(n_faces: int) -> None:
+    """Raise ``MemoryError`` with a plain message when the fuse would not fit in free RAM.
+
+    A build that swaps can freeze the whole machine (QA round 6 saw 6 h of a frozen box), so it is
+    refused up front. If free RAM can't be read, or the tier is forced, the build goes ahead.
+    """
+    if os.environ.get(ENV_TIER):
+        return
+    free = free_ram_bytes()
+    if free is None:
+        return
+    need = fuse_peak_estimate_gb(n_faces) * FUSE_MARGIN
+    have = free / GB
+    if need > have:
+        raise MemoryError(
+            f"This design needs about {need:.1f} GB of free memory to build ({n_faces:,} surfaces; "
+            f"surface features add many) but only {have:.1f} GB is free. Close other programs, or "
+            f"turn some surface features off, and try again.")
