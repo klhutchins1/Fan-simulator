@@ -59,3 +59,24 @@ def test_blade_inside_the_cylinder_is_kept_when_the_boolean_is_empty(monkeypatch
     blade = cq.Solid.makeBox(5, 4, 2, cq.Vector(40, -2, 0))            # r ≤ 45.2 < 50
     monkeypatch.setattr(cq.Solid, "intersect", lambda self, *o: cq.Compound.makeCompound([]))
     assert gb._trim_blade_to_tip_cylinder(blade, 50.0) is blade
+
+
+def test_tip_trim_survives_tangent_contact_at_tip_radius():
+    """QA-21 (S5_0007): the tip section touches the cylinder at exactly R; the boolean fails there.
+
+    Root cause: the outermost loft section is built at r = tip_radius, so its mid-chord sits on
+    the cutting cylinder (tangent contact). Features + 43 deg lean made OCCT return empty at R
+    while R +- 0.02 mm worked. The trim must still end within the tip radius.
+    """
+    import json
+    from pathlib import Path
+
+    from fansim.geometry.blade import TIP_TRIM_TOL_MM, _max_radius, build_blade_solid
+    from fansim.geometry.features import Features
+    from fansim.optimize.search_space import blade_from_flat
+
+    d = json.loads((Path(__file__).parent / "data" / "qa21_tip_trim_flat.json").read_text(encoding="utf-8"))
+    p = blade_from_flat(d["flat"], Features(**d["features"]))
+    blade = build_blade_solid(p)
+    assert _max_radius(blade) <= float(p.tip_radius) + TIP_TRIM_TOL_MM
+    assert abs(blade.Volume()) > 800.0  # the real blade, not a sliver

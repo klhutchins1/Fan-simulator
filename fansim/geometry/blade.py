@@ -1222,6 +1222,13 @@ def _trim_blade_to_tip_cylinder(blade: cq.Solid, tip_radius: float) -> cq.Solid:
                                     cq.Vector(0, 0, 1))
         if (out := _trimmed_within(blade.intersect(cyl), R)) is not None:
             return out
+    # The outermost loft section is built at r = R, so its mid-chord touches the cutter
+    # tangentially; with dense featured lofts OCCT can return nothing at exactly R (QA-21: empty
+    # at R, clean at R -/+ 0.02). A cutter a hair inside avoids the tangency and still ends <= R.
+    for dr in TIP_TRIM_INSET_MM:
+        cyl = cq.Solid.makeCylinder(R - dr, h, cq.Vector(0, 0, z0), cq.Vector(0, 0, 1))
+        if (out := _trimmed_within(blade.intersect(cyl), R)) is not None:
+            return out
     # A blade already inside the cylinder (e.g. a rounded tip) needs no trim, and OCCT can
     # return an empty intersection for it — keep it.
     r_max = _max_radius(blade)
@@ -1261,6 +1268,7 @@ def _trimmed_within(shape, R: float):
 
 
 TIP_TRIM_TOL_MM = 0.1   # a trimmed blade may reach this far past tip_radius (boolean edge noise)
+TIP_TRIM_INSET_MM = (0.02, 0.05)  # cutter insets tried when the cut at exactly R fails (QA-21)
 
 
 def _max_radius(shape: cq.Shape) -> float:
