@@ -14,7 +14,7 @@ from fansim.cfd.flow_report import (
     noise_density,
 )
 from fansim.cfd.flow_report_case import case_geometry
-from fansim.cfd.midplane import _RENDER_LOCK, robust_clim, rotor_outline
+from fansim.cfd.midplane import _RENDER_LOCK, robust_clim, rotor_outline, slice_volume_for_viz
 
 PICTURES = ("face", "push", "spin", "noise")
 WINDOW = (640, 480)
@@ -54,14 +54,14 @@ def _plotter():
 
 def _face(g, case_dir, hub_r, tip_r, z_fan, scales, metrics, path):
     z0 = z_fan + PLANE_Z_FRAC * tip_r
-    slc = g.slice(normal=(0, 0, 1), origin=(0, 0, z0))
+    slc = slice_volume_for_viz(g, (0.0, 0.0, 1.0), (0.0, 0.0, z0))  # polyhedra-safe (§22.4)
     pts = slc.cell_centers().points if slc.n_cells else np.zeros((0, 3))
     rr = np.hypot(pts[:, 0], pts[:, 1])
     slc = slc.extract_cells(np.flatnonzero((rr >= hub_r) & (rr <= tip_r))) if slc.n_cells else slc
     with _RENDER_LOCK:
         pl = _plotter()
         try:
-            pl.add_mesh(slc.cell_data_to_point_data(), scalars="Uz", cmap="Blues",
+            pl.add_mesh(slc.cell_data_to_point_data(), scalars="Uz", cmap="Blues", lighting=False,
                         clim=[0.0, scales["uz"][1]], show_scalar_bar=True,
                         scalar_bar_args={"title": "forward speed (m/s)"})
             uz = np.asarray(slc.cell_data["Uz"]) if slc.n_cells else np.zeros(0)
@@ -84,12 +84,27 @@ def _face(g, case_dir, hub_r, tip_r, z_fan, scales, metrics, path):
     return path
 
 
+def side_view_box(tip_r: float, z_fan: float) -> tuple[float, ...]:
+    """Crop for side views: the fan plus 4 tip radii of wake, not the whole duct."""
+    r = 1.2 * tip_r
+    return (-r, r, -r, r, z_fan - 1.5 * tip_r, z_fan + 4.0 * tip_r)
+
+
+def side_view_camera(tip_r: float, z_fan: float):
+    """Look from +Y with up +X, like the midplane: inlet (-Z) LEFT, outlet RIGHT."""
+    return ((0.0, 6.0 * tip_r, z_fan), (0.0, 0.0, z_fan), (1.0, 0.0, 0.0))
+
+
 def _side(g, case_dir, field, cmap, clim, title, path, z_fan, tip_r, highlight_pct=None):
-    slc = g.slice(normal=(0, 1, 0), origin=(0, 0, z_fan))
+    slc = slice_volume_for_viz(g, (0.0, 1.0, 0.0), (0.0, 0.0, z_fan))  # polyhedra-safe (§22.4)
+    try:
+        slc = slc.clip_box(list(side_view_box(tip_r, z_fan)), invert=False)
+    except Exception:  # noqa: BLE001 - keep the full slice
+        pass
     with _RENDER_LOCK:
         pl = _plotter()
         try:
-            pl.add_mesh(slc.cell_data_to_point_data(), scalars=field, cmap=cmap, clim=list(clim),
+            pl.add_mesh(slc.cell_data_to_point_data(), scalars=field, cmap=cmap, clim=list(clim), lighting=False,
                         scalar_bar_args={"title": title})
             if highlight_pct is not None and slc.n_cells:
                 v = np.asarray(slc.cell_data[field])
@@ -99,7 +114,9 @@ def _side(g, case_dir, field, cmap, clim, title, path, z_fan, tip_r, highlight_p
             ol = rotor_outline(case_dir, (0, 1, 0), (0, 0, z_fan))
             if ol is not None:
                 pl.add_mesh(ol, color="black", line_width=2)
-            pl.camera_position = [(0, -6 * tip_r, z_fan), (0, 0, z_fan), (1, 0, 0)]
+            pl.camera_position = list(side_view_camera(tip_r, z_fan))
+            pl.add_text("FRONT (inlet)", font_size=10, color="black", position="lower_left")
+            pl.add_text("OUTLET (flow ->)", font_size=10, color="black", position="upper_right")
             pl.camera.parallel_projection = True
             pl.reset_camera()
             pl.screenshot(str(path))

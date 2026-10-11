@@ -28,6 +28,11 @@ _P_NAME_SCROLL = "p_midplane_scroll_v2.png"
 # Off-screen Plotter + matplotlib mathtext is not thread-safe (Windows hard crash).
 _RENDER_LOCK = threading.Lock()
 
+
+def load_case_radii_omega(case_dir):  # lazy: spanwise imports this module's neighbours
+    from fansim.cfd.spanwise import load_case_radii_omega as _f
+    return _f(case_dir)
+
 _LAYOUTS = ("axial", "scroll")
 
 # VTK_POLYHEDRON — snappyHexMesh leaves these; vtkCutter WARNs and slows (§22.4).
@@ -343,6 +348,18 @@ def robust_clim(values, lo_pct: float = 2.0, hi_pct: float = 98.0,
     return (lo, hi if hi > lo else lo + 1.0)
 
 
+def duct_clim(z, values, *, z_fan: float, tip_r: float) -> tuple[float, float]:
+    """Colour range from the duct away from the rotor (|z - z_fan| > 0.6 tip radius).
+
+    The mesh is densest at the blades, whose tip spikes then fill even a 2-98 % range and flatten
+    the duct into one colour. The rotor zone saturates instead, and the legend says so.
+    """
+    z = np.asarray(z, dtype=float).reshape(-1)
+    v = np.asarray(values, dtype=float).reshape(-1)
+    duct = np.abs(z - float(z_fan)) > 0.6 * float(tip_r)
+    return robust_clim(v[duct] if np.count_nonzero(duct) >= 10 else v)
+
+
 def pressure_pa(p_kin) -> np.ndarray:
     """OpenFOAM incompressible p is kinematic (m^2/s^2); multiply by rho for Pa."""
     from fansim.physics.air import RHO_AMCA
@@ -480,7 +497,9 @@ def render_midplane_pngs(
                 elif scalars == "U_mag":
                     mesh_kw["clim"] = list(throughflow_umag_clim(src["U_mag"]))
                 elif scalars == "p_pa":
-                    mesh_kw["clim"] = list(robust_clim(src["p_pa"]))
+                    _h, _tip, _o = load_case_radii_omega(case_dir)
+                    zz = slc.points[:, 2] if scalars in slc.point_data else slc.cell_centers().points[:, 2]
+                    mesh_kw["clim"] = list(duct_clim(zz, src["p_pa"], z_fan=0.0, tip_r=_tip))
                 pl.add_mesh(
                     slc, scalars=scalars, cmap="turbo", show_edges=False,
                     scalar_bar_args={
@@ -771,7 +790,7 @@ def render_streamlines_png(
     # Keep a wide radial window so lines are free to SPIRAL outward (a tight radial clip
     # truncates the swirl into short arcs), and a long wake so the corkscrew develops.
     zlo = max(z0, z_fan - 2.0 * r_tip)
-    zhi = min(z1, z_fan + 10.0 * r_tip)
+    zhi = min(z1, z_fan + 5.0 * r_tip)  # §24: shorter wake so the fan is not a speck
     try:
         focused = mesh.clip_box(
             [cx - 5.0 * r_tip, cx + 5.0 * r_tip,

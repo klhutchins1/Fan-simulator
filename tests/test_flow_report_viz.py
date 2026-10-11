@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 import pyvista as pv
 
 from fansim.cfd.flow_report import FlowMetrics
@@ -34,3 +35,12 @@ def test_scales_are_reused(tmp_path):
     out = render_report_pictures(tmp_path, mesh=_grid(), out_dir=tmp_path, scales=sc,
                                  metrics=FlowMetrics(0, False, [1] * 5, 0, 0, 1, None, 3))
     assert "noise" not in out or out["noise"].is_file()
+
+
+def test_side_view_matches_midplane_orientation_and_crops_to_fan():
+    """Side views look from +Y with up +X like the midplane (inlet LEFT), cropped near the fan."""
+    from fansim.cfd.flow_report_viz import side_view_box, side_view_camera
+    pos, focal, up = side_view_camera(0.05, 0.0)
+    assert pos[1] > 0 and tuple(up) == (1.0, 0.0, 0.0) and focal == (0.0, 0.0, 0.0)
+    x0, x1, y0, y1, z0, z1 = side_view_box(0.05, 0.0)
+    assert (z0, z1) == pytest.approx((-0.075, 0.2)) and x1 == pytest.approx(0.06)

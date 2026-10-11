@@ -339,3 +339,13 @@ def test_streamline_seeds_upstream_rings():
     assert np.allclose(pts[:, 2], -0.05)
     radii = sorted(set(np.round(np.hypot(pts[:, 0], pts[:, 1]), 6)))
     assert radii == pytest.approx([0.02, 0.0325, 0.045])
+
+
+def test_duct_clim_ignores_rotor_zone_spikes():
+    """Pressure colours follow the duct, not the dense, extreme blade-tip points (§24)."""
+    from fansim.cfd.midplane import duct_clim
+    z = np.r_[np.linspace(-0.2, -0.05, 200), np.zeros(800), np.linspace(0.05, 0.3, 200)]
+    v = np.r_[np.linspace(0.0, 1.0, 200), np.r_[np.full(400, -40.0), np.full(400, 40.0)],
+              np.linspace(8.0, 9.0, 200)]
+    lo, hi = duct_clim(z, v, z_fan=0.0, tip_r=0.05)
+    assert lo >= -0.1 and hi <= 9.1
