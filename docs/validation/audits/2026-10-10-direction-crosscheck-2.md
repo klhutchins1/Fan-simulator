@@ -46,6 +46,16 @@ proof is CONCLUSIVE it refuses only if:
 Any FAIL means do not merge, and report. A chirality misread cannot be counted from P4's records
 (QA derived chirality as ω·pump). P1/P2 measure the proof's own chirality.
 
-## Result
+## Result (2026-10-10, `scripts/direction_crosscheck_2_check.py` → `2026-10-10-direction-crosscheck-2.json`): **PASS**
 
-(filled in after the run)
+| id | verdict | evidence |
+|---|---|---|
+| P1 | **PASS** | 46 builder STLs (Stock, 15 dataset designs + Stock row, 30 screen-r3), 0 refused. 9605 / 9606 / 9620 / 9630 still read (ω −1, pump +1) with chirality −1, but their design camber is 0.004 / 0.016 / 0.016 / 0.006 (< 0.02), so the split isn't trusted. Stock reads (+1, −1) at design camber 0.099 |
+| P2 | **PASS** | 8 mirrors (x and y of Stock, t9005, bem_9504, 9605): all refused on chirality |
+| P3a | **PASS** | Stock built with negated camber: CONCLUSIVE (−1, +1); checked against Stock's +0.099 design camber → refused |
+| P3b | **PASS** | `validate_blade_params` refuses the negated-camber Stock ("camber −0.0xx is negative ..."); every optimizer space's camber bound is ≥ 0 |
+| P4 | **PASS** | 119 recorded stress proofs: the old rule refused 7; the new rule refuses 0, and 0 are newly refused |
+| P5 | **PASS** | 142 registered checks for the 6 CHANGED/AFFECTED units + 77 direction tests + golden geometry. `geometry.stock_handedness` and `cfd.flow_direction_convention` re-recorded; audit 31/31 PROVEN |
+
+**Effect:** the four screen-r3 designs refused on 2026-10-09 can now run CFD. A mirrored part is
+still always refused, and a cambered design whose geometry reads backwards is still refused.

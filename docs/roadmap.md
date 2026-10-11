@@ -1439,7 +1439,9 @@ failures.
     instead of erroring.
   - Repro: `handoff/2026-10-09_from-qa-5/stress/repro/A-F1_tip_trim_build_fail.json`.
   - **[impact: med]** **[effort: med]**
-- [ ] **25.3 (QA-19) Direction check attempt 2: option (a).**
+- [x] **25.3 (QA-19) Direction check attempt 2: option (a).** **DONE 2026-10-10: P1–P5 PASS
+  (`docs/validation/audits/2026-10-10-direction-crosscheck-2.md`). External STLs and the INCONCLUSIVE
+  cambered stress designs moved to 25.3b; CFD of 9605/9606/9620/9630 is still to run.**
   - **The rule:**
     - refuse on chirality (mirror), as today;
     - otherwise refuse only when the proof is CONCLUSIVE, |design camber| ≥ 0.02, **and** the split

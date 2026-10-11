@@ -1,0 +1,520 @@
+{
+ "P1": {
+  "stock": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.0985,
+   "refused": false,
+   "why": null
+  },
+  "stock_thin": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.0985,
+   "refused": false,
+   "why": null
+  },
+  "t9000": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.06,
+   "refused": false,
+   "why": null
+  },
+  "t9002": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.06,
+   "refused": false,
+   "why": null
+  },
+  "t9003": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.06,
+   "refused": false,
+   "why": null
+  },
+  "t9005": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.06,
+   "refused": false,
+   "why": null
+  },
+  "t9006": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.06,
+   "refused": false,
+   "why": null
+  },
+  "t9008": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.12,
+   "refused": false,
+   "why": null
+  },
+  "t9012": {
+   "verdict": "INCONCLUSIVE",
+   "omega": null,
+   "pump": null,
+   "chirality": null,
+   "design_camber": 0.039,
+   "refused": false,
+   "why": null
+  },
+  "t9015": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.0971,
+   "refused": false,
+   "why": null
+  },
+  "t9016": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.052,
+   "refused": false,
+   "why": null
+  },
+  "bem_9501": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.03895598771050572,
+   "refused": false,
+   "why": null
+  },
+  "bem_9502": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.027623721099898975,
+   "refused": false,
+   "why": null
+  },
+  "bem_9503": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.028180402181271172,
+   "refused": false,
+   "why": null
+  },
+  "bem_9504": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.027874896382214,
+   "refused": false,
+   "why": null
+  },
+  "bem_9505": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.04354821812961942,
+   "refused": false,
+   "why": null
+  },
+  "r3_9601": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.030097019382174826,
+   "refused": false,
+   "why": null
+  },
+  "r3_9602": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.024254523003005263,
+   "refused": false,
+   "why": null
+  },
+  "r3_9603": {
+   "verdict": "INCONCLUSIVE",
+   "omega": null,
+   "pump": null,
+   "chirality": null,
+   "design_camber": 0.025789735556585938,
+   "refused": false,
+   "why": null
+  },
+  "r3_9604": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.06695143403485418,
+   "refused": false,
+   "why": null
+  },
+  "r3_9605": {
+   "verdict": "CONCLUSIVE",
+   "omega": -1,
+   "pump": 1,
+   "chirality": -1,
+   "design_camber": 0.003836933430284262,
+   "refused": false,
+   "why": null
+  },
+  "r3_9606": {
+   "verdict": "CONCLUSIVE",
+   "omega": -1,
+   "pump": 1,
+   "chirality": -1,
+   "design_camber": 0.01642682365475948,
+   "refused": false,
+   "why": null
+  },
+  "r3_9607": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.0649266461841762,
+   "refused": false,
+   "why": null
+  },
+  "r3_9608": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.04549924759194255,
+   "refused": false,
+   "why": null
+  },
+  "r3_9609": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.05026226444169879,
+   "refused": false,
+   "why": null
+  },
+  "r3_9610": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.09308614768087864,
+   "refused": false,
+   "why": null
+  },
+  "r3_9611": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.013585387077182532,
+   "refused": false,
+   "why": null
+  },
+  "r3_9612": {
+   "verdict": "INCONCLUSIVE",
+   "omega": null,
+   "pump": null,
+   "chirality": null,
+   "design_camber": 0.03153738509863615,
+   "refused": false,
+   "why": null
+  },
+  "r3_9613": {
+   "verdict": "INCONCLUSIVE",
+   "omega": null,
+   "pump": null,
+   "chirality": null,
+   "design_camber": 0.0017011805437505247,
+   "refused": false,
+   "why": null
+  },
+  "r3_9614": {
+   "verdict": "INCONCLUSIVE",
+   "omega": null,
+   "pump": null,
+   "chirality": null,
+   "design_camber": 0.02211039885878563,
+   "refused": false,
+   "why": null
+  },
+  "r3_9615": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.028409986570477486,
+   "refused": false,
+   "why": null
+  },
+  "r3_9616": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.09043796565383673,
+   "refused": false,
+   "why": null
+  },
+  "r3_9617": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.08481185548007489,
+   "refused": false,
+   "why": null
+  },
+  "r3_9618": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.08304173983633518,
+   "refused": false,
+   "why": null
+  },
+  "r3_9619": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.08506644386798144,
+   "refused": false,
+   "why": null
+  },
+  "r3_9620": {
+   "verdict": "CONCLUSIVE",
+   "omega": -1,
+   "pump": 1,
+   "chirality": -1,
+   "design_camber": 0.016024040896445515,
+   "refused": false,
+   "why": null
+  },
+  "r3_9621": {
+   "verdict": "INCONCLUSIVE",
+   "omega": null,
+   "pump": null,
+   "chirality": null,
+   "design_camber": 0.04822233393788338,
+   "refused": false,
+   "why": null
+  },
+  "r3_9622": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.05243251314386726,
+   "refused": false,
+   "why": null
+  },
+  "r3_9623": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.044677786901593214,
+   "refused": false,
+   "why": null
+  },
+  "r3_9624": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.03669327571988106,
+   "refused": false,
+   "why": null
+  },
+  "r3_9625": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.026421353965997697,
+   "refused": false,
+   "why": null
+  },
+  "r3_9626": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.09613443790003658,
+   "refused": false,
+   "why": null
+  },
+  "r3_9627": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.06795121366158129,
+   "refused": false,
+   "why": null
+  },
+  "r3_9628": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.04225498028099537,
+   "refused": false,
+   "why": null
+  },
+  "r3_9629": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "chirality": -1,
+   "design_camber": 0.035739931091666226,
+   "refused": false,
+   "why": null
+  },
+  "r3_9630": {
+   "verdict": "CONCLUSIVE",
+   "omega": -1,
+   "pump": 1,
+   "chirality": -1,
+   "design_camber": 0.006441528163850308,
+   "refused": false,
+   "why": null
+  }
+ },
+ "P2": {
+  "stock_x": {
+   "verdict": "CONCLUSIVE",
+   "omega": -1,
+   "pump": -1,
+   "chirality": 1,
+   "design_camber": 0.0985,
+   "refused": true,
+   "why": "mirrored part: geometry chirality +1, a builder rotor has -1 -- 45 sections, 0 flat skipped, 0 low-quality skipped"
+  },
+  "stock_y": {
+   "verdict": "CONCLUSIVE",
+   "omega": -1,
+   "pump": -1,
+   "chirality": 1,
+   "design_camber": 0.0985,
+   "refused": true,
+   "why": "mirrored part: geometry chirality +1, a builder rotor has -1 -- 45 sections, 0 flat skipped, 0 low-quality skipped"
+  },
+  "t9005_x": {
+   "verdict": "CONCLUSIVE",
+   "omega": -1,
+   "pump": -1,
+   "chirality": 1,
+   "design_camber": 0.06,
+   "refused": true,
+   "why": "mirrored part: geometry chirality +1, a builder rotor has -1 -- 45 sections, 0 flat skipped, 0 low-quality skipped"
+  },
+  "t9005_y": {
+   "verdict": "CONCLUSIVE",
+   "omega": -1,
+   "pump": -1,
+   "chirality": 1,
+   "design_camber": 0.06,
+   "refused": true,
+   "why": "mirrored part: geometry chirality +1, a builder rotor has -1 -- 45 sections, 0 flat skipped, 0 low-quality skipped"
+  },
+  "bem_9504_x": {
+   "verdict": "CONCLUSIVE",
+   "omega": -1,
+   "pump": -1,
+   "chirality": 1,
+   "design_camber": 0.027874896382214,
+   "refused": true,
+   "why": "mirrored part: geometry chirality +1, a builder rotor has -1 -- 20 sections, 30 flat skipped, 0 low-quality skipped"
+  },
+  "bem_9504_y": {
+   "verdict": "CONCLUSIVE",
+   "omega": -1,
+   "pump": -1,
+   "chirality": 1,
+   "design_camber": 0.027874896382214,
+   "refused": true,
+   "why": "mirrored part: geometry chirality +1, a builder rotor has -1 -- 20 sections, 30 flat skipped, 0 low-quality skipped"
+  },
+  "9605_x": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": 1,
+   "chirality": 1,
+   "design_camber": 0.003836933430284262,
+   "refused": true,
+   "why": "mirrored part: geometry chirality +1, a builder rotor has -1 -- 33 sections, 22 flat skipped, 0 low-quality skipped"
+  },
+  "9605_y": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": 1,
+   "chirality": 1,
+   "design_camber": 0.003836933430284262,
+   "refused": true,
+   "why": "mirrored part: geometry chirality +1, a builder rotor has -1 -- 33 sections, 22 flat skipped, 0 low-quality skipped"
+  }
+ },
+ "P3a": {
+  "verdict": "CONCLUSIVE",
+  "omega": -1,
+  "pump": 1,
+  "chirality": -1,
+  "design_camber": 0.0985,
+  "refused": true,
+  "why": "geometry reads (omega=-1, pump=+1) but the design camber +0.099 implies (omega=+1, pump=-1) -- 45 sections, 0 flat skipped, 0 low-quality skipped"
+ },
+ "P3b": {
+  "refused": true,
+  "why": "station 0 camber -0.037 is negative: the blade would be curved backwards and pump the wrong way. Use a camber of 0 or more",
+  "bounds_non_negative": true
+ },
+ "P4": {
+  "n": 119,
+  "old_refused": [
+   "S3_0002",
+   "CTL_0001",
+   "CTL_0002",
+   "CTL_0003",
+   "CTL_0004",
+   "S4_0005",
+   "S4_0012"
+  ],
+  "new_refused": [],
+  "newly_refused": []
+ }
+}
