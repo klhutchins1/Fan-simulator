@@ -1463,6 +1463,17 @@ failures.
     7. Separately: 8 of the 24 INCONCLUSIVE are properly cambered blades whose sections disagree. That is
        a second proof weakness.
   - **[impact: high]** **[effort: med]**
+- [ ] **25.3b External-STL direction: the lean artifact can set the wrong spin.**
+  - With `source="external"` the measured split *decides* the spin, so a flat, leaned external blade
+    could be run backwards without any warning.
+  - The QA proposal (refuse when median measured camber < 0.045) would also refuse the real A12x25
+    reference STL (0.0375).
+  - Needs its own criteria. Options:
+    - cut normal to the stacking line (option b);
+    - require an explicit orientation whenever the split is in the overlap zone, and pass the known
+      orientation for the reference STL.
+  - Also: 8 INCONCLUSIVE stress designs with camber ≥ 0.02 have sections that disagree.
+  - **[impact: med]** **[effort: med]**
 - [x] **25.4 (QA-20) The memory tiers give equal solids but not byte-identical STLs.**
   - Volume and vertex count match 11 of 11 times, but the sha256 differs every time.
   - Fix the `fansim/resources.py` docstring and the `TIERS` comment ("same solid", not
