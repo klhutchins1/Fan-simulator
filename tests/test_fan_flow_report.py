@@ -45,3 +45,17 @@ def test_stale_token_not_applied():
     assert applied is False and state.flow_rows == ["old"]
     assert ffr._apply_if_current(state, token=2, payload={"flow_rows": ["new"]}) is True
     assert state.flow_rows == ["new"]
+
+
+def test_scored_case_dir_follows_refreshed_score(tmp_path):
+    """A refreshed design's score came from extra.case_dir (relative to runs/), not its own folder."""
+    from fansim.cockpit.data import scored_case_dir
+    design_dir = tmp_path / "runs" / "opt_run1" / "cockpit_assess" / "design_9005"
+    design_dir.mkdir(parents=True)
+    (tmp_path / "runs" / "screen_rank_audit" / "t9005" / "full").mkdir(parents=True)
+    stl = design_dir / "impeller.stl"
+    d = _d(has_model=True, stl_path=str(stl), extra={"case_dir": "screen_rank_audit/t9005/full"})
+    assert scored_case_dir(d) == tmp_path / "runs" / "screen_rank_audit" / "t9005" / "full"
+    assert scored_case_dir(_d(has_model=True, stl_path=str(stl))) == design_dir
+    missing = _d(has_model=True, stl_path=str(stl), extra={"case_dir": "gone/full"})
+    assert scored_case_dir(missing) == design_dir  # fall back when the recorded run was pruned

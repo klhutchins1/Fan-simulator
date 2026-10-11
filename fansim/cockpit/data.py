@@ -77,6 +77,26 @@ def below_hub_stale(extra: dict | None, params: dict | None) -> bool:
         return False
 
 
+def scored_case_dir(d) -> Path | None:
+    """The CFD case that produced a design's saved score.
+
+    ``scripts/refresh_stale_designs.py`` re-scores a design in another run and records it as
+    ``extra.case_dir`` (relative to ``runs/``), while the design folder keeps the OLD case's fields.
+    Airflow pictures must come from the run behind the score, so use ``case_dir`` when it still
+    exists, else the design's own folder.
+    """
+    stl = getattr(d, "stl_path", None)
+    if not stl:
+        return None
+    own = Path(stl).parent
+    rel = (getattr(d, "extra", None) or {}).get("case_dir")
+    if rel:
+        cand = Path(rel) if Path(rel).is_absolute() else own.parents[2] / rel
+        if cand.is_dir():
+            return cand
+    return own
+
+
 def stale_reason(extra: dict | None, params: dict | None) -> str:
     """'' when the score is current, else why it must be re-run ('old solver' / 'coarse mesh')."""
     extra = extra or {}

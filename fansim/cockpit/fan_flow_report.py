@@ -10,6 +10,7 @@ from fansim.cfd.flow_report import FlowReportUnavailable
 from fansim.cfd.flow_report_case import first_mismatch, load_or_compute_metrics, test_settings
 from fansim.cfd.flow_verdicts import ICONS, judge, overall_line
 from fansim.cockpit.airflow_panel import png_data_uri
+from fansim.cockpit.data import scored_case_dir
 from fansim.cockpit.flow_reference import get_reference
 from fansim.cockpit.stock_cache import STOCK_CACHE_DIR
 
@@ -29,8 +30,8 @@ def card_message(d) -> str | None:
     if extra.get("cfd_stale"):
         why = extra.get("stale_reason") or "older solver"
         return f"These results are out of date ({why}). Re-run Assess."
-    case = Path(d.stl_path).parent
-    if not case.is_dir():
+    case = scored_case_dir(d)  # the run behind the score (refreshed designs live elsewhere)
+    if case is None or not case.is_dir():
         return MSG_NONE
     has_time = any(p.is_dir() and p.name[:1].isdigit() for p in case.iterdir())
     if not has_time and not (case / "processor0").is_dir():
@@ -116,7 +117,7 @@ def bind(session) -> None:
             state.flow_msg, state.flow_busy = msg, False
             return
         token = d.trial
-        case = Path(d.stl_path).parent
+        case = scored_case_dir(d)
         state.flow_msg, state.flow_busy = MSG_BUILDING, True
 
         async def task():
