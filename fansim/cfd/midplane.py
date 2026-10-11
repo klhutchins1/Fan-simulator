@@ -680,7 +680,7 @@ def render_axial_uz_png(
     )
 
 
-_STREAM_NAME = "streamlines_v1.png"
+_STREAM_NAME = "streamlines_v2.png"  # v2: side view, see-through fan, rings both sides (§24)
 
 
 @dataclass(frozen=True)
@@ -696,6 +696,28 @@ class StreamlineArtifact:
 def streamline_artifact_path(case_dir: str | Path) -> Path:
     """Canonical cache location for the streamline PNG."""
     return Path(case_dir) / _VIZ_SUBDIR / _STREAM_NAME
+
+
+def _case_rotor_radii(case_dir, fallback_tip: float) -> tuple[float, float, float]:
+    """(hub, tip, omega) from case meta; the mesh half-width (duct) when meta is absent."""
+    from fansim.cfd.spanwise import load_case_radii_omega
+
+    if (Path(case_dir) / "constant" / "case_meta.json").is_file():
+        return load_case_radii_omega(case_dir)
+    return 0.0, 0.9 * float(fallback_tip), 0.0
+
+
+def streamline_seed_points(tip_r: float, z_fan: float, cx: float = 0.0, cy: float = 0.0,
+                           n_per_ring: int = 12):
+    """Seeds upstream of the fan on three rings (inner, middle, outer span)."""
+    pts = []
+    for frac in (0.4, 0.65, 0.9):
+        r = frac * tip_r
+        for th in np.linspace(0.0, 2.0 * np.pi, n_per_ring, endpoint=False):
+            pts.append((cx + r * np.cos(th), cy + r * np.sin(th), z_fan - 1.0 * tip_r))
+    import pyvista as pv
+
+    return pv.PolyData(np.asarray(pts, dtype=float))
 
 
 def render_streamlines_png(
@@ -748,7 +770,7 @@ def render_streamlines_png(
     z_fan = 0.0 if z0 < 0.0 < z1 else 0.5 * (z0 + z1)
     # Keep a wide radial window so lines are free to SPIRAL outward (a tight radial clip
     # truncates the swirl into short arcs), and a long wake so the corkscrew develops.
-    zlo = max(z0, z_fan - 1.0 * r_tip)
+    zlo = max(z0, z_fan - 2.0 * r_tip)
     zhi = min(z1, z_fan + 10.0 * r_tip)
     try:
         focused = mesh.clip_box(
@@ -761,16 +783,17 @@ def render_streamlines_png(
     except Exception:  # noqa: BLE001 — keep full mesh if clip fails
         pass
 
-    r_seed = max(0.95 * r_tip, 1e-4)
-    # Seed the wake DOWNSTREAM of the blades, not upstream: an upstream line integrated forward
-    # dies the instant it hits a blade surface (the 9 blades fill the annulus) and reads as a
-    # short dash. Seeding past the trailing edges lets the swirling wake trace long spirals.
-    z_seed = min(zhi - 0.1 * r_tip, z_fan + 1.5 * r_tip)
-    seed = pv.Disc(center=(cx, cy, z_seed), normal=(0.0, 0.0, 1.0),
-                   inner=0.15 * r_tip, outer=r_seed, r_res=1, c_res=max(8, n_seed))
+    # Rings in FRONT of the fan (air arriving) and BEHIND it (air leaving), traced both ways (§24).
+    # A front line alone stops at the first blade it meets (absolute velocity is not tangent to
+    # the rotating blades), so the wake rings carry the outflow; the fan is drawn between them.
+    _hub, rotor_tip, _om = _case_rotor_radii(case_dir, r_tip)
+    per_ring = max(4, n_seed // 2)
+    seed = streamline_seed_points(rotor_tip, z_fan, cx, cy, n_per_ring=per_ring)
+    seed = seed.merge(streamline_seed_points(rotor_tip, z_fan + 2.5 * rotor_tip, cx, cy,
+                                             n_per_ring=per_ring))
     try:
         streams = mesh.streamlines_from_source(
-            seed, vectors="U", integration_direction="forward",
+            seed, vectors="U", integration_direction="both",
             max_steps=4000, initial_step_length=0.25, max_step_length=1.2,
             terminal_speed=1e-8,
         )
@@ -806,18 +829,22 @@ def render_streamlines_png(
                     "width": 0.12, "height": 0.55, "position_x": 0.86, "position_y": 0.2,
                 },
             )
-            # Impeller STL context omitted in cockpit stills (§22.8) — wake tubes carry the story.
-            # Look down the axis from DOWNSTREAM (slightly off-axis) back at the rotor: the wake
-            # swirl then reads as a corkscrew. A side view would flatten it into straight lines.
+            fan_stl = case_dir / "constant" / "triSurface" / "impeller.stl"
+            if fan_stl.is_file():
+                try:
+                    pl.add_mesh(pv.read(str(fan_stl)), color="lightgray", opacity=0.3)
+                except Exception:  # noqa: BLE001 - lines alone still render
+                    pass
+            # Side view, flow left -> right like the midplane (inlet -Z on the LEFT).
             pl.camera_position = [
-                (cx + 0.5 * r_tip, cy + 0.4 * r_tip, zhi + 3.0 * r_tip),
+                (cx, cy + 6.0 * r_tip, z_fan),
                 (cx, cy, z_fan),
-                (0.0, 1.0, 0.0),
+                (1.0, 0.0, 0.0),
             ]
             pl.reset_camera()
-            pl.camera.zoom(1.9)  # fill the frame — reset_camera fits the wide clip / stray lines
-            pl.add_text("streamlines — |U| through the rotor", font_size=11,
-                        color="black", position="upper_edge")
+            pl.camera.zoom(1.3)
+            pl.add_text("FRONT (inlet)", font_size=11, color="black", position="lower_left")
+            pl.add_text("OUTLET (flow ->)", font_size=11, color="black", position="lower_right")
             pl.screenshot(str(out))
         finally:
             pl.close()

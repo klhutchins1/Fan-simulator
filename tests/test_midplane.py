@@ -268,7 +268,7 @@ def test_render_streamlines_png_synthetic_mesh(tmp_path: Path):
     assert art.available
     assert art.png is not None and art.png.is_file()
     assert art.png.stat().st_size > 100
-    assert art.png.name == "streamlines_v1.png"
+    assert art.png.name == "streamlines_v2.png"
     assert "streamlines" in art.caption
 
 
@@ -329,3 +329,13 @@ def test_rotor_outline_slices_stl(tmp_path):
     pv.Cylinder(radius=0.05, height=0.01, direction=(0, 0, 1)).triangulate().save(tri / "impeller.stl")
     out = rotor_outline(tmp_path, (0, 1, 0), (0, 0, 0))
     assert out is not None and out.n_points > 0
+
+
+def test_streamline_seeds_upstream_rings():
+    from fansim.cfd.midplane import streamline_seed_points
+    s = streamline_seed_points(0.05, 0.0, n_per_ring=12)
+    pts = np.asarray(s.points)
+    assert pts.shape == (36, 3)
+    assert np.allclose(pts[:, 2], -0.05)
+    radii = sorted(set(np.round(np.hypot(pts[:, 0], pts[:, 1]), 6)))
+    assert radii == pytest.approx([0.02, 0.0325, 0.045])
