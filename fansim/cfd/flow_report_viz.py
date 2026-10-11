@@ -8,7 +8,10 @@ import numpy as np
 import pyvista as pv
 
 from fansim.cfd.flow_report import (
-    DEAD_FRAC_OF_MEAN, FlowMetrics, PLANE_Z_FRAC, noise_density,
+    DEAD_FRAC_OF_MEAN,
+    PLANE_Z_FRAC,
+    FlowMetrics,
+    noise_density,
 )
 from fansim.cfd.flow_report_case import case_geometry
 from fansim.cfd.midplane import _RENDER_LOCK, robust_clim, rotor_outline

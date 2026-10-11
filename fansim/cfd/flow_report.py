@@ -53,7 +53,7 @@ class FlowMetrics:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, d: dict) -> "FlowMetrics":
+    def from_dict(cls, d: dict) -> FlowMetrics:
         return cls(**{k: d[k] for k in cls.__dataclass_fields__})
 
 

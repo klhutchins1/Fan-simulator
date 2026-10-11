@@ -8,7 +8,11 @@ from pathlib import Path
 import numpy as np
 
 from fansim.cfd.flow_report import (
-    FLOW_REPORT_VERSION, FlowMetrics, FlowReportUnavailable, FlowSamples, compute_metrics,
+    FLOW_REPORT_VERSION,
+    FlowMetrics,
+    FlowReportUnavailable,
+    FlowSamples,
+    compute_metrics,
 )
 from fansim.cfd.spanwise import load_case_radii_omega
 
