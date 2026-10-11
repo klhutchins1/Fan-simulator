@@ -1488,7 +1488,13 @@ failures.
   - `nv150` data is CC BY-NC-ND (not MIT-compatible): remove it or keep it out of the release.
   - **DONE 2026-10-10:** the NF-A12x25 reference STL is "A12x25" by MajorHardware (Thingiverse
     5893432, CC BY 4.0). It is credited in `THIRD_PARTY.md` and `validation/reference/README.md`.
-  - Still open: the source of `validation/reference/drone_radial/` STLs.
+  - **`validation/reference/drone_radial/` (24 files, 56 MB): source unknown** (Kimball, 2026-10-10), so it
+    can't ship.
+    - It is used by `tests/audit/test_direction_geometry.py`, `tests/test_prop_cfd_fixture.py`,
+      `tests/test_prop_ami_smoke.py`, `tests/test_prop_gci_ladder.py` and the prop CFD scripts.
+    - Before release, replace it with a known-licence prop (a CC BY Thingiverse prop or a
+      UIUC-geometry build), or make those tests skip when it is absent and keep the folder out of the
+      public repo.
   - Cybenetics data is cited only, never stored.
   - **[impact: high for release]** **[effort: low]**
 - [ ] **25.9 Finish the stress test** (681 designs left) **with chirality and INCONCLUSIVE reasons logged**.

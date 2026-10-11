@@ -12,4 +12,4 @@ keep **their own licences**. Credit them as shown when you reuse them.
 | nv150 benchmark fan (geometry + digitised curve) | `docs/qa/benchmarks/nv150/` | See its `source.md` | **CC BY-NC-ND 4.0: NOT compatible with MIT** | **Exclude from any public release** (non-commercial + no-derivatives) |
 | Fan datasheet numbers (Noctua, Delta) | `docs/qa/benchmarks/*/curve.csv`, `fansim/fan_spec.py` | Manufacturer spec pages (links in each `source.md`) | Facts cited with links | Only the numbers, never copied pages |
 | Cybenetics NF-A12x25 test report | cited only | <https://www.cybenetics.com/evaluations/fans/4/de/pdf/> | No reuse terms found | **Never stored here**; derived comparisons only |
-| Drone radial / impeller STLs | `validation/reference/drone_radial/` | Downloaded batch, `radial+impeller_stls` | **Unknown: confirm the source before release** | |
+| Drone radial / impeller STLs | `validation/reference/drone_radial/` | Downloaded batch, `radial+impeller_stls` | **Unknown (Kimball doesn't know the source, 2026-10-10)** | **Exclude from any public release.** Tests and the prop-CFD audit use them; replacing them is roadmap §25.8 |
