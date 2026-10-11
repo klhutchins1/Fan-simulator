@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from pathlib import Path
 
-from fansim.cfd.flow_report import FlowReportUnavailable
-from fansim.cfd.flow_report_case import first_mismatch, load_or_compute_metrics, test_settings
+from fansim.cfd.flow_report import FLOW_REPORT_VERSION, FlowReportUnavailable
+from fansim.cfd.flow_report_case import (
+    first_mismatch,
+    latest_time,
+    load_or_compute_metrics,
+    test_settings,
+)
 from fansim.cfd.flow_verdicts import ICONS, judge, overall_line
 from fansim.cockpit.airflow_panel import png_data_uri
 from fansim.cockpit.data import scored_case_dir
@@ -49,15 +55,53 @@ def _pictures(case_dir, metrics, *, scales=None, stock_bands=None, out_dir=None)
                                   stock_bands=stock_bands, metrics=metrics)
 
 
+PICTURES_STAMP = "flow_pictures.json"
+
+
+def _pictures_cached(case_dir, metrics, *, key: str, out_dir=None, **kw) -> dict:
+    """Render once per (report version, CFD time, reference); reuse the PNGs after that (§24)."""
+    out = Path(out_dir or case_dir)
+    stamp = out / PICTURES_STAMP
+    try:
+        saved = json.loads(stamp.read_text(encoding="utf-8"))
+        pics = {k: Path(v) for k, v in saved.get("pictures", {}).items()}
+        if saved.get("key") == key and pics and all(p.is_file() for p in pics.values()):
+            return pics
+    except (OSError, ValueError, AttributeError):
+        pass
+    pics = _pictures(case_dir, metrics, out_dir=out_dir, **kw)
+    try:
+        out.mkdir(parents=True, exist_ok=True)
+        stamp.write_text(json.dumps({"key": key, "pictures": {k: str(v) for k, v in pics.items()},
+                                     "scales": kw.get("scales")}), encoding="utf-8")
+    except OSError:
+        pass
+    return pics
+
+
+def _key(case_dir, ref_dir) -> str:
+    return f"{FLOW_REPORT_VERSION}|{latest_time(case_dir)}|{ref_dir or 'none'}"
+
+
 def _stock_pack(ref_dir):
-    """Stock metrics, scales and pictures, computed once per reference (cached on disk)."""
-    from fansim.cfd.cockpit_viz import load_case_mesh
-    from fansim.cfd.flow_report_viz import picture_scales
+    """Stock metrics, colour scales and pictures, made once per reference and reused."""
     m = load_or_compute_metrics(ref_dir)
-    mesh = load_case_mesh(ref_dir)
-    scales = picture_scales(ref_dir, mesh=mesh) if mesh is not None else None
     out_dir = STOCK_CACHE_DIR / "flow_report"
-    pics = _pictures(ref_dir, m, scales=scales, stock_bands=m.band_dp0_pa, out_dir=out_dir)
+    key = _key(ref_dir, ref_dir)
+    scales = None
+    try:
+        saved = json.loads((out_dir / PICTURES_STAMP).read_text(encoding="utf-8"))
+        if saved.get("key") == key and saved.get("scales"):
+            scales = {k: tuple(v) for k, v in saved["scales"].items()}
+    except (OSError, ValueError, AttributeError):
+        pass
+    if scales is None:
+        from fansim.cfd.cockpit_viz import load_case_mesh
+        from fansim.cfd.flow_report_viz import picture_scales
+        mesh = load_case_mesh(ref_dir)
+        scales = picture_scales(ref_dir, mesh=mesh) if mesh is not None else None
+    pics = _pictures_cached(ref_dir, m, key=key, out_dir=out_dir, scales=scales,
+                            stock_bands=m.band_dp0_pa)
     return m, scales, pics
 
 
@@ -75,8 +119,8 @@ def build_report(case_dir, ref_dir) -> dict:
             msg = f"Stock hasn't been tested this way, so no comparison ({why})."
         else:
             stock, scales, stock_pics = _stock_pack(ref_dir)
-    pics = _pictures(case_dir, m, scales=scales,
-                     stock_bands=stock.band_dp0_pa if stock else None)
+    pics = _pictures_cached(case_dir, m, key=_key(case_dir, ref_dir if stock else None),
+                            scales=scales, stock_bands=stock.band_dp0_pa if stock else None)
     rows = judge(m, stock)
     pic_for = {"direction": "face", "push": "push", "spin": "spin", "dead": "face", "noise": "noise"}
     out_rows = []

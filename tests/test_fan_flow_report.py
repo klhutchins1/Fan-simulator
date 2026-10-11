@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 from fansim.cockpit import fan_flow_report as ffr
@@ -72,3 +73,24 @@ def test_card_has_a_message_before_any_design_is_picked():
     session = SimpleNamespace(state=_State())
     fan_core.apply_state_defaults(session)
     assert session.state.flow_msg == ffr.MSG_NONE
+
+
+def test_pictures_are_rendered_once_per_run(tmp_path, monkeypatch):
+    """Spec: pictures are made once per design and reused; re-opening is instant."""
+    calls = []
+
+    def fake(case_dir, metrics, *, scales=None, stock_bands=None, out_dir=None):
+        calls.append(case_dir)
+        out = Path(out_dir or case_dir) / "flow_face.png"
+        out.write_bytes(b"png")
+        return {"face": out}
+
+    monkeypatch.setattr(ffr, "_pictures", fake)
+    a = ffr._pictures_cached(tmp_path, None, key="v2|500|ref")
+    b = ffr._pictures_cached(tmp_path, None, key="v2|500|ref")
+    assert a == b and len(calls) == 1
+    ffr._pictures_cached(tmp_path, None, key="v2|750|ref")  # newer CFD time: re-render
+    assert len(calls) == 2
+    (tmp_path / "flow_face.png").unlink()
+    ffr._pictures_cached(tmp_path, None, key="v2|750|ref")  # file gone: re-render
+    assert len(calls) == 3
