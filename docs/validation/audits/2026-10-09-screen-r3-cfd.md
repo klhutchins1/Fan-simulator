@@ -55,3 +55,36 @@ proof reads lean curvature as camber. This is a known false refusal; a first fix
   sits near stall under load, and the coarse mesh does not see that.
 - Treat Q3 as a filter for clearly bad designs, not as a way to pick a winner, until it is re-audited
   on designs like these.
+
+## Addendum (2026-10-11): the 4 refused designs, after the direction-check fix (roadmap 25.3)
+
+The builder direction cross-check no longer refuses flat, leaned blades
+(`2026-10-10-direction-crosscheck-2.md`). 9605, 9606, 9620 and 9630 then ran Q3 with the same settings
+(2026-10-11, 4–6 min each, all converged). Note: these four were built with the hub-face clip; the other
+26 ran on 2026-10-09.
+
+| design | design camber | tip lean | axial score | Q3 free | Q3 load |
+|---|---|---|---|---|---|
+| 9605 | 0.004 | 26° | 1.067 | 52.66 | **40.20** |
+| 9606 | 0.016 | 42° | 1.057 | 47.46 | 26.05 |
+| 9620 | 0.016 | 22–42° | 0.835 | 35.21 | 29.15 |
+| 9630 | 0.006 | 22–42° | 0.733 | 42.88 | 33.20 |
+
+None reaches the Q3 top 4 (cut-off 54.6), so no further full Assess was run.
+
+**Final verdicts:**
+
+| id | verdict | evidence |
+|---|---|---|
+| A | **SUPPORTED** (4/5) | 9601, 9603, 9604 and **9605** beat Stock's Q3 load (38.56); 9602 does not |
+| B | **INCONCLUSIVE** (ρ = **0.412**, n = 30) | It was 0.536 with n = 26. The four flat, leaned designs score high on the axial BEM (two of them 1.06–1.07, in its top 6) but are among the worst under load in CFD |
+| C | unchanged | — |
+
+**Reading:**
+- The axial-force BEM **over-rates near-flat, strongly leaned blades.** Its "USABLE" ranking verdict
+  depended on those designs being missing (they had been refused).
+- It stays what it was adopted as: an exploit guard, not a ranker.
+- 9605 just beats Stock on Q3 but is far from the best designs.
+
+(The `full` rows in `runs/screen_rank_audit/screen_r3.json` still show scores from before the
+2026-10-10 motor re-derate. The cockpit designs carry the re-derated scores.)

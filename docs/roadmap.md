@@ -1443,7 +1443,8 @@ failures.
     (`docs/validation/audits/2026-10-10-ledger-refresh.md`).** **[impact: med]** **[effort: med]**
 - [x] **25.3 (QA-19) Direction check attempt 2: option (a).** **DONE 2026-10-10: P1–P5 PASS
   (`docs/validation/audits/2026-10-10-direction-crosscheck-2.md`). External STLs and the INCONCLUSIVE
-  cambered stress designs moved to 25.3b; CFD of 9605/9606/9620/9630 is still to run.**
+  cambered stress designs moved to 25.3b. CFD of 9605/9606/9620/9630 ran 2026-10-11: screen-r3
+  A SUPPORTED (4/5); B fell to INCONCLUSIVE (ρ 0.412): the axial BEM over-rates flat leaned blades.**
   - **The rule:**
     - refuse on chirality (mirror), as today;
     - otherwise refuse only when the proof is CONCLUSIVE, |design camber| ≥ 0.02, **and** the split
