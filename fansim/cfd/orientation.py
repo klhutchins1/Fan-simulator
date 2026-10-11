@@ -97,7 +97,37 @@ def check_rotor_direction(stl_mm: Path | str, expected_omega_sign: int) -> None:
             f"omega={proof.omega_sign:+d} but {int(expected_omega_sign):+d} was expected -- {proof.note}")
 
 
-def _resolve_direction(stl_mm: Path, source: str) -> tuple[str, int, str]:
+DESIGN_CAMBER_TRUST = 0.02  # |design camber| from which the measured split must match its sign
+
+
+def builder_direction_refusal(proof, design_camber: float | None) -> str | None:
+    """Why a builder rotor's geometry contradicts the builder, or None (audit 2026-10-10, attempt 2).
+
+    * A CONCLUSIVE proof whose chirality is not the real fan's is a mirrored part: always refused.
+    * The camber-derived (omega, pump) split is judged only against a design that really is cambered
+      (|camber| >= DESIGN_CAMBER_TRUST): a cylinder cut through a flat but strongly leaned blade reads
+      lean curvature as camber (9605/9606/9620/9630), so on flat designs the split is not evidence.
+    * ``design_camber`` None (caller has no params): chirality only.
+    """
+    from fansim.audit.direction import REAL_FAN_CHIRALITY
+
+    if getattr(proof, "verdict", None) != "CONCLUSIVE":
+        return None
+    if proof.chirality != REAL_FAN_CHIRALITY:
+        return (f"mirrored part: geometry chirality {proof.chirality:+d}, a builder rotor has "
+                f"{REAL_FAN_CHIRALITY:+d} -- {proof.note}")
+    if design_camber is None or abs(float(design_camber)) < DESIGN_CAMBER_TRUST:
+        return None
+    expected = (1, -1) if float(design_camber) > 0 else (-1, 1)
+    if (proof.omega_sign, proof.pump_sign) != expected:
+        return (f"geometry reads (omega={proof.omega_sign:+d}, pump={proof.pump_sign:+d}) but the design "
+                f"camber {float(design_camber):+.3f} implies (omega={expected[0]:+d}, "
+                f"pump={expected[1]:+d}) -- {proof.note}")
+    return None
+
+
+def _resolve_direction(stl_mm: Path, source: str,
+                       design_camber: float | None = None) -> tuple[str, int, str]:
     """Return (orientation, spin, proof_verdict) for ``source`` in {"builder", "external"}."""
     from fansim.audit.direction import prove_direction
 
@@ -112,11 +142,9 @@ def _resolve_direction(stl_mm: Path, source: str) -> tuple[str, int, str]:
         orientation, spin = orientation_from_proof(proof)
         return orientation, spin, proof.verdict
     orientation, spin = AXIAL_BUILDER_DIRECTION
-    if proof.verdict == "CONCLUSIVE" and (proof.omega_sign, proof.pump_sign) != (1, -1):
-        raise ValueError(
-            f"builder rotor direction cross-check disagrees for {stl_mm}: proof reads "
-            f"(omega={proof.omega_sign:+d}, pump={proof.pump_sign:+d}) but the builders produce "
-            f"(omega=+1, pump=-1) -- {proof.note}")
+    why = builder_direction_refusal(proof, design_camber)
+    if why:
+        raise ValueError(f"builder rotor direction cross-check refuses {stl_mm}: {why}")
     return orientation, spin, proof.verdict
 
 
@@ -124,7 +152,8 @@ def prepare_axial_cfd(stl_mm: Path, rig: TestRig, workdir: Path, *,
                       source: str = "builder",
                       orientation: str | None = None,
                       spin: int | None = None,
-                      mrf_margin_mm: float = 2.0) -> tuple[Path, TestRig]:
+                      mrf_margin_mm: float = 2.0,
+                      design_camber: float | None = None) -> tuple[Path, TestRig]:
     """Orient the rotor for CFD, set the spin, and fit the rig. Use the returned STL and rig for
     everything downstream (frame, stator, casing export, and ``build_case``).
 
@@ -145,7 +174,7 @@ def prepare_axial_cfd(stl_mm: Path, rig: TestRig, workdir: Path, *,
     elif orientation is not None:
         direction_source, verdict, spin = "explicit", None, int(rig.spin)
     else:
-        orientation, spin, verdict = _resolve_direction(Path(stl_mm), source)
+        orientation, spin, verdict = _resolve_direction(Path(stl_mm), source, design_camber)
         direction_source = source
     if int(spin) not in (-1, 1):
         raise ValueError(f"spin must be +1 or -1, got {spin!r}")
@@ -154,5 +183,6 @@ def prepare_axial_cfd(stl_mm: Path, rig: TestRig, workdir: Path, *,
     fitted = replace(fit_rig_to_stl(rig, dst, mrf_margin_mm=mrf_margin_mm), spin=int(spin))
     (workdir / DIRECTION_META_FILE).write_text(json.dumps({
         "direction_source": direction_source, "orientation": orientation,
-        "spin": int(spin), "proof_verdict": verdict}, indent=2), encoding="utf-8")
+        "spin": int(spin), "proof_verdict": verdict,
+        "design_camber": design_camber}, indent=2), encoding="utf-8")
     return dst, fitted
