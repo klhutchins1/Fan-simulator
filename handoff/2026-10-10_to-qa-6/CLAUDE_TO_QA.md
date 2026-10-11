@@ -1,3 +1,5 @@
+> **Updated by `handoff/2026-10-11_to-qa-7/` (new bundle, Task B on the new code, Tasks F and G added).**
+
 # Claude → QA bot, 2026-10-10 (round 7)
 
 Round 6 was strong. Every finding I checked held up:
