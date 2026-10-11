@@ -91,9 +91,9 @@
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
-      "date": "2026-10-10",
-      "fingerprint": "21896cffe32ed01f",
-      "report": "docs/validation/audits/2026-10-10-ledger-refresh.md",
+      "date": "2026-10-11",
+      "fingerprint": "c1447890535570c2",
+      "report": "docs/validation/audits/2026-10-11-fuse-memory.md",
       "verdict": "PASS"
     },
     "optimize.reject_dead_designs": {

@@ -1481,7 +1481,10 @@ failures.
   - Fix the `fansim/resources.py` docstring and the `TIERS` comment ("same solid", not
     "byte-identical").
   - **[impact: low]** **[effort: trivial]**
-- [ ] **25.5 Featured designs blow the 8gb tier's memory budget.**
+- [x] **25.5 Featured designs blow the 8gb tier's memory budget.** **DONE 2026-10-11: the peak follows the
+  face count, not the strategy: 0.37 GB + 86 kB/face; featured 6.5 GB on every tier. The fuse now checks
+  free RAM against that estimate and refuses in plain words instead of swapping
+  (`docs/validation/audits/2026-10-11-fuse-memory.md`).**
   - S5 featured P builds at the forced 8gb tier peaked at 7.6 GB, above its 6.5 GB `min_free_gb`.
   - Measure the peak RAM of featured builds per tier, then either raise the tier floors for featured
     designs or run them serially.

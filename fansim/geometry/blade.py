@@ -924,8 +924,11 @@ def fuse_impeller(hub, blades, ring=None, *, tier=None):
     (~7.7 GB peak for a 9-blade cup impeller), serial (~4.9 GB), or serial one blade at a time
     (~4.5 GB). Every strategy gives the same solid (QA round 4); only peak RAM and time differ.
     """
+    from fansim import resources
     from fansim.resources import current_tier
 
+    # Peak RAM follows the face count, not the strategy: refuse up front rather than swap (25.5).
+    resources.check_fuse_memory(sum(len(s.Faces()) for s in (hub, *blades, *([ring] if ring is not None else []))))
     tier = tier or current_tier()
     fused = fuse_many(hub, blades, tier=tier)
     if ring is not None:
