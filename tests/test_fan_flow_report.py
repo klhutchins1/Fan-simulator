@@ -59,3 +59,16 @@ def test_scored_case_dir_follows_refreshed_score(tmp_path):
     assert scored_case_dir(_d(has_model=True, stl_path=str(stl))) == design_dir
     missing = _d(has_model=True, stl_path=str(stl), extra={"case_dir": "gone/full"})
     assert scored_case_dir(missing) == design_dir  # fall back when the recorded run was pruned
+
+
+def test_card_has_a_message_before_any_design_is_picked():
+    """First load shows the reference (never assessed); the card must not be blank."""
+    from fansim.cockpit import fan_core
+
+    class _State(SimpleNamespace):
+        def change(self, *a, **k):
+            return lambda f: f
+
+    session = SimpleNamespace(state=_State())
+    fan_core.apply_state_defaults(session)
+    assert session.state.flow_msg == ffr.MSG_NONE

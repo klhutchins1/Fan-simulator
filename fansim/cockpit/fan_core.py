@@ -62,7 +62,8 @@ def apply_state_defaults(session) -> None:
     state.ui_mode = "simple"  # Simple / Expert switch (roadmap §24)
     state.flow_rows = []
     state.flow_overall = ""
-    state.flow_msg = ""
+    # First load shows the reference, which has no flow simulation (§24).
+    state.flow_msg = "No flow simulation for this design yet. Run Assess to see how the air moves."
     state.flow_busy = False
     state.flow_numbers = []
     state.flow_zoom = False
