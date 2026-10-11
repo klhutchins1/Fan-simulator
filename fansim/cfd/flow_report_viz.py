@@ -14,7 +14,7 @@ from fansim.cfd.flow_report import (
     noise_density,
 )
 from fansim.cfd.flow_report_case import case_geometry
-from fansim.cfd.midplane import _RENDER_LOCK, robust_clim, rotor_outline, slice_volume_for_viz
+from fansim.cfd.midplane import _RENDER_LOCK, robust_clim, rotor_outline
 
 PICTURES = ("face", "push", "spin", "noise")
 WINDOW = (640, 480)
@@ -54,7 +54,9 @@ def _plotter():
 
 def _face(g, case_dir, hub_r, tip_r, z_fan, scales, metrics, path):
     z0 = z_fan + PLANE_Z_FRAC * tip_r
-    slc = slice_volume_for_viz(g, (0.0, 0.0, 1.0), (0.0, 0.0, z0))  # polyhedra-safe (§22.4)
+    # Plain VTK cut: cleaner than slice_volume_for_viz's cell band here; its polyhedron warnings are
+    # log noise only, and pictures are cached (made once per run).
+    slc = g.slice(normal=(0, 0, 1), origin=(0, 0, z0))
     pts = slc.cell_centers().points if slc.n_cells else np.zeros((0, 3))
     rr = np.hypot(pts[:, 0], pts[:, 1])
     slc = slc.extract_cells(np.flatnonzero((rr >= hub_r) & (rr <= tip_r))) if slc.n_cells else slc
@@ -96,7 +98,7 @@ def side_view_camera(tip_r: float, z_fan: float):
 
 
 def _side(g, case_dir, field, cmap, clim, title, path, z_fan, tip_r, highlight_pct=None):
-    slc = slice_volume_for_viz(g, (0.0, 1.0, 0.0), (0.0, 0.0, z_fan))  # polyhedra-safe (§22.4)
+    slc = g.slice(normal=(0, 1, 0), origin=(0, 0, z_fan))  # plain cut, see _face
     try:
         slc = slc.clip_box(list(side_view_box(tip_r, z_fan)), invert=False)
     except Exception:  # noqa: BLE001 - keep the full slice
