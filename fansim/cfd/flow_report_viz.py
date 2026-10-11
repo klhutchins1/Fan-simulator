@@ -1,0 +1,145 @@
+"""Pictures for the flow report card: fan-face map, push bars, spin and noise side views (§24)."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import numpy as np
+import pyvista as pv
+
+from fansim.cfd.flow_report import (
+    DEAD_FRAC_OF_MEAN, FlowMetrics, PLANE_Z_FRAC, noise_density,
+)
+from fansim.cfd.flow_report_case import case_geometry
+from fansim.cfd.midplane import _RENDER_LOCK, robust_clim, rotor_outline
+
+PICTURES = ("face", "push", "spin", "noise")
+WINDOW = (640, 480)
+
+
+def _cells(mesh):
+    g = mesh if "U" in mesh.cell_data else mesh.point_data_to_cell_data()
+    return g
+
+
+def _with_derived(mesh, case_dir):
+    g = _cells(mesh).copy()
+    c = np.asarray(g.cell_centers().points)
+    u = np.asarray(g.cell_data["U"], float)
+    r = np.hypot(c[:, 0], c[:, 1]) + 1e-12
+    uth = (-u[:, 0] * c[:, 1] + u[:, 1] * c[:, 0]) / r
+    g.cell_data["Uz"] = u[:, 2]
+    g.cell_data["spin"] = np.abs(uth) / (np.linalg.norm(u, axis=1) + 1e-12)
+    if "k" in g.cell_data and "omega" in g.cell_data:
+        g.cell_data["noise"] = np.log10(noise_density(g.cell_data["k"], g.cell_data["omega"]) + 1e-30)
+    return g
+
+
+def picture_scales(case_dir, *, mesh) -> dict:
+    g = _with_derived(mesh, case_dir)
+    sc = {"uz": robust_clim(g.cell_data["Uz"], symmetric=True),
+          "spin": (0.0, robust_clim(g.cell_data["spin"])[1])}
+    sc["noise"] = robust_clim(g.cell_data["noise"]) if "noise" in g.cell_data else (0.0, 1.0)
+    return sc
+
+
+def _plotter():
+    pl = pv.Plotter(off_screen=True, window_size=list(WINDOW))
+    pl.background_color = "white"
+    return pl
+
+
+def _face(g, case_dir, hub_r, tip_r, z_fan, scales, metrics, path):
+    z0 = z_fan + PLANE_Z_FRAC * tip_r
+    slc = g.slice(normal=(0, 0, 1), origin=(0, 0, z0))
+    pts = slc.cell_centers().points if slc.n_cells else np.zeros((0, 3))
+    rr = np.hypot(pts[:, 0], pts[:, 1])
+    slc = slc.extract_cells(np.flatnonzero((rr >= hub_r) & (rr <= tip_r))) if slc.n_cells else slc
+    with _RENDER_LOCK:
+        pl = _plotter()
+        try:
+            pl.add_mesh(slc.cell_data_to_point_data(), scalars="Uz", cmap="Blues",
+                        clim=[0.0, scales["uz"][1]], show_scalar_bar=True,
+                        scalar_bar_args={"title": "forward speed (m/s)"})
+            uz = np.asarray(slc.cell_data["Uz"]) if slc.n_cells else np.zeros(0)
+            back = slc.extract_cells(np.flatnonzero(uz < 0)) if uz.size else None
+            if back is not None and back.n_cells:
+                pl.add_mesh(back, color="red")
+            mean = metrics.mean_uz_exit if metrics else (float(np.mean(uz)) if uz.size else 0.0)
+            dead = slc.extract_cells(np.flatnonzero(np.abs(uz) < DEAD_FRAC_OF_MEAN * abs(mean))) if uz.size else None
+            if dead is not None and dead.n_cells:
+                pl.add_mesh(dead, color="gray")
+            ol = rotor_outline(case_dir, (0, 0, 1), (0, 0, z_fan))
+            if ol is not None:
+                pl.add_mesh(ol, color="black", line_width=1)
+            pl.view_xy()
+            pl.camera.parallel_projection = True
+            pl.reset_camera()
+            pl.screenshot(str(path))
+        finally:
+            pl.close()
+    return path
+
+
+def _side(g, case_dir, field, cmap, clim, title, path, z_fan, tip_r, highlight_pct=None):
+    slc = g.slice(normal=(0, 1, 0), origin=(0, 0, z_fan))
+    with _RENDER_LOCK:
+        pl = _plotter()
+        try:
+            pl.add_mesh(slc.cell_data_to_point_data(), scalars=field, cmap=cmap, clim=list(clim),
+                        scalar_bar_args={"title": title})
+            if highlight_pct is not None and slc.n_cells:
+                v = np.asarray(slc.cell_data[field])
+                hot = slc.extract_cells(np.flatnonzero(v >= np.percentile(v, highlight_pct)))
+                if hot.n_cells:
+                    pl.add_mesh(hot, color="orangered")
+            ol = rotor_outline(case_dir, (0, 1, 0), (0, 0, z_fan))
+            if ol is not None:
+                pl.add_mesh(ol, color="black", line_width=2)
+            pl.camera_position = [(0, -6 * tip_r, z_fan), (0, 0, z_fan), (1, 0, 0)]
+            pl.camera.parallel_projection = True
+            pl.reset_camera()
+            pl.screenshot(str(path))
+        finally:
+            pl.close()
+    return path
+
+
+def _push(bands, stock_bands, path):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    names = ["hub", "inner", "middle", "outer", "tip"]
+    x = np.arange(len(names))
+    fig, ax = plt.subplots(figsize=(6.4, 3.2), dpi=100)
+    ax.bar(x - 0.2, bands, 0.4, label="this design", color="#1f77b4")
+    if stock_bands is not None:
+        ax.bar(x + 0.2, stock_bands, 0.4, label="Stock", color="#c8a400")
+    ax.set_xticks(x, names)
+    ax.set_ylabel("pressure added (Pa)")
+    ax.legend(frameon=False)
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+    return path
+
+
+def render_report_pictures(case_dir, *, mesh, scales=None, out_dir=None, stock_bands=None,
+                           metrics: FlowMetrics | None = None) -> dict[str, Path]:
+    case_dir = Path(case_dir)
+    out_dir = Path(out_dir or case_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    hub_r, tip_r, z_fan = case_geometry(case_dir, mesh)
+    g = _with_derived(mesh, case_dir)
+    sc = scales or picture_scales(case_dir, mesh=mesh)
+    out: dict[str, Path] = {}
+    out["face"] = _face(g, case_dir, hub_r, tip_r, z_fan, sc, metrics, out_dir / "flow_face.png")
+    bands = metrics.band_dp0_pa if metrics else [0.0] * 5
+    out["push"] = _push(bands, stock_bands, out_dir / "flow_push.png")
+    out["spin"] = _side(g, case_dir, "spin", "Purples", sc["spin"], "share of speed that is spin",
+                        out_dir / "flow_spin.png", z_fan, tip_r)
+    if "noise" in g.cell_data:
+        out["noise"] = _side(g, case_dir, "noise", "Greys", sc["noise"], "turbulence noise (log, relative)",
+                             out_dir / "flow_noise.png", z_fan, tip_r, highlight_pct=95.0)
+    return out
