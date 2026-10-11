@@ -1430,7 +1430,7 @@ failures.
   - Repro: `handoff/2026-10-09_from-qa-5/stress/repro/A-F2_cup_through_short_hub.json`.
   - **DONE 2026-10-10: `mount_hub_params` grows the hub inside `build_impeller_with_mount`; tests reproduce
     the repro (10.9 mm hub) and check the cup floor.** **[impact: high: unprintable mount]** **[effort: low]**
-- [ ] **25.2 (QA-21) Tip trim raises on a featured, high-lean, wide-tip blade** from the optimizer's own
+- [x] **25.2 (QA-21) Tip trim raises on a featured, high-lean, wide-tip blade** from the optimizer's own
   `--extended --features` space (S5_0007).
   - The error: "blade crosses R=52.55 mm (reaches 56.09 mm) and no intersection ended at R".
   - **Reproduced on master 2026-10-10.**
@@ -1438,7 +1438,9 @@ failures.
     or refuse cleanly in `validate_blade_params` with a reason. The optimizer then marks it infeasible
     instead of erroring.
   - Repro: `handoff/2026-10-09_from-qa-5/stress/repro/A-F1_tip_trim_build_fail.json`.
-  - **[impact: med]** **[effort: med]**
+  - **DONE 2026-10-10: the tip section touches the cutter tangentially at exactly R. The trim now retries
+    0.02 / 0.05 mm inside R, and the repro builds watertight within R
+    (`docs/validation/audits/2026-10-10-ledger-refresh.md`).** **[impact: med]** **[effort: med]**
 - [x] **25.3 (QA-19) Direction check attempt 2: option (a).** **DONE 2026-10-10: P1–P5 PASS
   (`docs/validation/audits/2026-10-10-direction-crosscheck-2.md`). External STLs and the INCONCLUSIVE
   cambered stress designs moved to 25.3b; CFD of 9605/9606/9620/9630 is still to run.**

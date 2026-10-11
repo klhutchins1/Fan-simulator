@@ -92,8 +92,8 @@
     },
     "geometry.stock_handedness": {
       "date": "2026-10-10",
-      "fingerprint": "ed0c37e6831695df",
-      "report": "docs/validation/audits/2026-10-10-direction-crosscheck-2.md",
+      "fingerprint": "21896cffe32ed01f",
+      "report": "docs/validation/audits/2026-10-10-ledger-refresh.md",
       "verdict": "PASS"
     },
     "optimize.reject_dead_designs": {
