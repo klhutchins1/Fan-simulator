@@ -164,7 +164,7 @@ def test_render_midplane_pngs_synthetic_mesh(tmp_path: Path):
     assert "Umag" in art.caption
     assert "FRONT" in art.caption
     assert "LEFT" in art.caption
-    assert art.u_png.name == "U_midplane_v8.png"
+    assert art.u_png.name == "U_midplane_v9.png"
 
 
 @pytest.mark.slow
@@ -188,7 +188,7 @@ def test_render_midplane_scroll_layout_keeps_full_extent(tmp_path: Path):
     art = render_midplane_pngs(case, mesh=grid, layout="scroll")
     assert art.available
     assert art.u_png is not None and art.u_png.is_file()
-    assert art.u_png.name == "U_midplane_scroll_v1.png"
+    assert art.u_png.name == "U_midplane_scroll_v2.png"
     assert "scroll" in art.caption.lower()
     assert "OUTLET" in art.caption
 
@@ -226,7 +226,7 @@ def test_render_axial_uz_png_synthetic_mesh(tmp_path: Path):
     assert art.available
     assert art.png is not None and art.png.is_file()
     assert art.png.stat().st_size > 100
-    assert art.png.name == "U_axial_slice_v1.png"
+    assert art.png.name == "U_axial_slice_v2.png"
     assert "reverse" in art.caption
 
 
@@ -300,3 +300,32 @@ def test_ensure_midplane_uses_cache(tmp_path: Path):
     assert isinstance(art, MidplaneArtifacts)
     assert art.available
     assert art.u_png == u_png
+
+
+def test_robust_clim_ignores_spikes():
+    from fansim.cfd.midplane import robust_clim
+    v = np.r_[np.linspace(0, 5, 1000), [400.0, 500.0]]
+    lo, hi = robust_clim(v)
+    assert lo == pytest.approx(0.1, abs=0.05) and hi < 6.0
+    slo, shi = robust_clim(np.r_[v, -v], symmetric=True)
+    assert slo == -shi
+
+
+def test_pressure_pa_scales_by_rho():
+    from fansim.cfd.midplane import pressure_pa
+    assert pressure_pa(np.array([10.0]))[0] == pytest.approx(12.0)
+
+
+def test_rotor_outline_none_without_stl(tmp_path):
+    from fansim.cfd.midplane import rotor_outline
+    assert rotor_outline(tmp_path, (0, 1, 0), (0, 0, 0)) is None
+
+
+def test_rotor_outline_slices_stl(tmp_path):
+    import pyvista as pv
+    from fansim.cfd.midplane import rotor_outline
+    tri = tmp_path / "constant" / "triSurface"
+    tri.mkdir(parents=True)
+    pv.Cylinder(radius=0.05, height=0.01, direction=(0, 0, 1)).triangulate().save(tri / "impeller.stl")
+    out = rotor_outline(tmp_path, (0, 1, 0), (0, 0, 0))
+    assert out is not None and out.n_points > 0

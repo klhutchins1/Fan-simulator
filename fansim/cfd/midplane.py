@@ -20,11 +20,11 @@ import numpy as np
 _MIDPLANE_NORMAL = (0.0, 1.0, 0.0)
 _VIZ_SUBDIR = Path("postProcessing") / "cockpit_viz"
 # v8: |U| color scale is the 95th-percentile through-flow, not the tip-speed spike.
-_U_NAME = "U_midplane_v8.png"
-_P_NAME = "p_midplane_v7.png"
+_U_NAME = "U_midplane_v9.png"  # v9: smooth shading + rotor outline (§24)
+_P_NAME = "p_midplane_v8.png"  # v8: Pa, percentile range
 # Scroll layout (volute): full Y=0 section, camera up=+Z so +X outlet is screen-right.
-_U_NAME_SCROLL = "U_midplane_scroll_v1.png"
-_P_NAME_SCROLL = "p_midplane_scroll_v1.png"
+_U_NAME_SCROLL = "U_midplane_scroll_v2.png"
+_P_NAME_SCROLL = "p_midplane_scroll_v2.png"
 # Off-screen Plotter + matplotlib mathtext is not thread-safe (Windows hard crash).
 _RENDER_LOCK = threading.Lock()
 
@@ -329,12 +329,47 @@ def throughflow_umag_clim(values) -> tuple[float, float]:
     return (0.0, max(hi, 0.5))
 
 
+def robust_clim(values, lo_pct: float = 2.0, hi_pct: float = 98.0,
+                symmetric: bool = False) -> tuple[float, float]:
+    """Colour range from percentiles so a few tip spikes don't flatten the picture (§24)."""
+    arr = np.asarray(values, dtype=float).reshape(-1)
+    arr = arr[np.isfinite(arr)]
+    if arr.size == 0:
+        return (0.0, 1.0)
+    if symmetric:
+        m = float(np.percentile(np.abs(arr), hi_pct)) or 1.0
+        return (-m, m)
+    lo, hi = float(np.percentile(arr, lo_pct)), float(np.percentile(arr, hi_pct))
+    return (lo, hi if hi > lo else lo + 1.0)
+
+
+def pressure_pa(p_kin) -> np.ndarray:
+    """OpenFOAM incompressible p is kinematic (m^2/s^2); multiply by rho for Pa."""
+    from fansim.physics.air import RHO_AMCA
+    return np.asarray(p_kin, dtype=float) * RHO_AMCA
+
+
+def rotor_outline(case_dir, normal, origin):
+    """Grey outline of the rotor where a plane cuts it, or None when the CFD STL is missing."""
+    import pyvista as pv
+
+    stl = Path(case_dir) / "constant" / "triSurface" / "impeller.stl"
+    if not stl.is_file():
+        return None
+    try:
+        out = pv.read(str(stl)).slice(normal=tuple(normal), origin=tuple(origin))
+    except Exception:  # noqa: BLE001
+        return None
+    return out if out.n_points > 0 else None
+
+
 def render_midplane_pngs(
     case_dir: str | Path,
     *,
     mesh=None,
     window_size: tuple[int, int] = (1600, 480),
     layout: str = "axial",
+    clim_override: dict[str, tuple[float, float]] | None = None,
 ) -> MidplaneArtifacts:
     """Slice internal mesh on Y=0 and write ``|U|`` + ``p`` PNGs.
 
@@ -404,7 +439,7 @@ def render_midplane_pngs(
         cam_focal = (float(xc), float(origin[1]), float(z_look))
         view_up = (1.0, 0.0, 0.0)
         left_label, right_label = "FRONT (inlet)", "OUTLET (flow ->)"
-        title_u, title_p = "Umag midplane (m/s)", "pressure midplane (m2/s2)"
+        title_u, title_p = "speed (m/s)", "pressure (Pa)"
         cap_u = "Umag midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)"
         cap_p = "pressure midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)"
     else:
@@ -412,11 +447,19 @@ def render_midplane_pngs(
         cam_focal = (float(xc), float(origin[1]), float(zc))
         view_up = (0.0, 0.0, 1.0)
         left_label, right_label = "scroll / eye", "OUTLET (+X)"
-        title_u, title_p = "Umag scroll section (m/s)", "pressure scroll section (m2/s2)"
+        title_u, title_p = "speed (m/s)", "pressure (Pa)"
         cap_u = "Umag scroll section — OUTLET RIGHT (+X), INLET UP (+Z)"
         cap_p = "pressure scroll section — OUTLET RIGHT (+X), INLET UP (+Z)"
 
     u_written = p_written = None
+    # Smooth shading (§24): flat per-cell colour read as blocky "Minecraft" stairs.
+    try:
+        slc = slc.cell_data_to_point_data(pass_cell_data=False)
+    except Exception:  # noqa: BLE001 - keep the cell-coloured slice
+        pass
+    if "p" in slc.point_data:
+        slc.point_data["p_pa"] = pressure_pa(slc.point_data["p"])  # kinematic -> Pa
+    outline = rotor_outline(case_dir, _MIDPLANE_NORMAL, origin)
 
     def _shot(scalars: str, title: str, path: Path) -> Path | None:
         if scalars not in slc.array_names and scalars not in (
@@ -431,9 +474,13 @@ def render_midplane_pngs(
             try:
                 pl.background_color = "white"
                 mesh_kw = {}
-                if scalars == "U_mag":
-                    src = slc.point_data if "U_mag" in slc.point_data else slc.cell_data
+                src = slc.point_data if scalars in slc.point_data else slc.cell_data
+                if clim_override and scalars in clim_override:
+                    mesh_kw["clim"] = list(clim_override[scalars])
+                elif scalars == "U_mag":
                     mesh_kw["clim"] = list(throughflow_umag_clim(src["U_mag"]))
+                elif scalars == "p_pa":
+                    mesh_kw["clim"] = list(robust_clim(src["p_pa"]))
                 pl.add_mesh(
                     slc, scalars=scalars, cmap="turbo", show_edges=False,
                     scalar_bar_args={
@@ -449,6 +496,8 @@ def render_midplane_pngs(
                     },
                     **mesh_kw,
                 )
+                if outline is not None:
+                    pl.add_mesh(outline, color="black", line_width=2)
                 bb = slc.bounds
                 xspan = max(abs(float(bb[1]) - float(bb[0])), 1e-6)
                 zspan = max(abs(float(bb[5]) - float(bb[4])), 1e-6)
@@ -466,8 +515,7 @@ def render_midplane_pngs(
                 ]
                 pl.camera.parallel_projection = True
                 pl.camera.parallel_scale = half
-                # ASCII only — ``|U|`` / arrows go through matplotlib mathtext and can crash VTK.
-                pl.add_text(title, font_size=11, color="black", position="upper_edge")
+                # Title lives in the card's HTML (§24); side labels stay. ASCII only (mathtext crash).
                 pl.add_text(
                     left_label, font_size=11, color="black", position="lower_left",
                 )
@@ -484,8 +532,8 @@ def render_midplane_pngs(
     except Exception:  # noqa: BLE001
         u_written = None
     try:
-        if "p" in slc.cell_data or "p" in slc.point_data or "p" in slc.array_names:
-            p_written = _shot("p", title_p, out_p)
+        if "p_pa" in slc.point_data or "p" in slc.cell_data:
+            p_written = _shot("p_pa" if "p_pa" in slc.point_data else "p", title_p, out_p)
     except Exception:  # noqa: BLE001
         p_written = None
 
@@ -504,7 +552,7 @@ def render_midplane_pngs(
     )
 
 
-_UAXIAL_NAME = "U_axial_slice_v1.png"
+_UAXIAL_NAME = "U_axial_slice_v2.png"  # v2: smooth shading + rotor outline
 
 
 @dataclass(frozen=True)
@@ -571,6 +619,12 @@ def render_axial_uz_png(
         lim = max(lim, 0.5)
         clim = (-lim, lim)
 
+    try:  # smooth shading (§24)
+        slc = slc.cell_data_to_point_data(pass_cell_data=False)
+    except Exception:  # noqa: BLE001
+        pass
+    outline = rotor_outline(case_dir, (0.0, 0.0, 1.0), (cx, cy, z_cut))
+
     # Fit the disc (X–Y extent of the slice) in the viewport.
     xspan = max(float(b[1]) - float(b[0]), 1e-6)
     yspan = max(float(b[3]) - float(b[2]), 1e-6)
@@ -597,6 +651,8 @@ def render_axial_uz_png(
                     "position_y": 0.2,
                 },
             )
+            if outline is not None:
+                pl.add_mesh(outline, color="black", line_width=1)
             # Look down the axis from +Z toward −Z (fan face on), up = +Y.
             dist = 3.0 * max(half, 0.05)
             pl.camera_position = [
@@ -606,8 +662,6 @@ def render_axial_uz_png(
             ]
             pl.camera.parallel_projection = True
             pl.camera.parallel_scale = half
-            pl.add_text("axial velocity Uz (m/s)", font_size=11, color="black",
-                        position="upper_edge")
             pl.add_text("blue = delivery (+Z)   red = reverse (-Z)", font_size=10,
                         color="black", position="lower_left")
             pl.screenshot(str(out))
