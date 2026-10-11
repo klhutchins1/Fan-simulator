@@ -1335,7 +1335,23 @@ The decision is a **Simple / Expert switch, defaulting to Simple**:
 
 The work is split into three sub-projects, done in order.
 
-- [ ] **24.1 Flow report card "How the air moves"** (sub-project 1).
+- [x] **24.1 Flow report card "How the air moves"** (sub-project 1).
+  - **DONE 2026-10-10** (branch `flow-report-card`).
+  - **Checks:** F0, F1, F3 and F4 PASS. F2 passed after widening to Stock's run-to-run spread: band ±15 %,
+    noise 2.8 dB.
+  - **Push redefined:** p + ½Uz², with swirl excluded. All of this is recorded in
+    `docs/validation/audits/2026-10-10-flow-report-checks.md`.
+  - **Browser-checked:** t9005 reads all ✓ against Stock and 9610 reads 3 ⚠; the stale-design message;
+    the Simple/Expert switch, remembered per browser; quick switching; cached re-open in 1–1.5 s.
+  - **Also fixed on the way:** airflow pictures now come from the run behind a refreshed design's score
+    (`extra.case_dir`). Before this, 11 refreshed designs showed an older run, e.g. t9005's level-2
+    2026-09-15 case.
+  - **Follow-ups:**
+    - 9604 reads +24.9 dB noise and weak push despite higher load CFM; check its convergence and
+      k field.
+    - The minors deferred from the final review: some simple-mode messages are still technical;
+      design-only mode shows "–" rows; the legend lacks a "clipped at Stock's range" note; the push
+      row shows a redundant Stock picture; band labels flip if Stock's band is ever negative.
   - Spec: `docs/superpowers/specs/2026-10-10-flow-report-card-design.md`.
   - Plan: `docs/superpowers/plans/2026-10-10-flow-report-card.md` (9 tasks).
   - It replaces "Duct airflow" on Fan → Results. One row per question, each with a ✓/⚠/✕ verdict

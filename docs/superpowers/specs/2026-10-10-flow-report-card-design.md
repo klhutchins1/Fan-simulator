@@ -1,6 +1,6 @@
 # Flow report card ("How the air moves") — design
 
-Date: 2026-10-10 · Status: approved in conversation, awaiting spec review · Roadmap §24
+Date: 2026-10-10 · Status: implemented 2026-10-10 (branch flow-report-card; thresholds and push definition updated per the audit) · Roadmap §24.1
 
 ## Why
 
