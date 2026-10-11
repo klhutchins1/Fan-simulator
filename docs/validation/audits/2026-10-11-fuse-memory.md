@@ -29,3 +29,16 @@ for Stock-like designs; the docstring now says so.
 ## Ledger
 
 `geometry.stock_handedness` re-recorded on 2026-10-11 after the full suite (1704 passed, 0 failed), which includes its registered checks and its dependants'.
+
+## Correction (same day): the guard only acts on cockpit builds
+
+The full suite was run inside a release export while a second suite was running, and only 3.6–4.1 GB
+of RAM was free. The guard then refused Stock (40 449 faces, estimate ×1.15 = 4.4 GB), so two
+geometry tests failed.
+- That is the guard working. But the same path runs inside the optimizer, Assess scoring and
+  scripts, where a refusal would be **recorded as an infeasible design**. On a busy machine that
+  would quietly corrupt results.
+- **Now:** `check_fuse_memory` acts only when `FANSIM_FUSE_GUARD=1`. The cockpit's cup Preview
+  (`build_stl_isolated(fuse_guard=True)`) and Export (`_export_worker`) set it, because a person reads
+  the message there. Batch builds always go ahead, as before 25.5.
+- Build errors now keep 400 characters of stderr, so the plain message isn't cut off.

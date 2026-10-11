@@ -11,6 +11,7 @@ import sys
 
 def main() -> int:
     job = json.loads(open(sys.argv[1], encoding="utf-8").read())
+    os.environ["FANSIM_FUSE_GUARD"] = "1"  # cockpit Export: refuse plainly rather than swap (25.5)
     from fansim.cockpit.fan_export import do_export
     from fansim.fan_spec import fan_spec_from_dict
     from fansim.geometry.features import Features

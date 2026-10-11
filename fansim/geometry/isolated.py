@@ -53,7 +53,8 @@ def progress_caption(p: dict | None, prev_pct: int = 0) -> tuple[int, str]:
 def build_stl_isolated(flat: dict, features, out_path: str | Path, timeout: float = 300.0,
                        preview: bool = False, motor_mount: dict | None = None,
                        *, preview_dense: bool = False,
-                       progress_path: str | Path | None = None) -> Path:
+                       progress_path: str | Path | None = None,
+                       fuse_guard: bool = False) -> Path:
     """Build an impeller STL from a flat param dict + features, in a subprocess with a timeout.
 
     ``features`` may be a Features dataclass or a plain dict. ``preview=True`` builds the FAST
@@ -77,6 +78,8 @@ def build_stl_isolated(flat: dict, features, out_path: str | Path, timeout: floa
     }
     if motor_mount is not None and not preview:
         job["motor_mount"] = dict(motor_mount)
+    if fuse_guard:  # cockpit builds: refuse plainly rather than swap (resources.check_fuse_memory)
+        job["fuse_guard"] = True
     if progress_path is not None:
         # Stage 1 is the worker's interpreter + CadQuery/OCP import (~2 s; ~30 s on a slow box),
         # which happens before any worker code can run, so the parent records it (QA UI-4 r3).
@@ -88,5 +91,6 @@ def build_stl_isolated(flat: dict, features, out_path: str | Path, timeout: floa
         timeout=timeout,
         label="geometry build",
         require_paths=[out_path],
+        stderr_tail=400,  # keep the whole plain-language reason (e.g. the memory refusal)
     )
     return out_path
