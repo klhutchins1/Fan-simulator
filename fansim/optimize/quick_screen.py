@@ -51,6 +51,7 @@ def quick_free_air(params, workdir, spec, *, base_cell: float = QUICK_BASE_CELL,
     from fansim.cfd.runner import OpenFOAMRunner
     from fansim.cfd.timing import mesh_cells
     from fansim.geometry import build_impeller, export_stl, watertight_report
+    from fansim.geometry.blade import signed_design_camber
 
     t0 = time.time()
     workdir = Path(workdir)
@@ -68,7 +69,8 @@ def quick_free_air(params, workdir, spec, *, base_cell: float = QUICK_BASE_CELL,
     params.rpm = float(spec.rpm)
     rig0 = rig_for_impeller(params, tip_gap_mm=remaining, casing_id_mm=casing_id,
                             inlet_diameters=2.0, outlet_diameters=4.0)
-    stl, rig0 = prepare_axial_cfd(stl, rig0, workdir, source="builder")
+    stl, rig0 = prepare_axial_cfd(stl, rig0, workdir, source="builder",
+                                   design_camber=signed_design_camber(params))  # audit 2026-10-10
     frame = workdir / "frame.stl"
     export_frame_stl(params, rig0, frame)
     mesh = MeshResolution(base_cell=base_cell, surf_min=max(1, surf_level - 1),

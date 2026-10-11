@@ -61,9 +61,9 @@
       "verdict": "PASS"
     },
     "cfd.flow_direction_convention": {
-      "date": "2026-10-01",
-      "fingerprint": "b05f65bc0015c3e0",
-      "report": "docs/validation/audits/2026-10-01-audit-07-cror-mixed-setup.md",
+      "date": "2026-10-10",
+      "fingerprint": "82d94335ee4de045",
+      "report": "docs/validation/audits/2026-10-10-direction-crosscheck-2.md",
       "verdict": "PASS"
     },
     "cfd.sanity_checks": {
@@ -91,9 +91,9 @@
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
-      "date": "2026-10-09",
-      "fingerprint": "9fd3e0337080e567",
-      "report": "docs/validation/audits/2026-10-09-ledger-refresh.md",
+      "date": "2026-10-10",
+      "fingerprint": "ed0c37e6831695df",
+      "report": "docs/validation/audits/2026-10-10-direction-crosscheck-2.md",
       "verdict": "PASS"
     },
     "optimize.reject_dead_designs": {

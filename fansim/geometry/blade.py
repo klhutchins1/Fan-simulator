@@ -785,6 +785,15 @@ def build_hub(params: BladeParams, z_bottom: float, z_top: float) -> cq.Solid:
     return _cylinder_hub(params, z_bottom, z_top)
 
 
+BACKWARDS_CAMBER = -0.02  # a station camber at or below this is a backwards blade (audit 2026-10-10)
+
+
+def signed_design_camber(params: BladeParams) -> float:
+    """The design's camber: the station value with the largest magnitude, sign kept."""
+    vals = [float(st.max_camber) for st in params.stations]
+    return max(vals, key=abs) if vals else 0.0
+
+
 def validate_blade_params(params: BladeParams) -> None:
     """Raise ``ValueError`` for an impeller that can't be a real fan (roadmap §23.3, §23.33).
 
@@ -821,6 +830,10 @@ def validate_blade_params(params: BladeParams) -> None:
             raise ValueError(f"station {i} chord must be > 0 mm, got {st.chord}")
         if float(st.thickness) <= 0.0:
             raise ValueError(f"station {i} thickness must be > 0, got {st.thickness}")
+        if float(st.max_camber) <= BACKWARDS_CAMBER:
+            raise ValueError(
+                f"station {i} camber {float(st.max_camber):.3f} is negative: the blade would be "
+                "curved backwards and pump the wrong way. Use a camber of 0 or more")
     if params.blade_angles_deg is not None and len(params.blade_angles_deg) != int(float(n)):
         raise ValueError(
             f"blade_angles_deg has {len(params.blade_angles_deg)} entries, expected n_blades={n}")

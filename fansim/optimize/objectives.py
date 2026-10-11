@@ -43,7 +43,7 @@ from fansim.fan_spec import (
     mount_min_hub_radius,
     over_spec_flags,
 )
-from fansim.geometry.blade import BladeParams, blade_solidity, min_blade_wall_mm
+from fansim.geometry.blade import BladeParams, blade_solidity, min_blade_wall_mm, signed_design_camber
 from fansim.manufacturability.fdm_rules import check_printability
 from fansim.optimize.system_curve import (
     REF_CFM,
@@ -365,7 +365,8 @@ def evaluate_candidate(
     )
     # Audit #1: CFD solves the designed rotation only with the rotor flipped (spin stays −1), and
     # the MRF zone must contain the whole rotor, so size it from the oriented STL.
-    stl, rig0 = prepare_axial_cfd(stl, rig0, workdir, source="builder")
+    stl, rig0 = prepare_axial_cfd(stl, rig0, workdir, source="builder",
+                                   design_camber=signed_design_camber(params))  # audit 2026-10-10
     frame_path = None
     stator_path = None
     try:
