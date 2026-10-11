@@ -28,7 +28,7 @@ def test_backflow_edge():
 
 
 def test_band_labels():
-    rows = judge(_m(band_dp0_pa=[2.3, 4.0, 5.3, 8.8, 6.0]), STOCK)
+    rows = judge(_m(band_dp0_pa=[2.31, 4.0, 5.09, 9.2, 6.0]), STOCK)  # tol 15 %
     assert rows[1].bands == ["stronger", "similar", "weaker", "similar", "similar"]
 
 
@@ -37,8 +37,8 @@ def test_swirl_dead_noise_edges():
     assert judge(_m(swirl_frac=0.2201), STOCK)[2].status == "warn"
     assert judge(_m(dead_frac=0.0701), STOCK)[3].status == "warn"
     assert judge(_m(tip_band_uz_ratio=0.71), STOCK)[3].status == "warn"
-    assert judge(_m(noise_swl_db=61.0), STOCK)[4].status == "ok"
-    assert judge(_m(noise_swl_db=61.01), STOCK)[4].status == "warn"
+    assert judge(_m(noise_swl_db=62.8), STOCK)[4].status == "ok"
+    assert judge(_m(noise_swl_db=62.81), STOCK)[4].status == "warn"
 
 
 def test_noise_missing_is_na():

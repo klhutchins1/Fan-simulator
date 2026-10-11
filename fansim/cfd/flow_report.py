@@ -12,10 +12,10 @@ from dataclasses import asdict, dataclass
 import numpy as np
 
 from fansim.acoustics.proxies import epsilon_from_komega, proudman_power_density, sound_power_level
-from fansim.cfd.spanwise import cylindrical_velocity, total_pressure_kin
+from fansim.cfd.spanwise import cylindrical_velocity
 from fansim.physics.air import RHO_AMCA
 
-FLOW_REPORT_VERSION = 1
+FLOW_REPORT_VERSION = 2  # v2: push excludes swirl energy (audit 2026-10-10-flow-report-checks)
 N_BANDS = 5
 PLANE_Z_FRAC = 0.18           # same plane as fansim.cfd.spanwise._PLANE_Z_FRAC
 DEAD_FRAC_OF_MEAN = 0.10      # |Uz| below this share of the mean exit Uz counts as dead air
@@ -113,7 +113,9 @@ def compute_metrics(s: FlowSamples, *, hub_r: float, tip_r: float, z_fan: float)
     tip_ratio = (_wmean(uz_e[tip_sel], we[tip_sel]) / mean_uz
                  if np.any(tip_sel) and mean_uz != 0 else float("nan"))
 
-    p0 = total_pressure_kin(p, u)
+    # Useful push: static + forward dynamic pressure. Swirl energy is the separate 'wasted spin'
+    # row; counting it here made a swirly fan (Stock) look stronger than a better one (t9005).
+    p0 = p + 0.5 * uz * uz
     b_ex = _band_index(r_e, hub_r, tip_r)
     b_in = _band_index(r[inn], hub_r, tip_r)
     p0_e, w_in, p0_in = p0[ex], w[inn], p0[inn]

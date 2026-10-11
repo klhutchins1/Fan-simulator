@@ -136,3 +136,13 @@ def test_metrics_roundtrip_dict():
 def test_exit_slab_mask_excludes_hub_and_outside():
     pts = np.array([[0.01, 0, 0.0099], [0.03, 0, 0.0099], [0.06, 0, 0.0099], [0.03, 0, 0.03]])
     assert exit_slab_mask(pts, hub_r=HUB, tip_r=TIP, z_fan=0.0).tolist() == [False, True, False, False]
+
+
+def test_band_rise_excludes_swirl_energy():
+    """Swirl leaving the fan is the 'wasted spin' row; it must not count as push (§24, F-check ruling)."""
+    pts = _annulus()
+    r = np.hypot(pts[:, 0], pts[:, 1])
+    swirl = np.where(pts[:, 2] > 0, 4.0, 0.0)  # spin added only downstream
+    u = np.column_stack([-pts[:, 1] / r * swirl, pts[:, 0] / r * swirl, np.full(len(r), 3.0)])
+    m = compute_metrics(_samples(pts, u), hub_r=HUB, tip_r=TIP, z_fan=0.0)
+    assert m.band_dp0_pa == pytest.approx([0.0] * 5, abs=1e-9)
