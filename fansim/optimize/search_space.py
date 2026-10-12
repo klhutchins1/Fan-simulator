@@ -195,8 +195,10 @@ def suggest_params(trial, with_features: bool = False, space: str = "open",
     bp = BladeParams(n_blades=n_blades, stations=stations, features=features, **kw)
     # Durable record of what the sampled chords mean, for replaying this trial later
     # (``trial_attrs.chord_basis_for_trial``; trials without it predate the switch).
+    bp.section_wrap = "cylinder"  # new axial designs: sections on their cylinders (roadmap 27.4)
     if hasattr(trial, "set_user_attr"):
         trial.set_user_attr("chord_basis", bp.chord_basis)
+        trial.set_user_attr("section_wrap", bp.section_wrap)
     if with_shroud:                       # tip ring; search its TE-anchored height (recovery: 7.5)
         bp.shroud_thick_mm = SHROUD_DEFAULT_MM
         bp.shroud_height_frac = trial.suggest_float("shroud_height_frac", 0.30, 1.0)
@@ -338,6 +340,8 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
         bp.cylindrical_tip = bool(p["cylindrical_tip"])
     if p.get("chord_basis"):                        # absent = "measured"; legacy saves are stamped "loft"
         bp.chord_basis = str(p["chord_basis"])
+    # absent = "cylinder"; saves from before 27.4 are stamped "planar" (scripts/migrate_section_wrap.py)
+    bp.section_wrap = str(p.get("section_wrap") or "cylinder")
     if (
         int(p.get("tip_notch_count", 0) or 0) > 0
         or p.get("notched_tips")
@@ -425,6 +429,7 @@ def blade_to_flat(params: BladeParams) -> dict:
         le_skew_tip=float(getattr(tip, "le_skew", 0.0) or 0.0),
         cylindrical_tip=bool(getattr(params, "cylindrical_tip", True)),
         chord_basis=str(getattr(params, "chord_basis", "measured") or "measured"),
+        section_wrap=str(getattr(params, "section_wrap", "planar") or "planar"),
         hub_height=float(params.hub_height_mm or 0.0),
         blade_hub_z=float(getattr(params, "blade_hub_z_mm", 0.0) or 0.0),
         hub_profile=str(params.hub_profile or "cylinder"),
@@ -531,7 +536,7 @@ def tip_radius_cap_mm(stations, hub_radius: float, frame_half_mm: float,
     for _ in range(12):
         probe = BladeParams(
             n_blades=int(n_blades), hub_radius=float(hub_radius),
-            tip_radius=tr, stations=list(stations),
+            tip_radius=tr, stations=list(stations), section_wrap="cylinder",
             **tip_kw,
         )
         built = open_tip_rmax_mm(probe) + shroud

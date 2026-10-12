@@ -66,7 +66,7 @@ def test_wrapped_stock_cuts_back_to_its_sliders():
             assert r["camber_ratio"] > s.max_camber - 0.02, (s.r_frac, r["camber_ratio"])
 
 
-def test_section_wrap_defaults_to_cylinder():
+def test_class_default_stays_planar_for_other_archetypes():
     from fansim.geometry.blade import BladeParams
 
-    assert BladeParams.__dataclass_fields__["section_wrap"].default == "cylinder"
+    assert BladeParams.__dataclass_fields__["section_wrap"].default == "planar"

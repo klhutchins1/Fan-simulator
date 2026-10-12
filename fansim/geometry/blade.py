@@ -168,7 +168,10 @@ class BladeParams:
     #                strip) sees exactly the station's chord / stagger / camber.
     #   "planar"   — legacy tangent-plane sections; on leaned/skewed blades the built camber is far
     #                below the slider. Designs saved before the switch are stamped "planar".
-    section_wrap: str = "cylinder"
+    # The dataclass default stays "planar" so props / wind / centrifugal / CROR keep their validated
+    # geometry; the axial-fan entry points (``search_space.suggest_params`` / ``blade_from_flat``,
+    # the Stock recipe YAML) choose "cylinder".
+    section_wrap: str = "planar"
     # Chordwise thickness bias (global):
     #   NACA — scale local thickness near LE / TE (1 = stock; typical 0.5–1.5).
     #   plate — ``le_thick_scale`` / ``te_thick_scale`` are LE/TE roundness in [0, 1]
