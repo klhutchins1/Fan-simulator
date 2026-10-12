@@ -151,8 +151,10 @@ def bind(session) -> None:
     def _cfd_progress_hint(workdir: Path | None) -> str:
         return cfd_stage_hint(workdir)
 
-    async def _assess_progress_ticker(t0: float, workdir_holder, *, note: str = ""):
-        while state.assess_busy and not state.assess_cancel:
+    async def _assess_progress_ticker(t0: float, workdir_holder, *, note: str = "", stop=None):
+        # ``stop[0]`` ends the ticker once the result is written: the picture bake after "Done"
+        # awaits, and a ticker still looping on ``assess_busy`` overwrote the result (QA-29, 27.6).
+        while state.assess_busy and not state.assess_cancel and not (stop and stop[0]):
             if state.sweep_active or state.opt_running:
                 await asyncio.sleep(5.0)
                 continue
@@ -326,8 +328,9 @@ def bind(session) -> None:
             wd_holder: list = [None]
             state.assess_msg = busy_caption("Assess", 0, note=note)
             state.flush()
+            ticker_stop = [False]
             ticker = fan_runtime.asynchronous.create_task(
-                _assess_progress_ticker(t0, wd_holder, note=note)
+                _assess_progress_ticker(t0, wd_holder, note=note, stop=ticker_stop)
             )
             try:
                 try:
@@ -361,6 +364,8 @@ def bind(session) -> None:
                     state.assess_msg = "⏹ Assess cancelled."
                     return
                 if d:
+                    ticker_stop[0] = True
+                    ticker.cancel()
                     o = d.objectives
                     over = d.extra.get("over_spec") or []
                     tag = ("  ⚠ OVER-SPEC: " + "; ".join(over)) if over else ""

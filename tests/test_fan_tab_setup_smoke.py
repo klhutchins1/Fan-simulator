@@ -331,3 +331,41 @@ def test_assess_saves_the_settings_from_when_it_was_pressed(bound_ctx):
     extra = json.loads(saved.read_text(encoding="utf-8"))["extra"]
     assert (extra["preset"], extra["material"], extra["fan_model"]) == ("heatsink", "PETG", "a12x25")
     assert "parent_id" not in extra
+
+
+def test_assess_done_message_survives_the_picture_bake(bound_ctx, tmp_path):
+    """QA-29 (27.6): the busy ticker must not overwrite 'Done ◆#n' while the airflow pictures bake."""
+    st = bound_ctx.state
+    st.selected_trial = None
+    result = SimpleNamespace(feasible=True, reason="", over_spec=[], cfm_free=10.0, cfm_load=8.0,
+                             efficiency=40.0, actual_rpm=2000.0, raw={})
+    tasks = bound_ctx._tasks
+    baked = []
+
+    def canned(fn, *args):
+        name = getattr(fn, "__name__", "")
+        if name == "_blocking_eval":
+            wd = Path(args[2])
+            wd.mkdir(parents=True, exist_ok=True)
+            (wd / "impeller.stl").write_text("solid x\nendsolid x\n")  # gives the design a model
+            result.stl_path = str(wd / "impeller.stl")
+            return result
+        if name == "bake_cockpit_viz_core":
+            baked.append(True)
+            # the bake takes seconds: the ticker wakes up meanwhile
+            ticker = next(c for c in tasks if c.cr_code.co_name == "_assess_progress_ticker")
+            try:
+                ticker.send(None)
+            except StopIteration:
+                pass
+        return None
+
+    bound_ctx.fan_on_assess()
+    while tasks:
+        coro = tasks.pop(0)
+        if coro.cr_code.co_name == "task":
+            _drive(coro, canned)
+        else:
+            coro.close()
+    assert baked, "the picture bake was not reached; the test does not exercise the race"
+    assert st.assess_msg.startswith("Done ◆#"), st.assess_msg
