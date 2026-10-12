@@ -1,0 +1,102 @@
+{
+ "finding": "A-F3_direction_false_refusal",
+ "design_id": "S3_0002",
+ "note": "K5 CONCLUSIVE (-1,+1) on a builder design",
+ "flat": {
+  "n_blades": 11,
+  "hub_radius": 21.5,
+  "tip_radius": 56.5,
+  "chord_root": 22.487275701016188,
+  "chord_mid": 24.882581025362015,
+  "chord_tip": 39.4694263394922,
+  "stagger_root": 38.032344687730074,
+  "stagger_mid": 32.987340077757835,
+  "stagger_tip": 32.51927654072642,
+  "camber_root": 0.0012636788003146649,
+  "camber_mid": 0.0012636788003146649,
+  "camber_tip": 0.0012636788003146649,
+  "max_camber": 0.0012636788003146649,
+  "camber_pos": 0.4,
+  "thickness_root": 0.1,
+  "thickness_mid": 0.08,
+  "thickness_tip": 0.06,
+  "thick_mode": "tapered",
+  "thick_mm": 2.2,
+  "le_thick_scale": 1.0,
+  "te_thick_scale": 1.0,
+  "sweep_mid": 0.27920667827129364,
+  "sweep_tip": 1.4821356274187565,
+  "skew_mid": 0.0,
+  "skew_tip": 0.0,
+  "lean_mid": 5.129506643861532,
+  "lean_tip": 24.425420640036464,
+  "le_sweep_mid": 0.0,
+  "le_sweep_tip": 0.0,
+  "le_skew_mid": 0.0,
+  "le_skew_tip": 0.0,
+  "cylindrical_tip": true,
+  "chord_basis": "measured",
+  "hub_height": 0.0,
+  "blade_hub_z": 0.0,
+  "hub_profile": "cylinder",
+  "hub_nose": 0.0,
+  "shroud_thick_mm": 0.0,
+  "shroud_height_frac": 1.0,
+  "span_interp": "linear",
+  "section_family": "naca",
+  "n_span": 18,
+  "n_chord": 60,
+  "tip_notch_count": 0,
+  "tip_notch_depth_mm": 0.0,
+  "notched_tips": false,
+  "spacing_spread": 0.0,
+  "spacing_seed": 0,
+  "tip_round": 0.0,
+  "tip_round_start": 0.8,
+  "winglet_span": 0.85,
+  "winglet_sweep": 0.0,
+  "winglet_lean": 0.0
+ },
+ "features": {
+  "tubercle_amp": 0.0,
+  "tubercle_waves": 0,
+  "serration_amp": 0.0,
+  "serration_waves": 0,
+  "dimple_amp": 0.0,
+  "dimple_rows": 0,
+  "dimple_cols": 0
+ },
+ "flags": {
+  "space": "guided_lc"
+ },
+ "measured": {
+  "builds": {
+   "P": {
+    "outcome": "OK",
+    "s": 26.4,
+    "peak_mb": 2898,
+    "err": null,
+    "tier": "8gb"
+   }
+  },
+  "checks": {
+   "K11": "PASS",
+   "K1": "PASS",
+   "K2": "PASS",
+   "K3": "PASS",
+   "K4": "PASS",
+   "K5": "FAIL",
+   "K6": "PASS"
+  },
+  "K5": {
+   "verdict": "CONCLUSIVE",
+   "omega": -1,
+   "pump": 1,
+   "agreement": 1.0,
+   "n": 33,
+   "note": "33 sections, 22 flat skipped, 0 low-quality skipped"
+  },
+  "C": null,
+  "hub_face_z": -8.427275283188044
+ }
+}

@@ -1,0 +1,517 @@
+[
+ {
+  "scenario": "A0_no_change",
+  "start": {
+   "fan_model": "a12x25",
+   "material": "PETG",
+   "preset": "case",
+   "refine_op": false,
+   "camber_mid": 0.0834,
+   "parent": "",
+   "selected": 100000
+  },
+  "used_by_run": [
+   {
+    "t": 208453.162025989,
+    "flat_camber_mid": 0.0834,
+    "spec": "Noctua NF-A12x25",
+    "material": "PETG",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "wall_ks_mm": null
+   }
+  ],
+  "saved_new": [
+   {
+    "trial": 9000,
+    "params.camber_mid": 0.0834,
+    "fan_model": "a12x25",
+    "material": "PETG",
+    "preset": "case",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "parent_id": null,
+    "placed_on": null,
+    "cfd_stale": null,
+    "run_used": null
+   }
+  ],
+  "after": {
+   "selected": 9000,
+   "camber_mid_editor": 0.0834,
+   "msg": [
+    "Done \u25c6#9000: free 50.0  load 40.0  eff 30.0%  (added to Results plot)"
+   ],
+   "preview_msg": [
+    "Edit the sliders below, then press Preview geometry."
+   ],
+   "export_msg": []
+  }
+ },
+ {
+  "scenario": "A1_slider",
+  "start": {
+   "fan_model": "a12x25",
+   "material": "PETG",
+   "preset": "case",
+   "refine_op": false,
+   "camber_mid": 0.0834,
+   "parent": "",
+   "selected": 100000
+  },
+  "used_by_run": [
+   {
+    "t": 208458.692971325,
+    "flat_camber_mid": 0.0834,
+    "spec": "Noctua NF-A12x25",
+    "material": "PETG",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "wall_ks_mm": null
+   }
+  ],
+  "saved_new": [
+   {
+    "trial": 9000,
+    "params.camber_mid": 0.0834,
+    "fan_model": "a12x25",
+    "material": "PETG",
+    "preset": "case",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "parent_id": null,
+    "placed_on": null,
+    "cfd_stale": null,
+    "run_used": null
+   }
+  ],
+  "after": {
+   "selected": 9000,
+   "camber_mid_editor": 0.0834,
+   "msg": [
+    "Done \u25c6#9000: free 50.0  load 40.0  eff 30.0%  (added to Results plot)"
+   ],
+   "preview_msg": [
+    "Edit the sliders below, then press Preview geometry."
+   ],
+   "export_msg": []
+  }
+ },
+ {
+  "scenario": "A2_material_hose_refine",
+  "start": {
+   "fan_model": "a12x25",
+   "material": "PETG",
+   "preset": "case",
+   "refine_op": false,
+   "camber_mid": 0.0834,
+   "parent": "",
+   "selected": 100000
+  },
+  "used_by_run": [
+   {
+    "t": 208463.8957844,
+    "flat_camber_mid": 0.0834,
+    "spec": "Noctua NF-A12x25",
+    "material": "PETG",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "wall_ks_mm": null
+   }
+  ],
+  "saved_new": [
+   {
+    "trial": 9000,
+    "params.camber_mid": 0.0834,
+    "fan_model": "a12x25",
+    "material": "PLA",
+    "preset": "legacy",
+    "load_pa": 1.0,
+    "refine_op": true,
+    "parent_id": null,
+    "placed_on": null,
+    "cfd_stale": null,
+    "run_used": null
+   }
+  ],
+  "after": {
+   "selected": 9000,
+   "camber_mid_editor": 0.0834,
+   "msg": [
+    "Done \u25c6#9000: free 50.0  load 40.0  eff 30.0%  (added to Results plot)"
+   ],
+   "preview_msg": [
+    "Edit the sliders below, then press Preview geometry."
+   ],
+   "export_msg": []
+  }
+ },
+ {
+  "scenario": "A3_fan_model",
+  "start": {
+   "fan_model": "a12x25",
+   "material": "PETG",
+   "preset": "case",
+   "refine_op": false,
+   "camber_mid": 0.0834,
+   "parent": "",
+   "selected": 100000
+  },
+  "used_by_run": [
+   {
+    "t": 208469.110504494,
+    "flat_camber_mid": 0.0834,
+    "spec": "Noctua NF-A12x25",
+    "material": "PETG",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "wall_ks_mm": null
+   }
+  ],
+  "saved_new": [
+   {
+    "trial": 9000,
+    "params.camber_mid": 0.0834,
+    "fan_model": "delta_afc1212de",
+    "material": "PETG",
+    "preset": "case",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "parent_id": null,
+    "placed_on": null,
+    "cfd_stale": null,
+    "run_used": null
+   }
+  ],
+  "after": {
+   "selected": 9000,
+   "camber_mid_editor": 0.0834,
+   "msg": [
+    "Done \u25c6#9000: free 50.0  load 40.0  eff 30.0%  (added to Results plot)  \u2699 motor-limited: 2000 RPM (51%)"
+   ],
+   "preview_msg": [
+    "Edit the sliders below, then press Preview geometry."
+   ],
+   "export_msg": []
+  }
+ },
+ {
+  "scenario": "A4_select_other_design",
+  "start": {
+   "fan_model": "a12x25",
+   "material": "PETG",
+   "preset": "case",
+   "refine_op": false,
+   "camber_mid": 0.0834,
+   "parent": "",
+   "selected": 100000
+  },
+  "used_by_run": [
+   {
+    "t": 208474.321749972,
+    "flat_camber_mid": 0.0834,
+    "spec": "Noctua NF-A12x25",
+    "material": "PETG",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "wall_ks_mm": null
+   }
+  ],
+  "saved_new": [
+   {
+    "trial": 9000,
+    "params.camber_mid": 0.0834,
+    "fan_model": "a12x25",
+    "material": "PETG",
+    "preset": "legacy",
+    "load_pa": 1.0,
+    "refine_op": true,
+    "parent_id": null,
+    "placed_on": null,
+    "cfd_stale": null,
+    "run_used": null
+   }
+  ],
+  "after": {
+   "selected": 9000,
+   "camber_mid_editor": 0.0834,
+   "msg": [
+    "Done \u25c6#9000: free 50.0  load 40.0  eff 30.0%  (added to Results plot)"
+   ],
+   "preview_msg": [
+    "Edit the sliders below, then press Preview geometry."
+   ],
+   "export_msg": []
+  }
+ },
+ {
+  "scenario": "A5_library_switch",
+  "start": {
+   "fan_model": "a12x25",
+   "material": "PETG",
+   "preset": "case",
+   "refine_op": false,
+   "camber_mid": 0.0834,
+   "parent": "LIB_X",
+   "selected": 100000
+  },
+  "used_by_run": [
+   {
+    "t": 208479.637832149,
+    "flat_camber_mid": 0.0834,
+    "spec": "Noctua NF-A12x25",
+    "material": "PETG",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "wall_ks_mm": null
+   }
+  ],
+  "saved_new": [
+   {
+    "trial": 9000,
+    "params.camber_mid": 0.0834,
+    "fan_model": "a12x25",
+    "material": "PETG",
+    "preset": "case",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "parent_id": "LIB_Y",
+    "placed_on": "a12x25",
+    "cfd_stale": false,
+    "run_used": null
+   }
+  ],
+  "after": {
+   "selected": 9000,
+   "camber_mid_editor": 0.0834,
+   "msg": [
+    "Done \u25c6#9000: free 50.0  load 40.0  eff 30.0%  (added to Results plot)"
+   ],
+   "preview_msg": [
+    "Edit the sliders below, then press Preview geometry."
+   ],
+   "export_msg": []
+  }
+ },
+ {
+  "scenario": "A6_existing_switch",
+  "start": {
+   "fan_model": "a12x25",
+   "material": "PETG",
+   "preset": "case",
+   "refine_op": false,
+   "camber_mid": 0.05,
+   "parent": "",
+   "selected": 4300
+  },
+  "used_by_run": [
+   {
+    "t": 208484.844111655,
+    "flat_camber_mid": 0.05,
+    "spec": "Noctua NF-A12x25",
+    "material": "PETG",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "wall_ks_mm": null
+   }
+  ],
+  "saved_new": [],
+  "after": {
+   "selected": 4300,
+   "camber_mid_editor": 0.05,
+   "msg": [
+    "Done \u25c6#4300: free 50.0  load 40.0  eff 30.0%  (added to Results plot)"
+   ],
+   "preview_msg": [
+    "Edit the sliders below, then press Preview geometry."
+   ],
+   "export_msg": []
+  },
+  "saved_watch": [
+   {
+    "trial": 4300,
+    "params.camber_mid": 0.05,
+    "fan_model": "a12x25",
+    "material": null,
+    "preset": "case",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "parent_id": null,
+    "placed_on": null,
+    "cfd_stale": false,
+    "run_used": null
+   },
+   {
+    "trial": 4301,
+    "params.camber_mid": 0.06,
+    "fan_model": "a12x25",
+    "material": null,
+    "preset": "case",
+    "load_pa": null,
+    "refine_op": null,
+    "parent_id": null,
+    "placed_on": null,
+    "cfd_stale": true,
+    "run_used": null
+   }
+  ]
+ },
+ {
+  "scenario": "A7_sweep_material",
+  "start": {
+   "fan_model": "a12x25",
+   "material": "PETG",
+   "preset": "case",
+   "refine_op": false,
+   "camber_mid": 0.0834,
+   "parent": "",
+   "selected": 100000
+  },
+  "used_by_run": [
+   {
+    "t": 208490.048567859,
+    "flat_camber_mid": 0.0834,
+    "spec": "Noctua NF-A12x25",
+    "material": "PETG",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "wall_ks_mm": null
+   },
+   {
+    "t": 208493.129449123,
+    "flat_camber_mid": 0.0834,
+    "spec": "Noctua NF-A12x25",
+    "material": "PLA",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "wall_ks_mm": null
+   },
+   {
+    "t": 208496.219597273,
+    "flat_camber_mid": 0.0834,
+    "spec": "Noctua NF-A12x25",
+    "material": "PLA",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "wall_ks_mm": null
+   }
+  ],
+  "saved_new": [
+   {
+    "trial": 9000,
+    "params.camber_mid": 0.0834,
+    "fan_model": "a12x25",
+    "material": "PLA",
+    "preset": "case",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "parent_id": null,
+    "placed_on": null,
+    "cfd_stale": null,
+    "run_used": null
+   },
+   {
+    "trial": 9001,
+    "params.camber_mid": 0.0834,
+    "fan_model": "a12x25",
+    "material": "PLA",
+    "preset": "case",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "parent_id": null,
+    "placed_on": null,
+    "cfd_stale": null,
+    "run_used": null
+   },
+   {
+    "trial": 9002,
+    "params.camber_mid": 0.0834,
+    "fan_model": "a12x25",
+    "material": "PLA",
+    "preset": "case",
+    "load_pa": 8.0,
+    "refine_op": false,
+    "parent_id": null,
+    "placed_on": null,
+    "cfd_stale": null,
+    "run_used": null
+   }
+  ],
+  "after": {
+   "selected": 100000,
+   "camber_mid_editor": 0.0834,
+   "msg": [
+    "Sweep of stagger mid done: 3 \u25c6 runs added to the plot."
+   ],
+   "preview_msg": [
+    "\u2713 Stock reference loaded (Noctua NF-A12x25) \u2014 cached mesh. Gold = parametric Stock; published CFM is the \u2715, not this mesh's CFD."
+   ],
+   "export_msg": []
+  }
+ },
+ {
+  "scenario": "P1_preview_camber_cup",
+  "start": {
+   "fan_model": "a12x25",
+   "material": "PETG",
+   "preset": "case",
+   "refine_op": false,
+   "camber_mid": 0.0834,
+   "parent": "",
+   "selected": 100000
+  },
+  "used_by_run": [
+   {
+    "job": "preview",
+    "camber_mid": 0.0834,
+    "motor_mount": false,
+    "preview": true
+   }
+  ],
+  "saved_new": [],
+  "after": {
+   "selected": 100000,
+   "camber_mid_editor": 0.1134,
+   "msg": [],
+   "preview_msg": [
+    "Preview (orange): 9 blades, camber 0.037/0.113/0.097, smooth.",
+    "\u2713 fits Noctua NF-A12x25 (dia 100 mm, depth 20 mm, 40 g)"
+   ],
+   "export_msg": []
+  }
+ },
+ {
+  "scenario": "E1_export_hub_mirror_select",
+  "start": {
+   "fan_model": "a12x25",
+   "material": "PETG",
+   "preset": "case",
+   "refine_op": false,
+   "camber_mid": 0.0834,
+   "parent": "",
+   "selected": 100000
+  },
+  "used_by_run": [
+   {
+    "job": "export",
+    "spec": "Noctua NF-A12x25",
+    "hub_radius": 21.5,
+    "camber_mid": 0.0834,
+    "also_mirror": false,
+    "out": "a12x25_stock_reference_20261011-095752.stl"
+   }
+  ],
+  "saved_new": [],
+  "after": {
+   "selected": 4400,
+   "camber_mid_editor": 0.04,
+   "msg": [],
+   "preview_msg": [
+    "Edit the sliders below, then press Preview geometry."
+   ],
+   "export_msg": [
+    "\u2713 Saved /workspace/fansim/repo-r7/exports/a12x25_stock_reference_20261011-095752.stl (+ .step)  (watertight \u00b7 (this fan model has no motor-mount defined))"
+   ]
+  }
+ }
+]

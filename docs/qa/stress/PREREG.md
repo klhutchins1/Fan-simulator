@@ -98,3 +98,47 @@
 2. **Timeout: the memory wait before a T-16gb build (made during the pilot).** Originally the runner waited up to 10 min for 9.5 GB to be free. That level is never reached on this shared box. The wait is now: up to 60 s for max(2 × the design's 8gb C peak + 1 GB, 4 GB), and otherwise the build is recorded as `SKIPPED_MEM`. During the pilot the limit was 180 s; it became 60 s on 2026-10-10. The 16gb parallel fuse peaks at about 1.6× the serial fuse (round 4).
 3. **Runner logging only (no criteria change).** Each build now also records monotonic seconds, the CPU time of its child processes, and a `suspect_suspend` flag (wall time − monotonic time > 60 s). Reason: in the pilot one T-6gb build showed 30,072 s of wall time while its 600 s subprocess timeout (which uses the monotonic clock) never fired. That is consistent with the box being suspended, not with a slow build. Flagged builds are left out of the timing tables.
 4. **The T/C timeout stays at 600 s, as pre-registered.** I deliberately did not add a 20-minute wall-clock timeout. It would turn box suspensions into false `TIMEOUT` findings.
+
+## Amendments, round 7 (2026-10-11, written before any round-7 stress build)
+
+These amendments apply to the resumed run on master `5980677`. They were written and committed before any build on that code.
+- **Code:** master `5980677` (the round-7 update bundle, `handoff/2026-10-11_to-qa-7`).
+- **Runner:** `handoff/2026-10-11_from-qa-7/stress/` in `/workspace/fansim/repo-r7`.
+- **Unchanged:** seeds, strata, the scaled counts (801 designs) and K1–K4 and K6–K11.
+
+5. **Population and order (new master only).** Every design is built on the new code. The order is:
+   - **(i)** the 11 round-6 failures (S5_0007, S2_0000, S8_0002, S8_0008, S3_0002, S4_0005, S4_0012, CTL_0001–0004). These are the QA-18/19/21 re-verification.
+   - **(ii)** the 681 designs that round 6 did not reach, in the original order.
+   - **(iii)** the other 109 round-6 designs, so the final n = 801 is all on new code.
+
+   Round-6 records are kept, but they are not mixed into the round-7 tables.
+6. **K5 pass rule (QA-19 fix, roadmap: `orientation.builder_direction_refusal`).**
+   - **New K5:** FAIL if `builder_direction_refusal(proof, design_camber)` returns a reason. Here `design_camber` = `signed_design_camber(params)`, the station camber with the largest magnitude, sign kept.
+   - `INCONCLUSIVE` is still PASS and is counted separately.
+   - The **old rule** (CONCLUSIVE must read omega +1 / pump −1) is still computed as `K5_old`, and both FAIL counts are reported side by side.
+   - **Reason:** the QA-19 fix changes what a refusal is. Under the old rule, flat (|camber| < 0.02) leaned designs fail by construction.
+7. **K6 is unchanged** (omega flips under x → −x). Also logged, not a pass rule: whether the new rule refuses the mirror (`K6_newrule_refuses`).
+8. **K12, fuse memory vs face count (new, every P build that reaches the fuse).**
+   - **What is logged:** the face count `n_faces` that `fuse_impeller` passes to `resources.check_fuse_memory`, and the peak RSS of the P build tree.
+     - The count is captured by a `sitecustomize` hook on `PYTHONPATH` in the runner's environment only. It wraps `fansim.resources.check_fuse_memory`, records `n_faces` and calls the original. No source change.
+   - **Estimate:** `fuse_peak_estimate_gb(n_faces)` = 0.37 GB + 86 kB × faces.
+   - **Report:**
+     - the residuals (actual − estimate) per stratum;
+     - a least-squares fit of peak vs faces on Linux;
+     - **every design whose actual peak > 1.15 × the estimate** (the guard's headroom). Those are K12 FAIL, which is a finding against the model, not against the builder.
+   - **Guard bypass:** the runner forces `FANSIM_MEMORY_TIER`, which bypasses the guard (`check_fuse_memory` returns early when the tier is forced). So I also log what the guard *would* have decided at build start (free RAM vs 1.15 × the estimate), as `guard_would_refuse`.
+   - K12 is N/A when no fuse was reached.
+9. **Logging (round-7 ask, no criteria change).**
+   - The proof's own `chirality` overall, plus per section: r, omega, pump, chirality, `camber_ratio`.
+   - For every INCONCLUSIVE: its reason (`no_cambered_sections` / `single_radius` / `sections_disagree`, taken from the proof's note), the per-section `camber_ratio`, and the median.
+   - The design camber per station, and `design_camber`.
+   - The mirror proof's chirality.
+10. **Concurrency and memory (box froze 6.1 of 7.1 h in round 6).**
+    - Still one design job at a time, so **one P build at a time**.
+    - Before P: wait up to 300 s for ≥ 3 GB free, then build anyway, logging the wait.
+    - Before **every C and T build: wait up to 600 s for ≥ 6 GB free**. For T-16gb, the requirement is max(6, 2 × C peak + 1) GB. If the requirement isn't met in time, the build is `SKIPPED_MEM` and its checks are N/A (counted).
+    - The `mono_s`, `child_cpu_s` and `suspect_suspend` fields stay, and the runner logs `MemAvailable` at the start of each build.
+11. **Outcome classifier fix (round-6 S5_0007 misread).** A worker exit code 1–127 whose error text names a Python exception (`\w+Error` or `Exception`) is `BUILD_FAIL`, not `CRASH`. Signals, negative codes and codes ≥ 128 stay `CRASH`. Round 6 already reclassified S5_0007 by hand; this makes the runner match.
+12. **K7 hub face.** QA-18's fix grows the hub inside `build_impeller_with_mount`, which moves its face.
+    - K7 measures the floor against `_hub_axial_range(mount_hub_params(params, mount)[0])[0]`, the hub face of the solid that is actually built.
+    - The face of the un-grown params is logged as well, along with `hub_grown`.

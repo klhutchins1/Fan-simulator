@@ -1,0 +1,144 @@
+{
+ "finding": "A-F4_tiers_not_byte_identical",
+ "design_id": "S1_0000",
+ "note": "K8: tiers equal volume/verts, different bytes",
+ "flat": {
+  "n_blades": 9,
+  "hub_radius": 21.5,
+  "tip_radius": 56.5,
+  "chord_root": 29.30696555122769,
+  "chord_mid": 23.348601227221423,
+  "chord_tip": 14.7432621678924,
+  "stagger_root": 21.20293982144107,
+  "stagger_mid": 26.90917758454149,
+  "stagger_tip": 21.05783556932013,
+  "camber_root": 0.05451028830925034,
+  "camber_mid": 0.05451028830925034,
+  "camber_tip": 0.05451028830925034,
+  "max_camber": 0.05451028830925034,
+  "camber_pos": 0.4,
+  "thickness_root": 0.1,
+  "thickness_mid": 0.08,
+  "thickness_tip": 0.06,
+  "thick_mode": "tapered",
+  "thick_mm": 1.89,
+  "le_thick_scale": 1.0,
+  "te_thick_scale": 1.0,
+  "sweep_mid": 1.020486308780522,
+  "sweep_tip": 5.578650766993949,
+  "skew_mid": 0.0,
+  "skew_tip": 0.0,
+  "lean_mid": 21.972460328712895,
+  "lean_tip": 44.79625756796908,
+  "le_sweep_mid": 0.0,
+  "le_sweep_tip": 0.0,
+  "le_skew_mid": 0.0,
+  "le_skew_tip": 0.0,
+  "cylindrical_tip": true,
+  "chord_basis": "measured",
+  "hub_height": 0.0,
+  "blade_hub_z": 0.0,
+  "hub_profile": "cylinder",
+  "hub_nose": 0.0,
+  "shroud_thick_mm": 0.0,
+  "shroud_height_frac": 1.0,
+  "span_interp": "linear",
+  "section_family": "naca",
+  "n_span": 18,
+  "n_chord": 60,
+  "tip_notch_count": 0,
+  "tip_notch_depth_mm": 0.0,
+  "notched_tips": false,
+  "spacing_spread": 0.0,
+  "spacing_seed": 0,
+  "tip_round": 0.0,
+  "tip_round_start": 0.8,
+  "winglet_span": 0.85,
+  "winglet_sweep": 0.0,
+  "winglet_lean": 0.0
+ },
+ "features": {
+  "tubercle_amp": 0.0,
+  "tubercle_waves": 0,
+  "serration_amp": 0.0,
+  "serration_waves": 0,
+  "dimple_amp": 0.0,
+  "dimple_rows": 0,
+  "dimple_cols": 0
+ },
+ "flags": {
+  "space": "open"
+ },
+ "measured": {
+  "builds": {
+   "P": {
+    "outcome": "OK",
+    "s": 19.99,
+    "peak_mb": 2436,
+    "err": null,
+    "tier": "8gb"
+   },
+   "R": {
+    "outcome": "OK",
+    "s": 19.38,
+    "peak_mb": 2456,
+    "err": null,
+    "tier": "8gb"
+   },
+   "C": {
+    "outcome": "OK",
+    "s": 19.73,
+    "peak_mb": 2474,
+    "err": null,
+    "tier": "8gb"
+   },
+   "T16gb": {
+    "outcome": "OK",
+    "s": 16.45,
+    "peak_mb": 3271,
+    "err": null,
+    "tier": "16gb"
+   },
+   "T6gb": {
+    "outcome": "OK",
+    "s": 51.9,
+    "peak_mb": 2336,
+    "err": null,
+    "tier": "6gb"
+   }
+  },
+  "checks": {
+   "K11": "PASS",
+   "K1": "PASS",
+   "K2": "PASS",
+   "K3": "PASS",
+   "K4": "PASS",
+   "K5": "PASS",
+   "K6": "PASS",
+   "K10": "PASS",
+   "K7": "PASS",
+   "K8": "PASS",
+   "K9": "PASS"
+  },
+  "K5": {
+   "verdict": "CONCLUSIVE",
+   "omega": 1,
+   "pump": -1,
+   "agreement": 1.0,
+   "n": 45,
+   "note": "45 sections, 0 flat skipped, 0 low-quality skipped"
+  },
+  "C": {
+   "cup_found": true,
+   "floor_z": 6.185239658355666,
+   "floor_above_hub_face": 12.985000040838289,
+   "cup_dia_mm": 37.9298897239123,
+   "grip_count": 20,
+   "grip_protrude_mm": 0.6885414348321248,
+   "volume": 15097.207383140376,
+   "verts": 20464,
+   "watertight": true
+  },
+  "hub_face_z": -6.7997603824826225
+ }
+}

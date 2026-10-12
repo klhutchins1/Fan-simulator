@@ -1,0 +1,116 @@
+{
+ "updated": "2026-10-12 08:00:43",
+ "done": 65,
+ "build_wall_h": 6.09,
+ "build_mono_h": 0.73,
+ "suspect_suspend_builds": 2,
+ "planned": 801,
+ "remaining": 736,
+ "P_outcome_by_stratum": {
+  "CTL": {
+   "OK": 4
+  },
+  "S1": {
+   "OK": 7
+  },
+  "S2": {
+   "OK": 8
+  },
+  "S3": {
+   "OK": 8
+  },
+  "S4": {
+   "OK": 9
+  },
+  "S5": {
+   "OK": 7
+  },
+  "S6": {
+   "OK": 6
+  },
+  "S7": {
+   "OK": 7
+  },
+  "S8": {
+   "OK": 9
+  }
+ },
+ "checks": {
+  "K1": {
+   "PASS": 65
+  },
+  "K10": {
+   "PASS": 1
+  },
+  "K11": {
+   "PASS": 65
+  },
+  "K12": {
+   "FAIL": 62,
+   "PASS": 3
+  },
+  "K2": {
+   "PASS": 64,
+   "FAIL": 1
+  },
+  "K3": {
+   "PASS": 65
+  },
+  "K4": {
+   "PASS": 65
+  },
+  "K5": {
+   "PASS": 48,
+   "INCONCLUSIVE": 16,
+   "FAIL": 1
+  },
+  "K5_old": {
+   "PASS": 41,
+   "FAIL": 8,
+   "INCONCLUSIVE": 16
+  },
+  "K6": {
+   "PASS": 49,
+   "N/A": 16
+  },
+  "K7": {
+   "PASS": 14,
+   "N/A_SKIPPED_MEM": 2,
+   "N/A": 2
+  },
+  "K8": {
+   "PASS": 7
+  },
+  "K9": {
+   "PASS": 7
+  }
+ },
+ "build_s_median": {
+  "P": 22.1,
+  "C": 21.9,
+  "T16gb": 16.9,
+  "T6gb": 71.6,
+  "R": 26.7
+ },
+ "build_s_max": {
+  "P": 9377.6,
+  "C": 9982.1,
+  "T16gb": 46.0,
+  "T6gb": 79.8,
+  "R": 26.7
+ },
+ "build_peak_mb": {
+  "P": 8594,
+  "C": 3017,
+  "T16gb": 3944,
+  "T6gb": 2582,
+  "R": 3742
+ },
+ "job_errors": 0,
+ "first200_K1_fail": [
+  0,
+  65
+ ],
+ "sec_per_design_this_session": 1218.4,
+ "eta_h": 249.1
+}
