@@ -1643,12 +1643,33 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
   - **Next:** log RSS at the fuse call on both platforms (round 8 Task C), then guard on
     *peak − RSS now*, with a per-platform intercept. **[impact: med: OOM on 6–8 GB Linux boxes]**
     **[effort: low]**
+  - **QA round 8 (Task C):** in one process on Linux, the peak is 1.02 GB + 92.5 KiB/face. So the 1 GB
+    intercept is the platform, not tree-summing. The growth after the guard's call is **0.28 GB +
+    72 KiB/face**, and the process already holds 1.0–2.1 GB at the call.
+    - The guard as shipped (whole estimate × 1.15 vs free RAM) covered the remaining growth on 20/22 builds.
+      It failed on a shrouded design (S7_0013: 2.66 vs 2.41 GB). Shrouds run ~1 GB above the face fit.
+    - **Fix:** guard on the *remaining growth*, k·(a + b·faces) plus a shroud term, refit on Windows with the
+      same measurement (peak working set minus working set at the call).
 - [ ] **27.2 (QA-19 residual) A mildly cambered, strongly leaned design is still refused as "backwards".**
   S3_0014 (camber 0.0242, lean 42°) is above the 0.02 trust cut-off, so the lean artefact refuses it. In the
   optimizer that design is scored **infeasible**. The cell camber 0.02–0.04 × lean ≥ 30° had 1 FAIL and
   3 INCONCLUSIVE of 8.
   - Candidate fix: require the radial-plane reading (25.3b lead) to agree before refusing. Wait for the
     round-8 pre-registered confirmation (Task B). **[impact: med]** **[effort: low once confirmed]**
+  - **QA round 8 (Task B), confirmed on 72 fresh parts plus mirrors:** the radial-plane reader made 0 wrong
+    calls (R1), read 54/54 cambered parts (R2), flipped every readable mirror (R3), and read both references
+    (R4).
+    - The builder rule "refuse on the split only when *both* readers are CONCLUSIVE and *both* disagree"
+      refused 0 of the 23 S3-cell parts, so S3_0014 is fixed.
+    - R6 failed only on things the rule can't do as I wrote it:
+      - my brief's −0.03-camber "backwards" parts build *flat* (`airfoil.py` zeroes m ≤ 0), and a
+        design-sign rule can't catch a design whose sign really is negative;
+      - fully flat mirrors are unreadable by either reader.
+    - The validator already refuses camber ≤ −0.02 before any build. **Ready to implement.**
+- [ ] **27.2b External STLs (25.3b): radial-led rule.** Accept the radial reading when it is CONCLUSIVE and
+  the cylinder agrees or can't tell; otherwise ask for the spin. Post hoc on round 8: 0 wrong, 53/54 read. The
+  "both must agree" rule read only 79.6 % (R5 FAIL). It needs its own pre-registered confirmation on more real
+  external STLs. **[impact: med]** **[effort: med]**
 - [ ] **27.3 Flow report card: NaN handling and the push-bar caveat** (Task G). **NaN + push DONE 2026-10-12
   (Kimball chose option b): the push row judges the area-weighted mean push; missing values are saved as
   `null` with a reason; zero-volume exits raise. Real cases: t9005 +12 % (now "about as hard"; the old band
@@ -1666,6 +1687,25 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
     the same setup and set each tolerance at about 2σ. Until then, a band says "stronger/weaker" only when it
     agrees with its neighbour or the mean. **[effort: med: 3–5 CFD runs ≈ 2–3 h]**
 - [ ] **27.4 Built blade vs its numbers: are sections planar where BEM assumes cylinders?** (from lt120)
+  - **QA round 8 (Task D): MATERIAL, and the cause is different from what we thought.** Two separate
+    problems, not chord/r:
+    - **QA-30, the hub-face clip.** `clip_blade_below` (the blades are cut at the hub's motor face) shortens
+      deep blades. The measured-chord realisation measures a lone *unclipped* blade
+      (`chord_realisation.py:71`, confirmed). That is the whole lt120 chord gap (3–16 %), and why "loft"
+      vs "measured" changed nothing. Unclipped, lt120 matches within 0.5 %, and its camber is fine.
+    - **QA-31, lean/skew/sweep stacking.** On stacked blades the cut camber is far below the slider.
+      - **Confirmed here, 2026-10-12:** Stock reads 0.036–0.040 for sliders 0.08–0.10. With lean, skew and
+        sweep zeroed it reads 0.073–0.087, which is the slider minus the known estimator bias.
+      - t9005's tip reads 0.0075 for a slider of 0.06. The gap grows with tip skew.
+      - The measured-chord stretch makes it worse: the cut keeps only the middle of a longer section.
+    - **So:** the camber slider doesn't mean what it says on any leaned or skewed design, Stock included.
+      BEM scores the slider numbers, and CFD scores the built blade.
+  - **Choices (Kimball):**
+    - **(iii)** give BEM the measured built sections now (cheap, keeps BEM and CFD on the same blade);
+    - **(i)** wrap sections onto cylinders in the builder (principled; every design's geometry changes, and
+      Stock's recipe must be refitted);
+    - **(ii)** realise camber the way chord is realised (more builds, and may fight lean).
+    - QA suggests (iii) now, then (i) vs (ii) by a CFD A/B on t9005.
   - The builder lofts flat sections that touch the cylinder at radius r. A cylinder cut through lt120's long
     chords (41.6 mm at r 56.5) reads the chord up to 16 % short and the camber 25 % low (0.030 vs 0.040,
     about 0.004 of it from the estimator itself).
@@ -1680,7 +1720,13 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
     as a function of chord/r. If the gap is real, choose: wrap sections onto cylinders in the builder, extend
     the measured-chord realisation to camber, or give BEM the built sections.
     **[impact: high: accuracy of every score]** **[effort: med investigation / high fix]**
+- [ ] **27.6 (QA-29) After Assess finishes, its result message is replaced by a frozen "Running Assess…
+  0:04".** The progress ticker keeps rewriting the message until `finally` cancels it, but `on_assess` writes
+  "Done …" and then awaits the picture bake, which lets the ticker run again (confirmed in
+  `fan_assess.py`). It happened before 25.11 too. **Fix:** stop the ticker before writing Done.
+  **[impact: med: the result line is never seen]** **[effort: low]**
 - [ ] **27.5 (QA-26 leftovers) After a run, some captions show the cockpit as it is now, not what ran.**
+  (QA round 8: QA-22..25 verified fixed; Assess-existing now stamps material.)
   - The Preview caption shows the live camber sliders (`fan_viz.py`, `preview_msg`), not the built values.
   - The Export message shows the live hub radius and height.
   - After Assess the view jumps back to the assessed design even if you moved on.
