@@ -35,6 +35,14 @@ def score_caption(extra: dict) -> str:
     return " · ".join(parts)
 
 
+def shape_note(params: dict | None) -> str:
+    """One line for designs built with the old planar sections (roadmap 27.4), else ''."""
+    if str((params or {}).get("section_wrap") or "") != "planar":
+        return ""
+    return ("Old blade shape (flat sections): on leaned or skewed blades the built camber is well "
+            "below the camber sliders. The score is right for the blade as built.")
+
+
 def stamp_score_extra(
     extra: dict, raw: dict | None, *, load_pa: float, preset: str,
     refine_op: bool = False,

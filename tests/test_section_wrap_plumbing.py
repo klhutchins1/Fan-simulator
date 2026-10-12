@@ -69,3 +69,11 @@ def test_migration_stamps_old_designs_planar(tmp_path):
     con = sqlite3.connect(db)
     assert json.loads(con.execute("SELECT params FROM designs").fetchone()[0])["section_wrap"] == "planar"
     con.close()
+
+
+def test_old_shape_note_only_for_planar_axial_designs():
+    from fansim.cockpit.score_caption import shape_note
+
+    assert "Old blade shape" in shape_note({"chord_tip": 30.0, "section_wrap": "planar"})
+    assert shape_note({"chord_tip": 30.0, "section_wrap": "cylinder"}) == ""
+    assert shape_note({"chord_tip": 30.0}) == ""  # unstamped flats are read as cylinder

@@ -13,7 +13,7 @@ import logging
 
 from fansim.cockpit import fan_runtime
 from fansim.cockpit.errors import log_caught
-from fansim.cockpit.score_caption import score_caption
+from fansim.cockpit.score_caption import score_caption, shape_note
 from fansim.fan_spec import get_fan_spec, published_scatter_point
 from fansim.geometry.features import Features
 from fansim.optimize.presets import assess_load
@@ -91,6 +91,9 @@ def bind(session) -> None:
         cap = score_caption(d.extra)
         if cap:
             state.info_lines.append(cap)
+        note = shape_note(p)
+        if note:
+            state.info_lines.append(note)
         if d.extra.get("preset"):
             state.assess_preset = d.extra["preset"]
         state.assess_refine_op = bool(d.extra.get("refine_op"))
