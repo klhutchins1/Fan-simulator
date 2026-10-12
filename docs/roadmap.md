@@ -1480,6 +1480,11 @@ failures.
     - require an explicit orientation whenever the split is in the overlap zone, and pass the known
       orientation for the reference STL.
   - Also: 8 INCONCLUSIVE stress designs with camber ≥ 0.02 have sections that disagree.
+  - **QA round 7 (Task F, 2026-10-11): option (b), the stacking-line cut, is rejected.** It failed its
+    pre-registered F1/F2/F3/F6 (9630 read wrong, only 68.5 % of cambered parts read).
+    - **Lead:** a *radial-plane* cut (planes through the axis, one per radius) made 0 wrong calls on 67
+      parts plus their mirrors, read all 54 cambered parts and rescued 3 of the 7 flat leaned ones.
+    - It was chosen after seeing the data, so a pre-registered confirmation comes first (round 8, see 27.2).
   - **[impact: med]** **[effort: med]**
 - [x] **25.4 (QA-20) The memory tiers give equal solids but not byte-identical STLs.**
   - Volume and vertex count match 11 of 11 times, but the sha256 differs every time.
@@ -1522,6 +1527,10 @@ failures.
     - the rig is unknown, so pre-register the comparison as mid-curve shape and level within a stated
       band.
   - The rotor (Ø120) exceeds the a12x25 frame, so use a matching rig or duct.
+  - **QA round 7 (Task C): converted** (`docs/qa/benchmarks/lt120/fansim_params.json`,
+    `docs/qa/notes/lt120-conversion.md`). Stagger matches (≤ 0.75°), but cylinder cuts of the built blade
+    read the chord up to 16 % short and the camber 0.030 instead of 0.040. That raises a builder question
+    for every design, not just lt120 (see 27.4). Decide 27.4 before pre-registering this CFD.
   - **[impact: high]** **[effort: med–high, CFD]**
 - [x] **25.8 Benchmark licences before any public release.** **DONE 2026-10-11: `RELEASE_EXCLUDE` +
   `scripts/export_release.py` (no history) keep nv150, the drone props (unknown origin) and `handoff/` out of
@@ -1538,8 +1547,11 @@ failures.
       public repo.
   - Cybenetics data is cited only, never stored.
   - **[impact: high for release]** **[effort: low]**
-- [ ] **25.9 Finish the stress test** (681 designs left) **with chirality and INCONCLUSIVE reasons logged**.
+- [x] **25.9 Finish the stress test** (681 designs left) **with chirality and INCONCLUSIVE reasons logged**.
   QA round 7, run at lower parallelism. The QA box froze for 6.1 of 7.1 h under memory pressure.
+  **CLOSED 2026-10-11, stopped at 65 of 801 by Kimball's decision** (ETA ~249 h on a box that keeps
+  suspending). The 65 designs on new code re-verified QA-18/21 fixed and QA-19 mostly fixed, and found
+  QA-27 (27.1) and the QA-19 residual (27.2). Results: `docs/qa/stress/RESULTS_R7.md`.
 - [x] **25.11 (QA-22..26) Runs save labels from the cockpit as it is when they *finish*.** **DONE
   2026-10-11: `fansim/cockpit/run_settings.py` freezes the settings at the click for Assess / Sweep; Mixed
   Assess / optimize / refine capture hose + refine at the click. The smoke test changes the cockpit mid-run
@@ -1611,6 +1623,68 @@ path (`source="external"` must be CONCLUSIVE — see orientation audits).
 - [ ] **26.3 Cylinder-slice residual vs current `BladeParams` vocabulary** (no silent slider overwrite).
 - [ ] **26.4 Hand-picked CC-BY Noctua-hub impeller set** — feature census, not a scraper.
 - [x] **26.5 Mass-scrape Printables/MakerWorld/Thingiverse.** **Not adopted** (licenses + junk meshes).
+
+---
+
+## 27. QA round 7 findings (2026-10-12)
+
+Sources: `handoff/2026-10-11_from-qa-7/`, `docs/qa/stress/RESULTS_R7.md`, `docs/qa/notes/` (settings-during-run,
+lt120-conversion, flow-report-math-check, direction-stacking-cut). QA-22..26 (settings changed during a run) were
+already fixed by 25.11 before this round's results arrived; round 8 re-runs the QA harness to confirm.
+
+- [ ] **27.1 (QA-27) The fuse-memory estimate is low on Linux.** The 65 r7 builds peak a median 29 % above
+  `fuse_peak_estimate_gb` (max 80 %).
+  - **My re-fit of their data (2026-10-12):** slope 85 kB/face, the same as ours (86). Only the intercept
+    differs: **1.0 GB on Linux** vs 0.37 GB on Windows. Their peak is the summed RSS of the build tree on
+    Linux; ours is one process's working set on Windows. So it's a baseline difference, not a wrong model.
+  - **The guard may still be safe:** it asks for the *whole* peak × 1.15 in free RAM at the moment of the
+    fuse, but by then the process already holds part of that peak (2.3 GB for S5_0011). Nobody has
+    measured RSS at the fuse call, so this is unproven.
+  - **Next:** log RSS at the fuse call on both platforms (round 8 Task C), then guard on
+    *peak − RSS now*, with a per-platform intercept. **[impact: med: OOM on 6–8 GB Linux boxes]**
+    **[effort: low]**
+- [ ] **27.2 (QA-19 residual) A mildly cambered, strongly leaned design is still refused as "backwards".**
+  S3_0014 (camber 0.0242, lean 42°) is above the 0.02 trust cut-off, so the lean artefact refuses it. In the
+  optimizer that design is scored **infeasible**. The cell camber 0.02–0.04 × lean ≥ 30° had 1 FAIL and
+  3 INCONCLUSIVE of 8.
+  - Candidate fix: require the radial-plane reading (25.3b lead) to agree before refusing. Wait for the
+    round-8 pre-registered confirmation (Task B). **[impact: med]** **[effort: low once confirmed]**
+- [ ] **27.3 Flow report card: NaN handling and the push-bar caveat** (Task G).
+  - The maths is right: G1 16/16.
+  - Degenerate inputs (zero flow, zero weights, empty bands on a coarse mesh) give a silent NaN. The card
+    already shows "Couldn't measure", but `flow_report.json` is written with the non-standard `NaN` token
+    and doesn't say why. **Fix:** write `null` plus a reason. Add tests for the noise value, swirl sign and
+    NaN cases. **[effort: low]**
+  - **Radial equilibrium:** swirl alone moves static pressure from hub to tip (a uniform 4 m/s swirl gives
+    −8.9 … +7.4 Pa across the bands). A swirly fan's push bars look hub-weak and tip-strong for that reason
+    alone. **Decide:** add a one-line note, or judge the area-weighted mean push (which swirl leaves
+    unchanged) and keep the bars as a picture. **[effort: low]**
+  - **Thresholds (±15 %, 2.8 dB) rest on one pair of runs that isn't a pure repeat.** Run Stock 3–5 times on
+    the same setup and set each tolerance at about 2σ. Until then, a band says "stronger/weaker" only when it
+    agrees with its neighbour or the mean. **[effort: med: 3–5 CFD runs ≈ 2–3 h]**
+- [ ] **27.4 Built blade vs its numbers: are sections planar where BEM assumes cylinders?** (from lt120)
+  - The builder lofts flat sections that touch the cylinder at radius r. A cylinder cut through lt120's long
+    chords (41.6 mm at r 56.5) reads the chord up to 16 % short and the camber 25 % low (0.030 vs 0.040,
+    about 0.004 of it from the estimator itself).
+  - **Why it matters:** BEM computes on cylindrical strips using the *slider* numbers. If the built blade's
+    cylinder sections differ, BEM and CFD score different blades. This may explain part of "BEM over-rates
+    flat leaned blades".
+  - **Contradiction to resolve first:** `chord_basis="measured"` (default) is supposed to raise the loft chord
+    until the cylinder-cut chord matches (`chord_realisation.prepare_loft_chords`). QA says switching it to
+    "loft" changed nothing. Either the realisation only acts near the tip trim, or it measures differently
+    from `section_compare`.
+  - **Steps:** measure param-vs-cylinder-cut chord, camber and stagger on Stock and about 5 saved designs,
+    as a function of chord/r. If the gap is real, choose: wrap sections onto cylinders in the builder, extend
+    the measured-chord realisation to camber, or give BEM the built sections.
+    **[impact: high: accuracy of every score]** **[effort: med investigation / high fix]**
+- [ ] **27.5 (QA-26 leftovers) After a run, some captions show the cockpit as it is now, not what ran.**
+  - The Preview caption shows the live camber sliders (`fan_viz.py`, `preview_msg`), not the built values.
+  - The Export message shows the live hub radius and height.
+  - After Assess the view jumps back to the assessed design even if you moved on.
+  - Display only. **[impact: low]** **[effort: low]**
+- QA tooling only, not app bugs: QA-28 (the stress runner's gates use wall time and break when the box
+  suspends), and K2's sliver rule needs to be relative to edge length (S6_0019's 1e-9 mm² sliver is a
+  threshold artefact).
 
 ---
 
