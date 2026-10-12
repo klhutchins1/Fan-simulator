@@ -163,6 +163,12 @@ class BladeParams:
     #                measured tip chord to ~2/3). Designs saved before 2026-09-30 use this; see
     #                ``fansim.optimize.trial_attrs.CHORD_BASIS_CUTOFF``.
     chord_basis: str = "measured"
+    # Section placement (roadmap 27.4, spec 2026-10-12-cylinder-sections):
+    #   "cylinder" — each section is wrapped onto its own cylinder, so a cylinder cut (and BEM's
+    #                strip) sees exactly the station's chord / stagger / camber.
+    #   "planar"   — legacy tangent-plane sections; on leaned/skewed blades the built camber is far
+    #                below the slider. Designs saved before the switch are stamped "planar".
+    section_wrap: str = "cylinder"
     # Chordwise thickness bias (global):
     #   NACA — scale local thickness near LE / TE (1 = stock; typical 0.5–1.5).
     #   plate — ``le_thick_scale`` / ``te_thick_scale`` are LE/TE roundness in [0, 1]
@@ -359,8 +365,14 @@ def _section_loop(
     le_thick_scale: float = 1.0,
     te_thick_scale: float = 1.0,
     section_family: str = SECTION_NACA,
+    wrap: bool = False,
 ) -> tuple[np.ndarray, list[cq.Vector]]:
-    """Closed section on the cylinder at ``r``, plus chord-fraction ``x`` (LE/TE indexing)."""
+    """Closed section at radius ``r``, plus chord-fraction ``x`` (LE/TE indexing).
+
+    ``wrap=True`` puts the section ON the cylinder of radius ``r`` (theta = lean + t/r), so a
+    cylinder cut at ``r`` reads back the designed chord/stagger/camber (roadmap 27.4, QA-31).
+    ``wrap=False`` is the legacy planar tangent-plane placement.
+    """
     fam = str(section_family or SECTION_NACA).lower().strip()
     if fam not in SECTION_FAMILIES:
         fam = SECTION_NACA
@@ -415,16 +427,20 @@ def _section_loop(
     t = a * cb - b * sb + skew + le_skew * w_le  # circumferential (tangential) distance, mm
     axial = a * sb + b * cb + sweep + le_sweep * w_le
 
-    # Place the (planar) section in the TANGENT PLANE at angular position theta = lean_deg and
-    # radius r: rotate the section about Z by theta. This is NOT stream-surface wrapping
-    # (θ = t/r); chordwise ``t`` stays Euclidean in the tangent plane. Keeping each section
-    # planar makes the loft watertight; varying lean along the span wraps the planform
-    # circumferentially. ``cylindrical_tip`` then clips the solid to a cylinder of tip_radius
-    # (whole tip face — LE/TE corners included).
     th = np.radians(lean_deg)
-    ct, st = np.cos(th), np.sin(th)
-    xs = r * ct - t * st
-    ys = r * st + t * ct
+    if wrap:
+        # Wrapped (default for BladeParams.section_wrap="cylinder"): ``t`` is arc length on the
+        # cylinder of radius r. Planar sections stacked with lean/skew lost most of their camber in
+        # a cylinder cut (Stock sliders 0.08-0.10 built 0.036-0.040; QA r8 Task D).
+        ang = th + t / r
+        xs = r * np.cos(ang)
+        ys = r * np.sin(ang)
+    else:
+        # Legacy planar: the section sits in the TANGENT PLANE at angle lean_deg and radius r;
+        # chordwise ``t`` stays Euclidean, so its ends stand off the cylinder.
+        ct, st = np.cos(th), np.sin(th)
+        xs = r * ct - t * st
+        ys = r * st + t * ct
     pts = [cq.Vector(float(px), float(py), float(z))
            for px, py, z in zip(xs, ys, axial)]
     return x, pts
@@ -450,6 +466,7 @@ def _section_points_3d(
     le_thick_scale: float = 1.0,
     te_thick_scale: float = 1.0,
     section_family: str = SECTION_NACA,
+    wrap: bool = False,
 ) -> list[cq.Vector]:
     """Build the closed 3D loop of one airfoil section in the tangent plane at radius ``r``.
 
@@ -466,7 +483,7 @@ def _section_points_3d(
         lean_deg=lean_deg, n_chord=n_chord, features=features, le_skew=le_skew,
         tip_notch_count=tip_notch_count, tip_notch_depth_mm=tip_notch_depth_mm,
         le_thick_scale=le_thick_scale, te_thick_scale=te_thick_scale,
-        section_family=section_family,
+        section_family=section_family, wrap=wrap,
     )
     return pts
 
@@ -1072,7 +1089,9 @@ def _section_family(params: BladeParams) -> str:
     return fam if fam in SECTION_FAMILIES else SECTION_NACA
 
 
-def _thick_scale_kw(params: BladeParams) -> dict[str, float | str]:
+def _thick_scale_kw(params: BladeParams) -> dict[str, float | str | bool]:
+    """Per-design section keywords for every ``_section_points_3d`` call: LE/TE thickness, family,
+    and ``wrap`` (sections on their cylinders unless the design is stamped ``section_wrap="planar"``)."""
     fam = _section_family(params)
     te_raw = float(getattr(params, "te_thick_scale", 1.0) or 1.0)
     le_raw = float(getattr(params, "le_thick_scale", 1.0) or 1.0)
@@ -1089,7 +1108,8 @@ def _thick_scale_kw(params: BladeParams) -> dict[str, float | str]:
     else:
         te = _clamp_thick_scale(te_raw)
         le = _clamp_thick_scale(le_raw)
-    return dict(le_thick_scale=le, te_thick_scale=te, section_family=fam)
+    wrap = str(getattr(params, "section_wrap", "cylinder") or "cylinder") != "planar"
+    return dict(le_thick_scale=le, te_thick_scale=te, section_family=fam, wrap=wrap)
 
 
 def le_te_thick_factors(
