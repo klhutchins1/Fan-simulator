@@ -5,7 +5,7 @@ import math
 from fansim.cfd.flow_report import FlowMetrics
 from fansim.cfd.flow_verdicts import ROW_KEYS, judge, overall_line
 
-STOCK = FlowMetrics(0.06, False, [2.0, 4.0, 6.0, 8.0, 6.0], 0.20, 0.05, 0.80, 60.0, 2.5)
+STOCK = FlowMetrics(0.06, False, [2.0, 4.0, 6.0, 8.0, 6.0], 0.20, 0.05, 0.80, 60.0, 2.5, mean_dp0_pa=6.0)
 
 
 def _m(**kw):
@@ -61,3 +61,25 @@ def test_overall_better_and_worse():
     d = _m(backflow_frac=0.02, swirl_frac=0.30)
     line = overall_line(judge(d, STOCK), compared=True)
     assert line == "Better than Stock at: air direction. Worse at: wasted spin."
+
+
+def test_push_verdict_uses_the_mean_not_the_band_tilt():
+    """Kimball 2026-10-12 (27.3 option b): a swirlier fan's bands tilt hub-weak/tip-strong from radial
+    equilibrium alone, so the row judges the area-weighted mean; bands stay a picture."""
+    tilted = _m(band_dp0_pa=[0.5, 3.0, 6.0, 9.5, 8.0], mean_dp0_pa=6.1)
+    row = judge(tilted, STOCK)[1]
+    assert row.status == "ok" and row.better is False
+    assert row.text.startswith("Pushes about as hard as Stock overall")
+
+
+def test_push_mean_stronger_and_weaker():
+    up = judge(_m(mean_dp0_pa=6.0 * 1.15 + 0.01), STOCK)[1]
+    assert up.status == "ok" and up.better is True and "harder" in up.text
+    assert judge(_m(mean_dp0_pa=6.0 * 1.15), STOCK)[1].better is False  # edge is "similar"
+    down = judge(_m(mean_dp0_pa=6.0 * 0.85 - 0.01), STOCK)[1]
+    assert down.status == "warn" and down.better is False and "less" in down.text
+
+
+def test_push_mean_missing_is_na():
+    assert judge(_m(mean_dp0_pa=math.nan), STOCK)[1].status == "na"
+    assert judge(STOCK, _m(mean_dp0_pa=0.0))[1].status == "na"  # no Stock push to compare with

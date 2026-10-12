@@ -7,7 +7,8 @@ Spec: docs/superpowers/specs/2026-10-10-flow-report-card-design.md
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+import math
+from dataclasses import asdict, dataclass, field
 
 import numpy as np
 
@@ -15,7 +16,8 @@ from fansim.acoustics.proxies import epsilon_from_komega, proudman_power_density
 from fansim.cfd.spanwise import cylindrical_velocity
 from fansim.physics.air import RHO_AMCA
 
-FLOW_REPORT_VERSION = 2  # v2: push excludes swirl energy (audit 2026-10-10-flow-report-checks)
+FLOW_REPORT_VERSION = 3  # v2: push excludes swirl energy (audit 2026-10-10-flow-report-checks)
+# v3: area-weighted mean push (the verdict), missing values saved as null with a reason (roadmap 27.3)
 N_BANDS = 5
 PLANE_Z_FRAC = 0.18           # same plane as fansim.cfd.spanwise._PLANE_Z_FRAC
 DEAD_FRAC_OF_MEAN = 0.10      # |Uz| below this share of the mean exit Uz counts as dead air
@@ -48,13 +50,34 @@ class FlowMetrics:
     tip_band_uz_ratio: float
     noise_swl_db: float | None
     mean_uz_exit: float
+    # Area-weighted mean push over the whole annulus [Pa]. Swirl's radial-equilibrium tilt (low at
+    # the hub, high at the tip) cancels in this mean, so the push verdict uses it (QA r7 Task G).
+    mean_dp0_pa: float = math.nan
+    missing: dict[str, str] = field(default_factory=dict)  # field -> why it couldn't be measured
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        """Strict-JSON dict: NaN becomes None (``missing`` says why)."""
+        return {k: _none_if_nan(v) for k, v in asdict(self).items()}
 
     @classmethod
     def from_dict(cls, d: dict) -> FlowMetrics:
-        return cls(**{k: d[k] for k in cls.__dataclass_fields__})
+        vals = {k: d[k] for k in cls.__dataclass_fields__}
+        for k in _FLOAT_FIELDS:
+            vals[k] = math.nan if vals[k] is None else vals[k]
+        vals["band_dp0_pa"] = [math.nan if v is None else v for v in vals["band_dp0_pa"]]
+        return cls(**vals)
+
+
+_FLOAT_FIELDS = ("backflow_frac", "swirl_frac", "dead_frac", "tip_band_uz_ratio", "mean_uz_exit",
+                 "mean_dp0_pa")
+
+
+def _none_if_nan(v):
+    if isinstance(v, float) and math.isnan(v):
+        return None
+    if isinstance(v, list):
+        return [_none_if_nan(x) for x in v]
+    return v
 
 
 def _half_dz(tip_r: float) -> float:
@@ -99,12 +122,18 @@ def compute_metrics(s: FlowSamples, *, hub_r: float, tip_r: float, z_fan: float)
         raise FlowReportUnavailable("no cells on the exit plane")
     r, uz, uth = cylindrical_velocity(pts, u)
     we = w[ex]
+    if not float(np.sum(we)) > 0:
+        raise FlowReportUnavailable("the exit-plane cells have no volume")
     uz_e, uth_e, r_e = uz[ex], uth[ex], r[ex]
+    missing: dict[str, str] = {}
 
     mean_uz = _wmean(uz_e, we)
     backflow = _wmean((uz_e < 0).astype(float), we)
     denom = float(np.sum(we * (uz_e ** 2 + uth_e ** 2)))
     swirl = float(np.sum(we * uth_e ** 2) / denom) if denom > 0 else float("nan")
+    if denom <= 0:
+        missing["swirl_frac"] = "no air moves through the exit plane"
+
     dead_lim = DEAD_FRAC_OF_MEAN * abs(mean_uz)
     dead = _wmean((np.abs(uz_e) < dead_lim).astype(float), we)
 
@@ -112,6 +141,10 @@ def compute_metrics(s: FlowSamples, *, hub_r: float, tip_r: float, z_fan: float)
     tip_sel = frac_e >= 1.0 - TIP_BAND_FRAC
     tip_ratio = (_wmean(uz_e[tip_sel], we[tip_sel]) / mean_uz
                  if np.any(tip_sel) and mean_uz != 0 else float("nan"))
+    if not np.any(tip_sel):
+        missing["tip_band_uz_ratio"] = "the mesh has no exit cells in the outer 10 % of the blade"
+    elif mean_uz == 0:
+        missing["tip_band_uz_ratio"] = "no net forward flow to compare the tip with"
 
     # Useful push: static + forward dynamic pressure. Swirl energy is the separate 'wasted spin'
     # row; counting it here made a swirly fan (Stock) look stronger than a better one (t9005).
@@ -124,8 +157,12 @@ def compute_metrics(s: FlowSamples, *, hub_r: float, tip_r: float, z_fan: float)
         se, si = b_ex == i, b_in == i
         if not np.any(se) or not np.any(si):
             bands.append(float("nan"))
+            missing[f"band_dp0_pa[{i}]"] = "the mesh has no cells in this band at the exit or inlet"
             continue
         bands.append(RHO_AMCA * (_wmean(p0_e[se], we[se]) - _wmean(p0_in[si], w_in[si])))
+    mean_push = RHO_AMCA * (_wmean(p0_e, we) - _wmean(p0_in, w_in)) if np.any(inn) else float("nan")
+    if not math.isfinite(mean_push):
+        missing["mean_dp0_pa"] = "no usable inlet-plane cells"
 
     swl = None
     if s.k is not None and s.omega is not None:
@@ -136,4 +173,4 @@ def compute_metrics(s: FlowSamples, *, hub_r: float, tip_r: float, z_fan: float)
     return FlowMetrics(
         backflow_frac=float(backflow), net_reversed=bool(mean_uz < 0), band_dp0_pa=bands,
         swirl_frac=swirl, dead_frac=float(dead), tip_band_uz_ratio=float(tip_ratio),
-        noise_swl_db=swl, mean_uz_exit=float(mean_uz))
+        noise_swl_db=swl, mean_uz_exit=float(mean_uz), mean_dp0_pa=float(mean_push), missing=missing)

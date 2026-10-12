@@ -26,7 +26,8 @@ MSG_NONE = "No flow simulation for this design yet. Run Assess to see how the ai
 MSG_BUILDING = "Working out how the air moves…"
 NUMBER_LABELS = {"backflow_frac": "backflow share", "swirl_frac": "swirl energy share",
                  "dead_frac": "dead-air share", "tip_band_uz_ratio": "tip / mean forward speed",
-                 "noise_swl_db": "Proudman SWL (dB, relative)", "mean_uz_exit": "mean exit Uz (m/s)"}
+                 "noise_swl_db": "Proudman SWL (dB, relative)", "mean_uz_exit": "mean exit Uz (m/s)",
+                 "mean_dp0_pa": "mean push (Pa, area-weighted)"}
 
 
 def card_message(d) -> str | None:

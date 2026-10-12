@@ -142,7 +142,7 @@ def load_or_compute_metrics(case_dir, *, mesh=None, loader=None) -> FlowMetrics:
     m = compute_metrics(samples_from_mesh(mesh), hub_r=hub_r, tip_r=tip_r, z_fan=z_fan)
     try:
         path.write_text(json.dumps({"version": FLOW_REPORT_VERSION, "time": t,
-                                    "metrics": m.to_dict()}, indent=1), encoding="utf-8")
+                                    "metrics": m.to_dict()}, indent=1, allow_nan=False), encoding="utf-8")
     except OSError:
         pass
     return m

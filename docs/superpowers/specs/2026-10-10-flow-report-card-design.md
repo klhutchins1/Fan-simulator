@@ -62,6 +62,8 @@ volume, which stands in for area within the slab.
 | `backflow_frac` | weighted share of slab samples with Uz < 0 |
 | `net_reversed` | weighted mean Uz < 0 |
 | `band_dp0_pa[5]` | 5 equal radial bands, hub to tip: ρ·(mean p_u at exit − mean p_u at inlet), where p_u = p + ½Uz², the useful push. **Swirl is excluded:** it is the separate spin row. Changed 2026-10-10 after F-check run 1; see the audit |
+| `mean_dp0_pa` | the same push over the whole annulus, area-weighted (one number). Swirl's radial-equilibrium tilt (hub low, tip high) cancels in it. **Added 2026-10-12 (roadmap 27.3, QA r7 Task G)** |
+| `missing` | field → why it couldn't be measured (zero exit flow, no cells in a band on a coarse mesh). Missing values are saved as `null` in strict JSON; zero exit-plane volume raises `FlowReportUnavailable` |
 | `swirl_frac` | Σw·Uθ² / Σw·(Uz² + Uθ²) on the exit slab |
 | `dead_frac` | weighted share of samples with \|Uz\| < 0.10 · (weighted mean Uz) |
 | `tip_band_uz_ratio` | mean Uz in the outer 10 % of the span ÷ mean Uz over the whole span |
@@ -75,14 +77,19 @@ volume, which stands in for area within the slab.
 | row | ✓ | ⚠ | ✕ |
 |---|---|---|---|
 | Air direction | Δbackflow ≤ +0.02 | Δbackflow > +0.02 | `net_reversed` |
-| Push along the blade | per band: "stronger" if > +15 %, "similar" if within ±15 %, "weaker" if < −15 % of Stock's band (**was ±10 %**: Stock run-to-run is 14.3 %, audit 2026-10-10-flow-report-checks) | — | — |
+| Push along the blade | **mean push** within ±15 % of Stock's, or > +15 % (better) | mean push < −15 % of Stock's | — |
 | Wasted spin | swirl_frac ≤ 1.10 × Stock | above that | — |
 | Dead or blocked air | dead_frac ≤ Stock + 0.02 **and** tip ratio ≥ 0.90 × Stock | either fails | — |
 | Noise hint | ΔSWL ≤ +2.8 dB | ΔSWL > +2.8 dB (**was 1.0 dB**: Stock run-to-run is 2.75 dB, same audit) | — |
 
 - **Overall line:** "Better than Stock at: …" lists the rows that are ✓ and strictly better than Stock.
-  "Worse at: …" lists the ⚠/✕ rows. The push row counts as better when the stronger bands outnumber
-  the weaker ones.
+  "Worse at: …" lists the ⚠/✕ rows. The push row counts as better when the mean push is > +15 %.
+- **Push changed 2026-10-12 (Kimball, roadmap 27.3 option b).** QA r7 Task G showed that swirl alone moves
+  static pressure from hub to tip, so per-band labels made a swirly fan look hub-weak and tip-strong. The
+  row now judges the area-weighted mean. The bands stay as a picture (still labelled per band at ±15 %,
+  previously ±10 %: Stock run-to-run is 14.3 %), with a note that spin tilts them. The ±15 % mean tolerance
+  is provisional until 3–5 Stock repeats set it at about 2σ. On the saved cases, two Stock runs differ by
+  5 % on the mean vs 14 % on single bands.
 - **No comparison available:** only the ✕ direction check and the raw numbers are shown.
 
 ## Pictures (`fansim/cfd/flow_report_viz.py`, off-screen PyVista, cached PNGs in the case dir)
