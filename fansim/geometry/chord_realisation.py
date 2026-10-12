@@ -57,7 +57,7 @@ def _station_measure_fracs(params) -> list[float | None]:
 
 def measure_station_chords(params) -> list[float | None]:
     """Build one blade (already chord-realised path) and measure chord at each station radius."""
-    from fansim.geometry.blade import build_blade_solid
+    from fansim.geometry.blade import _hub_axial_range, build_blade_solid, clip_blade_below
 
     fracs = _station_measure_fracs(params)
     uniq = tuple(sorted({round(f, 4) for f in fracs if f is not None}))
@@ -68,7 +68,11 @@ def measure_station_chords(params) -> list[float | None]:
         # Untrimmed: all measured radii are <= 0.99·tip, where the tip trim removes nothing, so
         # skip the expensive boolean and cut at the true tip radius (the mesh's own outer radius
         # is larger untrimmed). Same chords within 0.05 mm on the 2026-10-08 A/B (roadmap §23.17).
-        export_stl(build_blade_solid(params, _chord_realized=True, _trim_tip=False), stl)
+        blade = build_blade_solid(params, _chord_realized=True, _trim_tip=False)
+        # Measure what ships: the build cuts every blade at the hub's motor face (QA-16), which
+        # took 3-16 % off lt120's chord that an unclipped measurement never saw (QA-30, 27.4).
+        blade = clip_blade_below(params, blade, _hub_axial_range(params)[0])
+        export_stl(blade, stl)
         rows = measure_sections(stl, uniq, tip_radius_mm=float(params.tip_radius))
     by_f = {round(r["r_frac"], 4): r for r in rows}
     out: list[float | None] = []
@@ -88,7 +92,7 @@ def measure_station_chords(params) -> list[float | None]:
 # same design each run in a fresh worker process, so the in-process cache never hit and every one
 # re-ran the iteration. Keyed on the full params + iteration count + LOFT_CACHE_VERSION (bump it
 # whenever the measurement/update rule changes). FANSIM_CACHE_DIR overrides the location.
-LOFT_CACHE_VERSION = 2   # 2: untrimmed measurement builds at the true tip radius
+LOFT_CACHE_VERSION = 3   # 2: untrimmed measurement builds at the true tip radius; 3: hub-face clipped
 
 
 def _cache_dir() -> Path:

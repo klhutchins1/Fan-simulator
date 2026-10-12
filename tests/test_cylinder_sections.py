@@ -70,3 +70,21 @@ def test_class_default_stays_planar_for_other_archetypes():
     from fansim.geometry.blade import BladeParams
 
     assert BladeParams.__dataclass_fields__["section_wrap"].default == "planar"
+
+
+def test_chord_is_realised_on_the_hub_clipped_blade():
+    """QA-30: the hub-face clip cut 3-16 % off lt120's chord; the realisation measured an unclipped
+    blade and never saw it. The built impeller must now cut back to the station chords."""
+    from fansim.geometry import build_impeller
+    from fansim.geometry.config import load_blade_params
+
+    p = load_blade_params("docs/qa/benchmarks/lt120/fansim_params.json")
+    p = dataclasses.replace(p, n_blades=2, section_wrap="cylinder")
+    fr = _station_measure_fracs(p)
+    pairs = [(f, s) for f, s in zip(fr, p.stations) if f is not None]
+    with tempfile.TemporaryDirectory() as td:
+        stl = Path(td) / "i.stl"
+        export_stl(build_impeller(p), stl)
+        rows = measure_sections(stl, [f for f, _ in pairs])
+    for (_, s), r in zip(pairs, rows):
+        assert r["chord_mm"] == pytest.approx(s.chord, rel=0.03), (s.r_frac, r["chord_mm"], s.chord)
