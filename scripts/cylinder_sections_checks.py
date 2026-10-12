@@ -35,14 +35,14 @@ import trimesh
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from fansim.audit.direction import prove_direction  # noqa: E402
-from fansim.geometry import build_impeller, export_stl  # noqa: E402
-from fansim.geometry.blade import _hub_axial_range, _section_points_3d  # noqa: E402
-from fansim.geometry.chord_realisation import _station_measure_fracs  # noqa: E402
-from fansim.geometry.config import load_blade_params  # noqa: E402
-from fansim.geometry.features import Features  # noqa: E402
-from fansim.optimize.search_space import blade_from_flat  # noqa: E402
-from fansim.validation.section_compare import _measure_loop, measure_sections  # noqa: E402
+from fansim.audit.direction import prove_direction
+from fansim.geometry import build_impeller, export_stl
+from fansim.geometry.blade import _hub_axial_range, _section_points_3d
+from fansim.geometry.chord_realisation import _station_measure_fracs
+from fansim.geometry.config import load_blade_params
+from fansim.geometry.features import Features
+from fansim.optimize.search_space import blade_from_flat
+from fansim.validation.section_compare import _measure_loop, measure_sections
 
 CHORD_REL, CAMBER_ABS, STAGGER_DEG = 0.03, 0.005, 1.5
 EXPECTED = (1, -1, -1)  # builder convention: omega +1, pump -1, chirality -1
@@ -225,7 +225,8 @@ def pick_v4(main: Path, stress: dict) -> list:
             main / f"runs/bem_screen_r3_{run}/cockpit_assess/design_{t}/design.json")))
     named = ["S3_0002", "S4_0005", "S4_0012", "S3_0014"]
     sample = main / "handoff/2026-10-12_from-qa-8/data/b_sample.jsonl.gz"
-    cell = [r["id"] for r in (json.loads(ln) for ln in gzip.open(sample, "rt")) if r["cell_sel"] == "S3cell"]
+    with gzip.open(sample, "rt") as fh:
+        cell = [r["id"] for r in (json.loads(ln) for ln in fh) if r["cell_sel"] == "S3cell"]
     for sid in named + [c for c in cell if c not in named]:
         if sid in stress:
             picks.append((sid, _from_stress(stress[sid])))
