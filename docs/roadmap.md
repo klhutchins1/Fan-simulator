@@ -1540,7 +1540,10 @@ failures.
   - **[impact: high for release]** **[effort: low]**
 - [ ] **25.9 Finish the stress test** (681 designs left) **with chirality and INCONCLUSIVE reasons logged**.
   QA round 7, run at lower parallelism. The QA box froze for 6.1 of 7.1 h under memory pressure.
-- [ ] **25.11 (QA-22..26) Runs save labels from the cockpit as it is when they *finish*.**
+- [x] **25.11 (QA-22..26) Runs save labels from the cockpit as it is when they *finish*.** **DONE
+  2026-10-11: `fansim/cockpit/run_settings.py` freezes the settings at the click for Assess / Sweep; Mixed
+  Assess / optimize / refine capture hose + refine at the click. The smoke test changes the cockpit mid-run
+  (old code saved radiator/PLA/Delta; now heatsink/PETG/a12x25).**
   - Assess, Sweep and Mixed Assess build and solve the right geometry. But at the end, 30–40 min later,
     they write several labels from the live state:
     - material, hose and load;
