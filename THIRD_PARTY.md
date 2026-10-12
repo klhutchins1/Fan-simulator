@@ -3,6 +3,11 @@
 Fan Simulator's own code is MIT-licensed (`LICENSE`). The files below come from other people and
 keep **their own licences**. Credit them as shown when you reuse them.
 
+**Public releases** are made with `scripts/export_release.py`, which copies the tracked files minus the
+paths in `RELEASE_EXCLUDE`: data we may not redistribute (nv150, the drone props) and the internal
+QA-bot `handoff/` folder. Start the public repository from that export (no git history), so excluded
+files never appear in it. Tests that need excluded data skip when it is absent.
+
 | What | Where in this repo | Source and author | Licence | Notes |
 |---|---|---|---|---|
 | A12x25 impeller model (the "Stock" reference shape) | `validation/reference/a12x25_impeller.stl`; also the Stock recipe fitted to it (`config/problems/a12x25_reference.yaml`) | "A12x25" by **MajorHardware**, Thingiverse thing 5893432: <https://www.thingiverse.com/thing:5893432> | **CC BY 4.0** (<https://creativecommons.org/licenses/by/4.0/>) | A close community model of the Noctua NF-A12x25 impeller, not Noctua CAD. Reoriented and centred for CFD (see `validation/reference/README.md`) |

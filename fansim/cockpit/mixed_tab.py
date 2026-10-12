@@ -353,10 +353,13 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             return
         stamp = time.strftime("%Y%m%d_%H%M%S")
         workdir = Path("runs") / f"cockpit_mf_{stamp}"
-        load_pa, _ = assess_load(str(state.mf_assess_preset or "case"))
+        # 25.11 / QA-22..26: hose and refine as of this click; the run must not read them later.
+        hose = str(state.mf_assess_preset or "case")
+        refine = bool(state.mf_refine_op)
+        load_pa, _ = assess_load(hose)
         state.mf_assess_busy = True
         wd_holder: list = [workdir]
-        note = (f"hose {state.mf_assess_preset}; typically 15–30 min; stops only if stalled "
+        note = (f"hose {hose}; typically 15–30 min; stops only if stalled "
                 f"{stall_timeout() / 60:.0f} min (cap {cfd_eval_timeout() / 3600:.0f} h)")
         ticker, _t0 = spawn_busy_ticker(
             action="Assess",
@@ -379,7 +382,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                     base_cell=0.006,
                     iters=500,
                     load_pa=load_pa,
-                    refine_op=bool(state.mf_refine_op),
+                    refine_op=refine,
                 ),
             )
             if not result.feasible:
@@ -390,8 +393,8 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                 extra = {
                     "source": "mixed_assess",
                     "source_run": workdir.name,
-                    "hose": str(state.mf_assess_preset or "case"),
-                    "refine_op": bool(state.mf_refine_op),
+                    "hose": hose,
+                    "refine_op": refine,
                     "n_blades": int(flat.get("n_blades", 0)),
                 }
                 try:
@@ -458,7 +461,8 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             trials = max(40, int(float(state.mf_trials)))
         except (TypeError, ValueError):
             trials = 120
-        load_pa, _ = assess_load(str(state.mf_assess_preset or "case"))
+        hose = str(state.mf_assess_preset or "case")  # 25.11: as of this click
+        load_pa, _ = assess_load(hose)
         resume = bool(state.mf_resume)
         root = runs_root if runs_root.exists() else Path("runs")
         last = state.mf_last_opt or None
@@ -475,7 +479,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                 action="Optimize",
                 msg_attr="mf_msg",
                 busy_attr="mf_opt_busy",
-                note=f"{trials} BEM trials, hose {state.mf_assess_preset}, {mode}",
+                note=f"{trials} BEM trials, hose {hose}, {mode}",
             )
             state.flush()
             loop = asyncio.get_running_loop()
@@ -486,7 +490,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                         n_trials=trials,
                         load_pa=float(load_pa),
                         out_dir=out_dir,
-                        hose=str(state.mf_assess_preset or "case"),
+                        hose=hose,
                     ),
                 )
             except Exception as exc:  # noqa: BLE001
@@ -540,6 +544,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             state.flush()
             return
         load_pa, _ = assess_load(str(state.mf_assess_preset or "case"))
+        refine = bool(state.mf_refine_op)  # 25.11: as of this click
         out = pareto_dir / "cfd_refine"
 
         async def task():
@@ -561,7 +566,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                         out,
                         n_top=n_top,
                         load_pa=float(load_pa),
-                        refine_op=bool(state.mf_refine_op),
+                        refine_op=refine,
                     ),
                 )
             except Exception as exc:  # noqa: BLE001

@@ -1,0 +1,5 @@
+# Paths (prefixes, relative to the repo root) that must NOT ship in a public release.
+# scripts/export_release.py copies the tracked files minus these. See THIRD_PARTY.md.
+validation/reference/drone_radial/   # prop STLs of unknown origin (Kimball, 2026-10-10)
+docs/qa/benchmarks/nv150/            # CC BY-NC-ND 4.0 data: not MIT-compatible
+handoff/                             # internal QA-bot exchange; its scripts embed the nv150 numbers

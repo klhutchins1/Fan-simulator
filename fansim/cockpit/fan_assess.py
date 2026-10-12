@@ -17,9 +17,8 @@ import time
 from pathlib import Path
 
 from fansim.cfd.cockpit_viz import bake_cockpit_viz_core
-from fansim.cfd.metrics import CFD_VERSION
 from fansim.cfd.runner import kill_cfd_containers
-from fansim.cockpit import fan_runtime
+from fansim.cockpit import fan_runtime, run_settings
 from fansim.cockpit.busy import busy_caption, cfd_stage_hint
 from fansim.cockpit.data import Design
 from fansim.cockpit.errors import log_caught
@@ -30,7 +29,8 @@ from fansim.cockpit.fan_helpers import (
 )
 from fansim.cockpit.figures import reject_hint
 from fansim.cockpit.placement import frame_gap_note, impeller_z_extent
-from fansim.cockpit.score_caption import score_caption, stamp_score_extra
+from fansim.cockpit.run_settings import RunSettings
+from fansim.cockpit.score_caption import score_caption
 from fansim.fan_spec import (
     check_build,
     estimate_weight_g,
@@ -38,10 +38,9 @@ from fansim.fan_spec import (
     over_spec_flags,
 )
 from fansim.geometry.features import Features
-from fansim.manufacturability import check_printability
 from fansim.isolated_job import stall_timeout
+from fansim.manufacturability import check_printability
 from fansim.optimize.isolated_eval import cfd_eval_timeout, evaluate_candidate_isolated
-from fansim.optimize.presets import assess_load
 from fansim.optimize.search_space import blade_from_flat
 
 _log = logging.getLogger(__name__)
@@ -126,23 +125,23 @@ def bind(session) -> None:
             return True, "⚠ OVER-SPEC (allowed via leeway): " + "; ".join(over) + dm
         return True, f"✓ fits {spec.name} (dia {dia:.0f} mm, depth {depth:.0f} mm, {weight:.0f} g)"
 
-    def _blocking_eval(flat, features, workdir):
+    def _blocking_eval(flat, features, workdir, rs: RunSettings):
+        """Run the CFD with the settings captured when Run was pressed (25.11), never live state."""
         from fansim.cfd.wall_roughness import FDM_WALL_KS_MM
 
-        load_pa, _ = assess_load(str(state.assess_preset or "case"))
-        ks = FDM_WALL_KS_MM if state.assess_wall_ks else None
+        ks = FDM_WALL_KS_MM if rs.wall_ks else None
         return evaluate_candidate_isolated(
             flat,
             features,
             workdir,
-            spec=session.active_spec(),
+            spec=rs.spec,
             procs=8,
             base_cell=0.006,
             iters=500,
             timeout=cfd_eval_timeout(),
-            load_pa=load_pa,
-            refine_op=bool(state.assess_refine_op),
-            material=str(state.assess_material or "PETG"),
+            load_pa=rs.load_pa,
+            refine_op=rs.refine_op,
+            material=rs.material,
             wall_ks_mm=ks,
             proc_holder=assess_proc,
             # Stock A/B 2026-10-07: same objectives within 0.15%, mesh 4 min faster.
@@ -167,16 +166,8 @@ def bind(session) -> None:
             state.flush()
             await asyncio.sleep(2.0)
 
-    def _stamp_assess_extra(extra, result):
-        load_pa, _ = assess_load(str(state.assess_preset or "case"))
-        stamp_score_extra(
-            extra,
-            result.raw,
-            load_pa=load_pa,
-            preset=str(state.assess_preset or "case"),
-            refine_op=bool(state.assess_refine_op),
-        )
-        extra["cfd_version"] = CFD_VERSION  # tag the solver generation (stale-result detection)
+    def _stamp_assess_extra(extra, result, rs: RunSettings):
+        run_settings.stamp(extra, result.raw, rs)  # hose/load/refine from the click, + cfd_version
 
     async def _bake_viz_for_design(d: Design | None) -> None:
         """Warm midplane + glyphs before Results select (§22.6 / §22.10). Fail-soft."""
@@ -196,14 +187,14 @@ def bind(session) -> None:
         except Exception as exc:  # noqa: BLE001 — never fail Assess on viz bake
             log_caught(_log, "bake_cockpit_viz_core", exc)
 
-    async def _assess(params, flat, label, workdir_holder=None):
+    async def _assess(params, flat, label, rs: RunSettings, workdir_holder=None):
         tid = next_id[0]
         next_id[0] += 1
         workdir = assess_dir / f"design_{tid}"
         if workdir_holder is not None:
             workdir_holder[0] = workdir
         loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(None, _blocking_eval, flat, params.features, workdir)
+        result = await loop.run_in_executor(None, _blocking_eval, flat, params.features, workdir, rs)
         if state.assess_cancel:
             raise RuntimeError("Assess cancelled")
         if not result.feasible:
@@ -217,16 +208,10 @@ def bind(session) -> None:
             "source": "user",
             "source_run": run_dir.name,
             "over_spec": list(result.over_spec),
-            "fan_model": state.fan_model,
             "actual_rpm": round(result.actual_rpm),
-            "material": str(state.assess_material or "PETG"),
+            **run_settings.identity_extra(rs),  # fan model, material, library parent: from the click
         }
-        _stamp_assess_extra(extra, result)
-        if state.library_parent_id:
-            extra["parent_id"] = state.library_parent_id
-            extra["place_op"] = state.library_place_op or "fit_envelope"
-            extra["placed_on"] = state.fan_model
-            extra["cfd_stale"] = False
+        _stamp_assess_extra(extra, result, rs)
         d = Design(
             trial=tid,
             params=dict(flat),
@@ -264,13 +249,13 @@ def bind(session) -> None:
         state.flush()
         return d
 
-    async def _assess_existing(d: Design, params, flat, label, workdir_holder=None):
+    async def _assess_existing(d: Design, params, flat, label, rs: RunSettings, workdir_holder=None):
         tid = int(d.trial)
         workdir = assess_dir / f"design_{tid}"
         if workdir_holder is not None:
             workdir_holder[0] = workdir
         loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(None, _blocking_eval, flat, params.features, workdir)
+        result = await loop.run_in_executor(None, _blocking_eval, flat, params.features, workdir, rs)
         if state.assess_cancel:
             raise RuntimeError("Assess cancelled")
         if not result.feasible:
@@ -294,12 +279,13 @@ def bind(session) -> None:
                 "source": d.extra.get("source", "user"),
                 "source_run": run_dir.name,
                 "over_spec": list(result.over_spec),
-                "fan_model": state.fan_model,
+                "fan_model": rs.fan_model,
+                "material": rs.material,
                 "actual_rpm": round(result.actual_rpm),
                 "cfd_stale": False,
             }
         )
-        _stamp_assess_extra(d.extra, result)
+        _stamp_assess_extra(d.extra, result, rs)
         try:
             workdir.mkdir(parents=True, exist_ok=True)
             (workdir / "design.json").write_text(
@@ -329,6 +315,7 @@ def bind(session) -> None:
         if state.assess_busy:
             return
         params, flat = session.build_edit_params(), {**session.edit_flat(), **session._feat_dict()}
+        rs = run_settings.capture(state, session.active_spec)  # 25.11: settings as of this click
 
         async def task():
             state.assess_busy = True
@@ -346,7 +333,7 @@ def bind(session) -> None:
                 try:
                     # Always gate on LIVE editor geometry — never orphan Preview STL bounds
                     # (edit-after-Preview used to false-reject or skip the gate).
-                    spec = session.active_spec()
+                    spec = rs.spec
                     dia = _blade_max_dia(params)
                     depth = impeller_z_extent(params)
                     ok_prev, reason_prev = check_build(
@@ -365,15 +352,11 @@ def bind(session) -> None:
                         return
                 except Exception as exc:  # noqa: BLE001 — never block Assess on readout failure
                     log_caught(_log, "Assess preflight readout", exc)
-                cur = (
-                    by_trial.get(int(state.selected_trial))
-                    if state.selected_trial is not None
-                    else None
-                )
+                cur = by_trial.get(rs.selected_trial) if rs.selected_trial is not None else None
                 if cur is not None and cur.extra.get("cfd_stale"):
-                    d = await _assess_existing(cur, params, flat, "Assess", wd_holder)
+                    d = await _assess_existing(cur, params, flat, "Assess", rs, wd_holder)
                 else:
-                    d = await _assess(params, flat, "Assess", wd_holder)
+                    d = await _assess(params, flat, "Assess", rs, wd_holder)
                 if state.assess_cancel:
                     state.assess_msg = "⏹ Assess cancelled."
                     return
@@ -432,6 +415,7 @@ def bind(session) -> None:
         opt = next((o for o in SWEEP_OPTIONS if o[0] == state.sweep_param), SWEEP_OPTIONS[0])
         label, kind, field, mn, mx = opt
         base_flat, base_feat = session.edit_flat(), session._feat_dict()
+        rs = run_settings.capture(state, session.active_spec)  # 25.11: one snapshot for every step
         steps = max(2, int(state.sweep_steps))
         raw = list(np.linspace(mn, mx, steps))
         values = sorted(set(int(round(v)) for v in raw)) if field == "n_blades" else raw
@@ -473,7 +457,7 @@ def bind(session) -> None:
                     if not check_printability(params).printable:
                         continue
                     try:
-                        if await _assess(params, flat, f"sweep {label}={val:g}"):
+                        if await _assess(params, flat, f"sweep {label}={val:g}", rs):
                             done += 1
                     except Exception as exc:  # noqa: BLE001
                         if state.assess_cancel or "cancelled" in str(exc).lower():

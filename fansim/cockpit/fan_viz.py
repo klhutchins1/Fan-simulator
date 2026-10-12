@@ -311,6 +311,7 @@ def bind(session) -> None:
             preview=mount is None,
             motor_mount=mount,
             progress_path=_preview_progress_path(),
+            fuse_guard=True,  # a person is waiting: refuse plainly rather than swap (25.5)
         )
 
     def _preview_progress_path():

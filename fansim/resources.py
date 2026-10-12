@@ -143,6 +143,7 @@ def current_tier() -> MemoryTier:
 FUSE_BASE_GB = 0.37
 FUSE_GB_PER_FACE = 8.6e-5
 FUSE_MARGIN = 1.15  # headroom over the estimate before a build is allowed
+ENV_FUSE_GUARD = "FANSIM_FUSE_GUARD"  # "1" = refuse builds that would not fit (set by the cockpit)
 
 
 def fuse_peak_estimate_gb(n_faces: int) -> float:
@@ -153,9 +154,12 @@ def check_fuse_memory(n_faces: int) -> None:
     """Raise ``MemoryError`` with a plain message when the fuse would not fit in free RAM.
 
     A build that swaps can freeze the whole machine (QA round 6 saw 6 h of a frozen box), so it is
-    refused up front. If free RAM can't be read, or the tier is forced, the build goes ahead.
+    refused up front. Only where a person reads the message: the cockpit sets ``FANSIM_FUSE_GUARD=1``.
+    In batch work (optimizer, Assess scoring, scripts, tests) a refusal would be recorded as an
+    infeasible design, so those builds always go ahead. Also skipped if free RAM can't be read or
+    the tier is forced.
     """
-    if os.environ.get(ENV_TIER):
+    if os.environ.get(ENV_FUSE_GUARD, "") != "1" or os.environ.get(ENV_TIER):
         return
     free = free_ram_bytes()
     if free is None:

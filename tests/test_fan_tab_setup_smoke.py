@@ -21,6 +21,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from pathlib import Path
 
 # fan_tab consults this at import to stub pyvista/asynchronous; keep it truthy.
 sys.modules.setdefault("pytest", sys.modules[__name__])
@@ -297,3 +298,36 @@ def test_export_basename_is_readable():
     assert export_basename(9005, by) == "F12"
     assert export_basename(9006, by) == "design_9006"
     assert export_basename(None, by) == "fan"
+
+
+def test_assess_saves_the_settings_from_when_it_was_pressed(bound_ctx):
+    """25.11 / QA-22..26: changing the cockpit while Assess runs must not relabel the result."""
+    import json
+
+    st = bound_ctx.state
+    st.assess_preset, st.assess_material, st.fan_model = "heatsink", "PETG", "a12x25"
+    st.library_parent_id, st.selected_trial = "", None
+    result = SimpleNamespace(feasible=True, reason="", over_spec=[], cfm_free=10.0, cfm_load=8.0,
+                             efficiency=40.0, actual_rpm=2000.0, raw={})
+
+    def canned(fn, *args):
+        if getattr(fn, "__name__", "") == "_blocking_eval":
+            Path(args[2]).mkdir(parents=True, exist_ok=True)  # the real CFD creates its workdir
+            return result
+        return None
+
+    bound_ctx.fan_on_assess()  # the click: settings are captured here
+    # ... 40 minutes later the user has clicked around:
+    st.assess_preset, st.assess_material, st.fan_model = "radiator", "PLA", "delta_afc1212de"
+    st.library_parent_id, st.library_place_op = "P99", "scale_hub"
+    tasks = bound_ctx._tasks
+    while tasks:
+        coro = tasks.pop(0)
+        if coro.cr_code.co_name == "task":
+            _drive(coro, canned)
+        else:
+            coro.close()
+    saved = sorted(bound_ctx.assess_dir.glob("design_*/design.json"))[-1]
+    extra = json.loads(saved.read_text(encoding="utf-8"))["extra"]
+    assert (extra["preset"], extra["material"], extra["fan_model"]) == ("heatsink", "PETG", "a12x25")
+    assert "parent_id" not in extra

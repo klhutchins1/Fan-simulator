@@ -5,7 +5,8 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-10-08** (§23 QA bug list added). Previously **2026-09-30**. **§12** + **§13** + **§7.6** + **§14.1–14.6** closed in code.
+- Last reviewed: **2026-10-11** (§26 parked: external STL Assess / inverse-fit / community corpus).
+  Previously **2026-10-08** (§23 QA). **§12** + **§13** + **§7.6** + **§14.1–14.6** closed in code.
   Stock close-ref fidelity (§2.7–2.8). **§13.22–13.24** / **§14.3b** /
   **§14.6** / **§15.1–15.6** landed 2026-09-16. Still **not shippable** until Validation P–Q /
   print+measure — see `a12x25_pq_report.md`. **§21** cockpit UX + **§22** design-switch
@@ -52,6 +53,9 @@ session.**
     slice/streamlines + disk glyphs + busy/cancel UX landed 2026-09-30.
   - **§21** — core Fan + Prop UX done 2026-09-30; optional leftover: 21.2g (tour/readiness).
     Intake overbuild (+Z) Design switch landed 2026-09-30 (Fit & seed; asymmetric envelope).
+  - **§26** (parked idea) — cockpit “Bring your STL” Assess; optional inverse-fit; no mass-scrape.
+    Do **not** start until §23 release blockers and a clear UI slot exist; CLI already has
+    `scripts/validate_stl.py`.
   - Deferred (Stage 1 done, Stage 2 **not adopted** — do not start without a new Adopt):
     CST section DOFs, §7.4 CNN/FNO field predictor, §4.5 toroidal Prop topology.
   - ~~§20.2 NeuralFoil / RMS / 360°~~ — DONE 2026-09-30.
@@ -1519,7 +1523,9 @@ failures.
       band.
   - The rotor (Ø120) exceeds the a12x25 frame, so use a matching rig or duct.
   - **[impact: high]** **[effort: med–high, CFD]**
-- [ ] **25.8 Benchmark licences before any public release.**
+- [x] **25.8 Benchmark licences before any public release.** **DONE 2026-10-11: `RELEASE_EXCLUDE` +
+  `scripts/export_release.py` (no history) keep nv150, the drone props (unknown origin) and `handoff/` out of
+  a public release; the tests that need a drone prop skip without it.**
   - `nv150` data is CC BY-NC-ND (not MIT-compatible): remove it or keep it out of the release.
   - **DONE 2026-10-10:** the NF-A12x25 reference STL is "A12x25" by MajorHardware (Thingiverse
     5893432, CC BY 4.0). It is credited in `THIRD_PARTY.md` and `validation/reference/README.md`.
@@ -1534,8 +1540,75 @@ failures.
   - **[impact: high for release]** **[effort: low]**
 - [ ] **25.9 Finish the stress test** (681 designs left) **with chirality and INCONCLUSIVE reasons logged**.
   QA round 7, run at lower parallelism. The QA box froze for 6.1 of 7.1 h under memory pressure.
+- [ ] **25.11 (QA-22..26) Runs save labels from the cockpit as it is when they *finish*.**
+  - Assess, Sweep and Mixed Assess build and solve the right geometry. But at the end, 30–40 min later,
+    they write several labels from the live state:
+    - material, hose and load;
+    - fan model;
+    - library parent.
+  - Clicking another design mid-run files the result with that design's settings.
+  - **Decision (Kimball, 2026-10-11): record every setting when Assess / Sweep / Mixed Assess is
+    pressed, and save exactly those with the result.**
+  - Source: the QA round-7 Task A note. **[impact: high: wrong saved labels]** **[effort: med]**
 - [ ] **25.10 Near-stall flag** (Task E, carried over). A cheap BEM/geometry flag for Q3's blind spot
   (9610).
+
+---
+
+## 26. External STL in the cockpit — score a mesh you didn't build (2026-10-11)
+
+**Status:** parked idea (written so we don't lose it). **Not next work.** Evaluation below.
+
+Three separate jobs got mixed together. Split them. CLI already CFD-scores an impeller STL
+(`scripts/validate_stl.py` + `prepare_axial_cfd(..., source="external")`). Inverse-fit of Stock
+to the close-ref mesh already exists as `scripts/fit_recipe_to_stl.py` + cylinder-slice
+(`fansim/validation/section_compare.py`). The **gap is the Fan cockpit** (and a general
+residual report, not an A12x25-only fitter).
+
+### What this is for
+
+Print-site “Noctua hub” impellers (Printables / MakerWorld / Thingiverse) are shapes the sliders
+cannot always make. Scoring those meshes on the **same** hose / mesh / gates as a parametric
+Assess would show whether our vocabulary is missing a real lever, or whether a popular print is
+just a worse rotor on the same motor. Sliders go **read-only** for that row. That is fine.
+
+### Honest evaluation (do / don't)
+
+| Idea | Verdict | Why |
+|------|---------|-----|
+| Load one impeller STL → Preview + Assess (CFD, hose, envelope, mount gauge, catalog) | **Do — later** | High leverage; most of the physics already exists; UI is the work. Fair **relative** ranking vs Stock if mesh/settings match. |
+| Auto-set sliders from an STL (no AI) | **Do as a report, not magic** | Cylinder-slice chord/stagger/t/c/camber, then residual. If residual is large, **say the builder cannot represent it**. Generalizing `fit_recipe_to_stl.py` is the code path. Full “looks identical” inverse design is ill-posed (organic hubs, lettering, splitters, fused frame). |
+| Download hundreds of community fans to find missing sliders | **Don't scrape** | License mess (§25.8), whole-fan assemblies, bad axes, non-watertight meshes. A **hand-picked 5–10 CC-BY impeller-only** set is enough for a feature census. Feeds §25.7 (lt120 → `BladeParams`) the same way. |
+
+**Do not** treat community CFD as datasheet truth. Same caveat as parametric Assess: relative
+rankings under a fixed budget, not published CFM.
+
+**Do not** start this before §23 release blockers. External-STL direction is already the risky
+path (`source="external"` must be CONCLUSIVE — see orientation audits).
+
+### Recommended order (when un-parked)
+
+1. **26.1 Bring-your-STL Assess** in Fan Library / a dedicated “Imported mesh” row.
+   File picker → prep (center, +Z, impeller-only check) → disable Design sliders → run the
+   existing Assess pipeline on the mesh (skip BEM or stamp `geometry_source=external`).
+   Catalog id like `import_<hash>`. Same hose / `surf_max` floor as parametric Assess.
+   **[impact: high]** **[effort: med]**
+2. **26.2 Prep + honesty UI.** Refuse fused frame+rotor assemblies; show orientation proof;
+   require RPM + fan model (envelope/mount). **[impact: high]** **[effort: low–med]**
+3. **26.3 Slice residual panel** (optional, after 26.1). Reuse `measure_sections`; list
+   unrepresentable features instead of forcing sliders. **[impact: med]** **[effort: med]**
+4. **26.4 Tiny licensed corpus** (5–10 impeller STLs, CC-BY, credited like the A12x25 ref).
+   Census: which features the builder cannot make; only then add a slider. **[impact: med]**
+   **[effort: low software / user collect]**
+5. ~~Mass download / AI slider-tune~~ — **not adopted.** Tokens are the wrong tool; licenses
+   and mesh hygiene are the real cost.
+
+- [ ] **26.1 Cockpit: import impeller STL and Assess it** (parametric sliders read-only).
+- [ ] **26.2 STL prep gates** (impeller-only, watertight, axis, orientation proof, RPM/model).
+- [ ] **26.3 Cylinder-slice residual vs current `BladeParams` vocabulary** (no silent slider overwrite).
+- [ ] **26.4 Hand-picked CC-BY Noctua-hub impeller set** — feature census, not a scraper.
+- [x] **26.5 Mass-scrape Printables/MakerWorld/Thingiverse.** **Not adopted** (licenses + junk meshes).
+
 ---
 
 ## Recently shipped (context, so we don't re-add)

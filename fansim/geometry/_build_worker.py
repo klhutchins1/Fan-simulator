@@ -14,6 +14,8 @@ import sys
 
 def main() -> int:
     job = json.loads(open(sys.argv[1]).read())
+    if job.get("fuse_guard"):
+        os.environ["FANSIM_FUSE_GUARD"] = "1"  # interactive build: refuse rather than swap (25.5)
     # Stage 1/4 "loading CAD kernel" is written by the PARENT (build_stl_isolated) before it spawns
     # us: ``python -m fansim.geometry._build_worker`` imports the fansim.geometry package — and with
     # it CadQuery/OCP — before main() runs, so a write here landed only after the kernel had loaded.

@@ -24,6 +24,11 @@ from fansim.propeller.ami_smoke import (
 from fansim.propeller.cfd import PropOpenAir, build_prop_case
 
 
+
+# validation/reference/drone_radial is left out of public releases (unknown origin; RELEASE_EXCLUDE).
+_OBJ2 = Path(__file__).resolve().parents[1] / "validation" / "reference" / "drone_radial" / "obj_2_ccw.stl"
+_needs_obj2 = pytest.mark.skipif(not _OBJ2.is_file(), reason="drone_radial STLs not in this checkout")
+
 def test_locked_time_knobs():
     period = rev_period_s(25257.0)
     assert period == 60.0 / 25257.0
@@ -81,6 +86,7 @@ def test_mrf_control_dict_unchanged():
     assert "phiMRF" in T.PROP_FV_SCHEMES
 
 
+@_needs_obj2
 def test_apply_ami_overlay_writes_sliding_case(tmp_path: Path):
     stl = Path("validation/reference/drone_radial/obj_2_ccw.stl")
     dom = PropOpenAir(
@@ -213,6 +219,7 @@ def test_cli_missing_stl(tmp_path: Path, capsys):
     assert "ERROR" in capsys.readouterr().err
 
 
+@_needs_obj2
 def test_cli_runtime_error_writes_failed_result(tmp_path: Path, monkeypatch):
     mod = _load_cli()
     stl = Path("validation/reference/drone_radial/obj_2_ccw.stl")
@@ -228,6 +235,7 @@ def test_cli_runtime_error_writes_failed_result(tmp_path: Path, monkeypatch):
     assert payload["mean_thrust_g"] is None
 
 
+@_needs_obj2
 def test_cli_non_runtime_error_propagates(tmp_path: Path, monkeypatch):
     mod = _load_cli()
     stl = Path("validation/reference/drone_radial/obj_2_ccw.stl")
