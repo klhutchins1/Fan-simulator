@@ -1649,7 +1649,10 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
   3 INCONCLUSIVE of 8.
   - Candidate fix: require the radial-plane reading (25.3b lead) to agree before refusing. Wait for the
     round-8 pre-registered confirmation (Task B). **[impact: med]** **[effort: low once confirmed]**
-- [ ] **27.3 Flow report card: NaN handling and the push-bar caveat** (Task G).
+- [ ] **27.3 Flow report card: NaN handling and the push-bar caveat** (Task G). **NaN + push DONE 2026-10-12
+  (Kimball chose option b): the push row judges the area-weighted mean push; missing values are saved as
+  `null` with a reason; zero-volume exits raise. Real cases: t9005 +12 % (now "about as hard"; the old band
+  labels said stronger in 2 bands), 9604 −38 % (weaker), 9610 +7 %. Open: the Stock repeats below.**
   - The maths is right: G1 16/16.
   - Degenerate inputs (zero flow, zero weights, empty bands on a coarse mesh) give a silent NaN. The card
     already shows "Couldn't measure", but `flow_report.json` is written with the non-standard `NaN` token

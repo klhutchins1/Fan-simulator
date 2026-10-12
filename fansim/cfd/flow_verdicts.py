@@ -13,7 +13,8 @@ TITLES = {"direction": "Air direction", "push": "Push along the blade", "spin": 
 ICONS = {"ok": "✓", "warn": "⚠", "bad": "✕", "na": "–"}
 
 BACKFLOW_MARGIN = 0.02
-BAND_TOL = 0.15  # was 0.10; Stock run-to-run 14.3 % (audit 2026-10-10-flow-report-checks F2)
+BAND_TOL = 0.15  # was 0.10; Stock run-to-run 14.3 % (audit 2026-10-10-flow-report-checks F2).
+# Also the mean-push tolerance until Stock repeats set it at ~2 sigma (roadmap 27.3).
 SWIRL_FACTOR = 1.10
 DEAD_MARGIN = 0.02
 TIP_FACTOR = 0.90
@@ -58,9 +59,7 @@ def _direction(d: FlowMetrics, s: FlowMetrics | None) -> RowVerdict:
                 better=d.backflow_frac < s.backflow_frac - BACKFLOW_MARGIN)
 
 
-def _push(d, s):
-    if s is None:
-        return _row("push", "na", "No Stock comparison for the push along the blade.")
+def _band_labels(d, s):
     labels = []
     for a, b in zip(d.band_dp0_pa, s.band_dp0_pa):
         if _bad(a) or _bad(b) or b == 0:
@@ -71,17 +70,32 @@ def _push(d, s):
             labels.append("weaker")
         else:
             labels.append("similar")
-    n_up, n_dn = labels.count("stronger"), labels.count("weaker")
-    names = ["near the hub", "inner middle", "middle", "outer middle", "near the tip"]
-    parts = []
-    if n_up:
-        parts.append("stronger " + ", ".join(n for n, l in zip(names, labels) if l == "stronger"))
-    if n_dn:
-        parts.append("weaker " + ", ".join(n for n, l in zip(names, labels) if l == "weaker"))
-    text = ("Pushes about as hard as Stock all along the blade." if not parts
-            else "Compared with Stock: " + "; ".join(parts) + ".")
-    status = "na" if labels.count("unknown") == len(labels) else ("warn" if n_dn > n_up else "ok")
-    return _row("push", status, text, better=n_up > n_dn, bands=labels)
+    return labels
+
+
+BARS_NOTE = "The bars show where along the blade; spin tilts them toward the tip, so read their shape loosely."
+
+
+def _push(d, s):
+    """Judged on the area-weighted mean push (Kimball 2026-10-12, roadmap 27.3 option b).
+
+    Swirl alone shifts static pressure from hub to tip (radial equilibrium), so per-band labels made a
+    swirly fan look hub-weak / tip-strong. That tilt cancels in the mean. Bands stay as a picture.
+    """
+    if s is None:
+        return _row("push", "na", "No Stock comparison for the push along the blade.")
+    labels = _band_labels(d, s)
+    a, b = getattr(d, "mean_dp0_pa", None), getattr(s, "mean_dp0_pa", None)
+    if _bad(a) or _bad(b) or b <= 0:
+        return _row("push", "na", "Couldn't compare the overall push with Stock.", bands=labels)
+    vs = f"({a:.1f} vs {b:.1f} Pa). {BARS_NOTE}"
+    if a > b * (1 + BAND_TOL):
+        return _row("push", "ok", f"Pushes about {_pct(a / b - 1)} harder than Stock overall {vs}",
+                    better=True, bands=labels)
+    if a < b * (1 - BAND_TOL):
+        return _row("push", "warn", f"Pushes about {_pct(1 - a / b)} less than Stock overall {vs}",
+                    better=False, bands=labels)
+    return _row("push", "ok", f"Pushes about as hard as Stock overall {vs}", better=False, bands=labels)
 
 
 def _spin(d, s):
