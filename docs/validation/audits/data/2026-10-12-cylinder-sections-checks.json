@@ -1,0 +1,1166 @@
+{
+ "V1": {
+  "pass": false,
+  "designs": {
+   "stock": [
+    {
+     "r_mm": 27.25,
+     "chord": [
+      21.3497,
+      21.34
+     ],
+     "camber_slider": 0.0323,
+     "camber_cut": 0.0191,
+     "camber_analytic": 0.0249,
+     "stagger": [
+      39.6869,
+      39.42,
+      39.88
+     ],
+     "d_chord": -0.0002,
+     "d_camber": -0.0057,
+     "d_stagger": -0.47,
+     "ok": false
+    },
+    {
+     "r_mm": 32.7,
+     "chord": [
+      23.1557,
+      23.16
+     ],
+     "camber_slider": 0.0475,
+     "camber_cut": 0.0331,
+     "camber_analytic": 0.0376,
+     "stagger": [
+      36.0731,
+      35.93,
+      36.2
+     ],
+     "d_chord": -0.0,
+     "d_camber": -0.0044,
+     "d_stagger": -0.27,
+     "ok": true
+    },
+    {
+     "r_mm": 38.15,
+     "chord": [
+      25.4399,
+      25.44
+     ],
+     "camber_slider": 0.048,
+     "camber_cut": 0.0386,
+     "camber_analytic": 0.0385,
+     "stagger": [
+      31.2006,
+      31.21,
+      31.25
+     ],
+     "d_chord": 0.0,
+     "d_camber": 0.0001,
+     "d_stagger": -0.04,
+     "ok": true
+    },
+    {
+     "r_mm": 43.6,
+     "chord": [
+      28.1108,
+      28.11
+     ],
+     "camber_slider": 0.0451,
+     "camber_cut": 0.0367,
+     "camber_analytic": 0.0369,
+     "stagger": [
+      26.2913,
+      26.39,
+      26.38
+     ],
+     "d_chord": 0.0,
+     "d_camber": -0.0002,
+     "d_stagger": 0.0,
+     "ok": true
+    },
+    {
+     "r_mm": 49.05,
+     "chord": [
+      31.0126,
+      31.01
+     ],
+     "camber_slider": 0.0419,
+     "camber_cut": 0.0346,
+     "camber_analytic": 0.0345,
+     "stagger": [
+      22.8209,
+      22.97,
+      22.94
+     ],
+     "d_chord": 0.0,
+     "d_camber": 0.0001,
+     "d_stagger": 0.03,
+     "ok": true
+    },
+    {
+     "r_mm": 53.96,
+     "chord": [
+      33.709,
+      33.69
+     ],
+     "camber_slider": 0.0445,
+     "camber_cut": 0.0361,
+     "camber_analytic": 0.037,
+     "stagger": [
+      22.4624,
+      22.61,
+      22.61
+     ],
+     "d_chord": -0.0004,
+     "d_camber": -0.0009,
+     "d_stagger": 0.01,
+     "ok": true
+    }
+   ],
+   "t9005": [
+    {
+     "r_mm": 37.0,
+     "chord": [
+      25.0,
+      25.0
+     ],
+     "camber_slider": 0.06,
+     "camber_cut": 0.0527,
+     "camber_analytic": 0.0528,
+     "stagger": [
+      30.0,
+      30.8,
+      30.81
+     ],
+     "d_chord": -0.0001,
+     "d_camber": -0.0001,
+     "d_stagger": -0.01,
+     "ok": true
+    },
+    {
+     "r_mm": 53.96,
+     "chord": [
+      38.0,
+      37.23
+     ],
+     "camber_slider": 0.06,
+     "camber_cut": 0.054,
+     "camber_analytic": 0.0541,
+     "stagger": [
+      22.0,
+      23.14,
+      22.81
+     ],
+     "d_chord": -0.0203,
+     "d_camber": -0.0,
+     "d_stagger": 0.33,
+     "ok": true
+    }
+   ],
+   "t9003": [
+    {
+     "r_mm": 36.93,
+     "chord": [
+      25.0,
+      25.14
+     ],
+     "camber_slider": 0.06,
+     "camber_cut": 0.0499,
+     "camber_analytic": 0.0496,
+     "stagger": [
+      30.0,
+      30.7,
+      30.65
+     ],
+     "d_chord": 0.0057,
+     "d_camber": 0.0003,
+     "d_stagger": 0.05,
+     "ok": true
+    },
+    {
+     "r_mm": 53.81,
+     "chord": [
+      38.0,
+      37.35
+     ],
+     "camber_slider": 0.06,
+     "camber_cut": 0.0509,
+     "camber_analytic": 0.051,
+     "stagger": [
+      22.0,
+      23.03,
+      22.66
+     ],
+     "d_chord": -0.017,
+     "d_camber": -0.0001,
+     "d_stagger": 0.37,
+     "ok": true
+    }
+   ],
+   "lt120": [
+    {
+     "r_mm": 30.4,
+     "chord": [
+      23.6,
+      23.63
+     ],
+     "camber_slider": 0.04,
+     "camber_cut": 0.0295,
+     "camber_analytic": 0.0299,
+     "stagger": [
+      39.5,
+      39.94,
+      39.97
+     ],
+     "d_chord": 0.0011,
+     "d_camber": -0.0004,
+     "d_stagger": -0.03,
+     "ok": true
+    },
+    {
+     "r_mm": 34.2,
+     "chord": [
+      26.2,
+      26.1
+     ],
+     "camber_slider": 0.04,
+     "camber_cut": 0.0286,
+     "camber_analytic": 0.0307,
+     "stagger": [
+      39.3,
+      39.3,
+      39.76
+     ],
+     "d_chord": -0.0039,
+     "d_camber": -0.0021,
+     "d_stagger": -0.46,
+     "ok": true
+    },
+    {
+     "r_mm": 37.9,
+     "chord": [
+      28.9,
+      28.66
+     ],
+     "camber_slider": 0.04,
+     "camber_cut": 0.0274,
+     "camber_analytic": 0.0307,
+     "stagger": [
+      38.9,
+      38.56,
+      39.35
+     ],
+     "d_chord": -0.0083,
+     "d_camber": -0.0034,
+     "d_stagger": -0.79,
+     "ok": true
+    },
+    {
+     "r_mm": 41.6,
+     "chord": [
+      31.6,
+      31.17
+     ],
+     "camber_slider": 0.04,
+     "camber_cut": 0.0265,
+     "camber_analytic": 0.0315,
+     "stagger": [
+      38.6,
+      37.96,
+      39.04
+     ],
+     "d_chord": -0.0136,
+     "d_camber": -0.005,
+     "d_stagger": -1.08,
+     "ok": false
+    },
+    {
+     "r_mm": 45.3,
+     "chord": [
+      34.2,
+      33.75
+     ],
+     "camber_slider": 0.04,
+     "camber_cut": 0.0256,
+     "camber_analytic": 0.0317,
+     "stagger": [
+      38.2,
+      37.36,
+      38.64
+     ],
+     "d_chord": -0.0131,
+     "d_camber": -0.0061,
+     "d_stagger": -1.28,
+     "ok": false
+    },
+    {
+     "r_mm": 49.1,
+     "chord": [
+      36.6,
+      36.05
+     ],
+     "camber_slider": 0.04,
+     "camber_cut": 0.0249,
+     "camber_analytic": 0.0321,
+     "stagger": [
+      37.7,
+      36.71,
+      38.14
+     ],
+     "d_chord": -0.0149,
+     "d_camber": -0.0073,
+     "d_stagger": -1.42,
+     "ok": false
+    },
+    {
+     "r_mm": 52.8,
+     "chord": [
+      39.1,
+      38.49
+     ],
+     "camber_slider": 0.04,
+     "camber_cut": 0.0243,
+     "camber_analytic": 0.0321,
+     "stagger": [
+      37.0,
+      35.9,
+      37.44
+     ],
+     "d_chord": -0.0157,
+     "d_camber": -0.0078,
+     "d_stagger": -1.54,
+     "ok": false
+    },
+    {
+     "r_mm": 56.5,
+     "chord": [
+      41.6,
+      40.86
+     ],
+     "camber_slider": 0.04,
+     "camber_cut": 0.0238,
+     "camber_analytic": 0.0321,
+     "stagger": [
+      36.0,
+      34.92,
+      36.44
+     ],
+     "d_chord": -0.0178,
+     "d_camber": -0.0083,
+     "d_stagger": -1.51,
+     "ok": false
+    }
+   ],
+   "CTL_0000": [
+    {
+     "r_mm": 27.25,
+     "chord": [
+      21.31,
+      21.31
+     ],
+     "camber_slider": 0.0412,
+     "camber_cut": 0.0298,
+     "camber_analytic": 0.0358,
+     "stagger": [
+      39.78,
+      39.3,
+      39.88
+     ],
+     "d_chord": -0.0,
+     "d_camber": -0.006,
+     "d_stagger": -0.58,
+     "ok": false
+    },
+    {
+     "r_mm": 32.7,
+     "chord": [
+      23.19,
+      23.19
+     ],
+     "camber_slider": 0.0762,
+     "camber_cut": 0.0639,
+     "camber_analytic": 0.0655,
+     "stagger": [
+      34.59,
+      34.69,
+      34.88
+     ],
+     "d_chord": 0.0,
+     "d_camber": -0.0015,
+     "d_stagger": -0.18,
+     "ok": true
+    },
+    {
+     "r_mm": 38.15,
+     "chord": [
+      25.12,
+      25.12
+     ],
+     "camber_slider": 0.0834,
+     "camber_cut": 0.0731,
+     "camber_analytic": 0.0718,
+     "stagger": [
+      28.69,
+      28.9,
+      28.92
+     ],
+     "d_chord": 0.0,
+     "d_camber": 0.0013,
+     "d_stagger": -0.02,
+     "ok": true
+    },
+    {
+     "r_mm": 43.6,
+     "chord": [
+      27.63,
+      27.63
+     ],
+     "camber_slider": 0.0947,
+     "camber_cut": 0.0829,
+     "camber_analytic": 0.0812,
+     "stagger": [
+      21.9,
+      22.01,
+      22.0
+     ],
+     "d_chord": 0.0,
+     "d_camber": 0.0016,
+     "d_stagger": 0.0,
+     "ok": true
+    },
+    {
+     "r_mm": 49.05,
+     "chord": [
+      30.54,
+      30.54
+     ],
+     "camber_slider": 0.0985,
+     "camber_cut": 0.0863,
+     "camber_analytic": 0.0849,
+     "stagger": [
+      17.24,
+      17.3,
+      17.28
+     ],
+     "d_chord": 0.0001,
+     "d_camber": 0.0014,
+     "d_stagger": 0.02,
+     "ok": true
+    },
+    {
+     "r_mm": 53.96,
+     "chord": [
+      33.53,
+      33.52
+     ],
+     "camber_slider": 0.0971,
+     "camber_cut": 0.0844,
+     "camber_analytic": 0.0834,
+     "stagger": [
+      16.26,
+      15.64,
+      15.44
+     ],
+     "d_chord": -0.0004,
+     "d_camber": 0.001,
+     "d_stagger": 0.2,
+     "ok": true
+    }
+   ],
+   "CTL_0002": [
+    {
+     "r_mm": 40.99,
+     "chord": [
+      28.060972336160532,
+      28.06
+     ],
+     "camber_slider": 0.01642682365475948,
+     "camber_cut": 0.0133,
+     "camber_analytic": 0.0133,
+     "stagger": [
+      33.58827642047567,
+      33.44,
+      33.59
+     ],
+     "d_chord": 0.0001,
+     "d_camber": 0.0,
+     "d_stagger": -0.16,
+     "ok": true
+    },
+    {
+     "r_mm": 53.95,
+     "chord": [
+      33.760549769072654,
+      33.75
+     ],
+     "camber_slider": 0.01642682365475948,
+     "camber_cut": 0.0133,
+     "camber_analytic": 0.0134,
+     "stagger": [
+      22.379739546648203,
+      23.04,
+      22.39
+     ],
+     "d_chord": -0.0003,
+     "d_camber": -0.0002,
+     "d_stagger": 0.65,
+     "ok": true
+    }
+   ],
+   "CTL_0003": [
+    {
+     "r_mm": 38.25,
+     "chord": [
+      30.81844813749194,
+      30.8
+     ],
+     "camber_slider": 0.016024040896445515,
+     "camber_cut": 0.0129,
+     "camber_analytic": 0.0129,
+     "stagger": [
+      34.80795620381832,
+      34.76,
+      34.89
+     ],
+     "d_chord": -0.0007,
+     "d_camber": 0.0,
+     "d_stagger": -0.13,
+     "ok": true
+    },
+    {
+     "r_mm": 51.73,
+     "chord": [
+      38.504102658480406,
+      38.49
+     ],
+     "camber_slider": 0.016024040896445515,
+     "camber_cut": 0.0128,
+     "camber_analytic": 0.0129,
+     "stagger": [
+      20.194651160389185,
+      21.08,
+      20.27
+     ],
+     "d_chord": -0.0004,
+     "d_camber": -0.0001,
+     "d_stagger": 0.8,
+     "ok": true
+    }
+   ],
+   "S5_0001": [
+    {
+     "r_mm": 37.12,
+     "chord": [
+      38.93728983402252,
+      38.91
+     ],
+     "camber_slider": 0.011627217717468738,
+     "camber_cut": 0.0092,
+     "camber_analytic": 0.0094,
+     "stagger": [
+      25.480129413306713,
+      25.63,
+      25.54
+     ],
+     "d_chord": -0.0008,
+     "d_camber": -0.0002,
+     "d_stagger": 0.09,
+     "ok": true
+    },
+    {
+     "r_mm": 54.54,
+     "chord": [
+      38.00463719852269,
+      37.99
+     ],
+     "camber_slider": 0.011627217717468738,
+     "camber_cut": 0.0094,
+     "camber_analytic": 0.0094,
+     "stagger": [
+      23.79540890455246,
+      23.85,
+      23.85
+     ],
+     "d_chord": -0.0004,
+     "d_camber": -0.0,
+     "d_stagger": -0.01,
+     "ok": true
+    }
+   ]
+  }
+ },
+ "V3": {
+  "pass": false,
+  "designs": {
+   "S1_0000": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 56.5,
+    "tip": 56.5,
+    "zmin": -6.8,
+    "hub_face": -6.8,
+    "volume": 29971.0,
+    "volume_planar": 29946.8,
+    "volume_ok": true,
+    "s": 51.3
+   },
+   "S1_0001": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 56.5,
+    "tip": 56.5,
+    "zmin": -8.852,
+    "hub_face": -8.852,
+    "volume": 36308.2,
+    "volume_planar": 36265.9,
+    "volume_ok": true,
+    "s": 66.9
+   },
+   "S2_0000": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 56.5,
+    "tip": 56.5,
+    "zmin": -6.239,
+    "hub_face": -6.239,
+    "volume": 32453.4,
+    "volume_planar": 32213.7,
+    "volume_ok": true,
+    "s": 64.1
+   },
+   "S2_0001": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 56.5,
+    "tip": 56.5,
+    "zmin": -7.987,
+    "hub_face": -7.987,
+    "volume": 36253.7,
+    "volume_planar": 36094.8,
+    "volume_ok": true,
+    "s": 59.2
+   },
+   "S3_0000": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 56.5,
+    "tip": 56.5,
+    "zmin": -9.236,
+    "hub_face": -9.236,
+    "volume": 50077.4,
+    "volume_planar": 49518.2,
+    "volume_ok": true,
+    "s": 65.8
+   },
+   "S3_0001": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 56.5,
+    "tip": 56.5,
+    "zmin": -8.657,
+    "hub_face": -8.657,
+    "volume": 41057.2,
+    "volume_planar": 41166.5,
+    "volume_ok": true,
+    "s": 44.7
+   },
+   "S4_0000": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 52.661,
+    "tip": 52.661,
+    "zmin": -9.251,
+    "hub_face": -9.251,
+    "volume": 50876.8,
+    "volume_planar": 51004.6,
+    "volume_ok": true,
+    "s": 49.4
+   },
+   "S4_0001": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 49.779,
+    "tip": 49.779,
+    "zmin": -15.852,
+    "hub_face": -15.852,
+    "volume": 76735.1,
+    "volume_planar": 76517.6,
+    "volume_ok": true,
+    "s": 65.8
+   },
+   "S5_0000": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 51.013,
+    "tip": 51.013,
+    "zmin": -7.585,
+    "hub_face": -7.585,
+    "volume": 21098.5,
+    "volume_planar": 21029.6,
+    "volume_ok": true,
+    "s": 153.0
+   },
+   "S5_0001": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 55.093,
+    "tip": 55.093,
+    "zmin": -5.79,
+    "hub_face": -5.79,
+    "volume": 28044.7,
+    "volume_planar": 28005.4,
+    "volume_ok": true,
+    "s": 157.5
+   },
+   "S6_0000": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 56.5,
+    "tip": 56.5,
+    "zmin": -8.137,
+    "hub_face": -8.137,
+    "volume": 33580.8,
+    "volume_planar": 33402.9,
+    "volume_ok": true,
+    "s": 102.0
+   },
+   "S6_0001": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 56.5,
+    "tip": 56.5,
+    "zmin": -11.603,
+    "hub_face": -11.603,
+    "volume": 51188.8,
+    "volume_planar": 51316.7,
+    "volume_ok": true,
+    "s": 118.2
+   },
+   "S7_0000": {
+    "ok": false,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 58.1,
+    "tip": 56.5,
+    "zmin": -8.42,
+    "hub_face": -8.42,
+    "volume": 46670.6,
+    "volume_planar": 46299.7,
+    "volume_ok": true,
+    "s": 130.3
+   },
+   "S7_0001": {
+    "ok": false,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 58.1,
+    "tip": 56.5,
+    "zmin": -9.195,
+    "hub_face": -9.195,
+    "volume": 41579.6,
+    "volume_planar": 41450.2,
+    "volume_ok": true,
+    "s": 154.5
+   },
+   "S8_0000": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 53.0,
+    "tip": 53.0,
+    "zmin": -9.049,
+    "hub_face": -9.049,
+    "volume": 34279.1,
+    "volume_planar": 34248.8,
+    "volume_ok": true,
+    "s": 40.8
+   },
+   "S8_0001": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 53.0,
+    "tip": 53.0,
+    "zmin": -9.049,
+    "hub_face": -9.049,
+    "volume": 40576.1,
+    "volume_planar": 40467.0,
+    "volume_ok": true,
+    "s": 77.0
+   },
+   "S7_0002": {
+    "ok": false,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 58.1,
+    "tip": 56.5,
+    "zmin": -8.658,
+    "hub_face": -8.658,
+    "volume": 43266.9,
+    "volume_planar": 43521.1,
+    "volume_ok": true,
+    "s": 80.7
+   },
+   "S5_0002": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 51.428,
+    "tip": 51.428,
+    "zmin": -9.703,
+    "hub_face": -9.703,
+    "volume": 53052.4,
+    "volume_planar": 53279.1,
+    "volume_ok": true,
+    "s": 172.4
+   },
+   "CTL_0000": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 54.5,
+    "tip": 54.5,
+    "zmin": -8.159,
+    "hub_face": -8.159,
+    "volume": 42249.3,
+    "volume_planar": 42011.1,
+    "volume_ok": true,
+    "s": 202.8
+   },
+   "CTL_0001": {
+    "ok": true,
+    "watertight": true,
+    "bodies": 1,
+    "rmax": 54.171,
+    "tip": 54.171,
+    "zmin": -9.299,
+    "hub_face": -9.299,
+    "volume": 54093.6,
+    "volume_planar": 53653.1,
+    "volume_ok": true,
+    "s": 87.7
+   }
+  }
+ },
+ "V4": {
+  "pass": true,
+  "wrong": 0,
+  "conclusive": 20,
+  "n": 30,
+  "designs": {
+   "9605": {
+    "verdict": "INCONCLUSIVE",
+    "omega_pump_chi": [
+     null,
+     null,
+     null
+    ],
+    "wrong": false,
+    "note": "no cambered sections (10 flat, 0 low-quality skipped) \u2014 concave side undefined"
+   },
+   "9606": {
+    "verdict": "INCONCLUSIVE",
+    "omega_pump_chi": [
+     null,
+     null,
+     null
+    ],
+    "wrong": false,
+    "note": "no cambered sections (10 flat, 0 low-quality skipped) \u2014 concave side undefined"
+   },
+   "9620": {
+    "verdict": "INCONCLUSIVE",
+    "omega_pump_chi": [
+     null,
+     null,
+     null
+    ],
+    "wrong": false,
+    "note": "no cambered sections (10 flat, 0 low-quality skipped) \u2014 concave side undefined"
+   },
+   "9630": {
+    "verdict": "INCONCLUSIVE",
+    "omega_pump_chi": [
+     null,
+     null,
+     null
+    ],
+    "wrong": false,
+    "note": "no cambered sections (10 flat, 0 low-quality skipped) \u2014 concave side undefined"
+   },
+   "S3_0002": {
+    "verdict": "INCONCLUSIVE",
+    "omega_pump_chi": [
+     null,
+     null,
+     null
+    ],
+    "wrong": false,
+    "note": "no cambered sections (10 flat, 0 low-quality skipped) \u2014 concave side undefined"
+   },
+   "S4_0005": {
+    "verdict": "INCONCLUSIVE",
+    "omega_pump_chi": [
+     null,
+     null,
+     null
+    ],
+    "wrong": false,
+    "note": "no cambered sections (10 flat, 0 low-quality skipped) \u2014 concave side undefined"
+   },
+   "S4_0012": {
+    "verdict": "INCONCLUSIVE",
+    "omega_pump_chi": [
+     null,
+     null,
+     null
+    ],
+    "wrong": false,
+    "note": "no cambered sections (10 flat, 0 low-quality skipped) \u2014 concave side undefined"
+   },
+   "S3_0014": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S5_0209": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "6 sections, 4 flat skipped, 0 low-quality skipped"
+   },
+   "S5_0205": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S6_0158": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S1_0153": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S7_0083": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S1_0092": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "6 sections, 4 flat skipped, 0 low-quality skipped"
+   },
+   "S7_0094": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S4_0333": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S1_0105": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S1_0441": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S6_0046": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S4_0129": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S4_0194": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S4_0065": {
+    "verdict": "INCONCLUSIVE",
+    "omega_pump_chi": [
+     null,
+     null,
+     null
+    ],
+    "wrong": false,
+    "note": "no cambered sections (10 flat, 0 low-quality skipped) \u2014 concave side undefined"
+   },
+   "S6_0080": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S7_0191": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S4_0155": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S1_0515": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S8_0102": {
+    "verdict": "INCONCLUSIVE",
+    "omega_pump_chi": [
+     null,
+     null,
+     null
+    ],
+    "wrong": false,
+    "note": "sections span only 1 radius/radii (need >= 2) \u2014 cannot confirm across span (8 flat, 0 low-quality skipped)"
+   },
+   "S2_0082": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S5_0054": {
+    "verdict": "CONCLUSIVE",
+    "omega_pump_chi": [
+     1,
+     -1,
+     -1
+    ],
+    "wrong": false,
+    "note": "10 sections, 0 flat skipped, 0 low-quality skipped"
+   },
+   "S1_0304": {
+    "verdict": "INCONCLUSIVE",
+    "omega_pump_chi": [
+     null,
+     null,
+     null
+    ],
+    "wrong": false,
+    "note": "no cambered sections (10 flat, 0 low-quality skipped) \u2014 concave side undefined"
+   }
+  }
+ }
+}
