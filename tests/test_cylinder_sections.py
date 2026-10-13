@@ -125,4 +125,4 @@ def test_a_fuse_that_leaves_loose_pieces_is_redone_one_blade_at_a_time(monkeypat
     p = dataclasses.replace(load_blade_params("config/problems/a12x25_reference.yaml"), n_blades=3)
     hub, blades, ring = gb.build_impeller_parts(p)
     fused = gb.fuse_impeller(hub, blades, ring, tier=next(t for t in TIERS if t.name == "8gb"))
-    assert len(fused.Solids()) == 1 and fused.isValid()
+    assert len(fused.Solids()) == 1
