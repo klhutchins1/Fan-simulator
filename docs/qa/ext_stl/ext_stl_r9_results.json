@@ -1,0 +1,2213 @@
+{
+ "sources": {
+  "p1388820": {
+   "title": "Ventline BVD0217-00 Replace fan blade",
+   "author": "secretbetta",
+   "licence": "Creative Commons \u2014 Public Domain (CC0)",
+   "url": "https://www.printables.com/model/1388820-ventline-bvd0217-00-replace-fan-blade",
+   "file_id": "5851318",
+   "file": "ventlinefan.stl"
+  },
+  "p1412585": {
+   "title": "Fan for electric motor (axle \u23002mm)",
+   "author": "Gu Costa",
+   "licence": "Creative Commons \u2014 Public Domain (CC0)",
+   "url": "https://www.printables.com/model/1412585-fan-for-electric-motor-axle-2mm",
+   "file_id": "5948649",
+   "file": "fan.stl"
+  },
+  "p1641770": {
+   "title": "Fan propeller. (remix)",
+   "author": "Z\u0160 Montessori Slan\u00fd",
+   "licence": "Creative Commons \u2014 Public Domain (CC0)",
+   "url": "https://www.printables.com/model/1641770-fan-propeller-remix",
+   "file_id": "6903215",
+   "file": "fantabulous-bludimir.stl"
+  },
+  "p201295": {
+   "title": "Lasko box fan blade",
+   "author": "auroratechchannel",
+   "licence": "Creative Commons \u2014 Attribution (CC-BY)",
+   "url": "https://www.printables.com/model/201295-lasko-box-fan-blade",
+   "file_id": "836012",
+   "file": "lasko_blade_v3.stl"
+  },
+  "p216638": {
+   "title": "USB 100mm FAN Blade",
+   "author": "Bazzalight",
+   "licence": "Creative Commons \u2014 Attribution (CC-BY)",
+   "url": "https://www.printables.com/model/216638-usb-100mm-fan-blade",
+   "file_id": "897098",
+   "file": "helice_100mm_v3.stl"
+  },
+  "p261417": {
+   "title": "Vornado 630 Replacement Fan Blade",
+   "author": "ch1a",
+   "licence": "Creative Commons \u2014 Attribution (CC-BY)",
+   "url": "https://www.printables.com/model/261417-vornado-630-replacement-fan-blade",
+   "file_id": "1193950",
+   "file": "vornado-630-blade-v3.stl"
+  },
+  "p307027": {
+   "title": "4010 fan blade",
+   "author": "DARISON VINCENT",
+   "licence": "Creative Commons \u2014 Public Domain (CC0)",
+   "url": "https://www.printables.com/model/307027-4010-fan-blade",
+   "file_id": "1379276",
+   "file": "4010-fan-blade.stl"
+  },
+  "p507838": {
+   "title": "220mm replacement propeller for desktop fan",
+   "author": "Matten79",
+   "licence": "Creative Commons \u2014 Public Domain (CC0)",
+   "url": "https://www.printables.com/model/507838-220mm-replacement-propeller-for-desktop-fan",
+   "file_id": "2173887",
+   "file": "fan-design.stl"
+  },
+  "p599535": {
+   "title": "Ender 3/Pro Front Fan Blade Replacement",
+   "author": "AlexCreations69",
+   "licence": "Creative Commons \u2014 Attribution (CC-BY)",
+   "url": "https://www.printables.com/model/599535-ender-3pro-front-fan-blade-replacement",
+   "file_id": "2532125",
+   "file": "yaaadetvirker.stl"
+  },
+  "p640037": {
+   "title": "310mm Toroidal fan blade",
+   "author": "Drenth Engineering",
+   "licence": "Creative Commons \u2014 Public Domain (CC0)",
+   "url": "https://www.printables.com/model/640037-310mm-toroidal-fan-blade",
+   "file_id": "2697007",
+   "file": "toroidal-310mm-5b-fan.stl"
+  },
+  "p652389": {
+   "title": "3V DC Motor Fan",
+   "author": "Aarav Mehta",
+   "licence": "Creative Commons \u2014 Public Domain (CC0)",
+   "url": "https://www.printables.com/model/652389-3v-dc-motor-fan",
+   "file_id": "2749394",
+   "file": "loftedfan.stl"
+  },
+  "p716523": {
+   "title": "Bathroom Fan Exhaust Impeller",
+   "author": "Jonathan Y",
+   "licence": "Creative Commons \u2014 Attribution (CC-BY)",
+   "url": "https://www.printables.com/model/716523-bathroom-fan-exhaust-impeller",
+   "file_id": "3041959",
+   "file": "fanimpellerremix.stl"
+  },
+  "p797665": {
+   "title": "40mm Fan Blade Replacement / Fix (Usongshine - Ender 3 / CR 10)",
+   "author": "Nahuel",
+   "licence": "Creative Commons \u2014 Attribution (CC-BY)",
+   "url": "https://www.printables.com/model/797665-40mm-fan-blade-replacement-fix-usongshine-ender-3",
+   "file_id": "3387739",
+   "file": "usongshine_40mm_ender_3_fan_blades.stl"
+  },
+  "a12x25_ref_stl": {
+   "source": "repo validation/reference"
+  },
+  "fan01_rotor": {
+   "source": "repo validation/reference"
+  },
+  "p1286657": {
+   "title": "50mm blades for electric motor cooling fan with 6mm splined shaft 10 blades/8 blade",
+   "author": "Leo",
+   "licence": "Creative Commons \u2014 Public Domain (CC0)",
+   "url": "https://www.printables.com/model/1286657-50mm-blades-for-electric-motor-cooling-fan-with-6m",
+   "file_id": "5379499",
+   "file": "50mm_electric_motor_cooling_fan_10blades.stl"
+  },
+  "p1493852": {
+   "title": "Hykolity fan blade replacement",
+   "author": "DamadgediceDM",
+   "licence": "Creative Commons \u2014 Public Domain (CC0)",
+   "url": "https://www.printables.com/model/1493852-hykolity-fan-blade-replacement",
+   "file_id": "6285736",
+   "file": "hykolity-fan-replacement.stl"
+  },
+  "p159340": {
+   "title": "FAN 10-blades 80mm",
+   "author": "MP001",
+   "licence": "Creative Commons \u2014 Attribution (CC-BY)",
+   "url": "https://www.printables.com/model/159340-fan-10-blades-80mm",
+   "file_id": "651990",
+   "file": "fan-propeler.stl"
+  },
+  "p1606446": {
+   "title": "Ender 3 Fan blade",
+   "author": "Msanyee",
+   "licence": "Creative Commons \u2014 Attribution (CC-BY)",
+   "url": "https://www.printables.com/model/1606446-ender-3-fan-blade",
+   "file_id": "6759544",
+   "file": "ender_3_hotend_4010_cha4024rm-10b_fan_impeller.stl"
+  },
+  "p1639960": {
+   "title": "a small 2-3 gram 5 blade fan",
+   "author": "Giltching",
+   "licence": "Creative Commons \u2014 Public Domain (CC0)",
+   "url": "https://www.printables.com/model/1639960-a-small-2-3-gram-5-blade-fan",
+   "file_id": "6896996",
+   "file": "part-studio-1-part-1.stl"
+  },
+  "p1743512": {
+   "title": "\"Ovoidal\" fan - 3 blades",
+   "author": "John",
+   "licence": "Creative Commons \u2014 Attribution (CC-BY)",
+   "url": "https://www.printables.com/model/1743512-ovoidal-fan-3-blades",
+   "file_id": "7262728",
+   "file": "ovoidal-3-blades.stl"
+  },
+  "p336131": {
+   "title": "Creality 4010 Replacement Fan Blades for Ender 3",
+   "author": "Luiz Nic",
+   "licence": "Creative Commons \u2014 Public Domain (CC0)",
+   "url": "https://www.printables.com/model/336131-creality-4010-replacement-fan-blades-for-ender-3",
+   "file_id": "1491618",
+   "file": "4010creality22mm.stl"
+  },
+  "p336131ccw": {
+   "title": "Creality 4010 Replacement Fan Blades for Ender 3",
+   "author": "Luiz Nic",
+   "licence": "Creative Commons \u2014 Public Domain (CC0)",
+   "url": "https://www.printables.com/model/336131-creality-4010-replacement-fan-blades-for-ender-3",
+   "file_id": "1491638",
+   "file": "4010creality22mmccw.stl"
+  },
+  "p455128": {
+   "title": "60x60x15mm fan blades replacement",
+   "author": "vismakan",
+   "licence": "Creative Commons \u2014 Public Domain (CC0)",
+   "url": "https://www.printables.com/model/455128-60x60x15mm-fan-blades-replacement",
+   "file_id": "1973797",
+   "file": "fan-v4.stl"
+  },
+  "p488577": {
+   "title": "Toroidal Blade For Desk Fan",
+   "author": "Owen Grubb",
+   "licence": "Creative Commons \u2014 Attribution (CC-BY)",
+   "url": "https://www.printables.com/model/488577-toroidal-blade-for-desk-fan",
+   "file_id": "2102748",
+   "file": "toroidal_fan.stl"
+  },
+  "p516885": {
+   "title": "Toroidal cooling fan 80mm propeler",
+   "author": "EduGomes",
+   "licence": "Creative Commons \u2014 Attribution (CC-BY)",
+   "url": "https://www.printables.com/model/516885-toroidal-cooling-fan-80mm-propeler",
+   "file_id": "2209767",
+   "file": "toroidal_80mm_cooling_fan.stl"
+  }
+ },
+ "truth_frozen_before_readers": {
+  "p1388820": {
+   "faces": 6572,
+   "watertight": true,
+   "tip_r": 68.76485095943644,
+   "z_extent": 32.00643773541306,
+   "le_votes": {},
+   "le_ratio_mean": null,
+   "pump_votes": {},
+   "omega_le": null,
+   "omega_tiplead": 1,
+   "truth": null,
+   "why_none": "pump unclear"
+  },
+  "p1412585": {
+   "faces": 31756,
+   "watertight": true,
+   "tip_r": 28.998140309418268,
+   "z_extent": 10.650059321127452,
+   "le_votes": {
+    "-1": 6,
+    "1": 12
+   },
+   "le_ratio_mean": 2.5254899448194146,
+   "pump_votes": {
+    "1": 6,
+    "-1": 12
+   },
+   "omega_le": 1,
+   "omega_tiplead": null,
+   "truth": [
+    1,
+    -1,
+    -1
+   ]
+  },
+  "p1641770": {
+   "faces": 4058,
+   "watertight": true,
+   "tip_r": 31.00035144517791,
+   "z_extent": 9.992467828881404,
+   "le_votes": {
+    "1": 9
+   },
+   "le_ratio_mean": 1.729204219217118,
+   "pump_votes": {
+    "-1": 9
+   },
+   "omega_le": 1,
+   "omega_tiplead": null,
+   "truth": [
+    1,
+    -1,
+    -1
+   ]
+  },
+  "p201295": {
+   "faces": 3074,
+   "watertight": true,
+   "tip_r": 40.559424048313,
+   "z_extent": 180.8581970366135,
+   "le_votes": {
+    "-1": 2,
+    "1": 2
+   },
+   "le_ratio_mean": 1.152123206220855,
+   "pump_votes": {
+    "-1": 2,
+    "1": 2
+   },
+   "omega_le": null,
+   "omega_tiplead": -1,
+   "truth": null,
+   "why_none": "pump unclear"
+  },
+  "p216638": {
+   "faces": 66210,
+   "watertight": true,
+   "tip_r": 55.08082213672181,
+   "z_extent": 20.000385604257268,
+   "le_votes": {
+    "-1": 9
+   },
+   "le_ratio_mean": 1.189001632193426,
+   "pump_votes": {
+    "1": 9
+   },
+   "omega_le": null,
+   "omega_tiplead": 1,
+   "truth": [
+    1,
+    1,
+    1
+   ]
+  },
+  "p261417": {
+   "faces": 24824,
+   "watertight": true,
+   "tip_r": 121.94583077346901,
+   "z_extent": 51.010020925691784,
+   "le_votes": {
+    "1": 5,
+    "-1": 3
+   },
+   "le_ratio_mean": 1.2799541512391857,
+   "pump_votes": {
+    "-1": 5,
+    "1": 3
+   },
+   "omega_le": 1,
+   "omega_tiplead": null,
+   "truth": [
+    1,
+    -1,
+    -1
+   ]
+  },
+  "p307027": {
+   "faces": 5952,
+   "watertight": true,
+   "tip_r": 19.013932916511294,
+   "z_extent": 6.800723268660917,
+   "le_votes": {
+    "-1": 8,
+    "1": 9
+   },
+   "le_ratio_mean": 10.593082292106844,
+   "pump_votes": {
+    "1": 8,
+    "-1": 9
+   },
+   "omega_le": null,
+   "omega_tiplead": -1,
+   "truth": null,
+   "why_none": "pump unclear"
+  },
+  "p507838": {
+   "faces": 2548,
+   "watertight": true,
+   "tip_r": 110.4968432063267,
+   "z_extent": 28.001352176236516,
+   "le_votes": {
+    "-1": 18
+   },
+   "le_ratio_mean": 1.5516232899745699,
+   "pump_votes": {
+    "1": 18
+   },
+   "omega_le": -1,
+   "omega_tiplead": null,
+   "truth": [
+    -1,
+    1,
+    -1
+   ]
+  },
+  "p599535": {
+   "faces": 2622,
+   "watertight": true,
+   "tip_r": 18.30948312125978,
+   "z_extent": 7.014094143732687,
+   "le_votes": {},
+   "le_ratio_mean": null,
+   "pump_votes": {},
+   "omega_le": null,
+   "omega_tiplead": null,
+   "truth": null,
+   "why_none": "omega unclear"
+  },
+  "p640037": {
+   "faces": 185126,
+   "watertight": true,
+   "tip_r": 157.1613482741782,
+   "z_extent": 41.23951540923955,
+   "le_votes": {
+    "1": 15,
+    "-1": 1
+   },
+   "le_ratio_mean": 3.4953935301293835,
+   "pump_votes": {
+    "-1": 15,
+    "1": 1
+   },
+   "omega_le": 1,
+   "omega_tiplead": 1,
+   "truth": [
+    1,
+    -1,
+    -1
+   ]
+  },
+  "p652389": {
+   "faces": 30620,
+   "watertight": true,
+   "tip_r": 29.0001902098579,
+   "z_extent": 10.000046010588592,
+   "le_votes": {
+    "-1": 24
+   },
+   "le_ratio_mean": 2.8208161301944963,
+   "pump_votes": {
+    "-1": 24
+   },
+   "omega_le": -1,
+   "omega_tiplead": null,
+   "truth": [
+    -1,
+    -1,
+    1
+   ]
+  },
+  "p716523": {
+   "faces": 1138,
+   "watertight": true,
+   "tip_r": 57.944000499001994,
+   "z_extent": 26.399098313566142,
+   "le_votes": {},
+   "le_ratio_mean": null,
+   "pump_votes": {},
+   "omega_le": null,
+   "omega_tiplead": -1,
+   "truth": null,
+   "why_none": "pump unclear"
+  },
+  "p797665": {
+   "faces": 23562,
+   "watertight": true,
+   "tip_r": 18.544756869456034,
+   "z_extent": 6.0,
+   "le_votes": {
+    "-1": 9
+   },
+   "le_ratio_mean": 1.1366658019680422,
+   "pump_votes": {
+    "1": 9
+   },
+   "omega_le": null,
+   "omega_tiplead": null,
+   "truth": null,
+   "why_none": "omega unclear"
+  },
+  "a12x25_ref_stl": {
+   "faces": 23604,
+   "watertight": true,
+   "tip_r": 55.25390175885059,
+   "z_extent": 16.700953968851856,
+   "le_votes": {
+    "1": 27
+   },
+   "le_ratio_mean": 1.7517119400666425,
+   "pump_votes": {
+    "-1": 27
+   },
+   "omega_le": 1,
+   "omega_tiplead": 1,
+   "truth": [
+    1,
+    -1,
+    -1
+   ]
+  },
+  "fan01_rotor": {
+   "faces": 234324,
+   "watertight": true,
+   "tip_r": 249.7194301208066,
+   "z_extent": 115.06929580415067,
+   "le_votes": {
+    "1": 13,
+    "-1": 2
+   },
+   "le_ratio_mean": 9.650341495676644,
+   "pump_votes": {
+    "1": 13,
+    "-1": 2
+   },
+   "omega_le": 1,
+   "omega_tiplead": null,
+   "truth": [
+    1,
+    1,
+    1
+   ]
+  },
+  "p1286657": {
+   "faces": 4560,
+   "watertight": false,
+   "tip_r": 24.765749626013733,
+   "z_extent": 7.999999761581421,
+   "le_votes": {
+    "1": 30
+   },
+   "le_ratio_mean": 2.8328104234965763,
+   "pump_votes": {
+    "1": 30
+   },
+   "omega_le": 1,
+   "omega_tiplead": null,
+   "truth": [
+    1,
+    1,
+    1
+   ]
+  },
+  "p1493852": {
+   "faces": 49410,
+   "watertight": false,
+   "tip_r": 101.93567961297866,
+   "z_extent": 37.503909420040166,
+   "le_votes": {
+    "-1": 2,
+    "1": 14
+   },
+   "le_ratio_mean": 8.819364853280899,
+   "pump_votes": {
+    "1": 2,
+    "-1": 14
+   },
+   "omega_le": 1,
+   "omega_tiplead": 1,
+   "truth": [
+    1,
+    -1,
+    -1
+   ]
+  },
+  "p159340": {
+   "faces": 56108,
+   "watertight": true,
+   "tip_r": 40.00022093624849,
+   "z_extent": 20.0023070671713,
+   "le_votes": {
+    "1": 30
+   },
+   "le_ratio_mean": 1.7117468615832538,
+   "pump_votes": {
+    "1": 30
+   },
+   "omega_le": 1,
+   "omega_tiplead": null,
+   "truth": [
+    1,
+    1,
+    1
+   ]
+  },
+  "p1606446": {
+   "faces": 19818,
+   "watertight": true,
+   "tip_r": 18.333905174897733,
+   "z_extent": 7.0,
+   "le_votes": {
+    "-1": 11
+   },
+   "le_ratio_mean": 1.517783848622185,
+   "pump_votes": {
+    "1": 11
+   },
+   "omega_le": -1,
+   "omega_tiplead": null,
+   "truth": [
+    -1,
+    1,
+    -1
+   ]
+  },
+  "p1639960": {
+   "faces": 3300,
+   "watertight": true,
+   "tip_r": 22.740996610238092,
+   "z_extent": 7.000424074333616,
+   "le_votes": {
+    "1": 1,
+    "-1": 3
+   },
+   "le_ratio_mean": 1.491000007123748,
+   "pump_votes": {
+    "1": 1,
+    "-1": 3
+   },
+   "omega_le": -1,
+   "omega_tiplead": -1,
+   "truth": [
+    -1,
+    -1,
+    1
+   ]
+  },
+  "p1743512": {
+   "faces": 49598,
+   "watertight": true,
+   "tip_r": 55.06062752027438,
+   "z_extent": 16.50065156729062,
+   "le_votes": {
+    "-1": 18
+   },
+   "le_ratio_mean": 1.1256857602035177,
+   "pump_votes": {
+    "1": 18
+   },
+   "omega_le": null,
+   "omega_tiplead": null,
+   "truth": null,
+   "why_none": "omega unclear"
+  },
+  "p336131": {
+   "faces": 10704,
+   "watertight": false,
+   "tip_r": 18.144410105563207,
+   "z_extent": 6.9657883019619335,
+   "le_votes": {
+    "-1": 9
+   },
+   "le_ratio_mean": 1.1104167209061613,
+   "pump_votes": {
+    "-1": 9
+   },
+   "omega_le": null,
+   "omega_tiplead": null,
+   "truth": null,
+   "why_none": "omega unclear"
+  },
+  "p336131ccw": {
+   "faces": 10704,
+   "watertight": false,
+   "tip_r": 18.144405947490956,
+   "z_extent": 6.965788702262451,
+   "le_votes": {
+    "-1": 9
+   },
+   "le_ratio_mean": 1.1104173907914703,
+   "pump_votes": {
+    "1": 9
+   },
+   "omega_le": null,
+   "omega_tiplead": null,
+   "truth": null,
+   "why_none": "omega unclear"
+  },
+  "p455128": {
+   "faces": 3306,
+   "watertight": true,
+   "tip_r": 27.968198806572232,
+   "z_extent": 9.5,
+   "le_votes": {
+    "1": 24
+   },
+   "le_ratio_mean": 2.2895012961169154,
+   "pump_votes": {
+    "-1": 24
+   },
+   "omega_le": 1,
+   "omega_tiplead": -1,
+   "why_none": "LE vs tip-lead disagree",
+   "truth": null
+  },
+  "p488577": {
+   "faces": 115932,
+   "watertight": true,
+   "tip_r": 55.53550364201792,
+   "z_extent": 9.527509581546354,
+   "le_votes": {
+    "1": 8,
+    "-1": 9
+   },
+   "le_ratio_mean": 1.0227933237660185,
+   "pump_votes": {
+    "-1": 8,
+    "1": 9
+   },
+   "omega_le": null,
+   "omega_tiplead": 1,
+   "truth": null,
+   "why_none": "pump unclear"
+  },
+  "p516885": {
+   "faces": 72112,
+   "watertight": true,
+   "tip_r": 37.10879578940196,
+   "z_extent": 14.001375527247067,
+   "le_votes": {
+    "1": 12,
+    "-1": 8
+   },
+   "le_ratio_mean": 1.3372182728211337,
+   "pump_votes": {
+    "-1": 12,
+    "1": 8
+   },
+   "omega_le": 1,
+   "omega_tiplead": 1,
+   "truth": [
+    1,
+    -1,
+    -1
+   ]
+  }
+ },
+ "readings": {
+  "p1388820": {
+   "truth": null,
+   "orig": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (10 flat, 0 low-quality skipped) \u2014 concave side undefined"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (0 flat, 0 low-quality)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (10 flat, 0 low-quality skipped) \u2014 concave side undefined"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (0 flat, 0 low-quality)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mono_s": 0.4
+  },
+  "p1412585": {
+   "truth": [
+    1,
+    -1,
+    -1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 30,
+     "note": "30 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 30,
+     "note": "30 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     1,
+     -1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 30,
+     "note": "30 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 30,
+     "note": "30 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     1,
+     1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mono_s": 1.8
+  },
+  "p1641770": {
+   "truth": [
+    1,
+    -1,
+    -1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (15 flat, 0 low-quality skipped) \u2014 concave side undefined"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (15 flat, 0 low-quality)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": "ASK",
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (15 flat, 0 low-quality skipped) \u2014 concave side undefined"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (15 flat, 0 low-quality)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": "ASK",
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mono_s": 0.2
+  },
+  "p201295": {
+   "truth": null,
+   "orig": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (10 flat, 1 low-quality skipped) \u2014 concave side undefined"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (6 flat, 0 low-quality)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (10 flat, 1 low-quality skipped) \u2014 concave side undefined"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (6 flat, 0 low-quality)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mono_s": 0.2
+  },
+  "p216638": {
+   "truth": [
+    1,
+    1,
+    1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 13,
+     "note": "13 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 13,
+     "note": "13 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     1,
+     -1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 13,
+     "note": "13 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 13,
+     "note": "13 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     1,
+     1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mono_s": 1.3
+  },
+  "p261417": {
+   "truth": [
+    1,
+    -1,
+    -1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 13,
+     "note": "13 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 13,
+     "note": "13 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     1,
+     -1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 13,
+     "note": "13 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 13,
+     "note": "13 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     1,
+     1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mono_s": 0.8
+  },
+  "p307027": {
+   "truth": null,
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 28,
+     "note": "28 sections, 1 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 28,
+     "note": "28 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     -1,
+     -1
+    ],
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 28,
+     "note": "28 sections, 1 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 28,
+     "note": "28 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     -1,
+     1
+    ],
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mono_s": 0.5
+  },
+  "p507838": {
+   "truth": [
+    -1,
+    1,
+    -1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 30,
+     "note": "30 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 30,
+     "note": "30 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     1,
+     -1
+    ],
+    "score": "OK",
+    "cyl_alone": true,
+    "radial_alone": true
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 30,
+     "note": "30 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 30,
+     "note": "30 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     1,
+     1
+    ],
+    "score": "OK",
+    "cyl_alone": true,
+    "radial_alone": true
+   },
+   "mono_s": 0.9
+  },
+  "p599535": {
+   "truth": null,
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 27,
+     "note": "27 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 27,
+     "note": "27 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     1,
+     -1
+    ],
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 27,
+     "note": "27 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 27,
+     "note": "27 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     1,
+     1
+    ],
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mono_s": 0.4
+  },
+  "p640037": {
+   "truth": [
+    1,
+    -1,
+    -1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 20,
+     "note": "sections disagree (agreement 0.50, chirality check 1.00)"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 11,
+     "note": "11 sections, 0 flat, 24 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     -1,
+     -1
+    ],
+    "score": "OK",
+    "cyl_alone": null,
+    "radial_alone": true
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 20,
+     "note": "sections disagree (agreement 0.50, chirality check 1.00)"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 11,
+     "note": "11 sections, 0 flat, 24 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     -1,
+     1
+    ],
+    "score": "OK",
+    "cyl_alone": null,
+    "radial_alone": true
+   },
+   "mono_s": 5.1
+  },
+  "p652389": {
+   "truth": [
+    -1,
+    -1,
+    1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 40,
+     "note": "40 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 40,
+     "note": "40 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     1,
+     1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 40,
+     "note": "40 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 40,
+     "note": "40 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     1,
+     -1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mono_s": 2.1
+  },
+  "p716523": {
+   "truth": null,
+   "orig": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (10 flat, 0 low-quality skipped) \u2014 concave side undefined"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (0 flat, 0 low-quality)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (10 flat, 0 low-quality skipped) \u2014 concave side undefined"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (0 flat, 0 low-quality)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mono_s": 0.2
+  },
+  "p797665": {
+   "truth": null,
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 27,
+     "note": "27 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 27,
+     "note": "27 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     -1,
+     -1
+    ],
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 27,
+     "note": "27 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 27,
+     "note": "27 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     -1,
+     1
+    ],
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mono_s": 1.1
+  },
+  "a12x25_ref_stl": {
+   "truth": [
+    1,
+    -1,
+    -1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 45,
+     "note": "45 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 45,
+     "note": "45 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     -1,
+     -1
+    ],
+    "score": "OK",
+    "cyl_alone": true,
+    "radial_alone": true
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 45,
+     "note": "45 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 45,
+     "note": "45 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     -1,
+     1
+    ],
+    "score": "OK",
+    "cyl_alone": true,
+    "radial_alone": true
+   },
+   "mono_s": 1.5
+  },
+  "fan01_rotor": {
+   "truth": [
+    1,
+    1,
+    1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 45,
+     "note": "45 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 45,
+     "note": "45 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     1,
+     1
+    ],
+    "score": "OK",
+    "cyl_alone": true,
+    "radial_alone": true
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 45,
+     "note": "45 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 45,
+     "note": "45 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     1,
+     -1
+    ],
+    "score": "OK",
+    "cyl_alone": true,
+    "radial_alone": true
+   },
+   "mono_s": 4.3
+  },
+  "p1286657": {
+   "truth": [
+    1,
+    1,
+    1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 50,
+     "note": "50 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 50,
+     "note": "50 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     1,
+     1
+    ],
+    "score": "OK",
+    "cyl_alone": true,
+    "radial_alone": true
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 50,
+     "note": "50 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 50,
+     "note": "50 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     1,
+     -1
+    ],
+    "score": "OK",
+    "cyl_alone": true,
+    "radial_alone": true
+   },
+   "mono_s": 1.7
+  },
+  "p1493852": {
+   "truth": [
+    1,
+    -1,
+    -1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 21,
+     "note": "sections disagree (agreement 0.52, chirality check 1.00)"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 11,
+     "note": "11 sections, 0 flat, 23 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     -1,
+     -1
+    ],
+    "score": "OK",
+    "cyl_alone": null,
+    "radial_alone": true
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 21,
+     "note": "sections disagree (agreement 0.52, chirality check 1.00)"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 11,
+     "note": "11 sections, 0 flat, 23 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     -1,
+     1
+    ],
+    "score": "OK",
+    "cyl_alone": null,
+    "radial_alone": true
+   },
+   "mono_s": 1.9
+  },
+  "p159340": {
+   "truth": [
+    1,
+    1,
+    1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 50,
+     "note": "50 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 50,
+     "note": "50 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     -1,
+     1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 50,
+     "note": "50 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 50,
+     "note": "50 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     -1,
+     -1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mono_s": 3.7
+  },
+  "p1606446": {
+   "truth": [
+    -1,
+    1,
+    -1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 33,
+     "note": "33 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 33,
+     "note": "33 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     -1,
+     -1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 33,
+     "note": "33 sections, 0 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 33,
+     "note": "33 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     -1,
+     1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mono_s": 1.1
+  },
+  "p1639960": {
+   "truth": [
+    -1,
+    -1,
+    1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 5,
+     "note": "5 sections, 16 flat skipped, 4 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 5,
+     "note": "5 sections, 14 flat, 5 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     1,
+     1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 5,
+     "note": "5 sections, 16 flat skipped, 4 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 5,
+     "note": "5 sections, 14 flat, 5 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     1,
+     -1
+    ],
+    "score": "WRONG",
+    "cyl_alone": false,
+    "radial_alone": false
+   },
+   "mono_s": 0.3
+  },
+  "p1743512": {
+   "truth": null,
+   "orig": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (30 flat, 0 low-quality skipped) \u2014 concave side undefined"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (30 flat, 0 low-quality)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (30 flat, 0 low-quality skipped) \u2014 concave side undefined"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 0,
+     "note": "no cambered sections (30 flat, 0 low-quality)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mono_s": 2.1
+  },
+  "p336131": {
+   "truth": null,
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 27,
+     "note": "27 sections, 2 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 27,
+     "note": "27 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     1,
+     1
+    ],
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 27,
+     "note": "27 sections, 2 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 27,
+     "note": "27 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     1,
+     -1
+    ],
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mono_s": 1.0
+  },
+  "p336131ccw": {
+   "truth": null,
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 27,
+     "note": "27 sections, 2 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": -1,
+     "chi": -1,
+     "n": 27,
+     "note": "27 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     -1,
+     -1
+    ],
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 27,
+     "note": "27 sections, 2 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": -1,
+     "chi": 1,
+     "n": 27,
+     "note": "27 sections, 0 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     -1,
+     1
+    ],
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mono_s": 1.0
+  },
+  "p455128": {
+   "truth": null,
+   "orig": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 32,
+     "note": "32 sections, 1 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": -1,
+     "pump": 1,
+     "chi": -1,
+     "n": 32,
+     "note": "32 sections, 1 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     -1,
+     1,
+     -1
+    ],
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 32,
+     "note": "32 sections, 1 flat skipped, 0 low-quality skipped"
+    },
+    "radial": {
+     "verdict": "CONCLUSIVE",
+     "omega": 1,
+     "pump": 1,
+     "chi": 1,
+     "n": 32,
+     "note": "32 sections, 1 flat, 0 low-quality"
+    },
+    "decision": "ACCEPT",
+    "value": [
+     1,
+     1,
+     1
+    ],
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mono_s": 0.9
+  },
+  "p488577": {
+   "truth": null,
+   "orig": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 1,
+     "note": "sections span only 1 radius/radii (need >= 2) \u2014 cannot confirm across span (22 flat, 2 low-quality skipped)"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 9,
+     "note": "sections disagree (agreement 0.56, chi 1.00)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 1,
+     "note": "sections span only 1 radius/radii (need >= 2) \u2014 cannot confirm across span (22 flat, 2 low-quality skipped)"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 9,
+     "note": "sections disagree (agreement 0.56, chi 1.00)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": null,
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mono_s": 2.6
+  },
+  "p516885": {
+   "truth": [
+    1,
+    -1,
+    -1
+   ],
+   "orig": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 28,
+     "note": "sections disagree (agreement 0.57, chirality check 1.00)"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 8,
+     "note": "sections disagree (agreement 0.50, chi 1.00)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": "ASK",
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mirror": {
+    "cyl": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 28,
+     "note": "sections disagree (agreement 0.57, chirality check 1.00)"
+    },
+    "radial": {
+     "verdict": "INCONCLUSIVE",
+     "omega": null,
+     "pump": null,
+     "chi": null,
+     "n": 8,
+     "note": "sections disagree (agreement 0.50, chi 1.00)"
+    },
+    "decision": "ASK",
+    "value": null,
+    "score": "ASK",
+    "cyl_alone": null,
+    "radial_alone": null
+   },
+   "mono_s": 2.3
+  }
+ }
+}

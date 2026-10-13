@@ -1,0 +1,142 @@
+{
+ "planar_v2": {
+  "dist": {
+   "mean_mm": 0.442,
+   "outer_0.8-1.0_mm": 0.21,
+   "p95_mm": 1.63,
+   "by_r/R": {
+    "0.4-0.5": 1.337,
+    "0.5-0.6": 0.652,
+    "0.6-0.7": 0.437,
+    "0.7-0.8": 0.227,
+    "0.8-0.9": 0.165,
+    "0.9-1.0": 0.244
+   },
+   "rot_rad": 0.23271056693257725,
+   "dz_mm": 1.0
+  },
+  "v2_ok": true,
+  "v2": [
+   {
+    "r/R": 0.5,
+    "ok": true,
+    "stagger_deg": -0.6135,
+    "chord_rel": -0.0024,
+    "camber_ratio": -0.0039,
+    "thickness_rel": 0.0092
+   },
+   {
+    "r/R": 0.6,
+    "ok": true,
+    "stagger_deg": -0.0768,
+    "chord_rel": 0.0006,
+    "camber_ratio": -0.0036,
+    "thickness_rel": 0.0207
+   },
+   {
+    "r/R": 0.7,
+    "ok": true,
+    "stagger_deg": 0.4609,
+    "chord_rel": -0.0185,
+    "camber_ratio": 0.0,
+    "thickness_rel": 0.019
+   },
+   {
+    "r/R": 0.8,
+    "ok": true,
+    "stagger_deg": 0.1915,
+    "chord_rel": -0.0233,
+    "camber_ratio": 0.0042,
+    "thickness_rel": 0.0216
+   },
+   {
+    "r/R": 0.9,
+    "ok": true,
+    "stagger_deg": -0.3696,
+    "chord_rel": -0.0191,
+    "camber_ratio": 0.0033,
+    "thickness_rel": 0.033
+   },
+   {
+    "r/R": 0.99,
+    "ok": true,
+    "stagger_deg": -1.0512,
+    "chord_rel": -0.0079,
+    "camber_ratio": 0.0026,
+    "thickness_rel": 0.0183
+   }
+  ],
+  "build_s": 165.1,
+  "total_s": 202.6
+ },
+ "wrapped_v3": {
+  "dist": {
+   "mean_mm": 0.562,
+   "outer_0.8-1.0_mm": 0.367,
+   "p95_mm": 1.557,
+   "by_r/R": {
+    "0.4-0.5": 1.429,
+    "0.5-0.6": 0.911,
+    "0.6-0.7": 0.496,
+    "0.7-0.8": 0.219,
+    "0.8-0.9": 0.35,
+    "0.9-1.0": 0.38
+   },
+   "rot_rad": 0.1551403779550515,
+   "dz_mm": 0.75
+  },
+  "v2_ok": true,
+  "v2": [
+   {
+    "r/R": 0.5,
+    "ok": true,
+    "stagger_deg": 0.2092,
+    "chord_rel": -0.0006,
+    "camber_ratio": -0.0021,
+    "thickness_rel": -0.0068
+   },
+   {
+    "r/R": 0.6,
+    "ok": true,
+    "stagger_deg": -0.2509,
+    "chord_rel": 0.0002,
+    "camber_ratio": -0.0028,
+    "thickness_rel": -0.0018
+   },
+   {
+    "r/R": 0.7,
+    "ok": true,
+    "stagger_deg": -0.2995,
+    "chord_rel": -0.0012,
+    "camber_ratio": 0.0001,
+    "thickness_rel": -0.0012
+   },
+   {
+    "r/R": 0.8,
+    "ok": true,
+    "stagger_deg": -0.3533,
+    "chord_rel": -0.0017,
+    "camber_ratio": 0.0015,
+    "thickness_rel": 0.0007
+   },
+   {
+    "r/R": 0.9,
+    "ok": true,
+    "stagger_deg": -0.4336,
+    "chord_rel": -0.0015,
+    "camber_ratio": 0.0026,
+    "thickness_rel": 0.0008
+   },
+   {
+    "r/R": 0.99,
+    "ok": true,
+    "stagger_deg": -0.2823,
+    "chord_rel": -0.001,
+    "camber_ratio": 0.002,
+    "thickness_rel": -0.0013
+   }
+  ],
+  "build_s": 200.9,
+  "total_s": 238.8
+ }
+}

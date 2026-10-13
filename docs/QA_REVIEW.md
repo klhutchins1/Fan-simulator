@@ -428,3 +428,15 @@ Prereg for B, C and D: `6b0aedf` (branch `prereg/round8`, `/workspace/fansim/qa/
 - **Task D, built blade vs numbers: MATERIAL.** New **QA-30** (hub-face clip shortens chord; realisation doesn't see it; explains lt120) and **QA-31** (leaned/skewed blades: cut camber far below the slider; the chord stretch makes it worse). Not a chord/r effect. `docs/qa/notes/built-vs-numbers.md`.
 - **Task E:** not done.
 
+
+## Round 9 (2026-10-12): branch `cylinder-sections` @ 7b02bed (clean clone `/workspace/fansim/repo-r9`)
+Prereg `a0260c0` (+ A1 `9438a9b`). Summary in `handoff/2026-10-12_from-qa-9/README.md`.
+- **QA-32 (MED, new):** at stations the hub-face clip reaches, the chord is now restored (QA-30 fix verified), but the
+  built camber is 0.005–0.011 below the slider and the stagger is up to 1.1° off. About 15 % of stress designs have
+  such a station. `docs/qa/notes/built-vs-sliders-wrapped-r9.md`.
+- **QA-33 (LOW–MED, new):** on wrapped builds the cylinder direction proof is INCONCLUSIVE more often (30/65 vs 24/66
+  planar; Task A final, truncated at 66/150 by user decision), all "no cambered sections". `docs/qa/notes/wrapped-builder-robustness-r9.md`.
+- **27.1 (QA-27) refined:** shrouded fuse peaks exceed the guard on 9/11-blade rings. The extra cost scales with the
+  blade face count, not with ring faces or ring height. `docs/qa/notes/shroud-fuse-memory-r9.md`.
+- C surface fit: T1/T2 PASS, T3 FAIL. D radial-led rule: unconfirmed, because the truth method proved unreliable.
+- Task A (final, 66/150 by user decision): W2, W4 and W5 PASS. W1 FAIL ×1 (OOM-like kill, 7.7 GB) and W3 FAIL ×1 (shrouded, 1.6× CPU).

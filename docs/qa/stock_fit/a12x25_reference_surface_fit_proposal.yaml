@@ -1,0 +1,23 @@
+# QA round 9 Task C PROPOSAL (not shipped): v3 wrapped recipe + surface-distance fit (docs/qa/stock_fit/fit_surface.py).
+# Changed vs v3: per-station sweep/skew/stagger (stations 1-6) and camber (stations 2-6). Everything else = v3.
+n_blades: 9
+hub_radius: 21.5
+tip_radius: 54.5
+hub_height_mm: 16.5
+blade_hub_z_mm: 0.0
+root_embed: 2.0
+hub_axial_margin: 1.5
+rpm: 2000.0
+n_span: 18
+n_chord: 60
+section_family: plate
+span_interp: pchip
+section_wrap: cylinder
+stations:
+- {r_frac: 0.0, chord: 18.7018, stagger_deg: 24.0374, thickness: 0.1322, max_camber: 0.029, camber_pos: 0.4462, sweep: 0.0, skew: 0.0, lean_deg: 0.0, le_sweep: 0.0, le_skew: 0.0}
+- {r_frac: 0.2214, chord: 21.3497, stagger_deg: 38.6891, thickness: 0.1174, max_camber: 0.0323, camber_pos: 0.4462, sweep: -2.3191, skew: -0.2198, lean_deg: 5.6208, le_sweep: 0.0, le_skew: 0.0}
+- {r_frac: 0.3771, chord: 23.1557, stagger_deg: 37.0726, thickness: 0.108, max_camber: 0.0514, camber_pos: 0.4761, sweep: -4.4044, skew: 0.1662, lean_deg: 10.1513, le_sweep: 0.0, le_skew: 0.0}
+- {r_frac: 0.5329, chord: 25.4399, stagger_deg: 32.1863, thickness: 0.0985, max_camber: 0.052, camber_pos: 0.4905, sweep: -1.9174, skew: 4.155, lean_deg: 15.0686, le_sweep: 0.0, le_skew: 0.0}
+- {r_frac: 0.6886, chord: 28.1108, stagger_deg: 27.1913, thickness: 0.0891, max_camber: 0.0481, camber_pos: 0.481, sweep: -1.4029, skew: 5.68, lean_deg: 20.519, le_sweep: 0.0, le_skew: 0.0}
+- {r_frac: 0.8443, chord: 31.0126, stagger_deg: 23.6519, thickness: 0.0805, max_camber: 0.0443, camber_pos: 0.474, sweep: -0.5314, skew: 7.7103, lean_deg: 26.5194, le_sweep: 0.0, le_skew: 0.0}
+- {r_frac: 1.0, chord: 33.709, stagger_deg: 21.7812, thickness: 0.0733, max_camber: 0.0405, camber_pos: 0.4702, sweep: -0.1282, skew: 9.3111, lean_deg: 33.0, le_sweep: 0.0, le_skew: 0.0}
