@@ -193,3 +193,41 @@ axial-force free 66.2. CFD raw at 2000 rpm:
 - The wrapped t9005 moves **less** air than the planar one. The optimizer found t9005 as a *built*
   low-camber blade; under the new meaning its sliders describe a different, more cambered blade. The
   optimizer's designs need re-finding with the new builder, and its camber bounds re-thinking.
+
+## Correction (2026-10-13): the first v3 refit had round edges
+
+`fit_recipe_to_stl.py` copied the recipe's settings only up to `stations:`. The v2 recipe keeps
+`le_thick_scale: 0.2` / `te_thick_scale: 0.2` (Stock's sharp plate edges) *after* its station list, so the
+first v3 was fitted and flown with full-bullnose edges. The full test suite caught it
+(`test_reference_blade_count_and_envelope`).
+- **Fix:** `recipe_settings()` keeps every setting wherever it sits, with a test.
+- **Refit again:** the station values are within 0.001 of before; the edges barely move the cut sections.
+- **Every v3 CFD number above was re-run with sharp edges.** The round-edge results are archived in
+  `runs/cyl_sections/_bullnose_edges/`. The tables below replace them.
+
+**V5 (Assess, sharp edges):**
+
+| | free (raw) | loaded (raw) |
+|---|---|---|
+| planar v2 | 54.63 | 41.88 |
+| wrapped v3 | 55.93 | 39.56 |
+| difference (band) | **+2.4 %** (±3 %) PASS | **−5.6 %** (±5 %) FAIL |
+
+**Still FAIL as registered, narrowly, on the loaded point only.**
+
+**Against the real STL (rig, sharp edges, `runs/cyl_sections/v5_diag_sharp/`):**
+
+| back pressure | real STL | planar v2 | wrapped v3 |
+|---|---|---|---|
+| 0 Pa | 58.3 | 54.5 (−6.5 %) | 55.8 (−4.3 %) |
+| 5 Pa | 49.5 | 46.9 (−5.3 %) | 48.0 (−3.0 %) |
+| 10 Pa | 37.1 | 36.6 (−1.3 %) | 37.5 (+1.1 %) |
+| mean \|gap\| | | 4.4 % | **2.8 %** |
+
+- The wrapped Stock is still closer to the real fan, but by less than the round-edge run suggested
+  (2.8 % vs 4.4 % mean, not 2.1 %).
+- The Assess loaded point disagrees in direction: wrapped is 5.6 % below planar there, but 2–3 % above it in
+  the rig at 5–10 Pa. Different mesh (6 vs 5 mm), iterations and load model, and loaded steady-RANS points
+  are known to scatter run to run (§19.6). Repeats would separate the two.
+- The surface-distance numbers above were measured on the round-edge v3. The edges are a small share of
+  the surface.
