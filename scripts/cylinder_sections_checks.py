@@ -10,7 +10,9 @@ Spec: docs/superpowers/specs/2026-10-12-cylinder-sections-design.md (checks fixe
       within 1.5 deg of the SAME section read analytically through the same estimator (that removes the
       estimator's own bias, as QA round 8 did per station).
 - V3  20 stress designs (full blade count) build watertight, one body, inside the tip radius, nothing
-      below the hub face.
+      below the hub face. ADDED AFTER the first run (declared): the volume must be within 5 % of the
+      same design built planar. The first run passed S4_0001 at 1 187 mm3 (one blade, hub lost)
+      against 76 518 planar, because "watertight, one body" holds for a lone blade too.
 - V4  the cylinder direction proof on wrapped rebuilds of the QA-19 cases makes 0 CONCLUSIVE-wrong calls.
 
 V1 and V4 build 2 blades (sections are read per blade; disclosed as in QA rounds 7-8).
@@ -152,13 +154,16 @@ def v3(designs, td: Path) -> dict:
         rmax = float(np.max(np.hypot(m.vertices[:, 0], m.vertices[:, 1])))
         z_face = float(_hub_axial_range(p2)[0])
         bodies = len(m.split(only_watertight=False))
+        vol_planar = float(build_impeller(dataclasses.replace(p, section_wrap="planar")).val().Volume())
+        vol_ok = abs(float(m.volume) / vol_planar - 1.0) <= 0.05
         ok = (m.is_watertight and bodies == 1 and rmax <= p2.tip_radius + 0.05
-              and float(m.bounds[0][2]) >= z_face - 0.05 and m.volume > 0)
+              and float(m.bounds[0][2]) >= z_face - 0.05 and m.volume > 0 and vol_ok)
         all_ok &= ok
         out[name] = {"ok": bool(ok), "watertight": bool(m.is_watertight), "bodies": bodies,
                      "rmax": round(rmax, 3), "tip": round(p2.tip_radius, 3),
                      "zmin": round(float(m.bounds[0][2]), 3), "hub_face": round(z_face, 3),
-                     "volume": round(float(m.volume), 1), "s": round(time.monotonic() - t0, 1)}
+                     "volume": round(float(m.volume), 1), "volume_planar": round(vol_planar, 1),
+                     "volume_ok": bool(vol_ok), "s": round(time.monotonic() - t0, 1)}
         print(f"V3 {name:10s} {out[name]}", flush=True)
     return {"pass": bool(all_ok), "designs": out}
 
