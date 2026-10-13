@@ -106,9 +106,12 @@ def test_bem_screen_design_asks_for_assess():
 def test_coarse_mesh_scores_are_flagged_for_rerun():
     """§23.39: thick walls were floored at level 3 and scored 3-7 % high; thin designs stay current."""
     from fansim.cockpit.data import coarse_mesh_stale, stale_reason
-    from fansim.optimize.search_space import stock_blade_flat
 
-    flat = dict(stock_blade_flat())                          # Stock walls 2.22 mm -> level 4
+    from fansim.geometry.config import load_blade_params
+    from fansim.optimize.search_space import blade_to_flat
+
+    # v2 Stock: walls 2.22 mm -> level 4 (v3 Stock's root wall is 2.47 mm, which maps to level 3)
+    flat = blade_to_flat(load_blade_params("config/problems/a12x25_reference_planar.yaml"))
     assert not coarse_mesh_stale({}, flat)
     thick = {**flat, "thickness_root": 0.2, "thickness_mid": 0.2, "thickness_tip": 0.2}
     assert coarse_mesh_stale({}, thick)                      # legacy (unstamped) thick score

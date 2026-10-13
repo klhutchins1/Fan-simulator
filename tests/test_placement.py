@@ -247,10 +247,10 @@ def test_measure_flat_uses_bio_features_from_flat():
     from fansim.geometry.features import Features
 
     flat = _base(
-        hub_radius=21.5, tip_radius=52.0, cylindrical_tip=False,
+        hub_radius=21.5, tip_radius=52.0, cylindrical_tip=False, section_wrap="planar",
         tubercle_amp=0.1, tubercle_waves=6,
         serration_amp=0.05, serration_waves=8,
-    )
+    )  # planar: wrapped sections (27.4) keep features on their cylinder, so OD doesn't grow
     feat = Features(tubercle_amp=0.1, tubercle_waves=6,
                     serration_amp=0.05, serration_waves=8)
     dia_blank = blade_max_dia(blade_from_flat(flat, Features()))
@@ -305,7 +305,7 @@ def test_fit_envelope_accounts_for_bio_features():
     feat = Features(tubercle_amp=0.1, tubercle_waves=6,
                     serration_amp=0.05, serration_waves=8)
     flat = _base(
-        hub_radius=21.5, tip_radius=54.0, cylindrical_tip=False,
+        hub_radius=21.5, tip_radius=54.0, cylindrical_tip=False, section_wrap="planar",
         tubercle_amp=0.1, tubercle_waves=6,
         serration_amp=0.05, serration_waves=8,
     )
@@ -321,7 +321,8 @@ def test_fit_envelope_explicit_features_override_flat():
     from fansim.geometry.features import Features
 
     spec = get_fan_spec("a12x25")
-    flat = _base(hub_radius=21.5, tip_radius=54.0, cylindrical_tip=False)  # no feature keys
+    flat = _base(hub_radius=21.5, tip_radius=54.0, cylindrical_tip=False,
+                 section_wrap="planar")  # no feature keys; planar legacy bulge
     feat = Features(tubercle_amp=0.1, tubercle_waves=6,
                     serration_amp=0.05, serration_waves=8)
     r0 = fit_envelope(flat, spec, features=Features())

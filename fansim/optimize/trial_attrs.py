@@ -30,10 +30,17 @@ def chord_basis_for_trial(trial) -> str:
     return chord_basis_at(getattr(trial, "datetime_start", None))
 
 
+def section_wrap_for_trial(trial) -> str:
+    """The trial's stamped ``section_wrap``; unstamped trials predate wrapped sections (27.4)."""
+    stamped = (getattr(trial, "user_attrs", None) or {}).get("section_wrap")
+    return str(stamped) if stamped else "planar"
+
+
 def trial_flat(trial) -> dict:
-    """``trial.params`` plus ``chord_basis`` — the flat dict to rebuild this trial's geometry."""
+    """``trial.params`` plus ``chord_basis`` / ``section_wrap`` — the flat dict to rebuild it."""
     flat = dict(trial.params)
     flat.setdefault("chord_basis", chord_basis_for_trial(trial))
+    flat.setdefault("section_wrap", section_wrap_for_trial(trial))
     return flat
 
 

@@ -22,7 +22,12 @@ from fansim.cockpit.placement import (
 from fansim.fan_spec import get_fan_spec
 from fansim.geometry.blade import normalize_shroud_thick_mm, uniform_thickness_tc
 from fansim.geometry.features import Features
-from fansim.optimize.search_space import FLAT_STATIONS, STATION_PAYLOAD_KEYS, blade_from_flat
+from fansim.optimize.search_space import (
+    FLAT_STATIONS,
+    STATION_PAYLOAD_KEYS,
+    UNIFORM_WALL_TOL_MM,
+    blade_from_flat,
+)
 
 EDITOR_VARS = (
     "e_n_blades", "e_stagger_root", "e_stagger_mid", "e_stagger_tip",
@@ -31,7 +36,7 @@ EDITOR_VARS = (
     "e_lean_mid", "e_lean_tip", "e_le_mid", "e_le_tip", "e_le_skew_mid", "e_le_skew_tip",
     "e_skew_mid", "e_skew_tip", "e_smooth_span", "e_winglet_span", "e_winglet_sweep",
     "e_winglet_lean", "e_shroud_thick", "e_shroud_height", "e_tip_round", "e_tip_start",
-    "e_tip_notched", "e_tip_notch_depth", "e_cylindrical_tip", "e_chord_basis", "e_hub_radius",
+    "e_tip_notched", "e_tip_notch_depth", "e_cylindrical_tip", "e_chord_basis", "e_section_wrap", "e_hub_radius",
     "e_tip_radius", "e_hub_height", "e_blade_hub_z", "e_hub_profile", "e_hub_nose",
     "e_thick_mode", "e_thick_mm", "e_thick_root", "e_thick_mid", "e_thick_tip",
     "e_le_thick", "e_te_thick", "e_section_family", "e_spacing",
@@ -113,6 +118,7 @@ def bind(session) -> None:
             state.e_cylindrical_tip = bool(_ct) if _ct is not None else True
         # Legacy (pre-37728b9) designs carry loft chords; keep that so they rebuild as scored.
         state.e_chord_basis = str(p.get("chord_basis") or "measured")
+        state.e_section_wrap = str(p.get("section_wrap") or "cylinder")  # old saves are stamped planar
         state.e_hub_radius = float(p.get("hub_radius", 21.5))
         state.e_tip_radius = float(p.get("tip_radius", 56.5))
         state.e_hub_height = float(p.get("hub_height", 0.0))
@@ -135,7 +141,7 @@ def bind(session) -> None:
         else:
             state.e_thick_mode = (
                 "uniform"
-                if abs(ar - am) < 0.12 and abs(am - at) < 0.12
+                if abs(ar - am) < UNIFORM_WALL_TOL_MM and abs(am - at) < UNIFORM_WALL_TOL_MM
                 else "tapered"
             )
         if p.get("thick_mm") is not None:
@@ -223,6 +229,7 @@ def bind(session) -> None:
             tip_round_start=state.e_tip_start,
             cylindrical_tip=bool(state.e_cylindrical_tip),
             chord_basis=str(getattr(state, "e_chord_basis", "measured") or "measured"),
+            section_wrap=str(getattr(state, "e_section_wrap", "cylinder") or "cylinder"),
             notched_tips=bool(getattr(state, "e_tip_notched", False)),
             tip_notch_count=(3 if bool(getattr(state, "e_tip_notched", False)) else 0),
             tip_notch_depth_mm=(
@@ -328,6 +335,7 @@ def bind(session) -> None:
                 state.e_cylindrical_tip = bool(_ct) if _ct is not None else True
         if flat.get("chord_basis"):
             state.e_chord_basis = str(flat["chord_basis"])
+        state.e_section_wrap = str(flat.get("section_wrap") or "cylinder")
         state.e_tip_notched = bool(
             int(flat.get("tip_notch_count", 0) or 0) > 0
             or flat.get("notched_tips")
@@ -496,6 +504,7 @@ def bind(session) -> None:
         state.e_chord_mid = round(_r.uniform(18, 50), 1)
         state.e_chord_tip = round(_r.uniform(20, 60), 1)
         state.e_chord_basis = "measured"  # freshly sampled chords are measured targets
+        state.e_section_wrap = "cylinder"
         state.e_sweep_mid = round(_r.uniform(-8, 16), 1)
         state.e_sweep_tip = round(_r.uniform(-4, 20), 1)
         state.e_camber_root = round(_r.uniform(0.0, 0.06), 3)

@@ -40,11 +40,16 @@ def test_axial_archetype_builds_geometry(tmp_path):
 
     optuna.logging.set_verbosity(optuna.logging.WARNING)
     a = get_archetype("axial_fan")
-    st = optuna.create_study()
-    st.optimize(lambda t: (a.suggest_design(t), 0.0)[1], n_trials=1)
-    # rebuild the sampled design and let the archetype write its geometry
+    from fansim.geometry.blade import MAX_HANG_BELOW_HUB_MM, blade_hang_below_hub_mm
     from fansim.optimize.search_space import blade_from_flat
-    stl = a.build_geometry(blade_from_flat(st.trials[0].params), tmp_path / "imp.stl")
+
+    # Seeded; ~4 % of sampled designs hang past the 2 mm hub-face limit and are refused (27.4), so
+    # take the first that doesn't.
+    st = optuna.create_study(sampler=optuna.samplers.RandomSampler(seed=7))
+    st.optimize(lambda t: (a.suggest_design(t), 0.0)[1], n_trials=10)
+    params = next(bp for bp in (blade_from_flat(t.params) for t in st.trials)
+                  if blade_hang_below_hub_mm(bp) <= MAX_HANG_BELOW_HUB_MM)
+    stl = a.build_geometry(params, tmp_path / "imp.stl")
     assert Path(stl).exists() and Path(stl).stat().st_size > 0
 
 

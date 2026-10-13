@@ -2,7 +2,7 @@
 
   uv run python scripts/fit_recipe_to_stl.py
 
-Starts from config/problems/a12x25_reference_v1.yaml (NOT modified), re-stations the blade at the
+Starts from config/problems/a12x25_reference_planar.yaml (the v2 recipe, NOT modified), re-stations the blade at the
 measurable reference radii, and iterates build -> measure_sections -> update_station until every
 measurable station is within tolerance (or 8 iterations). Writes
 config/problems/a12x25_reference.yaml (promoted Stock v2).
@@ -39,7 +39,7 @@ from fansim.validation.recipe_fit import (  # noqa: E402
     DAMPING, SWEEP_SKEW_TRIGGER_MM, TOL, residuals, update_station, within_tol)
 from fansim.validation.section_compare import measure_sections  # noqa: E402
 
-STOCK = ROOT / "config/problems/a12x25_reference_v1.yaml"
+STOCK = ROOT / "config/problems/a12x25_reference_planar.yaml"  # v2; v1 is older still
 REF = ROOT / "validation/reference/a12x25_impeller.stl"
 OUT = ROOT / "config/problems/a12x25_reference.yaml"
 STATION_RR = [None, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00]  # None = root at r0/tip
@@ -61,11 +61,26 @@ def ref_at(fit, rr):
     return {k: float(fit[k](rr)) for k in KEYS}
 
 
+def recipe_settings(text: str, wrap: str) -> list[str]:
+    """Every top-level setting of a recipe YAML except its stations, plus ``section_wrap``.
+
+    Wherever a setting sits: the v2 recipe keeps le/te_thick_scale (Stock's sharp 0.2 edges) AFTER its
+    station list, and cutting at "stations:" silently dropped them (v3 was first fitted with
+    full-bullnose edges, found 2026-10-13).
+    """
+    keep = [ln for ln in text.splitlines()
+            if ln.strip() and not ln.lstrip().startswith("#") and ln.strip() != "stations:"
+            and not ln.lstrip().startswith("- ") and not ln.startswith("section_wrap:")]
+    return keep + [f"section_wrap: {wrap}"]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--max-iter", type=int, default=8)
+    ap.add_argument("--wrap", choices=("cylinder", "planar"), default="cylinder",
+                    help="section placement to fit with (roadmap 27.4; planar = the v2 recipe)")
     a = ap.parse_args()
-    params = load_blade_params(STOCK)
+    params = dataclasses.replace(load_blade_params(STOCK), section_wrap=a.wrap)
     tip = params.tip_radius
     r0 = params.hub_radius - params.root_embed
     rr_root = r0 / tip
@@ -162,11 +177,11 @@ def main() -> int:
           + ", ".join(f"{k}={v:.4f}" for k, v in maxres.items()))
     print("clamp hits:", {rr_list[i]: h for i, h in last_hits.items()} or "none")
 
-    body = [ln for ln in STOCK.read_text().splitlines()
-            if ln.strip() and not ln.lstrip().startswith("#")]
-    body = body[: body.index("stations:")]
+    body = recipe_settings(STOCK.read_text(), a.wrap)
     hdr = [
-        "# a12x25_reference_v2 -- Stock recipe refitted so BUILT blade sections match the close-ref STL.",
+        f"# a12x25_reference_v3 ({a.wrap} sections) -- Stock recipe refitted so BUILT blade sections "
+        "match the close-ref STL.",
+        "# v2 (planar sections, 2026-10-08) is kept as config/problems/a12x25_reference_planar.yaml.",
         f"# Fit provenance: {dt.date.today().isoformat()}, scripts/fit_recipe_to_stl.py, "
         f"{len(history)} iteration(s) (last = measured, not updated), damping {DAMPING}, "
         f"converged={converged}.",

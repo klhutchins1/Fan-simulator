@@ -163,6 +163,15 @@ class BladeParams:
     #                measured tip chord to ~2/3). Designs saved before 2026-09-30 use this; see
     #                ``fansim.optimize.trial_attrs.CHORD_BASIS_CUTOFF``.
     chord_basis: str = "measured"
+    # Section placement (roadmap 27.4, spec 2026-10-12-cylinder-sections):
+    #   "cylinder" — each section is wrapped onto its own cylinder, so a cylinder cut (and BEM's
+    #                strip) sees exactly the station's chord / stagger / camber.
+    #   "planar"   — legacy tangent-plane sections; on leaned/skewed blades the built camber is far
+    #                below the slider. Designs saved before the switch are stamped "planar".
+    # The dataclass default stays "planar" so props / wind / centrifugal / CROR keep their validated
+    # geometry; the axial-fan entry points (``search_space.suggest_params`` / ``blade_from_flat``,
+    # the Stock recipe YAML) choose "cylinder".
+    section_wrap: str = "planar"
     # Chordwise thickness bias (global):
     #   NACA — scale local thickness near LE / TE (1 = stock; typical 0.5–1.5).
     #   plate — ``le_thick_scale`` / ``te_thick_scale`` are LE/TE roundness in [0, 1]
@@ -359,8 +368,14 @@ def _section_loop(
     le_thick_scale: float = 1.0,
     te_thick_scale: float = 1.0,
     section_family: str = SECTION_NACA,
+    wrap: bool = False,
 ) -> tuple[np.ndarray, list[cq.Vector]]:
-    """Closed section on the cylinder at ``r``, plus chord-fraction ``x`` (LE/TE indexing)."""
+    """Closed section at radius ``r``, plus chord-fraction ``x`` (LE/TE indexing).
+
+    ``wrap=True`` puts the section ON the cylinder of radius ``r`` (theta = lean + t/r), so a
+    cylinder cut at ``r`` reads back the designed chord/stagger/camber (roadmap 27.4, QA-31).
+    ``wrap=False`` is the legacy planar tangent-plane placement.
+    """
     fam = str(section_family or SECTION_NACA).lower().strip()
     if fam not in SECTION_FAMILIES:
         fam = SECTION_NACA
@@ -415,16 +430,20 @@ def _section_loop(
     t = a * cb - b * sb + skew + le_skew * w_le  # circumferential (tangential) distance, mm
     axial = a * sb + b * cb + sweep + le_sweep * w_le
 
-    # Place the (planar) section in the TANGENT PLANE at angular position theta = lean_deg and
-    # radius r: rotate the section about Z by theta. This is NOT stream-surface wrapping
-    # (θ = t/r); chordwise ``t`` stays Euclidean in the tangent plane. Keeping each section
-    # planar makes the loft watertight; varying lean along the span wraps the planform
-    # circumferentially. ``cylindrical_tip`` then clips the solid to a cylinder of tip_radius
-    # (whole tip face — LE/TE corners included).
     th = np.radians(lean_deg)
-    ct, st = np.cos(th), np.sin(th)
-    xs = r * ct - t * st
-    ys = r * st + t * ct
+    if wrap:
+        # Wrapped (default for BladeParams.section_wrap="cylinder"): ``t`` is arc length on the
+        # cylinder of radius r. Planar sections stacked with lean/skew lost most of their camber in
+        # a cylinder cut (Stock sliders 0.08-0.10 built 0.036-0.040; QA r8 Task D).
+        ang = th + t / r
+        xs = r * np.cos(ang)
+        ys = r * np.sin(ang)
+    else:
+        # Legacy planar: the section sits in the TANGENT PLANE at angle lean_deg and radius r;
+        # chordwise ``t`` stays Euclidean, so its ends stand off the cylinder.
+        ct, st = np.cos(th), np.sin(th)
+        xs = r * ct - t * st
+        ys = r * st + t * ct
     pts = [cq.Vector(float(px), float(py), float(z))
            for px, py, z in zip(xs, ys, axial)]
     return x, pts
@@ -450,6 +469,7 @@ def _section_points_3d(
     le_thick_scale: float = 1.0,
     te_thick_scale: float = 1.0,
     section_family: str = SECTION_NACA,
+    wrap: bool = False,
 ) -> list[cq.Vector]:
     """Build the closed 3D loop of one airfoil section in the tangent plane at radius ``r``.
 
@@ -466,7 +486,7 @@ def _section_points_3d(
         lean_deg=lean_deg, n_chord=n_chord, features=features, le_skew=le_skew,
         tip_notch_count=tip_notch_count, tip_notch_depth_mm=tip_notch_depth_mm,
         le_thick_scale=le_thick_scale, te_thick_scale=te_thick_scale,
-        section_family=section_family,
+        section_family=section_family, wrap=wrap,
     )
     return pts
 
@@ -535,6 +555,37 @@ def apply_tip_shape(params: BladeParams, tip_round: float = 0.0,
     return params
 
 
+TIP_WRAP_OVER_MM = 0.5  # wrapped blades: last wrapped wire this far past the tip (trimmed off)
+
+
+def _capped_loft(wires: list, loops: list) -> cq.Solid:
+    """Solid loft through WRAPPED (non-planar) section wires.
+
+    ThruSections can't close a curved end wire with its own flat cap, and planar end wires stand
+    off their cylinder far enough to fold the loft (S4_0001: booleans returned nothing). So: loft
+    an open shell, close each end with a ruled face between its suction and pressure halves
+    (the loop runs TE -> one side -> LE at n/2 -> other side, so the halves pair point for point),
+    sew, and make the solid.
+    """
+    from OCP.BRepOffsetAPI import BRepOffsetAPI_ThruSections
+
+    # ruled: bilinear patches between neighbouring wires, the same patch type the planar loft gets.
+    # A smooth (non-ruled) loft made 18-pole B-spline faces whose blade-blade overlaps in the hub
+    # took the fuse from ~20 s to ~300 s (S4_0001).
+    builder = BRepOffsetAPI_ThruSections(False, True)
+    for w in wires:
+        builder.AddWire(w.wrapped)
+    builder.Build()
+    faces = list(cq.Shape.cast(builder.Shape()).Faces())
+    for pts in (loops[0], loops[-1]):
+        n = len(pts)
+        le = n // 2
+        side_a = cq.Wire.makePolygon(pts[: le + 1])
+        side_b = cq.Wire.makePolygon([pts[0], *pts[: le - 1: -1]])
+        faces.append(cq.Face.makeRuledSurface(side_a, side_b))
+    return cq.Solid.makeSolid(cq.Shell.makeShell(faces)).fix()
+
+
 def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False,
                       _trim_tip: bool = True) -> cq.Solid:
     """Loft one blade solid from hub to tip (raising loft resolution for active features).
@@ -574,13 +625,14 @@ def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False,
     r_root = params.hub_radius - params.root_embed
     r_tip = params.tip_radius
 
-    wires: list[cq.Wire] = []
-    for i in range(n_span):
-        rf = float(interp["r_frac"][i])
-        r = r_root + (r_tip - r_root) * rf
-        pts = _section_points_3d(
+    kw = _thick_scale_kw(params)
+    wrap = bool(kw.pop("wrap"))
+    cyl_tip = bool(getattr(params, "cylindrical_tip", True))
+
+    def section(i: int, r: float) -> list:
+        return _section_points_3d(
             r=r,
-            r_frac=rf,
+            r_frac=float(interp["r_frac"][i]),
             chord=float(interp["chord"][i]),
             stagger_deg=float(interp["stagger_deg"][i]),
             thickness=float(interp["thickness"][i]),
@@ -595,11 +647,25 @@ def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False,
             le_skew=float(interp["le_skew"][i]),
             tip_notch_count=params.tip_notch_count,
             tip_notch_depth_mm=params.tip_notch_depth_mm,
-            **_thick_scale_kw(params),
+            wrap=wrap,
+            **kw,
         )
-        wires.append(cq.Wire.makePolygon(pts, close=True))
 
-    blade = cq.Solid.makeLoft(wires, True)
+    last = n_span - 1
+    loops = []
+    for i in range(n_span):
+        r = r_root + (r_tip - r_root) * float(interp["r_frac"][i])
+        if wrap and cyl_tip and i == last:
+            # A wire lying ON the trim cylinder defeats the boolean (the QA-21 design); put the last
+            # wrapped wire just outside R so the trim crosses wrapped sections cleanly.
+            r += TIP_WRAP_OVER_MM
+        loops.append(section(i, r))
+    wires = [cq.Wire.makePolygon(pts, close=True) for pts in loops]
+    blade = _capped_loft(wires, loops) if wrap else cq.Solid.makeLoft(wires, True)
+    if float(blade.Volume()) < 0.0:
+        # Lofts through wrapped (curved) wires can come out inside-out; booleans on an inverted
+        # solid return nothing (the QA-21 design's tip trim was empty at every radius).
+        blade = cq.Solid(blade.wrapped.Reversed())
     # _trim_tip=False only for chord-measurement builds (chord_realisation): every measured radius
     # is <= 0.99·tip, where the trim removes nothing, and the boolean was ~2/3 of preview time.
     if _trim_tip and bool(getattr(params, "cylindrical_tip", True)):
@@ -837,6 +903,46 @@ def validate_blade_params(params: BladeParams) -> None:
     if params.blade_angles_deg is not None and len(params.blade_angles_deg) != int(float(n)):
         raise ValueError(
             f"blade_angles_deg has {len(params.blade_angles_deg)} entries, expected n_blades={n}")
+    if (bool(getattr(params, "clip_below_hub", True))
+            and str(getattr(params, "section_wrap", "planar")) == "cylinder"):
+        hang = blade_hang_below_hub_mm(params)
+        if hang > MAX_HANG_BELOW_HUB_MM:
+            raise ValueError(
+                f"the blades hang {hang:.1f} mm below the hub's motor face (limit "
+                f"{MAX_HANG_BELOW_HUB_MM:.0f} mm): that part would be cut off and strike the frame "
+                "struts. Reduce the stagger or sweep at the trailing edge, or make the hub taller")
+
+
+# Kimball 2026-10-13 (roadmap 27.4 / QA-32): wrapped designs may hang at most this far below the
+# hub's motor face. Stock hangs ~1 mm; 20 % of optimizer designs hung, median 2.5 mm, worst 13 mm.
+# Old planar saves are not refused (they rebuild exactly as scored).
+MAX_HANG_BELOW_HUB_MM = 2.0
+
+
+def blade_hang_below_hub_mm(params: BladeParams) -> float:
+    """How far (mm) the blade as designed reaches below the hub's motor face (0 if it doesn't).
+
+    Read from the loft's section points (no CAD): a wrapped loft is ruled between them, so its
+    lowest point is a section point. Uses the station chords as designed, not the realised loft.
+    """
+    z_face = _hub_axial_range(params)[0]
+    it = _interp_stations(params, params.n_span)
+    r0 = params.hub_radius - params.root_embed
+    kw = _thick_scale_kw(params)
+    zmin = math.inf
+    for i in range(params.n_span):
+        rf = float(it["r_frac"][i])
+        pts = _section_points_3d(
+            r=r0 + (params.tip_radius - r0) * rf, r_frac=rf,
+            chord=float(it["chord"][i]), stagger_deg=float(it["stagger_deg"][i]),
+            thickness=float(it["thickness"][i]), max_camber=float(it["max_camber"][i]),
+            camber_pos=float(it["camber_pos"][i]), sweep=float(it["sweep"][i]),
+            skew=float(it["skew"][i]), le_sweep=float(it["le_sweep"][i]),
+            lean_deg=float(it["lean_deg"][i]), n_chord=params.n_chord, features=params.features,
+            le_skew=float(it["le_skew"][i]), tip_notch_count=params.tip_notch_count,
+            tip_notch_depth_mm=params.tip_notch_depth_mm, **kw)
+        zmin = min(zmin, min(v.z for v in pts))
+    return max(0.0, float(z_face - zmin))
 
 
 CLIP_TOL_MM = 1e-3
@@ -931,9 +1037,29 @@ def fuse_impeller(hub, blades, ring=None, *, tier=None):
     resources.check_fuse_memory(sum(len(s.Faces()) for s in (hub, *blades, *([ring] if ring is not None else []))))
     tier = tier or current_tier()
     fused = fuse_many(hub, blades, tier=tier)
+    if not _one_solid(fused) and not tier.fuse_one_blade_at_a_time:
+        # OCCT's all-at-once fuse (parallel or serial) can hand back loose pieces for some
+        # geometries: the first sharp-edge v3 Stock came out as 2 solids / 6 mesh bodies, and
+        # one blade at a time gave one clean solid (2026-10-13). Slower, so only as a fallback.
+        from fansim.resources import TIERS
+
+        one_by_one = next(t for t in TIERS if t.fuse_one_blade_at_a_time)
+        fused = fuse_many(hub, blades, tier=one_by_one)
+    if not _one_solid(fused):
+        raise RuntimeError(f"the hub and blades did not join into one solid ({len(fused.Solids())} "
+                           "separate pieces)")
     if ring is not None:
         fused = fuse_many(fused, (ring,), tier=tier)
     return fused
+
+
+def _one_solid(shape) -> bool:
+    """One solid out of the fuse. Not ``isValid()``: big fused solids can fail OCCT's validity check
+    on tolerances and still export a clean watertight mesh (S8_0056 in the full suite)."""
+    solids = getattr(shape, "Solids", None)
+    if solids is None:  # a stand-in shape (tests): nothing to judge
+        return True
+    return len(solids()) == 1
 
 
 def build_impeller(params: BladeParams | None = None) -> cq.Workplane:
@@ -1072,7 +1198,9 @@ def _section_family(params: BladeParams) -> str:
     return fam if fam in SECTION_FAMILIES else SECTION_NACA
 
 
-def _thick_scale_kw(params: BladeParams) -> dict[str, float | str]:
+def _thick_scale_kw(params: BladeParams) -> dict[str, float | str | bool]:
+    """Per-design section keywords for every ``_section_points_3d`` call: LE/TE thickness, family,
+    and ``wrap`` (sections on their cylinders unless the design is stamped ``section_wrap="planar"``)."""
     fam = _section_family(params)
     te_raw = float(getattr(params, "te_thick_scale", 1.0) or 1.0)
     le_raw = float(getattr(params, "le_thick_scale", 1.0) or 1.0)
@@ -1089,7 +1217,8 @@ def _thick_scale_kw(params: BladeParams) -> dict[str, float | str]:
     else:
         te = _clamp_thick_scale(te_raw)
         le = _clamp_thick_scale(le_raw)
-    return dict(le_thick_scale=le, te_thick_scale=te, section_family=fam)
+    wrap = str(getattr(params, "section_wrap", "cylinder") or "cylinder") != "planar"
+    return dict(le_thick_scale=le, te_thick_scale=te, section_family=fam, wrap=wrap)
 
 
 def le_te_thick_factors(

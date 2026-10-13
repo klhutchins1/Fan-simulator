@@ -248,8 +248,10 @@ def test_reference_keeps_tapered_walls_when_browser_resends_mode(bound_ctx):
     bound_ctx.fan_select(A12X25_REF_TRIAL)
     st.flush()
     before = (st.e_thick_root, st.e_thick_mid, st.e_thick_tip)
-    assert st.e_thick_mode == "tapered"
-    assert before == pytest.approx((0.1249, 0.0965, 0.0727))   # Stock recipe t/c
+    # v3 Stock (27.4) walls are 2.47/2.51/2.47 mm, so the picker may read them as uniform; either
+    # way re-sending the mode must not rewrite the recipe t/c.
+    assert st.e_thick_mode in ("tapered", "uniform")
+    assert before == pytest.approx((0.1321, 0.0985, 0.0733))   # Stock recipe t/c
     st.dirty("e_thick_mode")                                    # what the browser does on mount
     st.flush()
     assert (st.e_thick_root, st.e_thick_mid, st.e_thick_tip) == before

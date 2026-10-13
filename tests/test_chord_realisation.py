@@ -29,7 +29,10 @@ def test_cylindrical_tip_realizes_tip_chord_within_5pct(stock):
     tip_built = built[-1]
     assert tip_built is not None
     assert tip_built == pytest.approx(tip_target, rel=0.05)
-    assert loft[-1] > tip_target * 1.1
+    # Planar sections lose tip chord to the trim and need a longer loft; wrapped ones (27.4) don't.
+    planar = replace(stock, section_wrap="planar")
+    assert loft_chords_for_measured_targets(planar, n_iter=2)[-1] > tip_target * 1.1
+    assert loft[-1] == pytest.approx(tip_target, rel=0.05)
 
 
 def test_no_compensation_when_cylindrical_tip_off(stock):

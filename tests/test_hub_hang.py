@@ -1,0 +1,105 @@
+"""Blades may hang at most 2 mm below the hub's motor face; under that, the hub-face cut is corrected.
+
+Kimball 2026-10-13 (roadmap 27.4 / QA-32): 20 % of optimizer designs hang below the hub face (median
+2.5 mm, worst 13 mm) and the cut there leaves camber 0.005-0.011 below the slider. Limit: 2 mm.
+"""
+from __future__ import annotations
+
+import dataclasses
+import json
+import tempfile
+from pathlib import Path
+
+import pytest
+
+from fansim.geometry import build_impeller
+from fansim.geometry.blade import (
+    MAX_HANG_BELOW_HUB_MM,
+    _section_points_3d,
+    _thick_scale_kw,
+    blade_hang_below_hub_mm,
+    validate_blade_params,
+)
+from fansim.geometry.chord_realisation import _station_measure_fracs
+from fansim.geometry.config import load_blade_params
+from fansim.geometry.export import export_stl
+from fansim.geometry.features import Features
+from fansim.optimize.search_space import blade_from_flat
+from fansim.validation.section_compare import _measure_loop, measure_sections
+
+DATA = json.loads((Path(__file__).parent / "data" / "hub_hang_designs.json").read_text())
+
+
+def _design(name, **over):
+    d = DATA[name]
+    return dataclasses.replace(blade_from_flat(d["flat"], Features(**d["features"])), **over)
+
+
+def test_limit_is_two_mm():
+    assert MAX_HANG_BELOW_HUB_MM == 2.0
+
+
+def test_hang_is_measured_from_the_sections_as_designed():
+    # As designed (station chords). The realised loft hangs ~1.6x further: the chord realisation
+    # lengthens the section to make up for what the cut removes (QA r9 measured that loft).
+    assert blade_hang_below_hub_mm(_design("S2_0176")) == pytest.approx(2.57, abs=0.05)
+    assert blade_hang_below_hub_mm(_design("S1_0218")) == pytest.approx(1.10, abs=0.05)
+    assert blade_hang_below_hub_mm(load_blade_params("config/problems/a12x25_reference.yaml")) < 1.5
+
+
+def test_a_design_hanging_past_the_limit_is_refused_plainly():
+    with pytest.raises(ValueError, match="below the hub"):
+        validate_blade_params(_design("S2_0176"))                              # 2.6 mm: refused
+    validate_blade_params(_design("S1_0400"))                                  # 1.6 mm: allowed
+    validate_blade_params(load_blade_params("config/problems/a12x25_reference.yaml"))
+
+
+def test_old_planar_saves_and_unclipped_blades_are_not_refused():
+    validate_blade_params(_design("S2_0176", section_wrap="planar"))   # old saves rebuild as scored
+    validate_blade_params(_design("S2_0176", clip_below_hub=False))    # no motor-face cut, no limit
+
+
+def _analytic(p, st, r_mm, omega, n):
+    kw = _thick_scale_kw(p)
+    kw["wrap"] = True
+    pts = _section_points_3d(
+        r=r_mm, r_frac=st.r_frac, chord=st.chord, stagger_deg=st.stagger_deg, thickness=st.thickness,
+        max_camber=st.max_camber, camber_pos=st.camber_pos, sweep=0.0, skew=0.0, le_sweep=0.0,
+        lean_deg=0.0, n_chord=60, features=Features(), **kw)
+    import numpy as np
+
+    return _measure_loop(np.array([[v.x, v.y, v.z] for v in pts]), r_mm, omega, n)
+
+
+def test_clip_reached_station_keeps_its_camber_and_angle():
+    """QA-32: where the hub-face cut reaches, chord was restored but camber read 0.005-0.011 low and
+    stagger up to 1 deg off. The realisation now corrects camber and stagger there too (V1 rule)."""
+    p = _design("S8_0056", n_blades=2)   # 1.96 mm: the worst allowed hang
+    fr = _station_measure_fracs(p)
+    pairs = [(f, s) for f, s in zip(fr, p.stations) if f is not None]
+    with tempfile.TemporaryDirectory() as td:
+        stl = Path(td) / "i.stl"
+        export_stl(build_impeller(p), stl)
+        rows = measure_sections(stl, [f for f, _ in pairs])
+    for (_, s), r in zip(pairs, rows):
+        a = _analytic(p, s, r["r_mm"], int(r.get("omega_sign", 1)), int(r["n_blades"]))
+        assert r["chord_mm"] == pytest.approx(s.chord, rel=0.03), (s.r_frac, r["chord_mm"])
+        assert r["camber_ratio"] == pytest.approx(a["camber_ratio"], abs=0.005), (s.r_frac, r, a)
+        assert r["stagger_deg"] == pytest.approx(a["stagger_deg"], abs=1.5), (s.r_frac, r, a)
+
+
+def test_stock_sections_read_as_designed_despite_its_1_mm_hang():
+    """Stock's cut removes < 0.1 mm of chord at its inner stations but trims the trailing edge at an
+    angle, which moved the camber reading 0.005-0.007. A station counts as reached when the cut changes
+    its reading at all, not only its chord."""
+    p = dataclasses.replace(load_blade_params("config/problems/a12x25_reference.yaml"), n_blades=2)
+    fr = _station_measure_fracs(p)
+    pairs = [(f, s) for f, s in zip(fr, p.stations) if f is not None]
+    with tempfile.TemporaryDirectory() as td:
+        stl = Path(td) / "i.stl"
+        export_stl(build_impeller(p), stl)
+        rows = measure_sections(stl, [f for f, _ in pairs])
+    for (_, s), r in zip(pairs, rows):
+        a = _analytic(p, s, r["r_mm"], int(r.get("omega_sign", 1)), int(r["n_blades"]))
+        assert r["camber_ratio"] == pytest.approx(a["camber_ratio"], abs=0.005), (s.r_frac, r, a)
+        assert r["stagger_deg"] == pytest.approx(a["stagger_deg"], abs=1.5), (s.r_frac, r, a)

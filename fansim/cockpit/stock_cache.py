@@ -36,7 +36,7 @@ def stock_fingerprint(flat: dict, *, preview: bool = True) -> str:
         "le_thick_scale", "te_thick_scale", "section_family", "span_interp",
         "n_span", "n_chord",
         "shroud_thick_mm", "shroud_height_frac",
-        "tip_round", "tip_round_start", "cylindrical_tip", "chord_basis",
+        "tip_round", "tip_round_start", "cylindrical_tip", "chord_basis", "section_wrap",
         "tip_notch_count", "tip_notch_depth_mm", "notched_tips",
         "root_embed", "spacing_spread", "spacing_seed",
     )

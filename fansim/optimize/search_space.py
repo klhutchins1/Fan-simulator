@@ -195,8 +195,10 @@ def suggest_params(trial, with_features: bool = False, space: str = "open",
     bp = BladeParams(n_blades=n_blades, stations=stations, features=features, **kw)
     # Durable record of what the sampled chords mean, for replaying this trial later
     # (``trial_attrs.chord_basis_for_trial``; trials without it predate the switch).
+    bp.section_wrap = "cylinder"  # new axial designs: sections on their cylinders (roadmap 27.4)
     if hasattr(trial, "set_user_attr"):
         trial.set_user_attr("chord_basis", bp.chord_basis)
+        trial.set_user_attr("section_wrap", bp.section_wrap)
     if with_shroud:                       # tip ring; search its TE-anchored height (recovery: 7.5)
         bp.shroud_thick_mm = SHROUD_DEFAULT_MM
         bp.shroud_height_frac = trial.suggest_float("shroud_height_frac", 0.30, 1.0)
@@ -338,6 +340,8 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
         bp.cylindrical_tip = bool(p["cylindrical_tip"])
     if p.get("chord_basis"):                        # absent = "measured"; legacy saves are stamped "loft"
         bp.chord_basis = str(p["chord_basis"])
+    # absent = "cylinder"; saves from before 27.4 are stamped "planar" (scripts/migrate_section_wrap.py)
+    bp.section_wrap = str(p.get("section_wrap") or "cylinder")
     if (
         int(p.get("tip_notch_count", 0) or 0) > 0
         or p.get("notched_tips")
@@ -371,6 +375,12 @@ OBJECTIVE_DIRECTIONS = ("maximize", "maximize", "maximize")
 
 
 # --- spliced from transcript edit-history (recovery 2026-09-12) ---
+# Walls this close (mm) count as one uniform wall. Was 0.12: v3 Stock's 2.47/2.51/2.47 mm read as
+# uniform and the editor rewrote the recipe to one 2.48 mm wall (27.4). Designs made in uniform mode
+# have walls equal up to t/c rounding (1e-4 x chord <= ~0.006 mm).
+UNIFORM_WALL_TOL_MM = 0.02
+
+
 def blade_to_flat(params: BladeParams) -> dict:
     """Flatten a ``BladeParams`` into the cockpit / ``blade_from_flat`` dict.
 
@@ -398,7 +408,7 @@ def blade_to_flat(params: BladeParams) -> dict:
     ar, am, at = th_r * cr, th_m * cm, th_t * ct
     thick_mode = (
         "uniform"
-        if abs(ar - am) < 0.12 and abs(am - at) < 0.12
+        if abs(ar - am) < UNIFORM_WALL_TOL_MM and abs(am - at) < UNIFORM_WALL_TOL_MM
         else "tapered"
     )
     thick_mm = round((ar + am + at) / 3.0, 2)
@@ -425,6 +435,7 @@ def blade_to_flat(params: BladeParams) -> dict:
         le_skew_tip=float(getattr(tip, "le_skew", 0.0) or 0.0),
         cylindrical_tip=bool(getattr(params, "cylindrical_tip", True)),
         chord_basis=str(getattr(params, "chord_basis", "measured") or "measured"),
+        section_wrap=str(getattr(params, "section_wrap", "planar") or "planar"),
         hub_height=float(params.hub_height_mm or 0.0),
         blade_hub_z=float(getattr(params, "blade_hub_z_mm", 0.0) or 0.0),
         hub_profile=str(params.hub_profile or "cylinder"),
@@ -516,11 +527,14 @@ def suggest_stator(trial) -> dict:
 # --- spliced tip_radius_cap_mm (recovery) ---
 def tip_radius_cap_mm(stations, hub_radius: float, frame_half_mm: float,
                       shroud_mm: float = 0.0, n_blades: int = 7,
-                      cylindrical_tip: bool | None = None) -> float:
+                      cylindrical_tip: bool | None = None,
+                      section_wrap: str = "cylinder") -> float:
     """Largest tip_radius whose built envelope still leaves CLEARANCE to the frame.
 
     Same shrink as cockpit Fit (iterate open_tip_rmax_mm). No CadQuery.
     ``cylindrical_tip`` defaults to BladeParams (True); pass False to measure legacy bulge.
+    ``section_wrap`` is the design's placement: new axial designs are wrapped (no LE/TE bulge past
+    their radius); "planar" measures the legacy tangent-plane bulge.
     """
     shroud = float(shroud_mm or 0.0)
     allowed = float(frame_half_mm) - shroud - TIP_CAP_CLEARANCE_MM
@@ -531,7 +545,7 @@ def tip_radius_cap_mm(stations, hub_radius: float, frame_half_mm: float,
     for _ in range(12):
         probe = BladeParams(
             n_blades=int(n_blades), hub_radius=float(hub_radius),
-            tip_radius=tr, stations=list(stations),
+            tip_radius=tr, stations=list(stations), section_wrap=section_wrap,
             **tip_kw,
         )
         built = open_tip_rmax_mm(probe) + shroud

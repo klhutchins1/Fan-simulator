@@ -1,14 +1,11 @@
-# Stock recipe v2 (promoted 2026-09-29): section refit to validation/reference/a12x25_impeller.stl; see a12x25_reference_v1.yaml for the previous recipe
-# (formerly a12x25_reference_v2.yaml) -- Stock recipe refitted so BUILT blade sections match the close-ref STL.
-# Fit provenance: 2026-09-29, scripts/fit_recipe_to_stl.py, 5 iteration(s) (last = measured, not updated), damping 0.7, converged=True.
-# Source STL: validation/reference/a12x25_impeller.stl (start: a12x25_reference_v1.yaml, unmodified).
-# Final max |built - ref| at measured stations: stagger_deg 1.0614, chord_rel 0.0188, camber_ratio 0.0037, thickness_rel 0.0341 (tol: stagger 1.5 deg, chord 3%, camber 0.005, t/c 10%).
+# a12x25_reference_v3 (cylinder sections) -- Stock recipe refitted so BUILT blade sections match the close-ref STL.
+# v2 (planar sections, 2026-10-08) is kept as config/problems/a12x25_reference_planar.yaml.
+# Fit provenance: 2026-10-13, scripts/fit_recipe_to_stl.py, 3 iteration(s) (last = measured, not updated), damping 0.7, converged=True.
+# Source STL: validation/reference/a12x25_impeller.stl (start: a12x25_reference_planar.yaml, unmodified).
+# Final max |built - ref| at measured stations: stagger_deg 0.4399, chord_rel 0.0019, camber_ratio 0.0049, thickness_rel 0.0079 (tol: stagger 1.5 deg, chord 3%, camber 0.005, t/c 10%).
 # Station radii r/R = 0.358, 0.500, 0.600, 0.700, 0.800, 0.900, 1.000 (root = extrapolated, tip fitted at r/R 0.99).
 # Sweep/skew/lean/le_*, hub and tip fields are the Stock values (interpolated to the new stations) unless the LE-offset trigger fired; see the fit log.
 # Built-vs-reference table: docs/validation/recipe_fidelity/section_compare_v2.md
-# Station chord = measured cylinder-cut chord (mm); thickness/max_camber are fractions of that measured chord.
-# Builder raises loft chord under cylindrical_tip and scales t/c + camber so absolute wall/height stay put (§19.7).
-
 n_blades: 9
 hub_radius: 21.5
 tip_radius: 54.5
@@ -21,15 +18,16 @@ n_span: 18
 n_chord: 60
 section_family: plate
 span_interp: pchip
-stations:
-  - {r_frac: 0, chord: 17.75, stagger_deg: 24.13, thickness: 0.1249, max_camber: 0.037, camber_pos: 0.4775, sweep: 0.0, skew: 0.0, lean_deg: 0, le_sweep: 0, le_skew: 0}
-  - {r_frac: 0.2214, chord: 21.31, stagger_deg: 39.78, thickness: 0.1109, max_camber: 0.0412, camber_pos: 0.4775, sweep: -1.6014, skew: -0.7238, lean_deg: 5.62, le_sweep: 0, le_skew: 0}
-  - {r_frac: 0.3771, chord: 23.19, stagger_deg: 34.59, thickness: 0.1022, max_camber: 0.0762, camber_pos: 0.4624, sweep: -1.4798, skew: 1.4448, lean_deg: 10.15, le_sweep: 0, le_skew: 0}
-  - {r_frac: 0.5329, chord: 25.12, stagger_deg: 28.69, thickness: 0.0965, max_camber: 0.0834, camber_pos: 0.472, sweep: -1.2557, skew: 3.7372, lean_deg: 15.07, le_sweep: 0, le_skew: 0}
-  - {r_frac: 0.6886, chord: 27.63, stagger_deg: 21.9, thickness: 0.0888, max_camber: 0.0947, camber_pos: 0.489, sweep: -0.8643, skew: 6.5974, lean_deg: 20.52, le_sweep: 0, le_skew: 0}
-  - {r_frac: 0.8443, chord: 30.54, stagger_deg: 17.24, thickness: 0.0809, max_camber: 0.0985, camber_pos: 0.496, sweep: -0.3279, skew: 10.0436, lean_deg: 26.52, le_sweep: 0, le_skew: 0}
-  - {r_frac: 1, chord: 33.53, stagger_deg: 16.26, thickness: 0.0727, max_camber: 0.0971, camber_pos: 0.5868, sweep: 0.3578, skew: 13.7985, lean_deg: 33, le_sweep: 0, le_skew: 0}
 le_thick_scale: 0.2
 te_thick_scale: 0.2
 tip_notch_count: 0
 tip_notch_depth_mm: 0.0
+section_wrap: cylinder
+stations:
+  - {r_frac: 0.0, chord: 18.7018, stagger_deg: 23.5154, thickness: 0.1321, max_camber: 0.0235, camber_pos: 0.4462, sweep: 0.0, skew: 0.0, lean_deg: 0.0, le_sweep: 0.0, le_skew: 0.0}
+  - {r_frac: 0.2214, chord: 21.3497, stagger_deg: 39.1648, thickness: 0.1173, max_camber: 0.0261, camber_pos: 0.4462, sweep: -1.6014, skew: -0.0349, lean_deg: 5.6208, le_sweep: 0.0, le_skew: 0.0}
+  - {r_frac: 0.3771, chord: 23.1557, stagger_deg: 35.8002, thickness: 0.1078, max_camber: 0.0446, camber_pos: 0.4761, sweep: -1.4798, skew: 2.1827, lean_deg: 10.1513, le_sweep: 0.0, le_skew: 0.0}
+  - {r_frac: 0.5329, chord: 25.4399, stagger_deg: 31.1959, thickness: 0.0985, max_camber: 0.0478, camber_pos: 0.4905, sweep: -1.2558, skew: 4.5159, lean_deg: 15.0686, le_sweep: 0.0, le_skew: 0.0}
+  - {r_frac: 0.6886, chord: 28.1108, stagger_deg: 26.2914, thickness: 0.0891, max_camber: 0.0451, camber_pos: 0.481, sweep: -0.8644, skew: 6.7637, lean_deg: 20.519, le_sweep: 0.0, le_skew: 0.0}
+  - {r_frac: 0.8443, chord: 31.0126, stagger_deg: 22.8209, thickness: 0.0805, max_camber: 0.0419, camber_pos: 0.474, sweep: -0.328, skew: 8.889, lean_deg: 26.5194, le_sweep: 0.0, le_skew: 0.0}
+  - {r_frac: 1.0, chord: 33.709, stagger_deg: 22.4624, thickness: 0.0733, max_camber: 0.0445, camber_pos: 0.4702, sweep: 0.3578, skew: 11.1792, lean_deg: 33.0, le_sweep: 0.0, le_skew: 0.0}

@@ -36,11 +36,21 @@ def test_low_lean_cap_beats_the_four_mm_pad():
 def test_high_lean_cap_is_tighter_than_low_lean_when_trim_off():
     """Legacy bulge: wrap costs radius. With cylindrical tip off, high lean must shrink the cap."""
     low = tip_radius_cap_mm(_stations(chord_tip=14.0, lean_tip=0.0), 21.5, FRAME_HALF,
+                            cylindrical_tip=False, section_wrap="planar")
+    high = tip_radius_cap_mm(_stations(chord_tip=40.0, lean_tip=45.0, lean_mid=25.0),
+                             21.5, FRAME_HALF, cylindrical_tip=False, section_wrap="planar")
+    assert high < low - 1.0
+    assert high < FRAME_HALF - TIP_CAP_CLEARANCE_MM  # never the zero-bulge ceiling
+
+
+def test_wrapped_sections_do_not_bulge_even_with_trim_off():
+    """27.4: wrapped sections lie on their cylinder, so lean costs no radius at all."""
+    low = tip_radius_cap_mm(_stations(chord_tip=14.0, lean_tip=0.0), 21.5, FRAME_HALF,
                             cylindrical_tip=False)
     high = tip_radius_cap_mm(_stations(chord_tip=40.0, lean_tip=45.0, lean_mid=25.0),
                              21.5, FRAME_HALF, cylindrical_tip=False)
-    assert high < low - 1.0
-    assert high < FRAME_HALF - TIP_CAP_CLEARANCE_MM  # never the zero-bulge ceiling
+    assert high == pytest.approx(low, abs=0.01)
+    assert low == pytest.approx(FRAME_HALF - TIP_CAP_CLEARANCE_MM, abs=0.2)  # one 0.15 mm step
 
 
 def test_cylindrical_tip_cap_ignores_lean_bulge():
