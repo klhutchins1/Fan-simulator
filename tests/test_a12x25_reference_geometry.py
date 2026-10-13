@@ -24,18 +24,19 @@ def test_reference_blade_count_and_envelope():
     assert float(flat.get("te_thick_scale") or 1.0) == pytest.approx(0.2)
     assert int(flat.get("tip_notch_count") or 0) == 0
     assert float(flat.get("tip_notch_depth_mm") or 0.0) == pytest.approx(0.0)
-    # Stock recipe v2 (§19.7): station chord = measured cylinder-cut chord (not loft).
-    # Previous loft-inflated tip (~49.8) kept as build-internal; YAML tip ~33.5.
-    assert flat["chord_root"] == pytest.approx(17.75, abs=0.05)
-    assert flat["chord_mid"] == pytest.approx(25.12, abs=0.1)
-    assert flat["chord_tip"] == pytest.approx(33.53, abs=0.1)
-    assert flat["stagger_root"] == pytest.approx(24.13, abs=0.05)
-    assert flat["stagger_mid"] == pytest.approx(28.69, abs=0.05)
-    assert flat["stagger_tip"] == pytest.approx(16.26, abs=0.05)
-    assert flat["skew_mid"] == pytest.approx(3.7372, abs=0.01)
-    assert flat["skew_tip"] == pytest.approx(13.7985, abs=0.01)
+    # Stock recipe v3 (27.4, wrapped sections, refit 2026-10-13): station values are the cylinder-cut
+    # section the builder now produces exactly. v2 (planar) is a12x25_reference_planar.yaml.
+    assert flat["section_wrap"] == "cylinder"
+    assert flat["chord_root"] == pytest.approx(18.70, abs=0.05)
+    assert flat["chord_mid"] == pytest.approx(25.44, abs=0.1)
+    assert flat["chord_tip"] == pytest.approx(33.71, abs=0.1)
+    assert flat["stagger_root"] == pytest.approx(24.04, abs=0.05)
+    assert flat["stagger_mid"] == pytest.approx(31.20, abs=0.05)
+    assert flat["stagger_tip"] == pytest.approx(22.46, abs=0.05)
+    assert flat["skew_mid"] == pytest.approx(4.5358, abs=0.01)
+    assert flat["skew_tip"] == pytest.approx(11.2082, abs=0.01)
     assert flat["lean_tip"] == pytest.approx(33.0)
-    assert flat["thick_mode"] == "tapered"
+    assert flat["thick_mode"] in ("tapered", "uniform")  # v3 walls 2.47/2.51/2.47 mm
     tip_wall = float(flat["thickness_tip"]) * float(flat["chord_tip"])
     assert tip_wall == pytest.approx(2.44, abs=0.1)
     assert flat["section_family"] == "plate"
@@ -147,13 +148,13 @@ def test_stock_cylinder_slices_near_reference():
 
     flat = stock_blade_flat("a12x25")
     # Recipe targets (§19.7 measured chords; absolute tip wall unchanged ~2.44 mm).
-    assert flat["chord_mid"] == pytest.approx(25.12, abs=0.5)
-    assert flat["chord_tip"] == pytest.approx(33.53, abs=0.5)
-    assert flat["stagger_mid"] == pytest.approx(28.69, abs=1.0)
-    assert flat["stagger_tip"] == pytest.approx(16.26, abs=1.0)
+    assert flat["chord_mid"] == pytest.approx(25.44, abs=0.5)
+    assert flat["chord_tip"] == pytest.approx(33.71, abs=0.5)
+    assert flat["stagger_mid"] == pytest.approx(31.20, abs=1.0)
+    assert flat["stagger_tip"] == pytest.approx(22.46, abs=1.0)
     assert float(flat["thick_mm"]) == pytest.approx(2.36, abs=0.3)
     assert flat["section_family"] == "plate"
     assert flat["lean_tip"] - flat.get("lean_mid", 0.0) == pytest.approx(19.0, abs=6.0)
-    assert flat["skew_mid"] == pytest.approx(3.7372)
-    assert flat["skew_tip"] == pytest.approx(13.7985)
+    assert flat["skew_mid"] == pytest.approx(4.5358)
+    assert flat["skew_tip"] == pytest.approx(11.2082)
     assert int(flat.get("tip_notch_count") or 0) == 0

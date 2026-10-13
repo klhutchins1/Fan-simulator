@@ -22,7 +22,12 @@ from fansim.cockpit.placement import (
 from fansim.fan_spec import get_fan_spec
 from fansim.geometry.blade import normalize_shroud_thick_mm, uniform_thickness_tc
 from fansim.geometry.features import Features
-from fansim.optimize.search_space import FLAT_STATIONS, STATION_PAYLOAD_KEYS, blade_from_flat
+from fansim.optimize.search_space import (
+    FLAT_STATIONS,
+    STATION_PAYLOAD_KEYS,
+    UNIFORM_WALL_TOL_MM,
+    blade_from_flat,
+)
 
 EDITOR_VARS = (
     "e_n_blades", "e_stagger_root", "e_stagger_mid", "e_stagger_tip",
@@ -136,7 +141,7 @@ def bind(session) -> None:
         else:
             state.e_thick_mode = (
                 "uniform"
-                if abs(ar - am) < 0.12 and abs(am - at) < 0.12
+                if abs(ar - am) < UNIFORM_WALL_TOL_MM and abs(am - at) < UNIFORM_WALL_TOL_MM
                 else "tapered"
             )
         if p.get("thick_mm") is not None:

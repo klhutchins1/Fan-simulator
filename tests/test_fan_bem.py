@@ -59,7 +59,8 @@ def _restagger(p, deg):
 
 
 def test_default_pressure_model_is_euler_and_unchanged():
-    p = _stock7()
+    # A lock on the BEM code, so it keeps a fixed input: the v2 Stock (Stock itself moved to v3, 27.4).
+    p = load_blade_params("config/problems/a12x25_reference_planar.yaml")
     a, b = pq_curve(p, 2000.0), pq_curve(p, 2000.0, pressure_model="euler")
     assert a == b
     assert a.free_delivery_cfm == pytest.approx(58.2, abs=0.05)
@@ -101,9 +102,14 @@ def test_axial_force_zero_blades_and_efficiency_bounds():
 
 def test_axial_force_efficiency_never_exceeds_one():
     """QA r4 E_rand1396 (11 blades, chords 48/58/50 mm): peak η 111 % before the energy bound."""
-    from fansim.optimize.search_space import blade_from_flat, stock_blade_flat
+    from fansim.optimize.search_space import blade_from_flat
 
-    flat = {**stock_blade_flat(), "n_blades": 11, "stagger_root": 51.145, "stagger_mid": 33.679,
+    from fansim.geometry.config import load_blade_params
+    from fansim.optimize.search_space import blade_to_flat
+
+    # E_rand1396 was defined on the v2 (planar) Stock flat; its other fields come from there.
+    v2 = blade_to_flat(load_blade_params("config/problems/a12x25_reference_planar.yaml"))
+    flat = {**v2, "n_blades": 11, "stagger_root": 51.145, "stagger_mid": 33.679,
             "stagger_tip": 24.794, "chord_root": 48.465, "chord_mid": 58.483, "chord_tip": 50.157,
             "max_camber": 0.0048, "thickness_root": 0.08, "thickness_mid": 0.06,
             "thickness_tip": 0.04, "camber_pos": 0.4, "hub_radius": 21.5, "tip_radius": 54.5,

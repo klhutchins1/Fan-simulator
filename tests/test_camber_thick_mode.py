@@ -42,13 +42,13 @@ def test_blade_from_flat_falls_back_to_max_camber():
 
 
 def test_a12x25_stock_keeps_root_mid_camber_split():
-    # a12x25_reference.yaml is the v2 section refit (2026-09-29): per-station camber is
-    # 0.037/0.0834/0.0971 root/mid/tip (fractions of the measured chord since 37728b9). What this guards is that the split survives the
-    # blade_to_flat -> blade_from_flat round-trip (not collapsed to one value).
+    # a12x25_reference.yaml is the v3 wrapped-section refit (27.4, 2026-10-13): per-station camber is
+    # 0.029/0.048/0.0445 root/mid/tip (v2 planar was 0.037/0.0834/0.0971). What this guards is that the
+    # split survives the blade_to_flat -> blade_from_flat round-trip (not collapsed to one value).
     flat = stock_blade_flat("a12x25")
-    assert abs(float(flat["camber_root"]) - 0.037) < 1e-9
-    assert abs(float(flat["camber_mid"]) - 0.0834) < 1e-9
-    assert abs(float(flat["camber_tip"]) - 0.0971) < 1e-9
+    assert abs(float(flat["camber_root"]) - 0.029) < 1e-9
+    assert abs(float(flat["camber_mid"]) - 0.048) < 1e-9
+    assert abs(float(flat["camber_tip"]) - 0.0445) < 1e-9
     bp = blade_from_flat(flat, Features())
     # Since §23.1 the flat carries all 7 recipe stations, so every station keeps its own camber.
     from fansim.geometry.config import load_blade_params
@@ -57,9 +57,9 @@ def test_a12x25_stock_keeps_root_mid_camber_split():
                   key=lambda s: s.r_frac)
     st = sorted(bp.stations, key=lambda s: s.r_frac)
     assert [s.max_camber for s in st] == [s.max_camber for s in yaml]
-    assert abs(st[0].max_camber - 0.037) < 1e-9
+    assert abs(st[0].max_camber - 0.029) < 1e-9
     mid = min(st, key=lambda s: abs(s.r_frac - 0.5))
-    assert abs(mid.max_camber - 0.0834) < 1e-9
+    assert abs(mid.max_camber - 0.048) < 1e-9
 
 
 def test_blade_to_flat_emits_thick_mode():
@@ -68,3 +68,19 @@ def test_blade_to_flat_emits_thick_mode():
     assert float(flat["thick_mm"]) > 0.0
     # Default BladeParams stations are tapered t/c with unequal wall mm.
     assert flat["thick_mode"] == "tapered"
+
+
+def test_near_uniform_recipe_walls_are_not_forced_uniform():
+    """v3 Stock walls are 2.47/2.51/2.47 mm. The 0.12 mm picker called that 'uniform' and the editor
+    then rewrote the recipe t/c to one 2.48 mm wall (mid -1 %). Only walls equal up to rounding are
+    uniform; a design made in uniform mode still is."""
+    import dataclasses
+
+    from fansim.geometry.config import load_blade_params
+    from fansim.optimize.search_space import UNIFORM_WALL_TOL_MM, blade_to_flat
+
+    stock = load_blade_params("config/problems/a12x25_reference.yaml")
+    assert blade_to_flat(stock)["thick_mode"] == "tapered"
+    walls = [dataclasses.replace(s, thickness=round(2.4 / s.chord, 4)) for s in stock.stations]
+    assert blade_to_flat(dataclasses.replace(stock, stations=walls))["thick_mode"] == "uniform"
+    assert UNIFORM_WALL_TOL_MM <= 0.02

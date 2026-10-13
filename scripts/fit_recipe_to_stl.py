@@ -61,6 +61,19 @@ def ref_at(fit, rr):
     return {k: float(fit[k](rr)) for k in KEYS}
 
 
+def recipe_settings(text: str, wrap: str) -> list[str]:
+    """Every top-level setting of a recipe YAML except its stations, plus ``section_wrap``.
+
+    Wherever a setting sits: the v2 recipe keeps le/te_thick_scale (Stock's sharp 0.2 edges) AFTER its
+    station list, and cutting at "stations:" silently dropped them (v3 was first fitted with
+    full-bullnose edges, found 2026-10-13).
+    """
+    keep = [ln for ln in text.splitlines()
+            if ln.strip() and not ln.lstrip().startswith("#") and ln.strip() != "stations:"
+            and not ln.lstrip().startswith("- ") and not ln.startswith("section_wrap:")]
+    return keep + [f"section_wrap: {wrap}"]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--max-iter", type=int, default=8)
@@ -164,10 +177,7 @@ def main() -> int:
           + ", ".join(f"{k}={v:.4f}" for k, v in maxres.items()))
     print("clamp hits:", {rr_list[i]: h for i, h in last_hits.items()} or "none")
 
-    body = [ln for ln in STOCK.read_text().splitlines()
-            if ln.strip() and not ln.lstrip().startswith("#")]
-    body = body[: body.index("stations:")]
-    body = [ln for ln in body if not ln.startswith("section_wrap:")] + [f"section_wrap: {a.wrap}"]
+    body = recipe_settings(STOCK.read_text(), a.wrap)
     hdr = [
         f"# a12x25_reference_v3 ({a.wrap} sections) -- Stock recipe refitted so BUILT blade sections "
         "match the close-ref STL.",
