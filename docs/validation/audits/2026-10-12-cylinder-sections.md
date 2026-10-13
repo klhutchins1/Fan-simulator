@@ -114,6 +114,40 @@ was in the sample (the stress inputs have none).
 Result: 0 CONCLUSIVE-wrong. 20 CONCLUSIVE, all (ω +1, pump −1, χ −1). 10 INCONCLUSIVE: the 7 flat
 (camber < 0.02) earlier false refusals, plus S4_0065, S8_0102 and S1_0304.
 
-### V5 and V6: CFD
+### V5: same real fan, same airflow (FAIL)
 
-Pending; this report is updated when they finish.
+Full Assess CFD, same settings as the Stock reference run (a12x25, hose "case", 8 procs, base cell
+6 mm, 500 iterations). Raw CFD values at 2000 rpm, before any motor derate.
+
+| | free-air CFM | loaded CFM |
+|---|---|---|
+| Stock v2 planar (`runs/screen_rank_audit/stock_hubclip/full`) | 54.63 | 41.88 |
+| Stock v3 wrapped (`runs/cyl_sections/stock_wrap/full`) | 59.32 | 45.02 |
+| difference (pass band) | **+8.6 %** (±3 %) | **+7.5 %** (±5 %) |
+
+**As the spec requires, Stock keeps the planar recipe and wrapping stays opt-in until this is
+understood.** Both recipes match the same STL's cylinder sections within the fit tolerance (V2), yet they
+differ by 8 % in CFD. So "matches the sections" doesn't pin down the shape well enough, or one of the two
+lofts differs from the STL somewhere the six measured radii don't see. That could be between stations,
+near the hub, at the LE/TE, or in the LE positions, which were off by up to 1.5 mm axially at r/R 0.50 in
+both fits.
+
+**Diagnosis in progress (not a re-score):** the real STL, the planar recipe and the wrapped recipe, all at
+free air in the validation rig with identical current settings (`runs/cyl_sections/v5_diag/`). The recipe
+closer to the STL's CFD is the more faithful one.
+
+### V6: BEM vs CFD on t9005 (report only)
+
+BEM works on the sliders, so it gives the same answer for both builds: Euler free 62.4 / load 52.2 CFM,
+axial-force free 66.2. CFD raw at 2000 rpm:
+
+| t9005 | free | loaded | BEM Euler error, free / loaded |
+|---|---|---|---|
+| planar build (camber built ~0.008 at the tip for a 0.06 slider) | 74.02 | 59.47 | −16 % / −12 % |
+| wrapped build (camber 0.06 as the slider says) | 66.77 | 54.56 | −7 % / −4 % |
+
+- **BEM and CFD now agree much better** on this leaned design, because they finally describe the same
+  blade.
+- The wrapped t9005 moves **less** air than the planar one. The optimizer found t9005 as a *built*
+  low-camber blade; under the new meaning its sliders describe a different, more cambered blade. The
+  optimizer's designs need re-finding with the new builder, and its camber bounds re-thinking.
