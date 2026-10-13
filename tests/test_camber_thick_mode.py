@@ -43,11 +43,11 @@ def test_blade_from_flat_falls_back_to_max_camber():
 
 def test_a12x25_stock_keeps_root_mid_camber_split():
     # a12x25_reference.yaml is the v3 wrapped-section refit (27.4, 2026-10-13): per-station camber is
-    # 0.029/0.048/0.0445 root/mid/tip (v2 planar was 0.037/0.0834/0.0971). What this guards is that the
+    # 0.0235/0.0478/0.0445 root/mid/tip (refit with the hub-cut correction) (v2 planar was 0.037/0.0834/0.0971). What this guards is that the
     # split survives the blade_to_flat -> blade_from_flat round-trip (not collapsed to one value).
     flat = stock_blade_flat("a12x25")
-    assert abs(float(flat["camber_root"]) - 0.029) < 1e-9
-    assert abs(float(flat["camber_mid"]) - 0.048) < 1e-9
+    assert abs(float(flat["camber_root"]) - 0.0235) < 1e-9
+    assert abs(float(flat["camber_mid"]) - 0.0478) < 1e-9
     assert abs(float(flat["camber_tip"]) - 0.0445) < 1e-9
     bp = blade_from_flat(flat, Features())
     # Since §23.1 the flat carries all 7 recipe stations, so every station keeps its own camber.
@@ -57,9 +57,9 @@ def test_a12x25_stock_keeps_root_mid_camber_split():
                   key=lambda s: s.r_frac)
     st = sorted(bp.stations, key=lambda s: s.r_frac)
     assert [s.max_camber for s in st] == [s.max_camber for s in yaml]
-    assert abs(st[0].max_camber - 0.029) < 1e-9
+    assert abs(st[0].max_camber - 0.0235) < 1e-9
     mid = min(st, key=lambda s: abs(s.r_frac - 0.5))
-    assert abs(mid.max_camber - 0.048) < 1e-9
+    assert abs(mid.max_camber - 0.0478) < 1e-9
 
 
 def test_blade_to_flat_emits_thick_mode():
