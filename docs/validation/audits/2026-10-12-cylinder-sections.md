@@ -132,7 +132,21 @@ lofts differs from the STL somewhere the six measured radii don't see. That coul
 near the hub, at the LE/TE, or in the LE positions, which were off by up to 1.5 mm axially at r/R 0.50 in
 both fits.
 
-**Diagnosis in progress (not a re-score):** the real STL, the planar recipe and the wrapped recipe, all at
+**Geometry diagnosis (post hoc, `scripts/stock_surface_distance.py`).** 6 000 points sampled on each
+recipe's built blades, aligned to the real STL by rotation and axial shift, then measured as distance to the
+STL surface:
+
+| distance to the real STL | mean | 95th pct | r/R 0.4–0.5 | 0.5–0.6 | 0.6–0.7 | 0.7–0.8 | 0.8–0.9 | 0.9–1.0 |
+|---|---|---|---|---|---|---|---|---|
+| planar v2 | 0.41 mm | 1.71 | 1.27 | 0.59 | 0.35 | 0.19 | 0.18 | 0.26 |
+| wrapped v3 | 0.57 mm | 1.39 | 1.33 | 0.74 | 0.34 | 0.29 | 0.49 | 0.52 |
+
+So matching five summary numbers per section at six radii does not pin the surface down. The wrapped
+refit is about 0.3 mm further from the real blade on the outer 20 % of the span, where most of the work is
+done. That fits its extra flow. **Next:** fit the wrapped recipe to the surface (or add LE/TE position to
+the fit) rather than to the section summaries alone.
+
+**Airflow diagnosis in progress (not a re-score):** the real STL, the planar recipe and the wrapped recipe, all at
 free air in the validation rig with identical current settings (`runs/cyl_sections/v5_diag/`). The recipe
 closer to the STL's CFD is the more faithful one.
 
