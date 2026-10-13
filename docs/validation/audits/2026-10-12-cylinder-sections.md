@@ -163,9 +163,20 @@ wrapped recipe is 5× closer in airflow.** This holds even though its mean surfa
 Airflow depends on the section camber and angles that the fit pins down, more than on sub-millimetre surface
 offsets.
 
+**Loaded points** (same rig and settings, `runs/cyl_sections/v5_diag_load/`, all converged):
+
+| back pressure | real STL | planar v2 | wrapped v3 |
+|---|---|---|---|
+| 0 Pa | 58.3 | 54.5 (−6.5 %) | 57.6 (−1.2 %) |
+| 5 Pa | 49.5 | 46.9 (−5.3 %) | 49.3 (−0.4 %) |
+| 10 Pa | 37.1 | 36.6 (−1.3 %) | 38.8 (+4.6 %) |
+| mean \|gap\| | | 4.4 % | **2.1 %** |
+
+The wrapped recipe is closer at 0 and 5 Pa and slightly further at 10 Pa, which is near the stall region
+where steady RANS is least reliable (§19.6).
+
 The registered verdict stays **FAIL**. The cause is now understood, which is the condition the spec set
-for un-parking. Adopting wrapped sections and the v3 Stock is Kimball's decision. Only free air was
-checked; a loaded point (5 and 10 Pa) on all three would close the remaining question.
+for un-parking. Adopting wrapped sections and the v3 Stock is Kimball's decision. 
 
 ### V6: BEM vs CFD on t9005 (report only)
 
