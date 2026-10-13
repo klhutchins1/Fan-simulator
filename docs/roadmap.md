@@ -36,7 +36,7 @@ session.**
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next: adopt/merge `cylinder-sections` (Stock v3) and rewrite `first_print_measure_plan.md` before any print. Then §28 print-part ID (after QA mark-spec). §23.12–23.14 closed.**
+**→ Next (2026-10-13): wrap + Stock v3 are MERGED (`ae3f1c4`, 27.4). Rewrite `first_print_measure_plan.md` from the final Stock v3 numbers (27.9), QA confirms the merged builder (round 10b), then 27.7 (optimizer bounds under wrap) before any new optimizer campaign. §28 stays parked (evaluate worth first). §23.12–23.14 closed.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -252,7 +252,7 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 
-- [ ] **5.1 Print a real-frame design + measure** CFM / static / noise / weight. **Pre-registered plan 2026-10-02:** `docs/validation/first_print_measure_plan.md`: genuine impeller (rig calibration) vs printed Stock recipe, predicted B/A ratio **0.89 (band 0.82–0.96)** — **rewrite this band if wrapped Stock v3 is adopted** (wrap free-air is ~57.6 CFM vs planar ~54.5 vs close-ref STL 58.3; see `docs/validation/audits/2026-10-12-cylinder-sections.md` V5). Print STL at `exports/first_print_stock/`. Recorder is built
+- [ ] **5.1 Print a real-frame design + measure** CFM / static / noise / weight. **Pre-registered plan 2026-10-02:** `docs/validation/first_print_measure_plan.md`: genuine impeller (rig calibration) vs printed Stock recipe, predicted B/A ratio **0.89 (band 0.82–0.96)** — **rewrite this band: wrapped Stock v3 is adopted (27.9)** (final v3 free air 55.7 CFM vs planar 54.5 vs close-ref STL 58.3 in the rig; the 57.6 was a round-edge v3; see `docs/validation/audits/2026-10-12-cylinder-sections.md` V5). Print STL at `exports/first_print_stock/`. Recorder is built
   (cockpit → `validation/measurements/` with material/print-type/weight fields). **Nothing is
   measured yet** — one real point changes hypothesis → result. **Print-fit kit ready**
   (`scripts/export_a12x25_print_ready.py` + mount gauge vs measured MotorMount / frame); still
@@ -1657,7 +1657,11 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
       It failed on a shrouded design (S7_0013: 2.66 vs 2.41 GB). Shrouds run ~1 GB above the face fit.
     - **Fix:** guard on the *remaining growth*, k·(a + b·faces) plus a shroud term, refit on Windows with the
       same measurement (peak working set minus working set at the call).
-- [ ] **27.2 (QA-19 residual) A mildly cambered, strongly leaned design is still refused as "backwards".**
+- [x] **27.2 (QA-19 residual) A mildly cambered, strongly leaned design is still refused as "backwards".**
+  **CLOSED 2026-10-13 by the wrap (27.4), not by a second reader.** V4: on wrapped rebuilds the cylinder proof
+  makes 0 wrong calls on 30 parts and reads S3_0014 correctly. Do **not** add the radial-plane reader to the
+  builder rule: it cuts the *tangent plane*, which is where the old planar sections lived; on wrapped blades it
+  is the mismatched cut. More INCONCLUSIVE (QA-33) is fine: INCONCLUSIVE never refuses.
   S3_0014 (camber 0.0242, lean 42°) is above the 0.02 trust cut-off, so the lean artefact refuses it. In the
   optimizer that design is scored **infeasible**. The cell camber 0.02–0.04 × lean ≥ 30° had 1 FAIL and
   3 INCONCLUSIVE of 8.
@@ -1693,7 +1697,19 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
   - **Thresholds (±15 %, 2.8 dB) rest on one pair of runs that isn't a pure repeat.** Run Stock 3–5 times on
     the same setup and set each tolerance at about 2σ. Until then, a band says "stronger/weaker" only when it
     agrees with its neighbour or the mean. **[effort: med: 3–5 CFD runs ≈ 2–3 h]**
-- [ ] **27.4 Built blade vs its numbers: are sections planar where BEM assumes cylinders?** (from lt120)
+- [x] **27.4 Built blade vs its numbers: are sections planar where BEM assumes cylinders?** (from lt120)
+  **DONE 2026-10-13, option (i) (Kimball), merged `ae3f1c4`.** Sections are wrapped onto their cylinders
+  (`section_wrap="cylinder"` for axial designs; old saves stamped planar, 79 designs + 80 catalog rows,
+  backup `runs/_backup_section_wrap_20261013/`). Built blade = sliders within camber 0.001 / stagger 0.1°.
+  Stock v3 refit (sharp 0.2 edges, hub-cut corrected): vs the real STL in the rig, free 55.7 CFM (STL 58.3,
+  planar v2 54.5); 5/10 Pa 48.0/37.5 (STL 49.5/37.1, v2 46.9/36.6); mean gap 2.8 % vs v2 4.4 %.
+  V5 vs planar Stock in Assess: +2.4 % free / −5.6 % loaded (narrow FAIL, understood).
+  **QA-32 done Kimball's way (a):** blades may hang at most **2 mm below the hub's motor face as designed**
+  (8/200 stress designs refused); under that, the realisation corrects camber/stagger at cut stations
+  (8 worst allowed designs pass V1). Plus a fuse safety net (a fuse that leaves loose pieces is redone one
+  blade at a time). Audit: `docs/validation/audits/2026-10-12-cylinder-sections.md`.
+  **Note for anyone reading old numbers:** the 57.6 CFM / 2.1 % figures were the first v3 with *round* edges
+  (a fit-script bug, fixed); use the numbers above.
   - **QA round 8 (Task D): MATERIAL, and the cause is different from what we thought.** Two separate
     problems, not chord/r:
     - **QA-30, the hub-face clip.** `clip_blade_below` (the blades are cut at the hub's motor face) shortens
@@ -1736,12 +1752,23 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
   - The Export message shows the live hub radius and height.
   - After Assess the view jumps back to the assessed design even if you moved on.
   - Display only. **[impact: low]** **[effort: low]**
+- [ ] **27.7 Optimizer under wrap: bounds and re-finding designs.** Every saved optimizer design was found
+  with planar sections, where a camber slider of 0.06 built ~0.01–0.04. Under wrap the sliders mean the built
+  blade (Stock v3 camber 0.024–0.048). Re-derive the camber (and stagger) bounds from Stock v3 and the wrap
+  V1 data before any new campaign; t9005 wrapped moves less air than planar (V6). Do not print or rank old
+  candidates as if their sliders still meant the same blade. **[impact: high]** **[effort: med]**
+- [ ] **27.8 Hang-limit UX.** `validate_blade_params` refuses >2 mm hang with a plain message; check the cockpit
+  shows it at Preview (not only at Assess) and the optimizer counts it as an early infeasible, not a crash.
+  **[impact: med]** **[effort: low]**
+- [ ] **27.9 Rewrite `docs/validation/first_print_measure_plan.md` for Stock v3** (print freeze, §5.1). Use the
+  27.4 numbers above, not 57.6 / 53.6 / B/A 0.89. **[impact: high: blocks the first print]** **[effort: low]**
 - QA tooling only, not app bugs: QA-28 (the stress runner's gates use wall time and break when the box
   suspends), and K2's sliver rule needs to be relative to edge length (S6_0019's 1e-9 mm² sliver is a
   threshold artefact).
 - **QA-32 (MED, round 9):** on wrapped builds, stations the hub-face clip reaches have restored chord
   (QA-30 verified) but camber 0.005–0.011 low and stagger up to −1.1°. ~15 % of the stress population.
-  Honesty fix: give BEM the clipped sections. Do not start another loft rewrite. See 27.4.
+  **DONE 2026-10-13 (Kimball chose (a), not BEM-on-clipped): 2 mm hang limit + camber/stagger correction at cut
+  stations, see 27.4.** (Cursor's 'BEM on clipped sections' was written before that decision.)
 - **QA-33 (LOW–MED, round 9):** wrapped cylinder direction proof is INCONCLUSIVE more often
   (30/65 vs 24/66 planar).
 
@@ -1753,7 +1780,10 @@ Kimball, 2026-10-13: two printed fans from a month ago, and only the Noctua is i
 ~30 parts in a box, a re-test has to attach to the **export** (recipe, wrap, git, CFD run, material),
 not “the black 120 mm one”. A sharpie works as a fallback **if the code already exists** to copy.
 
-**Status:** parked until wrap merge. QA measures the hub faces first (`handoff/2026-10-13_to-qa-10/`).
+**Status:** parked; **evaluate whether it is worth it** (Kimball 2026-10-13) before building. Wrap is merged
+(`ae3f1c4`), so the remaining gate is QA's mark-spec. Claude's view: 28.2 (registry + README code, no cut)
+is cheap and worth it on its own; 28.3 (recessed glyphs) only if a sharpie code from the README proves too
+fragile. QA measures the hub faces first (`handoff/2026-10-13_to-qa-10/`).
 Do **not** implement the cut until that mark-spec exists and wrap is on master.
 
 ### What this is for
