@@ -555,8 +555,35 @@ def apply_tip_shape(params: BladeParams, tip_round: float = 0.0,
     return params
 
 
-TIP_LOFT_EXT_MM = 2.0  # wrapped blades: planar closing wire this far past the tip (trimmed off)
 TIP_WRAP_OVER_MM = 0.5  # wrapped blades: last wrapped wire this far past the tip (trimmed off)
+
+
+def _capped_loft(wires: list, loops: list) -> cq.Solid:
+    """Solid loft through WRAPPED (non-planar) section wires.
+
+    ThruSections can't close a curved end wire with its own flat cap, and planar end wires stand
+    off their cylinder far enough to fold the loft (S4_0001: booleans returned nothing). So: loft
+    an open shell, close each end with a ruled face between its suction and pressure halves
+    (the loop runs TE -> one side -> LE at n/2 -> other side, so the halves pair point for point),
+    sew, and make the solid.
+    """
+    from OCP.BRepOffsetAPI import BRepOffsetAPI_ThruSections
+
+    # ruled: bilinear patches between neighbouring wires, the same patch type the planar loft gets.
+    # A smooth (non-ruled) loft made 18-pole B-spline faces whose blade-blade overlaps in the hub
+    # took the fuse from ~20 s to ~300 s (S4_0001).
+    builder = BRepOffsetAPI_ThruSections(False, True)
+    for w in wires:
+        builder.AddWire(w.wrapped)
+    builder.Build()
+    faces = list(cq.Shape.cast(builder.Shape()).Faces())
+    for pts in (loops[0], loops[-1]):
+        n = len(pts)
+        le = n // 2
+        side_a = cq.Wire.makePolygon(pts[: le + 1])
+        side_b = cq.Wire.makePolygon([pts[0], *pts[: le - 1: -1]])
+        faces.append(cq.Face.makeRuledSurface(side_a, side_b))
+    return cq.Solid.makeSolid(cq.Shell.makeShell(faces)).fix()
 
 
 def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False,
@@ -602,8 +629,8 @@ def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False,
     wrap = bool(kw.pop("wrap"))
     cyl_tip = bool(getattr(params, "cylindrical_tip", True))
 
-    def wire(i: int, r: float, wrapped: bool) -> cq.Wire:
-        pts = _section_points_3d(
+    def section(i: int, r: float) -> list:
+        return _section_points_3d(
             r=r,
             r_frac=float(interp["r_frac"][i]),
             chord=float(interp["chord"][i]),
@@ -620,28 +647,21 @@ def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False,
             le_skew=float(interp["le_skew"][i]),
             tip_notch_count=params.tip_notch_count,
             tip_notch_depth_mm=params.tip_notch_depth_mm,
-            wrap=wrapped,
+            wrap=wrap,
             **kw,
         )
-        return cq.Wire.makePolygon(pts, close=True)
 
-    # Wrapped sections are curved wires, and a loft can't close a curved end with a flat cap (the
-    # solid comes out invalid). So the two END wires stay planar: the root sits inside the hub, and
-    # under ``cylindrical_tip`` one planar wire is added TIP_LOFT_EXT_MM past the tip. The last
-    # wrapped wire sits TIP_WRAP_OVER_MM past R, not on it: a wire lying ON the trim cylinder
-    # defeats the boolean (QA-21 design). The trim at R then crosses wrapped sections cleanly.
     last = n_span - 1
-    wires: list[cq.Wire] = []
+    loops = []
     for i in range(n_span):
         r = r_root + (r_tip - r_root) * float(interp["r_frac"][i])
         if wrap and cyl_tip and i == last:
+            # A wire lying ON the trim cylinder defeats the boolean (the QA-21 design); put the last
+            # wrapped wire just outside R so the trim crosses wrapped sections cleanly.
             r += TIP_WRAP_OVER_MM
-        end_cap = i == 0 or (i == last and not cyl_tip)
-        wires.append(wire(i, r, wrap and not end_cap))
-    if wrap and cyl_tip:
-        wires.append(wire(last, r_tip + TIP_LOFT_EXT_MM, False))
-
-    blade = cq.Solid.makeLoft(wires, True)
+        loops.append(section(i, r))
+    wires = [cq.Wire.makePolygon(pts, close=True) for pts in loops]
+    blade = _capped_loft(wires, loops) if wrap else cq.Solid.makeLoft(wires, True)
     if float(blade.Volume()) < 0.0:
         # Lofts through wrapped (curved) wires can come out inside-out; booleans on an inverted
         # solid return nothing (the QA-21 design's tip trim was empty at every radius).

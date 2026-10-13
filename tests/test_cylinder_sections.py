@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from fansim.geometry import build_impeller
 from fansim.geometry.blade import _section_points_3d, build_blade_solid
 from fansim.geometry.chord_realisation import _station_measure_fracs, prepare_loft_chords
 from fansim.geometry.export import export_stl
@@ -88,3 +89,18 @@ def test_chord_is_realised_on_the_hub_clipped_blade():
         rows = measure_sections(stl, [f for f, _ in pairs])
     for (_, s), r in zip(pairs, rows):
         assert r["chord_mm"] == pytest.approx(s.chord, rel=0.03), (s.r_frac, r["chord_mm"], s.chord)
+
+
+def test_wrapped_impeller_keeps_its_hub_and_blades():
+    """S4_0001 (10 blades, wide roots overlapping in the hub): with planar end wires the wrapped loft
+    folded and every boolean returned nothing, so the "impeller" was a single blade (1 190 mm3 vs
+    76 518). With capped ruled lofts it must match the planar build's volume."""
+    import json
+
+    from fansim.optimize.search_space import blade_from_flat
+
+    d = json.loads((Path(__file__).parent / "data" / "s4_0001_overlapping_roots_flat.json").read_text())
+    base = blade_from_flat(d["flat"], Features(**d["features"]))
+    vols = {w: float(build_impeller(dataclasses.replace(base, section_wrap=w)).val().Volume())
+            for w in ("planar", "cylinder")}
+    assert vols["cylinder"] == pytest.approx(vols["planar"], rel=0.05), vols
