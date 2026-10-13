@@ -146,9 +146,26 @@ refit is about 0.3 mm further from the real blade on the outer 20 % of the span,
 done. That fits its extra flow. **Next:** fit the wrapped recipe to the surface (or add LE/TE position to
 the fit) rather than to the section summaries alone.
 
-**Airflow diagnosis in progress (not a re-score):** the real STL, the planar recipe and the wrapped recipe, all at
-free air in the validation rig with identical current settings (`runs/cyl_sections/v5_diag/`). The recipe
-closer to the STL's CFD is the more faithful one.
+**Airflow diagnosis (post hoc, not a re-score): the real STL decides.** Free air in the validation rig
+(`scripts/run_a12x25_validation.py --backs 0 --base-cell 0.005 --iters 1000 --with-frame`, tip gap 0.5 mm),
+identical settings and code, all converged (`runs/cyl_sections/v5_diag/`):
+
+| geometry | free-air CFM | vs the real STL |
+|---|---|---|
+| real A12x25 STL (close-ref) | 58.3 | — |
+| Stock v2, planar sections | 54.5 | −6.5 % |
+| Stock v3, wrapped sections | 57.6 | **−1.2 %** |
+
+(The STL itself is −3 % against the 60.1 CFM datasheet.)
+
+**So V5 failed because its reference, the planar recipe, is itself 6.5 % low against the real fan. The
+wrapped recipe is 5× closer in airflow.** This holds even though its mean surface distance is larger.
+Airflow depends on the section camber and angles that the fit pins down, more than on sub-millimetre surface
+offsets.
+
+The registered verdict stays **FAIL**. The cause is now understood, which is the condition the spec set
+for un-parking. Adopting wrapped sections and the v3 Stock is Kimball's decision. Only free air was
+checked; a loaded point (5 and 10 Pa) on all three would close the remaining question.
 
 ### V6: BEM vs CFD on t9005 (report only)
 
