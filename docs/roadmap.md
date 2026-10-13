@@ -5,12 +5,12 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-10-11** (§26 parked: external STL Assess / inverse-fit / community corpus).
-  Previously **2026-10-08** (§23 QA). **§12** + **§13** + **§7.6** + **§14.1–14.6** closed in code.
-  Stock close-ref fidelity (§2.7–2.8). **§13.22–13.24** / **§14.3b** /
-  **§14.6** / **§15.1–15.6** landed 2026-09-16. Still **not shippable** until Validation P–Q /
-  print+measure — see `a12x25_pq_report.md`. **§21** cockpit UX + **§22** design-switch
-  3-D reload bug opened 2026-09-30.
+- Last reviewed: **2026-10-13** (§28 parked: print-part ID on the hub; wrap merge is the print freeze).
+  Previously **2026-10-11** (§26 parked). **2026-10-08** (§23 QA). **§12** + **§13** + **§7.6** +
+  **§14.1–14.6** closed in code. Stock close-ref fidelity (§2.7–2.8). **§13.22–13.24** /
+  **§14.3b** / **§14.6** / **§15.1–15.6** landed 2026-09-16. Still **not shippable** until
+  Validation P–Q / print+measure — see `a12x25_pq_report.md`. **§21** cockpit UX + **§22**
+  design-switch 3-D reload bug opened 2026-09-30.
 > ✅ **§19.1 freeze lifted 2026-09-26** — rotor direction fixed and CFD-verified (Audit #1b). CFD orientation lives in
 > `fansim/cfd/orientation.py`; change it only with a new direction audit.
 
@@ -36,7 +36,7 @@ session.**
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next: §23 Phase-1 QA list (2026-10-08) — start with 23.1 (Stock 7→3 stations, verified) and the release blockers 23.12–23.14.**
+**→ Next: adopt/merge `cylinder-sections` (Stock v3) and rewrite `first_print_measure_plan.md` before any print. Then §28 print-part ID (after QA mark-spec). §23.12–23.14 closed.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -54,8 +54,11 @@ session.**
   - **§21** — core Fan + Prop UX done 2026-09-30; optional leftover: 21.2g (tour/readiness).
     Intake overbuild (+Z) Design switch landed 2026-09-30 (Fit & seed; asymmetric envelope).
   - **§26** (parked idea) — cockpit “Bring your STL” Assess; optional inverse-fit; no mass-scrape.
-    Do **not** start until §23 release blockers and a clear UI slot exist; CLI already has
-    `scripts/validate_stl.py`.
+    Do **not** start until wrap is merged and external-STL spin is honest (round 9 D unconfirmed).
+    CLI already has `scripts/validate_stl.py`.
+  - **§28** (parked until wrap merge + QA mark-spec) — short recessed code on the hub at Export,
+    sidecar → `validation/store.py`. Not on blades. Handoffs:
+    `handoff/2026-10-13_to-claude/`, `handoff/2026-10-13_to-qa-10/`.
   - Deferred (Stage 1 done, Stage 2 **not adopted** — do not start without a new Adopt):
     CST section DOFs, §7.4 CNN/FNO field predictor, §4.5 toroidal Prop topology.
   - ~~§20.2 NeuralFoil / RMS / 360°~~ — DONE 2026-09-30.
@@ -249,12 +252,16 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 
-- [ ] **5.1 Print a real-frame design + measure** CFM / static / noise / weight. **Pre-registered plan 2026-10-02:** `docs/validation/first_print_measure_plan.md`: genuine impeller (rig calibration) vs printed Stock recipe, predicted B/A ratio **0.89 (band 0.82–0.96)**; print STL at `exports/first_print_stock/`. Recorder is built
+- [ ] **5.1 Print a real-frame design + measure** CFM / static / noise / weight. **Pre-registered plan 2026-10-02:** `docs/validation/first_print_measure_plan.md`: genuine impeller (rig calibration) vs printed Stock recipe, predicted B/A ratio **0.89 (band 0.82–0.96)** — **rewrite this band if wrapped Stock v3 is adopted** (wrap free-air is ~57.6 CFM vs planar ~54.5 vs close-ref STL 58.3; see `docs/validation/audits/2026-10-12-cylinder-sections.md` V5). Print STL at `exports/first_print_stock/`. Recorder is built
   (cockpit → `validation/measurements/` with material/print-type/weight fields). **Nothing is
   measured yet** — one real point changes hypothesis → result. **Print-fit kit ready**
   (`scripts/export_a12x25_print_ready.py` + mount gauge vs measured MotorMount / frame); still
-  **blocked on commercial hub**. See `docs/validation/north-star-staged.md`. Do **not** check
-  done until hardware data exists.
+  **blocked on tools / commercial hub**. See `docs/validation/north-star-staged.md`.
+  **Print freeze 2026-10-13:** do not slice article B until wrap is adopted or explicitly
+  rejected, the plan numbers match that recipe, and the part carries a §28 print-id (or the
+  same code written on the hub in sharpie from the export README). Do **not** print optimizer
+  candidates (wrap changes what their sliders mean). Do **not** check done until hardware data
+  exists.
 - [ ] **5.2 Calibrate the sim** from the measurement (the store's sim-vs-real + calibration hooks exist).
 
 ## 6. Research / papers to fold into `docs/bibliography.md`
@@ -1720,10 +1727,8 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
     as a function of chord/r. If the gap is real, choose: wrap sections onto cylinders in the builder, extend
     the measured-chord realisation to camber, or give BEM the built sections.
     **[impact: high: accuracy of every score]** **[effort: med investigation / high fix]**
-- [ ] **27.6 (QA-29) After Assess finishes, its result message is replaced by a frozen "Running Assess…
-  0:04".** The progress ticker keeps rewriting the message until `finally` cancels it, but `on_assess` writes
-  "Done …" and then awaits the picture bake, which lets the ticker run again (confirmed in
-  `fan_assess.py`). It happened before 25.11 too. **Fix:** stop the ticker before writing Done.
+- [x] **27.6 (QA-29) After Assess finishes, its result message is replaced by a frozen "Running Assess…
+  0:04".** **DONE 2026-10-12** (`7f14e5b`): stop the ticker before writing Done.
   **[impact: med: the result line is never seen]** **[effort: low]**
 - [ ] **27.5 (QA-26 leftovers) After a run, some captions show the cockpit as it is now, not what ran.**
   (QA round 8: QA-22..25 verified fixed; Assess-existing now stamps material.)
@@ -1734,6 +1739,71 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
 - QA tooling only, not app bugs: QA-28 (the stress runner's gates use wall time and break when the box
   suspends), and K2's sliver rule needs to be relative to edge length (S6_0019's 1e-9 mm² sliver is a
   threshold artefact).
+- **QA-32 (MED, round 9):** on wrapped builds, stations the hub-face clip reaches have restored chord
+  (QA-30 verified) but camber 0.005–0.011 low and stagger up to −1.1°. ~15 % of the stress population.
+  Honesty fix: give BEM the clipped sections. Do not start another loft rewrite. See 27.4.
+- **QA-33 (LOW–MED, round 9):** wrapped cylinder direction proof is INCONCLUSIVE more often
+  (30/65 vs 24/66 planar).
+
+---
+
+## 28. Print-part ID (parked; needed before a box of prints)
+
+Kimball, 2026-10-13: two printed fans from a month ago, and only the Noctua is identifiable. At
+~30 parts in a box, a re-test has to attach to the **export** (recipe, wrap, git, CFD run, material),
+not “the black 120 mm one”. A sharpie works as a fallback **if the code already exists** to copy.
+
+**Status:** parked until wrap merge. QA measures the hub faces first (`handoff/2026-10-13_to-qa-10/`).
+Do **not** implement the cut until that mark-spec exists and wrap is on master.
+
+### What this is for
+
+Export already writes a print-ready STL, a README, `*_print_fit.json`, and optional handedness
+sidecars (`fansim/cockpit/fan_export.py`, `print_export.export_print_ready`). Measurements already
+key off `design_id` (`validation/store.py`). The missing piece is a **short code on the physical
+part** that is the same string as the sidecar.
+
+### Honest evaluation (do / don't)
+
+| Idea | Verdict | Why |
+|------|---------|-----|
+| Recessed 4–5 char code on the hub at Export | **Do** | Readable without a phone; survives a box; FDM at 0.12 mm can hold ~3.2 mm Crockford glyphs |
+| Data Matrix / tiny QR next to the text | **Do as optional, after the text works** | Phone lookup is nice; FDM modules need ≥0.4–0.5 mm. Text is the source of truth |
+| Large lettering on the shroud / blade / hub OD | **Don't** | Aero + looks. Hub OD is in the blade-root recirculation |
+| Cryptographic hash of the STL | **Don't** | Too long to print; we need a registry, not a fingerprint of triangles |
+| Recover identity of already-printed unlabeled parts | **Don't** | Type them as `unknown` or throw them in the genuine/Noctua bin. No computer vision |
+| CFD of the pocket | **Don't unless QA says the pocket is large** | A 8×3×0.5 mm recess on the hub disk is smaller than the motor cup. Measure area first |
+
+### Where (pending QA Task A)
+
+Print orientation is hub-down (`BLADE_PRINT_RULES`): **+Z / inlet is the last hub layers** (clean
+recesses). −Z is on the bed (brim / first-layer mess) and is mostly the motor cup.
+
+1. **Preferred:** inlet hub face (+Z), inboard of the blade roots, recessed 0.4–0.6 mm.
+2. **Fallback:** −Z annulus outside the cup, only if +Z has no ring of flat hub.
+3. **Never:** blades, LE/TE, tip, shroud OD, cup grip pads.
+
+Alphabet: Crockford (`0-9 A-H J-K M-N P-R T-V W-X Y-Z`), 4 chars plus optional check digit.
+Issued at Export, unique in `validation/prints/index.jsonl`. Filename stem includes the code
+(replaces the old `design_100000` confusion, §23.19). README prints the code in large type
+for sharpie fallback.
+
+Record measurement: a `print_id` field that fills `design_id` / recipe / wrap / git from the
+index. Genuine Noctua (article A) has no code — that is fine.
+
+### Recommended order (when un-parked)
+
+1. **28.1 QA mark-spec** — available annulus, letter size, dummy-pocket watertight + cup-fit.
+2. **28.2 Registry + sidecar** at Export (no cut yet): code, `design_id`, recipe hash,
+   `section_wrap`, git, material, STL path. README shows the code.
+3. **28.3 Recessed glyphs** on the hub from the mark-spec. Watertight + mount gauge still pass.
+4. **28.4 Record measurement** accepts `print_id` (type it; scan later).
+
+- [ ] **28.1 Hub-face mark-spec** (QA; no fansim edit).
+- [ ] **28.2 Print-id registry + export sidecar / README** (no geometry cut).
+- [ ] **28.3 Recessed hub glyphs** from the mark-spec.
+- [ ] **28.4 Measurement ingest by `print_id`.**
+- [x] **28.5 Hash-as-the-part / blade QR / vision on old prints.** **Not adopted.**
 
 ---
 
