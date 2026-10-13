@@ -903,6 +903,46 @@ def validate_blade_params(params: BladeParams) -> None:
     if params.blade_angles_deg is not None and len(params.blade_angles_deg) != int(float(n)):
         raise ValueError(
             f"blade_angles_deg has {len(params.blade_angles_deg)} entries, expected n_blades={n}")
+    if (bool(getattr(params, "clip_below_hub", True))
+            and str(getattr(params, "section_wrap", "planar")) == "cylinder"):
+        hang = blade_hang_below_hub_mm(params)
+        if hang > MAX_HANG_BELOW_HUB_MM:
+            raise ValueError(
+                f"the blades hang {hang:.1f} mm below the hub's motor face (limit "
+                f"{MAX_HANG_BELOW_HUB_MM:.0f} mm): that part would be cut off and strike the frame "
+                "struts. Reduce the stagger or sweep at the trailing edge, or make the hub taller")
+
+
+# Kimball 2026-10-13 (roadmap 27.4 / QA-32): wrapped designs may hang at most this far below the
+# hub's motor face. Stock hangs ~1 mm; 20 % of optimizer designs hung, median 2.5 mm, worst 13 mm.
+# Old planar saves are not refused (they rebuild exactly as scored).
+MAX_HANG_BELOW_HUB_MM = 2.0
+
+
+def blade_hang_below_hub_mm(params: BladeParams) -> float:
+    """How far (mm) the blade as designed reaches below the hub's motor face (0 if it doesn't).
+
+    Read from the loft's section points (no CAD): a wrapped loft is ruled between them, so its
+    lowest point is a section point. Uses the station chords as designed, not the realised loft.
+    """
+    z_face = _hub_axial_range(params)[0]
+    it = _interp_stations(params, params.n_span)
+    r0 = params.hub_radius - params.root_embed
+    kw = _thick_scale_kw(params)
+    zmin = math.inf
+    for i in range(params.n_span):
+        rf = float(it["r_frac"][i])
+        pts = _section_points_3d(
+            r=r0 + (params.tip_radius - r0) * rf, r_frac=rf,
+            chord=float(it["chord"][i]), stagger_deg=float(it["stagger_deg"][i]),
+            thickness=float(it["thickness"][i]), max_camber=float(it["max_camber"][i]),
+            camber_pos=float(it["camber_pos"][i]), sweep=float(it["sweep"][i]),
+            skew=float(it["skew"][i]), le_sweep=float(it["le_sweep"][i]),
+            lean_deg=float(it["lean_deg"][i]), n_chord=params.n_chord, features=params.features,
+            le_skew=float(it["le_skew"][i]), tip_notch_count=params.tip_notch_count,
+            tip_notch_depth_mm=params.tip_notch_depth_mm, **kw)
+        zmin = min(zmin, min(v.z for v in pts))
+    return max(0.0, float(z_face - zmin))
 
 
 CLIP_TOL_MM = 1e-3

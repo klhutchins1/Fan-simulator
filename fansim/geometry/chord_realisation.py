@@ -55,8 +55,8 @@ def _station_measure_fracs(params) -> list[float | None]:
     return out
 
 
-def measure_station_chords(params) -> list[float | None]:
-    """Build one blade (already chord-realised path) and measure chord at each station radius."""
+def measure_station_rows(params, *, clip: bool = True) -> list[dict | None]:
+    """Build one blade (already chord-realised path) and read the section at each station radius."""
     from fansim.geometry.blade import _hub_axial_range, build_blade_solid, clip_blade_below
 
     fracs = _station_measure_fracs(params)
@@ -71,28 +71,28 @@ def measure_station_chords(params) -> list[float | None]:
         blade = build_blade_solid(params, _chord_realized=True, _trim_tip=False)
         # Measure what ships: the build cuts every blade at the hub's motor face (QA-16), which
         # took 3-16 % off lt120's chord that an unclipped measurement never saw (QA-30, 27.4).
-        blade = clip_blade_below(params, blade, _hub_axial_range(params)[0])
+        if clip:
+            blade = clip_blade_below(params, blade, _hub_axial_range(params)[0])
         export_stl(blade, stl)
         rows = measure_sections(stl, uniq, tip_radius_mm=float(params.tip_radius))
     by_f = {round(r["r_frac"], 4): r for r in rows}
-    out: list[float | None] = []
+    out: list[dict | None] = []
     for f in fracs:
-        if f is None:
-            out.append(None)
-            continue
-        r = by_f.get(round(f, 4))
-        if r is None or int(r.get("n_blades") or 0) <= 0:
-            out.append(None)
-            continue
-        out.append(float(r["chord_mm"]))
+        r = None if f is None else by_f.get(round(f, 4))
+        out.append(r if r is not None and int(r.get("n_blades") or 0) > 0 else None)
     return out
+
+
+def measure_station_chords(params) -> list[float | None]:
+    """Build one blade (already chord-realised path) and measure chord at each station radius."""
+    return [None if r is None else float(r["chord_mm"]) for r in measure_station_rows(params)]
 
 
 # Disk cache for the build→measure fixed point (roadmap §23.17). Preview, Assess and Export of the
 # same design each run in a fresh worker process, so the in-process cache never hit and every one
 # re-ran the iteration. Keyed on the full params + iteration count + LOFT_CACHE_VERSION (bump it
 # whenever the measurement/update rule changes). FANSIM_CACHE_DIR overrides the location.
-LOFT_CACHE_VERSION = 3   # 2: untrimmed measurement builds at the true tip radius; 3: hub-face clipped
+LOFT_CACHE_VERSION = 5   # 2: untrimmed builds at the true tip radius; 3: hub-face clipped; 4-5: clip camber/stagger
 
 
 def _cache_dir() -> Path:
@@ -188,7 +188,88 @@ def prepare_loft_chords(params):
         raise ValueError(f"chord_basis must be one of {CHORD_BASES}, got {basis!r}")
     if basis == CHORD_BASIS_LOFT:
         return params
-    return with_loft_chords(params, loft_chords_for_measured_targets(params))
+    loft = with_loft_chords(params, loft_chords_for_measured_targets(params))
+    return correct_clipped_sections(loft, params)
+
+
+# Hub-face clip correction (Kimball 2026-10-13, roadmap 27.4 / QA-32). Where the motor-face cut
+# reaches a station, restoring its chord isn't enough: the cut section is a truncated airfoil whose
+# camber read 0.005-0.011 low and stagger up to 1.8 deg off. Nudge the loft camber/stagger there until
+# the cut section reads like the designed one through the same estimator (its bias cancels).
+CLIP_REACHED_MM = 0.1      # a station counts as reached when the cut removes this much chord,
+CLIP_REACHED_CAMBER = 0.001  # or moves its camber reading this much,
+CLIP_REACHED_STAGGER_DEG = 0.2  # or its stagger this much
+_CLIP_ITERS = 3
+_CLIP_DAMPING = 0.8
+
+
+def _cut_changes(cut: dict, whole: dict) -> bool:
+    """True when the hub-face cut changes this section's reading: its chord, or its camber/stagger.
+
+    Stock's cut removes < 0.1 mm of chord at its inner stations yet trims the trailing edge at an
+    angle, which moved its camber reading by 0.005-0.007.
+    """
+    return (float(whole["chord_mm"]) - float(cut["chord_mm"]) > CLIP_REACHED_MM
+            or abs(float(whole["camber_ratio"]) - float(cut["camber_ratio"])) > CLIP_REACHED_CAMBER
+            or abs(float(whole["stagger_deg"]) - float(cut["stagger_deg"])) > CLIP_REACHED_STAGGER_DEG)
+
+
+def _designed_reading(design, station, r_mm: float, omega: int) -> dict | None:
+    """The station's own section, wrapped at r with no lean/sweep, read by the section estimator."""
+    from fansim.geometry.blade import _section_points_3d, _thick_scale_kw
+    from fansim.geometry.features import Features
+    from fansim.validation.section_compare import _measure_loop
+
+    kw = _thick_scale_kw(design)
+    kw["wrap"] = True
+    pts = _section_points_3d(
+        r=r_mm, r_frac=station.r_frac, chord=station.chord, stagger_deg=station.stagger_deg,
+        thickness=station.thickness, max_camber=station.max_camber, camber_pos=station.camber_pos,
+        sweep=0.0, skew=0.0, le_sweep=0.0, lean_deg=0.0, n_chord=max(int(design.n_chord), 60),
+        features=Features(), **kw)
+    return _measure_loop(np.array([[v.x, v.y, v.z] for v in pts]), r_mm, omega, 1)
+
+
+def correct_clipped_sections(loft, design):
+    """``loft`` with camber/stagger corrected at stations the hub-face cut reaches (else unchanged).
+
+    Only wrapped, clipped designs that actually hang below the hub face pay for the extra builds.
+    """
+    from fansim.geometry.blade import blade_hang_below_hub_mm
+
+    if (str(getattr(design, "section_wrap", "planar")) != "cylinder"
+            or not bool(getattr(design, "clip_below_hub", True))
+            or blade_hang_below_hub_mm(loft) <= 0.0):
+        return loft
+    key = "clip_" + _cache_key(design, _CLIP_ITERS)
+    cached = _cache_get(key, 2 * len(loft.stations))
+    if cached is not None:
+        return _with_camber_stagger(loft, cached[0::2], cached[1::2])
+    cut = measure_station_rows(loft)
+    whole = measure_station_rows(loft, clip=False)
+    reached = [c is not None and w is not None and _cut_changes(c, w) for c, w in zip(cut, whole)]
+    cam = [float(s.max_camber) for s in loft.stations]
+    stag = [float(s.stagger_deg) for s in loft.stations]
+    if any(reached):
+        targets = [_designed_reading(design, s, float(c["r_mm"]), int(c.get("omega_sign", 1)))
+                   if hit else None for s, c, hit in zip(design.stations, cut, reached)]
+        for _ in range(_CLIP_ITERS):
+            for i, (hit, tgt, row) in enumerate(zip(reached, targets, cut)):
+                if not hit or tgt is None or row is None or float(row["camber_ratio"]) <= 1e-6:
+                    continue
+                ratio = float(np.clip(float(tgt["camber_ratio"]) / float(row["camber_ratio"]),
+                                      0.5, 2.0))
+                cam[i] *= 1.0 + _CLIP_DAMPING * (ratio - 1.0)
+                stag[i] += _CLIP_DAMPING * (float(tgt["stagger_deg"]) - float(row["stagger_deg"]))
+            cut = measure_station_rows(_with_camber_stagger(loft, cam, stag))
+    _cache_put(key, [v for pair in zip(cam, stag) for v in pair])
+    return _with_camber_stagger(loft, cam, stag)
+
+
+def _with_camber_stagger(params, cam, stag):
+    stations = [replace(s, max_camber=float(c), stagger_deg=float(g))
+                for s, c, g in zip(params.stations, cam, stag)]
+    return replace(deepcopy(params), stations=stations)
 
 
 def with_loft_chords(params, loft_chords: list[float]):
