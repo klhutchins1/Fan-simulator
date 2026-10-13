@@ -100,3 +100,29 @@ def test_wrapped_impeller_keeps_its_hub_and_blades():
     vols = {w: float(build_impeller(dataclasses.replace(base, section_wrap=w)).val().Volume())
             for w in ("planar", "cylinder")}
     assert vols["cylinder"] == pytest.approx(vols["planar"], rel=0.05), vols
+
+
+def test_a_fuse_that_leaves_loose_pieces_is_redone_one_blade_at_a_time(monkeypatch):
+    """The first sharp-edge v3 Stock (commit 7a1a466, tests/data/stock_v3_fuse_fragile.yaml) fused
+    into 2 solids / 6 mesh bodies with the parallel and the all-at-once serial fuse (the full suite's
+    "not watertight (6 bodies)"); one blade at a time gave one clean solid. Whether OCCT trips depends
+    on the exact geometry, so simulate the trip: a multi-tool fuse that hands back loose pieces."""
+    import cadquery as cq
+
+    import fansim.geometry.blade as gb
+    from fansim.geometry.config import load_blade_params
+    from fansim.resources import TIERS
+
+    real = gb._fuse
+
+    def tripping(base, tools, parallel=False):
+        tools = list(tools)
+        if len(tools) > 1:
+            return cq.Compound.makeCompound([base, *tools])   # unfused: many solids
+        return real(base, tools, parallel=parallel)
+
+    monkeypatch.setattr(gb, "_fuse", tripping)
+    p = dataclasses.replace(load_blade_params("config/problems/a12x25_reference.yaml"), n_blades=3)
+    hub, blades, ring = gb.build_impeller_parts(p)
+    fused = gb.fuse_impeller(hub, blades, ring, tier=next(t for t in TIERS if t.name == "8gb"))
+    assert len(fused.Solids()) == 1 and fused.isValid()
