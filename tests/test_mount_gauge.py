@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
+from dataclasses import asdict
+
 from fansim.cockpit.placement import fit_envelope, nominal_fits_spec
 from fansim.fan_spec import get_fan_spec
 from fansim.manufacturability.mount_gauge import gauge_print_stl
-from fansim.manufacturability.print_export import export_print_ready
-from fansim.optimize.search_space import blade_from_flat, stock_blade_flat
+from fansim.optimize.search_space import stock_blade_flat
 
 
 def test_stock_after_fit_envelope_is_mountable_and_frame_fit():
@@ -18,14 +22,39 @@ def test_stock_after_fit_envelope_is_mountable_and_frame_fit():
 def test_gauge_accepts_carved_stock_export(tmp_path):
     spec = get_fan_spec("a12x25")
     flat = fit_envelope(stock_blade_flat("a12x25"), spec).flat
-    params = blade_from_flat(flat)
     stl = tmp_path / "print.stl"
-    rep = export_print_ready(params, stl, mount=spec.motor_mount)
-    assert rep.ok and rep.mount_fits is True
+    result = tmp_path / "export.json"
+    job = tmp_path / "job.json"
+    # 23.55: the cup fuse peaks ~7.6 GB and retains it. Do it in a child so this
+    # pytest process is not the suite's 8 GB peak (QA-15 S5). DEVNULL stdout: a
+    # captured pipe can fill during the boolean. No STEP (the gauge only needs STL).
+    job.write_text(
+        json.dumps(
+            {
+                "flat": flat,
+                "out": str(stl),
+                "mount": asdict(spec.motor_mount),
+                "result": str(result),
+                "also_step": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    proc = subprocess.run(
+        [sys.executable, "-m", "fansim.manufacturability._print_ready_worker", str(job)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        timeout=900,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stderr[-2000:] if proc.stderr else "worker failed"
+    assert stl.is_file() and result.is_file()
+    rep = json.loads(result.read_text(encoding="utf-8"))
+    assert rep["ok"] and rep["mount_fits"] is True
     from fansim.manufacturability.mount_gauge import write_print_fit_sidecars
 
     g = write_print_fit_sidecars(
-        stl, spec, report_mount_fits=rep.mount_fits, report_mount_msg=rep.mount_msg or ""
+        stl, spec, report_mount_fits=rep["mount_fits"], report_mount_msg=rep["mount_msg"] or ""
     )
     assert g.watertight
     assert g.frame_ok
