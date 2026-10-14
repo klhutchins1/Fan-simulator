@@ -135,39 +135,134 @@ def current_tier() -> MemoryTier:
     return _BY_NAME["8gb"] if free is None else tier_for_free_gb(free / GB)
 
 
-# --- Fuse peak from the face count (roadmap 25.5) ------------------------------------------------
-# The fuse's peak RAM grows with how many faces it joins, whatever the strategy above. Measured on
-# Windows 2026-10-11 (docs/validation/audits/2026-10-11-fuse-memory.md): 9-blade plain design,
-# 18 084 faces -> 2.0 GB; featured S5_0011 (tubercles + serrations + dimples), 71 229 faces -> 6.5 GB
-# (6.0 GB even one blade at a time). Both fit ~0.37 GB (process + imports) + 86 kB per face.
+# --- Fuse RAM (roadmap 25.5 / 27.1) --------------------------------------------------------------
+# Whole-peak working set, Windows 2026-10-11 (docs/validation/audits/2026-10-11-fuse-memory.md):
+# 18 084 faces -> 2.0 GB; featured S5_0011 71 229 faces -> 6.5 GB. ~0.37 GB + 86 kB/face.
+# The *guard* must model remaining growth after the call: the worker already holds 1–2 GB of lofts
+# (QA r8: Linux increment 0.28 GB + 72 KiB/face; r9: shroud extra ~66 KiB per *blade* face, not
+# the ring's 4 faces). Windows remaining-growth constants are in _growth_constants().
 FUSE_BASE_GB = 0.37
 FUSE_GB_PER_FACE = 8.6e-5
-FUSE_MARGIN = 1.15  # headroom over the estimate before a build is allowed
+FUSE_MARGIN = 1.15  # headroom over remaining growth before a build is allowed
 ENV_FUSE_GUARD = "FANSIM_FUSE_GUARD"  # "1" = refuse builds that would not fit (set by the cockpit)
+_KIB = 1024.0
+
+
+def _kib_per_face_to_gb(kib: float) -> float:
+    return kib * _KIB / GB
+
+
+def _growth_constants() -> tuple[float, float, float]:
+    """(base_gb, gb_per_face, shroud_gb_per_blade_face) for remaining growth after the guard call.
+
+    Remaining = peak at exit − RSS/working set at the ``check_fuse_memory`` call.
+    Linux: QA r8 Task C increment fit (0.28 GB + 72 KiB/face); r9 Task E shroud extra
+    66 KiB per *blade* face (the ring itself is four faces).
+    Windows: 2026-10-13 ``scripts/measure_fuse_growth.py`` (PeakWorkingSet − WorkingSet at
+    call). Two open builds want a negative intercept; intercept is pinned at 0.10 GB and the
+    slope (103 KiB/face) is taken from Stock v3 so both open points sit under the line. The
+    ring extra is 26 KiB per blade face (open_9b vs ring_9b twins), not the Linux 66.
+    """
+    if sys.platform == "win32":
+        return 0.10, _kib_per_face_to_gb(103.0), _kib_per_face_to_gb(26.0)
+    return 0.28, _kib_per_face_to_gb(72.0), _kib_per_face_to_gb(66.0)
 
 
 def fuse_peak_estimate_gb(n_faces: int) -> float:
+    """Whole-process peak (diagnostic / K12). The guard uses ``fuse_remaining_estimate_gb``."""
     return FUSE_BASE_GB + FUSE_GB_PER_FACE * float(n_faces)
 
 
-def check_fuse_memory(n_faces: int) -> None:
+def fuse_remaining_estimate_gb(
+    n_faces: int, *, shrouded: bool = False, n_blade_faces: int | None = None,
+) -> float:
+    """RAM the fuse still needs after ``check_fuse_memory`` runs (process already holds the lofts)."""
+    base, per_face, shroud_per_blade = _growth_constants()
+    need = base + per_face * float(max(0, int(n_faces)))
+    if shrouded:
+        blades = int(n_faces) if n_blade_faces is None else int(n_blade_faces)
+        need += shroud_per_blade * float(max(0, blades))
+    return need
+
+
+def process_rss_bytes() -> int | None:
+    """This process's current RAM (Windows working set / Linux VmRSS), or None."""
+    if sys.platform == "win32":
+        ws = _process_working_set_windows()
+        return None if ws is None else ws[0]
+    return _process_vm_linux("VmRSS")
+
+
+def process_peak_rss_bytes() -> int | None:
+    """Peak RAM for this process (Windows PeakWorkingSet / Linux VmHWM), or None."""
+    if sys.platform == "win32":
+        ws = _process_working_set_windows()
+        return None if ws is None else ws[1]
+    return _process_vm_linux("VmHWM")
+
+
+def _process_working_set_windows() -> tuple[int, int] | None:
+    class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
+        _fields_ = [
+            ("cb", ctypes.c_ulong),
+            ("PageFaultCount", ctypes.c_ulong),
+            ("PeakWorkingSetSize", ctypes.c_size_t),
+            ("WorkingSetSize", ctypes.c_size_t),
+            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+            ("PagefileUsage", ctypes.c_size_t),
+            ("PeakPagefileUsage", ctypes.c_size_t),
+        ]
+
+    counters = PROCESS_MEMORY_COUNTERS()
+    counters.cb = ctypes.sizeof(counters)
+    kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+    handle = kernel32.GetCurrentProcess()
+    get_info = getattr(kernel32, "K32GetProcessMemoryInfo", None)
+    if get_info is None:
+        get_info = ctypes.windll.psapi.GetProcessMemoryInfo  # type: ignore[attr-defined]
+    get_info.argtypes = [ctypes.c_void_p, ctypes.POINTER(PROCESS_MEMORY_COUNTERS), ctypes.c_ulong]
+    get_info.restype = ctypes.c_int
+    if not get_info(handle, ctypes.byref(counters), counters.cb):
+        return None
+    return int(counters.WorkingSetSize), int(counters.PeakWorkingSetSize)
+
+
+def _process_vm_linux(key: str) -> int | None:
+    try:
+        with open("/proc/self/status", encoding="ascii") as fh:
+            for line in fh:
+                if line.startswith(key + ":"):
+                    return int(line.split()[1]) * 1024
+    except (OSError, ValueError, IndexError):
+        return None
+    return None
+
+
+def check_fuse_memory(
+    n_faces: int, *, shrouded: bool = False, n_blade_faces: int | None = None,
+) -> None:
     """Raise ``MemoryError`` with a plain message when the fuse would not fit in free RAM.
 
-    A build that swaps can freeze the whole machine (QA round 6 saw 6 h of a frozen box), so it is
-    refused up front. Only where a person reads the message: the cockpit sets ``FANSIM_FUSE_GUARD=1``.
-    In batch work (optimizer, Assess scoring, scripts, tests) a refusal would be recorded as an
-    infeasible design, so those builds always go ahead. Also skipped if free RAM can't be read or
-    the tier is forced.
+    Guards *remaining* growth (lofts are already in RAM), plus a shroud term that scales with
+    blade faces — the ring itself is only four faces (QA r9 Task E). A build that swaps can freeze
+    the whole machine (QA round 6 saw 6 h of a frozen box), so it is refused up front. Only where a
+    person reads the message: the cockpit sets ``FANSIM_FUSE_GUARD=1``. In batch work (optimizer,
+    Assess scoring, scripts, tests) a refusal would be recorded as an infeasible design, so those
+    builds always go ahead. Also skipped if free RAM can't be read or the tier is forced.
     """
     if os.environ.get(ENV_FUSE_GUARD, "") != "1" or os.environ.get(ENV_TIER):
         return
     free = free_ram_bytes()
     if free is None:
         return
-    need = fuse_peak_estimate_gb(n_faces) * FUSE_MARGIN
+    need = fuse_remaining_estimate_gb(
+        n_faces, shrouded=shrouded, n_blade_faces=n_blade_faces) * FUSE_MARGIN
     have = free / GB
     if need > have:
         raise MemoryError(
-            f"This design needs about {need:.1f} GB of free memory to build ({n_faces:,} surfaces; "
-            f"surface features add many) but only {have:.1f} GB is free. Close other programs, or "
-            f"turn some surface features off, and try again.")
+            f"This design needs about {need:.1f} GB of free memory to finish building "
+            f"({n_faces:,} surfaces; surface features add many) but only {have:.1f} GB is free. "
+            f"Close other programs, or turn some surface features off, and try again.")

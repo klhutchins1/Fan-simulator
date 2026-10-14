@@ -18,6 +18,7 @@ from fansim.cockpit import fan_runtime
 from fansim.cockpit.errors import log_caught
 from fansim.cockpit.paths import exports_dir
 from fansim.cockpit.placement import prepare_export_flat, preview_changes
+from fansim.geometry.blade import validate_blade_params
 
 _log = logging.getLogger(__name__)
 
@@ -170,6 +171,15 @@ def bind(session) -> None:
             if ch.field == "hub_height" and ch.after > ch.before:
                 grew_h_from = ch.before
         params = session.build_edit_params()
+        try:
+            validate_blade_params(params)
+        except ValueError as exc:
+            state.export_msg = f"⚠ {exc}"
+            state.flush()
+            return
+        hub_r_export = float(params.hub_radius)
+        hub_h_export = float(params.hub_height_mm) if params.hub_height_mm is not None else None
+        also_mirror = bool(state.export_also_mirror)
         flat_x, feat_x = session.edit_flat(), session.edit_features()
         exports = exports_dir()
         exports.mkdir(exist_ok=True)
@@ -196,7 +206,7 @@ def bind(session) -> None:
                     feat_x,
                     out,
                     spec,
-                    bool(state.export_also_mirror),
+                    also_mirror,
                 )
                 rep = SimpleNamespace(ok=summary["ok"], mount_fits=summary["mount_fits"],
                                       mount_msg=summary["mount_msg"])
@@ -233,12 +243,13 @@ def bind(session) -> None:
                 extra += "\n" + preview_changes(frame_changes)
             if grew_from is not None:
                 extra += (
-                    f"\n↳ Hub widened {grew_from:.1f} → {state.e_hub_radius:.1f} mm to fit the "
+                    f"\n↳ Hub widened {grew_from:.1f} → {hub_r_export:.1f} mm to fit the "
                     f"{spec.motor_mount.cavity_dia_mm:.1f} mm motor hub."
                 )
             if grew_h_from is not None:
+                h_txt = f"{hub_h_export:.0f}" if hub_h_export is not None else f"{state.e_hub_height:.0f}"
                 extra += (
-                    f"\n↳ Hub height set to {state.e_hub_height:.0f} mm so the cup has a cap and "
+                    f"\n↳ Hub height set to {h_txt} mm so the cup has a cap and "
                     f"clears the frame spokes."
                 )
             if extra:

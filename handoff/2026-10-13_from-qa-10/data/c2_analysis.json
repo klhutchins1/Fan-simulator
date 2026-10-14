@@ -1,0 +1,31 @@
+{
+"designs": 49,
+"errors": [],
+"families": {
+"naca": 48,
+"plate": 1
+},
+"stations": 105,
+"readable": 105,
+"unread_n0": 0,
+"fails": [],
+"designs_failing": [],
+"verdict": "PASS",
+"clip_reached": 46,
+"touched": 47,
+"max_all": {
+"chord_err": 0.029025339073661116,
+"camber_gap_net": 0.004831581979766128,
+"stagger_err": 1.4634608743802744
+},
+"max_clip_reached": {
+"chord_err": 0.029025339073661116,
+"camber_gap_net": 0.004831581979766128,
+"stagger_err": 0.7364728578648752
+},
+"max_touched": {
+"chord_err": 0.029025339073661116,
+"camber_gap_net": 0.004831581979766128,
+"stagger_err": 0.6052844172492797
+}
+}

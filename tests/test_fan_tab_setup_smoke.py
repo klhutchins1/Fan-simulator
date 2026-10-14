@@ -371,3 +371,44 @@ def test_assess_done_message_survives_the_picture_bake(bound_ctx, tmp_path):
             coro.close()
     assert baked, "the picture bake was not reached; the test does not exercise the race"
     assert st.assess_msg.startswith("Done ◆#"), st.assess_msg
+
+
+def test_preview_caption_uses_built_camber_not_live_sliders():
+    """QA-26 / 27.5: the caption must describe the mesh that was built."""
+    from fansim.cockpit.fan_viz import preview_built_camber
+    from fansim.optimize.search_space import blade_from_flat
+
+    p = blade_from_flat(dict(
+        n_blades=7, stagger_root=26, stagger_mid=26, stagger_tip=22,
+        chord_root=34, chord_mid=44, chord_tip=38,
+        sweep_mid=3, sweep_tip=5, lean_mid=14, lean_tip=26,
+        camber_root=0.083, camber_mid=0.083, camber_tip=0.083,
+    ))
+    assert preview_built_camber(p) == "0.083/0.083/0.083"
+
+
+def test_assess_does_not_jump_view_if_user_moved_on(bound_ctx):
+    """QA-26 / 27.5: picking another design during Assess must not yank the 3-D view back."""
+    st = bound_ctx.state
+    st.selected_trial = None
+    result = SimpleNamespace(feasible=True, reason="", over_spec=[], cfm_free=10.0, cfm_load=8.0,
+                             efficiency=40.0, actual_rpm=2000.0, raw={})
+
+    def canned(fn, *args):
+        if getattr(fn, "__name__", "") == "_blocking_eval":
+            Path(args[2]).mkdir(parents=True, exist_ok=True)
+            (Path(args[2]) / "impeller.stl").write_text("solid x\nendsolid x\n")
+            result.stl_path = str(Path(args[2]) / "impeller.stl")
+            return result
+        return None
+
+    bound_ctx.fan_on_assess()
+    st.selected_trial = 4242
+    tasks = bound_ctx._tasks
+    while tasks:
+        coro = tasks.pop(0)
+        if coro.cr_code.co_name == "task":
+            _drive(coro, canned)
+        else:
+            coro.close()
+    assert st.selected_trial == 4242

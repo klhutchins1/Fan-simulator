@@ -76,3 +76,10 @@ F2's own rule, each failing threshold was widened to the **smallest value that p
 - The noise proxy and the per-band push vary 2.75 dB and 14 % between two runs of the *same* fan.
   Differences smaller than that are noise, which is why those rows now use the wider margins.
 - The direction, spin and dead-air rows were stable run-to-run.
+
+### 2026-10-14 — 27.3 bake (pure repeats)
+
+The F2 pair above was **not** a pure repeat (hub-clip vs pre-clip). Five Stock v3 Assess repeats
+set 2σ at **±3 % / +0.5 dB**. After-bake vs r1: mean push and noise PASS; r4 hub bar +3.05 % FAIL
+(not widened). Recorded in `docs/validation/audits/2026-10-13-stock-flow-repeats-prereg.md`.
+The F2 widening is historical; the card now uses the five-repeat constants.

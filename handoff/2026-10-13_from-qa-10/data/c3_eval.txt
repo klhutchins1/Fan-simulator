@@ -1,0 +1,7 @@
+{"id": "S5_0209", "feasible": false, "reason": "geometry failed: ValueError: the blades hang 7.2 mm below the hub's motor face (limit 2 mm): that part would be cut off and strike the frame struts. Reduce the stagger or sweep at the trailing edge, or make the hub taller", "stub_calls": [], "s": 0.1}
+{"id": "S2_0176", "feasible": false, "reason": "Noctua NF-A12x25: tip gap -1.50 mm < min 0.50 mm to 110 mm frame", "stub_calls": [], "s": 0.0}
+{"id": "S4_0264", "feasible": false, "reason": "geometry failed: ValueError: the blades hang 4.4 mm below the hub's motor face (limit 2 mm): that part would be cut off and strike the frame struts. Reduce the stagger or sweep at the trailing edge, or make the hub taller", "stub_calls": [], "s": 0.0}
+{"id": "S2_0135", "feasible": false, "reason": "Noctua NF-A12x25: tip gap -1.50 mm < min 0.50 mm to 110 mm frame", "stub_calls": [], "s": 0.0}
+{"id": "S4_0164", "feasible": false, "reason": "Noctua NF-A12x25: tip gap -1.78 mm < min 0.50 mm to 110 mm frame", "stub_calls": [], "s": 0.0}
+{"id": "S1_0192", "feasible": false, "reason": "Noctua NF-A12x25: tip gap -1.50 mm < min 0.50 mm to 110 mm frame", "stub_calls": [], "s": 0.0}
+{"id": "S1_0108", "feasible": false, "reason": "Noctua NF-A12x25: tip gap -1.50 mm < min 0.50 mm to 110 mm frame", "stub_calls": [], "s": 0.0}

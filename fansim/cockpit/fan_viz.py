@@ -33,6 +33,7 @@ from fansim.cockpit.airflow_panel import pick_airflow_uri, png_data_uri
 from fansim.cockpit import fan_runtime
 from fansim.cockpit.data import Design, scored_case_dir
 from fansim.cockpit.errors import log_caught
+from fansim.geometry.blade import validate_blade_params
 from fansim.manufacturability import check_printability
 from fansim.manufacturability.fdm_rules import preview_unprintable_note
 
@@ -40,6 +41,15 @@ _log = logging.getLogger(__name__)
 
 _GLYPH_STRIDE = {"coarse": 4, "medium": 2, "fine": 1}
 _GLYPH_MAX = {"coarse": 250, "medium": 500, "fine": 800}
+
+
+def preview_built_camber(params) -> str:
+    """Root/mid/tip camber of the *built* params, not live sliders (QA-26 / roadmap 27.5)."""
+    st = sorted(params.stations, key=lambda s: s.r_frac)
+    def nearest(frac: float):
+        return min(st, key=lambda s: abs(float(s.r_frac) - frac))
+    root, mid, tip = nearest(0.0), nearest(0.5), nearest(1.0)
+    return f"{root.max_camber:.3f}/{mid.max_camber:.3f}/{tip.max_camber:.3f}"
 
 
 def _has_speed_range(arrows) -> bool:
@@ -331,9 +341,14 @@ def bind(session) -> None:
             return
         try:
             params = session.build_edit_params()
+            validate_blade_params(params)
             printable = check_printability(params)
             print_warn = "" if printable.printable else "\n" + preview_unprintable_note(printable.reason)
             flat, feat = session.edit_flat(), session.edit_features()
+        except ValueError as exc:
+            state.preview_msg = f"⚠ {exc}"
+            state.flush()
+            return
         except Exception as exc:  # noqa: BLE001 - sync preamble; surface or the button looks dead
             state.preview_msg = f"⚠ Preview setup failed: {type(exc).__name__}: {exc}"
             state.flush()
@@ -418,7 +433,7 @@ def bind(session) -> None:
                     tone_line = ""
             state.preview_msg = (
                 f"Preview (orange): {params.n_blades} blades, "
-                f"camber {state.e_camber_root:.3f}/{state.e_camber_mid:.3f}/{state.e_camber_tip:.3f}, {feats}.\n{status}{print_line}"
+                f"camber {preview_built_camber(params)}, {feats}.\n{status}{print_line}"
                 f"{tone_line}{print_warn}"
             )
             state.preview_busy = False

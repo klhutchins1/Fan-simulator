@@ -1033,8 +1033,14 @@ def fuse_impeller(hub, blades, ring=None, *, tier=None):
     from fansim import resources
     from fansim.resources import current_tier
 
-    # Peak RAM follows the face count, not the strategy: refuse up front rather than swap (25.5).
-    resources.check_fuse_memory(sum(len(s.Faces()) for s in (hub, *blades, *([ring] if ring is not None else []))))
+    # Peak RAM follows the face count, not the strategy: refuse remaining growth up front (25.5 / 27.1).
+    n_blade_faces = sum(len(s.Faces()) for s in (hub, *blades))
+    n_ring_faces = 0 if ring is None else len(ring.Faces())
+    resources.check_fuse_memory(
+        n_blade_faces + n_ring_faces,
+        shrouded=ring is not None,
+        n_blade_faces=n_blade_faces,
+    )
     tier = tier or current_tier()
     fused = fuse_many(hub, blades, tier=tier)
     if not _one_solid(fused) and not tier.fuse_one_blade_at_a_time:

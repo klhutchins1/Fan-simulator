@@ -43,7 +43,13 @@ from fansim.fan_spec import (
     mount_min_hub_radius,
     over_spec_flags,
 )
-from fansim.geometry.blade import BladeParams, blade_solidity, min_blade_wall_mm, signed_design_camber
+from fansim.geometry.blade import (
+    BladeParams,
+    blade_solidity,
+    min_blade_wall_mm,
+    signed_design_camber,
+    validate_blade_params,
+)
 from fansim.manufacturability.fdm_rules import check_printability
 from fansim.optimize.system_curve import (
     REF_CFM,
@@ -207,6 +213,10 @@ def evaluate_candidate(
             return _infeasible(
                 f"not mountable: hub radius {params.hub_radius:.1f} < {need:.1f} mm "
                 f"needed to house the {spec.name} motor", t0)
+    try:
+        validate_blade_params(params)
+    except ValueError as exc:
+        return _infeasible(str(exc), t0)
     printable = check_printability(params)
     if not printable.printable:
         return _infeasible(f"unprintable: {printable.reason}", t0)

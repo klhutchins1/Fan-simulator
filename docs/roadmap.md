@@ -5,7 +5,7 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-10-13** (§28 parked: print-part ID on the hub; wrap merge is the print freeze).
+- Last reviewed: **2026-10-14** (27.3 baked ±3 % / +0.5 dB). Previously **2026-10-13** (§28 parked).
   Previously **2026-10-11** (§26 parked). **2026-10-08** (§23 QA). **§12** + **§13** + **§7.6** +
   **§14.1–14.6** closed in code. Stock close-ref fidelity (§2.7–2.8). **§13.22–13.24** /
   **§14.3b** / **§14.6** / **§15.1–15.6** landed 2026-09-16. Still **not shippable** until
@@ -36,7 +36,7 @@ session.**
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next (2026-10-13): wrap + Stock v3 are MERGED (`ae3f1c4`, 27.4). Rewrite `first_print_measure_plan.md` from the final Stock v3 numbers (27.9), QA confirms the merged builder (round 10b), then 27.7 (optimizer bounds under wrap) before any new optimizer campaign. §28 stays parked (evaluate worth first). §23.12–23.14 closed.**
+**→ Next (2026-10-14): wrap + Stock v3 MERGED (`ae3f1c4`). 27.3 baked ±3 % / +0.5 dB. QA-34 closed (tessellation needles, not loft). 28.2/28.3 parked until Kimball says go. Do not restart the optimizer. Grok r11 Task A prevalence is now a check that the strip holds, not a blocker.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -56,9 +56,9 @@ session.**
   - **§26** (parked idea) — cockpit “Bring your STL” Assess; optional inverse-fit; no mass-scrape.
     Do **not** start until wrap is merged and external-STL spin is honest (round 9 D unconfirmed).
     CLI already has `scripts/validate_stl.py`.
-  - **§28** (parked until wrap merge + QA mark-spec) — short recessed code on the hub at Export,
-    sidecar → `validation/store.py`. Not on blades. Handoffs:
-    `handoff/2026-10-13_to-claude/`, `handoff/2026-10-13_to-qa-10/`.
+  - **§28** (28.1 mark-spec **PASS** r10 Task A; 28.2/28.3 still parked until Kimball says go) —
+    +Z hub ring r 10–21.45 mm is flat 360°. Dummy 8×3.2×0.5 recess stays one solid; aero 1.76 %.
+    Glyphs wait. Handoff: `handoff/2026-10-13_from-qa-10/`.
   - Deferred (Stage 1 done, Stage 2 **not adopted** — do not start without a new Adopt):
     CST section DOFs, §7.4 CNN/FNO field predictor, §4.5 toroidal Prop topology.
   - ~~§20.2 NeuralFoil / RMS / 360°~~ — DONE 2026-09-30.
@@ -252,7 +252,7 @@ Phases 4.1 / 4.2 / 6.1 landed (dependency audit, perf baseline, keep/cut board).
 
 ## 5. Physical validation loop — the north star (needs hardware; owner: **user**)
 
-- [ ] **5.1 Print a real-frame design + measure** CFM / static / noise / weight. **Pre-registered plan 2026-10-02:** `docs/validation/first_print_measure_plan.md`: genuine impeller (rig calibration) vs printed Stock recipe, predicted B/A ratio **0.89 (band 0.82–0.96)** — **rewrite this band: wrapped Stock v3 is adopted (27.9)** (final v3 free air 55.7 CFM vs planar 54.5 vs close-ref STL 58.3 in the rig; the 57.6 was a round-edge v3; see `docs/validation/audits/2026-10-12-cylinder-sections.md` V5). Print STL at `exports/first_print_stock/`. Recorder is built
+- [ ] **5.1 Print a real-frame design + measure** CFM / static / noise / weight. **Pre-registered plan (band rewritten 2026-10-13, 27.9):** `docs/validation/first_print_measure_plan.md`: genuine impeller (rig calibration) vs **printed Stock v3**, predicted B/A **0.91 (band 0.85–0.97)**. CFD: v3 55.7 / close-ref STL 58.3 / planar v2 54.5 at 0 Pa in the validation rig. Print STL at `exports/first_print_stock/`. Recorder is built
   (cockpit → `validation/measurements/` with material/print-type/weight fields). **Nothing is
   measured yet** — one real point changes hypothesis → result. **Print-fit kit ready**
   (`scripts/export_a12x25_print_ready.py` + mount gauge vs measured MotorMount / frame); still
@@ -1348,8 +1348,8 @@ The work is split into three sub-projects, done in order.
 
 - [x] **24.1 Flow report card "How the air moves"** (sub-project 1).
   - **DONE 2026-10-10** (branch `flow-report-card`).
-  - **Checks:** F0, F1, F3 and F4 PASS. F2 passed after widening to Stock's run-to-run spread: band ±15 %,
-    noise 2.8 dB.
+  - **Checks:** F0, F1, F3 and F4 PASS. F2 first passed after widening to a non-repeat pair (±15 %,
+    2.8 dB). **27.3 (2026-10-14):** five Stock v3 Assess repeats set 2σ at **±3 % / +0.5 dB**.
   - **Push redefined:** p + ½Uz², with swirl excluded. All of this is recorded in
     `docs/validation/audits/2026-10-10-flow-report-checks.md`.
   - **Browser-checked:** t9005 reads all ✓ against Stock and 9610 reads 3 ⚠; the stale-design message;
@@ -1639,7 +1639,7 @@ Sources: `handoff/2026-10-11_from-qa-7/`, `docs/qa/stress/RESULTS_R7.md`, `docs/
 lt120-conversion, flow-report-math-check, direction-stacking-cut). QA-22..26 (settings changed during a run) were
 already fixed by 25.11 before this round's results arrived; round 8 re-runs the QA harness to confirm.
 
-- [ ] **27.1 (QA-27) The fuse-memory estimate is low on Linux.** The 65 r7 builds peak a median 29 % above
+- [x] **27.1 (QA-27) The fuse-memory estimate is low on Linux.** The 65 r7 builds peak a median 29 % above
   `fuse_peak_estimate_gb` (max 80 %).
   - **My re-fit of their data (2026-10-12):** slope 85 kB/face, the same as ours (86). Only the intercept
     differs: **1.0 GB on Linux** vs 0.37 GB on Windows. Their peak is the summed RSS of the build tree on
@@ -1657,6 +1657,11 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
       It failed on a shrouded design (S7_0013: 2.66 vs 2.41 GB). Shrouds run ~1 GB above the face fit.
     - **Fix:** guard on the *remaining growth*, k·(a + b·faces) plus a shroud term, refit on Windows with the
       same measurement (peak working set minus working set at the call).
+  - **CLOSED 2026-10-13.** The guard now asks for remaining growth × 1.15 vs free RAM, plus a shroud
+    term on blade faces (not the ring's four). Linux: 0.28 GB + 72 KiB/face + 66 KiB/blade-face (r8/r9).
+    Windows: 0.10 GB + 103 KiB/face + 26 KiB/blade-face from PeakWorkingSet − WorkingSet at the call
+    (`scripts/measure_fuse_growth.py`; see `docs/validation/audits/2026-10-13-fuse-remaining.md`).
+    Cockpit cup Preview/Export only (`FANSIM_FUSE_GUARD=1`). Batch builds still go ahead.
 - [x] **27.2 (QA-19 residual) A mildly cambered, strongly leaned design is still refused as "backwards".**
   **CLOSED 2026-10-13 by the wrap (27.4), not by a second reader.** V4: on wrapped rebuilds the cylinder proof
   makes 0 wrong calls on 30 parts and reads S3_0014 correctly. Do **not** add the radial-plane reader to the
@@ -1681,22 +1686,16 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
   the cylinder agrees or can't tell; otherwise ask for the spin. Post hoc on round 8: 0 wrong, 53/54 read. The
   "both must agree" rule read only 79.6 % (R5 FAIL). It needs its own pre-registered confirmation on more real
   external STLs. **[impact: med]** **[effort: med]**
-- [ ] **27.3 Flow report card: NaN handling and the push-bar caveat** (Task G). **NaN + push DONE 2026-10-12
-  (Kimball chose option b): the push row judges the area-weighted mean push; missing values are saved as
-  `null` with a reason; zero-volume exits raise. Real cases: t9005 +12 % (now "about as hard"; the old band
-  labels said stronger in 2 bands), 9604 −38 % (weaker), 9610 +7 %. Open: the Stock repeats below.**
-  - The maths is right: G1 16/16.
-  - Degenerate inputs (zero flow, zero weights, empty bands on a coarse mesh) give a silent NaN. The card
-    already shows "Couldn't measure", but `flow_report.json` is written with the non-standard `NaN` token
-    and doesn't say why. **Fix:** write `null` plus a reason. Add tests for the noise value, swirl sign and
-    NaN cases. **[effort: low]**
-  - **Radial equilibrium:** swirl alone moves static pressure from hub to tip (a uniform 4 m/s swirl gives
-    −8.9 … +7.4 Pa across the bands). A swirly fan's push bars look hub-weak and tip-strong for that reason
-    alone. **Decide:** add a one-line note, or judge the area-weighted mean push (which swirl leaves
-    unchanged) and keep the bars as a picture. **[effort: low]**
-  - **Thresholds (±15 %, 2.8 dB) rest on one pair of runs that isn't a pure repeat.** Run Stock 3–5 times on
-    the same setup and set each tolerance at about 2σ. Until then, a band says "stronger/weaker" only when it
-    agrees with its neighbour or the mean. **[effort: med: 3–5 CFD runs ≈ 2–3 h]**
+- [x] **27.3 Flow report card: NaN handling and the push-bar caveat** (Task G). **DONE 2026-10-14.**
+  NaN + push landed 2026-10-12 (Kimball option b): the push row judges the area-weighted mean; missing
+  values are `null` with a reason; zero-volume exits raise. Real cases: t9005 +12 % ("about as hard"),
+  9604 −38 % (weaker), 9610 +7 %. Maths G1 16/16.
+  - **Thresholds baked 2026-10-14** from five Stock v3 Assess repeats (case hose, 8 procs, base_cell
+    0.006, 500 iters, PETG, parallel_mesh): **BAND_TOL = 0.03**, **NOISE_MARGIN_DB = 0.5**
+    (2σ rule in `docs/validation/audits/2026-10-13-stock-flow-repeats-prereg.md`; was ±15 % / 2.8 dB
+    from a non-repeat pair). Mean 2σ_rel 1.47 %; hub-band 2.71 % → ceil 3 %; noise 2σ 0.22 dB → floor
+    0.5. After-bake vs r1: mean and noise **PASS**; r4 hub bar +3.05 % labelled "stronger" (**FAIL**,
+    not widened). Bars stay a picture.
 - [x] **27.4 Built blade vs its numbers: are sections planar where BEM assumes cylinders?** (from lt120)
   **DONE 2026-10-13, option (i) (Kimball), merged `ae3f1c4`.** Sections are wrapped onto their cylinders
   (`section_wrap="cylinder"` for axial designs; old saves stamped planar, 79 designs + 80 catalog rows,
@@ -1746,22 +1745,27 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
 - [x] **27.6 (QA-29) After Assess finishes, its result message is replaced by a frozen "Running Assess…
   0:04".** **DONE 2026-10-12** (`7f14e5b`): stop the ticker before writing Done.
   **[impact: med: the result line is never seen]** **[effort: low]**
-- [ ] **27.5 (QA-26 leftovers) After a run, some captions show the cockpit as it is now, not what ran.**
-  (QA round 8: QA-22..25 verified fixed; Assess-existing now stamps material.)
-  - The Preview caption shows the live camber sliders (`fan_viz.py`, `preview_msg`), not the built values.
-  - The Export message shows the live hub radius and height.
-  - After Assess the view jumps back to the assessed design even if you moved on.
-  - Display only. **[impact: low]** **[effort: low]**
+- [x] **27.5 (QA-26 leftovers) After a run, some captions show the cockpit as it is now, not what ran.**
+  **DONE 2026-10-13:** Preview caption uses built `params` camber (`preview_built_camber`); Export
+  message uses the click-time hub radius/height and mirror flag; Assess does not `select()` the
+  new trial if `selected_trial` changed while it ran.
+  **[impact: low]** **[effort: low]**
 - [ ] **27.7 Optimizer under wrap: bounds and re-finding designs.** Every saved optimizer design was found
   with planar sections, where a camber slider of 0.06 built ~0.01–0.04. Under wrap the sliders mean the built
-  blade (Stock v3 camber 0.024–0.048). Re-derive the camber (and stagger) bounds from Stock v3 and the wrap
-  V1 data before any new campaign; t9005 wrapped moves less air than planar (V6). Do not print or rank old
-  candidates as if their sliders still meant the same blade. **[impact: high]** **[effort: med]**
-- [ ] **27.8 Hang-limit UX.** `validate_blade_params` refuses >2 mm hang with a plain message; check the cockpit
-  shows it at Preview (not only at Assess) and the optimizer counts it as an early infeasible, not a crash.
+  blade (Stock v3 camber **0.024–0.048**). Do not print or rank old candidates as if their sliders still
+  meant the same blade. t9005 wrapped moves less air than planar (V6). **Proposal (do not implement a
+  campaign):** keep OPEN/GUIDED `max_camber` (0.0, 0.06) — that range is now *honest built* camber, and
+  Stock sits inside it (max 0.048, so 0.06 is only a little above the real fan). Do **not** raise the
+  ceiling. Stagger bounds already cover Stock v3 (root 23.5 / mid 31.2 / tip 22.5° vs OPEN 20–48 / 18–42
+  / 16–38). Re-find designs under wrap when a campaign is adopted; until then old catalog rows stay
+  stamped planar. **[impact: high]** **[effort: med]**
+- [x] **27.8 Hang-limit UX.** **DONE 2026-10-13:** Preview/Export call `validate_blade_params` in the
+  click preamble (plain `⚠ {exc}`, no CAD wait). `evaluate_candidate` returns `_infeasible` on hang
+  before `build_impeller`. Isolated worker still carries the sentence (`stderr_tail=400`).
   **[impact: med]** **[effort: low]**
-- [ ] **27.9 Rewrite `docs/validation/first_print_measure_plan.md` for Stock v3** (print freeze, §5.1). Use the
-  27.4 numbers above, not 57.6 / 53.6 / B/A 0.89. **[impact: high: blocks the first print]** **[effort: low]**
+- [x] **27.9 Rewrite `docs/validation/first_print_measure_plan.md` for Stock v3** (print freeze, §5.1).
+  **DONE 2026-10-13:** B/A **0.91 (0.85–0.97)** from 55.7/58.3 × print 0.95. Old 0.89 / 57.6 retired.
+  **[impact: high: blocks the first print]** **[effort: low]**
 - QA tooling only, not app bugs: QA-28 (the stress runner's gates use wall time and break when the box
   suspends), and K2's sliver rule needs to be relative to edge length (S6_0019's 1e-9 mm² sliver is a
   threshold artefact).
@@ -1770,7 +1774,11 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
   **DONE 2026-10-13 (Kimball chose (a), not BEM-on-clipped): 2 mm hang limit + camber/stagger correction at cut
   stations, see 27.4.** (Cursor's 'BEM on clipped sections' was written before that decision.)
 - **QA-33 (LOW–MED, round 9):** wrapped cylinder direction proof is INCONCLUSIVE more often
-  (30/65 vs 24/66 planar).
+  (30/65 vs 24/66 planar). **r10b: 18/38 wrapped INCONCLUSIVE.** Still harmless.
+- **QA-34 (MED, round 10b):** featured wrapped **S5_0184** — **DONE 2026-10-14.** B-rep was already
+  one solid. The STL's 8 bodies were 1 watertight impeller + 7 collapsed tessellation needles (one
+  per blade) at the hub. `export_stl` now strips them (`sanitize_stl`). Not a loft bug.
+  `docs/qa/notes/qa-34-featured-wrap-stl.md`.
 
 ---
 
@@ -1780,11 +1788,11 @@ Kimball, 2026-10-13: two printed fans from a month ago, and only the Noctua is i
 ~30 parts in a box, a re-test has to attach to the **export** (recipe, wrap, git, CFD run, material),
 not “the black 120 mm one”. A sharpie works as a fallback **if the code already exists** to copy.
 
-**Status:** parked; **evaluate whether it is worth it** (Kimball 2026-10-13) before building. Wrap is merged
-(`ae3f1c4`), so the remaining gate is QA's mark-spec. Claude's view: 28.2 (registry + README code, no cut)
-is cheap and worth it on its own; 28.3 (recessed glyphs) only if a sharpie code from the README proves too
-fragile. QA measures the hub faces first (`handoff/2026-10-13_to-qa-10/`).
-Do **not** implement the cut until that mark-spec exists and wrap is on master.
+**Status:** 28.1 **done** (r10 Task A). 28.2/28.3 still parked until Kimball says the glyphs are worth it.
+Mark-spec: `docs/qa/notes/print-id-mark-spec-r10.md`. +Z ring r 10–21.45 mm, full circle; dummy recess
+M1–M3 PASS; Data Matrix at 0.5 mm/module is marginal. Aero of the full box pocket is 1.76 % (not
+auto-exempt). Claude's view still stands: 28.2 (registry + README, no cut) is cheap; 28.3 only if a
+sharpie code from the README proves too fragile.
 
 ### What this is for
 
@@ -1829,7 +1837,8 @@ index. Genuine Noctua (article A) has no code — that is fine.
 3. **28.3 Recessed glyphs** on the hub from the mark-spec. Watertight + mount gauge still pass.
 4. **28.4 Record measurement** accepts `print_id` (type it; scan later).
 
-- [ ] **28.1 Hub-face mark-spec** (QA; no fansim edit).
+- [x] **28.1 Hub-face mark-spec** (QA; no fansim edit). **DONE 2026-10-13, r10 Task A:** M1–M3 PASS.
+  Preferred pocket +Z r 11.5–14.7 mm, 0.5 mm deep. `docs/qa/notes/print-id-mark-spec-r10.md`.
 - [ ] **28.2 Print-id registry + export sidecar / README** (no geometry cut).
 - [ ] **28.3 Recessed hub glyphs** from the mark-spec.
 - [ ] **28.4 Measurement ingest by `print_id`.**

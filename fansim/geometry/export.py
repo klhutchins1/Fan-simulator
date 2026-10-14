@@ -6,7 +6,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import cadquery as cq
+import numpy as np
 import trimesh
+
+# K2 / QA-34: faces smaller than this (mm²) or with < 3 unique vertices are tessellation needles.
+_DEGEN_AREA_MM2 = 1e-9
 
 
 @dataclass
@@ -28,6 +32,29 @@ class WatertightReport:
         return self.watertight and self.n_bodies == 1 and self.volume_mm3 > 0.0
 
 
+def sanitize_stl(path: str | Path) -> Path:
+    """Drop collapsed / zero-area faces in place.
+
+    Featured wrapped blades (QA-34 S5_0184) tessellate as one watertight solid plus one needle
+    triangle per blade. ``fuse_impeller`` already saw 1 B-rep solid; the needles only exist in the
+    mesh. Leaving them makes trimesh report extra bodies and Assess refuse a printable impeller.
+    """
+    path = Path(path)
+    mesh = trimesh.load(str(path), force="mesh", process=False)
+    if not isinstance(mesh, trimesh.Trimesh) or len(mesh.faces) == 0:
+        return path
+    faces = np.asarray(mesh.faces)
+    collapsed = (faces[:, 0] == faces[:, 1]) | (faces[:, 1] == faces[:, 2]) | (faces[:, 0] == faces[:, 2])
+    tiny = np.asarray(mesh.area_faces) < _DEGEN_AREA_MM2
+    keep = ~(collapsed | tiny)
+    if bool(np.all(keep)):
+        return path
+    mesh.update_faces(keep)
+    mesh.remove_unreferenced_vertices()
+    mesh.export(str(path))
+    return path
+
+
 def export_stl(
     model: cq.Workplane, path: str | Path, tolerance: float = 0.05, angular_tolerance: float = 0.2
 ) -> Path:
@@ -41,7 +68,7 @@ def export_stl(
         tolerance=tolerance,
         angularTolerance=angular_tolerance,
     )
-    return path
+    return sanitize_stl(path)
 
 
 def export_step(model: cq.Workplane, path: str | Path, *, unit: str = "MM") -> Path:

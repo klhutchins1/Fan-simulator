@@ -395,9 +395,12 @@ def bind(session) -> None:
                     if state.assess_cancel:
                         state.assess_msg = "⏹ Assess cancelled."
                         return
-                    session.select(d.trial)
-                    state.fan_subtab = "results"
-                    session._set_baseline()
+                    # QA-26 / 27.5: don't yank the 3-D view if the user picked another design
+                    # while this run was in flight.
+                    if state.selected_trial == rs.selected_trial:
+                        session.select(d.trial)
+                        state.fan_subtab = "results"
+                        session._set_baseline()
             except Exception as exc:  # noqa: BLE001
                 if state.assess_cancel or "cancelled" in str(exc).lower():
                     state.assess_msg = "⏹ Assess cancelled."

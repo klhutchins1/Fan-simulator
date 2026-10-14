@@ -44,3 +44,7 @@
   - Get 3–5 repeats of the *same* Stock case and set each tolerance at about 2σ of the pairwise differences.
   - Until then, require ≥ 2 adjacent bands, or the mean, to cross before the push row says "stronger/weaker".
   - Keep 2.8 dB as a floor for noise, and label it "rough".
+
+**Done 2026-10-14 (roadmap 27.3):** five Stock v3 Assess repeats set 2σ at ±3 % / +0.5 dB.
+After-bake FAIL on r4's hub bar (+3.05 %); not widened. See
+`docs/validation/audits/2026-10-13-stock-flow-repeats-prereg.md`.

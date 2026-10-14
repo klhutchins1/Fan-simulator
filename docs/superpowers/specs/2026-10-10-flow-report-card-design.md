@@ -77,19 +77,20 @@ volume, which stands in for area within the slab.
 | row | ✓ | ⚠ | ✕ |
 |---|---|---|---|
 | Air direction | Δbackflow ≤ +0.02 | Δbackflow > +0.02 | `net_reversed` |
-| Push along the blade | **mean push** within ±15 % of Stock's, or > +15 % (better) | mean push < −15 % of Stock's | — |
+| Push along the blade | **mean push** within ±3 % of Stock's, or > +3 % (better) | mean push < −3 % of Stock's | — |
 | Wasted spin | swirl_frac ≤ 1.10 × Stock | above that | — |
 | Dead or blocked air | dead_frac ≤ Stock + 0.02 **and** tip ratio ≥ 0.90 × Stock | either fails | — |
-| Noise hint | ΔSWL ≤ +2.8 dB | ΔSWL > +2.8 dB (**was 1.0 dB**: Stock run-to-run is 2.75 dB, same audit) | — |
+| Noise hint | ΔSWL ≤ +0.5 dB | ΔSWL > +0.5 dB (**was 2.8 dB**, then 1.0 dB; five Stock v3 repeats 2σ = 0.22 dB) | — |
 
 - **Overall line:** "Better than Stock at: …" lists the rows that are ✓ and strictly better than Stock.
-  "Worse at: …" lists the ⚠/✕ rows. The push row counts as better when the mean push is > +15 %.
+  "Worse at: …" lists the ⚠/✕ rows. The push row counts as better when the mean push is > +3 %.
 - **Push changed 2026-10-12 (Kimball, roadmap 27.3 option b).** QA r7 Task G showed that swirl alone moves
   static pressure from hub to tip, so per-band labels made a swirly fan look hub-weak and tip-strong. The
-  row now judges the area-weighted mean. The bands stay as a picture (still labelled per band at ±15 %,
-  previously ±10 %: Stock run-to-run is 14.3 %), with a note that spin tilts them. The ±15 % mean tolerance
-  is provisional until 3–5 Stock repeats set it at about 2σ. On the saved cases, two Stock runs differ by
-  5 % on the mean vs 14 % on single bands.
+  row now judges the area-weighted mean. The bands stay as a picture (labelled per band at the same
+  ±3 % as the mean). The ±3 % / +0.5 dB values are 2σ of five Stock v3 Assess repeats
+  (`docs/validation/audits/2026-10-13-stock-flow-repeats-prereg.md`). After-bake: mean and noise
+  PASS vs r1; one hub bar on r4 is +3.05 % (FAIL, not widened). Previously ±15 % / 2.8 dB from a
+  non-repeat pair (14.3 % band, 2.75 dB).
 - **No comparison available:** only the ✕ direction check and the raw numbers are shown.
 
 ## Pictures (`fansim/cfd/flow_report_viz.py`, off-screen PyVista, cached PNGs in the case dir)
@@ -155,9 +156,10 @@ New pictures, one per row (design and Stock, rendered identically):
    behave correctly at their edges.
 2. **Self-consistency:** using the Stock reference as the "design" gives every row ✓, every band
    "similar" and the overall line "same as Stock".
-3. **Run-to-run:** Stock's 2026-10-09 pre-clip run (`runs/screen_rank_audit/stock/full`) against the
-   reference must read "similar" on every row. If it doesn't, the thresholds are inside run noise: widen
-   them, and record the change and the reason in this spec. Never quietly.
+3. **Run-to-run:** five Stock v3 Assess repeats (`runs/stock_flow_repeats/r1..r5`). Mean push and
+   noise must read similar / not ⚠ vs r1 at the baked 2σ. Per-band labels may flap at the 3 % cut
+   (r4 hub bar did; recorded, not widened). The 2026-10-09 pre-clip vs reference pair is **not** a
+   pure repeat and is no longer the criterion.
 4. **Known cases:** 9610 (`runs/screen_rank_audit/r3_9610/full`, stalls under load) gets ≥ 1 ⚠.
    t9005 gets no ✕ and an overall line with more "better" than "worse". Results are recorded in
    `docs/validation/audits/2026-10-10-flow-report-checks.md`.

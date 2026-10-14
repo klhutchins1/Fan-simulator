@@ -13,12 +13,11 @@ TITLES = {"direction": "Air direction", "push": "Push along the blade", "spin": 
 ICONS = {"ok": "✓", "warn": "⚠", "bad": "✕", "na": "–"}
 
 BACKFLOW_MARGIN = 0.02
-BAND_TOL = 0.15  # was 0.10; Stock run-to-run 14.3 % (audit 2026-10-10-flow-report-checks F2).
-# Also the mean-push tolerance until Stock repeats set it at ~2 sigma (roadmap 27.3).
+BAND_TOL = 0.03  # 2σ of five Stock v3 Assess repeats (roadmap 27.3); was 0.15 from a non-repeat pair.
 SWIRL_FACTOR = 1.10
 DEAD_MARGIN = 0.02
 TIP_FACTOR = 0.90
-NOISE_MARGIN_DB = 2.8  # was 1.0; Stock run-to-run 2.75 dB (same audit)
+NOISE_MARGIN_DB = 0.5  # 2σ floor of the same five repeats; was 2.8 dB from that pair.
 
 
 @dataclass

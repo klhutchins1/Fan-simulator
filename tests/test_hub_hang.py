@@ -59,6 +59,31 @@ def test_old_planar_saves_and_unclipped_blades_are_not_refused():
     validate_blade_params(_design("S2_0176", clip_below_hub=False))    # no motor-face cut, no limit
 
 
+def test_optimizer_treats_overhang_as_early_infeasible(tmp_path, monkeypatch):
+    """Roadmap 27.8: a hang past 2 mm is infeasible before CAD/CFD, not a crash."""
+    from fansim.optimize.objectives import evaluate_candidate
+
+    def boom(*_a, **_k):
+        raise AssertionError("must not build CAD for a hang refusal")
+
+    monkeypatch.setattr("fansim.optimize.objectives.build_impeller", boom)
+    monkeypatch.setattr("fansim.optimize.objectives.export_stl", boom)
+    result = evaluate_candidate(_design("S2_0176"), workdir=tmp_path)
+    assert result.feasible is False
+    assert "below the hub" in (result.reason or "")
+
+
+def test_preview_worker_refuses_overhang(tmp_path):
+    """27.8: the isolated Preview worker keeps the hang sentence (stderr_tail=400)."""
+    from fansim.geometry.isolated import build_stl_isolated
+    from fansim.optimize.search_space import blade_to_flat
+
+    p = _design("S2_0176")
+    with pytest.raises(RuntimeError, match="below the hub"):
+        build_stl_isolated(blade_to_flat(p), p.features, tmp_path / "hang.stl",
+                           timeout=60, preview=True)
+
+
 def _analytic(p, st, r_mm, omega, n):
     kw = _thick_scale_kw(p)
     kw["wrap"] = True

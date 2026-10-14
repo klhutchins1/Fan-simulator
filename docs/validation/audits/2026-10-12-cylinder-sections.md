@@ -231,3 +231,28 @@ first v3 was fitted and flown with full-bullnose edges. The full test suite caug
   are known to scatter run to run (§19.6). Repeats would separate the two.
 - The surface-distance numbers above were measured on the round-edge v3. The edges are a small share of
   the surface.
+
+## Addendum (2026-10-13): hang limit, cut correction, fuse net (merged `ae3f1c4`)
+
+These landed after V1–V6 and the sharp-edge re-run. They are not a re-score of V5.
+
+**Hang limit.** Wrapped + clipped blades may hang at most **2 mm below the hub's motor face, as
+designed** (`MAX_HANG_BELOW_HUB_MM`, `blade_hang_below_hub_mm`, refused in `validate_blade_params`).
+The realised loft hangs about **1.6×** the designed value because the chord stretch lengthens the
+trailing edge; round-9 hang numbers were the realised figure. Of 200 stress designs: 39 hang at
+all, **8 exceed 2 mm** (refused). lt120 hangs 4.8 mm and is refused.
+
+**Cut correction.** Under the limit, `chord_realisation.correct_clipped_sections` nudges loft
+camber/stagger at stations the hub-face cut changes (chord > 0.1 mm, camber > 0.001, or stagger
+> 0.2°) until the cut section reads like the designed one. S8_0056 camber −0.0080 → −0.0001. The
+8 worst allowed hangs pass V1 after the correction (3 failed before it). Stock's two inner
+stations −0.0066 / −0.0053 → pass.
+
+**Stock refit under the correction.** Inner camber 0.032 → 0.026 and 0.048 → 0.045; outer
+unchanged. Free air 55.8 → **55.7** CFM. Loaded 5/10 Pa (48.0 / 37.5) were not re-run; free air
+did not move.
+
+**Fuse safety net.** `fuse_impeller` requires exactly one solid. If an all-at-once fuse leaves
+loose pieces, it redoes the fuse one blade at a time. The first sharp-edge v3 fused to 2 solids /
+6 bodies. Repro: `tests/data/stock_v3_fuse_fragile.yaml`. The check is "one solid", not OCCT
+`isValid` (big fused solids fail that on tolerances yet export clean).

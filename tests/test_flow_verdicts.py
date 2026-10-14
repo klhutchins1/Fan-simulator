@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 
 from fansim.cfd.flow_report import FlowMetrics
-from fansim.cfd.flow_verdicts import ROW_KEYS, judge, overall_line
+from fansim.cfd.flow_verdicts import BAND_TOL, NOISE_MARGIN_DB, ROW_KEYS, judge, overall_line
 
 STOCK = FlowMetrics(0.06, False, [2.0, 4.0, 6.0, 8.0, 6.0], 0.20, 0.05, 0.80, 60.0, 2.5, mean_dp0_pa=6.0)
 
@@ -28,7 +28,7 @@ def test_backflow_edge():
 
 
 def test_band_labels():
-    rows = judge(_m(band_dp0_pa=[2.31, 4.0, 5.09, 9.2, 6.0]), STOCK)  # tol 15 %
+    rows = judge(_m(band_dp0_pa=[2.07, 4.0, 5.81, 8.2, 6.0]), STOCK)  # tol 3 %
     assert rows[1].bands == ["stronger", "similar", "weaker", "similar", "similar"]
 
 
@@ -37,8 +37,8 @@ def test_swirl_dead_noise_edges():
     assert judge(_m(swirl_frac=0.2201), STOCK)[2].status == "warn"
     assert judge(_m(dead_frac=0.0701), STOCK)[3].status == "warn"
     assert judge(_m(tip_band_uz_ratio=0.71), STOCK)[3].status == "warn"
-    assert judge(_m(noise_swl_db=62.8), STOCK)[4].status == "ok"
-    assert judge(_m(noise_swl_db=62.81), STOCK)[4].status == "warn"
+    assert judge(_m(noise_swl_db=60.5), STOCK)[4].status == "ok"
+    assert judge(_m(noise_swl_db=60.51), STOCK)[4].status == "warn"
 
 
 def test_noise_missing_is_na():
@@ -73,13 +73,18 @@ def test_push_verdict_uses_the_mean_not_the_band_tilt():
 
 
 def test_push_mean_stronger_and_weaker():
-    up = judge(_m(mean_dp0_pa=6.0 * 1.15 + 0.01), STOCK)[1]
+    up = judge(_m(mean_dp0_pa=6.0 * 1.03 + 0.01), STOCK)[1]
     assert up.status == "ok" and up.better is True and "harder" in up.text
-    assert judge(_m(mean_dp0_pa=6.0 * 1.15), STOCK)[1].better is False  # edge is "similar"
-    down = judge(_m(mean_dp0_pa=6.0 * 0.85 - 0.01), STOCK)[1]
+    assert judge(_m(mean_dp0_pa=6.0 * 1.03), STOCK)[1].better is False  # edge is "similar"
+    down = judge(_m(mean_dp0_pa=6.0 * 0.97 - 0.01), STOCK)[1]
     assert down.status == "warn" and down.better is False and "less" in down.text
 
 
 def test_push_mean_missing_is_na():
     assert judge(_m(mean_dp0_pa=math.nan), STOCK)[1].status == "na"
     assert judge(STOCK, _m(mean_dp0_pa=0.0))[1].status == "na"  # no Stock push to compare with
+
+
+def test_baked_tolerances_are_stock_v3_two_sigma():
+    assert BAND_TOL == 0.03
+    assert NOISE_MARGIN_DB == 0.5
