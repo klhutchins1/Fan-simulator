@@ -126,6 +126,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             "do not fit the Fan model above. Turn off to show the "
                             "full opened-run set (including oversize blades).",
                             classes="text-caption text-medium-emphasis ml-2 mb-2",
+                            v_show="ui_mode === 'expert'",
                         )
                         v3.VSwitch(
                             v_model=("declutter",),
@@ -151,6 +152,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             "(not OEM CFD). Click the ✕ to load the parametric stock "
                             "blade into Design (editable approximation) + 3-D preview.",
                             classes="text-caption text-medium-emphasis ml-2 mb-2",
+                            v_show="ui_mode === 'expert'",
                         )
                         html.Div(
                             "Glossary — CFM: airflow volume. Pa: pressure. "
@@ -161,6 +163,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             "its run · gold ring = best overall (nothing beats it on free, load and "
                             "efficiency at once) · gold ✕ = stock datasheet. Dropdown ✪ = best overall.",
                             classes="text-caption text-medium-emphasis ml-2 mb-2",
+                            v_show="ui_mode === 'expert'",
                         )
                         with v3.VCard(classes="mb-2 pa-3"):
                             v3.VSelect(
@@ -192,6 +195,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 "Click a point to load Design. Color = efficiency, shape = run "
                                 "(legend), gold ring = best overall. Hover shows run + date.",
                                 classes="text-caption text-medium-emphasis px-2 pt-1",
+                                v_show="ui_mode === 'expert'",
                             )
                             html.Div(
                                 "No scored designs yet — Assess one blade or open an Optimize "
