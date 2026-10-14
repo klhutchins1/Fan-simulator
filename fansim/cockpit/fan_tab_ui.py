@@ -671,6 +671,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             html.Div(
                                                 "Chord = LE→TE blade width (planform). Not wall thickness.",
                                                 classes="text-caption mb-2",
+                                                v_show="ui_mode === 'expert'",
                                             )
                                     with v3.VExpansionPanel(title="Pitch / twist — stagger"):
                                         with v3.VExpansionPanelText():
@@ -690,6 +691,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 "constant wall, round LE, tunable TE + camber for the slight "
                                                 "face curve — match printed PC-fan blades.",
                                                 classes="text-caption mb-2",
+                                                v_show="ui_mode === 'expert'",
                                             )
                                             _slider("Camber root", "e_camber_root", 0.0, 0.15, 0.005, unit="c/c")
                                             _slider("Camber mid", "e_camber_mid", 0.0, 0.15, 0.005, unit="c/c")
@@ -699,6 +701,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 "Raise tip/mid until the tip-on view matches the white reference. "
                                                 "Not wrap/sickle — those move the planform, not the face scoop. Preview after changes.",
                                                 classes="text-caption mb-2",
+                                                v_show="ui_mode === 'expert'",
                                             )
                                             _slider("Camber position", "e_camber_pos", 0.2, 0.6, 0.05, unit="x/c")
                                             _help_select(
@@ -736,6 +739,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 "Uniform = same mm root→tip. Rounded plate keeps wall through "
                                                 "the section (LE/TE from the roundness sliders); NACA knives the TE.",
                                                 classes="text-caption mb-2",
+                                                v_show="ui_mode === 'expert'",
                                             )
                                             _slider(
                                                 "LE thick / roundness", "e_le_thick", 0.0, 2.0, 0.05,
@@ -751,6 +755,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 "(1 = full bullnose, ~0.2 = sharp). "
                                                 "Camber bows the plate face (slight tip→hub curve). Preview after changes.",
                                                 classes="text-caption text-medium-emphasis mb-2",
+                                                v_show="ui_mode === 'expert'",
                                             )
                                     with v3.VExpansionPanel(title="3-D shape — wrap, sweep, rake"):
                                         with v3.VExpansionPanelText():
@@ -798,6 +803,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 "Three boxy / skewed-rectangle bites on the outer trailing edge "
                                                 "(stock A12x25 style). Not spanwise owl serrations.",
                                                 classes="text-caption mb-2",
+                                                v_show="ui_mode === 'expert'",
                                             )
                                             _slider("Winglet start", "e_winglet_span", 0.6, 0.95, 0.05, unit="span")
                                             _slider("Winglet sweep", "e_winglet_sweep", 0, 15, 0.5, unit="mm")
@@ -815,6 +821,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             html.Div(
                                                 "0 thickness = off. First thickness step is 0.8 mm (two walls); 1.6 mm is four walls. Height 1.0 covers the full tip; below 1.0 the hoop starts at the trailing edge and BEM still treats it as an open tip. A full ring (height 1.0) disables the winglet automatically — once the tip is fully covered a winglet only adds blockage.",
                                                 classes="text-caption mb-1",
+                                                v_show="ui_mode === 'expert'",
                                             )
                                     with v3.VExpansionPanel(title="Hub"):
                                         with v3.VExpansionPanelText():
@@ -834,6 +841,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 "Blade on hub: + raises blades toward the intake (more hub below). "
                                                 "Needs Hub height taller than the root span.",
                                                 classes="text-caption mb-2",
+                                                v_show="ui_mode === 'expert'",
                                             )
                                             v3.VSelect(
                                                 label="Hub profile",

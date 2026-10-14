@@ -54,7 +54,7 @@ move the unique open item here and leave a pointer, do not keep a second list.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next (2026-10-14): 24.2 first slice landed (Results help is Expert-only). Remaining 24.2: Design captions + duplicate-after-run. grok r12 A–E in flight (PLA+ / UI tests). 28.3 glyphs parked. QA-12 CT0 remains. Do not restart the optimizer.**
+**→ Next (2026-10-14): 24.2 Results + Design dump paragraphs Expert-only. Remaining 24.2: Assess/Optimize blurbs + duplicate-after-run. grok r12 in flight; r13 queued (do not start until r12 returns). 28.3 glyphs parked. QA-12 CT0 remains. Do not restart the optimizer.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -78,8 +78,9 @@ move the unique open item here and leave a pointer, do not keep a second list.
     +Z hub ring r 10–21.45 mm is flat 360°. Dummy 8×3.2×0.5 recess stays one solid; aero 1.76 %.
     28.2 registry is in; glyphs wait. Handoff: `handoff/2026-10-13_from-qa-10/`.
   - **§29** — 29.1 material picker (PLA+ still looks like PETG); 29.2 UI regression tests. Grok r12 D/E.
-  - **§24.2** first slice DONE 2026-10-14 (Results glossary / Gold ✕ / fits-only blurb / scatter how-to
-    sit behind `ui_mode === 'expert'`). Still open: Design captions, duplicate-after-run, rest of screens.
+  - **§24.2** Results + Design dump paragraphs DONE 2026-10-14 (`ui_mode === 'expert'`). Hover
+    tooltips and live fit lines stay in Simple. Still open: Assess/Optimize blurbs, duplicate-after-run,
+    other tabs.
   - ~~**25.10**~~ near-stall flag DONE 2026-10-14 (caption only; hold-out MIXED, 9613 also flags).
   - Deferred (Stage 1 done, Stage 2 **not adopted** — do not start without a new Adopt):
     CST section DOFs, §7.4 CNN/FNO field predictor, §4.5 toroidal Prop topology.
@@ -1415,14 +1416,14 @@ The work is split into three sub-projects, done in order.
     - t9005: no ✕.
   - No new CFD, no score change. **[impact: high]** **[effort: high]**
 - [ ] **24.2 Text clean-up across the app (sub-project 2; needs its own design pass).**
-  - **PARTLY DONE 2026-10-14 — first slice.** Fan → Results glossary, Gold ✕ blurb, fits-only
-    explanation, and scatter how-to-read sit behind `ui_mode === 'expert'`. Switches, Design dropdown,
-    and the empty-plot line stay in Simple. No new Simple copy (hiding is not a sign-off). Tests:
-    `tests/test_simple_mode_copy.py`.
+  - **PARTLY DONE 2026-10-14.** Fan → Results glossary / Gold ✕ / fits-only / scatter how-to, plus
+    the Geometry dump paragraphs (chord / NACA / camber / wall / LE-TE / notches / shroud / blade-on-hub),
+    sit behind `ui_mode === 'expert'`. Switches, sliders, hover tooltips (`CONTROL_DESC`), live fit
+    lines, and the empty-plot line stay in Simple. Tests: `tests/test_simple_mode_copy.py`.
   - Decide what each remaining screen shows by default in simple mode, and move the rest into tooltips,
     "more info" panels, expert mode or a help page.
   - Remove the duplicate information that appears after a run.
-  - Remaining examples: the long Design caption lines (`CONTROL_DESC` under sliders).
+  - Remaining examples: Assess & print / Optimize panel blurbs; Mixed/Prop/Volute/CROR dumps (grok r13).
   - Keep the viewer above the fold at 768p.
   - Reuses the 24.1 switch. **[impact: high]** **[effort: high]**
 - [ ] **24.3 Start page and plain tab descriptions (sub-project 3; after 24.2).**
