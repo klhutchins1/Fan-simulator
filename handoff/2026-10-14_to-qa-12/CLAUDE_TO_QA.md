@@ -1,60 +1,64 @@
 # Cursor → QA bot, 2026-10-14 (round 12)
 
-Same contract. Pull **master `3b30b9e`** (`Issue a Crockford print-id at Export, with no hub cut.`).
-The clone at `a09905a` is stale. No bundle. No `git apply`.
+Same contract. **This is the next round after 10 / 10b.**
 
-## Round 11 — we did not receive your drop
+Round 11 was written here but never landed in your clone. Ignore any wait on
+**round 10 Task D / a 27.1 patch.** That code is on master. Do **not** `git apply`
+`handoff/2026-10-13_to-qa-11/27.1.patch`.
 
-The brief asked for `handoff/2026-10-13_from-qa-11/` and notes
-`docs/qa/notes/qa-34-featured-wrap-stl-r11.md`, `docs/qa/notes/fuse-remaining-r11.md`.
-Those paths are **not** on Kimball's box. Kimball said you sent data; it is not in this repo.
+Pull **master** (print-id commit `3b30b9e`, this brief `cec573a` or later).
+Clone at `a09905a` is stale. No bundle.
 
-**Task 0 (do this first, no new builds):** if you still have that folder / those notes, copy them
-into the clone as specified in r11. Do **not** re-run r11 A/B if they already finished — just land
-the notes. If you never finished r11, skip Task 0 and do B below.
+## Round 10 + 10b, what we took (unchanged)
 
-## What landed here since r11 was briefed
+| task | we used | action |
+|---|---|---|
+| A mark-spec | M1–M3 PASS | 28.1 closed. No glyphs. |
+| B wrap | W2–W5 PASS. W1/W6 FAIL ×1 S5_0184 | wrap stays. **QA-34 closed in code** (see below). |
+| C hang + correction | QA-32 verified | 2 mm limit stays. Do not re-measure C.2. |
+| D fuse guard | not run (you were waiting on a patch) | **that's Task B this round, on master** |
+| E near-stall | not done | skip unless A+B+C are short |
+
+## What is on master now
 
 | item | state |
 |---|---|
-| QA-34 | **Closed on evidence of the kept gz.** S5_0184 is 1 watertight impeller + 7 collapsed tessellation needles (one per blade). `export_stl` → `sanitize_stl`. Not a loft bug. |
-| 27.1 | **On master** (Windows remaining-growth + shroud term). Linux constants unchanged. No patch to apply. |
-| 27.3 | Baked `BAND_TOL=0.03`, `NOISE_MARGIN_DB=0.5`. Do not re-run Stock CFD. |
-| 28.2 | **On master this commit.** Registry + README. **No hub cut. No glyphs.** |
-| 28.3 | still parked |
+| QA-34 | Closed from the kept gz: 1 watertight impeller + 7 collapsed tessellation needles. `export_stl` runs `sanitize_stl`. Not a loft bug. |
+| 27.1 | Remaining-growth guard + shroud term. Linux 0.28 GB + 72 KiB/face + 66 KiB/blade-face. Hook still `handoff/2026-10-13_to-qa-11/hook_c11/`. |
+| 27.3 | `BAND_TOL=0.03`, `NOISE_MARGIN_DB=0.5`. Do not re-run Stock CFD. |
+| 28.2 | Registry + README at Export. **No hub cut. No glyphs.** |
+| 28.3 | parked |
 
 ## Overview
 
 | # | task | kind | start? |
 |---|---|---|---|
-| 0 | Land r11 notes if you have them | copy only | **first** |
 | A | QA-34 strip check on HEAD | 3 P builds | **now** |
-| B | 27.1 remaining-growth | short builds | **only if r11 B was not run** |
-| C | 28.2 print-id on Stock Export | 1 print-ready Export | after A |
+| B | 27.1 remaining-growth (old Task D) | short builds | **after A**, no patch |
+| C | 28.2 print-id on Stock Export | 1 print-ready Export | after A (can overlap B) |
 | — | CFD, loft, glyphs, 27.2b, optimizer | — | **do not** |
 
-Pre-register A (and B if you run it) in one commit before data.
+Pre-register **A, B, and C in one commit** before any data.
 
 ---
 
 ## Task A: QA-34 — does the strip hold? (no source edit)
 
-Question: on **this** HEAD, is a featured wrapped STL one watertight body with **0** faces of area
-< 1e-9 mm²?
+On **this** HEAD, is a featured wrapped STL one watertight body with **0** faces of area < 1e-9 mm²?
 
 Control: rebuild **S5_0184** (`handoff/2026-10-13_from-qa-10/data/b_sample.jsonl`),
-`section_wrap` forced `"cylinder"`, `build_stl_isolated` / P, 8gb, one at a time.
-Then 2 more featured wraps, seed **11013**, same featured rule as r11 (S5, unshrouded, some
-bio-feature > 0; drop hang refusals; do not top up). Hang refusals = "refused (hang)", not FAIL.
+`section_wrap` forced `"cylinder"`, P via `build_stl_isolated`, 8gb, one at a time.
+Then 2 more featured wraps, seed **11013**, same featured rule as the unsent r11 brief
+(S5, unshrouded, some bio-feature > 0; drop hang refusals; do not top up).
+Hang refusals = "refused (hang)", not FAIL.
 
-Also run `sanitize_stl` is already inside `export_stl` — do not call it twice as a "fix". Measure
-the file the builder wrote.
+`sanitize_stl` is already inside `export_stl`. Measure the file the builder wrote.
 
 | id | PASS iff |
 |---|---|
 | F0 | S5_0184 STL is watertight, 1 body, 0 faces with area < 1e-9. B-rep still 1 solid. |
 | F1 | both new OK wraps also watertight / 1 body / 0 degenerate. Hang refusals ignored. |
-| F2 | report only: n_faces dropped vs a copy you tessellate *without* sanitize (optional). |
+| F2 | report only. |
 
 If F0 FAIL, stop and send the STL gz. Do not touch `_capped_loft`.
 
@@ -62,16 +66,25 @@ Note: `docs/qa/notes/qa-34-strip-r12.md`.
 
 ---
 
-## Task B: 27.1 remaining-growth (skip if r11 B already ran)
+## Task B: 27.1 remaining-growth (old round-10 Task D)
 
-Same sample as r11 Task B (12 shrouded S7 + twins + 4 open). **No patch** — `fuse_impeller` and
-`resources.py` are on master. Hook: `handoff/2026-10-13_to-qa-11/hook_c11/` still applies
-(logs `shrouded` and `n_blade_faces`).
+This is the measurement you were waiting to patch for. **No patch.** `fuse_impeller` and
+`resources.py` are on master.
 
-PASS iff remaining = VmHWM_exit − VmRSS_at_call ≤ 1.15 × `fuse_remaining_estimate_gb(...)` on
-every OK build (keep twins).
+Sample: same as round 9 Task E / unsent r11 Task B — 12 shrouded S7 (3 height bins × 4 blade
+counts) + unshrouded twin of each + 4 unshrouded controls. Reuse r9 IDs, or redraw with seed
+**11012** and disclose. One P at a time. `FANSIM_MEMORY_TIER=8gb`. Do **not** set
+`FANSIM_FUSE_GUARD=1` (that skips the fuse).
 
-Note: `docs/qa/notes/fuse-remaining-r12.md` (or land the r11 note as Task 0 and skip this).
+Hook: `handoff/2026-10-13_to-qa-11/hook_c11/` (logs `shrouded` and `n_blade_faces`; VmRSS/VmHWM
+in **kB**). PYTHONPATH as round 8/9.
+
+For each OK build, remaining = `VmHWM_exit − VmRSS_at_call` (bytes; kB × 1024).
+Ask = `1.15 * fuse_remaining_estimate_gb(n_faces, shrouded=…, n_blade_faces=…)`.
+
+**PASS** iff remaining ≤ ask on **all** OK builds. Keep the twins (they check the shroud term).
+
+Note: `docs/qa/notes/fuse-remaining-r12.md`.
 
 ---
 
@@ -88,7 +101,7 @@ One print-ready Export of **Stock v3** (A12x25, cup, PETG) through the cockpit p
 | P3 | `validation/prints/index.jsonl` gained one line with the same `print_id` and `stl`. |
 | P4 | mesh still watertight, 1 body; cup gauge K7 unchanged from r10 Task A (no new pocket). |
 
-`print_id` alphabet: `0123456789ABCDEFGHJKMNPQRSTVWXYZ` plus check from `*~$=U` union that set.
+Alphabet: `0123456789ABCDEFGHJKMNPQRSTVWXYZ` plus check from that set union `*~$=U`.
 Code: `fansim/manufacturability/print_id.py`.
 
 Note: `docs/qa/notes/print-id-export-r12.md`.
@@ -102,11 +115,11 @@ Note: `docs/qa/notes/print-id-export-r12.md`.
 - 27.2b / Printables / outside STLs.
 - `_capped_loft`, `correct_clipped_sections`, Stock YAML.
 - Restart the optimizer.
+- Wait for a 27.1 patch or a round-11 folder.
 
 ## Conventions
 
-- Edit only `docs/QA_REVIEW.md`, `docs/qa/**`, and a new `handoff/2026-10-14_from-qa-12/`
-  (plus Task 0's r11 folder if you are landing old notes).
-- Pre-register before data.
+- Edit only `docs/QA_REVIEW.md`, `docs/qa/**`, and a new `handoff/2026-10-14_from-qa-12/`.
+- Pre-register A, B, and C before data.
 - Big data gzipped (gitignored).
 - Status line per task in the README.

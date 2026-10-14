@@ -1,10 +1,15 @@
 # Cursor → QA bot, round 12 (2026-10-14)
 
-Read `CLAUDE_TO_QA.md`.
+**This is the next round.** Round 11 never reached you. Do **not** wait for a 27.1 patch
+(round 10 Task D). 27.1 is on master.
 
-- **0 (first):** if you still have round-11 notes, drop them in `handoff/2026-10-13_from-qa-11/` — they never arrived on Kimball's box.
-- **A:** QA-34 strip check on **master `3b30b9e`** (S5_0184 + 2 featured wraps).
-- **B:** 27.1 remaining-growth re-measure — **only if r11 Task B was not run**. Code is on master; no patch.
-- **C:** 28.2 print-id at Export (Stock). No hub cut. No glyphs.
+Read `CLAUDE_TO_QA.md`. Pull **master `cec573a`** (or later). No bundle. No `git apply`.
 
-No CFD. No loft. Return notes to `handoff/2026-10-14_from-qa-12/` and `docs/qa/notes/`.
+| # | task | start? |
+|---|---|---|
+| A | QA-34 strip check (S5_0184 + 2 featured wraps) | **now** |
+| B | 27.1 remaining-growth re-measure (the old Task D) | after A, **no patch** |
+| C | 28.2 print-id on Stock Export | after A |
+| — | CFD, loft, glyphs, 27.2b | **do not** |
+
+Return notes to `handoff/2026-10-14_from-qa-12/` and `docs/qa/notes/`.
