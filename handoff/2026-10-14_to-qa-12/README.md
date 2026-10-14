@@ -19,3 +19,6 @@ already pre-registered A–C, **add D (and E if you will run it) to that prereg 
 Do not wait for another round number.
 
 Return notes to `handoff/2026-10-14_from-qa-12/` and `docs/qa/notes/`.
+
+**Queued:** round 13 is `handoff/2026-10-14_to-qa-13/`. Do **not** open it until this
+round’s `from-qa-12/` notes are written. Finish A–E here first.
