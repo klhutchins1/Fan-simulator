@@ -21,6 +21,12 @@ def test_score_caption_beam_regime_warn():
     assert "§19.18" in text
 
 
+def test_score_caption_near_stall_warn():
+    text = score_caption({"near_stall": True, "near_stall_reason": "incidence 12.1 deg >= stall 10.0 deg"})
+    assert "near stall" in text.lower()
+    assert "incidence" in text
+
+
 def test_score_caption_empty_does_not_claim_circular():
     text = score_caption({})
     assert "circular" not in text.lower()

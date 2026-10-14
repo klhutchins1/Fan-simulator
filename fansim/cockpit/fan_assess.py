@@ -151,7 +151,9 @@ def bind(session) -> None:
     def _cfd_progress_hint(workdir: Path | None) -> str:
         return cfd_stage_hint(workdir)
 
-    async def _assess_progress_ticker(t0: float, workdir_holder, *, note: str = "", stop=None):
+    async def _assess_progress_ticker(
+        t0: float, workdir_holder, *, note: str = "", stop=None, stall_hint=None,
+    ):
         # ``stop[0]`` ends the ticker once the result is written: the picture bake after "Done"
         # awaits, and a ticker still looping on ``assess_busy`` overwrote the result (QA-29, 27.6).
         while state.assess_busy and not state.assess_cancel and not (stop and stop[0]):
@@ -159,10 +161,14 @@ def bind(session) -> None:
                 await asyncio.sleep(5.0)
                 continue
             wd = workdir_holder[0] if workdir_holder else None
+            hint = _cfd_progress_hint(wd)
+            warn = (stall_hint or [""])[0]
+            if warn:
+                hint = f"{warn}\n{hint}" if hint else warn
             state.assess_msg = busy_caption(
                 "Assess",
                 time.time() - t0,
-                hint=_cfd_progress_hint(wd),
+                hint=hint,
                 note=note,
             )
             state.flush()
@@ -326,11 +332,26 @@ def bind(session) -> None:
             note = (f"typically 30–40 min free+load; stops only if stalled "
                     f"{stall_timeout() / 60:.0f} min (cap {cfd_eval_timeout() / 3600:.0f} h)")
             wd_holder: list = [None]
-            state.assess_msg = busy_caption("Assess", 0, note=note)
+            ns_line = [""]
+            try:
+                from fansim.optimize.near_stall import near_stall_caption, near_stall_report
+
+                ns_line[0] = near_stall_caption(
+                    near_stall_report(
+                        params,
+                        rpm=float(getattr(rs.spec, "rpm", 2000.0) or 2000.0),
+                        load_pa=rs.load_pa,
+                    )
+                )
+            except Exception as exc:  # noqa: BLE001 — warning must never block Assess
+                log_caught(_log, "near-stall flag", exc)
+            state.assess_msg = busy_caption("Assess", 0, note=note, hint=ns_line[0])
             state.flush()
             ticker_stop = [False]
             ticker = fan_runtime.asynchronous.create_task(
-                _assess_progress_ticker(t0, wd_holder, note=note, stop=ticker_stop)
+                _assess_progress_ticker(
+                    t0, wd_holder, note=note, stop=ticker_stop, stall_hint=ns_line,
+                )
             )
             try:
                 try:

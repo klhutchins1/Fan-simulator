@@ -26,6 +26,9 @@ def score_caption(extra: dict) -> str:
     op_cfd = extra.get("op_cfd")
     if op_cfd:
         parts.append(f"op CFD: {op_cfd}")
+    if extra.get("near_stall"):
+        why = extra.get("near_stall_reason") or extra.get("near_stall_rule") or "BEM"
+        parts.append(f"⚠ near stall on this hose ({why})")
     if extra.get("beam_regime_ok") is False:
         aspect = extra.get("beam_aspect")
         if aspect is not None:
@@ -68,7 +71,8 @@ def stamp_score_extra(
     for key in ("print_k_cfm", "print_k_eta", "surf_max", "hub_clip", "motor_eff"):
         if raw.get(key) is not None:
             extra[key] = raw[key]
-    for key in ("beam_regime_ok", "beam_aspect", "beam_regime_warn", "f1_bpf_margin"):
+    for key in ("beam_regime_ok", "beam_aspect", "beam_regime_warn", "f1_bpf_margin",
+                "near_stall", "near_stall_reason", "near_stall_rule"):
         if raw.get(key) is not None:
             extra[key] = raw[key]
     if refine_op:

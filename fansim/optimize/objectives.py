@@ -51,6 +51,7 @@ from fansim.geometry.blade import (
     validate_blade_params,
 )
 from fansim.manufacturability.fdm_rules import check_printability
+from fansim.optimize.near_stall import near_stall_report
 from fansim.optimize.system_curve import (
     REF_CFM,
     SystemCurveError,
@@ -279,6 +280,15 @@ def evaluate_candidate(
             gap_raw["exploit_guard_error"] = f"{type(exc).__name__}: {exc}"
         if why:
             return _infeasible(f"bem-guard: {why} (axial-force BEM; skipped CFD)", t0, raw=gap_raw)
+
+    # --- Near-stall warning (25.10): stamp only. Never skips CFD, never changes scores. ---
+    try:
+        ns = near_stall_report(params, float(target_rpm), float(load_pa), remaining)
+        gap_raw["near_stall"] = bool(ns.flagged)
+        gap_raw["near_stall_rule"] = ns.rule
+        gap_raw["near_stall_reason"] = ns.reason
+    except Exception as exc:  # noqa: BLE001 - warning must never break the eval
+        gap_raw["near_stall_error"] = f"{type(exc).__name__}: {exc}"
 
     # --- BEM pre-screen (roadmap §7.1c): reject clearly-non-viable designs before CFD.
     # Floor is on hose operating CFM (same axis as CFD cfm_load), not free-delivery.

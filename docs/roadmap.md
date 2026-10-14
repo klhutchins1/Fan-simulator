@@ -54,7 +54,7 @@ move the unique open item here and leave a pointer, do not keep a second list.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next (2026-10-14): grok r12 A–C in flight. 29.1 material picker (PLA+) and 29.2 UI tests are grok D/E. 28.3 glyphs parked. Next software here: **25.10** near-stall flag. Do not restart the optimizer.**
+**→ Next (2026-10-14): grok r12 A–E in flight (PLA+ / UI tests). 25.10 near-stall flag shipped (caption only). 28.3 glyphs parked. Next software here: leftover **23.18 / 23.19** or wait on grok D. Do not restart the optimizer.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -78,7 +78,7 @@ move the unique open item here and leave a pointer, do not keep a second list.
     +Z hub ring r 10–21.45 mm is flat 360°. Dummy 8×3.2×0.5 recess stays one solid; aero 1.76 %.
     28.2 registry is in; glyphs wait. Handoff: `handoff/2026-10-13_from-qa-10/`.
   - **§29** — 29.1 material picker (PLA+ still looks like PETG); 29.2 UI regression tests. Grok r12 D/E.
-  - **25.10** — near-stall flag (cheap BEM/geometry; next software here after grok D).
+  - ~~**25.10**~~ near-stall flag DONE 2026-10-14 (caption only; hold-out MIXED, 9613 also flags).
   - Deferred (Stage 1 done, Stage 2 **not adopted** — do not start without a new Adopt):
     CST section DOFs, §7.4 CNN/FNO field predictor, §4.5 toroidal Prop topology.
   - ~~§20.2 NeuralFoil / RMS / 360°~~ — DONE 2026-09-30.
@@ -1592,9 +1592,12 @@ failures.
   - **Decision (Kimball, 2026-10-11): record every setting when Assess / Sweep / Mixed Assess is
     pressed, and save exactly those with the result.**
   - Source: the QA round-7 Task A note. **[impact: high: wrong saved labels]** **[effort: med]**
-- [ ] **25.10 Near-stall flag** (Task E, carried over; next software after grok r12 D). A cheap
-  BEM/geometry flag for Q3's blind spot (9610): that design looked fine on the Q3 screen and then
-  sat near stall under load. Spec in `handoff/2026-10-09_to-qa-5/CLAUDE_TO_QA.md` Task E. No new CFD.
+- [x] **25.10 Near-stall flag** (Task E, carried over). **DONE 2026-10-14.** Cheap BEM warning
+  at the case-hose operating point: N1 signed incidence ≥ polar-edge stall, N2 no hose
+  intersect, N3 Lieblein DF > 0.60. Assess caption + `extra.near_stall`; **scores unchanged**.
+  Hold-out MIXED: 9610 flags (DF 0.605); 9604 / 9608 / Stock / t9005 do not; 9613 also flags
+  (incidence past stall) even though its CFD did not unconverge. Thresholds not retuned.
+  `fansim/optimize/near_stall.py`, prereg `docs/qa/notes/near-stall-flag-prereg.md`.
 
 ---
 
