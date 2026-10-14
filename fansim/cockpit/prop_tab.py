@@ -69,6 +69,14 @@ else:
 
 
 
+def prop_static_headline(spec) -> str:
+    """First readout line: these grams are hover at rpm_max, not a cruise figure (23.18)."""
+    return (
+        f"⚙ {spec.n_blades}-blade  {spec.diameter_in}×{spec.pitch_in:.1f} in  "
+        f"@ {spec.rpm_max:,.0f} rpm (max), static"
+    )
+
+
 def prop_reference_line(spec, perf) -> str:
     """Compare BEMT thrust/power with the class's typical figures (roadmap §23.18).
 
@@ -447,7 +455,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                 set_polar_backend(backend)
             perf = bemt_analyze(params, rpm=spec.rpm_max)
             lines = [
-                f"⚙ {spec.n_blades}-blade  {spec.diameter_in}×{spec.pitch_in:.1f} in  @ {spec.rpm_max:.0f} rpm",
+                prop_static_headline(spec),
                 f"Thrust {perf.thrust_g:.0f} g   ·   {perf.efficiency_g_per_w:.2f} g/W   ·   {perf.power_w:.0f} W",
                 f"Figure of merit {perf.figure_of_merit:.2f}   (0.6–0.8 = a good real prop)",
                 f"Polar backend: {get_polar_backend()}",

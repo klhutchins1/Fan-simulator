@@ -2,8 +2,16 @@
 
 from types import SimpleNamespace
 
-from fansim.cockpit.prop_tab import prop_reference_line
+from fansim.cockpit.prop_tab import prop_reference_line, prop_static_headline
 from fansim.prop_spec import get_prop_spec
+
+
+def test_prop_headline_says_max_rpm_static():
+    spec = get_prop_spec("fpv_5inch")
+    line = prop_static_headline(spec)
+    assert "@ 30,000 rpm (max), static" in line
+    assert "3-blade" in line
+    assert "5.0×4.3" in line or "5.0x4.3" in line
 
 
 def test_fpv_5inch_reference_line():
