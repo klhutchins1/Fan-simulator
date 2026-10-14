@@ -5,7 +5,7 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-10-14** (27.3 baked ±3 % / +0.5 dB). Previously **2026-10-13** (§28 parked).
+- Last reviewed: **2026-10-14** (28.2 print-id registry). Previously 27.3 / QA-34. Previously **2026-10-13** (§28 parked).
   Previously **2026-10-11** (§26 parked). **2026-10-08** (§23 QA). **§12** + **§13** + **§7.6** +
   **§14.1–14.6** closed in code. Stock close-ref fidelity (§2.7–2.8). **§13.22–13.24** /
   **§14.3b** / **§14.6** / **§15.1–15.6** landed 2026-09-16. Still **not shippable** until
@@ -36,7 +36,7 @@ session.**
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next (2026-10-14): wrap + Stock v3 MERGED (`ae3f1c4`). 27.3 baked ±3 % / +0.5 dB. QA-34 closed (tessellation needles, not loft). 28.2/28.3 parked until Kimball says go. Do not restart the optimizer. Grok r11 Task A prevalence is now a check that the strip holds, not a blocker.**
+**→ Next (2026-10-14): 28.2 print-id registry at Export (no hub cut). 27.3 baked. QA-34 closed. 28.3 glyphs still parked. Do not restart the optimizer.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -56,9 +56,9 @@ session.**
   - **§26** (parked idea) — cockpit “Bring your STL” Assess; optional inverse-fit; no mass-scrape.
     Do **not** start until wrap is merged and external-STL spin is honest (round 9 D unconfirmed).
     CLI already has `scripts/validate_stl.py`.
-  - **§28** (28.1 mark-spec **PASS** r10 Task A; 28.2/28.3 still parked until Kimball says go) —
+  - **§28** (28.1 mark-spec PASS; **28.2 registry done**; 28.3 glyphs still parked) —
     +Z hub ring r 10–21.45 mm is flat 360°. Dummy 8×3.2×0.5 recess stays one solid; aero 1.76 %.
-    Glyphs wait. Handoff: `handoff/2026-10-13_from-qa-10/`.
+    28.2 registry is in; glyphs wait. Handoff: `handoff/2026-10-13_from-qa-10/`.
   - Deferred (Stage 1 done, Stage 2 **not adopted** — do not start without a new Adopt):
     CST section DOFs, §7.4 CNN/FNO field predictor, §4.5 toroidal Prop topology.
   - ~~§20.2 NeuralFoil / RMS / 360°~~ — DONE 2026-09-30.
@@ -1788,7 +1788,7 @@ Kimball, 2026-10-13: two printed fans from a month ago, and only the Noctua is i
 ~30 parts in a box, a re-test has to attach to the **export** (recipe, wrap, git, CFD run, material),
 not “the black 120 mm one”. A sharpie works as a fallback **if the code already exists** to copy.
 
-**Status:** 28.1 **done** (r10 Task A). 28.2/28.3 still parked until Kimball says the glyphs are worth it.
+**Status:** 28.1 **done**. **28.2 done 2026-10-14** (registry + README, no cut). 28.3 glyphs still parked.
 Mark-spec: `docs/qa/notes/print-id-mark-spec-r10.md`. +Z ring r 10–21.45 mm, full circle; dummy recess
 M1–M3 PASS; Data Matrix at 0.5 mm/module is marginal. Aero of the full box pocket is 1.76 % (not
 auto-exempt). Claude's view still stands: 28.2 (registry + README, no cut) is cheap; 28.3 only if a
@@ -1839,7 +1839,10 @@ index. Genuine Noctua (article A) has no code — that is fine.
 
 - [x] **28.1 Hub-face mark-spec** (QA; no fansim edit). **DONE 2026-10-13, r10 Task A:** M1–M3 PASS.
   Preferred pocket +Z r 11.5–14.7 mm, 0.5 mm deep. `docs/qa/notes/print-id-mark-spec-r10.md`.
-- [ ] **28.2 Print-id registry + export sidecar / README** (no geometry cut).
+- [x] **28.2 Print-id registry + export sidecar / README** (no geometry cut). **DONE 2026-10-14.**
+  Export issues a 4-char Crockford code + check digit, stems the STL `{code}_{name}_{stamp}`,
+  writes it in the README (Sharpie line) and `*_print_fit.json`, and appends
+  `validation/prints/index.jsonl` (gitignored). No hub recess.
 - [ ] **28.3 Recessed hub glyphs** from the mark-spec.
 - [ ] **28.4 Measurement ingest by `print_id`.**
 - [x] **28.5 Hash-as-the-part / blade QR / vision on old prints.** **Not adopted.**

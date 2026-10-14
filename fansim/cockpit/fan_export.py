@@ -39,7 +39,8 @@ def export_basename(trial, by_trial) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", name).strip("_") or "fan"
 
 
-def do_export(params, out, spec, also_mirror: bool = False) -> dict:
+def do_export(params, out, spec, also_mirror: bool = False, *,
+              print_id: str | None = None, design_id: str = "") -> dict:
     """Build + write the print-ready STL and sidecars; return a JSON-able summary.
 
     Runs in ``fansim.cockpit._export_worker`` (its own process) so the multi-minute OCP build
@@ -56,6 +57,7 @@ def do_export(params, out, spec, also_mirror: bool = False) -> dict:
         print_readme,
         recommend_print_settings,
     )
+    from fansim.manufacturability.print_id import git_head, recipe_hash, record_export
 
     rep = export_print_ready(params, out, mount=mount)
     mirror_note = ""
@@ -75,7 +77,8 @@ def do_export(params, out, spec, also_mirror: bool = False) -> dict:
         settings = recommend_print_settings(spec.material)
         bal = balance_summary(params, spec.rpm)
         (out.with_suffix(".md")).write_text(
-            print_readme(out.stem, params, spec.material, rep, bal, settings, None),
+            print_readme(out.stem, params, spec.material, rep, bal, settings, None,
+                         print_id=print_id),
             encoding="utf-8",
         )
     except Exception as exc:  # noqa: BLE001 - README sidecar is best-effort
@@ -83,6 +86,16 @@ def do_export(params, out, spec, also_mirror: bool = False) -> dict:
     gauge = None
     if mount is not None:
         try:
+            extra = None
+            if print_id:
+                extra = {
+                    "print_id": print_id,
+                    "design_id": design_id,
+                    "section_wrap": str(getattr(params, "section_wrap", "") or ""),
+                    "recipe_hash": recipe_hash(params),
+                    "git": git_head(),
+                    "material": str(getattr(spec, "material", "") or ""),
+                }
             gauge = write_print_fit_sidecars(
                 out,
                 spec,
@@ -94,13 +107,37 @@ def do_export(params, out, spec, also_mirror: bool = False) -> dict:
                     "tip_radius": float(params.tip_radius),
                     "rpm": float(params.rpm),
                 },
+                extra=extra,
             )
         except Exception as exc:  # noqa: BLE001
             log_caught(_log, "print fit sidecars", exc, level=logging.DEBUG)
             gauge = None
+    if print_id and mount is None:
+        import json
+        sidecar = {
+            "print_id": print_id,
+            "design_id": design_id,
+            "section_wrap": str(getattr(params, "section_wrap", "") or ""),
+            "recipe_hash": recipe_hash(params),
+            "git": git_head(),
+            "material": str(getattr(spec, "material", "") or ""),
+            "stl": str(out),
+        }
+        out.with_name(out.stem + "_print_fit.json").write_text(
+            json.dumps(sidecar, indent=2), encoding="utf-8")
+    if print_id:
+        record_export(
+            print_id=print_id,
+            design_id=design_id,
+            recipe_hash=recipe_hash(params),
+            section_wrap=str(getattr(params, "section_wrap", "") or ""),
+            git=git_head(),
+            material=str(getattr(spec, "material", "") or ""),
+            stl=str(out),
+        )
     summary = {
         "ok": bool(rep.ok), "mount_fits": rep.mount_fits, "mount_msg": rep.mount_msg or "",
-        "mirror_note": mirror_note, "gauge": None,
+        "mirror_note": mirror_note, "gauge": None, "print_id": print_id,
     }
     if gauge is not None:
         summary["gauge"] = {
@@ -113,7 +150,7 @@ def bind(session) -> None:
     state = session.state
     spawn_busy_ticker = session.spawn_busy_ticker
 
-    def _export_isolated(flat, features, out, spec, also_mirror):
+    def _export_isolated(flat, features, out, spec, also_mirror, print_id="", design_id=""):
         """Run do_export in a worker process; return its summary dict."""
         from dataclasses import asdict
 
@@ -125,6 +162,7 @@ def bind(session) -> None:
             "fansim.cockpit._export_worker",
             {"flat": flat, "features": asdict(features), "out": str(out),
              "spec": fan_spec_to_dict(spec), "also_mirror": bool(also_mirror),
+             "print_id": print_id, "design_id": design_id,
              "result": str(result)},
             timeout=900.0, label="STL export", require_paths=[result], stderr_tail=400,
         )
@@ -185,7 +223,10 @@ def bind(session) -> None:
         exports.mkdir(exist_ok=True)
         base = export_basename(state.selected_trial, session.by_trial)
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        out = exports / f"{base}_{stamp}.stl"
+        from fansim.manufacturability.print_id import export_stem, issue_print_id
+        print_id = issue_print_id()
+        design_id = base
+        out = exports / f"{export_stem(print_id, base, stamp)}.stl"
 
         async def task():
             state.export_busy = True
@@ -207,6 +248,8 @@ def bind(session) -> None:
                     out,
                     spec,
                     also_mirror,
+                    print_id,
+                    design_id,
                 )
                 rep = SimpleNamespace(ok=summary["ok"], mount_fits=summary["mount_fits"],
                                       mount_msg=summary["mount_msg"])
@@ -257,9 +300,10 @@ def bind(session) -> None:
                     " Press Preview to see it; the CFM/eff shown were for the original geometry, so "
                     "they're now approximate — re-Assess for exact numbers."
                 )
+            pid_txt = f"\n↳ Print-id `{print_id}` — Sharpie that on the hub (+Z). Same code in the README."
             state.export_msg = (
                 f"✓ Saved {out.resolve()} (+ .step)  ({wt}{mnt})"
-                f"{mirror_note}{gauge_txt}{extra}"
+                f"{mirror_note}{gauge_txt}{pid_txt}{extra}"
             )
             state.export_download = f"fansim_exports/{out.name}"   # served by app.py (§23.19)
             state.export_busy = False

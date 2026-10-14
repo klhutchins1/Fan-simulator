@@ -296,6 +296,7 @@ def write_print_fit_sidecars(
     report_mount_fits: bool | None = None,
     report_mount_msg: str = "",
     params_summary: dict | None = None,
+    extra: dict | None = None,
 ) -> MountGauge:
     """Write ``*_mount_checklist.md`` and ``*_print_fit.json`` next to an exported STL."""
     stl_path = Path(stl_path)
@@ -339,6 +340,8 @@ def write_print_fit_sidecars(
             "provenance": "measured cup 2026-08-31; confirm when commercial hub arrives",
         },
     }
+    if extra:
+        payload.update(extra)
     stl_path.with_name(stl_path.stem + "_print_fit.json").write_text(
         json.dumps(payload, indent=2), encoding="utf-8"
     )

@@ -352,12 +352,20 @@ def export_handedness_pair(
 
 def print_readme(name: str, params: BladeParams, material: str, report: WatertightReport,
                  balance: dict, settings: dict, bore: BoreSpec | None,
-                 objectives: dict | None = None) -> str:
+                 objectives: dict | None = None, print_id: str | None = None) -> str:
     """Human-readable print sheet (Markdown) accompanying an exported finalist STL."""
     (lo, hi) = report.bounds_mm
     dia = 2.0 * max(abs(lo[0]), abs(hi[0]), abs(lo[1]), abs(hi[1]))
     depth = hi[2] - lo[2]
-    L = [f"# Print sheet — {name}", ""]
+    title = f"# Print sheet — {print_id}" if print_id else f"# Print sheet — {name}"
+    L = [title, ""]
+    if print_id:
+        L += [
+            f"**Sharpie this on the hub (+Z, inlet): `{print_id}`**",
+            "",
+            "Same code as the filename and `*_print_fit.json`. No glyphs on the part yet (28.2).",
+            "",
+        ]
     if objectives:
         L.append("**Predicted performance (sim):** "
                  + ", ".join(f"{k} {v:.1f}" for k, v in objectives.items()))

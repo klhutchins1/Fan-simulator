@@ -18,8 +18,12 @@ def main() -> int:
     from fansim.optimize.search_space import blade_from_flat
 
     params = blade_from_flat(job["flat"], Features(**job.get("features", {})))
-    summary = do_export(params, job["out"], fan_spec_from_dict(job["spec"]),
-                        bool(job.get("also_mirror")))
+    summary = do_export(
+        params, job["out"], fan_spec_from_dict(job["spec"]),
+        bool(job.get("also_mirror")),
+        print_id=job.get("print_id") or None,
+        design_id=str(job.get("design_id") or ""),
+    )
     with open(job["result"], "w", encoding="utf-8") as f:
         json.dump(summary, f)
     sys.stdout.flush()

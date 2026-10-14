@@ -47,4 +47,7 @@ handoff/*.zip
 docs/QA_REVIEW.md.bak
 handoff/**/*.bundle
 handoff/**/*.jsonl.gz
+
+# Issued print-part IDs (local registry; 28.2)
+validation/prints/index.jsonl
 .claude/launch.json
