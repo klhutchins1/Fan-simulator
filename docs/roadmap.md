@@ -15,9 +15,27 @@ session.**
 > `fansim/cfd/orientation.py`; change it only with a new direction audit.
 
 - Tags: **[impact]** how much it changes results · **[effort]** rough build cost · owner *me* unless noted.
-- Related: `docs/known-issues.md` (historical cockpit fixes — **stale**, see §13.4), `docs/high-accuracy-plan.md` (fidelity
-  ladder), `docs/design-rules.md` (extracted levers), the memory index.
-  Canvases: `math-application-audit.canvas.tsx` (fidelity) · `production-readiness-review.canvas.tsx` (hygiene).
+- Related: `docs/known-issues.md` (archived Aug 2026 cockpit notes — **not** open work),
+  `docs/high-accuracy-plan.md` (fidelity ladder, not a backlog), `docs/design-rules.md` (extracted
+  levers), `docs/QA_REVIEW.md` (QA bug ledger — promote a bug here when we adopt it).
+  Canvases: `math-application-audit.canvas.tsx` (fidelity) · `production-readiness-review.canvas.tsx`
+  (hygiene) — evidence, not a second TODO.
+
+### Where work is tracked (one list)
+
+**Open product work lives only in this file.** If you find a “TODO / next / backlog” elsewhere,
+move the unique open item here and leave a pointer, do not keep a second list.
+
+| place | what it is | add open work? |
+|---|---|---|
+| **`docs/roadmap.md`** | Product backlog and session “what’s next” | **yes** |
+| `docs/QA_REVIEW.md` | Numbered QA bugs (QA-n) and round notes | file bugs; adopt into a roadmap item |
+| `docs/validation/keep_cut_board.md` | KEEP / PARK / DON’T SHIP scope | no (scope, not tasks) |
+| `docs/high-accuracy-plan.md` | Fidelity-ladder essay | no |
+| `docs/known-issues.md` | Archived Aug 2026 cockpit notes | no |
+| `memory/*` | Session pointers; several are stale | no — point here |
+| `archive/recovery-2026-09/RECOVERY_TODO.md` | 2026-09 rebuild archaeology | no |
+| `handoff/` | Briefs to Claude / grok | no (ephemeral) |
 
 ---
 
@@ -36,7 +54,7 @@ session.**
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next (2026-10-14): 28.2 print-id registry at Export (no hub cut). 27.3 baked. QA-34 closed. 28.3 glyphs still parked. Do not restart the optimizer.**
+**→ Next (2026-10-14): grok r12 A–C in flight. 29.1 material picker (PLA+) and 29.2 UI tests are grok D/E. 28.3 glyphs parked. Next software here: **25.10** near-stall flag. Do not restart the optimizer.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -59,6 +77,8 @@ session.**
   - **§28** (28.1 mark-spec PASS; **28.2 registry done**; 28.3 glyphs still parked) —
     +Z hub ring r 10–21.45 mm is flat 360°. Dummy 8×3.2×0.5 recess stays one solid; aero 1.76 %.
     28.2 registry is in; glyphs wait. Handoff: `handoff/2026-10-13_from-qa-10/`.
+  - **§29** — 29.1 material picker (PLA+ still looks like PETG); 29.2 UI regression tests. Grok r12 D/E.
+  - **25.10** — near-stall flag (cheap BEM/geometry; next software here after grok D).
   - Deferred (Stage 1 done, Stage 2 **not adopted** — do not start without a new Adopt):
     CST section DOFs, §7.4 CNN/FNO field predictor, §4.5 toroidal Prop topology.
   - ~~§20.2 NeuralFoil / RMS / 360°~~ — DONE 2026-09-30.
@@ -1572,8 +1592,9 @@ failures.
   - **Decision (Kimball, 2026-10-11): record every setting when Assess / Sweep / Mixed Assess is
     pressed, and save exactly those with the result.**
   - Source: the QA round-7 Task A note. **[impact: high: wrong saved labels]** **[effort: med]**
-- [ ] **25.10 Near-stall flag** (Task E, carried over). A cheap BEM/geometry flag for Q3's blind spot
-  (9610).
+- [ ] **25.10 Near-stall flag** (Task E, carried over; next software after grok r12 D). A cheap
+  BEM/geometry flag for Q3's blind spot (9610): that design looked fine on the Q3 screen and then
+  sat near stall under load. Spec in `handoff/2026-10-09_to-qa-5/CLAUDE_TO_QA.md` Task E. No new CFD.
 
 ---
 
@@ -1846,6 +1867,26 @@ index. Genuine Noctua (article A) has no code — that is fine.
 - [ ] **28.3 Recessed hub glyphs** from the mark-spec.
 - [ ] **28.4 Measurement ingest by `print_id`.**
 - [x] **28.5 Hash-as-the-part / blade QR / vision on old prints.** **Not adopted.**
+
+---
+
+## 29. Cockpit honesty leftovers (2026-10-14)
+
+Kimball: the Fan tab defaults to PETG; switching to **PLA+** (or another filament) does not look
+like it actually builds for that material. Separate: the Trame UI is easy to lie about, and we
+have almost no automated click-through — only `tests/test_fan_tab_setup_smoke.py` and the old
+manual `docs/qa/browser_checklist_*.md`. 3-D/VTK is slow; tests should not wait on a mesh.
+
+- [ ] **29.1 Material picker vs what actually runs.** UI state is `assess_material`
+  (`fan_tab_ui.py`); Assess click snapshots it in `run_settings.py`. Export README, print
+  temperatures, and Preview grams use `active_spec().material`, which is the **fan model** default
+  (PETG) and does not follow the picker. Grok r12 Task D: confirm which surfaces still say PETG
+  after PLA+ is selected (Assess stamp, Export README, Preview weight, optimizer argv). No CFD.
+  **[impact: med: wrong weight / print sheet / flutter]** **[effort: low]**
+- [ ] **29.2 Cockpit UI regression tests.** Standing filler for grok when A–D are done: add
+  headless tests (extend the smoke / settings harness) that click a control and assert the caption
+  or saved extra matches what we claim. Skip waiting on Preview/Export 3-D. First seed: 29.1
+  (material picker). **[impact: med]** **[effort: med]**
 
 ---
 

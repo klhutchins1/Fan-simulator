@@ -8,8 +8,11 @@ metadata:
   modified: 2026-08-31T20:48:53.600Z
 ---
 
+**STALE.** Do not add open cockpit bugs here — file them in `docs/QA_REVIEW.md` and adopt into
+`docs/roadmap.md`. The four original items below were fixed 2026-08-27.
+
 STATUS: all 4 items FIXED 2026-08-27 in fansim/cockpit/app.py (18 tests still pass). Detail +
-automation caveat: `E:\Projects\programming_2\Fan-simulator\docs\known-issues.md`.
+automation caveat: `docs/known-issues.md` (also archived).
 
 **FAN-MODEL MANAGER + HUB-FIT HELPER 2026-08-31 (user: manage fan models add/edit/delete; hub slider
 should show/match the optimal size for the specific fan; confirm motor-fit is relative). build_server

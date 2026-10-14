@@ -1,12 +1,13 @@
 # Memory Index
 
-- [Fan-sim ROADMAP](fan-sim-roadmap.md) — ★ master TODO plan (docs/roadmap.md); read before any work session
+**Open work:** `docs/roadmap.md` only. These notes are pointers / history, not a second backlog.
 
-- [Fan-sim project](fan-sim-project.md) — goals, scope decisions, hard constraints, honest north star
-- [Fan-sim environment](fan-sim-environment.md) — toolchain, RTX 4070 Ti, Python 3.12 pin gotcha
-- [Fan-sim status](fan-sim-status.md) — build progress and what's next
-- [Fan-sim adversarial review](fan-sim-adversarial-review.md) — standing red-team review to re-run at each milestone
-- [Fan-sim A12x25 specs](fan-sim-a12x25-specs.md) — published Noctua NF-A12x25 numbers = CFD validation target (validated: real STL 61.5 vs 60.1 CFM, +2%)
-- [Fan-sim cockpit issues](fan-sim-cockpit-issues.md) — open cockpit UX bugs to fix next session
-- [Fan-sim uneven spacing](fan-sim-uneven-spacing.md) — future feature: non-symmetric blade spacing to spread the tonal noise (balance via Σe^{iθ}=0)
-- [Fan-sim overnight jobs](fan-sim-overnight-jobs.md) — CFD jobs running overnight 2026-08-30 (tip-round study + mountable/winglet opt); review results next session
+- [Fan-sim ROADMAP](fan-sim-roadmap.md) — pointer to `docs/roadmap.md`
+- [Fan-sim project](fan-sim-project.md) — goals, scope, north star
+- [Fan-sim environment](fan-sim-environment.md) — toolchain, RTX 4070 Ti, Python 3.12 pin
+- [Fan-sim status](fan-sim-status.md) — **stale** Aug 2026 progress notes
+- [Fan-sim adversarial review](fan-sim-adversarial-review.md) — standing red-team review
+- [Fan-sim A12x25 specs](fan-sim-a12x25-specs.md) — published NF-A12x25 CFD target
+- [Fan-sim cockpit issues](fan-sim-cockpit-issues.md) — **closed** Aug 2026 UX items
+- [Fan-sim uneven spacing](fan-sim-uneven-spacing.md) — parked feature note
+- [Fan-sim overnight jobs](fan-sim-overnight-jobs.md) — 2026-08-30 CFD jobs (historical)

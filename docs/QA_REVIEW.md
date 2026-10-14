@@ -1,5 +1,9 @@
 # QA Review — Fan Simulator
 
+**Not the product backlog.** Live open work is [`docs/roadmap.md`](roadmap.md). This file is the
+numbered QA bug ledger (QA-n / UI-n) and round notes. Adopt a bug into a roadmap item when we
+take it; do not keep a second TODO list here.
+
 Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edits this file; it never edits code.
 
 ## How to use this file (for Claude / whoever fixes things)

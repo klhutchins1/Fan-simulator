@@ -1,12 +1,15 @@
 ---
 name: fan-sim-status
-description: "Fan-simulator build progress and what's next"
+description: "STALE — Fan-simulator build progress and what's next"
 metadata: 
   node_type: memory
   type: project
   originSessionId: 9facc2be-ff12-44e2-9ede-0cced25b4756
   modified: 2026-08-30T04:23:12.748Z
 ---
+
+**STALE (last real update 2026-08-31).** Do not treat the items below as open work. Live backlog:
+`docs/roadmap.md`. Kept for session archaeology only.
 
 **BACKLOG ITEMS DONE 2026-08-31 (both verified: build_server constructs, store round-trips):**
 1. PROP GRAPH: added prop_scatter_figure (thrust vs efficiency, colored by power, customdata=row idx)

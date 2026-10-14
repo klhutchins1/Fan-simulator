@@ -1,5 +1,7 @@
 # Fan-Simulator — recovery TODO (open items after the 2026-09 rebuild)
 
+**Archaeology only.** Do not add current work here. Live backlog: `docs/roadmap.md`.
+
 **Status:** the project was reconstructed from a dead drive using two Claude Code transcripts +
 Cursor's 221 agent transcripts (no backup existed). It now **imports end-to-end, builds real
 geometry, and passes ~529 / 622 non-docker tests**, all committed and pushed to

@@ -36,9 +36,12 @@ Clone at `a09905a` is stale. No bundle.
 | A | QA-34 strip check on HEAD | 3 P builds | **now** |
 | B | 27.1 remaining-growth (old Task D) | short builds | **after A**, no patch |
 | C | 28.2 print-id on Stock Export | 1 print-ready Export | after A (can overlap B) |
+| D | PLA+ / material picker | UI + stamps, no CFD | after C |
+| E | UI regression tests | headless tests | **if idle** after D |
 | — | CFD, loft, glyphs, 27.2b, optimizer | — | **do not** |
 
-Pre-register **A, B, and C in one commit** before any data.
+Pre-register **A, B, C, and D** (and E if you will run it) before data. If A–C are already
+pre-registered, amend that commit / add D+E before starting them.
 
 ---
 
@@ -108,6 +111,55 @@ Note: `docs/qa/notes/print-id-export-r12.md`.
 
 ---
 
+## Task D: material picker does not follow PLA+ (Kimball, 2026-10-14)
+
+**Report, do not patch.** Kimball: the Fan tab defaults to PETG; choosing **PLA+** (or another
+filament) still looks like a PETG build.
+
+Two fields exist:
+
+- UI picker: `state.assess_material` (`fan_tab_ui.py` dropdown; default `DEFAULT_MATERIAL` = PETG).
+- Fan model: `FanSpec.material` / `active_spec().material` (a12x25 is PETG). Assess click snapshots
+  `assess_material` in `run_settings.py`. Export README, print temperatures, and Preview grams use
+  `spec.material`.
+
+### Method (no OpenFOAM, no Docker)
+
+Cold-open Fan tab, Stock. Note the material chip. Switch to **PLA+**. Then, without changing it
+back, record what each surface says:
+
+| id | surface | how |
+|---|---|---|
+| M0 | dropdown / Actions chip | still PLA+? |
+| M1 | Preview fit line (`✓ fits … g`) | grams; PETG vs PLA+ density should differ if it followed |
+| M2 | Export README + print nozzle/bed | one Stock Export (same as Task C is fine if you switch to PLA+ first) |
+| M3 | Assess stamp `extra.material` | if you already Assess for C, skip; else settings harness / a cancelled Assess that still writes extras. **No CFD required** — if Assess would start OpenFOAM, use the r8 settings harness pattern instead |
+| M4 | optimizer argv `--material` | code read is enough (`fan_optimize.py`) |
+
+**PASS** is not required. Write which of M0–M4 still say PETG after PLA+ is selected, and whether
+`active_spec().material` is the cause. Note: `docs/qa/notes/material-picker-r12.md`.
+
+---
+
+## Task E: UI regression tests (filler — only if A–D are done)
+
+The cockpit is Trame/Vuetify. 3-D is slow; **do not wait on VTK / Preview mesh / Export fuse** unless
+the test is specifically a caption. Existing coverage: `tests/test_fan_tab_setup_smoke.py` (bind +
+async handler bodies) and `docs/qa/settings_during_run/harness.py`. Manual checklists are
+`docs/qa/browser_checklist_*.md` (historical).
+
+Add **2–4 headless tests** that would have caught 29.1 or a similar “we say X, we don’t”:
+
+- Prefer extending the smoke test / harness (Python, no Playwright required).
+- One test must fail if Export README material ignores `assess_material` (seed from Task D).
+- Do not click Assess CFD. Do not require a 3-D screenshot.
+
+If you write tests, they are a **proposal** (do not commit them to master from the QA clone unless
+the brief’s edit paths already allow `tests/`; they do **not** — so put the test files under
+`handoff/2026-10-14_from-qa-12/tests/` and describe them in `docs/qa/notes/ui-regression-r12.md`).
+
+---
+
 ## Do not
 
 - CFD, Docker, OpenFOAM, Stock repeats.
@@ -120,6 +172,6 @@ Note: `docs/qa/notes/print-id-export-r12.md`.
 ## Conventions
 
 - Edit only `docs/QA_REVIEW.md`, `docs/qa/**`, and a new `handoff/2026-10-14_from-qa-12/`.
-- Pre-register A, B, and C before data.
+- Pre-register A–D (and E if you run it) before data.
 - Big data gzipped (gitignored).
 - Status line per task in the README.
