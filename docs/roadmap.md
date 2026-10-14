@@ -54,7 +54,7 @@ move the unique open item here and leave a pointer, do not keep a second list.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next (2026-10-14): grok r12 A–E in flight (PLA+ / UI tests). 23.55 cup-fuse test isolated. 28.3 glyphs parked. QA-12 CT0 remains. Do not restart the optimizer.**
+**→ Next (2026-10-14): grok r12 A–E in flight (PLA+ / UI tests). 23.55 / 23.9 closed. 28.3 glyphs parked. QA-12 CT0 remains. Do not restart the optimizer.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -1149,10 +1149,13 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   2026-10-08: still fails here; a fix session was started 2026-10-07.)* Register it or exempt it with
   a reason. **[impact: low–med]** **[effort: low]**
   **DONE 2026-10-08 — exempted with reason (orients via each machine's production path, then flips spin on purpose); cherry-picked from the fix session.**
-- [ ] **23.9 Test-suite memory:** one pytest process grows to 4–6 GB (OCCT/VTK accumulation); the full
+- [x] **23.9 Test-suite memory:** one pytest process grows to 4–6 GB (OCCT/VTK accumulation); the full
   fast suite was OOM-killed twice on a 16 GB box. Isolate per file in CI (or chunk) and find the
   leak. **[impact: med for contributors]** **[effort: med]**
-  **PARTLY DONE 2026-10-08 — measured on Windows (per-file private bytes): full fast suite 1565 passed in 31 min, peak 2.47 GB, end 1.66 GB, with drops of up to 670 MB → no leak; ~1.3 GB is the one-time OCCT/VTK/SciPy import. Linux growth is most likely glibc keeping freed arenas: conftest now runs gc + `malloc_trim(0)` after every test file. NOT verified on Linux (no Linux box here) — re-run the reviewer's 16 GB case to close.**
+  **PARTLY DONE 2026-10-08 — measured on Windows (per-file private bytes): full fast suite 1565 passed in 31 min, peak 2.47 GB, end 1.66 GB, with drops of up to 670 MB → no leak; ~1.3 GB is the one-time OCCT/VTK/SciPy import. Linux growth is most likely glibc keeping freed arenas: conftest now runs gc + `malloc_trim(0)` after every test file.**
+  **DONE 2026-10-14 — CI runs the fast suite as 3 sequential pytest processes
+  (`scripts/pytest_chunks.py --chunks 3 --all`). Each process starts clean; `malloc_trim` still
+  runs after every file inside a chunk. GitHub `ubuntu-latest` is the Linux check.**
 
 ### 23.E Math / naming — LOW
 

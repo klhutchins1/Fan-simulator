@@ -20,8 +20,9 @@ jobs:
       - name: Mypy public surface
         run: uv run --extra dev mypy
       - name: Fast pytest
+        # 23.9: three fresh processes so Linux glibc arenas cannot grow one pytest to 4–6 GB.
         # Windows OCCT teardown 0xC0000374 after a green summary is documented in
         # docs/validation/suite_baseline_2026-09-14.md — Linux CI should exit 0 on pass.
         run: >
-          uv run --extra dev python -m pytest
+          uv run --extra dev python scripts/pytest_chunks.py --chunks 3 --all --
           -m "not docker and not slow" -q --tb=line
