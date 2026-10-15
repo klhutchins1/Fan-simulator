@@ -21,4 +21,18 @@
 
 ## Result
 
-(filled in after the fit)
+`scripts/fit_fuse_open_linux.py` on 15 r12 open builds (11 twins, 4 controls):
+- **Step 1, least squares:** slope 82.3 KiB/face. The least-squares line left S7_0172_twin above 1.0.
+- **Step 3, intercept raised:** intercept raised to **0.515 GiB**, so the worst open build (S7_0172_twin, 22 729 faces,
+  2.185 GiB) sits at **0.950** of the estimate. The next worst are S5_0223 (86 k faces) at 0.942 and the 22.7 k twins
+  at 0.87.
+- **Second judge (r8 Task C, 19 open builds, not refit):** worst remaining/ask **0.759**. PASS.
+- **Plausibility:** a ≥ 0 and b in 50–150 KiB/face. PASS.
+
+**Accepted.** Linux open remaining growth is now 0.515 GiB + 82.3 KiB/face (was 0.28 + 72). The shroud term
+(66 KiB per blade face) and the Windows constants are unchanged.
+
+What this changes for a user: the cockpit's Preview and Export guard asks for about 0.23–0.5 GB more free RAM
+before an open-fan cup build on Linux, so it refuses a little earlier on a busy box instead of swapping.
+Test: `tests/test_fuse_memory.py::test_linux_open_fan_remaining_growth_is_covered`, which failed on the old
+constants.
