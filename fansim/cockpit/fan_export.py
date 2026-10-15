@@ -39,13 +39,51 @@ def export_basename(trial, by_trial) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", name).strip("_") or "fan"
 
 
+def staged_export_path(final) -> Path:
+    """Where an export is built before it is published: a hidden folder next to ``final`` (QA-37)."""
+    final = Path(final)
+    stage = final.parent / f".partial-{final.stem}"
+    stage.mkdir(parents=True, exist_ok=True)
+    return stage / final.name
+
+
+def _publish(out: Path, publish_dir: Path) -> Path:
+    """Move a finished staged export into ``publish_dir``; point its print-fit sidecars at the result."""
+    import json
+    import shutil
+
+    publish_dir = Path(publish_dir)
+    final = publish_dir / out.name
+    for f in sorted(out.parent.iterdir()):
+        shutil.move(str(f), str(publish_dir / f.name))
+    for fit in publish_dir.glob(out.stem + "*_print_fit.json"):
+        try:
+            data = json.loads(fit.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if "stl" in data:
+            data["stl"] = str(publish_dir / Path(str(data["stl"])).name)
+            fit.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    try:
+        out.parent.rmdir()
+    except OSError:
+        pass
+    return final
+
+
 def do_export(params, out, spec, also_mirror: bool = False, *,
-              print_id: str | None = None, design_id: str = "") -> dict:
+              print_id: str | None = None, design_id: str = "",
+              publish_dir=None) -> dict:
     """Build + write the print-ready STL and sidecars; return a JSON-able summary.
 
     Runs in ``fansim.cockpit._export_worker`` (its own process) so the multi-minute OCP build
     no longer holds the cockpit's GIL — the busy caption froze and a native crash could take
     the server down (roadmap §23.17 / §23.19).
+
+    With ``publish_dir``, ``out`` is a staging path (``staged_export_path``): every file is written
+    there and moved into ``publish_dir`` only once the export is complete, and only then is the
+    print-id recorded. A worker that dies mid-export leaves a hidden ``.partial-*`` folder, never a
+    bare STL with no README or registry row (QA-37).
     """
     out = Path(out)
     mount = spec.motor_mount
@@ -125,6 +163,8 @@ def do_export(params, out, spec, also_mirror: bool = False, *,
         }
         out.with_name(out.stem + "_print_fit.json").write_text(
             json.dumps(sidecar, indent=2), encoding="utf-8")
+    if publish_dir is not None:
+        out = _publish(out, Path(publish_dir))
     if print_id:
         record_export(
             print_id=print_id,

@@ -84,6 +84,51 @@ def watch_process(
     return None
 
 
+def parent_alive(pid: int) -> bool:
+    """True while process ``pid`` runs (no psutil: a Win32 wait on Windows, signal 0 elsewhere)."""
+    if sys.platform == "win32":
+        import ctypes
+
+        synchronize, wait_timeout = 0x00100000, 0x00000102
+        k32 = ctypes.windll.kernel32
+        handle = k32.OpenProcess(synchronize, False, int(pid))
+        if not handle:
+            return False
+        try:
+            return k32.WaitForSingleObject(handle, 0) == wait_timeout
+        finally:
+            k32.CloseHandle(handle)
+    try:
+        os.kill(int(pid), 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def watch_parent(job: dict, *, interval_s: float = 2.0) -> None:
+    """Exit this worker when the process that launched it is gone (QA-37).
+
+    Killing the cockpit mid-Export left the export worker fusing (~6 GB) and overlapping the next
+    export. ``run_worker_module`` puts the launcher's pid in every job; workers call this first.
+    """
+    import threading
+    import time
+
+    pid = job.get("parent_pid")
+    if not pid:
+        return
+
+    def loop() -> None:
+        while True:
+            time.sleep(interval_s)
+            if not parent_alive(int(pid)):
+                os._exit(4)
+
+    threading.Thread(target=loop, name="parent-watch", daemon=True).start()
+
+
 def run_worker_module(
     module: str,
     job: dict,
@@ -102,6 +147,7 @@ def run_worker_module(
     case dir), ``timeout`` is a hard cap and the worker is also killed after ``stall_s``
     (default :func:`stall_timeout`) without new output there.
     """
+    job = {**job, "parent_pid": os.getpid()}  # the worker exits if we die (watch_parent, QA-37)
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as jf:
         json.dump(job, jf)
         jobfile = jf.name

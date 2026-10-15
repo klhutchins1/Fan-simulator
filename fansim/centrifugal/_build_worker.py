@@ -9,6 +9,9 @@ import sys
 
 def main() -> int:
     job = json.loads(open(sys.argv[1], encoding="utf-8").read())
+    from fansim.isolated_job import watch_parent
+
+    watch_parent(job)  # exit if the cockpit that started us is gone (QA-37)
     from fansim.centrifugal.params_io import mixed_params_from_flat
 
     params = mixed_params_from_flat(job["flat"])

@@ -14,6 +14,9 @@ import sys
 
 def main() -> int:
     job = json.loads(open(sys.argv[1], encoding="utf-8").read())
+    from fansim.isolated_job import watch_parent
+
+    watch_parent(job)  # exit if the cockpit that started us is gone (QA-37)
     from fansim.fan_spec import MotorMount
     from fansim.manufacturability.print_export import export_print_ready
     from fansim.optimize.search_space import blade_from_flat

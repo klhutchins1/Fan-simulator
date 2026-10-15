@@ -10,6 +10,9 @@ from dataclasses import asdict
 
 def main() -> int:
     job = json.loads(open(sys.argv[1], encoding="utf-8").read())
+    from fansim.isolated_job import watch_parent
+
+    watch_parent(job)  # exit if the cockpit that started us is gone (QA-37)
     from fansim.volute.evaluate import evaluate_volute
     from fansim.volute.params_io import volute_params_from_flat
 
