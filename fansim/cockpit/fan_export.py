@@ -218,6 +218,10 @@ def bind(session) -> None:
         hub_r_export = float(params.hub_radius)
         hub_h_export = float(params.hub_height_mm) if params.hub_height_mm is not None else None
         also_mirror = bool(state.export_also_mirror)
+        # Settings from the click (24.4): the finished message must describe this export, not the
+        # switches/sliders as they are when the worker returns.
+        fit_hub_click = bool(state.export_fit_hub)
+        hub_h_click = float(state.e_hub_height or 0.0)
         flat_x, feat_x = session.edit_flat(), session.edit_features()
         exports = exports_dir()
         exports.mkdir(exist_ok=True)
@@ -266,7 +270,7 @@ def bind(session) -> None:
                 mnt = f" · ✓ motor cup carved ({rep.mount_msg})"
             elif rep.mount_fits is False:
                 mnt = f" · ⚠ {rep.mount_msg}"
-                if not state.export_fit_hub:
+                if not fit_hub_click:
                     mnt += " — turn on 'Fit hub to motor on export' to widen it and carve the cup"
             else:
                 mnt = " · (this fan model has no motor-mount defined)"
@@ -290,7 +294,7 @@ def bind(session) -> None:
                     f"{spec.motor_mount.cavity_dia_mm:.1f} mm motor hub."
                 )
             if grew_h_from is not None:
-                h_txt = f"{hub_h_export:.0f}" if hub_h_export is not None else f"{state.e_hub_height:.0f}"
+                h_txt = f"{hub_h_export:.0f}" if hub_h_export is not None else f"{hub_h_click:.0f}"
                 extra += (
                     f"\n↳ Hub height set to {h_txt} mm so the cup has a cap and "
                     f"clears the frame spokes."

@@ -54,7 +54,7 @@ move the unique open item here and leave a pointer, do not keep a second list.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next (2026-10-15): 29.1 and QA-35 DONE. 24.4 investigate only (Kimball picks lock/snapshot/queue). 28.3 glyphs parked. QA-12 CT0 remains. Do not restart the optimizer.**
+**→ Next (2026-10-15): 29.1, QA-35 and 24.4 DONE. QA-12 CT0 creep next; 27.3b re-meshed repeats for Cursor/grok. 28.3 glyphs parked. QA-12 CT0 remains. Do not restart the optimizer.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -1455,7 +1455,7 @@ The work is split into three sub-projects, done in order.
     “Fan: printable PC-fan blades (CFD). Prop: propeller (fast estimate).” Prop Simple banner
     matches that; Expert Prop banner keeps the BEMT/Audit detail.
   - Rename "proxy" and "BEMT" in the tab labels. **[impact: high]** **[effort: med]**
-- [ ] **24.4 Changing settings while something is running — investigate (owner: QA bot, round 7, after
+- [x] **24.4 Changing settings while something is running — investigate (owner: QA bot, round 7, after
   its round-6 stress test).**
   - **Question:** while Assess, Optimize, Preview, Export or a flow picture is running, does changing a
     setting (a slider, hose, material, fan model, mesh options, or selecting another design) do any of
@@ -1491,7 +1491,10 @@ The work is split into three sub-projects, done in order.
     No (c) case, and no (b) case that reaches a saved result. **Recommendation: snapshot, no locks or queue.**
     Pass the spec captured at the Preview click into `spec_status`, and the Export toggles captured at the click
     into its message. That is about 10 lines; the sliders stay usable while a job runs, which is the normal
-    workflow. Waiting for Kimball to pick.
+    workflow. **DONE 2026-10-15 (Kimball: snapshot):** Preview's verdict and cup build use the spec / cup switch
+    from the click; Export's message uses the Fit-hub switch and hub height from the click. Tests in
+    `tests/test_ui_says_what_it_does.py` (both RED before). Grok's export tests now pin the memory tier
+    (they failed on a busy box when the free-RAM gate refused before the worker).
 
 ## 25. QA round 6 findings (2026-10-10)
 

@@ -90,8 +90,8 @@ def bind(session) -> None:
 
     state.sweep_items = [o[0] for o in SWEEP_OPTIONS]
 
-    def spec_status(stl_path, params, flat=None):
-        spec = session.active_spec()
+    def spec_status(stl_path, params, flat=None, spec=None):
+        spec = spec or session.active_spec()
         try:
             import trimesh
 
