@@ -54,7 +54,7 @@ move the unique open item here and leave a pointer, do not keep a second list.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next (2026-10-15): 29.1, QA-35 and 24.4 DONE. QA-12 CT0 creep next; 27.3b re-meshed repeats for Cursor/grok. 28.3 glyphs parked. Do not restart the optimizer.**
+**→ Next (2026-10-15): 29.1, QA-35 and 24.4 DONE. QA-12 parked (needs data; see the Prop static-thrust item in §23); 27.3b re-meshed repeats for Cursor/grok. 28.3 glyphs parked. Do not restart the optimizer.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -1212,6 +1212,13 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   **PARTLY DONE 2026-10-08 — readout now compares with the preset's typical class figures (affinity-scaled): 2087 g / 743 W vs 1850 g / 650 W at 30k rpm = +13 % / +14 %, so high but not absurd. "J=0.00 η=—" is correct (η undefined at V=0). REAL ISSUE FOUND: forward-flight η reads 2–7 % at J 0.08–0.31, where a P/D≈0.86 prop should give ~30–50 % — BEMT forward thrust collapses too fast. That is the open Audit #3 C_T(J) failure (`propeller.bemt` xfails); fix there, not in the UI.**
   **CORRECTED 2026-10-09 (QA bot) — the low η was not BEMT: `polar.nondim` divided by an extra 2π (η = J·CT/CP, not J·CT/(2π·CP)), so every forward-flight η was 6.3× low; with the fix the preset reads 0.25/0.35/0.44 at J 0.16/0.24/0.31 vs APC 0.26/0.34–0.39/0.42–0.46. `nondim` was audit-exempt; now unit `propeller.polar_coefficients`.**
   **DONE 2026-10-14 — Analyze headline is `@ 30,000 rpm (max), static` (`prop_static_headline`). CT0 rpm-creep stays open as QA-12 (low-Re polar blend already FAIL'd its prereg; do not re-try that patch).**
+  - **QA-12 parked 2026-10-15 (Claude): needs data, not another patch.** Two pre-registered fixes failed
+    (clamp to the 4e4 table; low-Re blend). About half the 4k→30k creep is the analytic fallback below
+    Re 4e4; the other half is the e387 tables' own Re trend (4e4→1.6e5), which no data here can confirm.
+    **Un-park when one of these exists:** measured CT0 for a ~5" prop at Re(0.75R) 6e4–1.5e5 (UIUC vol 1
+    APC 8–9" props at 5–6k rpm, or a thrust-stand set at 20–30k rpm); or measured low-Re polars of the
+    family the preset uses. Until then: 5" absolute static thrust below ~10k rpm reads ~10–20 % low;
+    the 30k-rpm headline is inside APC's range. Fans are unaffected (this is the prop BEMT).
 - [x] **23.19 (UI-6)** Export STL takes ~2 min and saves only server-side
   (`exports/design_100000_*.stl/.step`), with no browser download; "design_100000" is a confusing name
   for the reference (use the F-name from `fansim/cockpit/design_names.py`). **[impact: low]**

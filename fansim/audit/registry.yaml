@@ -3,6 +3,13 @@
 # docstrings and formatting, so only logic changes invalidate a unit.
 # Scaffolding / I/O / UI helpers — not equation claims. Triage: docs/validation/audits/2026-09-30-unregistered-triage.md
 exempt:
+  # Flow report card: I/O, pictures and data containers (its maths is unit cfd.flow_report below).
+  - "fansim.cfd.flow_report_case:*"
+  - "fansim.cfd.flow_report_viz:*"
+  - "fansim.cfd.flow_report:FlowMetrics"
+  - "fansim.cfd.flow_report:FlowSamples"
+  - "fansim.cfd.flow_report:FlowReportUnavailable"
+  - "fansim.cfd.flow_verdicts:RowVerdict"
   - "fansim.*.persist:*"
   - "fansim.*.params_io:*"
   - "fansim.*.isolated:*"
@@ -393,3 +400,16 @@ units:
     source: {kind: derivation, ref: "prop noise stack for dual rotor; §1.4"}
     checks: [tests/test_cror_noise.py]
     depends_on: [propeller.noise]
+
+  - id: cfd.flow_report
+    targets:
+      - "fansim.cfd.flow_report:compute_metrics"
+      - "fansim.cfd.flow_report:exit_slab_mask"
+      - "fansim.cfd.flow_report:inlet_slab_mask"
+      - "fansim.cfd.flow_report:noise_density"
+      - "fansim.cfd.flow_verdicts:judge"
+      - "fansim.cfd.flow_verdicts:overall_line"
+    claim: "Flow report card: volume-weighted backflow share, swirl energy share Uth^2/(Uz^2+Uth^2), dead-air share, tip/mean Uz, per-band and area-weighted mean push rho*(p+Uz^2/2) exit minus inlet (swirl excluded), Proudman SWL over the rotor region; verdicts vs Stock at BAND_TOL / NOISE_MARGIN_DB (27.3)"
+    source: {kind: derivation, ref: "incompressible Bernoulli without swirl; radial equilibrium (QA r7 Task G); Proudman 1952 / Sarkar & Hussaini; thresholds from 5 Stock v3 repeats (audit 2026-10-13-stock-flow-repeats-prereg)"}
+    checks: [tests/test_flow_report.py, tests/test_flow_verdicts.py]
+    depends_on: [acoustics.proudman, cfd.spanwise]
