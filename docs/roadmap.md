@@ -1925,6 +1925,13 @@ like it actually builds for that material. Separate: the Trame UI is easy to lie
 have almost no automated click-through — only `tests/test_fan_tab_setup_smoke.py` and the old
 manual `docs/qa/browser_checklist_*.md`. 3-D/VTK is slow; tests should not wait on a mesh.
 
+- [ ] **27.3b Flow-card thresholds from re-meshed Stock repeats.** The ±3 % / 0.5 dB came from five
+  re-solves of the *same* mesh (free-air spread ~0.1 %): that is solver noise only, a floor. A design vs
+  Stock comparison always has a different mesh, and mesh differences alone moved Stock's mean push ~5 %
+  and single bands ~14 % before (F2). Re-run Stock 3–5 times with perturbed meshes (base cell
+  5.8/6.0/6.2 mm and/or the rotor rotated a few degrees in the domain), pre-register the same 2σ rule,
+  and re-bake if the spread is larger. Until then, treat "stronger/weaker" between designs under ~5 %
+  as possibly mesh. (Claude review of Cursor's 27.3, 2026-10-15.) **[impact: med]** **[effort: ~2 h CFD]**
 - [ ] **29.1 Material picker vs what actually runs.** UI state is `assess_material`
   (`fan_tab_ui.py`); Assess click snapshots it in `run_settings.py`. Export README, print
   temperatures, and Preview grams use `active_spec().material`, which is the **fan model** default
