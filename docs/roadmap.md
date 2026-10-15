@@ -1974,7 +1974,9 @@ manual `docs/qa/browser_checklist_*.md`. 3-D/VTK is slow; tests should not wait 
   of the cockpit dying. Export is staged in a hidden `.partial-<stem>/` folder and moved into `exports/` only when
   complete; the print-id row is written after the move, and the print-fit sidecars point at the final STL.
   Tests: `tests/test_worker_parent_watch.py`.
-- [ ] **29.4 The Assess CFD worker can outlive the cockpit too.** `fansim.optimize._eval_worker` is launched by
+- [x] **29.4 The Assess CFD worker can outlive the cockpit too.** **DONE 2026-10-15:** `isolated_eval` puts the
+  launcher's pid in the job; `_eval_worker` calls `watch_parent` with a hook that runs `kill_cfd_containers()` (same
+  session scope as Cancel / timeout) before exiting. Also covers optimizer and script launchers. `fansim.optimize._eval_worker` is launched by
   `isolated_eval` through `run_watched`, not `run_worker_module`, so it has no `parent_pid` and keeps solving (and
   its Docker container keeps running) if the cockpit dies. Add `parent_pid` + `watch_parent`, and stop the
   container on exit. **[impact: med: a stray 30-min CFD hogs the box]** **[effort: low–med]**

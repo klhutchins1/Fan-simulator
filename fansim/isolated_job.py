@@ -107,11 +107,14 @@ def parent_alive(pid: int) -> bool:
     return True
 
 
-def watch_parent(job: dict, *, interval_s: float = 2.0) -> None:
+def watch_parent(job: dict, *, interval_s: float = 2.0,
+                 on_parent_exit: Callable[[], object] | None = None) -> None:
     """Exit this worker when the process that launched it is gone (QA-37).
 
     Killing the cockpit mid-Export left the export worker fusing (~6 GB) and overlapping the next
-    export. ``run_worker_module`` puts the launcher's pid in every job; workers call this first.
+    export. ``run_worker_module`` (and ``isolated_eval`` for Assess CFD) puts the launcher's pid in
+    every job; workers call this first. ``on_parent_exit`` runs before exiting (the CFD worker stops
+    its OpenFOAM containers there, 29.4); a failing hook still exits.
     """
     import threading
     import time
@@ -124,6 +127,11 @@ def watch_parent(job: dict, *, interval_s: float = 2.0) -> None:
         while True:
             time.sleep(interval_s)
             if not parent_alive(int(pid)):
+                if on_parent_exit is not None:
+                    try:
+                        on_parent_exit()
+                    except Exception:  # noqa: BLE001 - cleanup must not keep an orphan alive
+                        pass
                 os._exit(4)
 
     threading.Thread(target=loop, name="parent-watch", daemon=True).start()

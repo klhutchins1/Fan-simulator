@@ -37,6 +37,16 @@ def eval_kwargs_from_job(job: dict) -> dict:
 
 def main() -> int:
     job = json.loads(open(sys.argv[1]).read())
+    from fansim.isolated_job import watch_parent
+
+    def _stop_containers() -> None:
+        from fansim.cfd.runner import kill_cfd_containers
+
+        kill_cfd_containers()  # same scope as Cancel / timeout cleanup (session label, if any)
+
+    # The cockpit (or optimizer) that launched this Assess died: stop solving and stop the OpenFOAM
+    # container instead of hogging the box for the rest of a 30-40 min run (29.4).
+    watch_parent(job, on_parent_exit=_stop_containers)
     from fansim.fan_spec import fan_spec_from_dict
     from fansim.geometry.features import Features
     from fansim.optimize.objectives import evaluate_candidate

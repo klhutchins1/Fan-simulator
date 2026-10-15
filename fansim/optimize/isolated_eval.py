@@ -132,6 +132,7 @@ def evaluate_candidate_isolated(
         parallel_mesh=parallel_mesh,
         surf_max_floor=surf_max_floor,
     )
+    job["parent_pid"] = os.getpid()  # the worker stops (and kills its containers) if we die (29.4)
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as jf:
         json.dump(job, jf)
         jobfile = jf.name
