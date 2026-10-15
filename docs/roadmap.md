@@ -1477,6 +1477,21 @@ The work is split into three sub-projects, done in order.
     - a queue.
   - Pre-register what counts as a defect: any (b) or (c) case.
   - **No fix until Kimball picks one.** **[impact: high: wrong saved results]** **[effort: med]**
+  - **Investigation 2026-10-15 (Claude, code reading on `238de99`; builds on QA r7/r8 and fixes 25.11, 27.5, 23.56):**
+
+    | job | inputs taken | still read live afterwards | class |
+    |---|---|---|---|
+    | Assess / Sweep / Mixed Assess | `RunSettings` at the click (25.11) | nothing that is saved | d |
+    | Preview | geometry, flat, features at the click; cup switch + fan model as the worker starts (immediately) | the "✓ fits / weight" verdict calls `spec_status`, which reads the live fan model, material, leeway and intake overbuild when the build finishes (`fan_viz.py` `_readouts`) | b, display only |
+    | Export | flat, spec, fit-frame/fit-hub, mirror at the click; the file is right | the finished message's hint reads the live "Fit hub" toggle, and the hub-height text falls back to the live slider when the export didn't set one (`fan_export.py`) | b, display only |
+    | Optimize | argv at the click (QA r7) | nothing | d |
+    | Flow / airflow pictures | generation token guard (QA r7) | nothing | d |
+    | Randomize / Fit / Scale / Reset / seed | disabled while Preview, Assess, Export or Optimize runs (23.56) | — | d |
+
+    No (c) case, and no (b) case that reaches a saved result. **Recommendation: snapshot, no locks or queue.**
+    Pass the spec captured at the Preview click into `spec_status`, and the Export toggles captured at the click
+    into its message. That is about 10 lines; the sliders stay usable while a job runs, which is the normal
+    workflow. Waiting for Kimball to pick.
 
 ## 25. QA round 6 findings (2026-10-10)
 
