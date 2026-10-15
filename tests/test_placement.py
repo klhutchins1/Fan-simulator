@@ -75,6 +75,16 @@ def test_fit_envelope_shrinks_tip_inside_110mm_frame():
     assert blade_max_dia(bp) <= spec.tip_dia_mm[1] + 0.01
 
 
+def test_scale_to_hub_forwards_max_depth_mm():
+    spec = get_fan_spec("a12x25")
+    src = _base(sweep_tip=8.0, sweep_mid=6.0)
+    tight = scale_to_hub(src, spec)
+    wide = scale_to_hub(src, spec, max_depth_mm=40.0)
+    assert abs(float(wide.flat.get("sweep_tip", 0))) >= abs(
+        float(tight.flat.get("sweep_tip", 0))
+    ) - 1e-6
+
+
 def test_scale_halves_chords_not_stagger():
     from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
 

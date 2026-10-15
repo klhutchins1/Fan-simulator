@@ -47,6 +47,41 @@ def test_hang_is_measured_from_the_sections_as_designed():
     assert blade_hang_below_hub_mm(load_blade_params("config/problems/a12x25_reference.yaml")) < 1.5
 
 
+def test_clipped_preview_does_not_hang_when_designed_te_does():
+    """Preview/Fit clip at the hub face, so the mesh Kimball sees is flush even when the
+    designed trailing edge (the hang check) is past the 2 mm limit."""
+    from fansim.cockpit.placement import _blade_z_bounds
+    from fansim.geometry.blade import _hub_axial_range
+
+    p = _design("S2_0176")
+    assert blade_hang_below_hub_mm(p) > MAX_HANG_BELOW_HUB_MM
+    z_face = _hub_axial_range(p)[0]
+    blo, _ = _blade_z_bounds(p)
+    assert blo == pytest.approx(z_face, abs=0.02)
+
+
+def test_fit_envelope_grows_hub_until_designed_hang_fits():
+    """Fit + Scale used clipped depth, so they never saw designed hang and never grew the hub."""
+    from fansim.cockpit.placement import fit_envelope
+    from fansim.fan_spec import get_fan_spec
+    from fansim.optimize.search_space import stock_blade_flat
+
+    spec = get_fan_spec("a12x25")
+    feat = Features()
+    flat = {
+        **stock_blade_flat("a12x25"),
+        "hub_height": 15.0,
+        "chord_root": 50.0,
+        "stagger_root": 11.0,
+    }
+    before = blade_from_flat(flat, feat)
+    assert blade_hang_below_hub_mm(before) > MAX_HANG_BELOW_HUB_MM
+    res = fit_envelope(flat, spec, features=feat, max_depth_mm=35.0)
+    after = blade_from_flat(res.flat, feat)
+    assert blade_hang_below_hub_mm(after) <= MAX_HANG_BELOW_HUB_MM
+    validate_blade_params(after)
+
+
 def test_a_design_hanging_past_the_limit_is_refused_plainly():
     with pytest.raises(ValueError, match="below the hub"):
         validate_blade_params(_design("S2_0176"))                              # 2.6 mm: refused

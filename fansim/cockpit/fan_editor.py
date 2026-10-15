@@ -54,6 +54,15 @@ def bind(session) -> None:
     # applies slider edits across all stations (roadmap §23.1). Server-side only, not trame state.
     station_payload: list = [None]
 
+    def _editor_busy() -> bool:
+        """True while Preview/Assess/Export/Optimize own the mesh; ignore slider-mutating clicks."""
+        return bool(
+            getattr(state, "preview_busy", False)
+            or getattr(state, "assess_busy", False)
+            or getattr(state, "export_busy", False)
+            or getattr(state, "opt_running", False)
+        )
+
     def _set_station_payload(p: dict) -> None:
         if p.get(FLAT_STATIONS):
             station_payload[0] = {k: p[k] for k in STATION_PAYLOAD_KEYS if k in p}
@@ -345,6 +354,8 @@ def bind(session) -> None:
             state.e_tip_notch_depth = float(flat["tip_notch_depth_mm"])
 
     def on_fit_envelope():
+        if _editor_busy():
+            return
         spec = session.active_spec()
         extra = intake_extra_mm(
             enabled=bool(getattr(state, "intake_overbuild", False)),
@@ -394,7 +405,17 @@ def bind(session) -> None:
     _refresh_intake_note()
 
     def on_scale_to_hub():
-        res = scale_to_hub(edit_flat(), session.active_spec(), features=edit_features())
+        if _editor_busy():
+            return
+        spec = session.active_spec()
+        extra = intake_extra_mm(
+            enabled=bool(getattr(state, "intake_overbuild", False)),
+            extra_mm=float(getattr(state, "intake_overbuild_mm", 10.0) or 0.0),
+        )
+        max_d = effective_depth_max(spec, intake_extra=extra)
+        res = scale_to_hub(
+            edit_flat(), spec, features=edit_features(), max_depth_mm=max_d,
+        )
         _apply_editor_flat(res.flat)
         session._hub_fit_readout()
         session._tip_fit_readout()
@@ -405,6 +426,8 @@ def bind(session) -> None:
 
     def seed_from_duty():
         """§20.4: Cordier + velocity-triangle magnitudes → editor stagger/camber (signs kept)."""
+        if _editor_busy():
+            return
         try:
             from fansim.optimize.meanline import (
                 DutyPoint,
@@ -476,6 +499,8 @@ def bind(session) -> None:
         )
 
     def randomize_features():
+        if _editor_busy():
+            return
         on = {k: random.random() < 0.6 for k in ("tub", "ser", "dim")}
         if not any(on.values()):
             on[random.choice(("tub", "ser", "dim"))] = True
@@ -493,6 +518,8 @@ def bind(session) -> None:
     def randomize_geometry():
         import random as _r
 
+        if _editor_busy():
+            return
         state.library_parent_id = ""
         state.library_place_op = ""
         state.library_leftover = ""

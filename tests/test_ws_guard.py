@@ -48,6 +48,47 @@ class _Handler:
     network_monitor = _Monitor()
 
 
+def test_loop_starvation_is_not_a_stuck_client():
+    """VTK on the asyncio loop delays wait_for's callback; a real stall expires on time."""
+    assert ws_guard._timeout_was_loop_starvation(16.0, 15.0, 0) is True   # 1 s overdue
+    assert ws_guard._timeout_was_loop_starvation(15.05, 15.0, 0) is False  # on-time stall
+    assert ws_guard._timeout_was_loop_starvation(16.0, 15.0, 3) is False  # already wrote chunks
+
+
+def test_starved_loop_retries_and_keeps_the_tab(monkeypatch):
+    """A busy-loop (VTK stand-in) during the first send must not abort a healthy tab."""
+    monkeypatch.setenv(ws_guard.ENV_SEND_TIMEOUT, "1")
+    ws = _WS()
+    entered = asyncio.Event()
+    calls = {"n": 0}
+
+    async def send_bytes(chunk):
+        calls["n"] += 1
+        entered.set()
+        if calls["n"] == 1:
+            await asyncio.sleep(10)
+        ws.got.append(chunk)
+
+    ws.send_bytes = send_bytes  # type: ignore[method-assign]
+
+    async def starve():
+        await entered.wait()
+        loop = asyncio.get_running_loop()
+        t0 = loop.time()
+        while loop.time() - t0 < 1.5:
+            pass
+
+    async def run():
+        await asyncio.gather(
+            ws_guard._fan_out(_Handler(), b"hello", [ws]),
+            starve(),
+        )
+
+    asyncio.run(run())
+    assert not ws._req.transport.aborted
+    assert ws.got  # retry delivered after the loop ran again
+
+
 def test_stalled_client_is_aborted_and_others_still_receive(monkeypatch):
     monkeypatch.setenv(ws_guard.ENV_SEND_TIMEOUT, "1")
     good, stuck = _WS(), _WS(stalled=True)
@@ -61,7 +102,7 @@ def test_stalled_client_is_aborted_and_others_still_receive(monkeypatch):
     elapsed = asyncio.run(run())
     assert len(good.got) == 2                     # healthy client got both messages
     assert stuck._req.transport.aborted           # stalled one dropped, not waited on forever
-    assert elapsed < 3.0                          # one timeout window, then skipped
+    assert elapsed < 5.0                          # timeout + possible starvation retry, not forever
 
 
 def test_messages_keep_their_order_per_client():

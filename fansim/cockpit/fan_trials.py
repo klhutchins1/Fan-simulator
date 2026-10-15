@@ -48,16 +48,14 @@ def bind(session) -> None:
         state.library_place_op = ""
         state.library_leftover = ""
         if d.has_model:
-            session._draw(d.stl_path, "lightsteelblue")
+            session._draw_impeller(d.stl_path, "lightsteelblue")
         else:
             plotter.clear_actors()
         o, p = d.objectives, d.params
         state.selected_trial = int(trial)
         if d.extra.get("is_reference"):
             state.info_lines = [
-                "Reference · Noctua NF-A12x25 (published datasheet)",
                 f"Published free {o['cfm_free']:.1f} CFM   ·   hose-est load {o['cfm_load']:.1f} CFM",
-                "Parametric stock recipe loaded — press Preview/Assess to compare CFD vs published.",
             ]
             session._init_editor(p)
             session._set_baseline()
@@ -118,6 +116,7 @@ def bind(session) -> None:
             state.preview_msg = "Edit the sliders below, then press Preview geometry."
         session._schedule_airflow(d)
         session._schedule_flow_report(d)
+        session._schedule_viz_overlay(d)
         try:
             ctrl.view_update()
         except Exception as exc:  # noqa: BLE001

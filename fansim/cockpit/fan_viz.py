@@ -136,7 +136,7 @@ def bind(session) -> None:
         z = pts[:, 2]
         tip_r, nom_depth, extra = _spec_limits()
         hub_r = float(getattr(state, "e_hub_radius", tip_r * 0.4) or (tip_r * 0.4))
-        zmid = frame_z_mid_from_points(r, z, hub_r)
+        zmid = frame_z_mid_from_points(r, z, hub_r, nominal_depth=nom_depth)
         z_lo, z_hi = intake_envelope_z_range(zmid, nom_depth, extra)
         height = max(z_hi - z_lo, 1e-3)
         center_z = 0.5 * (z_lo + z_hi)
@@ -168,13 +168,20 @@ def bind(session) -> None:
         zmin, zmax = float(z.min()), float(z.max())
         span = max(zmax - zmin, 1.0)
         tip = float(np.percentile(r, 99.0))
+        key = (round(tip, 2), round(zmin, 2), round(zmax, 2), round(span, 2))
+        cached = render_state.get("cue_meshes")
+        if cached is not None and render_state.get("cue_key") == key:
+            for arr, color in cached:
+                plotter.add_mesh(arr, color=color)
+            return
+        built: list = []
         # Airflow: a few bold −Z arrows just outside the tip (air exits the −Z exhaust).
         for ang in np.linspace(0.0, 2.0 * np.pi, 4, endpoint=False):
             x, y = (tip * 1.15) * np.cos(ang), (tip * 1.15) * np.sin(ang)
             try:
                 arr = pv.Arrow(start=(x, y, zmax + 0.25 * span),
                                direction=(0, 0, -1), scale=1.4 * span)
-                plotter.add_mesh(arr, color="royalblue")
+                built.append((arr, "royalblue"))
             except Exception as exc:  # noqa: BLE001 - cue is optional
                 log_caught(_log, "airflow cue", exc, level=logging.DEBUG)
                 break
@@ -188,30 +195,43 @@ def bind(session) -> None:
             tang = (-np.sin(a), np.cos(a), 0.0)  # CCW looking from +Z toward −Z
             try:
                 arr = pv.Arrow(start=(x, y, zc), direction=tang, scale=tip * 0.34)
-                plotter.add_mesh(arr, color="darkorange")
+                built.append((arr, "darkorange"))
             except Exception as exc:  # noqa: BLE001 - cue is optional
                 log_caught(_log, "rotation cue", exc, level=logging.DEBUG)
                 break
+        render_state["cue_key"] = key
+        render_state["cue_meshes"] = built
+        for arr, color in built:
+            plotter.add_mesh(arr, color=color)
 
-    def _apply_render(reset: bool = False):
-        """(Re)draw the current model with the active highlight/envelope/glyph options."""
+    def _apply_render(reset: bool = False, *, overlays: bool = True):
+        """(Re)draw the current model. ``overlays=False`` is impeller-only (fast first paint)."""
         plotter.clear_actors()
         p = render_state["path"]
         mesh = None
         if p:
-            try:
-                mesh = fan_runtime.pv.read(str(p))
-            except Exception as exc:  # noqa: BLE001
-                log_caught(_log, f"read preview mesh {p}", exc)
-                mesh = None
+            if render_state.get("mesh_path") == p and render_state.get("mesh") is not None:
+                mesh = render_state["mesh"]
+            else:
+                try:
+                    mesh = fan_runtime.pv.read(str(p))
+                    render_state["mesh"] = mesh
+                    render_state["mesh_path"] = p
+                except Exception as exc:  # noqa: BLE001
+                    log_caught(_log, f"read preview mesh {p}", exc)
+                    mesh = None
+                    render_state["mesh"] = None
+                    render_state["mesh_path"] = None
         if mesh is not None:
             base = render_state["color"]
+            drawn = mesh
             if state.highlight_spec:
                 mask = _out_of_spec_mask(mesh)
                 if mask.any():
-                    mesh["spec"] = mask
+                    drawn = mesh.copy()
+                    drawn["spec"] = mask
                     plotter.add_mesh(
-                        mesh,
+                        drawn,
                         scalars="spec",
                         cmap=[base, "red"],
                         clim=[0, 1],
@@ -222,11 +242,11 @@ def bind(session) -> None:
                     plotter.add_mesh(mesh, color=base, smooth_shading=True)
             else:
                 plotter.add_mesh(mesh, color=base, smooth_shading=True)
-            if state.show_envelope:
+            if overlays and state.show_envelope:
                 _add_envelope(mesh)
-            if getattr(state, "show_dir_cues", True):
+            if overlays and getattr(state, "show_dir_cues", True):
                 _add_direction_cues(mesh)
-        if state.show_glyphs and render_state.get("glyph_arrows") is not None:
+        if overlays and state.show_glyphs and render_state.get("glyph_arrows") is not None:
             try:
                 if not _has_speed_range(render_state["glyph_arrows"]):
                     # Schematic (no-CFD) arrows all have one speed: a |U| bar reading 3.00/3.00 told
@@ -269,10 +289,41 @@ def bind(session) -> None:
         half = 0.5 * max(x1 - x0, y1 - y0) * 1.45
         return (cx - half, cx + half, cy - half, cy + half, z0, z1)
 
-    def _draw(path, color: str):
+    def _draw(path, color: str, *, overlays: bool = True, reset: bool = True):
         render_state["path"] = str(path)
         render_state["color"] = color
-        _apply_render(reset=True)
+        _apply_render(reset=reset, overlays=overlays)
+
+    def _draw_impeller(path, color: str):
+        """Results click: impeller + camera only, so the view is rotatable before arrows."""
+        _draw(path, color, overlays=False, reset=True)
+
+    def _schedule_viz_overlay(d) -> None:
+        """After the impeller frame is on screen, attach cached arrows/cues (not a new CFD run)."""
+        token = int(d.trial)
+        state.viz_overlay_busy = True
+
+        async def task():
+            try:
+                state.flush()
+                await asyncio.sleep(0)
+                if state.selected_trial != token:
+                    return
+                _prepare_glyphs_for_design(d)
+                _apply_render(reset=False, overlays=True)
+                try:
+                    ctrl.view_update()
+                except Exception as exc:  # noqa: BLE001
+                    log_caught(_log, "view_update (viz overlay)", exc, level=logging.DEBUG)
+            finally:
+                if state.selected_trial == token:
+                    state.viz_overlay_busy = False
+                    try:
+                        state.flush()
+                    except Exception as exc:  # noqa: BLE001
+                        log_caught(_log, "state.flush (viz overlay)", exc, level=logging.DEBUG)
+
+        fan_runtime.asynchronous.create_task(task())
 
     @state.change(
         "highlight_spec", "show_envelope", "fan_model", "show_glyphs", "show_dir_cues",
@@ -354,8 +405,14 @@ def bind(session) -> None:
             state.flush()
             return
 
+        # Busy must be True *before* create_task. Setting it inside the coroutine left a window
+        # where a second Preview (or Randomize then Preview) queued a second isolated worker.
+        # Both write the same preview_stl and both call _draw/view_update on one VTK plotter —
+        # the 3-D view freezes with no browser console error.
+        state.preview_busy = True
+        state.flush()
+
         async def task():
-            state.preview_busy = True
             heavy = ""
             if params.features.active:
                 heavy = "features are heavy — up to ~2 min"
@@ -367,83 +424,79 @@ def bind(session) -> None:
             from fansim.cockpit.fan_core import refresh_memory_tier
             from fansim.geometry.isolated import progress_caption
 
-            _preview_progress_path().unlink(missing_ok=True)
-            refresh_memory_tier(state)
-            state.preview_pct, _ = progress_caption(None)
-            ticker, _t0 = spawn_busy_ticker(
-                action="Preview",
-                msg_attr="preview_msg",
-                busy_attr="preview_busy",
-                note=heavy,
-                hint_fn=_preview_stage_hint,
-                interval=0.5,  # stages can be ~1-2 s long; a 1 s poll skipped them (QA r3)
-            )
-            state.flush()
-            loop = asyncio.get_running_loop()
+            ticker = None
             try:
-                await loop.run_in_executor(None, _build_preview_stl, flat, feat)
-            except TimeoutError:
-                state.preview_msg = (
-                    "⚠ Geometry build timed out — previous mesh kept (so nothing looks "
-                    "changed). Tip TE notches / bio-features are heavy; wait for Preview to "
-                    "finish, or turn notches off briefly to tweak Sickle/Wrap, then re-enable."
+                _preview_progress_path().unlink(missing_ok=True)
+                refresh_memory_tier(state)
+                state.preview_pct, _ = progress_caption(None)
+                ticker, _t0 = spawn_busy_ticker(
+                    action="Preview",
+                    msg_attr="preview_msg",
+                    busy_attr="preview_busy",
+                    note=heavy,
+                    hint_fn=_preview_stage_hint,
+                    interval=0.5,  # stages can be ~1-2 s long; a 1 s poll skipped them (QA r3)
                 )
+                state.flush()
+                loop = asyncio.get_running_loop()
+                try:
+                    await loop.run_in_executor(None, _build_preview_stl, flat, feat)
+                except TimeoutError:
+                    state.preview_msg = (
+                        "⚠ Geometry build timed out — previous mesh kept (so nothing looks "
+                        "changed). Tip TE notches / bio-features are heavy; wait for Preview to "
+                        "finish, or turn notches off briefly to tweak Sickle/Wrap, then re-enable."
+                    )
+                    return
+                except Exception as exc:  # noqa: BLE001
+                    state.preview_msg = f"⚠ Geometry failed: {type(exc).__name__}: {exc}"
+                    return
+                def _readouts():
+                    """STL load + spec + printability (~3 s): off the event loop (QA UI-4 r4 freeze)."""
+                    _, status = session.spec_status(preview_stl, params, flat)
+                    try:
+                        from fansim.manufacturability.printability_score import grade_printability
+
+                        return status, "\n🖨 " + grade_printability(params).summary
+                    except Exception:  # noqa: BLE001
+                        return status, ""
+
+                status, print_line = await loop.run_in_executor(None, _readouts)
+                _draw(preview_stl, "darkorange")
+                feats = "features ON" if params.features.active else "smooth"
+                tone_line = ""
+                if params.blade_angles_deg is not None:
+                    try:
+                        import numpy as _np
+
+                        from fansim.acoustics.tonal import peak_tone_reduction_db
+
+                        drop = -peak_tone_reduction_db(_np.radians(_np.asarray(params.blade_angles_deg)))
+                        odd = (
+                            ""
+                            if params.n_blades % 2
+                            else "  (even blade count — odd counts spread the tone more)"
+                        )
+                        tone_line = (
+                            f"\n🔉 Uneven spacing: predicted peak tone −{drop:.1f} dB, free of any flow cost{odd}"
+                        )
+                    except Exception:  # noqa: BLE001
+                        tone_line = ""
+                state.preview_msg = (
+                    f"Preview (orange): {params.n_blades} blades, "
+                    f"camber {preview_built_camber(params)}, {feats}.\n{status}{print_line}"
+                    f"{tone_line}{print_warn}"
+                )
+                try:
+                    ctrl.view_update()
+                except Exception as exc:  # noqa: BLE001
+                    log_caught(_log, "view_update (preview)", exc, level=logging.DEBUG)
+            finally:
+                if ticker is not None:
+                    ticker.cancel()
                 state.preview_busy = False
                 state.preview_pct = 0
-                ticker.cancel()
                 state.flush()
-                return
-            except Exception as exc:  # noqa: BLE001
-                state.preview_msg = f"⚠ Geometry failed: {type(exc).__name__}: {exc}"
-                state.preview_busy = False
-                state.preview_pct = 0
-                ticker.cancel()
-                state.flush()
-                return
-            def _readouts():
-                """STL load + spec + printability (~3 s): off the event loop (QA UI-4 r4 freeze)."""
-                _, status = session.spec_status(preview_stl, params, flat)
-                try:
-                    from fansim.manufacturability.printability_score import grade_printability
-
-                    return status, "\n🖨 " + grade_printability(params).summary
-                except Exception:  # noqa: BLE001
-                    return status, ""
-
-            status, print_line = await loop.run_in_executor(None, _readouts)
-            _draw(preview_stl, "darkorange")
-            feats = "features ON" if params.features.active else "smooth"
-            tone_line = ""
-            if params.blade_angles_deg is not None:
-                try:
-                    import numpy as _np
-
-                    from fansim.acoustics.tonal import peak_tone_reduction_db
-
-                    drop = -peak_tone_reduction_db(_np.radians(_np.asarray(params.blade_angles_deg)))
-                    odd = (
-                        ""
-                        if params.n_blades % 2
-                        else "  (even blade count — odd counts spread the tone more)"
-                    )
-                    tone_line = (
-                        f"\n🔉 Uneven spacing: predicted peak tone −{drop:.1f} dB, free of any flow cost{odd}"
-                    )
-                except Exception:  # noqa: BLE001
-                    tone_line = ""
-            state.preview_msg = (
-                f"Preview (orange): {params.n_blades} blades, "
-                f"camber {preview_built_camber(params)}, {feats}.\n{status}{print_line}"
-                f"{tone_line}{print_warn}"
-            )
-            state.preview_busy = False
-            state.preview_pct = 0
-            ticker.cancel()
-            try:
-                ctrl.view_update()
-            except Exception as exc:  # noqa: BLE001
-                log_caught(_log, "view_update (preview)", exc, level=logging.DEBUG)
-            state.flush()
 
         fan_runtime.asynchronous.create_task(task())
 
@@ -588,13 +641,30 @@ def bind(session) -> None:
         return mid is not None and mid.available
 
     def _core_warm(case) -> bool:
-        """True when midplane PNG + glyph memory cache cover the default Design view."""
+        """True when midplane PNG + glyph cache cover the default Design view.
+
+        Glyphs attach in ``_schedule_viz_overlay`` after the impeller is already
+        on screen; a warm pick still uses the disk/memory cache, not a new CFD run.
+        """
         mid_ok = _apply_cached_pngs(case)
         gly = peek_cached_velocity_glyphs(case)
+        return bool(mid_ok and gly is not None and gly.available)
+
+    def _prepare_glyphs_for_design(d) -> bool:
+        """Put this design's cached arrows on the plotter, or drop the previous design's."""
+        from fansim.cockpit.data import scored_case_dir
+
+        case = None
+        if d is not None and getattr(d, "has_model", False) and not (d.extra or {}).get("cfd_stale"):
+            case = scored_case_dir(d)
+        gly = peek_cached_velocity_glyphs(case) if case is not None else None
         if gly is not None and gly.available:
             _apply_glyph_artifact(gly)
-            _apply_render(reset=False)
-            return mid_ok
+            return True
+        _clear_glyphs(
+            "Loading 3-D velocity arrows…" if case is not None
+            else "Velocity arrows not available for this design"
+        )
         return False
 
     def _schedule_heavy_field(case, token: int, field: str) -> None:
@@ -697,9 +767,8 @@ def bind(session) -> None:
                 )
             try:
                 state.flush()
-                ctrl.view_update()
             except Exception as exc:  # noqa: BLE001
-                log_caught(_log, "view_update (airflow cache hit)", exc, level=logging.DEBUG)
+                log_caught(_log, "state.flush (airflow cache hit)", exc, level=logging.DEBUG)
             _schedule_heavy_field(case, token, getattr(state, "airflow_field", "U"))
             return
 
@@ -726,18 +795,14 @@ def bind(session) -> None:
 
         cached_gly = peek_cached_velocity_glyphs(case)
         if cached_gly is not None and cached_gly.available:
-            _apply_glyph_artifact(cached_gly)
             _set_airflow_progress(
                 midplane=True if mid_cached_now else False,
                 arrows=True,
                 heavy=None,
                 note="Loading core airflow…",
             )
-        else:
-            # Keep prior arrows visible if any; otherwise show loading caption on glyphs.
-            if render_state.get("glyph_arrows") is None:
-                state.glyph_caption = "Loading 3-D velocity arrows…"
-        _apply_render(reset=False)
+        # Impeller is already on the plotter from select(); skip a second STL rebuild here.
+        # Stale arrows from the previous design were cleared in _prepare_glyphs_for_design.
 
         def _load_core_pack():
             """Midplane + glyphs only — streamlines/spanwise deferred (§22.7)."""
@@ -845,7 +910,10 @@ def bind(session) -> None:
     session._rebuild_glyph_arrows = _rebuild_glyph_arrows
     session._clear_glyphs = _clear_glyphs
     session._apply_render = _apply_render
+    session._prepare_glyphs_for_design = _prepare_glyphs_for_design
     session._draw = _draw
+    session._draw_impeller = _draw_impeller
+    session._schedule_viz_overlay = _schedule_viz_overlay
     session.do_preview = do_preview
     session._schedule_airflow = _schedule_airflow
     session._clear_airflow = _clear_airflow

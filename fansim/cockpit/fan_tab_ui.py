@@ -235,7 +235,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 block=True,
                                 classes="mb-2",
                                 click=(on_library_scale_to_hub,),
-                                disabled=("!library_sel",),
+                                disabled=("!library_sel || preview_busy || assess_busy || export_busy || opt_running",),
                             )
                             with v3.VList(density="compact", lines="two"):
                                 with html.Div(v_for="it in library_items", key="it.value || it.caption"):
@@ -501,14 +501,15 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             classes="mb-2",
                             closable=True,
                             v_model=("fan_ux_banner",),
+                            v_show="ui_mode === 'simple'",
                         )
                         with v3.VRow(no_gutters=True, classes="align-center mb-2"):
                             with v3.VCol(cols=10):
                                 html.Div(
-                                    "Start here: 1) Pick a design ↓  2) Preview (sec)  "
-                                    "3) Assess (~15–30 min)  4) Optimize (hours, optional)  "
-                                    "5) Export STL when happy.",
+                                    "Start here: 1) Pick a design ↓  2) Preview  "
+                                    "3) Assess  4) Optimize (optional)  5) Export STL when happy.",
                                     classes="text-caption text-medium-emphasis",
+                                    v_show="ui_mode === 'simple'",
                                 )
                             with v3.VCol(cols=2, classes="text-right"):
                                 v3.VBtn(
@@ -551,6 +552,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             "{{ assess_preset }} hose · {{ assess_material }} — "
                             "change under Assess & print below.",
                             classes="text-caption text-medium-emphasis mb-1",
+                            v_show="ui_mode === 'expert'",
                         )
                         html.Div(
                             "{{ intake_note }}",
@@ -624,6 +626,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "variant": "tonal",
                                     "color": "secondary",
                                     "click": (randomize_geometry,),
+                                    "disabled": (_action_busy,),
                                 },
                             },
                         )
@@ -632,6 +635,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             size="small",
                             variant="tonal",
                             click=(select, "[selected_trial]"),
+                            disabled=(_action_busy,),
                             classes="mt-1 mb-1",
                         )
                         html.Div("{{ preview_msg }}", classes="text-caption", style="white-space: pre-line")
@@ -868,6 +872,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 color="secondary",
                                                 block=True,
                                                 click=(randomize_features,),
+                                                disabled=(_action_busy,),
                                                 classes="mb-3",
                                             )
                                             _slider("Tubercle amp", "e_tub_amp", 0.0, 0.10, 0.01, unit="c")
@@ -885,6 +890,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "CFD (~15–30 min) and reports free/load CFM. Rejected designs show "
                                     "what to change (usually fewer blades or thicker mid-blade).",
                                     classes="text-caption text-medium-emphasis mb-2",
+                                    v_show="ui_mode === 'expert'",
                                 )
                                 v3.VSelect(
                                     label="Application (hose resistance)",
@@ -899,6 +905,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "Case ≈ open airflow (low Pa). Heatsink ≈ fins. "
                                     "Radiator ≈ high resistance. Sets the load CFM hose.",
                                     classes="text-caption text-medium-emphasis mb-2",
+                                    v_show="ui_mode === 'expert'",
                                 )
                                 v3.VSelect(
                                     label="Print material (stress gate + vibration warning)",
@@ -913,6 +920,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "Used by Assess and Optimize. Pick PLA+ here before Optimize "
                                     "if that is what you print.",
                                     classes="text-caption text-medium-emphasis mb-2",
+                                    v_show="ui_mode === 'expert'",
                                 )
                                 v3.VBtn(
                                     "Score multi-point BEM (ranking only)",
@@ -928,9 +936,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     classes="text-caption mb-2",
                                     style="white-space: pre-line",
                                 )
-                                _opt_section(
-                                    "Honesty / fidelity",
+                                _opt_section("Honesty / fidelity")
+                                html.Div(
                                     "Also applied when you press Optimize (same hose + roughness).",
+                                    classes="text-caption text-medium-emphasis mb-1",
+                                    v_show="ui_mode === 'expert'",
                                 )
                                 _help_switch(
                                     "assess_refine_op",
@@ -991,7 +1001,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             disabled=("sweep_cancel",),
                                         )
 
-                        with v3.VExpansionPanel(title="Optimize (hours · many CFD trials)"):
+                        with v3.VExpansionPanel(
+                            title="Optimize (hours · many CFD trials)",
+                            v_show="ui_mode === 'expert'",
+                        ):
                             with v3.VExpansionPanelText():
                                 html.Div(
                                     "Multi-objective CFD search. Reuses Application hose + Honesty "
@@ -1143,7 +1156,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             color="primary",
                                             block=True,
                                             click=(on_fit_envelope,),
-                                            disabled=("e_tip_radius == null",),
+                                            disabled=(_action_busy,),
                                         )
                                     with v3.VCol(cols=6, classes="pl-1"):
                                         v3.VBtn(
@@ -1153,7 +1166,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             color="primary",
                                             block=True,
                                             click=(on_scale_to_hub,),
-                                            disabled=("e_tip_radius == null",),
+                                            disabled=(_action_busy,),
                                         )
                                 html.Div("{{ tip_fit_info }}", classes="text-caption mt-2")
                                 html.Div("{{ hub_fit_info }}", classes="text-caption")
@@ -1203,7 +1216,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     color="secondary",
                                     block=True,
                                     click=(seed_from_duty,),
-                                    disabled=("e_tip_radius == null",),
+                                    disabled=(_action_busy,),
                                     classes="mb-1",
                                 )
                                 html.Div(
@@ -1296,6 +1309,17 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     )
                         html.Div("{{ glyph_caption }}", classes="text-caption text-medium-emphasis mt-1")
                     with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
+                        v3.VProgressLinear(
+                            indeterminate=True,
+                            color="primary",
+                            height=4,
+                            v_show="viz_overlay_busy || airflow_busy",
+                        )
+                        html.Div(
+                            "Loading 3-D overlay from the saved run (not a new CFD solve)…",
+                            classes="text-caption px-2 py-1",
+                            v_show="viz_overlay_busy || airflow_busy",
+                        )
                         view = plotter_ui(plotter)
                     # Print / export sits right under the viewer, with the switches that decide what
                     # Export writes (QA UI-24: they were ~2 screens below the Export button).
@@ -1307,6 +1331,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "Export STL writes a print-ready file: motor cup + grip pads carved "
                                     "into the hub, plus a mount/frame checklist.",
                                     classes="text-caption text-medium-emphasis",
+                                    v_show="ui_mode === 'expert'",
                                 )
                             with v3.VCol(cols=4, classes="text-right"):
                                 v3.VBtn(
@@ -1350,7 +1375,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             v_show="export_download",
                             classes="text-caption",
                         )
-                    with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'results'"):
+                    with v3.VCard(
+                        classes="mb-2 pa-3",
+                        v_show="fan_subtab === 'results' && trial_items && trial_items.length >= 2",
+                    ):
                         html.Div("How the air moves", classes="text-subtitle-1 mb-1")
                         html.Div("{{ flow_overall }}", classes="text-body-2 font-weight-medium mb-2",
                                  v_show="flow_overall")
@@ -1419,6 +1447,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 html.Div(
                                     "{{ airflow_caption }}",
                                     classes="text-caption text-medium-emphasis",
+                                    v_show=(
+                                        "airflow_caption && airflow_caption !== "
+                                        "'Airflow not available for this design'"
+                                    ),
                                 )
                                 html.Div(
                                     "{{ airflow_progress }}",

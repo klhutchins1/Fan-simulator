@@ -946,6 +946,18 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
             with v3.VCol(cols=5, classes="pr-2"):
                 def _prop_design():
                     v3.VAlert(
+                        "Propeller tab — a fast estimate (~1 s), not the full Fan CFD. "
+                        "Analyze for thrust; Optimize searches many designs. Fan tab is the "
+                        "printable PC-fan path.",
+                        type="info",
+                        density="compact",
+                        variant="tonal",
+                        classes="mb-2",
+                        closable=True,
+                        v_model=("prop_ux_banner",),
+                        v_show="ui_mode === 'simple'",
+                    )
+                    v3.VAlert(
                         "Propeller tab — fast BEMT estimate (~1 s), not full CFD. "
                         "Use Analyze for instant thrust/efficiency; Optimize searches "
                         "many BEMT designs. Optional CFD refine checks finalists spin and push "
@@ -958,6 +970,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                         classes="mb-2",
                         closable=True,
                         v_model=("prop_ux_banner",),
+                        v_show="ui_mode === 'expert'",
                     )
                     html.Div(
                         "Start here: pick size → tune blade → Analyze (~1 s) → "

@@ -13,6 +13,34 @@ def test_fan_tab_parses():
         ast.parse(src)
 
 
+def test_geometry_actions_disabled_while_preview_busy():
+    """Randomize / Fit / Reset stay clickable during Preview unless they share the busy expr."""
+    src = (Path(__file__).resolve().parents[1] / "fansim" / "cockpit" / "fan_tab_ui.py").read_text(
+        encoding="utf-8",
+    )
+    for needle in (
+        '"label": "Randomize geometry"',
+        "click=(randomize_features,)",
+        "click=(on_fit_envelope,)",
+        "click=(on_scale_to_hub,)",
+        "click=(seed_from_duty,)",
+        'click=(select, "[selected_trial]")',
+        "click=(on_library_scale_to_hub,)",
+    ):
+        i = src.find(needle)
+        assert i >= 0, needle
+        window = src[i : i + 400]
+        assert "_action_busy" in window or "preview_busy" in window, needle
+
+
+def test_results_click_shows_overlay_loading_on_the_3d_view():
+    src = (Path(__file__).resolve().parents[1] / "fansim" / "cockpit" / "fan_tab_ui.py").read_text(
+        encoding="utf-8",
+    )
+    assert "viz_overlay_busy || airflow_busy" in src
+    assert "not a new CFD solve" in src
+
+
 def test_fan_tab_ui_imports_render_deps():
     """Catch missing symbols used by render_fan_tab (NameError at cockpit start)."""
     import fansim.cockpit.fan_tab_ui as ui

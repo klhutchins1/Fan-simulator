@@ -5,7 +5,7 @@ feature gaps) with the standing backlog. Check items off as they land; keep the 
 re-litigate decisions. **This is the source of truth for what's left — read it at the start of a work
 session.**
 
-- Last reviewed: **2026-10-14** (28.2 print-id registry). Previously 27.3 / QA-34. Previously **2026-10-13** (§28 parked).
+- Last reviewed: **2026-10-15** (24.2/24.3 copy signed off). Previously 2026-10-14 (28.2 print-id registry). Previously 27.3 / QA-34. Previously **2026-10-13** (§28 parked).
   Previously **2026-10-11** (§26 parked). **2026-10-08** (§23 QA). **§12** + **§13** + **§7.6** +
   **§14.1–14.6** closed in code. Stock close-ref fidelity (§2.7–2.8). **§13.22–13.24** /
   **§14.3b** / **§14.6** / **§15.1–15.6** landed 2026-09-16. Still **not shippable** until
@@ -54,7 +54,7 @@ move the unique open item here and leave a pointer, do not keep a second list.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next (2026-10-14): 24.2 Results + Design dump paragraphs Expert-only. Remaining 24.2: Assess/Optimize blurbs + duplicate-after-run. grok r12 in flight; r13 queued (do not start until r12 returns). 28.3 glyphs parked. QA-12 CT0 remains. Do not restart the optimizer.**
+**→ Next (2026-10-15): 29.1 / QA-36 — PLA+ picker must drive Preview grams + Export README (grok r12). 24.4 investigate only (Kimball picks lock/snapshot/queue). 28.3 glyphs parked. QA-12 CT0 remains. Do not restart the optimizer.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -78,9 +78,8 @@ move the unique open item here and leave a pointer, do not keep a second list.
     +Z hub ring r 10–21.45 mm is flat 360°. Dummy 8×3.2×0.5 recess stays one solid; aero 1.76 %.
     28.2 registry is in; glyphs wait. Handoff: `handoff/2026-10-13_from-qa-10/`.
   - **§29** — 29.1 material picker (PLA+ still looks like PETG); 29.2 UI regression tests. Grok r12 D/E.
-  - **§24.2** Results + Design dump paragraphs DONE 2026-10-14 (`ui_mode === 'expert'`). Hover
-    tooltips and live fit lines stay in Simple. Still open: Assess/Optimize blurbs, duplicate-after-run,
-    other tabs.
+  - ~~**§24.2 / 24.3**~~ DONE 2026-10-15 (Kimball signed off Simple copy). Leftover: QA-38 scatter
+    below the fold at 768p (LOW). 24.4 is investigate-only until Kimball picks lock/snapshot/queue.
   - ~~**25.10**~~ near-stall flag DONE 2026-10-14 (caption only; hold-out MIXED, 9613 also flags).
   - Deferred (Stage 1 done, Stage 2 **not adopted** — do not start without a new Adopt):
     CST section DOFs, §7.4 CNN/FNO field predictor, §4.5 toroidal Prop topology.
@@ -1042,7 +1041,9 @@ Impeller STL may redraw; arrows / airflow pack stay blank until a slow backgroun
   polyhedra (e.g. cell-center plane sample, or tetrahedralize-once + cache; suppress duplicate
   VTK spam). First-build only once caches exist. Often halves midplane/Uz time and kills console
   flood. **DONE 2026-09-30** — `slice_volume_for_viz` drops polyhedra before cutter when a
-  usable majority remains, else cell-center band + `delaunay_2d`. **[impact: med]** **[effort: med]**
+  usable majority remains, else cell-center band + `delaunay_2d`. **2026-10-14:** Results flow-report
+  pictures (`flow_report_viz`) had opted back into a raw `.slice()`; they use this cutter again so
+  a Results bake no longer floods the cockpit log. **[impact: med]** **[effort: med]**
 - [x] **22.5 Busy / cancel UX.** Show impeller + CFM immediately; caption progress
   (midplane ✓ · arrows ✓ · streamlines…); optional cancel / skip heavy views. Document expected
   “first open of a case ~tens of seconds (until 22.6–22.7), revisit ~instant” after 22.1.
@@ -1319,6 +1320,21 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   (`FANSIM_WS_SEND_TIMEOUT`, 15 s) that ABORTS the stalled transport. `scripts/ws_stall_probe.py`
   (frozen client + busy broadcaster + hello probes): before 0/5 probes answered in 75 s; after 15/15
   in 3–12 ms, frozen client dropped after 15 s, browser tab unaffected.**
+  **2026-10-14 (23.57):** a long VTK `_draw` / `view_update` on the asyncio loop starved
+  `wait_for`, which then aborted the **only** tab (~15 s after first Stock preview or a heavy
+  bake). That is loop starvation, not a client that stopped reading. The guard now retries
+  when the loop tick went stale and no bytes were written; a real stall still drops the tab
+  and the log says to hard-refresh.
+- [x] **23.58 Results click paints twice then freezes.** Selecting a scored design (e.g. F90) drew
+  the impeller, then rebuilt the whole VTK scene when CFD arrows landed — `pv.read` of the STL
+  every time, leftover arrows from the previous design, and `view_update` on the event loop
+  (camera dead until the second JPEG landed). The STL is reused; leftover arrows are cleared.
+  **[impact: med]** **[effort: low]**
+- [x] **23.59 Results 3-D: impeller first, overlay from cache.** Click shows the saved impeller
+  immediately (rotatable) plus a loading bar; arrows/cues attach on the next tick from the
+  `cockpit_viz` cache (or after a background `read_case` if that design was never baked). This is
+  not a new CFD run — Assess is the only thing that re-solves. Direction-cue meshes are reused.
+  **[impact: med]** **[effort: low]**
 - [x] **23.44 (UI-17) `GET /ws` without upgrade → `KeyError` in `onClose`, leaks a `connections` entry.**
   **DONE 2026-10-09 — `ws_guard` makes `onClose` tolerate a never-prepared connection; 5 plain GETs, no KeyError.**
 - [x] **23.45 (UI-18) Image-push observers never removed on disconnect** (views keep rendering for gone
@@ -1363,6 +1379,13 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   Preview/Export already fuse in a worker. The suite peak was this test: it now calls
   `fansim.manufacturability._print_ready_worker` (QA-15 S5). Worker still ~7.6 GB; pytest parent
   does not keep it. Memory tiers + 27.1 remaining-growth stay for live builds.**
+- [x] **23.56 Preview overlap freeze.** Randomize → Fit → Preview (still running) → Randomize →
+  Preview again froze the 3-D view with no browser console error. `preview_busy` was set *inside*
+  the async task after `create_task`, so two clicks both passed the guard, two isolated workers
+  wrote the same `preview_stl`, and both called VTK `_draw` / `view_update` on the event loop.
+  Busy is now set before schedule; Randomize / Fit / Scale / Reset / seed are disabled (and no-ops)
+  while Preview/Assess/Export/Optimize run. Restart the cockpit if a session is already wedged.
+  **[impact: med]** **[effort: low]**
 
 ## 24. Newcomer clarity — flow report, simple/expert, start page (2026-10-10)
 
@@ -1415,22 +1438,22 @@ The work is split into three sub-projects, done in order.
     - 9610 (stalls under load): ≥ 1 ⚠;
     - t9005: no ✕.
   - No new CFD, no score change. **[impact: high]** **[effort: high]**
-- [ ] **24.2 Text clean-up across the app (sub-project 2; needs its own design pass).**
-  - **PARTLY DONE 2026-10-14.** Fan → Results glossary / Gold ✕ / fits-only / scatter how-to, plus
-    the Geometry dump paragraphs (chord / NACA / camber / wall / LE-TE / notches / shroud / blade-on-hub),
-    sit behind `ui_mode === 'expert'`. Switches, sliders, hover tooltips (`CONTROL_DESC`), live fit
-    lines, and the empty-plot line stay in Simple. Tests: `tests/test_simple_mode_copy.py`.
-  - Decide what each remaining screen shows by default in simple mode, and move the rest into tooltips,
-    "more info" panels, expert mode or a help page.
-  - Remove the duplicate information that appears after a run.
-  - Remaining examples: Assess & print / Optimize panel blurbs; Mixed/Prop/Volute/CROR dumps (grok r13).
-  - Keep the viewer above the fold at 768p.
+- [x] **24.2 Text clean-up across the app (sub-project 2; needs its own design pass).**
+  - **DONE 2026-10-15 (Kimball signed off Simple copy).** Fan → Results glossary / Gold ✕ / fits-only /
+    scatter how-to, plus the Geometry dump paragraphs, sit behind `ui_mode === 'expert'`. Simple shows
+    the intro banner + Start here (steps only; durations stay on the banner and buttons). Expert shows
+    Optimize and Mixed/Volute/CROR tabs. Assess dump blurbs Expert-only. Results no longer repeats the
+    Reference dropdown. Empty scatter hides the flow card. Tests: `tests/test_simple_mode_copy.py`.
+  - Leftover: **QA-38** (LOW) Simple Results scatter body below the fold at 1366×768.
   - Reuses the 24.1 switch. **[impact: high]** **[effort: high]**
-- [ ] **24.3 Start page and plain tab descriptions (sub-project 3; after 24.2).**
+- [x] **24.3 Start page and plain tab descriptions (sub-project 3; after 24.2).**
   - A start page, or a "what is this tab for?" panel, saying in plain words what each tab does and how
     much to trust it. For example: Mixed, Volute and CROR are rough estimates rather than the full
     simulation, and Prop is a fast estimate.
-  - Decide whether the experimental tabs are hidden in simple mode.
+  - **DONE 2026-10-15:** Mixed / Volute / CROR stay Expert-only. Tab labels: Mixed/Volute/CROR ·
+    estimate, Prop · fast estimate (no “proxy” / “BEMT”). Simple strip under the tabs:
+    “Fan: printable PC-fan blades (CFD). Prop: propeller (fast estimate).” Prop Simple banner
+    matches that; Expert Prop banner keeps the BEMT/Audit detail.
   - Rename "proxy" and "BEMT" in the tab labels. **[impact: high]** **[effort: med]**
 - [ ] **24.4 Changing settings while something is running — investigate (owner: QA bot, round 7, after
   its round-6 stress test).**
@@ -1701,6 +1724,9 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
     Windows: 0.10 GB + 103 KiB/face + 26 KiB/blade-face from PeakWorkingSet − WorkingSet at the call
     (`scripts/measure_fuse_growth.py`; see `docs/validation/audits/2026-10-13-fuse-remaining.md`).
     Cockpit cup Preview/Export only (`FANSIM_FUSE_GUARD=1`). Batch builds still go ahead.
+  - **Leftover QA-35 (r12):** Linux remaining-growth still under-asks open 9/11-blade builds
+    (S7_0172_twin 1.03× the ask, 3/3). Shrouded fine. Refit the open (non-shroud) intercept/slope;
+    do not loosen the shroud term.
 - [x] **27.2 (QA-19 residual) A mildly cambered, strongly leaned design is still refused as "backwards".**
   **CLOSED 2026-10-13 by the wrap (27.4), not by a second reader.** V4: on wrapped rebuilds the cylinder proof
   makes 0 wrong calls on 30 parts and reads S3_0014 correctly. Do **not** add the radial-plane reader to the
@@ -1801,6 +1827,10 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
 - [x] **27.8 Hang-limit UX.** **DONE 2026-10-13:** Preview/Export call `validate_blade_params` in the
   click preamble (plain `⚠ {exc}`, no CAD wait). `evaluate_candidate` returns `_infeasible` on hang
   before `build_impeller`. Isolated worker still carries the sentence (`stderr_tail=400`).
+  **2026-10-14:** hang is still the *designed* TE vs hub face; Preview clips it so the mesh looks
+  flush. Fit envelope now grows hub height until hang ≤ 2 mm (when depth allows). Scale-to-hub uses
+  the same intake-overbuild max depth as Fit. The green envelope no longer lifts its outlet when
+  overbuild makes the impeller taller (that painted the hub-face TE red).
   **[impact: med]** **[effort: low]**
 - [x] **27.9 Rewrite `docs/validation/first_print_measure_plan.md` for Stock v3** (print freeze, §5.1).
   **DONE 2026-10-13:** B/A **0.91 (0.85–0.97)** from 55.7/58.3 × print 0.95. Old 0.89 / 57.6 retired.

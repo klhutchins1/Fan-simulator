@@ -1,0 +1,7 @@
+E       assert 'PETG' == 'PLA+'
+E       assert ['PETG'] == ['PLA+']
+PASSED test_export_caption_print_id_matches_file
+PASSED test_picker_offers_only_registered_materials
+FAILED test_export_material_follows_picker
+FAILED test_preview_fit_grams_follow_picker
+2 failed, 2 passed in 3.84s

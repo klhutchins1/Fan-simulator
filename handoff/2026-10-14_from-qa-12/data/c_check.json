@@ -1,0 +1,38 @@
+{
+ "stl": "/workspace/fansim/qa/run_r12/exports/SB862_a12x25_stock_reference_20261014-180345.stl",
+ "pid": "SB862",
+ "P0": true,
+ "readme_first_line": "# Print sheet \u2014 SB862",
+ "P1": true,
+ "readme_material_lines": [
+  "- Material: **PETG** (nozzle 240 \u00b0C, bed 80 \u00b0C, softens ~70 \u00b0C \u2014 default: stiffness + heat resistance)",
+  "- Orientation: hub face down on the bed (blades sweeping up) \u2014 minimizes blade overhang",
+  "- Cooling: max part cooling for PLA/PETG bridging thin edges; reduce for ABS to avoid warping",
+  "*Print at your own risk \u2014 printed blades are a relative-comparison baseline, not a Noctua replacement. Tip clearance and balance matter; spin up gently the first time.*"
+ ],
+ "print_fit_subset": {
+  "print_id": "SB862",
+  "section_wrap": "cylinder",
+  "recipe_hash": "07234ef2d8e62778",
+  "git": "143d5a8dd1ee180623b2437064631da01539f354",
+  "material": "PETG"
+ },
+ "P2": true,
+ "P3": true,
+ "mesh": {
+  "watertight": true,
+  "bodies": 1,
+  "volume": 27447.811735777694,
+  "degenerate": 0,
+  "hub_face_z": -8.18622870027665,
+  "K7": {
+   "cup_found": true,
+   "floor_z": 4.798771247863954,
+   "floor_above_hub_face": 12.984999948140604,
+   "cup_dia_mm": 37.94276240723802,
+   "grip_count": 20,
+   "grip_protrude_mm": 0.6960141314641177
+  }
+ },
+ "P4": true
+}

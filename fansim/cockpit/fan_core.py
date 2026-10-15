@@ -39,6 +39,16 @@ _log = logging.getLogger(__name__)
 # (well above user-assessed ids, which start at 9000). Selectable, but never scored/saved.
 A12X25_REF_TRIAL = 100000
 
+# Mixed / Volute / CROR are proxy tabs (roadmap 24.3). Simple mode stays on Fan or Prop.
+PROXY_TABS = frozenset({"mixed", "volute", "cror"})
+
+
+def tab_for_ui_mode(ui_mode: str, active_tab: str) -> str:
+    """Simple mode hides proxy tabs; bounce back to Fan if one was selected."""
+    if ui_mode == "simple" and active_tab in PROXY_TABS:
+        return "fan"
+    return active_tab
+
 
 def refresh_memory_tier(state) -> None:
     """Publish the current memory tier (free RAM changes) to the Print / export card."""
@@ -152,6 +162,7 @@ def apply_state_defaults(session) -> None:
     state.airflow_busy = False
     state.airflow_cancel = False
     state.airflow_progress = ""
+    state.viz_overlay_busy = False  # 3-D impeller is up; arrows/cues still attaching
     state._airflow_u_uri = ""
     state._airflow_p_uri = ""
     state._airflow_uz_uri = ""       # axial-velocity (Uz) cut-plane

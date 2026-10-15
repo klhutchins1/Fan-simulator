@@ -114,6 +114,34 @@ def test_readonly_handlers_run(bound_ctx):
     bound_ctx.fan_on_plotly_click(None)
 
 
+def test_second_preview_click_is_ignored_while_busy(bound_ctx):
+    """preview_busy must be True before the coroutine runs, or two Previews share one STL/VTK."""
+    bound_ctx.fan_do_preview()
+    assert bound_ctx.state.preview_busy is True
+    n = len(bound_ctx._tasks)
+    assert n >= 1
+    bound_ctx.fan_do_preview()
+    assert len(bound_ctx._tasks) == n
+    for coro in bound_ctx._tasks:
+        coro.close()
+    bound_ctx._tasks.clear()
+
+
+def test_randomize_and_fit_are_noops_while_preview_busy(bound_ctx):
+    """Randomize/Fit mid-Preview used to mutate sliders while a second worker started."""
+    bound_ctx.fan_do_preview()
+    assert bound_ctx.state.preview_busy is True
+    hub = bound_ctx.state.e_hub_height
+    bound_ctx.fan_randomize_geometry()
+    bound_ctx.fan_randomize_features()
+    bound_ctx.fan_on_fit_envelope()
+    assert "Randomized" not in (bound_ctx.state.preview_msg or "")
+    assert bound_ctx.state.e_hub_height == hub
+    for coro in bound_ctx._tasks:
+        coro.close()
+    bound_ctx._tasks.clear()
+
+
 def test_randomize_geometry_touches_every_intended_dof(bound_ctx):
     """randomize_geometry must actually vary every editable blade DOF, not just a subset.
 
@@ -256,6 +284,24 @@ def test_reference_keeps_tapered_walls_when_browser_resends_mode(bound_ctx):
     st.flush()
     assert (st.e_thick_root, st.e_thick_mid, st.e_thick_tip) == before
     assert st.edited_stale is False
+
+
+def test_reference_results_card_does_not_repeat_the_dropdown(bound_ctx):
+    """24.2: Results info lines duplicated the Design dropdown and a stale Preview prompt."""
+    from fansim.cockpit.fan_core import A12X25_REF_TRIAL
+
+    st = bound_ctx.state
+    st.ready()
+    bound_ctx.fan_hub_designs()
+    bound_ctx.fan_select(A12X25_REF_TRIAL)
+    st.flush()
+    blob = " ".join(st.info_lines or [])
+    assert "Reference ·" not in blob
+    assert "press Preview" not in blob
+    assert "CFM" in blob
+    for coro in bound_ctx._tasks:
+        coro.close()
+    bound_ctx._tasks.clear()
 
 
 def test_randomize_clears_the_previous_export_message(bound_ctx):

@@ -98,6 +98,8 @@ def bind(session) -> None:
         _apply_library_to_editor(design_id, "fit_envelope")
 
     def on_library_scale_to_hub():
+        if getattr(state, "preview_busy", False) or getattr(state, "assess_busy", False):
+            return
         _apply_library_to_editor(state.library_sel, "scale_to_hub")
 
     def _depth_driver_msg(flat):

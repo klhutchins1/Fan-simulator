@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 import pyvista as pv
@@ -61,3 +63,11 @@ def test_push_chart_holds_the_shared_matplotlib_lock(tmp_path, monkeypatch):
     monkeypatch.setattr(frv, "_push_unlocked", spy)
     frv._push([1, 2, 3, 4, 5], None, tmp_path / "p.png")
     assert seen == [True]
+
+
+def test_report_pictures_use_the_polyhedron_safe_slice():
+    """§22.4: Results bake must not vtkCutter OpenFOAM polyhedra (console flood)."""
+    src = Path(__file__).resolve().parents[1] / "fansim" / "cfd" / "flow_report_viz.py"
+    text = src.read_text(encoding="utf-8")
+    assert "slice_volume_for_viz" in text
+    assert ".slice(" not in text

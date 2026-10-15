@@ -137,6 +137,7 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
     )
 
     # Tab setup (lazy imports: keep tests/light imports happy).
+    from fansim.cockpit.fan_core import tab_for_ui_mode
     from fansim.cockpit.fan_tab import render_fan_tab, setup_fan_tab
     from fansim.cockpit.mixed_tab import render_mixed_tab, setup_mixed_tab
     from fansim.cockpit.volute_tab import render_volute_tab, setup_volute_tab
@@ -183,38 +184,66 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                     with v3.VTooltip(
                         location="bottom",  # beside the tab it covered the next tab name (§23.27)
                         open_delay=400,
-                        text="Mixed-flow — drop-in impeller (rough / proxy estimates)",
+                        text="Mixed-flow — drop-in impeller (rough estimate, not full Fan CFD)",
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
-                            v3.VTab("Mixed · proxy", value="mixed", v_bind="props")
+                            v3.VTab(
+                                "Mixed · estimate",
+                                value="mixed",
+                                v_bind="props",
+                                v_show="ui_mode === 'expert'",
+                            )
                     with v3.VTooltip(
                         location="bottom",  # beside the tab it covered the next tab name (§23.27)
                         open_delay=400,
-                        text="Volute — radial blower (rough / relative proxy)",
+                        text="Volute — radial blower (rough estimate, ranking only)",
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
-                            v3.VTab("Volute · proxy", value="volute", v_bind="props")
+                            v3.VTab(
+                                "Volute · estimate",
+                                value="volute",
+                                v_bind="props",
+                                v_show="ui_mode === 'expert'",
+                            )
                     with v3.VTooltip(
                         location="bottom",  # beside the tab it covered the next tab name (§23.27)
                         open_delay=400,
-                        text="Propeller — fast BEMT estimate (~1 s); CFD refine optional",
+                        text="Propeller — fast estimate (~1 s). Optional CFD check.",
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
-                            v3.VTab("Prop · BEMT", value="propeller", v_bind="props")
+                            v3.VTab("Prop · fast estimate", value="propeller", v_bind="props")
                     with v3.VTooltip(
                         location="bottom",  # beside the tab it covered the next tab name (§23.27)
                         open_delay=400,
-                        text="CROR — stacked rotors (BEMT proxy, not full CFD)",
+                        text="CROR — stacked rotors (fast estimate, not full CFD)",
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
-                            v3.VTab("CROR · proxy", value="cror", v_bind="props")
+                            v3.VTab(
+                                "CROR · estimate",
+                                value="cror",
+                                v_bind="props",
+                                v_show="ui_mode === 'expert'",
+                            )
 
                 html.Div(
-                    "3D-printable PC-fan blade designer — CFD on Fan; other tabs are faster "
-                    "estimates or proxies (see tab labels).",
+                    "Fan: printable PC-fan blades (CFD). Prop: propeller (fast estimate).",
                     classes="text-caption text-medium-emphasis mb-2",
+                    v_show="ui_mode === 'simple'",
+                )
+                html.Div(
+                    "3D-printable PC-fan blade designer — CFD on Fan; other tabs are faster "
+                    "estimates (see tab labels).",
+                    classes="text-caption text-medium-emphasis mb-2",
+                    v_show="ui_mode === 'expert'",
                 )
                 render_fan_tab(ctx)
+
+                @state.change("ui_mode")
+                def _simple_leaves_proxy(ui_mode=None, **_):
+                    nxt = tab_for_ui_mode(str(ui_mode or state.ui_mode or "simple"),
+                                          str(state.active_tab or "fan"))
+                    if nxt != state.active_tab:
+                        state.active_tab = nxt
 
                 @state.change("active_tab")
                 def _lazy_tab_ui(active_tab=None, **_):

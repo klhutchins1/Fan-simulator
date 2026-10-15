@@ -39,6 +39,11 @@ _log = logging.getLogger(__name__)
 
 ENV_SEND_TIMEOUT = "FANSIM_WS_SEND_TIMEOUT"
 DEFAULT_SEND_TIMEOUT_S = 15.0
+# wait_for's timer cannot fire while VTK blocks the loop. When the loop resumes, the
+# callback is already overdue. A real stalled client expires within a few ms of the
+# deadline (loop was running). More than this overdue → server-side starvation, not
+# a tab that stopped reading.
+STARVE_OVERDUE_S = 0.2
 
 OBSERVER_ADD = "viewport.image.push.observer.add"
 OBSERVER_REMOVE = "viewport.image.push.observer.remove"
@@ -55,6 +60,11 @@ def send_timeout_s() -> float:
         return DEFAULT_SEND_TIMEOUT_S
 
 
+def _timeout_was_loop_starvation(elapsed: float, timeout: float, n_sent: int) -> bool:
+    """True when wait_for expired late because the event loop was stuck, not the client."""
+    return n_sent == 0 and (elapsed - timeout) >= STARVE_OVERDUE_S
+
+
 def _abort(ws) -> None:
     """Drop the connection now (no close handshake, no flush of the stuck buffer)."""
     _dead.add(ws)
@@ -68,6 +78,8 @@ async def _send_chunks(ws, chunks: list[bytes], timeout: float) -> None:
     if ws is None or ws in _dead or ws.closed:
         return
     lock = _locks.setdefault(ws, asyncio.Lock())
+    loop = asyncio.get_running_loop()
+    n_sent = [0]
 
     async def _send():
         async with lock:
@@ -75,14 +87,32 @@ async def _send_chunks(ws, chunks: list[bytes], timeout: float) -> None:
                 if ws in _dead:
                     return
                 await ws.send_bytes(chunk)
+                n_sent[0] += 1
 
+    t0 = loop.time()
     try:
-        await asyncio.wait_for(_send(), timeout)
-    except (TimeoutError, asyncio.TimeoutError):
-        if ws not in _dead:  # sends queued behind the stuck one time out too; say it once
-            _log.warning("websocket client not reading for %.0f s; dropping it so other sessions "
-                         "keep working", timeout)
-        _abort(ws)
+        try:
+            await asyncio.wait_for(_send(), timeout)
+        except (TimeoutError, asyncio.TimeoutError):
+            elapsed = loop.time() - t0
+            if _timeout_was_loop_starvation(elapsed, timeout, n_sent[0]):
+                _log.warning(
+                    "websocket send waited %.0f s because the 3-D view blocked the server; "
+                    "retrying, not dropping the tab",
+                    elapsed,
+                )
+                try:
+                    await asyncio.wait_for(_send(), timeout)
+                    return
+                except (TimeoutError, asyncio.TimeoutError):
+                    pass
+            if ws not in _dead:  # sends queued behind the stuck one time out too; say it once
+                _log.warning(
+                    "websocket tab stopped reading for %.0f s — disconnected it. "
+                    "Hard-refresh the browser (Ctrl+Shift+R) or open the cockpit URL in a new tab.",
+                    timeout,
+                )
+            _abort(ws)
     except (ConnectionError, RuntimeError) as exc:  # closing/closed transport
         _log.debug("websocket send to a closing client skipped: %s", exc)
         _dead.add(ws)

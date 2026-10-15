@@ -158,13 +158,21 @@ def intake_envelope_z_range(
     return z_lo, z_hi
 
 
-def frame_z_mid_from_points(r, z, hub_radius: float) -> float:
-    """Frame envelope Z mid from outer impeller points (skip motor-cup / grip pads)."""
+def frame_z_mid_from_points(r, z, hub_radius: float, nominal_depth: float | None = None) -> float:
+    """Frame envelope Z mid from outer impeller points (skip motor-cup / grip pads).
+
+    When ``nominal_depth`` is set, the mid is outlet-anchored: z_lo = min(outer z)
+    (the clipped hub-face TE), not the bbox centre. Intake overbuild then grows +Z
+    only; centering on a taller impeller used to lift z_lo and paint that TE red.
+    """
     import numpy as np
 
     rr = np.asarray(r, dtype=float)
     zz = np.asarray(z, dtype=float)
     outer = rr > float(hub_radius) * 1.05
+    z_outlet = float(zz[outer].min()) if np.any(outer) else float(zz.min())
+    if nominal_depth is not None:
+        return z_outlet + 0.5 * float(nominal_depth)
     if np.any(outer):
         zo = zz[outer]
         return 0.5 * (float(zo.min()) + float(zo.max()))
@@ -185,7 +193,7 @@ def out_of_spec_point_mask(
 
     rr = np.asarray(r, dtype=float)
     zz = np.asarray(z, dtype=float)
-    zmid = frame_z_mid_from_points(rr, zz, hub_r)
+    zmid = frame_z_mid_from_points(rr, zz, hub_r, nominal_depth=nom_depth)
     z_lo, z_hi = intake_envelope_z_range(zmid, nom_depth, intake_extra)
     depth_oos = ((zz < z_lo) | (zz > z_hi)) & (rr > float(hub_r) * 1.05)
     tip_oos = rr > float(tip_r)
@@ -386,6 +394,42 @@ def fit_envelope(
         if cur_h < min_h:
             set_mm("hub_height", min_h)
 
+    # 5) designed hang (unclipped TE vs hub face). Fit's depth used the clipped solid, so
+    # it never saw this; Preview then refused a mesh that looks flush. Grow the hub until
+    # hang ≤ 2 mm or we would exceed max_d.
+    try:
+        from fansim.geometry.blade import MAX_HANG_BELOW_HUB_MM, blade_hang_below_hub_mm
+
+        p_hang = blade_from_flat(work, feat)
+        wrap_clip = (
+            bool(getattr(p_hang, "clip_below_hub", True))
+            and str(getattr(p_hang, "section_wrap", "planar")) == "cylinder"
+        )
+        hang = blade_hang_below_hub_mm(p_hang) if wrap_clip else 0.0
+    except Exception:  # noqa: BLE001
+        wrap_clip, hang, p_hang = False, 0.0, None
+    if wrap_clip and hang > MAX_HANG_BELOW_HUB_MM:
+        before_h = float(work.get("hub_height", 0.0) or 0.0)
+        h = before_h
+        if h <= 0.0:
+            h = float(getattr(p_hang, "hub_height_mm", 0.0) or 0.0) or max(min_h, 15.0)
+        for _ in range(48):
+            h += 0.5
+            work["hub_height"] = h
+            try:
+                p2 = blade_from_flat(work, feat)
+                if impeller_z_extent(p2) > max_d - 0.1:
+                    work["hub_height"] = h - 0.5
+                    break
+                if blade_hang_below_hub_mm(p2) <= MAX_HANG_BELOW_HUB_MM:
+                    break
+            except Exception:  # noqa: BLE001
+                work["hub_height"] = h - 0.5
+                break
+        after_h = float(work.get("hub_height", 0.0) or 0.0)
+        if abs(after_h - before_h) > 1e-9:
+            changes.append(PlaceChange("hub_height", before=before_h, after=after_h))
+
     # final fit status via check_build
     try:
         p = blade_from_flat(work, feat)
@@ -452,7 +496,7 @@ def prepare_export_flat(
     return res.flat, changes + res.changes
 
 
-def scale_to_hub(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
+def scale_to_hub(flat: dict, spec: FanSpec, features=None, *, max_depth_mm: float | None = None) -> PlaceResult:
     import math
 
     from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
@@ -507,7 +551,7 @@ def scale_to_hub(flat: dict, spec: FanSpec, features=None) -> PlaceResult:
             src[k] = after
             changes.append(PlaceChange(k, before=before, after=after))
 
-    fitted = fit_envelope(src, spec, features=features)
+    fitted = fit_envelope(src, spec, features=features, max_depth_mm=max_depth_mm)
     return PlaceResult(
         flat=fitted.flat,
         changes=changes + fitted.changes,

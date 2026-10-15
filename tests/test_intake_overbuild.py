@@ -41,6 +41,22 @@ def test_intake_envelope_z_range_outlet_anchored():
     assert hi2 == pytest.approx(22.5)
 
 
+def test_overbuild_does_not_paint_outlet_te_red():
+    """Intake extra is +Z only. A deeper impeller must not shift the envelope's outlet
+    above the hub-face TE (that painted the clipped trailing edge red)."""
+    import numpy as np
+
+    from fansim.cockpit.placement import out_of_spec_point_mask
+
+    r = np.array([40.0, 40.0])
+    z = np.array([-8.16, 21.84])  # 30 mm clipped impeller, extra 10 mm on intake
+    mask = out_of_spec_point_mask(
+        r, z, tip_r=55.0, hub_r=21.5, nom_depth=25.0, intake_extra=10.0,
+    )
+    assert mask[0] == 0.0  # outlet / hub-face TE
+    assert mask[1] == 0.0  # intake tip still inside 25+10
+
+
 def test_grip_pads_not_depth_oos():
     """Motor-cup grip tips past z_lo must not light red; blade tips past tip_r still do."""
     import numpy as np

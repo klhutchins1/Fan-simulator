@@ -908,9 +908,11 @@ def validate_blade_params(params: BladeParams) -> None:
         hang = blade_hang_below_hub_mm(params)
         if hang > MAX_HANG_BELOW_HUB_MM:
             raise ValueError(
-                f"the blades hang {hang:.1f} mm below the hub's motor face (limit "
-                f"{MAX_HANG_BELOW_HUB_MM:.0f} mm): that part would be cut off and strike the frame "
-                "struts. Reduce the stagger or sweep at the trailing edge, or make the hub taller")
+                f"as designed, the trailing edge hangs {hang:.1f} mm below the hub's motor face "
+                f"(limit {MAX_HANG_BELOW_HUB_MM:.0f} mm) before the hub-face cut. That cut is what "
+                "Preview shows (the mesh is flush); past the limit it distorts the section and the "
+                "uncut corner would strike the frame struts. Reduce stagger or sweep at the "
+                "trailing edge, or make the hub taller (Fit envelope does this when depth allows)")
 
 
 # Kimball 2026-10-13 (roadmap 27.4 / QA-32): wrapped designs may hang at most this far below the

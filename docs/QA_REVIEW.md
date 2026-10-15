@@ -90,6 +90,10 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 | QA-32 | MED | Geometry | Wrapped hub-clip stations: camber 0.005–0.011 low, stagger up to 1.1° | r9. **r10b Task C: verified closed.** 49 hanging designs / 105 stations, 0 outside 3 % / 0.005 / 1.5° (max 2.9 % / 0.0048 / 1.46°). Hang limit refuses designed > 2 mm on 400/400. |
 | QA-33 | LOW–MED | Geometry/direction | Wrapped cylinder proof INCONCLUSIVE more often | r9 30/65 vs 24/66 planar. **r10b B: 18/38 wrapped INCONCLUSIVE.** Harmless: INCONCLUSIVE never refuses. Open. |
 | QA-34 | MED | Geometry/export | Featured wrapped S5_0184: B-rep fuse is 1 solid, STL is not watertight (8 bodies, 7 degenerate faces). Planar twin is clean. `fuse_impeller` does not flag it. | r10b Task B W1/W6. **CLOSED 2026-10-14:** 7 collapsed tessellation needles (one per blade); impeller mesh was already watertight. `export_stl` → `sanitize_stl`. `docs/qa/notes/qa-34-featured-wrap-stl.md`. |
+| QA-35 | MED | Memory/27.1 | Linux remaining-growth guard under-asks open builds: S7_0172_twin (11 blades, 22.7 k faces) 2.19 GiB vs ask 2.12 GiB (1.03×, 3/3 repeats); open 9/11-blade twins at 0.91–1.03× | r12 Task B. Shrouded fine (≤ 0.80×). |
+| QA-36 | MED | UI/material | Material picker PLA+ not followed by Preview grams or the Export README/nozzle/bed/print_fit/registry (all read `active_spec().material` = PETG); Assess stamp + optimizer do follow | r12 Task D; tests in from-qa-12/tests fail on HEAD. |
+| QA-37 | LOW | Export/28.2 | Killing the cockpit process mid-Export does not stop the isolated export worker (it keeps fusing, ~6 GB); if it dies after writing the STL, `{id}_….stl` is left with no README/sidecars and an id absent from index.jsonl | r12 Task C harness accident (Q8B8G): orphaned worker overlapped the next export and was OOM-killed (dmesg, 6.2 GB anon). |
+| QA-38 | LOW | UI/24.2 | At 1366×768 Simple Results, the scatter's plot body is below the fold (top at y=652, only the title visible) | r13 Task A S4 (report-only). |
 
 ## Details
 (Numbered bugs below map to QA-n.)
@@ -466,3 +470,18 @@ Prereg `26aa359` (A, B and C in one commit). Summary in `handoff/2026-10-13_from
   (max 2.9 % / 0.0048 / 1.46°, thin margins). The hang limit refuses exactly the designed > 2 mm (19/400). evaluate_candidate
   returns infeasible with a plain message. `docs/qa/notes/hang-limit-correction-r10b.md`.
 - QA-33 still stands (B: 18/38 wrapped INCONCLUSIVE). D not run (no 27.1 patch). E not done.
+
+## Round 12 (2026-10-14): master 143d5a8, run clone `/workspace/fansim/qa/run_r12`
+Prereg `42004b3` (A–E). Summary in `handoff/2026-10-14_from-qa-12/README.md`.
+- **Task A (QA-34 strip): F0 + F1 PASS.** S5_0184 and 2 new featured wraps (seed 11013) are each 1 watertight body, 0 degenerate faces, B-rep 1 solid.
+- **Task B (27.1 remaining): FAIL 1/26.** S7_0172_twin at 1.032× the ask (3/3 repeats). Shroud term fine. → **QA-35 (MED, new)**.
+- **Task C (28.2 print-id): P0–P4 PASS** on a real cockpit Export of Stock (SB862). → **QA-37 (LOW, new)**.
+- **Task D (PLA+):** Preview grams and Export README/temps/sidecar/registry stay PETG via `active_spec().material`. → **QA-36 (MED, new)**.
+- **Task E:** 4 headless proposal tests; the 2 material tests fail on HEAD (intended).
+
+## Round 13 (2026-10-14): master 143d5a8, run clone `/workspace/fansim/qa/run_r13`
+Prereg `02584e6`. Summary in `handoff/2026-10-14_from-qa-13/README.md`.
+- **Task A (24.2): S0–S3 PASS** headless in the browser. S4: scatter mostly below the fold at 768 px → **QA-38 (LOW, new)**.
+- **Task B:** duplicate-after-Preview table (report only). No cached Assess on disk.
+- **Task C (23.9): M0 PASS, M1 PASS.** 1777 passed, 0 failed; no OOM in the run window. Peak RSS per chunk 5.1 / 2.9 / 6.9 GB (was 8.2 GB in one process); 45 min active time. `docs/qa/notes/pytest-chunks-r13.md`
+- **Task D:** the other tabs ignore ui_mode; Expert-only candidates listed.
