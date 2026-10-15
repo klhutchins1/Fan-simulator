@@ -354,7 +354,7 @@ def bind(session) -> None:
         except Exception as exc:  # noqa: BLE001
             log_caught(_log, "view_update (glyph params)", exc, level=logging.DEBUG)
 
-    def _build_preview_stl(flat, feat):
+    def _build_preview_stl(flat, feat, spec, cup: bool):
         from dataclasses import asdict
 
         from fansim.geometry.isolated import build_stl_isolated
@@ -362,8 +362,7 @@ def bind(session) -> None:
         from fansim.resources import current_tier
 
         mount = None
-        if bool(getattr(state, "preview_motor_cup", False)) and current_tier().cup_build_ok:
-            spec = session.active_spec()
+        if cup and current_tier().cup_build_ok:
             if spec.motor_mount is not None:
                 mount = asdict(spec.motor_mount)
         # Motor cup needs a real boolean solid (not the fast non-fused preview mesh).
@@ -396,6 +395,11 @@ def bind(session) -> None:
             printable = check_printability(params)
             print_warn = "" if printable.printable else "\n" + preview_unprintable_note(printable.reason)
             flat, feat = session.edit_flat(), session.edit_features()
+            # Settings from the click (24.4, Kimball 2026-10-15): the fits/weight verdict and the cup
+            # build use the fan model / material / leeway / cup switch as they were when Preview was
+            # pressed, not as they are when the build finishes.
+            spec = session.active_spec()
+            cup = bool(getattr(state, "preview_motor_cup", False))
         except ValueError as exc:
             state.preview_msg = f"⚠ {exc}"
             state.flush()
@@ -440,7 +444,7 @@ def bind(session) -> None:
                 state.flush()
                 loop = asyncio.get_running_loop()
                 try:
-                    await loop.run_in_executor(None, _build_preview_stl, flat, feat)
+                    await loop.run_in_executor(None, _build_preview_stl, flat, feat, spec, cup)
                 except TimeoutError:
                     state.preview_msg = (
                         "⚠ Geometry build timed out — previous mesh kept (so nothing looks "
@@ -453,7 +457,7 @@ def bind(session) -> None:
                     return
                 def _readouts():
                     """STL load + spec + printability (~3 s): off the event loop (QA UI-4 r4 freeze)."""
-                    _, status = session.spec_status(preview_stl, params, flat)
+                    _, status = session.spec_status(preview_stl, params, flat, spec=spec)
                     try:
                         from fansim.manufacturability.printability_score import grade_printability
 

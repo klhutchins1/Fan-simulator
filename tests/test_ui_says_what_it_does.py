@@ -82,6 +82,9 @@ def _export_payload(ui, monkeypatch, tmp_path):
                                                        "print_id": payload["print_id"]}))
 
     monkeypatch.setattr(ij, "run_worker_module", fake)
+    # Pin the memory tier: otherwise the export's free-RAM gate refuses on a busy box and the
+    # worker is never called (these tests are about what reaches the worker, not the box's RAM).
+    monkeypatch.setenv("FANSIM_MEMORY_TIER", "16gb")
 
     ui.st.cup_build_ok = True
     ui.ctx.fan_export_stl_current()
@@ -132,3 +135,50 @@ def test_picker_offers_only_registered_materials(ui):
 
     items = [i if isinstance(i, str) else (i.get("value") or i.get("title")) for i in ui.st.assess_material_items]
     assert "PLA+" in items and set(items) <= set(MATERIALS), items
+
+
+def test_preview_verdict_uses_the_material_from_the_click(ui, tmp_path, monkeypatch):
+    """24.4 (Kimball 2026-10-15: snapshot): the "✓ fits / weight" line used the material as it was when
+    Preview *finished*. Changing the picker mid-build must not change the verdict for this build."""
+    import trimesh
+
+    import fansim.cockpit.fan_assess as fa
+    import fansim.geometry.isolated as iso
+
+    seen = []
+    real = fa.estimate_weight_g
+    monkeypatch.setattr(fa, "estimate_weight_g", lambda v, m: seen.append(m) or real(v, m))
+
+    def fake_build(flat, feat, out, **kw):
+        trimesh.creation.annulus(r_min=46, r_max=52, height=14).export(str(out))
+        ui.st.assess_material = "PETG"          # the user changes the picker while it builds
+
+    monkeypatch.setattr(iso, "build_stl_isolated", fake_build)
+    ui.st.assess_material = "PLA+"
+    ui.s.do_preview()
+    _drive(ui.tasks)
+    assert seen == ["PLA+"], seen
+
+
+def test_export_hint_uses_the_fit_hub_setting_from_the_click(ui, monkeypatch, tmp_path):
+    """24.4: the finished Export message read the live "Fit hub" switch for its hint."""
+    import fansim.cockpit.fan_export as fe
+    import fansim.isolated_job as ij
+    from fansim.manufacturability import print_id as pid_mod
+
+    monkeypatch.setattr(pid_mod, "INDEX_PATH", tmp_path / "index.jsonl")
+    monkeypatch.setattr(fe, "exports_dir", lambda: tmp_path / "exports")
+
+    def fake(mod, payload, **kw):
+        Path(payload["result"]).write_text(json.dumps({"ok": True, "mount_fits": False,
+                                                       "mount_msg": "cup too wide", "mirror_note": "",
+                                                       "gauge": None, "print_id": payload["print_id"]}))
+        ui.st.export_fit_hub = True             # the user flips the switch while it exports
+
+    monkeypatch.setattr(ij, "run_worker_module", fake)
+    monkeypatch.setenv("FANSIM_MEMORY_TIER", "16gb")   # not the box's free RAM: the hint is under test
+    ui.st.cup_build_ok = True
+    ui.st.export_fit_hub = False
+    ui.ctx.fan_export_stl_current()
+    _drive(ui.tasks)
+    assert "turn on 'Fit hub to motor on export'" in (ui.st.export_msg or ""), ui.st.export_msg
