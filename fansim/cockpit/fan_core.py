@@ -290,8 +290,16 @@ def bind(session) -> None:
             enabled=bool(getattr(state, "intake_overbuild", False)),
             extra_mm=float(getattr(state, "intake_overbuild_mm", 10.0) or 0.0),
         )
+        from fansim.manufacturability.materials import MATERIALS
+
+        # The material picker drives everything the spec feeds: Preview grams, the weight check,
+        # Export README / print temperatures / print-fit sidecar / print-id registry (roadmap 29.1,
+        # QA-36). Before, only Assess and Optimize followed it; the rest kept the fan model's PETG.
+        picked = str(getattr(state, "assess_material", "") or "")
+        material_kw = {"material": picked} if picked in MATERIALS else {}
         return dataclasses.replace(
             get_fan_spec(state.fan_model),
+            **material_kw,
             leeway_tip_dia_mm=float(state.lee_tip),
             leeway_depth_mm=float(state.lee_depth) + extra,
             leeway_weight_g=float(state.lee_weight),
