@@ -10,6 +10,9 @@ from dataclasses import asdict
 
 def main() -> int:
     job = json.loads(open(sys.argv[1], encoding="utf-8").read())
+    from fansim.isolated_job import watch_parent
+
+    watch_parent(job)  # exit if the cockpit that started us is gone (QA-37)
     from fansim.centrifugal.evaluate import evaluate_mixed_flow
     from fansim.centrifugal.params_io import mixed_params_from_flat
     from fansim.fan_spec import fan_spec_from_dict

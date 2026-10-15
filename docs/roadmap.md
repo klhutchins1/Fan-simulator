@@ -1968,6 +1968,16 @@ manual `docs/qa/browser_checklist_*.md`. 3-D/VTK is slow; tests should not wait 
   (PETG) and does not follow the picker. Grok r12 Task D: confirm which surfaces still say PETG
   after PLA+ is selected (Assess stamp, Export README, Preview weight, optimizer argv). No CFD.
   **[impact: med: wrong weight / print sheet / flutter]** **[effort: low]**
+- [x] **29.3 (QA-37) Killing the cockpit mid-Export left the export worker running and a bare STL.** **DONE
+  2026-10-15:** every `run_worker_module` job carries the launcher's pid, and each worker (`_export_worker`,
+  geometry / centrifugal / volute build + eval, `_print_ready_worker`) calls `watch_parent` and exits within 2 s
+  of the cockpit dying. Export is staged in a hidden `.partial-<stem>/` folder and moved into `exports/` only when
+  complete; the print-id row is written after the move, and the print-fit sidecars point at the final STL.
+  Tests: `tests/test_worker_parent_watch.py`.
+- [ ] **29.4 The Assess CFD worker can outlive the cockpit too.** `fansim.optimize._eval_worker` is launched by
+  `isolated_eval` through `run_watched`, not `run_worker_module`, so it has no `parent_pid` and keeps solving (and
+  its Docker container keeps running) if the cockpit dies. Add `parent_pid` + `watch_parent`, and stop the
+  container on exit. **[impact: med: a stray 30-min CFD hogs the box]** **[effort: low–med]**
 - [ ] **29.2 Cockpit UI regression tests.** Standing filler for grok when A–D are done: add
   headless tests (extend the smoke / settings harness) that click a control and assert the caption
   or saved extra matches what we claim. Skip waiting on Preview/Export 3-D. First seed: 29.1
