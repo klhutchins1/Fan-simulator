@@ -54,7 +54,7 @@ move the unique open item here and leave a pointer, do not keep a second list.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next (2026-10-15): 29.1 / QA-36 — PLA+ picker must drive Preview grams + Export README (grok r12). 24.4 investigate only (Kimball picks lock/snapshot/queue). 28.3 glyphs parked. QA-12 CT0 remains. Do not restart the optimizer.**
+**→ Next (2026-10-15): 29.1 and QA-35 DONE. 24.4 investigate only (Kimball picks lock/snapshot/queue). 28.3 glyphs parked. QA-12 CT0 remains. Do not restart the optimizer.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -1726,7 +1726,9 @@ already fixed by 25.11 before this round's results arrived; round 8 re-runs the 
     Cockpit cup Preview/Export only (`FANSIM_FUSE_GUARD=1`). Batch builds still go ahead.
   - **Leftover QA-35 (r12):** Linux remaining-growth still under-asks open 9/11-blade builds
     (S7_0172_twin 1.03× the ask, 3/3). Shrouded fine. Refit the open (non-shroud) intercept/slope;
-    do not loosen the shroud term.
+    do not loosen the shroud term. **DONE 2026-10-15:** Linux open refit 0.515 GiB + 82.3 KiB/face (pre-registered,
+    worst r12 open 0.95 of the estimate, r8 open <= 0.76 of the ask); shroud and Windows unchanged.
+    Audit `docs/validation/audits/2026-10-15-fuse-open-refit.md`.
 - [x] **27.2 (QA-19 residual) A mildly cambered, strongly leaned design is still refused as "backwards".**
   **CLOSED 2026-10-13 by the wrap (27.4), not by a second reader.** V4: on wrapped rebuilds the cylinder proof
   makes 0 wrong calls on 30 parts and reads S3_0014 correctly. Do **not** add the radial-plane reader to the

@@ -111,3 +111,15 @@ def test_cockpit_build_job_carries_the_guard_flag(monkeypatch, tmp_path):
     isolated.build_stl_isolated({}, {}, tmp_path / "a.stl", fuse_guard=True)
     isolated.build_stl_isolated({}, {}, tmp_path / "b.stl")
     assert jobs[0].get("fuse_guard") is True and "fuse_guard" not in jobs[1]
+
+
+def test_linux_open_fan_remaining_growth_is_covered(monkeypatch):
+    """QA-35 (r12 Task B): S7_0172_twin, open 11 blades, 22 729 faces at the call, grew 2.185 GiB after the call,
+    above the old ask (1.15 x 1.84 = 2.12 GiB). Refit 2026-10-15 (audit 2026-10-15-fuse-open-refit): every r12
+    open build sits at <= 0.95 of the estimate, before the 1.15 margin."""
+    from fansim import resources
+
+    monkeypatch.setattr(resources.sys, "platform", "linux")
+    est = resources.fuse_remaining_estimate_gb(22_729, shrouded=False)
+    assert 2.185 / est <= 0.951
+    assert 6.872 / resources.fuse_remaining_estimate_gb(86_342) <= 0.951   # S5_0223, 86 k faces

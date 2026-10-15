@@ -156,8 +156,8 @@ def _growth_constants() -> tuple[float, float, float]:
     """(base_gb, gb_per_face, shroud_gb_per_blade_face) for remaining growth after the guard call.
 
     Remaining = peak at exit − RSS/working set at the ``check_fuse_memory`` call.
-    Linux: QA r8 Task C increment fit (0.28 GB + 72 KiB/face); r9 Task E shroud extra
-    66 KiB per *blade* face (the ring itself is four faces).
+    Linux: QA r12 open-fan refit (0.515 GB + 82.3 KiB/face; was the r8 0.28 + 72); r9 Task E shroud
+    extra 66 KiB per *blade* face (the ring itself is four faces).
     Windows: 2026-10-13 ``scripts/measure_fuse_growth.py`` (PeakWorkingSet − WorkingSet at
     call). Two open builds want a negative intercept; intercept is pinned at 0.10 GB and the
     slope (103 KiB/face) is taken from Stock v3 so both open points sit under the line. The
@@ -165,7 +165,11 @@ def _growth_constants() -> tuple[float, float, float]:
     """
     if sys.platform == "win32":
         return 0.10, _kib_per_face_to_gb(103.0), _kib_per_face_to_gb(26.0)
-    return 0.28, _kib_per_face_to_gb(72.0), _kib_per_face_to_gb(66.0)
+    # Linux open fans refit 2026-10-15 (QA-35, r12 Task B): the r8 0.28 GB + 72 KiB/face under-asked
+    # open 9/11-blade fuses (S7_0172_twin 1.03x the ask). Pre-registered rule, audit
+    # 2026-10-15-fuse-open-refit: worst r12 open build at 0.95 of the estimate; r8 open builds <= 0.76
+    # of the ask. The shroud term is unchanged (shrouded builds sit <= 0.80).
+    return 0.515, _kib_per_face_to_gb(82.3), _kib_per_face_to_gb(66.0)
 
 
 def fuse_peak_estimate_gb(n_faces: int) -> float:
