@@ -50,4 +50,27 @@ should read ⚠. A failure is recorded, not re-widened.
 
 ## Results
 
-(filled in after n = 5)
+n = 5 OK solves, 2026-10-16. All at surface level 4, so only the background mesh changed. The first launch
+died at start-up (a `cmd.exe` wrapper killed by a console signal) and was relaunched with no code change.
+
+| run | base cell | CFM free / load | mean push Pa | Proudman SWL dB |
+|---|---|---|---|---|
+| m1 | 5.6 mm | 53.31 / 43.61 | 12.54 | −13.7 |
+| m2 | 5.8 mm | 53.04 / 43.27 | 12.77 | 22.2 |
+| m3 | 6.2 mm | 53.58 / 43.66 | 12.98 | −4.7 |
+| m4 | 6.4 mm | 52.45 / 42.77 | 12.71 | 19.4 |
+| m5 | 6.6 mm | 53.13 / 43.21 | 12.95 | 18.2 |
+
+- **The score is mesh-robust:** free 52.45–53.58 (±1 %), loaded 42.77–43.66 (±1 %).
+- **Push:** proposed `BAND_TOL` **0.08**, set by the single bands. The mean push alone gives 2σ ≈ 2.9 %. That is
+  below the 0.15 stop line.
+- **Noise:** proposed `NOISE_MARGIN_DB` **32.8 dB**. The Proudman level swings −14 to +22 dB on mesh alone, against
+  0.2 dB on same-mesh repeats. That is above the 3.0 dB stop line.
+
+**Verdict: STOP AND ASK, as pre-registered. Nothing baked.** `flow_verdicts.py` is unchanged (0.03 / 0.5 dB).
+What this shows:
+1. Between designs, the noise row is not a measurement. The turbulence near the blades that feeds Proudman is not
+   mesh-converged at the Assess mesh.
+2. Mesh noise on the push bars is about 8 %, not 3 %.
+
+Kimball decides.
