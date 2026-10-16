@@ -26,7 +26,7 @@ MSG_NONE = "No flow simulation for this design yet. Run Assess to see how the ai
 MSG_BUILDING = "Working out how the air moves…"
 NUMBER_LABELS = {"backflow_frac": "backflow share", "swirl_frac": "swirl energy share",
                  "dead_frac": "dead-air share", "tip_band_uz_ratio": "tip / mean forward speed",
-                 "noise_swl_db": "Proudman SWL (dB, relative)", "mean_uz_exit": "mean exit Uz (m/s)",
+                 "noise_swl_db": "Proudman SWL (dB, relative; mesh-dependent, don't compare)", "mean_uz_exit": "mean exit Uz (m/s)",
                  "mean_dp0_pa": "mean push (Pa, area-weighted)"}
 
 
@@ -141,7 +141,7 @@ def build_report(case_dir, ref_dir) -> dict:
         name = pic_for[r.key]
         out_rows.append({
             "key": r.key, "title": r.title, "icon": ICONS[r.status], "status": r.status,
-            "text": r.text,
+            "text": r.text, "expert_only": r.expert_only,
             "img": png_data_uri(pics[name]) if name in pics else "",
             "stock_img": png_data_uri(stock_pics[name]) if name in stock_pics else ""})
     numbers = [{"name": NUMBER_LABELS.get(k, k), "design": v,

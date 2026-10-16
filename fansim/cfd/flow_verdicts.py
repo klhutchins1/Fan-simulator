@@ -13,11 +13,16 @@ TITLES = {"direction": "Air direction", "push": "Push along the blade", "spin": 
 ICONS = {"ok": "✓", "warn": "⚠", "bad": "✕", "na": "–"}
 
 BACKFLOW_MARGIN = 0.02
-BAND_TOL = 0.03  # 2σ of five Stock v3 Assess repeats (roadmap 27.3); was 0.15 from a non-repeat pair.
+BAND_TOL = 0.03  # mean push: 2σ of five Stock v3 repeats (27.3); five varied meshes gave 2.9 % (27.3b).
+BAR_TOL = 0.08   # single bars: 2σ of Stock v3 on five varied meshes (roadmap 27.3b, Kimball 2026-10-16).
 SWIRL_FACTOR = 1.10
 DEAD_MARGIN = 0.02
 TIP_FACTOR = 0.90
 NOISE_MARGIN_DB = 0.5  # 2σ floor of the same five repeats; was 2.8 dB from that pair.
+# Noise is NOT judged (Kimball 2026-10-16): Stock alone read -13.7..+22.2 dB across five meshes (27.3b),
+# so a design-vs-Stock difference is mesh, not design. The row is Expert-only information.
+NOISE_JUDGED = False
+NOISE_MESH_SPREAD_DB = 36  # max - min of Stock's Proudman SWL over the 27.3b meshes, rounded
 
 
 @dataclass
@@ -28,6 +33,7 @@ class RowVerdict:
     text: str
     better: bool | None
     bands: list[str] | None = None
+    expert_only: bool = False
 
 
 def _bad(x) -> bool:
@@ -63,9 +69,9 @@ def _band_labels(d, s):
     for a, b in zip(d.band_dp0_pa, s.band_dp0_pa):
         if _bad(a) or _bad(b) or b == 0:
             labels.append("unknown")
-        elif a > b * (1 + BAND_TOL):
+        elif a > b * (1 + BAR_TOL):
             labels.append("stronger")
-        elif a < b * (1 - BAND_TOL):
+        elif a < b * (1 - BAR_TOL):
             labels.append("weaker")
         else:
             labels.append("similar")
@@ -125,6 +131,12 @@ def _noise(d, s):
     if s is None or s.noise_swl_db is None:
         return _row("noise", "na", "No Stock comparison for noise.")
     delta = d.noise_swl_db - s.noise_swl_db
+    if not NOISE_JUDGED:
+        text = (f"Not judged: on different meshes the same Stock fan's estimate moved by about "
+                f"{NOISE_MESH_SPREAD_DB} dB, so this {delta:+.1f} dB difference is mostly mesh, not design.")
+        row = _row("noise", "na", text)
+        row.expert_only = True
+        return row
     word = "quieter" if delta < 0 else "louder"
     text = (f"Rough estimate: about {abs(delta):.1f} dB {word} than Stock. "
             "Compare only; this is not a real sound measurement.")

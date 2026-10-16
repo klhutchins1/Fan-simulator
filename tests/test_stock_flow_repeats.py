@@ -111,17 +111,18 @@ def test_measured_stock_v3_repeats_propose_0_03_and_0_5():
     assert proposed_tolerances(means, bands, noise) == (0.03, 0.5)
 
 
-def test_after_bake_mean_and_noise_pass_hub_bar_fail():
-    """Prereg after-bake: do not widen. Mean/noise PASS; r4 hub bar is 3.05 % above r1."""
+def test_after_bake_same_mesh_repeats():
+    """27.3 after-bake recorded r4's hub bar 3.05 % above r1 (a FAIL at the old shared 3 %). Since 27.3b
+    (Kimball 2026-10-16) bars use BAR_TOL 8 % and noise is not judged, so every row reads the same."""
     r1 = _repeat_metrics(_STOCK_V3_REPEATS[0])
     rows_by_id = []
     for row in _STOCK_V3_REPEATS[1:]:
         rows_by_id.append(judge(_repeat_metrics(row), r1))
     for rows in rows_by_id:
         assert rows[1].status == "ok" and rows[1].better is False
-        assert rows[4].status == "ok"
+        assert rows[4].status == "na"
     r2, r3, r4, r5 = rows_by_id
     assert r2[1].bands == ["similar"] * 5
     assert r3[1].bands == ["similar"] * 5
-    assert r4[1].bands == ["stronger", "similar", "similar", "similar", "similar"]
+    assert r4[1].bands == ["similar"] * 5
     assert r5[1].bands == ["similar"] * 5

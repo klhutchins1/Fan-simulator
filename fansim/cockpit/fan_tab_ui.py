@@ -1387,6 +1387,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         v3.VProgressLinear(indeterminate=True, height=3, color="primary",
                                            classes="mb-2", v_show="flow_busy")
                         with v3.VRow(v_for="row in flow_rows", key="row.key", dense=True,
+                                     v_show="!row.expert_only || ui_mode === 'expert'",
                                      classes="mb-2 align-center"):
                             with v3.VCol(cols=12, md=4):
                                 html.Div("{{ row.icon }} {{ row.title }}",

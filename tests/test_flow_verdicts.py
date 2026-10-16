@@ -3,7 +3,16 @@ from __future__ import annotations
 import math
 
 from fansim.cfd.flow_report import FlowMetrics
-from fansim.cfd.flow_verdicts import BAND_TOL, NOISE_MARGIN_DB, ROW_KEYS, judge, overall_line
+from fansim.cfd import flow_verdicts
+from fansim.cfd.flow_verdicts import (
+    BAND_TOL,
+    BAR_TOL,
+    NOISE_JUDGED,
+    NOISE_MARGIN_DB,
+    ROW_KEYS,
+    judge,
+    overall_line,
+)
 
 STOCK = FlowMetrics(0.06, False, [2.0, 4.0, 6.0, 8.0, 6.0], 0.20, 0.05, 0.80, 60.0, 2.5, mean_dp0_pa=6.0)
 
@@ -16,7 +25,8 @@ def _m(**kw):
 def test_stock_vs_itself_all_ok_and_similar():
     rows = judge(STOCK, STOCK)
     assert [r.key for r in rows] == list(ROW_KEYS)
-    assert all(r.status == "ok" for r in rows)
+    assert all(r.status == "ok" for r in rows[:4])
+    assert rows[4].status == "na" and rows[4].expert_only  # noise not judged (27.3b)
     assert rows[1].bands == ["similar"] * 5
     assert overall_line(rows, compared=True) == "About the same as Stock on every check."
 
@@ -28,8 +38,10 @@ def test_backflow_edge():
 
 
 def test_band_labels():
-    rows = judge(_m(band_dp0_pa=[2.07, 4.0, 5.81, 8.2, 6.0]), STOCK)  # tol 3 %
+    rows = judge(_m(band_dp0_pa=[2.17, 4.0, 5.51, 8.64, 6.0]), STOCK)  # bar tol 8 %
     assert rows[1].bands == ["stronger", "similar", "weaker", "similar", "similar"]
+    # 27.3b: a 5 % bar wobble is mesh noise, not "stronger"
+    assert judge(_m(band_dp0_pa=[2.1, 4.2, 5.7, 8.4, 6.3]), STOCK)[1].bands == ["similar"] * 5
 
 
 def test_swirl_dead_noise_edges():
@@ -37,8 +49,21 @@ def test_swirl_dead_noise_edges():
     assert judge(_m(swirl_frac=0.2201), STOCK)[2].status == "warn"
     assert judge(_m(dead_frac=0.0701), STOCK)[3].status == "warn"
     assert judge(_m(tip_band_uz_ratio=0.71), STOCK)[3].status == "warn"
+
+
+def test_noise_judged_edges_if_ever_turned_back_on(monkeypatch):
+    monkeypatch.setattr(flow_verdicts, "NOISE_JUDGED", True)
     assert judge(_m(noise_swl_db=60.5), STOCK)[4].status == "ok"
     assert judge(_m(noise_swl_db=60.51), STOCK)[4].status == "warn"
+
+
+def test_noise_never_in_the_verdict():
+    """Kimball 2026-10-16 (27.3b): Stock alone moved -13.7..+22.2 dB across five meshes."""
+    for db in (30.0, 60.0, 90.0):
+        rows = judge(_m(noise_swl_db=db), STOCK)
+        assert rows[4].status == "na" and rows[4].better is None and rows[4].expert_only
+        assert "Not judged" in rows[4].text
+        assert overall_line(rows, compared=True) == "About the same as Stock on every check."
 
 
 def test_noise_missing_is_na():
@@ -87,4 +112,6 @@ def test_push_mean_missing_is_na():
 
 def test_baked_tolerances_are_stock_v3_two_sigma():
     assert BAND_TOL == 0.03
+    assert BAR_TOL == 0.08          # 27.3b, five varied meshes
     assert NOISE_MARGIN_DB == 0.5
+    assert NOISE_JUDGED is False    # 27.3b stop-and-ask, Kimball 2026-10-16

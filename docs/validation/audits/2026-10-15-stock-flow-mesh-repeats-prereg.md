@@ -74,3 +74,32 @@ What this shows:
 2. Mesh noise on the push bars is about 8 %, not 3 %.
 
 Kimball decides.
+
+## Decision (Kimball, 2026-10-16)
+
+- **Push:** the mean-push verdict keeps `BAND_TOL` 0.03, because the mean alone gave 2.9 %. The single bars get
+  their own `BAR_TOL` **0.08**. They now say "stronger/weaker" only past 8 %.
+- **Noise:** not judged (`NOISE_JUDGED = False`). The row is shown only in Expert mode, marked "Not judged",
+  and it never enters the verdict or the overall better/worse line. The raw Proudman number stays in the
+  Expert numbers table, labelled mesh-dependent. A mesh-robust noise estimate is roadmap 27.3c.
+
+## After-bake check (m2–m5 judged against m1 with the new constants)
+
+| run | push (mean) | bars | dead / blocked | noise | overall line |
+|---|---|---|---|---|---|
+| m2 | about as hard | all similar | **⚠ weak tips** (tip ratio 0.846 vs 0.954 × 0.90 = 0.859) | not judged | Worse at: dead or blocked air |
+| m3 | **+3.5 % "harder"** | all similar | ok | not judged | Better at: push |
+| m4 | about as hard | all similar | ok | not judged | About the same |
+| m5 | **+3.3 % "harder"** | **hub "stronger"** (+9.5 %) | ok | not judged | Better at: push |
+
+**FAIL, recorded, not re-widened.** The pre-registered pass condition was that every mean-push row reads
+"about as hard", and it fails twice. The 2σ rule sizes the *scatter of one run*, but a design-vs-Stock comparison
+is the *difference of two runs*, whose spread is about √2 larger (about 4 %). Mesh alone also tripped two
+rules this campaign did not size: the tip-speed check (TIP_FACTOR 0.90, m2 −11 %) and one hub bar (m5, +9.5 %).
+
+What this means for reading the card today:
+- A mean-push "harder/less" under about 4 % can be mesh.
+- A lone "weak tips" warning can be mesh.
+
+Roadmap 27.3d covers sizing these for a two-run difference.
+
