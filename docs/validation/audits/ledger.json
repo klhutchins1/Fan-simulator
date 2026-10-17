@@ -18,6 +18,12 @@
       "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
       "verdict": "PASS"
     },
+    "acoustics.noise_hint": {
+      "date": "2026-10-17",
+      "fingerprint": "cf9284dd0acabf2c",
+      "report": "tests/test_tip_loading_noise.py (verification only; validation open, R0.4)",
+      "verdict": "PASS"
+    },
     "acoustics.proudman": {
       "date": "2026-09-29",
       "fingerprint": "3d2562a18673225e",
@@ -67,9 +73,9 @@
       "verdict": "PASS"
     },
     "cfd.flow_report": {
-      "date": "2026-10-15",
-      "fingerprint": "ba158b59ecdf3423",
-      "report": "docs/validation/audits/2026-10-15-ledger-refresh.md",
+      "date": "2026-10-17",
+      "fingerprint": "b717fa372b271a3a",
+      "report": "docs/validation/audits/2026-10-17-push-row-planes.md",
       "verdict": "PASS"
     },
     "cfd.sanity_checks": {
@@ -79,9 +85,9 @@
       "verdict": "PASS"
     },
     "cfd.spanwise": {
-      "date": "2026-09-30",
-      "fingerprint": "162af8206620219a",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-10-17",
+      "fingerprint": "bf35ce43ed8cdf93",
+      "report": "docs/validation/audits/2026-10-17-push-row-planes.md",
       "verdict": "PASS"
     },
     "cror.noise": {
