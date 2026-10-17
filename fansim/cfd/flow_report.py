@@ -16,10 +16,12 @@ from fansim.acoustics.proxies import epsilon_from_komega, proudman_power_density
 from fansim.cfd.spanwise import cylindrical_velocity
 from fansim.physics.air import RHO_AMCA
 
-FLOW_REPORT_VERSION = 3  # v2: push excludes swirl energy (audit 2026-10-10-flow-report-checks)
+FLOW_REPORT_VERSION = 4  # v2: push excludes swirl energy (audit 2026-10-10-flow-report-checks)
 # v3: area-weighted mean push (the verdict), missing values saved as null with a reason (roadmap 27.3)
+# v4: planes follow each design's own blade row; fixed planes cut through blades (27.3e, 2026-10-17)
 N_BANDS = 5
-PLANE_Z_FRAC = 0.18           # same plane as fansim.cfd.spanwise._PLANE_Z_FRAC
+PLANE_Z_FRAC = 0.18           # legacy fixed planes (z_fan +- 0.18 r_tip), used only without a blade extent
+PLANE_GAP_FRAC = 0.10         # slabs start this share of r_tip outside the blade's LE / TE (27.3e)
 DEAD_FRAC_OF_MEAN = 0.10      # |Uz| below this share of the mean exit Uz counts as dead air
 TIP_BAND_FRAC = 0.10          # outer share of the span for the tip-leakage ratio
 NOISE_Z_FRAC = 1.5            # rotor region for the noise total: |z - z_fan| <= 1.5 r_tip
@@ -82,8 +84,23 @@ def _none_if_nan(v):
     return v
 
 
-def _half_dz(tip_r: float) -> float:
+def slab_half_width(tip_r: float) -> float:
     return max(0.04 * float(tip_r), 0.002)
+
+
+_half_dz = slab_half_width
+
+
+def slab_centres(*, tip_r: float, z_fan: float, blade_z: tuple[float, float] | None) -> tuple[float, float]:
+    """(z_inlet, z_exit) slab centres [m]. With the blade's (LE, TE) z-range the slabs sit wholly outside it,
+    PLANE_GAP_FRAC * r_tip clear of the blade; without it, the legacy fixed planes (which can cut a blade row
+    that is not centred on z_fan: audit 2026-10-17-push-row-planes)."""
+    tip_r = float(tip_r)
+    if blade_z is None:
+        return float(z_fan) - PLANE_Z_FRAC * tip_r, float(z_fan) + PLANE_Z_FRAC * tip_r
+    le, te = float(min(blade_z)), float(max(blade_z))
+    off = PLANE_GAP_FRAC * tip_r + slab_half_width(tip_r)
+    return le - off, te + off
 
 
 def _annulus(pts, hub_r, tip_r):
@@ -91,14 +108,14 @@ def _annulus(pts, hub_r, tip_r):
     return (r >= hub_r) & (r <= tip_r)
 
 
-def exit_slab_mask(pts, *, hub_r, tip_r, z_fan):
-    z0 = float(z_fan) + PLANE_Z_FRAC * float(tip_r)
-    return _annulus(pts, hub_r, tip_r) & (np.abs(pts[:, 2] - z0) <= _half_dz(tip_r))
+def exit_slab_mask(pts, *, hub_r, tip_r, z_fan, blade_z=None):
+    z0 = slab_centres(tip_r=tip_r, z_fan=z_fan, blade_z=blade_z)[1]
+    return _annulus(pts, hub_r, tip_r) & (np.abs(pts[:, 2] - z0) <= slab_half_width(tip_r))
 
 
-def inlet_slab_mask(pts, *, hub_r, tip_r, z_fan):
-    z0 = float(z_fan) - PLANE_Z_FRAC * float(tip_r)
-    return _annulus(pts, hub_r, tip_r) & (np.abs(pts[:, 2] - z0) <= _half_dz(tip_r))
+def inlet_slab_mask(pts, *, hub_r, tip_r, z_fan, blade_z=None):
+    z0 = slab_centres(tip_r=tip_r, z_fan=z_fan, blade_z=blade_z)[0]
+    return _annulus(pts, hub_r, tip_r) & (np.abs(pts[:, 2] - z0) <= slab_half_width(tip_r))
 
 
 def _wmean(a, w) -> float:
@@ -116,10 +133,11 @@ def _band_index(r, hub_r, tip_r):
     return np.clip((frac * N_BANDS).astype(int), 0, N_BANDS - 1)
 
 
-def compute_metrics(s: FlowSamples, *, hub_r: float, tip_r: float, z_fan: float) -> FlowMetrics:
+def compute_metrics(s: FlowSamples, *, hub_r: float, tip_r: float, z_fan: float,
+                    blade_z: tuple[float, float] | None = None) -> FlowMetrics:
     pts, u, p, w = s.pts, s.u, np.asarray(s.p, float), np.asarray(s.w, float)
-    ex = exit_slab_mask(pts, hub_r=hub_r, tip_r=tip_r, z_fan=z_fan)
-    inn = inlet_slab_mask(pts, hub_r=hub_r, tip_r=tip_r, z_fan=z_fan)
+    ex = exit_slab_mask(pts, hub_r=hub_r, tip_r=tip_r, z_fan=z_fan, blade_z=blade_z)
+    inn = inlet_slab_mask(pts, hub_r=hub_r, tip_r=tip_r, z_fan=z_fan, blade_z=blade_z)
     if not np.any(ex):
         raise FlowReportUnavailable("no cells on the exit plane")
     r, uz, uth = cylindrical_velocity(pts, u)
@@ -128,6 +146,8 @@ def compute_metrics(s: FlowSamples, *, hub_r: float, tip_r: float, z_fan: float)
         raise FlowReportUnavailable("the exit-plane cells have no volume")
     uz_e, uth_e, r_e = uz[ex], uth[ex], r[ex]
     missing: dict[str, str] = {}
+    if blade_z is None:
+        missing["planes"] = "blade position unknown: fixed planes used, which may cut through the blades"
 
     mean_uz = _wmean(uz_e, we)
     backflow = _wmean((uz_e < 0).astype(float), we)

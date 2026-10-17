@@ -9,11 +9,11 @@ import pyvista as pv
 
 from fansim.cfd.flow_report import (
     DEAD_FRAC_OF_MEAN,
-    PLANE_Z_FRAC,
+    slab_centres,
     FlowMetrics,
     noise_density,
 )
-from fansim.cfd.flow_report_case import case_geometry
+from fansim.cfd.flow_report_case import blade_z_extent, case_geometry
 from fansim.cfd.midplane import _RENDER_LOCK, robust_clim, rotor_outline, slice_volume_for_viz
 
 PICTURES = ("face", "push", "spin", "noise")
@@ -53,7 +53,7 @@ def _plotter():
 
 
 def _face(g, case_dir, hub_r, tip_r, z_fan, scales, metrics, path):
-    z0 = z_fan + PLANE_Z_FRAC * tip_r
+    z0 = slab_centres(tip_r=tip_r, z_fan=z_fan, blade_z=blade_z_extent(case_dir, hub_r=hub_r))[1]  # 27.3e
     # Same cutter as midplane (§22.4): drop/bypass OpenFOAM polyhedra so vtkCutter does not
     # flood the cockpit log with "non-manifold triangulation" on every Results bake.
     slc = slice_volume_for_viz(g, (0.0, 0.0, 1.0), (0.0, 0.0, z0))
