@@ -118,3 +118,5 @@ A failure is recorded, not re-tuned.
 
 **Verdict: the fix is accepted on F1 and F2.** The push row now agrees with the score. The rows that remain unstable
 are the ones where the true difference sits inside the mesh scatter, which is roadmap R0.3 ("too close to call").
+
+**Baked (Kimball 2026-10-17, R0.2): `BAND_TOL` 0.06, `BAR_TOL` 0.12** (`fansim/cfd/flow_verdicts.py`).

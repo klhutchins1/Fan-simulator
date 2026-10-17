@@ -39,8 +39,8 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Pre-registered checks F1–F4: `docs/validation/audits/2026-10-17-push-row-planes.md`.
   - Runner: `scripts/push_planes_checks.py`.
 - **R0.2 Re-derive the card margins on v4 metrics**. Lane: Claude decides, Cursor implements. CPU: day.
-  Status: `needs Kimball`.
-  - Question: on v4, Stock's five-mesh 2σ is 5.7 % for the mean push and 12 % for the bars. Raise `BAND_TOL` 0.03 → 0.06
+  Status: `done` (2026-10-17: Kimball approved; `BAND_TOL` 0.06, `BAR_TOL` 0.12).
+  - Asked: on v4, Stock's five-mesh 2σ is 5.7 % for the mean push and 12 % for the bars. Raise `BAND_TOL` 0.03 → 0.06
     and `BAR_TOL` 0.08 → 0.12?
   - The never-tighten rule and the 0.15 stop line both allow it. Data: the "Results of the fix" section of
     `2026-10-17-push-row-planes.md`.

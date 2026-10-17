@@ -39,7 +39,7 @@ def test_backflow_edge():
 
 
 def test_band_labels():
-    rows = judge(_m(band_dp0_pa=[2.17, 4.0, 5.51, 8.64, 6.0]), STOCK)  # bar tol 8 %
+    rows = judge(_m(band_dp0_pa=[2.25, 4.0, 5.27, 8.9, 6.0]), STOCK)  # bar tol 12 %
     assert rows[1].bands == ["stronger", "similar", "weaker", "similar", "similar"]
     # 27.3b: a 5 % bar wobble is mesh noise, not "stronger"
     assert judge(_m(band_dp0_pa=[2.1, 4.2, 5.7, 8.4, 6.3]), STOCK)[1].bands == ["similar"] * 5
@@ -99,10 +99,10 @@ def test_push_verdict_uses_the_mean_not_the_band_tilt():
 
 
 def test_push_mean_stronger_and_weaker():
-    up = judge(_m(mean_dp0_pa=6.0 * 1.03 + 0.01), STOCK)[1]
+    up = judge(_m(mean_dp0_pa=6.0 * (1 + BAND_TOL) + 0.01), STOCK)[1]
     assert up.status == "ok" and up.better is True and "harder" in up.text
-    assert judge(_m(mean_dp0_pa=6.0 * 1.03), STOCK)[1].better is False  # edge is "similar"
-    down = judge(_m(mean_dp0_pa=6.0 * 0.97 - 0.01), STOCK)[1]
+    assert judge(_m(mean_dp0_pa=6.0 * (1 + BAND_TOL)), STOCK)[1].better is False  # edge is "similar"
+    down = judge(_m(mean_dp0_pa=6.0 * (1 - BAND_TOL) - 0.01), STOCK)[1]
     assert down.status == "warn" and down.better is False and "less" in down.text
 
 
@@ -112,8 +112,8 @@ def test_push_mean_missing_is_na():
 
 
 def test_baked_tolerances_are_stock_v3_two_sigma():
-    assert BAND_TOL == 0.03
-    assert BAR_TOL == 0.08          # 27.3b, five varied meshes
+    assert BAND_TOL == 0.06          # v4 planes, 27.3e / R0.2
+    assert BAR_TOL == 0.12          # v4 planes, 27.3e / R0.2
     assert NOISE_MARGIN_DB == 0.5
     assert NOISE_JUDGED is False    # Proudman still not judged
     assert HINT_MARGIN_DB == 0.5    # 27.3c tip+CFM 2σ was 0.069 dB

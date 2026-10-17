@@ -13,8 +13,9 @@ TITLES = {"direction": "Air direction", "push": "Push along the blade", "spin": 
 ICONS = {"ok": "✓", "warn": "⚠", "bad": "✕", "na": "–"}
 
 BACKFLOW_MARGIN = 0.02
-BAND_TOL = 0.03  # mean push: 2σ of five Stock v3 repeats (27.3); five varied meshes gave 2.9 % (27.3b).
-BAR_TOL = 0.08   # single bars: 2σ of Stock v3 on five varied meshes (roadmap 27.3b, Kimball 2026-10-16).
+# Flow report v4 (blade-relative planes, 27.3e): 2σ of Stock v3 on five varied meshes, Kimball 2026-10-17 (R0.2).
+BAND_TOL = 0.06  # mean push: 5.7 % (was 0.03 at v3 planes)
+BAR_TOL = 0.12   # single bars (was 0.08 at v3 planes)
 SWIRL_FACTOR = 1.10
 DEAD_MARGIN = 0.02
 TIP_FACTOR = 0.90
