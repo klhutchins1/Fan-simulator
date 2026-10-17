@@ -88,3 +88,33 @@ vertices with r > hub + 1 mm, in metres. When there is no impeller STL, the old 
 - F4: re-run the 27.3d Q1–Q3 tables with v4 metrics and report every row whose verdict changes.
 
 A failure is recorded, not re-tuned.
+
+## Results of the fix (2026-10-17, branch `push-planes-27-3e`; `scripts/push_planes_checks.py`)
+
+- **F1 PASS.** 9604 against Stock, per mesh m1–m5:
+  - push +11.6 / +22.9 / +18.7 / +21.5 / +21.1 %;
+  - loaded CFM +10.1 / +11.5 / +12.6 / +15.5 / +14.4 %.
+  - Same sign on all five meshes (it was −29 to −36 % push at v3).
+- **F2 PASS.** No slab touches a blade in any of the 20 cases (Stock 5 + 5, 9604 5, 9610 5).
+- **F3 (report only).**
+  - Stock on five meshes: mean push 10.46–11.20 Pa, 2σ = **5.7 %**. Proposed `BAND_TOL` (set by the bars) **0.12**.
+  - Stock same-mesh repeats: 2σ 1.7 %, proposed 0.04.
+  - The blade-relative planes have more mesh scatter than the old planes (2.9 % at v3), because the inlet slab now
+    sits in coarser upstream cells.
+  - Today's constants (mean 0.03, bars 0.08) are therefore below the v4 mesh scatter. Under the never-tighten rule
+    the proposal is **mean 0.06, bars 0.12**, below the 0.15 stop line. It goes to Kimball (roadmap R0.2); nothing
+    is baked here.
+- **F4: verdict changes, v3 → v4** (same-mesh, today's constants):
+
+| design | row | v3 | v4 |
+|---|---|---|---|
+| 9604 | push | ⚠ "pushes less" on 5/5 | ✓ "pushes harder" on 5/5 (+19 % ± 4.5) |
+| 9604 | spin | ✓ better 5/5 | ✓ better 5/5 (swirl −10 pp; it was −26 pp inside the blade row) |
+| 9604 | direction | flips | flips (ok / ok+; backflow −0.014 ± 0.019, on the margin) |
+| 9610 | push | ✓+ 4/5 | **flips** ok / ok+ / ⚠ (+1.5 % ± 5.0: too close to call) |
+| 9610 | spin | ⚠ 4/5 | ⚠ 4/5 |
+| 9610 | dead | ⚠ 5/5 | ⚠ 5/5 (tip ratio −19 % ± 5; it was −75 % in the trailing-edge wake) |
+| 9610 | direction | ⚠ 5/5 | ⚠ 4/5 |
+
+**Verdict: the fix is accepted on F1 and F2.** The push row now agrees with the score. The rows that remain unstable
+are the ones where the true difference sits inside the mesh scatter, which is roadmap R0.3 ("too close to call").
