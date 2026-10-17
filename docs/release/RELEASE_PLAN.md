@@ -98,8 +98,21 @@ Kimball's.
 
 - **R2.1 Propeller BEMT**: validated against UIUC (C_T PASS; SF static C_P −21 % is a known fail).
   - Lane: Cursor labels the C_P limit; Claude confirms the claims list. Status: `ready`.
-- **R2.2 Propeller CFD refine**: FAIL, −44 % C_T against UIUC (audit-08).
-  - Recommendation: hide CFD refine for v0.1.0, keeping BEMT. Status: `needs Kimball` (hide, or fix through 4.3).
+- **R2.2 Propeller CFD: fix it** (Kimball 2026-10-17). FAIL, −44 % C_T against UIUC (audit-08).
+  - Pre-registered diagnostic ladder: `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`. Read its rules
+    before running anything; each rung's result picks the next rung.
+  - **R2.2a 2-D section case (rung A).** Lane: Cursor. CPU: day (minutes per run; not 4–9 PM). Status: `ready`.
+    - New `scripts/prop_section_2d.py`: a 2-D OpenFOAM case of the prop builder's generic section (6 % thick,
+      camber 0.04) at Re 8×10⁴, y+ ≤ 1, α 0–8°, with `kOmegaSST` and `kOmegaSSTLM`.
+    - Compare with NeuralFoil at the same Re, and write `runs/prop_section_2d/summary.json` plus a table in the
+      prereg doc.
+    - Test: grid y+ ≤ 1 and the case builds (no solve) in the fast suite.
+  - **R2.2b Advance-ratio sweep (rung B).** Lane: Cursor builds; night runs. Status: `ready`.
+    - Add `--j` to `scripts/audit_prop_cfd.py`: freestream U = J·n·D, at J 0.3 / 0.5 / 0.7, 6000 rpm, compared with
+      kt1035/1036.
+    - Launch as a Scheduled Task after 9 PM (AGENTS.md rule 2).
+  - **R2.2c 3-D transition (rung C)** and **R2.2d domain size (rung D)**: `blocked` on Claude's ruling from A and B.
+    - Claude: read R2.2a and R2.2b's results against the prereg rules, record the ruling there, and unblock C or D.
 - **R2.3 CROR**: direction proof only.
   - Lane: grok data hunt for small counter-rotating fan or prop P–Q / thrust data. Status: `ready` (grok round 15).
 - **R2.4 Mixed-flow**: no published comparison.
