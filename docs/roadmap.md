@@ -54,7 +54,7 @@ move the unique open item here and leave a pointer, do not keep a second list.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next (2026-10-15): 29.1, QA-35 and 24.4 DONE. QA-12 parked (needs data; see the Prop static-thrust item in §23); 27.3b DONE 2026-10-16 (bars 8 %, noise not judged); next 27.3c/27.3d. 28.3 glyphs parked. Do not restart the optimizer.**
+**→ Next (2026-10-16): 27.3c DONE (tip-speed + CFM noise hint, 2σ 0.07 dB). 27.3d still needs Kimball (pairwise margins vs “within mesh noise” bands). 28.3 glyphs parked. Do not restart the optimizer.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -1967,21 +1967,29 @@ manual `docs/qa/browser_checklist_*.md`. 3-D/VTK is slow; tests should not wait 
   5.8/6.0/6.2 mm and/or the rotor rotated a few degrees in the domain), pre-register the same 2σ rule,
   and re-bake if the spread is larger. Until then, treat "stronger/weaker" between designs under ~5 %
   as possibly mesh. (Claude review of Cursor's 27.3, 2026-10-15.) **[impact: med]** **[effort: ~2 h CFD]**
-- [ ] **27.3c A noise estimate that survives a mesh change.** Proudman SWL (volume integral of k^2.5/a^5) moved
-  36 dB on Stock across five meshes (27.3b), because near-blade turbulence is not mesh-converged at the
-  Assess mesh. Candidates to evaluate, in order:
-  1. tip relative speed and blade loading (Ffowcs Williams / Lighthill scaling: SPL ~ 50–60 log U_tip), which
-     is purely geometric plus CFM and needs no turbulence field;
-  2. Proudman restricted to the wake region downstream of the blades, away from the wall-resolved cells;
-  3. the existing BEM `rel_noise_db`.
-
-  Pre-register: the same five 27.3b meshes, pass if 2σ ≤ 1 dB. **[impact: med]** **[effort: low, analysis
-  of existing m1–m5 fields + one script]**
+- [x] **27.3c A noise estimate that survives a mesh change.** **DONE 2026-10-16.** Candidate 1
+  (55 log10 U_tip + 10 log10 CFM) 2σ **0.069 dB** on the published m1–m5 CFM table (pass ≤ 1 dB).
+  Candidate 2 skipped (OpenFOAM fields not on disk; no new CFD). Candidate 3 would pass (BEM is a
+  pure function of the sliders) and was not used. Expert noise row now judges this hint
+  (`HINT_MARGIN_DB` 0.5); it stays Expert-only and off the Simple overall line. Proudman stays in
+  the Expert numbers table, not judged. Audit:
+  `docs/validation/audits/2026-10-16-flow-noise-mesh-robust-prereg.md`. **[impact: med]** **[effort: low]**
+- [ ] **27.3e The push row contradicts the score.** 9604 has 33 % *less* mean push than Stock on all five meshes
+  but **+13 % loaded CFM**, so the card shows ⚠ "pushes less" on a fan that moves more air. This is mesh-robust
+  (`2026-10-16-design-flow-mesh-repeats-prereg.md`).
+  - Find out what `mean_dp0_pa` actually measures: which plane, which run (free or load), and whether it is
+    normalised by flow.
+  - Find out why it can disagree with the hose operating point. Fix the definition or the wording before
+    re-judging 27.3d.
+  **[impact: high: the card's main row misleads]** **[effort: low–med, analysis on the existing 15 cases]**
 - [ ] **27.3d Size flow-card margins for a two-run difference.** The 27.3b after-bake check failed: mean push
   differed +3.5 % between two Stock meshes (2σ of one run 2.9 %; a difference of two runs is about √2 wider), and
   the tip check (×0.90) tripped on m2 at −11 %. Either set the margins from the pairwise differences (pre-register:
   max |Δ| over the 10 pairs, rounded up), or show "within mesh noise" bands on the card. Kimball to choose; until
-  then a mean-push difference under ~4 % or a lone "weak tips" may be mesh. **[impact: med]** **[effort: low]**
+  then a mean-push difference under ~4 % or a lone "weak tips" may be mesh.
+  - **2026-10-17 design runs (9604, 9610 on the same five meshes):** the card is stable where the real difference
+    is large and flips only where it sits on a margin (9604 backflow, 9610 swirl and push). Wider margins only move
+    the line. The proposal is a "too close to call" state, sized from the paired-difference scatter. **[impact: med]** **[effort: low]**
 - [x] **29.1 Material picker vs what actually runs.** **DONE 2026-10-15 (QA-36):** `active_spec()` carries the
   picked material (when registered), so Preview grams, the weight check, Export README / temps / print-fit /
   print-id registry follow the picker. Grok r12 tests adopted as `tests/test_ui_says_what_it_does.py` (2 were RED).

@@ -61,4 +61,57 @@ Nothing is baked or changed automatically. The results go to Kimball with:
 
 ## Results
 
-(pending)
+**n = 10/10 OK, 2026-10-17 02:00–06:29.** All runs at surface level 4. Task result 0.
+
+| design | mesh | CFM free / load | mean push Pa | Proudman dB |
+|---|---|---|---|---|
+| 9604 | m1–m5 | 58.1–59.5 / 48.0–49.5 | 7.99–9.07 | −26.2 … +8.5 |
+| 9610 | m1–m5 | 56.5–57.0 / 39.8–40.8 | 12.99–13.99 | −16.4 … −15.0 |
+
+**Q1: same-mesh differences against Stock** (mean ± sd over the five meshes; R = resolved)
+
+| metric | 9604 | 9610 |
+|---|---|---|
+| CFM free | +10.7 % ± 1.7 **R** | +6.8 % ± 0.9 **R** |
+| CFM load | +12.8 % ± 2.2 **R** | −7.2 % ± 0.6 **R** |
+| mean push | −32.8 % ± 2.9 **R** | +6.7 % ± 4.3 (all positive, but m5 +0.3 %) |
+| backflow | +0.017 ± 0.012 | +0.060 ± 0.018 **R** |
+| swirl | −0.256 ± 0.010 **R** | +0.070 ± 0.011 **R** |
+| dead | −0.002 ± 0.005 | +0.048 ± 0.004 **R** |
+| tip ratio | +3.7 % ± 5.1 | −75 % ± 8 **R** |
+| Proudman | −15.5 ± 15.1 dB | −24.1 ± 16.8 dB |
+| bars hub→tip | all 5 **R**, −13 to −63 % | 4 of 5 **R** (bar 1 +8 % ± 4 not) |
+
+Predictions:
+- **P1 PASS:** 9604 push weaker.
+- **P2 FAIL:** 9610 push is not resolved.
+- **P3 PASS:** CFM load is resolved for both.
+- **P4 PASS:** noise is resolved for neither.
+
+**Q2 / Q3: card stability**
+
+| row | 9604 same-mesh | 9604 cross-mesh | 9610 same-mesh | 9610 cross-mesh |
+|---|---|---|---|---|
+| direction | flips (2/5 ⚠) | 65 % | stable ⚠ | 100 % |
+| push | stable ⚠ | 100 % | flips (m5 "about as hard") | 85 % |
+| spin | stable ✓+ | 100 % | flips (4/5 ⚠) | 70 % |
+| dead | stable ✓ | 100 % | stable ⚠ | 100 % |
+| noise | not judged | – | not judged | – |
+
+**What this shows**
+1. **The card is reliable where the true difference is large.** It flips exactly where the same-mesh difference sits
+   on a margin:
+   - 9604 backflow: +0.017 against a margin of +0.02;
+   - 9610 swirl: +0.070 against a limit of about +0.06;
+   - 9610 push: +6.7 % against a margin of +3 %, with 4 % of mesh scatter.
+
+   Widening the margins only moves the line. What the card lacks is a "too close to call" state (27.3d).
+2. **Noise:** design-vs-Stock Proudman has an sd of 15–17 dB. 9610's own Proudman is steady (±0.7 dB), while Stock's
+   and 9604's swing about 35 dB, so the instability depends on the design (cause unknown: 9604 is planar, Stock is wrapped).
+   This set is now the 27.3c test set.
+3. **New finding: the push row disagrees with the score for 9604.** This is mesh-robust: its push is 33 % *less*
+   than Stock's on every mesh, yet it moves 13 % *more* air under load. The card's ⚠ "pushes less" on a fan that
+   delivers more is misleading, which is the 2026-10-10 follow-up, now confirmed as not mesh. Roadmap 27.3e.
+
+Nothing baked. For Kimball.
+
