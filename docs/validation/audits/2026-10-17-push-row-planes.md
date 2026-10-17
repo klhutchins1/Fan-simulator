@@ -71,3 +71,20 @@ these planes (`FLOW_REPORT_VERSION` 3).
 
 Note: `flow_report.py` and `flow_verdicts.py` currently have someone else's uncommitted 27.3c work (`noise_hint_db`,
 `fansim/acoustics/tip_loading.py`). Land or shelve that before the change.
+
+## Pre-registration of the fix (Kimball approved 2026-10-17; written before the code)
+
+**Change:** the flow report's inlet and exit slabs are centred at LE − 0.1 r_tip − h and TE + 0.1 r_tip + h. Here
+h = max(0.04 r_tip, 2 mm) is the existing slab half-width. LE and TE are the min and max z of `impeller_cfd.stl`
+vertices with r > hub + 1 mm, in metres. When there is no impeller STL, the old fixed planes are used and
+`missing["planes"]` says so. The spanwise profile and the face picture use the same planes.
+`FLOW_REPORT_VERSION` 3 → 4.
+
+**Pass checks (all on the existing 25 cases, no CFD):**
+- F1: on all five meshes, 9604's mean push against Stock has the same sign as its loaded CFM against Stock (+).
+- F2: no slab touches the blade (the z ranges are disjoint) in all 25 cases. This is also a unit test.
+- F3: re-derive Stock's 2σ tolerances (27.3b rule, `proposed_tolerances`, never tighten). Report only: a change to
+  `BAND_TOL` / `BAR_TOL` / margins is proposed to Kimball, not baked.
+- F4: re-run the 27.3d Q1–Q3 tables with v4 metrics and report every row whose verdict changes.
+
+A failure is recorded, not re-tuned.
