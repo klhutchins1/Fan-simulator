@@ -61,6 +61,20 @@ Conventions are unchanged:
 - no outside STLs or data committed;
 - if the box suspends, stop and mark FINAL.
 
+## ▶ Then: round 15 (queued by Claude 2026-10-17; start after round 14)
+
+The task board is now `docs/release/RELEASE_PLAN.md` (rules in `AGENTS.md`). Round 15 = board items R2.3–R2.5
+and a re-check of R0.1. Research and analysis only: no CFD, and nothing downloaded is committed.
+
+| # | task | board |
+|---|---|---|
+| A | **Published data for counter-rotating fans or props** (small, ≤ 200 mm): P–Q curves or thrust/torque against rpm, with the geometry given well enough to model (blade count, chord, pitch or stagger, spacing). For each candidate list the URL, licence, redistributable?, geometry completeness (what is missing), and the operating range. Pick the best 1–2 and say what we would pre-register | R2.3 |
+| B | **The same for small mixed-flow fans** (40–150 mm) | R2.4 |
+| C | **The same for small centrifugal blowers / volute fans** (impeller ≤ 120 mm), ideally with impeller geometry | R2.5 |
+| D | **Re-check the 27.3e plane fix** (`fansim/cfd/flow_report.py`: `slab_centres`, `flow_report_case.blade_z_extent`; audit `docs/validation/audits/2026-10-17-push-row-planes.md`). Derive by hand where the slabs must sit for one synthetic blade row; check the code agrees, and that the mm→m and hub-exclusion steps are right. Then a synthetic swirling field: show that push measured inside a blade row tracks swirl, and outside it does not | R0.1 |
+
+Write notes to `docs/qa/notes/r15-*.md` and a "Round 15" section below.
+
 ## Tested build
 - Source: copy of `T:\Projects\Fan Simulator` working tree, 2026-10-08 (no `.git`, so no commit hash). Linux, Python 3.12, no Docker/OpenFOAM/CFD.
 - **Re-test 2026-10-09:** `master` @ `961f9534674c375bbc0a730a34979d859a1be05d` (commit date 2026-10-08 21:56 MDT), cloned from `fansim_master.bundle`; `uv sync --extra dev`; Linux, no Docker/OpenFOAM/CFD. Code items re-run with the original repros (`qa/retest_code.py`); UI items checked headlessly (curl, wslink websocket client, code + regression tests). "needs browser pass" = fix claimed in a commit, not yet confirmed by clicking.

@@ -33,13 +33,18 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
 
 ## M0: Trustworthy flow card
 
-- **R0.1 Push and plane fix (27.3e)**. Lane: Claude. CPU: day. Status: `in progress (Claude, 2026-10-17)`.
+- **R0.1 Push and plane fix (27.3e)**. Lane: Claude. CPU: day. Status: `done` (merged 2026-10-17; F1/F2 PASS).
   - The card's fixed planes cut through blade rows, so push tracked swirl rather than airflow. The planes are
     now blade-relative, `FLOW_REPORT_VERSION` 4, branch `push-planes-27-3e`.
   - Pre-registered checks F1–F4: `docs/validation/audits/2026-10-17-push-row-planes.md`.
   - Runner: `scripts/push_planes_checks.py`.
 - **R0.2 Re-derive the card margins on v4 metrics**. Lane: Claude decides, Cursor implements. CPU: day.
-  Status: `blocked (R0.1)`.
+  Status: `needs Kimball`.
+  - Question: on v4, Stock's five-mesh 2σ is 5.7 % for the mean push and 12 % for the bars. Raise `BAND_TOL` 0.03 → 0.06
+    and `BAR_TOL` 0.08 → 0.12?
+  - The never-tighten rule and the 0.15 stop line both allow it. Data: the "Results of the fix" section of
+    `2026-10-17-push-row-planes.md`.
+  - The other margins (backflow, swirl, dead, tip) were never sized on mesh repeats. Do that as part of R0.3.
   - Re-run `scripts/stock_flow_repeats.py --analyze`, `scripts/stock_flow_mesh_repeats.py --analyze` and
     `scripts/design_flow_mesh_repeats.py --analyze` on v4 (no CFD).
   - Apply the 27.3b rule: 2σ, never tighten, stop lines 0.15 / 3 dB.
@@ -125,6 +130,13 @@ Kimball's.
   - Port `.github/workflows/ci.yml` for GitHub: ubuntu fast suite in 3 chunks, plus a Windows job for the fast
     geometry and export subset.
   - Widen ruff to the default rule set on changed files only.
+- **R3.5b `pytest_chunks.py --all` stops after a green chunk on Windows**. Lane: Cursor. CPU: day. Status: `ready`.
+  - On 2026-10-17, chunk 1 printed "658 passed" and then pytest exited 127, the known OCCT teardown crash
+    (`docs/validation/suite_baseline_2026-09-14.md`). `--all` returned and chunks 2–3 never ran.
+  - Fix: run every chunk, then print one summary line per chunk.
+  - A chunk whose pytest summary line says "N passed, 0 failed" but whose exit is non-zero is reported as
+    "passed (teardown exit <rc>)", not as a failure. Any real failure still fails the run.
+  - Test with a fake pytest command.
 - **R3.6 CHANGELOG, CONTRIBUTING, issue templates**. Lane: Cursor. CPU: day. Status: `ready`.
   - CONTRIBUTING points to `AGENTS.md`'s rules (pre-registration, tests first).
 - **R3.7 Cockpit UI regression tests (29.2)**. Lane: Cursor writes, grok proposes cases. CPU: day. Status: `ready`.

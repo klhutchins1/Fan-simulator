@@ -25,7 +25,7 @@ This is a desktop tool for designing 3-D-printable fans and propellers. It has a
    not start a new unit after 3:30 PM.
 3. **Branch per task**, merge to `master` with `--no-ff` when its tests pass. Never force-push master.
 4. **Tests first** for every behaviour change: write the failing test and watch it fail. Run the related test
-   files, plus `scripts/pytest_chunks.py --chunks 3 -m "not docker and not slow"` before merging anything
+   files, plus `scripts/pytest_chunks.py --chunks 3 --all -- -m "not docker and not slow" -q` before merging anything
    shared. pytest rewrites tracked reference STLs, so restore them (`git checkout -- '*.stl'`) before committing.
 5. **Physics changes** go through the audit ledger: `fansim/audit/registry.yaml` and `scripts/audit_status.py`.
    Re-prove any unit you touch.
