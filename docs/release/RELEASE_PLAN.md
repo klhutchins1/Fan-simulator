@@ -49,11 +49,12 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     `scripts/design_flow_mesh_repeats.py --analyze` on v4 (no CFD).
   - Apply the 27.3b rule: 2σ, never tighten, stop lines 0.15 / 3 dB.
   - Kimball approves any constant change in `fansim/cfd/flow_verdicts.py`.
-- **R0.3 "Too close to call" state (27.3d)**. Lane: Cursor, from Claude's spec. CPU: day. Status: `in progress (Cursor, 2026-10-17)`. Branch: `too-close-r03`.
-  - A row whose design-vs-Stock difference is within the two-run mesh scatter shows "too close to call" (–), not
-    ✓ or ⚠.
-  - Scatter = √2 × the 2σ of Stock's five-mesh runs, per metric (spec to be written by Claude in R0.2's output).
-  - Tests: one synthetic case per row; the 27.3d cases m1–m5 must give no flipping verdicts.
+- **R0.3 "Too close to call" state (27.3d)**. Lane: Cursor, from Claude's spec. CPU: day.
+  Status: `needs Kimball`. Branch: `too-close-r03`.
+  - Landed: compared rows inside CLOSE (`√2 × 2σ`, never-tighten) show "Too close to call" (–). Synthetics C1/C2
+    PASS. Audit: `docs/validation/audits/2026-10-17-too-close-to-call-prereg.md`.
+  - **C3 FAIL:** 9604 direction and 9610 direction/push/spin still flip across m1–m5. Do we size CLOSE from those
+    paired |Δ| instead, or accept the residual flips?
 - **R0.4 Noise hint review (27.3c)**. Lane: Claude. CPU: day. Status: `ready`.
   - Cursor's tip-speed + CFM hint (`fansim/acoustics/tip_loading.py`) only varies with CFM, because rpm and tip
     radius are fixed for a12x25. As written, a fan that moves more air reads "louder".

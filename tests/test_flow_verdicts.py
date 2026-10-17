@@ -7,6 +7,11 @@ from fansim.cfd import flow_verdicts
 from fansim.cfd.flow_verdicts import (
     BAND_TOL,
     BAR_TOL,
+    CLOSE_BACKFLOW,
+    CLOSE_BAND,
+    CLOSE_DEAD,
+    CLOSE_SWIRL_REL,
+    CLOSE_TIP_REL,
     HINT_MARGIN_DB,
     NOISE_JUDGED,
     NOISE_MARGIN_DB,
@@ -26,15 +31,19 @@ def _m(**kw):
 def test_stock_vs_itself_all_ok_and_similar():
     rows = judge(STOCK, STOCK)
     assert [r.key for r in rows] == list(ROW_KEYS)
-    assert all(r.status == "ok" for r in rows[:4])
+    assert all(r.status == "na" for r in rows[:4])  # R0.3: zero difference is mesh-scatter
+    assert all("Too close to call" in r.text for r in rows[:4])
     assert rows[4].status == "na" and rows[4].expert_only  # noise not judged (27.3b)
     assert rows[1].bands == ["similar"] * 5
     assert overall_line(rows, compared=True) == "About the same as Stock on every check."
 
 
 def test_backflow_edge():
-    assert judge(_m(backflow_frac=0.08), STOCK)[0].status == "ok"      # +0.02 exactly
-    assert judge(_m(backflow_frac=0.0801), STOCK)[0].status == "warn"
+    inside = judge(_m(backflow_frac=STOCK.backflow_frac + CLOSE_BACKFLOW), STOCK)[0]
+    assert inside.status == "na" and "Too close to call" in inside.text
+    assert judge(_m(backflow_frac=STOCK.backflow_frac + CLOSE_BACKFLOW + 1e-4), STOCK)[0].status == "warn"
+    less = judge(_m(backflow_frac=STOCK.backflow_frac - CLOSE_BACKFLOW - 1e-4), STOCK)[0]
+    assert less.status == "ok" and less.better is True
     assert judge(_m(net_reversed=True), STOCK)[0].status == "bad"
 
 
@@ -46,10 +55,12 @@ def test_band_labels():
 
 
 def test_swirl_dead_noise_edges():
-    assert judge(_m(swirl_frac=0.22), STOCK)[2].status == "ok"
-    assert judge(_m(swirl_frac=0.2201), STOCK)[2].status == "warn"
-    assert judge(_m(dead_frac=0.0701), STOCK)[3].status == "warn"
-    assert judge(_m(tip_band_uz_ratio=0.71), STOCK)[3].status == "warn"
+    swirl_lo = STOCK.swirl_frac * (1 + CLOSE_SWIRL_REL)
+    assert judge(_m(swirl_frac=swirl_lo), STOCK)[2].status == "na"
+    assert judge(_m(swirl_frac=swirl_lo + 1e-4), STOCK)[2].status == "warn"
+    assert judge(_m(dead_frac=STOCK.dead_frac + CLOSE_DEAD + 1e-4), STOCK)[3].status == "warn"
+    weak = STOCK.tip_band_uz_ratio * (1 - CLOSE_TIP_REL) - 1e-4
+    assert judge(_m(tip_band_uz_ratio=weak), STOCK)[3].status == "warn"
 
 
 def test_noise_judged_edges_if_ever_turned_back_on(monkeypatch):
@@ -94,15 +105,16 @@ def test_push_verdict_uses_the_mean_not_the_band_tilt():
     equilibrium alone, so the row judges the area-weighted mean; bands stay a picture."""
     tilted = _m(band_dp0_pa=[0.5, 3.0, 6.0, 9.5, 8.0], mean_dp0_pa=6.1)
     row = judge(tilted, STOCK)[1]
-    assert row.status == "ok" and row.better is False
-    assert row.text.startswith("Pushes about as hard as Stock overall")
+    assert row.status == "na" and row.better is None
+    assert "Too close to call" in row.text
 
 
 def test_push_mean_stronger_and_weaker():
-    up = judge(_m(mean_dp0_pa=6.0 * (1 + BAND_TOL) + 0.01), STOCK)[1]
+    up = judge(_m(mean_dp0_pa=6.0 * (1 + CLOSE_BAND) + 0.01), STOCK)[1]
     assert up.status == "ok" and up.better is True and "harder" in up.text
-    assert judge(_m(mean_dp0_pa=6.0 * (1 + BAND_TOL)), STOCK)[1].better is False  # edge is "similar"
-    down = judge(_m(mean_dp0_pa=6.0 * (1 - BAND_TOL) - 0.01), STOCK)[1]
+    edge = judge(_m(mean_dp0_pa=6.0 * (1 + CLOSE_BAND)), STOCK)[1]
+    assert edge.status == "na" and "Too close to call" in edge.text
+    down = judge(_m(mean_dp0_pa=6.0 * (1 - CLOSE_BAND) - 0.01), STOCK)[1]
     assert down.status == "warn" and down.better is False and "less" in down.text
 
 
@@ -114,6 +126,11 @@ def test_push_mean_missing_is_na():
 def test_baked_tolerances_are_stock_v3_two_sigma():
     assert BAND_TOL == 0.06          # v4 planes, 27.3e / R0.2
     assert BAR_TOL == 0.12          # v4 planes, 27.3e / R0.2
+    assert CLOSE_BAND == 0.08        # √2 × 5.65 % mean-push 2σ (R0.3)
+    assert CLOSE_BACKFLOW == 0.02
+    assert CLOSE_SWIRL_REL == 0.10
+    assert CLOSE_DEAD == 0.02
+    assert CLOSE_TIP_REL == 0.15
     assert NOISE_MARGIN_DB == 0.5
     assert NOISE_JUDGED is False    # Proudman still not judged
     assert HINT_MARGIN_DB == 0.5    # 27.3c tip+CFM 2σ was 0.069 dB

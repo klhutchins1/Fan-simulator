@@ -54,7 +54,7 @@ move the unique open item here and leave a pointer, do not keep a second list.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next (2026-10-16): 27.3c DONE (tip-speed + CFM noise hint, 2σ 0.07 dB). 27.3d still needs Kimball (pairwise margins vs “within mesh noise” bands). 28.3 glyphs parked. Do not restart the optimizer.**
+**→ Next (2026-10-17): R0.3 too-close is on `too-close-r03` (C1/C2 PASS, C3 FAIL — Kimball: widen CLOSE from paired |Δ|, or keep residual flips). 28.3 glyphs parked. Do not restart the optimizer.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -1995,7 +1995,9 @@ manual `docs/qa/browser_checklist_*.md`. 3-D/VTK is slow; tests should not wait 
   then a mean-push difference under ~4 % or a lone "weak tips" may be mesh.
   - **2026-10-17 design runs (9604, 9610 on the same five meshes):** the card is stable where the real difference
     is large and flips only where it sits on a margin (9604 backflow, 9610 swirl and push). Wider margins only move
-    the line. The proposal is a "too close to call" state, sized from the paired-difference scatter. **[impact: med]** **[effort: low]**
+    the line. The proposal is a "too close to call" state, sized from the paired-difference scatter.
+  - **R0.3 on `too-close-r03` (2026-10-17):** CLOSE = max(existing, ceil(√2 × v4 Stock 2σ)). Synthetics PASS.
+    C3 FAIL on 9604 direction and 9610 direction/push/spin. Needs Kimball. **[impact: med]** **[effort: low]**
 - [x] **29.1 Material picker vs what actually runs.** **DONE 2026-10-15 (QA-36):** `active_spec()` carries the
   picked material (when registered), so Preview grams, the weight check, Export README / temps / print-fit /
   print-id registry follow the picker. Grok r12 tests adopted as `tests/test_ui_says_what_it_does.py` (2 were RED).
