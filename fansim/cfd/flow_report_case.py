@@ -15,6 +15,7 @@ from fansim.cfd.flow_report import (
     FlowSamples,
     compute_metrics,
 )
+from fansim.cfd.domain import MM_TO_M
 from fansim.cfd.spanwise import load_case_radii_omega
 
 REPORT_FILE = "flow_report.json"
@@ -40,6 +41,25 @@ def samples_from_mesh(mesh) -> FlowSamples:
     k = np.asarray(g.cell_data["k"], float).reshape(-1) if "k" in g.cell_data else None
     om = np.asarray(g.cell_data["omega"], float).reshape(-1) if "omega" in g.cell_data else None
     return FlowSamples(pts=pts, u=u, p=p, w=w, k=k, omega=om)
+
+
+def blade_z_extent(case_dir, *, hub_r: float) -> tuple[float, float] | None:
+    """(LE, TE) z-range [m] of the blades (impeller_cfd.stl vertices with r > hub + 1 mm), or None.
+
+    The CFD case reads the STL in mm at MM_TO_M with no shift (openfoam_case), so z is in the field's frame.
+    """
+    path = Path(case_dir) / "impeller_cfd.stl"
+    if not path.is_file():
+        return None
+    try:
+        import trimesh
+        v = np.asarray(trimesh.load(path, force="mesh").vertices, float) * MM_TO_M
+    except Exception:  # noqa: BLE001 - an unreadable STL falls back to the fixed planes (reported in missing)
+        return None
+    sel = np.hypot(v[:, 0], v[:, 1]) > float(hub_r) + 0.001
+    if not np.any(sel):
+        return None
+    return float(v[sel, 2].min()), float(v[sel, 2].max())
 
 
 def case_geometry(case_dir, mesh) -> tuple[float, float, float]:
@@ -139,7 +159,8 @@ def load_or_compute_metrics(case_dir, *, mesh=None, loader=None) -> FlowMetrics:
     if mesh is None:
         raise FlowReportUnavailable("no saved flow fields")
     hub_r, tip_r, z_fan = case_geometry(case_dir, mesh)
-    m = compute_metrics(samples_from_mesh(mesh), hub_r=hub_r, tip_r=tip_r, z_fan=z_fan)
+    m = compute_metrics(samples_from_mesh(mesh), hub_r=hub_r, tip_r=tip_r, z_fan=z_fan,
+                        blade_z=blade_z_extent(case_dir, hub_r=hub_r))
     try:
         path.write_text(json.dumps({"version": FLOW_REPORT_VERSION, "time": t,
                                     "metrics": m.to_dict()}, indent=1, allow_nan=False), encoding="utf-8")

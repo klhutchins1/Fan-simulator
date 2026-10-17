@@ -237,3 +237,54 @@ def test_to_dict_is_strict_json_and_round_trips_missing_values():
     assert np.isnan(back.swirl_frac) and np.isnan(back.band_dp0_pa[1])
     assert back.band_dp0_pa[0] == 1.0 and back.mean_dp0_pa == 3.2
     assert back.missing == {"swirl_frac": "no exit flow"}
+
+
+# --- 27.3e: planes follow the blade row (audit 2026-10-17-push-row-planes) ---------------------------
+
+def test_slab_centres_sit_outside_the_blade_row():
+    from fansim.cfd.flow_report import PLANE_GAP_FRAC, slab_centres, slab_half_width
+    h = slab_half_width(TIP)
+    z_in, z_ex = slab_centres(tip_r=TIP, z_fan=0.0, blade_z=(-0.0164, 0.0042))
+    assert z_in == pytest.approx(-0.0164 - PLANE_GAP_FRAC * TIP - h)
+    assert z_ex == pytest.approx(0.0042 + PLANE_GAP_FRAC * TIP + h)
+    assert z_in + h < -0.0164 and z_ex - h > 0.0042        # F2: slabs never touch the blade
+
+
+def test_slab_centres_without_blade_extent_are_the_old_fixed_planes():
+    from fansim.cfd.flow_report import PLANE_Z_FRAC, slab_centres
+    assert slab_centres(tip_r=TIP, z_fan=0.0, blade_z=None) == pytest.approx(
+        (-PLANE_Z_FRAC * TIP, PLANE_Z_FRAC * TIP))
+
+
+def test_push_is_measured_at_the_blade_relative_planes():
+    """A blade row shifted toward the inlet: the old inlet plane would sit inside it."""
+    from fansim.cfd.flow_report import slab_centres
+    z_in, z_ex = slab_centres(tip_r=TIP, z_fan=0.0, blade_z=(-0.020, -0.004))
+    pts = _annulus(zs=(z_in, -0.0099, 0.0099, z_ex))
+    z = pts[:, 2]
+    u = np.tile([0.0, 0.0, 3.0], (pts.shape[0], 1))
+    # kinematic p: 0 upstream, 5 behind the row, 50 at the old fixed planes (inside / far from the row)
+    p = np.where(np.isclose(z, z_in), 0.0, np.where(np.isclose(z, z_ex), 5.0, 50.0))
+    m = compute_metrics(_samples(pts, u, p=p), hub_r=HUB, tip_r=TIP, z_fan=0.0, blade_z=(-0.020, -0.004))
+    from fansim.physics.air import RHO_AMCA
+    assert m.mean_dp0_pa == pytest.approx(RHO_AMCA * 5.0)
+    assert "planes" not in m.missing
+
+
+def test_missing_blade_extent_is_reported():
+    pts = _annulus()
+    u = np.tile([0.0, 0.0, 3.0], (pts.shape[0], 1))
+    m = compute_metrics(_samples(pts, u), hub_r=HUB, tip_r=TIP, z_fan=0.0)
+    assert "planes" in m.missing
+
+
+def test_blade_z_extent_from_stl(tmp_path):
+    import trimesh
+    from fansim.cfd.flow_report_case import blade_z_extent
+    hub = trimesh.creation.cylinder(radius=20.0, height=30.0)                 # hub, mm, z -15..15
+    blade = trimesh.creation.box(extents=(10.0, 4.0, 12.0))                    # blade, mm, z -6..6
+    blade.apply_translation((40.0, 0.0, -2.0))                                 # r ~35-45 mm, z -8..4
+    (tmp_path / "impeller_cfd.stl").write_bytes(trimesh.util.concatenate([hub, blade]).export(file_type="stl"))
+    lo, hi = blade_z_extent(tmp_path, hub_r=0.020)
+    assert lo == pytest.approx(-0.008) and hi == pytest.approx(0.004)        # the hub's -15..15 is ignored
+    assert blade_z_extent(tmp_path / "nope", hub_r=0.020) is None

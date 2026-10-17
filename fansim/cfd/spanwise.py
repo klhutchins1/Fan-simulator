@@ -27,7 +27,7 @@ from fansim.cfd.midplane import case_has_flow_fields, ensure_reconstructed
 from fansim.physics.air import RHO_AMCA
 
 _VIZ_SUBDIR = Path("postProcessing") / "cockpit_viz"
-_SPANWISE_NAME = "spanwise_avg_v1.png"
+_SPANWISE_NAME = "spanwise_avg_v2.png"  # v2: blade-relative planes (27.3e)
 _B2B_NAME = "b2b_cp_v1.png"
 # Matplotlib Agg is not fully thread-safe with concurrent figure creation on Windows.
 _PLOT_LOCK = threading.Lock()
@@ -316,6 +316,11 @@ def total_pressure_kin(p: np.ndarray, u: np.ndarray) -> np.ndarray:
     return np.asarray(p, dtype=float) + 0.5 * mag2
 
 
+def _blade_z(case_dir, hub_r):
+    from fansim.cfd.flow_report_case import blade_z_extent
+    return blade_z_extent(case_dir, hub_r=hub_r)
+
+
 def _plane_mask(pts: np.ndarray, z0: float, half_dz: float) -> np.ndarray:
     return np.abs(pts[:, 2] - z0) <= half_dz
 
@@ -370,14 +375,15 @@ def compute_spanwise_profile(
     metal_deg: np.ndarray | None = None,
     n_radial: int = DEFAULT_N_RADIAL,
     z_fan: float = 0.0,
+    blade_z: tuple[float, float] | None = None,
 ) -> SpanwiseProfile:
     """Circumferential averages + incidence/deviation vs radius from point samples."""
     hub_r = float(hub_r)
     tip_r = float(tip_r)
     span = max(tip_r - hub_r, 1e-6)
     half_dz = max(0.04 * tip_r, 0.002)
-    z_in = float(z_fan) - _PLANE_Z_FRAC * tip_r
-    z_ex = float(z_fan) + _PLANE_Z_FRAC * tip_r
+    from fansim.cfd.flow_report import slab_centres  # same planes as the flow report card (27.3e)
+    z_in, z_ex = slab_centres(tip_r=tip_r, z_fan=z_fan, blade_z=blade_z)
 
     _r, u_ax, u_th = cylindrical_velocity(pts, u)
     p0 = total_pressure_kin(p, u)
@@ -725,6 +731,7 @@ def render_spanwise_artifacts(
         pts, u, p,
         hub_r=hub_r, tip_r=tip_r, omega=omega,
         metal_deg=metal_seed, n_radial=n_radial, z_fan=z_fan,
+        blade_z=_blade_z(case_dir, hub_r),
     )
 
     slices = [

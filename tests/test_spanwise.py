@@ -230,7 +230,7 @@ def test_render_spanwise_artifacts_synthetic_mesh(tmp_path: Path):
     assert art.b2b_png is not None and art.b2b_png.is_file()
     assert art.spanwise_png.stat().st_size > 500
     assert art.b2b_png.stat().st_size > 500
-    assert art.spanwise_png.name == "spanwise_avg_v1.png"
+    assert art.spanwise_png.name == "spanwise_avg_v2.png"
     assert art.b2b_png.name == "b2b_cp_v1.png"
     assert art.profile is not None
     assert "spanwise" in art.caption.lower() or "blade" in art.caption.lower()
