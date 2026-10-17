@@ -26,7 +26,9 @@ MSG_NONE = "No flow simulation for this design yet. Run Assess to see how the ai
 MSG_BUILDING = "Working out how the air moves…"
 NUMBER_LABELS = {"backflow_frac": "backflow share", "swirl_frac": "swirl energy share",
                  "dead_frac": "dead-air share", "tip_band_uz_ratio": "tip / mean forward speed",
-                 "noise_swl_db": "Proudman SWL (dB, relative; mesh-dependent, don't compare)", "mean_uz_exit": "mean exit Uz (m/s)",
+                 "noise_swl_db": "Proudman SWL (dB, relative; mesh-dependent, don't compare)",
+                 "noise_hint_db": "tip-speed + airflow ranking (dB-ish, 27.3c)",
+                 "mean_uz_exit": "mean exit Uz (m/s)",
                  "mean_dp0_pa": "mean push (Pa, area-weighted)"}
 
 
@@ -90,9 +92,15 @@ def _key(case_dir, ref_dir) -> str:
     return f"{FLOW_REPORT_VERSION}|{latest_time(case_dir)}|{ref_dir or 'none'}"
 
 
+def _attach_noise_hint(metrics, case_dir):
+    from fansim.acoustics.tip_loading import noise_hint_from_case
+    metrics.noise_hint_db = noise_hint_from_case(case_dir)
+    return metrics
+
+
 def _stock_pack(ref_dir):
     """Stock metrics, colour scales and pictures, made once per reference and reused."""
-    m = load_or_compute_metrics(ref_dir)
+    m = _attach_noise_hint(load_or_compute_metrics(ref_dir), ref_dir)
     out_dir = STOCK_CACHE_DIR / "flow_report"
     key = _key(ref_dir, ref_dir)
     scales = None
@@ -114,7 +122,7 @@ def _stock_pack(ref_dir):
 
 def build_report(case_dir, ref_dir) -> dict:
     case_dir = Path(case_dir)
-    m = load_or_compute_metrics(case_dir)
+    m = _attach_noise_hint(load_or_compute_metrics(case_dir), case_dir)
     stock = scales = None
     stock_pics: dict = {}
     msg = ""

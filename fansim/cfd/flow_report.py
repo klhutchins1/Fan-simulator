@@ -53,6 +53,7 @@ class FlowMetrics:
     # Area-weighted mean push over the whole annulus [Pa]. Swirl's radial-equilibrium tilt (low at
     # the hub, high at the tip) cancels in this mean, so the push verdict uses it (QA r7 Task G).
     mean_dp0_pa: float = math.nan
+    noise_hint_db: float | None = None  # 27.3c tip-speed + CFM ranking; not Proudman
     missing: dict[str, str] = field(default_factory=dict)  # field -> why it couldn't be measured
 
     def to_dict(self) -> dict:
@@ -61,7 +62,8 @@ class FlowMetrics:
 
     @classmethod
     def from_dict(cls, d: dict) -> FlowMetrics:
-        vals = {k: d[k] for k in cls.__dataclass_fields__}
+        src = d if "noise_hint_db" in d else {**d, "noise_hint_db": None}
+        vals = {k: src[k] for k in cls.__dataclass_fields__}
         for k in _FLOAT_FIELDS:
             vals[k] = math.nan if vals[k] is None else vals[k]
         vals["band_dp0_pa"] = [math.nan if v is None else v for v in vals["band_dp0_pa"]]

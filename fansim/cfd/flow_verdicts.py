@@ -19,10 +19,11 @@ SWIRL_FACTOR = 1.10
 DEAD_MARGIN = 0.02
 TIP_FACTOR = 0.90
 NOISE_MARGIN_DB = 0.5  # 2σ floor of the same five repeats; was 2.8 dB from that pair.
-# Noise is NOT judged (Kimball 2026-10-16): Stock alone read -13.7..+22.2 dB across five meshes (27.3b),
-# so a design-vs-Stock difference is mesh, not design. The row is Expert-only information.
+# Proudman is NOT judged (Kimball 2026-10-16): Stock alone read -13.7..+22.2 dB across five meshes (27.3b).
 NOISE_JUDGED = False
 NOISE_MESH_SPREAD_DB = 36  # max - min of Stock's Proudman SWL over the 27.3b meshes, rounded
+# 27.3c: tip-speed + CFM hint is judged. 2σ on m1–m5 was 0.069 dB; floor 0.5.
+HINT_MARGIN_DB = 0.5
 
 
 @dataclass
@@ -126,6 +127,22 @@ def _dead(d, s):
 
 
 def _noise(d, s):
+    hint_d = getattr(d, "noise_hint_db", None)
+    hint_s = getattr(s, "noise_hint_db", None) if s is not None else None
+    if hint_d is not None and hint_s is not None:
+        delta = float(hint_d) - float(hint_s)
+        if abs(delta) <= HINT_MARGIN_DB + 1e-12:
+            text = ("About as loud as Stock from tip speed and airflow "
+                    "(ranking only, not a microphone reading).")
+            row = _row("noise", "ok", text, better=False)
+        else:
+            word = "quieter" if delta < 0 else "louder"
+            text = (f"About {abs(delta):.1f} dB {word} than Stock from tip speed and airflow "
+                    "(ranking only, not a microphone reading).")
+            row = _row("noise", "ok" if delta < 0 else "warn", text,
+                       better=delta < 0)
+        row.expert_only = True
+        return row
     if d.noise_swl_db is None:
         return _row("noise", "na", "No turbulence data in this run.")
     if s is None or s.noise_swl_db is None:
@@ -152,8 +169,9 @@ def judge(design: FlowMetrics, stock: FlowMetrics | None) -> list[RowVerdict]:
 def overall_line(rows: list[RowVerdict], compared: bool) -> str:
     if not compared:
         return "No Stock comparison for this run, so only the air direction is checked."
-    better = [r.title.lower() for r in rows if r.status == "ok" and r.better]
-    worse = [r.title.lower() for r in rows if r.status in ("warn", "bad")]
+    shown = [r for r in rows if not r.expert_only]
+    better = [r.title.lower() for r in shown if r.status == "ok" and r.better]
+    worse = [r.title.lower() for r in shown if r.status in ("warn", "bad")]
     if not better and not worse:
         return "About the same as Stock on every check."
     parts = []

@@ -7,6 +7,7 @@ from fansim.cfd import flow_verdicts
 from fansim.cfd.flow_verdicts import (
     BAND_TOL,
     BAR_TOL,
+    HINT_MARGIN_DB,
     NOISE_JUDGED,
     NOISE_MARGIN_DB,
     ROW_KEYS,
@@ -114,4 +115,25 @@ def test_baked_tolerances_are_stock_v3_two_sigma():
     assert BAND_TOL == 0.03
     assert BAR_TOL == 0.08          # 27.3b, five varied meshes
     assert NOISE_MARGIN_DB == 0.5
-    assert NOISE_JUDGED is False    # 27.3b stop-and-ask, Kimball 2026-10-16
+    assert NOISE_JUDGED is False    # Proudman still not judged
+    assert HINT_MARGIN_DB == 0.5    # 27.3c tip+CFM 2σ was 0.069 dB
+
+
+def test_noise_hint_is_judged_but_stays_off_the_simple_line():
+    """27.3c: Expert row uses tip-speed + CFM; Simple overall must not mention it."""
+    stock = _m(noise_hint_db=75.4)
+    same = judge(_m(noise_hint_db=75.4), stock)[4]
+    assert same.status == "ok" and same.expert_only and "About as loud" in same.text
+    quiet = judge(_m(noise_hint_db=74.4), stock)[4]
+    assert quiet.status == "ok" and quiet.better is True and "quieter" in quiet.text
+    loud = judge(_m(noise_hint_db=76.4), stock)[4]
+    assert loud.status == "warn" and loud.better is False and "louder" in loud.text
+    rows = judge(_m(noise_hint_db=76.4, swirl_frac=0.20), stock)
+    assert overall_line(rows, compared=True) == "About the same as Stock on every check."
+
+
+def test_old_metrics_json_without_noise_hint_still_loads():
+    d = STOCK.to_dict()
+    d.pop("noise_hint_db", None)
+    m = FlowMetrics.from_dict(d)
+    assert m.noise_hint_db is None
