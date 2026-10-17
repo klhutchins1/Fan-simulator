@@ -1982,6 +1982,12 @@ manual `docs/qa/browser_checklist_*.md`. 3-D/VTK is slow; tests should not wait 
   - Find out why it can disagree with the hose operating point. Fix the definition or the wording before
     re-judging 27.3d.
   **[impact: high: the card's main row misleads]** **[effort: low–med, analysis on the existing 15 cases]**
+  - **Investigated 2026-10-17** (`docs/validation/audits/2026-10-17-push-row-planes.md`): the card's fixed planes
+    (z_fan ± 0.18 r_tip) sit **inside the blade rows** of 9604 and 9610 and overlap Stock's and 9610's trailing edges,
+    so push there tracks swirl rather than airflow. With planes at LE − 0.1 r_tip and TE + 0.1 r_tip from each
+    design's own blades, 9604 reads **+19 %** (CFM +13 %): the contradiction is gone. Proposal: blade-relative
+    planes, `FLOW_REPORT_VERSION` 4, and the 27.3 / 27.3b / 27.3d numbers re-derived from the existing fields.
+    Awaiting Kimball.
 - [ ] **27.3d Size flow-card margins for a two-run difference.** The 27.3b after-bake check failed: mean push
   differed +3.5 % between two Stock meshes (2σ of one run 2.9 %; a difference of two runs is about √2 wider), and
   the tip check (×0.90) tripped on m2 at −11 %. Either set the margins from the pairwise differences (pre-register:
