@@ -305,6 +305,15 @@ units:
     source: {kind: derivation, ref: "rotor tonal theory (Cattanei 2007); Audit #6 FFT synthesis of pulse trains"}
     checks: [tests/audit/test_acoustics_audit.py, tests/test_tonal.py]
 
+  - id: acoustics.noise_hint
+    targets:
+      - "fansim.acoustics.tip_loading:tip_speed_ms"
+      - "fansim.acoustics.tip_loading:tip_loading_swl_db"
+      - "fansim.acoustics.tip_loading:noise_hint_from_case"
+    claim: "Relative noise hint L = 55 log10(U_tip) + 10 log10(CFM_free) (dipole scaling, RANKING-ONLY, not dB(A)); U_tip = omega r_tip. At fixed rpm and tip radius it varies only with CFM (open question R0.4)"
+    source: {kind: derivation, ref: "Lighthill / Ffowcs Williams dipole U^5-U^6 scaling; roadmap 27.3c (Cursor)"}
+    checks: [tests/test_tip_loading_noise.py]
+    depends_on: []
   - id: acoustics.proudman
     targets:
       - "fansim.acoustics.proxies:proudman_power_density"
@@ -409,7 +418,9 @@ units:
       - "fansim.cfd.flow_report:noise_density"
       - "fansim.cfd.flow_verdicts:judge"
       - "fansim.cfd.flow_verdicts:overall_line"
-    claim: "Flow report card: volume-weighted backflow share, swirl energy share Uth^2/(Uz^2+Uth^2), dead-air share, tip/mean Uz, per-band and area-weighted mean push rho*(p+Uz^2/2) exit minus inlet (swirl excluded), Proudman SWL over the rotor region; verdicts vs Stock at BAND_TOL / NOISE_MARGIN_DB (27.3)"
+      - "fansim.cfd.flow_report:slab_centres"
+      - "fansim.cfd.flow_report:slab_half_width"
+    claim: "Flow report card: volume-weighted backflow share, swirl energy share Uth^2/(Uz^2+Uth^2), dead-air share, tip/mean Uz, per-band and area-weighted mean push rho*(p+Uz^2/2) exit minus inlet (swirl excluded), measured on slabs wholly outside the blade row (LE - 0.1 r_tip, TE + 0.1 r_tip; v4, 27.3e); Proudman SWL over the rotor region (not judged); verdicts vs Stock at BAND_TOL 0.06 / BAR_TOL 0.12 (v4 five-mesh 2 sigma, R0.2)"
     source: {kind: derivation, ref: "incompressible Bernoulli without swirl; radial equilibrium (QA r7 Task G); Proudman 1952 / Sarkar & Hussaini; thresholds from 5 Stock v3 repeats (audit 2026-10-13-stock-flow-repeats-prereg)"}
     checks: [tests/test_flow_report.py, tests/test_flow_verdicts.py]
     depends_on: [acoustics.proudman, cfd.spanwise]
