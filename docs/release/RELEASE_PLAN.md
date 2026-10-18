@@ -74,7 +74,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Make sure the UI and README never quote a number above the validated range. Add a test that the P–Q display
     stops at the last converged point.
 - **R1.3 Optimizer space under wrap (27.7)**. Lane: grok data (round 14 Task C), Cursor implements, Claude reviews.
-  CPU: day for the bounds, night for any re-find campaign. Status: `blocked (grok r14 C)`.
+  CPU: day for the bounds, night for any re-find campaign. Status: `ready` (grok r14 C delivered 2026-10-17: `docs/qa/notes/optimizer-space-wrap-r14.md`).
 - **R1.4 Stock recipe gap**. Lane: Claude. CPU: day. Status: `ready`.
   - Stock v3 is 55.7 CFM against 58.3 for the reference STL (−4.5 %).
   - Either close the gap or state it in the UI and README as the recipe's known limit. Decide with Kimball.
@@ -115,12 +115,12 @@ Kimball's.
   - **R2.2c 3-D transition (rung C)** and **R2.2d domain size (rung D)**: `blocked` on Claude's ruling from A and B.
     - Claude: read R2.2a and R2.2b's results against the prereg rules, record the ruling there, and unblock C or D.
 - **R2.3 CROR**: direction proof only.
-  - Lane: grok data hunt for small counter-rotating fan or prop P–Q / thrust data. Status: `ready` (grok round 15).
+  - Lane: grok data hunt for small counter-rotating fan or prop P–Q / thrust data. Status: `done (grok r15 hunt, 2026-10-17)`; see `docs/qa/notes/r15-data-hunt-cror-mixed-centrifugal.md`.
 - **R2.4 Mixed-flow**: no published comparison.
-  - Lane: grok data hunt for mixed-flow fan curves at small diameter. Status: `ready` (grok round 15).
+  - Lane: grok data hunt for mixed-flow fan curves at small diameter. Status: `done (grok r15 hunt, 2026-10-17)`; same note.
 - **R2.5 Volute / centrifugal**: CFD is unconverged (17–23 % oscillation), a ±20 % proxy.
-  - Lane: grok data hunt for a small centrifugal blower curve. Claude decides converge-or-label. Status: `ready`
-    (grok round 15).
+  - Lane: grok data hunt for a small centrifugal blower curve. Claude decides converge-or-label. Status: hunt `done (grok r15,
+    2026-10-17)`, same note; converge-or-label still with Claude.
 - **R2.6 Centrifugal (no tab) and wind turbine (scaffold)**: excluded from v0.1.0.
   - Lane: Cursor makes sure neither is reachable from the cockpit or the README quickstart. Status: `ready`.
 
@@ -137,7 +137,7 @@ Kimball's.
 - **R3.3 Install guide**. Lane: Cursor. CPU: day. Status: `ready`.
   - A README install section for Windows and Linux: uv, Docker Desktop / Engine, `docker pull opencfd/openfoam-default:2406`,
     the first Assess, and troubleshooting (WSL2 memory, Docker not running).
-  - Test: grok round 15 follows it on a clean Linux box.
+  - Test: grok round 15 follows it on a clean Linux box. r15: NOT RUN (no guide yet); `docs/qa/notes/r15-install-dry-run.md`.
 - **R3.4 Docker/OpenFOAM readiness badge and first-run check (21.2g)**. Lane: Cursor. CPU: day. Status: `ready`.
   - The cockpit shows "CFD ready / Docker not running / image missing" with the fix in plain words.
 - **R3.5 GitHub Actions CI**. Lane: Cursor. CPU: none (cloud). Status: `ready`.

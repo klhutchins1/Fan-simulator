@@ -152,10 +152,14 @@ Write notes to `docs/qa/notes/r15-*.md` and a "Round 15" section below.
 | QA-32 | MED | Geometry | Wrapped hub-clip stations: camber 0.005–0.011 low, stagger up to 1.1° | r9. **r10b Task C: verified closed.** 49 hanging designs / 105 stations, 0 outside 3 % / 0.005 / 1.5° (max 2.9 % / 0.0048 / 1.46°). Hang limit refuses designed > 2 mm on 400/400. |
 | QA-33 | LOW–MED | Geometry/direction | Wrapped cylinder proof INCONCLUSIVE more often | r9 30/65 vs 24/66 planar. **r10b B: 18/38 wrapped INCONCLUSIVE.** Harmless: INCONCLUSIVE never refuses. Open. |
 | QA-34 | MED | Geometry/export | Featured wrapped S5_0184: B-rep fuse is 1 solid, STL is not watertight (8 bodies, 7 degenerate faces). Planar twin is clean. `fuse_impeller` does not flag it. | r10b Task B W1/W6. **CLOSED 2026-10-14:** 7 collapsed tessellation needles (one per blade); impeller mesh was already watertight. `export_stl` → `sanitize_stl`. `docs/qa/notes/qa-34-featured-wrap-stl.md`. |
-| QA-35 | MED | Memory/27.1 | Linux remaining-growth guard under-asks open builds: S7_0172_twin (11 blades, 22.7 k faces) 2.19 GiB vs ask 2.12 GiB (1.03×, 3/3 repeats); open 9/11-blade twins at 0.91–1.03× | r12 Task B. Shrouded fine (≤ 0.80×). **fixed (pending QA)** `049b705` (Linux open refit 0.515 GiB + 82.3 KiB/face). |
-| QA-36 | MED | UI/material | Material picker PLA+ not followed by Preview grams or the Export README/nozzle/bed/print_fit/registry (all read `active_spec().material` = PETG); Assess stamp + optimizer do follow | r12 Task D; tests in from-qa-12/tests fail on HEAD. **fixed (pending QA)** `d7a23d6` (`active_spec()` carries the picked material). |
-| QA-37 | LOW | Export/28.2 | Killing the cockpit process mid-Export does not stop the isolated export worker (it keeps fusing, ~6 GB); if it dies after writing the STL, `{id}_….stl` is left with no README/sidecars and an id absent from index.jsonl | r12 Task C harness accident (Q8B8G): orphaned worker overlapped the next export and was OOM-killed (dmesg, 6.2 GB anon). **fixed (pending QA)** `5be865e` (workers exit within ~2 s of their launcher; Export staged in `.partial-*`, published when complete, print-id recorded after). |
+| QA-35 | MED | Memory/27.1 | Linux remaining-growth guard under-asks open builds: S7_0172_twin (11 blades, 22.7 k faces) 2.19 GiB vs ask 2.12 GiB (1.03×, 3/3 repeats); open 9/11-blade twins at 0.91–1.03× | r12 Task B. Shrouded fine (≤ 0.80×). **fixed (pending QA)** `049b705` (Linux open refit 0.515 GiB + 82.3 KiB/face). **VERIFIED r14 A1** (9562574): 26/26 OK, worst open 0.85, S7_0172_twin 0.826. |
+| QA-36 | MED | UI/material | Material picker PLA+ not followed by Preview grams or the Export README/nozzle/bed/print_fit/registry (all read `active_spec().material` = PETG); Assess stamp + optimizer do follow | r12 Task D; tests in from-qa-12/tests fail on HEAD. **fixed (pending QA)** `d7a23d6` (`active_spec()` carries the picked material). **VERIFIED r14 A2** for Export (README PLA+ 215/60 °C, print_fit, index) + 6/6 tests; the Preview line can't show the material (→ QA-42), and the busy-switch check (24.4) is INCONCLUSIVE. |
+| QA-37 | LOW | Export/28.2 | Killing the cockpit process mid-Export does not stop the isolated export worker (it keeps fusing, ~6 GB); if it dies after writing the STL, `{id}_….stl` is left with no README/sidecars and an id absent from index.jsonl | r12 Task C harness accident (Q8B8G): orphaned worker overlapped the next export and was OOM-killed (dmesg, 6.2 GB anon). **fixed (pending QA)** `5be865e` (workers exit within ~2 s of their launcher; Export staged in `.partial-*`, published when complete, print-id recorded after). **VERIFIED r14 A3** (worker gone 0.75 s, `.partial-*` only, index unchanged) when the launcher is reaped; zombie case → QA-41. |
 | QA-38 | LOW | UI/24.2 | At 1366×768 Simple Results, the scatter's plot body is below the fold (top at y=652, only the title visible) | r13 Task A S4 (report-only). |
+| QA-39 | LOW | CFD post/maths | `_pp_file` (and the same pattern in `sanity.py`, `timing.py`, the objectives copy) picks the "latest" postProcessing time dir by string sort, so `"1000" < "999"`. Latent today (runs write one time dir) | r14 B1(d). Sort by `float(name)`. `docs/qa/notes/maths-check-r14.md` |
+| QA-40 | LOW | UI/27.3b | Simple-mode flow card shows "No Stock comparison for noise." when the run has SWL but no Stock reference (case s3); noise was meant to be Expert-only | r14 A4. `docs/qa/notes/reverify-r14.md` |
+| QA-41 | LOW | Export/QA-37 | `watch_parent` uses `os.kill(pid, 0)`, which succeeds on a zombie: if the killed cockpit isn't reaped, the export worker keeps running (≥ 30 s seen). Files stay safe (`.partial-*`) | r14 A3 run 1 + `from-qa-14/data/a3_zombie_probe.txt`. Also exit on `os.getppid()` change or `/proc/<pid>/stat` state Z. |
+| QA-42 | LOW | UI/material | Preview line "✓ fits … (… 11 g)" doesn't say which material (or infill) it weighed; PLA+ 10.87 g and PETG 11.13 g both show "11 g", so the user can't see the picker took effect | r14 A2b1/b2. Name the material (and "20 % infill") in the line. |
 
 ## Details
 (Numbered bugs below map to QA-n.)
@@ -547,3 +551,53 @@ Prereg `02584e6`. Summary in `handoff/2026-10-14_from-qa-13/README.md`.
 - **Task B:** duplicate-after-Preview table (report only). No cached Assess on disk.
 - **Task C (23.9): M0 PASS, M1 PASS.** 1777 passed, 0 failed; no OOM in the run window. Peak RSS per chunk 5.1 / 2.9 / 6.9 GB (was 8.2 GB in one process); 45 min active time. `docs/qa/notes/pytest-chunks-r13.md`
 - **Task D:** the other tabs ignore ui_mode; Expert-only candidates listed.
+
+## Round 14 (2026-10-16/17): master 9562574, run clone `/workspace/fansim/qa/run_r14`
+Prereg `586bbe9` (`prereg/round14`; A, B, C, F). Summary in `handoff/2026-10-16_from-qa-14/README.md`.
+- **A1 (QA-35): PASS.** 26 OK pairs, 0 over the ask; worst open 0.85, S7_0172_twin 0.826 (was 1.03). → QA-35 verified.
+- **A2 (QA-36 / 24.4):** tests 6/6 PASS. Browser PLA+ Export is PLA+ everywhere (README 215/60 °C, print_fit, index).
+  The Preview line names no material, and PLA+ and PETG both round to 11 g (20 % infill) → **QA-42 (LOW, new)**.
+  The switch-during-Preview check is INCONCLUSIVE.
+- **A3 (QA-37): PASS** when the killed launcher is reaped (worker gone in 0.75 s, `.partial-*` only). If the launcher
+  is left a zombie, the worker lives on → **QA-41 (LOW, new)**.
+- **A4 (27.3b): FAIL**, "No Stock comparison for noise." in Simple mode → **QA-40 (LOW, new)**.
+- **B maths:** `_pp_file` string-sorts time dirs → **QA-39 (LOW, new)**. B5: the hang-refusal ratio (median 1.85×)
+  is explained by the loft stretching mid chord and stagger (the 2 mm limit is checked on designed chords; doc
+  note / Kimball). `docs/qa/notes/maths-check-r14.md`
+- **C (27.7):** guided bounds exclude Stock's root and mid stagger. C3 FAILS 3/80 as registered (tip stagger
+  measured at 0.99 R against the r=1.0 value; 0/80 over 1.5° on a matched radius). Proposed bounds give 4.3 %
+  refused. `docs/qa/notes/optimizer-space-wrap-r14.md`
+- **D (QA-12 data):** vendored e387 tables are shaped, not measured. NASA TM-4062 is the best source.
+  `docs/qa/notes/prop-ct0-data-sources.md`
+- **F (27.3d):** margins proposal (v3 numbers, superseded by v4). `docs/qa/notes/flow-margins-two-run-r14.md`
+
+## Round 15 (2026-10-17): master 9562574
+Prereg `336211b` (`prereg/round15`). Summary in `handoff/2026-10-17_from-qa-15/README.md`.
+- **A–C (R2.3–R2.5 data hunts):** CROR best is Shigemitsu 2018 (CC BY 4.0, 40 mm). Mixed-flow: no small CC data
+  found (85 mm Treder rig, cite-only). Centrifugal best is EPJ WoC 180:02023 (60 mm, CC BY 4.0, to confirm).
+  `docs/qa/notes/r15-data-hunt-cror-mixed-centrifugal.md`
+- **D (R0.1 / 27.3e re-check):** slab positions, mm→m and hub exclusion agree with the hand derivation (D1, D2, D4
+  PASS). The synthetic swirl field shows the push is swirl-independent outside the row (D3a FAILS as registered on
+  a grid tie and passes on a 59-cell grid). With the legacy in-row inlet slab, push falls steadily with swirl, 13.40 → 1.36 Pa at S 0 → 1.5 (D3b FAILS as
+  registered on direction: I predicted a rise). That matches the audit's symptom and supports the fix. Doc notes: stale `flow_report.py`
+  docstring, audit says 25 vs 20 cases. `docs/qa/notes/r15-push-planes-recheck.md`
+- **R3.3 install guide: NOT RUN.** The guide is not written yet. The Quickstart dry run in a fresh clone is OK.
+  `docs/qa/notes/r15-install-dry-run.md`
+
+## Round 16 hang (2026-10-17): master 9562574, run clone `/workspace/fansim/qa/run_r16`
+Prereg `52eca5f` (`prereg/round16-hang`). Note `docs/qa/notes/hang-investigation-r16.md`; data
+`handoff/2026-10-17_from-qa-16-hang/`.
+- **QA-43 (MED, new) Geometry/validator:** the 2 mm hang limit is checked on designed geometry. The chord fixed point
+  measures the clipped blade and refills the clipped chord, which drops the TE by half the clip again: built hang =
+  1.75 × designed in 2 iterations (measured median 1.77, n = 140). On 300 CAD designs, 50 of the 123 cut deeper than
+  2 mm pass the validator. Proposal: validate on 1.75 × designed (no-CAD, 100 % sensitivity and 1–2 % false refusals on
+  feature-free designs), or on the cached realised loft. Alternatively, stop compensating for chord the clip removes on
+  purpose (weigh this against QA-30).
+- **QA-44 (MED, new) Optimizer vs Export hub:** the optimizer and CFD validate and score with the auto hub (often
+  < 15 mm), while a12x25 Export and cup Preview grow it to 15 mm symmetrically. The clip plane moves by up to 3.3 mm.
+  54/141 designs refused at the auto hub pass at the export hub, and 171/291 allowed hanging designs print with a TE
+  different from the one scored (118 are not cut at all). Proposal: apply min_hub_height in the search, with the growth
+  placed below the blades (blade_hub_z = +Δh/2).
+- **QA-45 (LOW, new) Cup carve message:** with hub r 19.4 < 20.7 (S8_0056), `build_impeller_with_mount` raises "did
+  not join into one solid (3 separate pieces)" both with and without the hang fix, instead of the plain "hub radius too
+  small" message other undersized hubs get.
