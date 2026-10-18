@@ -34,6 +34,18 @@ This is a desktop tool for designing 3-D-printable fans and propellers. It has a
 7. **Licences:** no NC-licensed data or unknown-origin STLs in the repo (`RELEASE_EXCLUDE`, `THIRD_PARTY.md`).
 8. **Plain language in the UI.** Simple mode is for non-experts. Technical detail goes behind Expert.
 
+## Night jobs (how heavy work gets run)
+
+- The Scheduled Task **`fansim-night-queue`** runs every night at **00:30**. It runs `scripts/night_queue.py` from its own
+  worktree `T:/Projects/fansim-night`, which it moves to the latest local `master` first.
+- To run something heavy, add a job to **`night/queue.json` on master**: `id`, `branch` (optional; the job runs in a fresh
+  worktree of it), `cmd` (`"python"` = the venv), `max_hours`, `status: "queued"` and `why`. A pre-registration must
+  already be committed if the job judges anything.
+- The runner never starts a job that is inside, or could reach, 4–9 PM.
+- Results are in `runs/night/<date>/results.json` plus one log per job.
+- The next agent reads them, sets each job's `status` to `done` or `failed` with a note, and acts on the board.
+- Long CFD campaigns that need many hours can still be their own Scheduled Task, under the same rules.
+
 ## Claiming and finishing a task
 
 - **Claim:** in `RELEASE_PLAN.md`, set the task's status to `in progress (<agent>, <date>)` and commit that one line

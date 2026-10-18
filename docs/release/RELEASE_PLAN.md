@@ -50,7 +50,11 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Apply the 27.3b rule: 2σ, never tighten, stop lines 0.15 / 3 dB.
   - Kimball approves any constant change in `fansim/cfd/flow_verdicts.py`.
 - **R0.3 "Too close to call" state (27.3d)**. Lane: Cursor, from Claude's spec. CPU: day.
-  Status: `needs Kimball`. Branch: `too-close-r03`.
+  Status: `ready to merge after the night suite` (Kimball 2026-10-17: accept the residual flips). Branch: `too-close-r03`.
+  - Merge gate: night jobs `suite-too-close-r03-c1..c3` (`night/queue.json`, 2026-10-18 00:30).
+  - Next agent: read `runs/night/2026-10-18/results.json` and the logs. Exit 127 after a "N passed, 0 failed" line is the
+    known teardown crash (R3.5b), so that counts as a pass. If green, merge `--no-ff` to master, set the night jobs to
+    `done`, and mark R0.3 `done`.
   - Landed: compared rows inside CLOSE (`√2 × 2σ`, never-tighten) show "Too close to call" (–). Synthetics C1/C2
     PASS. Audit: `docs/validation/audits/2026-10-17-too-close-to-call-prereg.md`.
   - **C3 FAIL:** 9604 direction and 9610 direction/push/spin still flip across m1–m5. Do we size CLOSE from those
@@ -91,9 +95,18 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     CFD build and `do_export` is identical.
   - Old saved designs are disposable: mark them stale, don't migrate them.
 - **R1.8 QA-43: the 2 mm hang limit is checked on the designed blade; the built blade hangs about 1.75× more**.
-  Lane: Claude, after Kimball. CPU: day. Status: `needs Kimball`.
-  - Question: is 2 mm meant for the **printed** blade? If yes, check `blade_hang_below_hub_mm × 1.75` (grok: 100 %
-    sensitivity, 1–2 % false refusals) or the cached realised loft.
+  Lane: Cursor (the rule is fixed below). CPU: day. Status: `ready` (Kimball 2026-10-17: **2 mm is for the printed blade**).
+  - Change: `validate_blade_params` refuses when `HANG_BUILT_FACTOR × blade_hang_below_hub_mm(params) > MAX_HANG_BELOW_HUB_MM`,
+    with `HANG_BUILT_FACTOR = 1.75` in `fansim/geometry/blade.py`.
+  - Comment the derivation: the chord fixed point refills the clipped chord, which drops the trailing edge by half the
+    clip again, so 1 + ½ + ¼ = 1.75 after two iterations (grok r16, measured median 1.77, n = 140,
+    `docs/qa/notes/hang-investigation-r16.md`).
+  - The UI refusal text says the *printed* blade would hang X mm (= 1.75 × designed).
+  - Pre-registered acceptance, on grok's r16 measured designs (`handoff/2026-10-17_from-qa-16-hang/data/`):
+    - every design whose built hang is > 2 mm is refused;
+    - at most 3 % of designs with built hang ≤ 2 mm are refused.
+    - Record the result in a short audit note. Failures are recorded, not re-tuned.
+  - Re-prove the geometry audit unit that owns `validate_blade_params`. Update `tests/test_hub_hang.py`.
   - Note: the 1.6× ratio was known when 2 mm was set (2026-10-13). grok now explains it (chord refill after the clip)
     and measures 1.75×.
 - **R1.9 Small QA fixes**. Lane: Cursor. CPU: day. Status: `ready`. One branch, one test each:
@@ -146,8 +159,11 @@ Kimball's.
 - **R2.3 next: pre-register CROR against Shigemitsu 2018** (CC BY 4.0, 40 mm). Lane: Claude. Status: `ready`.
   Then grok digitises the curves, Cursor builds the case, and night runs it.
 - **R2.4 Mixed-flow**: no published comparison.
-  - grok r15: no small CC-licensed mixed-flow data. The 85 mm Treder rig is cite-only. Status: `needs Kimball`: label the
-    Mixed tab "experimental, not validated", or hide it for v0.1.0?
+  - grok r15: no small CC-licensed mixed-flow data. The 85 mm Treder rig is cite-only.
+  - **Kimball 2026-10-17: label it experimental.** Lane: Cursor. CPU: day. Status: `ready`.
+    - The Mixed tab title and its Assess/Optimize results say "Experimental: not validated against published data".
+    - Same in the README feature list, and in exported READMEs for mixed-flow parts.
+    - Test: the label appears on the tab and in the export README.
   - Lane: grok data hunt for mixed-flow fan curves at small diameter. Status: `done (grok r15 hunt, 2026-10-17)`; same note.
 - **R2.5 Volute / centrifugal**: CFD is unconverged (17–23 % oscillation), a ±20 % proxy.
   - Lane: grok data hunt for a small centrifugal blower curve. Claude decides converge-or-label. Status: hunt `done (grok r15,
