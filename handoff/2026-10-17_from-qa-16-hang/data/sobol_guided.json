@@ -1,0 +1,122 @@
+{
+ "N": 512,
+ "var": 1.075990591868978,
+ "box": {
+  "n_blades": [
+   5,
+   11
+  ],
+  "stagger_root": [
+   24.0,
+   48.0
+  ],
+  "stagger_mid": [
+   32.0,
+   48.0
+  ],
+  "stagger_tip": [
+   18.0,
+   38.0
+  ],
+  "chord_root": [
+   14.0,
+   34.0
+  ],
+  "chord_mid": [
+   14.0,
+   32.0
+  ],
+  "chord_tip": [
+   26.0,
+   40.0
+  ],
+  "sweep_mid": [
+   0.0,
+   8.0
+  ],
+  "sweep_tip": [
+   0.0,
+   12.0
+  ],
+  "lean_mid": [
+   0.0,
+   12.0
+  ],
+  "lean_tip": [
+   0.0,
+   45.0
+  ],
+  "max_camber": [
+   0.0,
+   0.06
+  ],
+  "hub_radius": [
+   17.0,
+   28.0
+  ],
+  "tip_radius": [
+   48.0,
+   58.0
+  ],
+  "thickness_root": [
+   0.06,
+   0.11
+  ],
+  "thickness_mid": [
+   0.05,
+   0.09
+  ],
+  "thickness_tip": [
+   0.04,
+   0.07
+  ],
+  "camber_pos": [
+   0.3,
+   0.5
+  ]
+ },
+ "S1": {
+  "n_blades": 0.0,
+  "stagger_root": 0.05465117660806543,
+  "stagger_mid": -0.028972052989128954,
+  "stagger_tip": 0.07655876107223888,
+  "chord_root": 0.154490793421313,
+  "chord_mid": -0.0004470204928978119,
+  "chord_tip": 0.04161000947216501,
+  "sweep_mid": 0.1211072070115809,
+  "sweep_tip": 0.04698832986218008,
+  "lean_mid": 0.0,
+  "lean_tip": 0.0,
+  "max_camber": 7.460496454304247e-19,
+  "hub_radius": 0.0,
+  "tip_radius": 0.0,
+  "thickness_root": -4.1445977289112776e-17,
+  "thickness_mid": 0.0,
+  "thickness_tip": 0.0,
+  "camber_pos": -5.0024814207994824e-17
+ },
+ "ST": {
+  "n_blades": 0.0,
+  "stagger_root": 0.14944781212244643,
+  "stagger_mid": 0.08504902291520762,
+  "stagger_tip": 0.14885827520231218,
+  "chord_root": 0.3873199039710762,
+  "chord_mid": 0.21455878146289137,
+  "chord_tip": 0.08480911098965575,
+  "sweep_mid": 0.3147863397356182,
+  "sweep_tip": 0.35885046726669306,
+  "lean_mid": 0.0,
+  "lean_tip": 0.0,
+  "max_camber": 4.975959163450079e-31,
+  "hub_radius": 0.0,
+  "tip_radius": 0.0,
+  "thickness_root": 4.517741341204317e-31,
+  "thickness_mid": 0.0,
+  "thickness_tip": 0.0,
+  "camber_pos": 5.0618750051211595e-31
+ },
+ "interaction_share": 0.5340127960344836,
+ "frac_hang": 0.1328125,
+ "frac_over2": 0.025390625,
+ "mono_s": 73.7
+}

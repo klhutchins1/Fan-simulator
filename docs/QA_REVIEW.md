@@ -13,67 +13,20 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 - Known recovery gaps from README_RECOVERY.md / RECOVERY_TODO.md are not counted as bugs.
 - Paths like `/workspace/fansim/...` and `qa/...` are on the QA bot's machine (screenshots, scratch scripts); ask if you need one.
 
-## ▶ Next round for the QA bot: round 14 (queued by Claude 2026-10-16)
+## ▶ Next round for the QA bot: round 17 (queued by Claude 2026-10-17)
 
-**Status: QUEUED.** Build: master **`21e687e`**. Bundle: `handoff/2026-10-15_to-qa-14/fansim.bundle`, refreshed
-to this commit. The full text of A–E is in `handoff/2026-10-15_to-qa-14/CLAUDE_TO_QA.md`. This section is
-the task list and overrides the brief where they differ.
-- Pre-register A, B, C and F in **one** commit before any data.
-- Write results to a new `handoff/2026-10-16_from-qa-14/`, plus a "Round 14" section below.
-
-**Fixed since round 13 (verify, don't re-find):**
-- QA-35 `049b705`;
-- QA-36 / 29.1 `d7a23d6`;
-- 24.4 (Preview and Export use the settings from the click) `7e2c175`;
-- QA-37 + 29.4 (no orphan workers or half-written exports) `5be865e` / `1a961a6`;
-- flow card 27.3b `21e687e`: bars ±8 %, mean push ±3 %, noise row Expert-only and "Not judged".
-
-| # | task | kind |
-|---|---|---|
-| A | **Re-verify.** (1) QA-35: re-run the r12 Task B builds (28 IDs, `hook_c11`, 8gb, serial); pass if every OK build's remaining growth is ≤ 1.15× `fuse_remaining_estimate_gb`; report the worst open and the worst shrouded ratio. (2) QA-36 / 24.4: run `tests/test_ui_says_what_it_does.py`; one browser pass: PLA+ → Preview → Export says PLA+ (weight, README, temperatures); a picker change *during* a Preview doesn't change that build's verdict. (3) QA-37: kill the cockpit mid-Export; the worker is gone within ~5 s, `exports/` has no new bare STL, and only a hidden `.partial-*` is left. (4) Flow card: in Simple mode the noise row is hidden and never named in the overall line. | builds + headless UI |
-| B | **Independent maths check.** Write expected values from first principles *before* reading the tests: `cfd.cfm_from_outlet_flow` (units, sign, tail-mean); the motor derate (λ = min(1,(budget/P)^(1/3)), Q ∝ λ, Δp ∝ λ², η invariant on a quadratic line, motor η 0.50); `fan.bem_prescreen` (never beats the actuator-disc bound; zero rise at free delivery; 5 random wrapped designs); wrapped sections (`_section_loop(wrap=True)`: on radius r, arc = t, the cut reads the designed chord / stagger / camber; one NACA by hand at lean 20°, skew 5 mm); the hub-hang measure vs the built unclipped lone blade (10 designs; explain the ~1.6× ratio). Agree = within 1 % or 0.001 abs; a wrong formula is a new QA-n; a convention difference is a doc note. | analysis, no CFD |
-| C | **27.7 groundwork: optimizer space under wrap.** 300 designs from `suggest_params` (fixed seed): slider distributions vs Stock v3 (camber 0.024–0.048, stagger 22–40°); the share refused by the 2 mm hang limit and which sliders drive it; for 40 built designs, cut camber and stagger vs the sliders. **Proposal only:** bounds that bracket Stock v3 and keep refusals under ~5 %. No campaign, no source edits. | builds + measure |
-| D | **QA-12 data hunt.** Measured small-prop CT0 at Re(0.75R) 6e4–1.5e5, or low-Re polars for the 5" preset's airfoil (e387-like). Per candidate: URL, licence, prop/airfoil, D/pitch, rpm, computed Re, format, redistributable? Note in `docs/qa/notes/prop-ct0-data-sources.md`; pick the best 1–2 and say what we would pre-register. Commit nothing downloaded. | research |
-| F | **NEW. 27.3d: flow-card margins for a two-run difference** (numbers only, below). Five Stock v3 Assess runs on five meshes (base cell 5.6/5.8/6.2/6.4/6.6 mm, all surface level 4). (1) Check our stats: the 2σ rule (`proposed_tolerances`, `scripts/stock_flow_repeats.py`) gives bars 0.08, mean push 2.9 %, noise 32.8 dB. (2) Over all 10 pairs, compute max \|Δ\| for mean push (%), each bar (%), dead_frac (abs), tip ratio (relative) and backflow (abs), and compare with today's margins (mean 3 %, bars 8 %, dead +0.02, tip ×0.90, backflow +0.02). (3) Propose margins that a same-fan pair never trips, and say how many of your earlier real design-vs-Stock rows (r7 Task G, if you kept them) would flip to "about the same". Proposal only. | analysis, no CFD |
-| E | (optional) 29.2 UI filler: more "we say X, we do Y" tests in `tests/test_ui_says_what_it_does.py`. Proposals only. | headless tests |
-
-Task F data (`runs/stock_flow_mesh_repeats/summary.json`; bars hub→tip, Pa):
-
-| run | cell mm | CFM free/load | mean push Pa | bars Pa | dead | tip ratio | backflow | swirl | Proudman dB |
-|---|---|---|---|---|---|---|---|---|---|
-| m1 | 5.6 | 53.31/43.61 | 12.540 | 7.54, 10.13, 11.18, 13.22, 17.05 | 0.0325 | 0.954 | 0.0388 | 0.5645 | −13.7 |
-| m2 | 5.8 | 53.04/43.27 | 12.770 | 7.57, 10.17, 11.98, 13.38, 16.79 | 0.0340 | 0.846 | 0.0267 | 0.6016 | 22.2 |
-| m3 | 6.2 | 53.58/43.66 | 12.977 | 7.58, 10.08, 11.42, 14.19, 17.33 | 0.0349 | 0.946 | 0.0377 | 0.5783 | −4.7 |
-| m4 | 6.4 | 52.45/42.77 | 12.711 | 7.66, 10.17, 11.54, 13.37, 16.81 | 0.0298 | 0.891 | 0.0319 | 0.5768 | 19.4 |
-| m5 | 6.6 | 53.13/43.21 | 12.947 | 8.26, 10.42, 11.45, 13.85, 17.18 | 0.0259 | 0.983 | 0.0199 | 0.5886 | 18.2 |
-
-Our after-bake check (m2–m5 judged against m1) **failed**:
-- m3 and m5 read mean push +3.5 % / +3.3 % "harder";
-- m2 read "weak tips" (0.846 vs 0.954 × 0.90);
-- m5's hub bar read "stronger" (+9.5 %).
-
-Audit: `docs/validation/audits/2026-10-15-stock-flow-mesh-repeats-prereg.md`.
-
-Conventions are unchanged:
-- edit only this file, `docs/qa/**` and your `from-qa-14` folder;
-- pre-register before data;
-- patches are proposals;
-- no outside STLs or data committed;
-- if the box suspends, stop and mark FINAL.
-
-## ▶ Then: round 15 (queued by Claude 2026-10-17; start after round 14)
-
-The task board is now `docs/release/RELEASE_PLAN.md` (rules in `AGENTS.md`). Round 15 = board items R2.3–R2.5
-and a re-check of R0.1. Research and analysis only: no CFD, and nothing downloaded is committed.
+Rounds 14, 15 and 16-hang are **DONE**; results are below. Thank you, they were excellent. Rules: `AGENTS.md`. Board:
+`docs/release/RELEASE_PLAN.md`. Build: master after this commit; there is no bundle, so clone from the usual remote copy.
+Pre-register A–C in one commit before any data.
 
 | # | task | board |
 |---|---|---|
-| A | **Published data for counter-rotating fans or props** (small, ≤ 200 mm): P–Q curves or thrust/torque against rpm, with the geometry given well enough to model (blade count, chord, pitch or stagger, spacing). For each candidate list the URL, licence, redistributable?, geometry completeness (what is missing), and the operating range. Pick the best 1–2 and say what we would pre-register | R2.3 |
-| B | **The same for small mixed-flow fans** (40–150 mm) | R2.4 |
-| C | **The same for small centrifugal blowers / volute fans** (impeller ≤ 120 mm), ideally with impeller geometry | R2.5 |
-| D | **Re-check the 27.3e plane fix** (`fansim/cfd/flow_report.py`: `slab_centres`, `flow_report_case.blade_z_extent`; audit `docs/validation/audits/2026-10-17-push-row-planes.md`). Derive by hand where the slabs must sit for one synthetic blade row; check the code agrees, and that the mm→m and hub-exclusion steps are right. Then a synthetic swirling field: show that push measured inside a blade row tracks swirl, and outside it does not | R0.1 |
+| A | **Reference polars for prop CFD rung A** (prereg `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`). The prop builder's generic section is 6 % thick with camber 0.04; get the exact coordinates from the builder used by `scripts/audit_prop_cfd.py`. Produce C_l and C_d against α 0–10° at Re 6×10⁴, 8×10⁴ and 1.2×10⁵ from NeuralFoil and from XFOIL (Ncrit 9 and 5) if you can run it. Add the nearest **measured** low-Re polar (e.g. Selig/Lyon wind-tunnel E387 or SD-series) as a sanity anchor. Pre-register how far apart the references may be before we call the reference itself uncertain. Output: CSV + note | R2.2a |
+| B | **Digitise the two datasets you found** in r15: Shigemitsu 2018 CROR (40 mm) and EPJ WoC 180:02023 centrifugal (60 mm). Give P–Q (and efficiency if given) as CSV with a digitising uncertainty, every geometry number the paper gives, what is missing to build it, and the licence confirmed from the paper itself. Nothing downloaded is committed except your CSVs and notes, with a citation | R2.3, R2.5 |
+| C | **Numbers for R1.3 after QA-43/44.** On your 300 r16 designs: the hang-refused share if (i) the check uses 1.75 × designed hang, and (ii) the search uses the export hub (`min_hub_height`, growth below the blades), separately and together. Then say whether your r14 proposed bounds still keep refusals under ~5 % | R1.3, R1.7, R1.8 |
+| D | (when it lands) **Release export leak check:** run `scripts/export_release.py` on master after Cursor's R3.1 and grep the export for user paths, `archive/`, `memory/`, `handoff/`, `.bak`, NC data, and files over 5 MB | R3.1 |
 
-Write notes to `docs/qa/notes/r15-*.md` and a "Round 15" section below.
+Notes to `docs/qa/notes/r17-*.md`, plus a "Round 17" section below.
 
 ## Tested build
 - Source: copy of `T:\Projects\Fan Simulator` working tree, 2026-10-08 (no `.git`, so no commit hash). Linux, Python 3.12, no Docker/OpenFOAM/CFD.
@@ -152,10 +105,14 @@ Write notes to `docs/qa/notes/r15-*.md` and a "Round 15" section below.
 | QA-32 | MED | Geometry | Wrapped hub-clip stations: camber 0.005–0.011 low, stagger up to 1.1° | r9. **r10b Task C: verified closed.** 49 hanging designs / 105 stations, 0 outside 3 % / 0.005 / 1.5° (max 2.9 % / 0.0048 / 1.46°). Hang limit refuses designed > 2 mm on 400/400. |
 | QA-33 | LOW–MED | Geometry/direction | Wrapped cylinder proof INCONCLUSIVE more often | r9 30/65 vs 24/66 planar. **r10b B: 18/38 wrapped INCONCLUSIVE.** Harmless: INCONCLUSIVE never refuses. Open. |
 | QA-34 | MED | Geometry/export | Featured wrapped S5_0184: B-rep fuse is 1 solid, STL is not watertight (8 bodies, 7 degenerate faces). Planar twin is clean. `fuse_impeller` does not flag it. | r10b Task B W1/W6. **CLOSED 2026-10-14:** 7 collapsed tessellation needles (one per blade); impeller mesh was already watertight. `export_stl` → `sanitize_stl`. `docs/qa/notes/qa-34-featured-wrap-stl.md`. |
-| QA-35 | MED | Memory/27.1 | Linux remaining-growth guard under-asks open builds: S7_0172_twin (11 blades, 22.7 k faces) 2.19 GiB vs ask 2.12 GiB (1.03×, 3/3 repeats); open 9/11-blade twins at 0.91–1.03× | r12 Task B. Shrouded fine (≤ 0.80×). **fixed (pending QA)** `049b705` (Linux open refit 0.515 GiB + 82.3 KiB/face). |
-| QA-36 | MED | UI/material | Material picker PLA+ not followed by Preview grams or the Export README/nozzle/bed/print_fit/registry (all read `active_spec().material` = PETG); Assess stamp + optimizer do follow | r12 Task D; tests in from-qa-12/tests fail on HEAD. **fixed (pending QA)** `d7a23d6` (`active_spec()` carries the picked material). |
-| QA-37 | LOW | Export/28.2 | Killing the cockpit process mid-Export does not stop the isolated export worker (it keeps fusing, ~6 GB); if it dies after writing the STL, `{id}_….stl` is left with no README/sidecars and an id absent from index.jsonl | r12 Task C harness accident (Q8B8G): orphaned worker overlapped the next export and was OOM-killed (dmesg, 6.2 GB anon). **fixed (pending QA)** `5be865e` (workers exit within ~2 s of their launcher; Export staged in `.partial-*`, published when complete, print-id recorded after). |
+| QA-35 | MED | Memory/27.1 | Linux remaining-growth guard under-asks open builds: S7_0172_twin (11 blades, 22.7 k faces) 2.19 GiB vs ask 2.12 GiB (1.03×, 3/3 repeats); open 9/11-blade twins at 0.91–1.03× | r12 Task B. Shrouded fine (≤ 0.80×). **fixed (pending QA)** `049b705` (Linux open refit 0.515 GiB + 82.3 KiB/face). **VERIFIED r14 A1** (9562574): 26/26 OK, worst open 0.85, S7_0172_twin 0.826. |
+| QA-36 | MED | UI/material | Material picker PLA+ not followed by Preview grams or the Export README/nozzle/bed/print_fit/registry (all read `active_spec().material` = PETG); Assess stamp + optimizer do follow | r12 Task D; tests in from-qa-12/tests fail on HEAD. **fixed (pending QA)** `d7a23d6` (`active_spec()` carries the picked material). **VERIFIED r14 A2** for Export (README PLA+ 215/60 °C, print_fit, index) + 6/6 tests; the Preview line can't show the material (→ QA-42), and the busy-switch check (24.4) is INCONCLUSIVE. |
+| QA-37 | LOW | Export/28.2 | Killing the cockpit process mid-Export does not stop the isolated export worker (it keeps fusing, ~6 GB); if it dies after writing the STL, `{id}_….stl` is left with no README/sidecars and an id absent from index.jsonl | r12 Task C harness accident (Q8B8G): orphaned worker overlapped the next export and was OOM-killed (dmesg, 6.2 GB anon). **fixed (pending QA)** `5be865e` (workers exit within ~2 s of their launcher; Export staged in `.partial-*`, published when complete, print-id recorded after). **VERIFIED r14 A3** (worker gone 0.75 s, `.partial-*` only, index unchanged) when the launcher is reaped; zombie case → QA-41. |
 | QA-38 | LOW | UI/24.2 | At 1366×768 Simple Results, the scatter's plot body is below the fold (top at y=652, only the title visible) | r13 Task A S4 (report-only). |
+| QA-39 | LOW | CFD post/maths | `_pp_file` (and the same pattern in `sanity.py`, `timing.py`, the objectives copy) picks the "latest" postProcessing time dir by string sort, so `"1000" < "999"`. Latent today (runs write one time dir) | r14 B1(d). Sort by `float(name)`. `docs/qa/notes/maths-check-r14.md` |
+| QA-40 | LOW | UI/27.3b | Simple-mode flow card shows "No Stock comparison for noise." when the run has SWL but no Stock reference (case s3); noise was meant to be Expert-only | r14 A4. `docs/qa/notes/reverify-r14.md` |
+| QA-41 | LOW | Export/QA-37 | `watch_parent` uses `os.kill(pid, 0)`, which succeeds on a zombie: if the killed cockpit isn't reaped, the export worker keeps running (≥ 30 s seen). Files stay safe (`.partial-*`) | r14 A3 run 1 + `from-qa-14/data/a3_zombie_probe.txt`. Also exit on `os.getppid()` change or `/proc/<pid>/stat` state Z. |
+| QA-42 | LOW | UI/material | Preview line "✓ fits … (… 11 g)" doesn't say which material (or infill) it weighed; PLA+ 10.87 g and PETG 11.13 g both show "11 g", so the user can't see the picker took effect | r14 A2b1/b2. Name the material (and "20 % infill") in the line. |
 
 ## Details
 (Numbered bugs below map to QA-n.)
@@ -547,3 +504,53 @@ Prereg `02584e6`. Summary in `handoff/2026-10-14_from-qa-13/README.md`.
 - **Task B:** duplicate-after-Preview table (report only). No cached Assess on disk.
 - **Task C (23.9): M0 PASS, M1 PASS.** 1777 passed, 0 failed; no OOM in the run window. Peak RSS per chunk 5.1 / 2.9 / 6.9 GB (was 8.2 GB in one process); 45 min active time. `docs/qa/notes/pytest-chunks-r13.md`
 - **Task D:** the other tabs ignore ui_mode; Expert-only candidates listed.
+
+## Round 14 (2026-10-16/17): master 9562574, run clone `/workspace/fansim/qa/run_r14`
+Prereg `586bbe9` (`prereg/round14`; A, B, C, F). Summary in `handoff/2026-10-16_from-qa-14/README.md`.
+- **A1 (QA-35): PASS.** 26 OK pairs, 0 over the ask; worst open 0.85, S7_0172_twin 0.826 (was 1.03). → QA-35 verified.
+- **A2 (QA-36 / 24.4):** tests 6/6 PASS. Browser PLA+ Export is PLA+ everywhere (README 215/60 °C, print_fit, index).
+  The Preview line names no material, and PLA+ and PETG both round to 11 g (20 % infill) → **QA-42 (LOW, new)**.
+  The switch-during-Preview check is INCONCLUSIVE.
+- **A3 (QA-37): PASS** when the killed launcher is reaped (worker gone in 0.75 s, `.partial-*` only). If the launcher
+  is left a zombie, the worker lives on → **QA-41 (LOW, new)**.
+- **A4 (27.3b): FAIL**, "No Stock comparison for noise." in Simple mode → **QA-40 (LOW, new)**.
+- **B maths:** `_pp_file` string-sorts time dirs → **QA-39 (LOW, new)**. B5: the hang-refusal ratio (median 1.85×)
+  is explained by the loft stretching mid chord and stagger (the 2 mm limit is checked on designed chords; doc
+  note / Kimball). `docs/qa/notes/maths-check-r14.md`
+- **C (27.7):** guided bounds exclude Stock's root and mid stagger. C3 FAILS 3/80 as registered (tip stagger
+  measured at 0.99 R against the r=1.0 value; 0/80 over 1.5° on a matched radius). Proposed bounds give 4.3 %
+  refused. `docs/qa/notes/optimizer-space-wrap-r14.md`
+- **D (QA-12 data):** vendored e387 tables are shaped, not measured. NASA TM-4062 is the best source.
+  `docs/qa/notes/prop-ct0-data-sources.md`
+- **F (27.3d):** margins proposal (v3 numbers, superseded by v4). `docs/qa/notes/flow-margins-two-run-r14.md`
+
+## Round 15 (2026-10-17): master 9562574
+Prereg `336211b` (`prereg/round15`). Summary in `handoff/2026-10-17_from-qa-15/README.md`.
+- **A–C (R2.3–R2.5 data hunts):** CROR best is Shigemitsu 2018 (CC BY 4.0, 40 mm). Mixed-flow: no small CC data
+  found (85 mm Treder rig, cite-only). Centrifugal best is EPJ WoC 180:02023 (60 mm, CC BY 4.0, to confirm).
+  `docs/qa/notes/r15-data-hunt-cror-mixed-centrifugal.md`
+- **D (R0.1 / 27.3e re-check):** slab positions, mm→m and hub exclusion agree with the hand derivation (D1, D2, D4
+  PASS). The synthetic swirl field shows the push is swirl-independent outside the row (D3a FAILS as registered on
+  a grid tie and passes on a 59-cell grid). With the legacy in-row inlet slab, push falls steadily with swirl, 13.40 → 1.36 Pa at S 0 → 1.5 (D3b FAILS as
+  registered on direction: I predicted a rise). That matches the audit's symptom and supports the fix. Doc notes: stale `flow_report.py`
+  docstring, audit says 25 vs 20 cases. `docs/qa/notes/r15-push-planes-recheck.md`
+- **R3.3 install guide: NOT RUN.** The guide is not written yet. The Quickstart dry run in a fresh clone is OK.
+  `docs/qa/notes/r15-install-dry-run.md`
+
+## Round 16 hang (2026-10-17): master 9562574, run clone `/workspace/fansim/qa/run_r16`
+Prereg `52eca5f` (`prereg/round16-hang`). Note `docs/qa/notes/hang-investigation-r16.md`; data
+`handoff/2026-10-17_from-qa-16-hang/`.
+- **QA-43 (MED, new) Geometry/validator:** the 2 mm hang limit is checked on designed geometry. The chord fixed point
+  measures the clipped blade and refills the clipped chord, which drops the TE by half the clip again: built hang =
+  1.75 × designed in 2 iterations (measured median 1.77, n = 140). On 300 CAD designs, 50 of the 123 cut deeper than
+  2 mm pass the validator. Proposal: validate on 1.75 × designed (no-CAD, 100 % sensitivity and 1–2 % false refusals on
+  feature-free designs), or on the cached realised loft. Alternatively, stop compensating for chord the clip removes on
+  purpose (weigh this against QA-30).
+- **QA-44 (MED, new) Optimizer vs Export hub:** the optimizer and CFD validate and score with the auto hub (often
+  < 15 mm), while a12x25 Export and cup Preview grow it to 15 mm symmetrically. The clip plane moves by up to 3.3 mm.
+  54/141 designs refused at the auto hub pass at the export hub, and 171/291 allowed hanging designs print with a TE
+  different from the one scored (118 are not cut at all). Proposal: apply min_hub_height in the search, with the growth
+  placed below the blades (blade_hub_z = +Δh/2).
+- **QA-45 (LOW, new) Cup carve message:** with hub r 19.4 < 20.7 (S8_0056), `build_impeller_with_mount` raises "did
+  not join into one solid (3 separate pieces)" both with and without the hang fix, instead of the plain "hub radius too
+  small" message other undersized hubs get.

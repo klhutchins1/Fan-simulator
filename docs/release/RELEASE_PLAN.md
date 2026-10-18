@@ -49,11 +49,16 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     `scripts/design_flow_mesh_repeats.py --analyze` on v4 (no CFD).
   - Apply the 27.3b rule: 2σ, never tighten, stop lines 0.15 / 3 dB.
   - Kimball approves any constant change in `fansim/cfd/flow_verdicts.py`.
-- **R0.3 "Too close to call" state (27.3d)**. Lane: Cursor, from Claude's spec. CPU: day. Status: `blocked (R0.2)`.
-  - A row whose design-vs-Stock difference is within the two-run mesh scatter shows "too close to call" (–), not
-    ✓ or ⚠.
-  - Scatter = √2 × the 2σ of Stock's five-mesh runs, per metric (spec to be written by Claude in R0.2's output).
-  - Tests: one synthetic case per row; the 27.3d cases m1–m5 must give no flipping verdicts.
+- **R0.3 "Too close to call" state (27.3d)**. Lane: Cursor, from Claude's spec. CPU: day.
+  Status: `needs Kimball`. Branch: `too-close-r03`.
+  - Landed: compared rows inside CLOSE (`√2 × 2σ`, never-tighten) show "Too close to call" (–). Synthetics C1/C2
+    PASS. Audit: `docs/validation/audits/2026-10-17-too-close-to-call-prereg.md`.
+  - **C3 FAIL:** 9604 direction and 9610 direction/push/spin still flip across m1–m5. Do we size CLOSE from those
+    paired |Δ| instead, or accept the residual flips?
+  - **Claude review 2026-10-17: approve the code.** The rule matches the prereg, and C3 was recorded honestly.
+    Recommendation: accept the residual flips. Design-minus-Stock pairs scatter more than √2 × Stock's own 2σ (9610 push
+    paired 2σ ≈ 10 %), but sizing CLOSE from them would hide 9610's real backflow, and any line flips for cases that
+    sit on it. Merge once Kimball agrees; Cursor runs the fast suite first.
 - **R0.4 Noise hint review (27.3c)**. Lane: Claude. CPU: day. Status: `ready`.
   - Cursor's tip-speed + CFM hint (`fansim/acoustics/tip_loading.py`) only varies with CFM, because rpm and tip
     radius are fixed for a12x25. As written, a fan that moves more air reads "louder".
@@ -73,7 +78,30 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Make sure the UI and README never quote a number above the validated range. Add a test that the P–Q display
     stops at the last converged point.
 - **R1.3 Optimizer space under wrap (27.7)**. Lane: grok data (round 14 Task C), Cursor implements, Claude reviews.
-  CPU: day for the bounds, night for any re-find campaign. Status: `blocked (grok r14 C)`.
+  CPU: day for the bounds, night for any re-find campaign. Status: `blocked (R1.7, R1.8)`. grok r14 C delivered 2026-10-17
+  (`docs/qa/notes/optimizer-space-wrap-r14.md`; proposed bounds give 4.3 % refused). The refused share depends on the hub
+  (R1.7) and the hang check (R1.8), so re-measure after both.
+- **R1.7 QA-44: the optimizer scores a different hub than Export prints**. Lane: Cursor. CPU: day. Status: `ready`.
+  - grok r16: the optimizer and Assess use the auto hub (often < 15 mm), while a12x25 Export and the cup Preview grow it
+    to 15 mm, moving the clip plane by up to 3.3 mm. 54/141 refused designs would pass, and 171/291 hanging designs print
+    with a different trailing edge from the one scored.
+  - Fix: one hub height for validate, score and export. Apply `min_hub_height` in the search, with the growth below the
+    blades (`blade_hub_z = +Δh/2`, grok's proposal).
+  - Test: for grok's cases in `handoff/2026-10-17_from-qa-16-hang/data/`, the hub used by `validate_blade_params`, the
+    CFD build and `do_export` is identical.
+  - Old saved designs are disposable: mark them stale, don't migrate them.
+- **R1.8 QA-43: the 2 mm hang limit is checked on the designed blade; the built blade hangs about 1.75× more**.
+  Lane: Claude, after Kimball. CPU: day. Status: `needs Kimball`.
+  - Question: is 2 mm meant for the **printed** blade? If yes, check `blade_hang_below_hub_mm × 1.75` (grok: 100 %
+    sensitivity, 1–2 % false refusals) or the cached realised loft.
+  - Note: the 1.6× ratio was known when 2 mm was set (2026-10-13). grok now explains it (chord refill after the clip)
+    and measures 1.75×.
+- **R1.9 Small QA fixes**. Lane: Cursor. CPU: day. Status: `ready`. One branch, one test each:
+  - QA-39: sort postProcessing time dirs numerically (`_pp_file`, `sanity.py`, `timing.py`, the objectives copy);
+  - QA-40: no noise text in Simple mode when there is no Stock reference;
+  - QA-41: `watch_parent` must treat a zombie or exited launcher as gone (not `os.kill(pid, 0)` alone on Linux);
+  - QA-42: the Preview weight line names the material and infill ("11 g PLA+, 20 % infill");
+  - QA-45: undersized cup hub gives the plain "hub radius too small" message.
 - **R1.4 Stock recipe gap**. Lane: Claude. CPU: day. Status: `ready`.
   - Stock v3 is 55.7 CFM against 58.3 for the reference STL (−4.5 %).
   - Either close the gap or state it in the UI and README as the recipe's known limit. Decide with Kimball.
@@ -114,12 +142,18 @@ Kimball's.
   - **R2.2c 3-D transition (rung C)** and **R2.2d domain size (rung D)**: `blocked` on Claude's ruling from A and B.
     - Claude: read R2.2a and R2.2b's results against the prereg rules, record the ruling there, and unblock C or D.
 - **R2.3 CROR**: direction proof only.
-  - Lane: grok data hunt for small counter-rotating fan or prop P–Q / thrust data. Status: `ready` (grok round 15).
+  - Lane: grok data hunt for small counter-rotating fan or prop P–Q / thrust data. Status: `done (grok r15 hunt, 2026-10-17)`; see `docs/qa/notes/r15-data-hunt-cror-mixed-centrifugal.md`.
+- **R2.3 next: pre-register CROR against Shigemitsu 2018** (CC BY 4.0, 40 mm). Lane: Claude. Status: `ready`.
+  Then grok digitises the curves, Cursor builds the case, and night runs it.
 - **R2.4 Mixed-flow**: no published comparison.
-  - Lane: grok data hunt for mixed-flow fan curves at small diameter. Status: `ready` (grok round 15).
+  - grok r15: no small CC-licensed mixed-flow data. The 85 mm Treder rig is cite-only. Status: `needs Kimball`: label the
+    Mixed tab "experimental, not validated", or hide it for v0.1.0?
+  - Lane: grok data hunt for mixed-flow fan curves at small diameter. Status: `done (grok r15 hunt, 2026-10-17)`; same note.
 - **R2.5 Volute / centrifugal**: CFD is unconverged (17–23 % oscillation), a ±20 % proxy.
-  - Lane: grok data hunt for a small centrifugal blower curve. Claude decides converge-or-label. Status: `ready`
-    (grok round 15).
+  - Lane: grok data hunt for a small centrifugal blower curve. Claude decides converge-or-label. Status: hunt `done (grok r15,
+    2026-10-17)`, same note; converge-or-label still with Claude.
+- **R2.5 next: pre-register volute/centrifugal against EPJ WoC 180:02023** (60 mm, CC BY 4.0 to confirm), including a
+  convergence fix for the 17–23 % oscillation. Lane: Claude. Status: `ready`.
 - **R2.6 Centrifugal (no tab) and wind turbine (scaffold)**: excluded from v0.1.0.
   - Lane: Cursor makes sure neither is reachable from the cockpit or the README quickstart. Status: `ready`.
 
@@ -136,7 +170,7 @@ Kimball's.
 - **R3.3 Install guide**. Lane: Cursor. CPU: day. Status: `ready`.
   - A README install section for Windows and Linux: uv, Docker Desktop / Engine, `docker pull opencfd/openfoam-default:2406`,
     the first Assess, and troubleshooting (WSL2 memory, Docker not running).
-  - Test: grok round 15 follows it on a clean Linux box.
+  - Test: grok round 15 follows it on a clean Linux box. r15: NOT RUN (no guide yet); `docs/qa/notes/r15-install-dry-run.md`.
 - **R3.4 Docker/OpenFOAM readiness badge and first-run check (21.2g)**. Lane: Cursor. CPU: day. Status: `ready`.
   - The cockpit shows "CFD ready / Docker not running / image missing" with the fix in plain words.
 - **R3.5 GitHub Actions CI**. Lane: Cursor. CPU: none (cloud). Status: `ready`.

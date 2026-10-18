@@ -1,0 +1,19 @@
+chord_root      S1 +0.154  ST 0.387
+sweep_tip       S1 +0.047  ST 0.359
+sweep_mid       S1 +0.121  ST 0.315
+chord_mid       S1 -0.000  ST 0.215
+stagger_root    S1 +0.055  ST 0.149
+stagger_tip     S1 +0.077  ST 0.149
+stagger_mid     S1 -0.029  ST 0.085
+chord_tip       S1 +0.042  ST 0.085
+camber_pos      S1 -0.000  ST 0.000
+max_camber      S1 +0.000  ST 0.000
+thickness_root  S1 -0.000  ST 0.000
+n_blades        S1 +0.000  ST 0.000
+lean_mid        S1 +0.000  ST 0.000
+lean_tip        S1 +0.000  ST 0.000
+hub_radius      S1 +0.000  ST 0.000
+tip_radius      S1 +0.000  ST 0.000
+thickness_mid   S1 +0.000  ST 0.000
+thickness_tip   S1 +0.000  ST 0.000
+sum S1 0.466 frac hang 0.1328125 over2 0.025390625 73.7 s

@@ -1,0 +1,2 @@
+unreaped: Z (zombie) parent_alive -> True
+reaped: parent_alive -> False
