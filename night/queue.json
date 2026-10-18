@@ -1,0 +1,14 @@
+{
+ "about": "Night jobs for scripts/night_queue.py (AGENTS.md rule 2). Add a job here, on master, to run it the next night at 00:30. Set status to done/failed with a note after reading its log in runs/night/<date>/.",
+ "jobs": [
+  {"id": "suite-too-close-r03-c1", "branch": "too-close-r03", "max_hours": 1.5, "status": "queued",
+   "why": "R0.3 merge gate (Kimball approved 2026-10-17)",
+   "cmd": ["python", "scripts/pytest_chunks.py", "--chunks", "3", "--chunk", "0", "--", "-m", "not docker and not slow", "-q", "--tb=line"]},
+  {"id": "suite-too-close-r03-c2", "branch": "too-close-r03", "max_hours": 1.5, "status": "queued",
+   "why": "R0.3 merge gate",
+   "cmd": ["python", "scripts/pytest_chunks.py", "--chunks", "3", "--chunk", "1", "--", "-m", "not docker and not slow", "-q", "--tb=line"]},
+  {"id": "suite-too-close-r03-c3", "branch": "too-close-r03", "max_hours": 1.5, "status": "queued",
+   "why": "R0.3 merge gate",
+   "cmd": ["python", "scripts/pytest_chunks.py", "--chunks", "3", "--chunk", "2", "--", "-m", "not docker and not slow", "-q", "--tb=line"]}
+ ]
+}
