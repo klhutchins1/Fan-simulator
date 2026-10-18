@@ -156,8 +156,13 @@ Kimball's.
     - Claude: read R2.2a and R2.2b's results against the prereg rules, record the ruling there, and unblock C or D.
 - **R2.3 CROR**: direction proof only.
   - Lane: grok data hunt for small counter-rotating fan or prop P–Q / thrust data. Status: `done (grok r15 hunt, 2026-10-17)`; see `docs/qa/notes/r15-data-hunt-cror-mixed-centrifugal.md`.
-- **R2.3 next: pre-register CROR against Shigemitsu 2018** (CC BY 4.0, 40 mm). Lane: Claude. Status: `ready`.
-  Then grok digitises the curves, Cursor builds the case, and night runs it.
+- **R2.3 CROR against Shigemitsu 2018** (CC BY 4.0, 40 mm). Pre-registered:
+  `docs/validation/audits/2026-10-18-cror-centrifugal-validation-prereg.md`.
+  - **R2.3a geometry freeze + case script.** Lane: Cursor. CPU: day for the build. Status: `blocked (grok r17 B)`.
+    - Follow step 0 exactly; fill missing values only by the stated rules.
+    - Commit `validation/reference/cror_shigemitsu2018/geometry.json` + STL (that commit is the freeze), then
+      `scripts/validate_cror_shigemitsu.py`.
+  - **R2.3b runs.** Lane: night. Status: `blocked (R2.3a)`. Add the job to `night/queue.json`.
 - **R2.4 Mixed-flow**: no published comparison.
   - grok r15: no small CC-licensed mixed-flow data. The 85 mm Treder rig is cite-only.
   - **Kimball 2026-10-17: label it experimental.** Lane: Cursor. CPU: day. Status: `ready`.
@@ -168,8 +173,13 @@ Kimball's.
 - **R2.5 Volute / centrifugal**: CFD is unconverged (17–23 % oscillation), a ±20 % proxy.
   - Lane: grok data hunt for a small centrifugal blower curve. Claude decides converge-or-label. Status: hunt `done (grok r15,
     2026-10-17)`, same note; converge-or-label still with Claude.
-- **R2.5 next: pre-register volute/centrifugal against EPJ WoC 180:02023** (60 mm, CC BY 4.0 to confirm), including a
-  convergence fix for the 17–23 % oscillation. Lane: Claude. Status: `ready`.
+- **R2.5 Volute/centrifugal against EPJ WoC 180:02023** (60 mm). Pre-registered: same document.
+  - **R2.5a convergence fix.** Lane: Cursor. CPU: day for short tests, night for full runs. Status: `ready`.
+    - Get the existing volute case to ≤ 5 % peak-to-peak ΔP over the last 20 % of iterations (step 1).
+    - Judge it **only** on convergence, never against the paper.
+  - **R2.5b geometry freeze + case script.** Lane: Cursor. Status: `blocked (grok r17 B)`.
+    - Step 0, then `validation/reference/volute_epj2018/geometry.json` and `scripts/validate_volute_epj.py`.
+  - **R2.5c runs.** Lane: night. Status: `blocked (R2.5a, R2.5b)`.
 - **R2.6 Centrifugal (no tab) and wind turbine (scaffold)**: excluded from v0.1.0.
   - Lane: Cursor makes sure neither is reachable from the cockpit or the README quickstart. Status: `ready`.
 
