@@ -63,7 +63,15 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     Recommendation: accept the residual flips. Design-minus-Stock pairs scatter more than √2 × Stock's own 2σ (9610 push
     paired 2σ ≈ 10 %), but sizing CLOSE from them would hide 9610's real backflow, and any line flips for cases that
     sit on it. Merge once Kimball agrees; Cursor runs the fast suite first.
-- **R0.4 Noise hint review (27.3c)**. Lane: Claude. CPU: day. Status: `ready`.
+- **R0.4 Noise hint review (27.3c)**. Lane: Claude ruled, Cursor implements. CPU: day. Status: `ready` (ruling below).
+  - **Ruling (Claude 2026-10-17):** stop *judging* the hint.
+    - At fixed rpm and tip radius, L = 55 log U_tip + 10 log CFM differs between designs only through CFM. So
+      "louder" just restates "moves more air", which is the standard fan-law result at equal pressure, and it can never
+      show a design that is quieter for the same flow.
+    - There is no validated design-sensitive noise estimate yet (FW-H needs transient CFD, roadmap 1.4).
+    - Change: the noise row is never ✓/⚠/better. Expert shows the hint number with "scales with tip speed and airflow
+      only; not a comparison of how quiet the design is". The README claims no noise comparison for v0.1.0.
+    - Test: a design with more CFM gets no ⚠ on noise.
   - Cursor's tip-speed + CFM hint (`fansim/acoustics/tip_loading.py`) only varies with CFM, because rpm and tip
     radius are fixed for a12x25. As written, a fan that moves more air reads "louder".
   - Decide: keep it as Expert-only information, or replace it with a loading-based estimate. Test the candidates
@@ -71,12 +79,16 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
 
 ## M1: Axial validated
 
-- **R1.1 Second published axial case: lt120 (roadmap 25.7)**. Lane: Claude pre-registers, Cursor builds the case,
-  night runs it. CPU: night. Status: `ready` for the pre-registration.
-  - Data: `docs/qa/benchmarks/lt120/`.
-  - Pre-register the tolerance (suggested: the same ±5 % CFM band as the A12x25 reference) before building.
-  - Note: lt120 is refused by the 2 mm hub-hang limit as a *recipe*. Validate the published geometry as an
-    external STL, not through the recipe.
+- **R1.1 Second published axial case: lt120 (roadmap 25.7)**. Pre-registered:
+  `docs/validation/audits/2026-10-18-lt120-validation-prereg.md`.
+  - **R1.1a reference build + freeze + script.** Lane: Cursor. CPU: day. Status: `ready`.
+    - `reference_build=True` skips only the print-hang check, with a test proving that.
+    - Wrapped build from `docs/qa/benchmarks/lt120/geometry.json`, a cylinder-cut check against the table, and the
+      freeze commit.
+    - `scripts/validate_lt120.py` runs fixed back-pressure points at 6.85 / 13.71 / 14.69 / 17.14 Pa on meshes 5.8 and
+      6.2 mm, resumes finished points, and writes `runs/lt120/summary.json`.
+    - Then add the night job (about 6 h).
+  - **R1.1b verdict.** Lane: Claude. Status: `blocked (R1.1a + night run)`.
 - **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `ready`.
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
   - Make sure the UI and README never quote a number above the validated range. Add a test that the P–Q display
