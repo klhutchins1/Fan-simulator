@@ -1,0 +1,59 @@
+S7_0023 OK 41.1
+S7_0023_twin OK 28.2
+S7_0102 OK 39.4
+S7_0102_twin OK 20.3
+S7_0128 OK 51.6
+S7_0128_twin OK 26.2
+S7_0172 OK 60.8
+S7_0172_twin OK 33.8
+S7_0007 OK 30.4
+S7_0007_twin OK 17.6
+S7_0094 OK 39.2
+S7_0094_twin OK 21.3
+S7_0097 ERR 15.6
+S7_0097_twin ERR 15.6
+S7_0197 OK 61.6
+S7_0197_twin OK 34.5
+S7_0010 OK 30.9
+S7_0010_twin OK 17.9
+S7_0059 OK 41.0
+S7_0059_twin OK 21.4
+S7_0121 OK 50.5
+S7_0121_twin OK 25.2
+S7_0188 OK 59.8
+S7_0188_twin OK 28.7
+S2_0126 OK 21.8
+S1_0399 OK 16.9
+S5_0269 OK 79.7
+S5_0223 OK 106.4
+DONE
+{'n': 28, 'ids_match_r9': True, 'n_paired_ok': 26, 'n_fail': 0, 'max_ratio': 0.85, 'no_pair': [], 'not_ok': ['S7_0097', 'S7_0097_twin'], 'PASS': True}
+S7_0023 shrouded 10252 1.163 2.259 0.515 True
+S7_0023_twin twin 10248 0.783 1.517 0.516 None
+S7_0102 shrouded 14469 1.778 2.945 0.604 True
+S7_0102_twin twin 14465 1.219 1.898 0.643 None
+S7_0128 shrouded 18610 2.323 3.619 0.642 True
+S7_0128_twin twin 18606 1.633 2.272 0.719 None
+S7_0172 shrouded 22733 2.973 4.289 0.693 True
+S7_0172_twin twin 22729 2.185 2.644 0.826 None
+S7_0007 shrouded 10337 1.139 2.273 0.501 True
+S7_0007_twin twin 10333 0.832 1.525 0.545 None
+S7_0094 shrouded 14469 1.641 2.945 0.557 True
+S7_0094_twin twin 14465 1.261 1.898 0.665 None
+S7_0097 shrouded None None None None None
+S7_0097_twin twin None None None None None
+S7_0197 shrouded 22689 2.75 4.282 0.642 True
+S7_0197_twin twin 22685 2.001 2.64 0.758 None
+S7_0010 shrouded 10337 1.088 2.273 0.479 True
+S7_0010_twin twin 10333 0.847 1.525 0.556 None
+S7_0059 shrouded 14469 1.729 2.945 0.587 True
+S7_0059_twin twin 14465 1.3 1.898 0.685 None
+S7_0121 shrouded 18601 1.83 3.617 0.506 True
+S7_0121_twin twin 18597 1.622 2.271 0.714 None
+S7_0188 shrouded 22733 3.002 4.289 0.7 True
+S7_0188_twin twin 22729 1.989 2.644 0.753 None
+S2_0126 control 14465 1.235 1.898 0.651 None
+S1_0399 control 10333 0.826 1.525 0.541 None
+S5_0269 control 31603 2.244 3.445 0.651 None
+S5_0223 control 86342 7.128 8.386 0.85 None
+CHAIN_DONE

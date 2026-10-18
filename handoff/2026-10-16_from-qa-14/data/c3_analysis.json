@@ -1,0 +1,45 @@
+{
+ "n_designs": 40,
+ "n_built": 40,
+ "build_errors": [],
+ "n_stations": 80,
+ "n_readable": 80,
+ "unreadable": [],
+ "n_none_total": 40,
+ "max_abs": {
+  "chord_err": 0.02073207444064351,
+  "camber_gap_net": 0.0020099511607508808,
+  "stagger_err": 2.14716742367316
+ },
+ "n_hanging_designs": 5,
+ "outside": [
+  {
+   "i": 6,
+   "k": 2,
+   "r_frac": 1.0,
+   "chord_err": 0.00030582425977132566,
+   "camber_gap_net": -0.0006780614752802776,
+   "stagger_err": 1.6798392684750496,
+   "hang": 0.0
+  },
+  {
+   "i": 10,
+   "k": 2,
+   "r_frac": 1.0,
+   "chord_err": 0.00020646217604691763,
+   "camber_gap_net": -0.00032660545017405146,
+   "stagger_err": 1.5819692839747574,
+   "hang": 0.0
+  },
+  {
+   "i": 41,
+   "k": 2,
+   "r_frac": 1.0,
+   "chord_err": -0.001692462592433941,
+   "camber_gap_net": -0.0009461681127434646,
+   "stagger_err": 2.14716742367316,
+   "hang": 0.41318726641549297
+  }
+ ],
+ "PASS": false
+}
