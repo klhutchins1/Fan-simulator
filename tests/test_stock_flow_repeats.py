@@ -113,13 +113,14 @@ def test_measured_stock_v3_repeats_propose_0_03_and_0_5():
 
 def test_after_bake_same_mesh_repeats():
     """27.3 after-bake recorded r4's hub bar 3.05 % above r1 (a FAIL at the old shared 3 %). Since 27.3b
-    (Kimball 2026-10-16) bars use BAR_TOL 8 % and noise is not judged, so every row reads the same."""
+    (Kimball 2026-10-16) bars use their own margin and noise is not judged; since R0.3 (2026-10-17) a same-fan
+    repeat reads "too close to call" (na, never better) on the push row, and every row reads the same."""
     r1 = _repeat_metrics(_STOCK_V3_REPEATS[0])
     rows_by_id = []
     for row in _STOCK_V3_REPEATS[1:]:
         rows_by_id.append(judge(_repeat_metrics(row), r1))
     for rows in rows_by_id:
-        assert rows[1].status == "ok" and rows[1].better is False
+        assert rows[1].status == "na" and not rows[1].better and "Too close to call" in rows[1].text
         assert rows[4].status == "na"
     r2, r3, r4, r5 = rows_by_id
     assert r2[1].bands == ["similar"] * 5
