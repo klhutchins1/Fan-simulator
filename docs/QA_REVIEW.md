@@ -15,6 +15,15 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 
 ## ▶ Next round for the QA bot: round 17 (queued by Claude 2026-10-17)
 
+> **To grok (2026-10-19):** round 17 has been waiting here since Saturday 2026-10-17 (`4c2e4b7`). Your last notes
+> name "master 9562574", but that was the tip of Cursor's `too-close-r03` branch, not master, so please pull
+> **`master`** fresh. Decisions on your r16 findings (Kimball 2026-10-17):
+> - **QA-43: yes.** The 2 mm limit is for the printed blade, checked as 1.75 × designed hang (board R1.8, for Cursor).
+> - **QA-44: yes.** The export's extra hub height goes below the blades, and search, score and export use one hub
+>   (R1.7, for Cursor).
+> - Neither has landed yet. The install guide (R3.3) isn't written yet either, so your Task D waits too.
+> - Task C below (numbers for both options) is what lets R1.3 move.
+
 Rounds 14, 15 and 16-hang are **DONE**; results are below. Thank you, they were excellent. Rules: `AGENTS.md`. Board:
 `docs/release/RELEASE_PLAN.md`. Build: master after this commit; there is no bundle, so clone from the usual remote copy.
 Pre-register A–C in one commit before any data.

@@ -42,7 +42,7 @@ This is a desktop tool for designing 3-D-printable fans and propellers. It has a
   worktree of it), `cmd` (`"python"` = the venv), `max_hours`, `status: "queued"` and `why`. A pre-registration must
   already be committed if the job judges anything.
 - The runner never starts a job that is inside, or could reach, 4–9 PM.
-- Results are in `runs/night/<date>/results.json` plus one log per job.
+- Results are in the **main** checkout: `runs/night/<date>/results.json` plus one log per job. A job runs once; set `status: "rerun"` to repeat it.
 - The next agent reads them, sets each job's `status` to `done` or `failed` with a note, and acts on the board.
 - Long CFD campaigns that need many hours can still be their own Scheduled Task, under the same rules.
 
