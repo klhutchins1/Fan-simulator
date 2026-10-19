@@ -32,3 +32,20 @@ def test_never_into_the_peak_window():
 def test_python_means_this_venv():
     assert nq.resolve_cmd(["python", "-V"])[0] == sys.executable
     assert nq.resolve_cmd(["git", "python"]) == ["git", "python"]
+
+
+def test_a_finished_job_is_not_run_again():
+    job = {"id": "a", "cmd": ["python", "-V"], "status": "queued"}
+    done = {}
+    assert nq.should_run(job, done)
+    nq.mark_ran(done, job, "exit 0", "2026-10-18")
+    assert not nq.should_run(job, done)                       # same spec: skipped the next night
+    assert nq.should_run({**job, "cmd": ["python", "-c", "1"]}, done)   # changed spec runs again
+    assert nq.should_run({**job, "status": "rerun"}, done)    # explicit rerun
+    assert not nq.should_run({**job, "status": "done"}, done)
+
+
+def test_results_go_to_the_main_checkout():
+    out = nq.results_root()
+    assert out.name == "night" and out.parent.name == "runs"
+    assert "fansim-night" not in str(out)
