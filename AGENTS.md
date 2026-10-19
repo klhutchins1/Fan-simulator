@@ -66,7 +66,7 @@ This is a desktop tool for designing 3-D-printable fans and propellers. It has a
 |---|---|---|
 | **Claude** | physics/maths judgment, pre-registrations, reviewing physics changes, rulings | scarce: runs out early in the week, so keep it for judgment |
 | **Cursor** | implementation from a written brief, refactors, packaging, docs, CI, UI tests | plentiful |
-| **grok (QA bot)** | independent re-derivations, data hunts, clean-clone install tests on Linux, long test rounds; edits only `docs/QA_REVIEW.md`, `docs/qa/**` and its `handoff/*from-qa*` folder | plentiful; reads its queue from the "▶ Next round" section of `docs/QA_REVIEW.md` |
+| **grok (QA bot)** | independent re-derivations, data hunts, clean-clone install tests on Linux, long test rounds; edits only `docs/QA_REVIEW.md`, `docs/qa/**` and its `handoff/*from-qa*` folder | plentiful. **It works on a delivered copy, not this folder:** a round reaches it only as `handoff/<date>_to-qa-<n>/` (`CLAUDE_TO_QA.md` + a fresh `git bundle create … master`), which Kimball sends. Also put the same tasks in the "▶ Next round" section of `docs/QA_REVIEW.md` |
 | **night** | CFD campaigns and heavy builds as Scheduled Tasks (rule 2) | free between 9 PM and 4 PM |
 
 A task can move lanes. If Claude is out of tokens, Cursor may take a Claude-lane task **only when** the task's brief
