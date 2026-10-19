@@ -50,11 +50,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Apply the 27.3b rule: 2σ, never tighten, stop lines 0.15 / 3 dB.
   - Kimball approves any constant change in `fansim/cfd/flow_verdicts.py`.
 - **R0.3 "Too close to call" state (27.3d)**. Lane: Cursor, from Claude's spec. CPU: day.
-  Status: `ready to merge after the night suite` (Kimball 2026-10-17: accept the residual flips). Branch: `too-close-r03`.
-  - Merge gate: night jobs `suite-too-close-r03-c1..c3` (`night/queue.json`, 2026-10-18 00:30).
-  - Next agent: read `runs/night/2026-10-18/results.json` and the logs. Exit 127 after a "N passed, 0 failed" line is the
-    known teardown crash (R3.5b), so that counts as a pass. If green, merge `--no-ff` to master, set the night jobs to
-    `done`, and mark R0.3 `done`.
+  Status: `done` (merged 2026-10-19; night suite c1/c3 green, c2 had one stale test fixed and re-run green).
   - Landed: compared rows inside CLOSE (`√2 × 2σ`, never-tighten) show "Too close to call" (–). Synthetics C1/C2
     PASS. Audit: `docs/validation/audits/2026-10-17-too-close-to-call-prereg.md`.
   - **C3 FAIL:** 9604 direction and 9610 direction/push/spin still flip across m1–m5. Do we size CLOSE from those

@@ -19,6 +19,12 @@ BAR_TOL = 0.12   # single bars (was 0.08 at v3 planes)
 SWIRL_FACTOR = 1.10
 DEAD_MARGIN = 0.02
 TIP_FACTOR = 0.90
+# R0.3: two-run scatter = max(existing margin, ceil(√2 × 2σ)) on v4 Stock meshes.
+CLOSE_BAND = 0.08          # mean push, relative
+CLOSE_BACKFLOW = 0.02      # abs
+CLOSE_SWIRL_REL = 0.10     # never tighten the 1.10 factor
+CLOSE_DEAD = 0.02          # abs, never tighten
+CLOSE_TIP_REL = 0.15       # tip/mean Uz, relative
 NOISE_MARGIN_DB = 0.5  # 2σ floor of the same five repeats; was 2.8 dB from that pair.
 # Proudman is NOT judged (Kimball 2026-10-16): Stock alone read -13.7..+22.2 dB across five meshes (27.3b).
 NOISE_JUDGED = False
@@ -59,11 +65,12 @@ def _direction(d: FlowMetrics, s: FlowMetrics | None) -> RowVerdict:
     if s is None:
         return _row("direction", "ok",
                     f"Air leaves out the back. {_pct(d.backflow_frac)} of the fan face flows backwards.")
-    ok = d.backflow_frac <= s.backflow_frac + BACKFLOW_MARGIN + 1e-12
+    delta = d.backflow_frac - s.backflow_frac
     text = (f"{_pct(d.backflow_frac)} of the fan face flows backwards "
             f"(Stock {_pct(s.backflow_frac)}). Less is better.")
-    return _row("direction", "ok" if ok else "warn", text,
-                better=d.backflow_frac < s.backflow_frac - BACKFLOW_MARGIN)
+    if abs(delta) <= CLOSE_BACKFLOW + 1e-12:
+        return _row("direction", "na", f"Too close to call. {text}")
+    return _row("direction", "ok" if delta < 0 else "warn", text, better=delta < 0)
 
 
 def _band_labels(d, s):
@@ -96,35 +103,48 @@ def _push(d, s):
     if _bad(a) or _bad(b) or b <= 0:
         return _row("push", "na", "Couldn't compare the overall push with Stock.", bands=labels)
     vs = f"({a:.1f} vs {b:.1f} Pa). {BARS_NOTE}"
-    if a > b * (1 + BAND_TOL):
-        return _row("push", "ok", f"Pushes about {_pct(a / b - 1)} harder than Stock overall {vs}",
+    rel = a / b - 1.0
+    if abs(rel) <= CLOSE_BAND + 1e-12:
+        return _row("push", "na", f"Too close to call. {vs}", bands=labels)
+    if rel > 0:
+        return _row("push", "ok", f"Pushes about {_pct(rel)} harder than Stock overall {vs}",
                     better=True, bands=labels)
-    if a < b * (1 - BAND_TOL):
-        return _row("push", "warn", f"Pushes about {_pct(1 - a / b)} less than Stock overall {vs}",
-                    better=False, bands=labels)
-    return _row("push", "ok", f"Pushes about as hard as Stock overall {vs}", better=False, bands=labels)
+    return _row("push", "warn", f"Pushes about {_pct(-rel)} less than Stock overall {vs}",
+                better=False, bands=labels)
 
 
 def _spin(d, s):
     if s is None or _bad(d.swirl_frac) or _bad(s.swirl_frac):
         return _row("spin", "na", "Couldn't compare the spin in the outgoing air.")
-    ok = d.swirl_frac <= s.swirl_frac * SWIRL_FACTOR + 1e-12
     text = (f"{_pct(d.swirl_frac)} of the outgoing air's energy is spin instead of forward flow "
             f"(Stock {_pct(s.swirl_frac)}). Less is better.")
-    return _row("spin", "ok" if ok else "warn", text, better=d.swirl_frac < s.swirl_frac / SWIRL_FACTOR)
+    if s.swirl_frac <= 0:
+        return _row("spin", "na", text)
+    rel = d.swirl_frac / s.swirl_frac - 1.0
+    if abs(rel) <= CLOSE_SWIRL_REL + 1e-12:
+        return _row("spin", "na", f"Too close to call. {text}")
+    return _row("spin", "ok" if rel < 0 else "warn", text, better=rel < 0)
 
 
 def _dead(d, s):
     vals = (d.dead_frac, d.tip_band_uz_ratio)
     if s is None or any(_bad(v) for v in vals) or _bad(s.dead_frac) or _bad(s.tip_band_uz_ratio):
         return _row("dead", "na", "Couldn't compare dead or blocked air.")
-    dead_ok = d.dead_frac <= s.dead_frac + DEAD_MARGIN + 1e-12
-    tip_ok = d.tip_band_uz_ratio >= s.tip_band_uz_ratio * TIP_FACTOR - 1e-12
     bits = [f"{_pct(d.dead_frac)} of the fan face has air that barely moves (Stock {_pct(s.dead_frac)})."]
-    if not tip_ok:
+    dead_delta = d.dead_frac - s.dead_frac
+    tip_rel = (d.tip_band_uz_ratio / s.tip_band_uz_ratio - 1.0) if s.tip_band_uz_ratio > 0 else 0.0
+    worse_dead = dead_delta > CLOSE_DEAD + 1e-12
+    worse_tip = tip_rel < -CLOSE_TIP_REL - 1e-12
+    better_dead = dead_delta < -CLOSE_DEAD - 1e-12
+    better_tip = tip_rel > CLOSE_TIP_REL + 1e-12
+    if worse_tip:
         bits.append("Air near the blade tips is weak: likely leaking round the tips.")
-    return _row("dead", "ok" if dead_ok and tip_ok else "warn", " ".join(bits),
-                better=d.dead_frac < s.dead_frac - DEAD_MARGIN and tip_ok)
+    extra = " ".join(bits)
+    if worse_dead or worse_tip:
+        return _row("dead", "warn", extra, better=False)
+    if better_dead or better_tip:
+        return _row("dead", "ok", extra, better=True)
+    return _row("dead", "na", f"Too close to call. {extra}")
 
 
 def _noise(d, s):
