@@ -6,7 +6,8 @@ Jobs live in ``night/queue.json`` (tracked, so any agent can add one):
                "cmd": ["python", "scripts/pytest_chunks.py", "--chunks", "3", "--chunk", "0", "--", "-q"],
                "max_hours": 2, "status": "queued"}]}
 
-- `status` "queued" runs, anything else is skipped.
+- `status` "queued" runs **once**: a job whose id and spec already ran (``runs/night/done.json``) is skipped on later
+  nights. Set `status` to "rerun" to run it again, or change its spec. Anything else is skipped.
 - With `branch`, the job runs in a fresh worktree of that branch (``runs/night/wt-<id>``), so the main checkout
   (which other agents may be using) is never switched.
 - `cmd[0] == "python"` means this venv's python.
@@ -16,7 +17,8 @@ Jobs live in ``night/queue.json`` (tracked, so any agent can add one):
   ``--self-update``: it first moves that worktree to the latest local ``master``, then re-runs itself. A job
   therefore runs only once it is committed to master's ``night/queue.json``.
 - Jobs get ``PYTHONPATH=<their checkout>``, because the venv's editable install points at the main checkout.
-- Results: ``runs/night/<date>/<id>.log`` and ``runs/night/<date>/results.json``. The queue file itself is not
+- Results always go to the **main** checkout (``<main>/runs/night``), not the night worktree:
+  ``runs/night/<date>/<id>.log`` and ``runs/night/<date>/results.json``. The queue file itself is not
   edited by the runner; a human or agent marks jobs done.
 
     python scripts/night_queue.py            # run now (what the Scheduled Task does)
@@ -25,6 +27,7 @@ Jobs live in ``night/queue.json`` (tracked, so any agent can add one):
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import datetime as dt
 import json
@@ -34,7 +37,20 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 QUEUE = ROOT / "night" / "queue.json"
-OUT = ROOT / "runs" / "night"
+
+
+def results_root() -> Path:
+    """``runs/night`` in the main worktree (the first entry of ``git worktree list``), wherever this runs from."""
+    try:
+        out = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=ROOT, capture_output=True,
+                             text=True, check=True).stdout
+        main = Path(out.splitlines()[0].split(" ", 1)[1].strip())
+    except (OSError, subprocess.CalledProcessError, IndexError):
+        main = ROOT
+    return main / "runs" / "night"
+
+
+OUT = results_root()
 LAST_START = dt.time(15, 30)
 PEAK_START = dt.time(16, 0)
 
@@ -48,6 +64,24 @@ def may_start(now: dt.datetime, max_hours: float) -> bool:
     else:
         end_ok_until = dt.datetime.combine(now.date(), PEAK_START)
     return now + dt.timedelta(hours=float(max_hours)) <= end_ok_until
+
+
+def _spec_hash(job: dict) -> str:
+    spec = {k: job.get(k) for k in ("cmd", "branch", "max_hours")}
+    return hashlib.sha256(json.dumps(spec, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def should_run(job: dict, done: dict) -> bool:
+    status = job.get("status")
+    if status == "rerun":
+        return True
+    if status != "queued":
+        return False
+    return done.get(job["id"], {}).get("spec") != _spec_hash(job)
+
+
+def mark_ran(done: dict, job: dict, result: str, date: str) -> None:
+    done[job["id"]] = {"spec": _spec_hash(job), "date": date, "result": result}
 
 
 def resolve_cmd(cmd: list[str]) -> list[str]:
@@ -65,9 +99,14 @@ def _worktree(branch: str, job_id: str) -> Path:
 def run(dry_run: bool = False, now_fn=dt.datetime.now) -> list[dict]:
     jobs = json.loads(QUEUE.read_text(encoding="utf-8")).get("jobs", [])
     day = OUT / now_fn().strftime("%Y-%m-%d")
+    done_path = OUT / "done.json"
+    try:
+        done = json.loads(done_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        done = {}
     results: list[dict] = []
     for job in jobs:
-        if job.get("status") != "queued":
+        if not should_run(job, done):
             continue
         now = now_fn()
         rec = {"id": job["id"], "start": now.isoformat(timespec="seconds")}
@@ -91,8 +130,10 @@ def run(dry_run: bool = False, now_fn=dt.datetime.now) -> list[dict]:
             except subprocess.TimeoutExpired:
                 rec["result"] = "timeout"
         rec["end"] = now_fn().isoformat(timespec="seconds")
-        rec["log"] = str(log.relative_to(ROOT))
+        rec["log"] = str(log)
         results.append(rec)
+        mark_ran(done, job, rec["result"], day.name)
+        done_path.write_text(json.dumps(done, indent=1), encoding="utf-8")
         (day / "results.json").write_text(json.dumps(results, indent=1), encoding="utf-8")
     if not dry_run and results:
         day.mkdir(parents=True, exist_ok=True)
