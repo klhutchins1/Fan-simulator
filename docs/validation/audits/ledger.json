@@ -73,9 +73,9 @@
       "verdict": "PASS"
     },
     "cfd.flow_report": {
-      "date": "2026-10-17",
-      "fingerprint": "b717fa372b271a3a",
-      "report": "docs/validation/audits/2026-10-17-push-row-planes.md",
+      "date": "2026-10-19",
+      "fingerprint": "53a338d28e6de078",
+      "report": "docs/validation/audits/2026-10-17-too-close-to-call-prereg.md (R0.3) + 2026-10-17-push-row-planes.md",
       "verdict": "PASS"
     },
     "cfd.sanity_checks": {
