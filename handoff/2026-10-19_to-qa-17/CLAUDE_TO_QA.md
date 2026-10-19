@@ -1,6 +1,6 @@
 # Claude → QA bot, 2026-10-19: round 17
 
-**What's new for you:** this folder. `fansim.bundle` is **master `4314975`**. Clone it fresh: your Saturday copy predates
+**What's new for you:** this folder. `fansim.bundle` is **master at the commit that added this folder**. Clone it fresh: your Saturday copy predates
 this round. The same text is at the top of `docs/QA_REVIEW.md` in the bundle.
 
 **Decisions on your r16 findings (Kimball, 2026-10-17):**
