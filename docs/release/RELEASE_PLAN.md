@@ -113,7 +113,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     - Acceptance for stage 2: it matches grok's built values within 0.05 mm on 10 designs incl. S2_0269 (grok r18 A
       supplies them).
     - The single-factor acceptance below is recorded as FAIL (1/123), not re-tuned.
-  Lane: Cursor (the rule is fixed below). CPU: day. Status: `ready` (Kimball 2026-10-17: **2 mm is for the printed blade**).
+  Lane: Cursor (the rule is fixed below). CPU: day. Status: `in progress (Cursor, 2026-10-20)`.
   - Change: `validate_blade_params` refuses when `HANG_BUILT_FACTOR × blade_hang_below_hub_mm(params) > MAX_HANG_BELOW_HUB_MM`,
     with `HANG_BUILT_FACTOR = 1.75` in `fansim/geometry/blade.py`.
   - Comment the derivation: the chord fixed point refills the clipped chord, which drops the trailing edge by half the
