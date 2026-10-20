@@ -93,6 +93,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   CPU: day for the bounds, night for any re-find campaign. Status: `blocked (R1.7, R1.8)`. grok r14 C delivered 2026-10-17
   (`docs/qa/notes/optimizer-space-wrap-r14.md`; proposed bounds give 4.3 % refused). The refused share depends on the hub
   (R1.7) and the hang check (R1.8), so re-measure after both.
+  grok r17 C (2026-10-19, `docs/qa/notes/r17-C-hang-refusals.md`): r14 P0 bounds with R1.7 + R1.8 give 2.0 % refused (Wilson ≤ 4.3 %), so the bounds stand. R1.8 alone gives 7.7 %, R1.7 alone 0.3 %.
 - **R1.7 QA-44: the optimizer scores a different hub than Export prints**. Lane: Cursor. CPU: day. Status: `ready`.
   - grok r16: the optimizer and Assess use the auto hub (often < 15 mm), while a12x25 Export and the cup Preview grow it
     to 15 mm, moving the clip plane by up to 3.3 mm. 54/141 refused designs would pass, and 171/291 hanging designs print
@@ -102,6 +103,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Test: for grok's cases in `handoff/2026-10-17_from-qa-16-hang/data/`, the hub used by `validate_blade_params`, the
     CFD build and `do_export` is identical.
   - Old saved designs are disposable: mark them stale, don't migrate them.
+  - grok r17 C: with the export hub (growth below), 174/300 r16 hubs grow (Δh ≤ 6.7 mm). Built/designed stays 1.77, and (i + ii) refuses 57/58 built > 2 mm with 0.4 % false refusals.
 - **R1.8 QA-43: the 2 mm hang limit is checked on the designed blade; the built blade hangs about 1.75× more**.
   Lane: Cursor (the rule is fixed below). CPU: day. Status: `ready` (Kimball 2026-10-17: **2 mm is for the printed blade**).
   - Change: `validate_blade_params` refuses when `HANG_BUILT_FACTOR × blade_hang_below_hub_mm(params) > MAX_HANG_BELOW_HUB_MM`,
@@ -117,6 +119,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Re-prove the geometry audit unit that owns `validate_blade_params`. Update `tests/test_hub_hang.py`.
   - Note: the 1.6× ratio was known when 2 mm was set (2026-10-13). grok now explains it (chord refill after the clip)
     and measures 1.75×.
+  - grok r17 C heads-up (QA-46): on the r16 data the 1.75× rule misses S2_0269 (1.997 mm predicted, 2.25 mm built), so the "every built > 2 mm refused" rule is expected to FAIL by 1/123. 1.78× catches it but refuses 4.5 % (> 3 %). Claude to rule before the run.
 - **R1.9 Small QA fixes**. Lane: Cursor. CPU: day. Status: `ready`. One branch, one test each:
   - QA-39: sort postProcessing time dirs numerically (`_pp_file`, `sanity.py`, `timing.py`, the objectives copy);
   - QA-40: no noise text in Simple mode when there is no Stock reference;
@@ -156,6 +159,7 @@ Kimball's.
     - Compare with NeuralFoil at the same Re, and write `runs/prop_section_2d/summary.json` plus a table in the
       prereg doc.
     - Test: grid y+ ≤ 1 and the case builds (no solve) in the fast suite.
+    - grok r17 A (2026-10-19, `docs/qa/notes/r17-A-reference-polars.md`, `docs/qa/r17/`): the reference at Re 8e4, α 4° is CERTAIN, C_l 0.855 [0.847, 0.863] and C_d 0.0201 (NeuralFoil + XFOIL, Ncrit 9). On the NASA E387 anchor the tools read about 8 % high at 1e5; Re 6e4 is UNUSABLE.
   - **R2.2b Advance-ratio sweep (rung B).** Lane: Cursor builds; night runs. Status: `ready`.
     - Add `--j` to `scripts/audit_prop_cfd.py`: freestream U = J·n·D, at J 0.3 / 0.5 / 0.7, 6000 rpm, compared with
       kt1035/1036.
@@ -167,6 +171,7 @@ Kimball's.
 - **R2.3 CROR against Shigemitsu 2018** (CC BY 4.0, 40 mm). Pre-registered:
   `docs/validation/audits/2026-10-18-cror-centrifugal-validation-prereg.md`.
   - **R2.3a geometry freeze + case script.** Lane: Cursor. CPU: day for the build. Status: `blocked (grok r17 B)`.
+    - grok r17 B delivered 2026-10-19: `docs/qa/r17/r17-B-shigemitsu2018-digitised.csv` + `docs/qa/notes/r17-B-digitised-cror-centrifugal.md` (CC BY 4.0 confirmed). Only total P–Q is measured; the per-rotor data and η are CFD (QA-47). Stagger convention and camber are missing, so Claude rules before the freeze.
     - Follow step 0 exactly; fill missing values only by the stated rules.
     - Commit `validation/reference/cror_shigemitsu2018/geometry.json` + STL (that commit is the freeze), then
       `scripts/validate_cror_shigemitsu.py`.
@@ -186,6 +191,7 @@ Kimball's.
     - Get the existing volute case to ≤ 5 % peak-to-peak ΔP over the last 20 % of iterations (step 1).
     - Judge it **only** on convergence, never against the paper.
   - **R2.5b geometry freeze + case script.** Lane: Cursor. Status: `blocked (grok r17 B)`.
+    - grok r17 B delivered 2026-10-19: `docs/qa/r17/r17-B-epj2018-02023-digitised.csv` (CC BY 4.0 confirmed; plastic wheel at 6000/9000/11000). No curve reaches free delivery (QA-48), so A1 needs restating. b2 = 3.86 mm, d1/d2 ≈ 0.5, no blade angles, no scaled volute drawing.
     - Step 0, then `validation/reference/volute_epj2018/geometry.json` and `scripts/validate_volute_epj.py`.
   - **R2.5c runs.** Lane: night. Status: `blocked (R2.5a, R2.5b)`.
 - **R2.6 Centrifugal (no tab) and wind turbine (scaffold)**: excluded from v0.1.0.

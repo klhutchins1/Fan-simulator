@@ -1,0 +1,228 @@
+{
+ "B_cal": {
+  "Shigemitsu2018/Fig7": "PASS",
+  "Shigemitsu2018/Fig8": "PASS",
+  "EPJ2018_02023/fig6": "PASS",
+  "EPJ2018_02023/fig7": "PASS",
+  "EPJ2018_02023/fig8": "PASS"
+ },
+ "cal": {
+  "Shigemitsu2018/Fig7": {
+   "x_ticks": {
+    "0.0": 224.5,
+    "0.2": 382.0,
+    "0.4": 539.5,
+    "0.6": 697.0,
+    "1.0": 1012.5,
+    "1.2": 1170.0
+   },
+   "y_ticks": {
+    "500.0": 308.0,
+    "400.0": 426.0,
+    "200.0": 662.0,
+    "0.0": 898.5,
+    "-100.0": 1017.0,
+    "-200.0": 1134.5,
+    "600.0": 190.0
+   },
+   "x_fit": [
+    0.0012690404043214196,
+    -0.2847536912659786
+   ],
+   "y_fit": [
+    -0.8467150062355838,
+    760.7672527011662
+   ],
+   "x_res_max": 0.00023252945394913738,
+   "y_res_max": 0.34190864042261637,
+   "x_fs": 1.2,
+   "y_fs": 800.0,
+   "B_cal": "PASS"
+  },
+  "Shigemitsu2018/Fig8": {
+   "x_ticks": {
+    "0.6": 669.0,
+    "0.8": 826.5,
+    "1.0": 985.0,
+    "0.0": 195.0,
+    "1.2": 1143.0
+   },
+   "y_ticks": {
+    "100.0": 147.0,
+    "80.0": 282.5,
+    "20.0": 689.0,
+    "0.0": 824.0,
+    "-20.0": 959.5,
+    "-40.0": 1094.5
+   },
+   "x_fit": [
+    0.0012658978959275758,
+    -0.24676622311988997
+   ],
+   "y_fit": [
+    -0.14773713188445883,
+    121.73857459603992
+   ],
+   "x_res_max": 0.0005016121357486192,
+   "y_res_max": 0.05230927235221827,
+   "x_fs": 1.2,
+   "y_fs": 140.0,
+   "B_cal": "PASS"
+  },
+  "EPJ2018_02023/fig6": {
+   "x_fit": [
+    1.6568829284270672,
+    -576.5455310908812
+   ],
+   "y_fit": [
+    -3.6297630037484834,
+    845.8123979271181
+   ],
+   "x_res_max": 0.056800243393922756,
+   "y_res_max": 0.13202062868379016,
+   "x_fs": 300,
+   "y_fs": 500,
+   "logx": false,
+   "logy": false,
+   "units_x": "L/min",
+   "units_y": "Pa",
+   "res_units": "data units",
+   "B_cal": "PASS"
+  },
+  "EPJ2018_02023/fig7": {
+   "x_fit": [
+    0.008436728292491563,
+    -1.9182031513635596
+   ],
+   "y_fit": [
+    -0.014446537724739016,
+    9.484269057856064
+   ],
+   "x_res_max": 0.00029920648228265456,
+   "y_res_max": 0.0005322071668556472,
+   "x_fs": 1.4771212547196626,
+   "y_fs": 2.0,
+   "logx": true,
+   "logy": true,
+   "units_x": "L/min",
+   "units_y": "Pa",
+   "res_units": "log10 decades",
+   "B_cal": "PASS"
+  },
+  "EPJ2018_02023/fig8": {
+   "x_fit": [
+    1.6450845446878288,
+    -155.07622857080156
+   ],
+   "y_fit": [
+    -1.7970832994798798,
+    617.6969472639529
+   ],
+   "x_res_max": 0.04229140402316034,
+   "y_res_max": 0.05733147241437564,
+   "x_fs": 300,
+   "y_fs": 250,
+   "logx": false,
+   "logy": false,
+   "units_x": "L/min",
+   "units_y": "Pa",
+   "res_units": "data units",
+   "B_cal": "PASS"
+  }
+ },
+ "B_rep": {
+  "Shigemitsu2018/Fig7/exp_total": {
+   "n": 7,
+   "within": 7,
+   "verdict": "PASS"
+  },
+  "Shigemitsu2018/Fig7/cal_total": {
+   "n": 5,
+   "within": 5,
+   "verdict": "PASS"
+  },
+  "Shigemitsu2018/Fig7/cal_rear": {
+   "n": 5,
+   "within": 5,
+   "verdict": "PASS"
+  },
+  "Shigemitsu2018/Fig7/cal_front": {
+   "n": 5,
+   "within": 5,
+   "verdict": "PASS"
+  },
+  "Shigemitsu2018/Fig8/cal_rear": {
+   "n": 4,
+   "within": 4,
+   "verdict": "PASS"
+  },
+  "Shigemitsu2018/Fig8/cal_total": {
+   "n": 4,
+   "within": 4,
+   "verdict": "PASS"
+  },
+  "Shigemitsu2018/Fig8/cal_front": {
+   "n": 4,
+   "within": 4,
+   "verdict": "PASS (4 of 5 re-read; fewer than 5)"
+  },
+  "EPJ2018_02023/Fig6/B_const_rpm_9000": {
+   "n": 11,
+   "within": 11,
+   "verdict": "PASS"
+  },
+  "EPJ2018_02023/Fig6/A_const_current_9000": {
+   "n": 3,
+   "within": 3,
+   "verdict": "PASS (3 of 25 re-read; fewer than 5)"
+  },
+  "EPJ2018_02023/Fig7/plastic_6000": {
+   "n": 5,
+   "within": 5,
+   "verdict": "PASS"
+  },
+  "EPJ2018_02023/Fig7/plastic_11000": {
+   "n": 5,
+   "within": 5,
+   "verdict": "PASS"
+  },
+  "EPJ2018_02023/Fig8/plastic_wheel0_9000": {
+   "n": 5,
+   "within": 5,
+   "verdict": "PASS"
+  },
+  "EPJ2018_02023/Fig7/plastic_9000": {
+   "n": 25,
+   "max_dQ": 0.26675999999997657,
+   "max_dy": 0.8499999999999659,
+   "verdict": "PASS (vs Fig6 B, same data replotted)"
+  }
+ },
+ "B_text": {
+  "peak 510 Pa at 0.55": {
+   "dig": [
+    0.54961,
+    509.651
+   ],
+   "ok": true
+  },
+  "max flow 1.08 m3/min": {
+   "dig": 1.08238,
+   "ok": true
+  },
+  "CFD 500 Pa at Qo": {
+   "dig": 499.924,
+   "ok": true
+  },
+  "rear ~77 % of total at Qo (CFD)": {
+   "dig": 0.7723093910274362,
+   "u": 0.027168038474644777,
+   "ok": true
+  },
+  "eta_s total 46.7 % at Qo (CFD)": {
+   "dig": 46.823,
+   "ok": true
+  }
+ },
+ "n_rows": 196
+}

@@ -1,0 +1,53 @@
+# Shigemitsu T., Miyazaki T., Hirosawa S., Fukuda Y. (2018) Performance and Internal Flow of Contra-Rotating Small-Sized Cooling Fan. Open J. Fluid Dyn. 8:181-194, doi:10.4236/ojfd.2018.82013. CC BY 4.0 (statement on p.1 of the PDF). Digitised by QA r17 (grok), prereg a212b29; values are QA readings of the figures, not the authors' data.
+paper,figure,curve,rpm,Q,Q_unit,y,y_unit,u_Q,u_y,method,note
+Shigemitsu2018,Fig7,exp_total,15000/14000,-0.00027,m3/min,428.099,Pa (fan static pressure dPs),0.01631,10.889,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.04974,m3/min,418.087,Pa (fan static pressure dPs),0.01665,11.115,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.09975,m3/min,409.331,Pa (fan static pressure dPs),0.01655,11.043,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.14979,m3/min,404.702,Pa (fan static pressure dPs),0.01655,11.043,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.19972,m3/min,404.568,Pa (fan static pressure dPs),0.01651,11.021,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.24969,m3/min,389.537,Pa (fan static pressure dPs),0.01641,10.954,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.34938,m3/min,445.706,Pa (fan static pressure dPs),0.01633,10.902,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.40092,m3/min,446.927,Pa (fan static pressure dPs),0.01609,10.737,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.44955,m3/min,447.009,Pa (fan static pressure dPs),0.01651,11.022,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.49994,m3/min,447.115,Pa (fan static pressure dPs),0.01656,11.052,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.54961,m3/min,509.651,Pa (fan static pressure dPs),0.01653,11.035,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.59985,m3/min,502.737,Pa (fan static pressure dPs),0.01652,11.026,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.65018,m3/min,498.391,Pa (fan static pressure dPs),0.01658,11.063,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.69957,m3/min,482.813,Pa (fan static pressure dPs),0.01629,10.875,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.74974,m3/min,454.086,Pa (fan static pressure dPs),0.0166,11.077,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.79979,m3/min,413.988,Pa (fan static pressure dPs),0.01647,10.994,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.84964,m3/min,368.381,Pa (fan static pressure dPs),0.01625,10.846,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.89985,m3/min,306.979,Pa (fan static pressure dPs),0.01641,10.955,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.94991,m3/min,244.686,Pa (fan static pressure dPs),0.01665,11.116,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,0.99938,m3/min,160.192,Pa (fan static pressure dPs),0.01657,11.057,m1_auto_raster,measured
+Shigemitsu2018,Fig7,exp_total,15000/14000,1.08238,m3/min,0.219,Pa (fan static pressure dPs),0.0165,11.015,m1_auto_raster,measured
+Shigemitsu2018,Fig7,cal_total,15000/14000,0.21951,m3/min,411.363,Pa (fan static pressure dPs),0.0165,11.013,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_front,15000/14000,0.22032,m3/min,125.308,Pa (fan static pressure dPs),0.0165,11.013,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_rear,15000/14000,0.22096,m3/min,253.585,Pa (fan static pressure dPs),0.01586,10.589,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_total,15000/14000,0.38479,m3/min,448.836,Pa (fan static pressure dPs),0.0165,11.013,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_rear,15000/14000,0.38593,m3/min,340.797,Pa (fan static pressure dPs),0.01586,10.589,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_front,15000/14000,0.38657,m3/min,82.972,Pa (fan static pressure dPs),0.0165,11.013,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_total,15000/14000,0.5496,m3/min,499.924,Pa (fan static pressure dPs),0.0165,11.013,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_rear,15000/14000,0.55091,m3/min,386.096,Pa (fan static pressure dPs),0.01586,10.589,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_front,15000/14000,0.55091,m3/min,70.695,Pa (fan static pressure dPs),0.01586,10.589,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_total,15000/14000,0.71483,m3/min,471.044,Pa (fan static pressure dPs),0.0165,11.013,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_rear,15000/14000,0.71588,m3/min,377.629,Pa (fan static pressure dPs),0.01586,10.589,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_front,15000/14000,0.71588,m3/min,56.3,Pa (fan static pressure dPs),0.01586,10.589,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_total,15000/14000,0.87946,m3/min,312.446,Pa (fan static pressure dPs),0.0165,11.013,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_rear,15000/14000,0.88086,m3/min,343.337,Pa (fan static pressure dPs),0.01586,10.589,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig7,cal_front,15000/14000,0.88086,m3/min,-50.809,Pa (fan static pressure dPs),0.01586,10.589,m1_auto_raster,CFD (paper's own ANSYS CFX URANS; not a measurement)
+Shigemitsu2018,Fig8,cal_front,15000/14000,0.22098,m3/min,20.022,% (static-pressure efficiency),0.01583,1.847,m1_auto_raster,CFD only (paper's ANSYS CFX)
+Shigemitsu2018,Fig8,cal_front,15000/14000,0.38618,m3/min,21.056,% (static-pressure efficiency),0.01646,1.921,m1_auto_raster,CFD only (paper's ANSYS CFX)
+Shigemitsu2018,Fig8,cal_front,15000/14000,0.55012,m3/min,14.998,% (static-pressure efficiency),0.01583,1.847,m1_auto_raster,CFD only (paper's ANSYS CFX)
+Shigemitsu2018,Fig8,cal_front,15000/14000,0.71595,m3/min,-3.616,% (static-pressure efficiency),0.01583,1.847,m1_auto_raster,CFD only (paper's ANSYS CFX)
+Shigemitsu2018,Fig8,cal_front,15000/14000,0.88052,m3/min,-36.562,% (static-pressure efficiency),0.01583,1.847,m1_auto_raster,CFD only (paper's ANSYS CFX)
+Shigemitsu2018,Fig8,cal_rear,15000/14000,0.38618,m3/min,52.967,% (static-pressure efficiency),0.01646,1.921,m1_auto_raster,CFD only (paper's ANSYS CFX)
+Shigemitsu2018,Fig8,cal_rear,15000/14000,0.55012,m3/min,64.934,% (static-pressure efficiency),0.01583,1.847,m1_auto_raster,CFD only (paper's ANSYS CFX)
+Shigemitsu2018,Fig8,cal_rear,15000/14000,0.71595,m3/min,77.344,% (static-pressure efficiency),0.01583,1.847,m1_auto_raster,CFD only (paper's ANSYS CFX)
+Shigemitsu2018,Fig8,cal_rear,15000/14000,0.88052,m3/min,73.65,% (static-pressure efficiency),0.01583,1.847,m1_auto_raster,CFD only (paper's ANSYS CFX)
+Shigemitsu2018,Fig8,cal_total,15000/14000,0.3849,m3/min,39.442,% (static-pressure efficiency),0.0171,1.995,m1_auto_raster,CFD only (paper's ANSYS CFX)
+Shigemitsu2018,Fig8,cal_total,15000/14000,0.54954,m3/min,46.823,% (static-pressure efficiency),0.0171,1.995,m1_auto_raster,CFD only (paper's ANSYS CFX)
+Shigemitsu2018,Fig8,cal_total,15000/14000,0.71466,m3/min,41.363,% (static-pressure efficiency),0.01646,1.921,m1_auto_raster,CFD only (paper's ANSYS CFX)
+Shigemitsu2018,Fig8,cal_total,15000/14000,0.87948,m3/min,17.649,% (static-pressure efficiency),0.0171,1.995,m1_auto_raster,CFD only (paper's ANSYS CFX)
+Shigemitsu2018,Fig8,cal_rear,15000/14000,0.2202,m3/min,31.9,% (static-pressure efficiency),0.01582,1.847,m2_manual_only,overlapping markers; CFD only
+Shigemitsu2018,Fig8,cal_total,15000/14000,0.22,m3/min,28.6,% (static-pressure efficiency),0.01582,1.847,m2_manual_only,overlapping markers; CFD only

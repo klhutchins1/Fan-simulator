@@ -563,3 +563,42 @@ Prereg `52eca5f` (`prereg/round16-hang`). Note `docs/qa/notes/hang-investigation
 - **QA-45 (LOW, new) Cup carve message:** with hub r 19.4 < 20.7 (S8_0056), `build_impeller_with_mount` raises "did
   not join into one solid (3 separate pieces)" both with and without the hang fix, instead of the plain "hub radius too
   small" message other undersized hubs get.
+
+## Round 17 (2026-10-19): master 46a3408, run clone `/workspace/fansim/qa/run_r17`
+Prereg `a212b29` (`prereg_r6` branch `prereg/round17`, `qa_r17/PREREG_R17.md`, committed 12:34 MDT before any data).
+Summary in `handoff/2026-10-19_from-qa-17/README.md`. Box only. No CFD, Docker or OpenFOAM, and no fansim edits.
+- **A (R2.2a) reference polars:** the section is fansim's `naca4(0.04, 0.4, 0.06)` = NACA 4406 (closed TE). At
+  Re 8×10⁴, α 4° the reference is **CERTAIN**: C_l 0.855 [0.847, 0.863], C_d 0.0201 [0.0199, 0.0204] (NeuralFoil and
+  XFOIL at Ncrit 9, spread 1.9 % / 2.5 %).
+  - The measured anchor (NASA TM-4062 E387, public domain) has the Ncrit-9 tools **about 8 % high on C_l** at 1×10⁵,
+    and all tools 13–20 % off at 6×10⁴. So **6×10⁴ is UNUSABLE** as a reference, and Ncrit 5 fails the C_d anchor
+    (−30 %).
+  - `docs/qa/notes/r17-A-reference-polars.md`, `docs/qa/r17/r17-A-*.csv`.
+- **B (R2.3, R2.5) digitising:** both papers are CC BY 4.0, confirmed from the PDFs. Every check passed: B-cal 5/5,
+  B-rep 63/63 re-reads within 2u, B-text 5/5.
+  - Shigemitsu: only the total P–Q is measured (21 points, peak 510 Pa at 0.55 m³/min, 0 Pa at 1.08). The per-rotor
+    curves and the efficiency are the authors' CFD → **QA-47**.
+  - EPJ: the plastic wheel at 6000 / 9000 / 11 000 rpm (vector exact). No curve reaches 0 Pa → **QA-48**.
+  - `docs/qa/notes/r17-B-digitised-cror-centrifugal.md`, `docs/qa/r17/r17-B-*.csv`.
+- **C (R1.3/1.7/1.8):** the r14 P0 bounds with both fixes give **2.0 % refused** (Wilson 0.9–4.3 %): **PASS**, no
+  bounds change needed. R1.8 alone gives 7.7 % and R1.7 alone 0.3 %.
+  - On the 300 r16 designs: today 24.3 %, (i) 42.3 %, (ii) 10.7 %, both 19.3 %.
+  - Built check at the export hub: 57/58 caught (the miss is a feature design), 0.4 % false refusals.
+  - The 1.75× rule on the r16 built data misses one feature-free design, S2_0269 (1.997 predicted, 2.25 built) →
+    **QA-46**. `docs/qa/notes/r17-C-hang-refusals.md`.
+- **D (R3.1 export leak check): WAITING.** R3.1 hasn't landed, so nothing was run.
+- **QA-46 (MED, new) Geometry/R1.8 acceptance:**
+  - With `HANG_BUILT_FACTOR = 1.75`, S2_0269 (feature-free) is allowed at 1.997 mm predicted but builds 2.252 mm. So
+    R1.8's own rule "every design with built hang > 2 mm is refused" fails 1/123 on the r16 data.
+  - No constant factor meets both R1.8 rules: 1.78× catches it but refuses 4.5 % (> 3 %).
+  - Options for Claude: record the FAIL, validate on the realised loft, or re-register before the run.
+- **QA-47 (LOW, new) Prereg/R2.3:**
+  - In Shigemitsu 2018, the per-rotor ΔPs, the 77 % rear share and η_s are the authors' URANS, not measurements. The
+    2026-10-18 prereg's S1 (rear share) would therefore compare CFD with CFD.
+  - Table 1 also gives stagger without saying which convention it uses (the values rise hub → tip, which suggests
+    the angle is from the axis), and gives no camber or blade angles, which step 0's section rule needs.
+- **QA-48 (LOW, new) Prereg/R2.5:**
+  - EPJ 180:02023 never reaches free delivery: the last points are about 208 Pa at 278 L/min at 9000 rpm, because of
+    the stand's own resistance. So the A1 points "0.4/0.7/0.9 × measured free delivery" are undefined.
+  - Its pressure is the outflow-tube "working pressure p_b", and the volute has no scaled drawing (Fig 2 is a
+    render), so the log-spiral fallback applies.

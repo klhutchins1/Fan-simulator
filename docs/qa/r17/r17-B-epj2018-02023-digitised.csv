@@ -1,0 +1,147 @@
+# Dvorak V., Votrubec R., Safka J., Kracik J. (2018) Experimental investigation of centrifugal fans for personal protection equipment - effect of used 3D printing technologies. EPJ Web Conf. 180:02023, doi:10.1051/epjconf/201818002023. CC BY 4.0 (statement on p.1 of the PDF). Digitised by QA r17 (grok) from the PDF's vector marker paths, prereg a212b29; values are QA readings, not the authors' data.
+paper,figure,curve,rpm,Q,Q_unit,y,y_unit,u_Q,u_y,method,note
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),6.12255,L/min,436.087,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),31.53856,L/min,438.697,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),43.71713,L/min,438.988,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),52.58641,L/min,439.858,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),57.88132,L/min,440.438,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),63.70596,L/min,440.438,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),68.73624,L/min,440.148,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),74.42828,L/min,440.148,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),79.59093,L/min,439.568,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),84.88607,L/min,438.988,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),89.51911,L/min,437.827,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),94.54939,L/min,436.087,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),98.65314,L/min,434.347,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),102.88905,L/min,432.317,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),107.25756,L/min,430.287,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),111.36121,L/min,427.677,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),116.12662,L/min,424.777,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),120.49513,L/min,421.007,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),124.59877,L/min,418.106,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),128.57004,L/min,414.626,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),132.67358,L/min,410.856,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),136.64496,L/min,407.666,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),140.7485,L/min,403.025,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),144.5875,L/min,397.805,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,A_const_current_9000,9000 (constant current),148.69115,L/min,392.585,Pa (working pressure pb),3.83931,8.411,m1_vector_pdf,"measured; constant current, rpm drifts (paper)"
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,13.20464,L/min,414.481,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,30.81061,L/min,419.121,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,41.00354,L/min,421.441,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,47.75469,L/min,423.182,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,59.27138,L/min,426.372,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,73.30309,L/min,429.272,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,85.08463,L/min,429.852,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,96.60121,L/min,428.402,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,108.25038,L/min,424.632,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,119.63458,L/min,420.281,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,131.68087,L/min,413.031,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,143.9917,L/min,403.17,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,155.11137,L/min,391.28,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,168.08418,L/min,376.199,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,179.86562,L/min,364.308,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,192.70595,L/min,349.517,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,201.97224,L/min,335.016,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,214.94517,L/min,316.745,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,226.06462,L/min,301.084,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,238.50793,L/min,280.493,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,238.64031,L/min,280.493,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,248.83323,L/min,263.092,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,260.4824,L/min,242.791,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,271.46947,L/min,221.039,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig6,B_const_rpm_9000,9000,278.22063,L/min,207.988,Pa (working pressure pb),4.36877,9.571,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,16.18704,L/min,616.172,Pa (working pressure pb),0.74513,49.362,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,33.20319,L/min,624.415,Pa (working pressure pb),1.52843,50.022,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,47.14978,L/min,629.412,Pa (working pressure pb),2.17042,50.423,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,54.97878,L/min,632.768,Pa (working pressure pb),2.53081,50.692,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,72.46839,L/min,637.834,Pa (working pressure pb),3.3359,51.097,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,82.55732,L/min,641.233,Pa (working pressure pb),3.80032,51.37,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,93.32396,L/min,636.141,Pa (working pressure pb),4.29594,50.962,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,106.1514,L/min,644.651,Pa (working pressure pb),4.88642,51.643,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,106.81244,L/min,644.651,Pa (working pressure pb),4.91685,51.643,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,119.06765,L/min,641.233,Pa (working pressure pb),5.48098,51.37,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,131.49932,L/min,637.834,Pa (working pressure pb),6.05325,51.097,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,144.5541,L/min,631.087,Pa (working pressure pb),6.65419,50.557,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,155.00873,L/min,626.077,Pa (working pressure pb),7.13544,50.155,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,167.77402,L/min,614.535,Pa (working pressure pb),7.72306,49.231,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,179.07222,L/min,601.608,Pa (working pressure pb),8.24315,48.195,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,190.83466,L/min,585.829,Pa (working pressure pb),8.7846,46.931,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,203.37025,L/min,570.462,Pa (working pressure pb),9.36165,45.7,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,214.72031,L/min,555.501,Pa (working pressure pb),9.88412,44.502,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,226.00193,L/min,538.063,Pa (working pressure pb),10.40344,43.105,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,226.00193,L/min,535.21,Pa (working pressure pb),10.40344,42.876,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,237.13892,L/min,521.174,Pa (working pressure pb),10.9161,41.752,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,237.50717,L/min,521.174,Pa (working pressure pb),10.93305,41.752,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,238.2454,L/min,521.174,Pa (working pressure pb),10.96704,41.752,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,250.3736,L/min,492.882,Pa (working pressure pb),11.52533,39.485,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,261.08637,L/min,481.232,Pa (working pressure pb),12.01846,38.552,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,268.48145,L/min,469.856,Pa (working pressure pb),12.35888,37.641,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,283.46571,L/min,441.995,Pa (working pressure pb),13.04864,35.409,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,292.40031,L/min,418.001,Pa (working pressure pb),13.45992,33.486,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,308.24125,L/min,390.091,Pa (working pressure pb),14.18912,31.251,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,312.09147,L/min,377.846,Pa (working pressure pb),14.36636,30.27,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,334.66252,L/min,330.827,Pa (working pressure pb),15.40536,26.503,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_11000,11000,340.42335,L/min,309.56,Pa (working pressure pb),15.67055,24.799,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,22.56218,L/min,186.328,Pa (working pressure pb),1.18552,17.077,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,33.30644,L/min,187.819,Pa (working pressure pb),1.75007,17.214,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,49.24354,L/min,189.323,Pa (working pressure pb),2.58748,17.351,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,59.23003,L/min,189.323,Pa (working pressure pb),3.11221,17.351,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,73.60165,L/min,185.833,Pa (working pressure pb),3.86736,17.032,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,84.23958,L/min,181.923,Pa (working pressure pb),4.42633,16.673,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,97.16601,L/min,175.279,Pa (working pressure pb),5.10554,16.064,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,107.47733,L/min,168.428,Pa (working pressure pb),5.64735,15.436,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,119.80913,L/min,160.134,Pa (working pressure pb),6.29532,14.676,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,132.31805,L/min,148.255,Pa (working pressure pb),6.95259,13.588,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,144.32997,L/min,136.893,Pa (working pressure pb),7.58375,12.546,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,155.97363,L/min,125.732,Pa (working pressure pb),8.19556,11.523,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,167.7738,L/min,112.451,Pa (working pressure pb),8.8156,10.306,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,179.07222,L/min,98.458,Pa (working pressure pb),9.40927,9.024,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_6000,6000,183.0049,L/min,93.361,Pa (working pressure pb),9.61591,8.557,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,13.1993,L/min,414.131,Pa (working pressure pb),0.69355,37.955,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,30.74837,L/min,418.556,Pa (working pressure pb),1.61566,38.361,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,40.97249,L/min,420.787,Pa (working pressure pb),2.15288,38.565,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,47.6278,L/min,423.031,Pa (working pressure pb),2.50258,38.771,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,59.18417,L/min,426.417,Pa (working pressure pb),3.1098,39.081,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,73.203,L/min,428.69,Pa (working pressure pb),3.84642,39.29,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,84.96159,L/min,429.831,Pa (working pressure pb),4.46427,39.394,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,96.4899,L/min,427.552,Pa (working pressure pb),5.07002,39.185,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,108.23043,L/min,424.156,Pa (working pressure pb),5.68692,38.874,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,119.53044,L/min,419.67,Pa (working pressure pb),6.28067,38.463,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,131.60138,L/min,413.032,Pa (working pressure pb),6.91493,37.854,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,143.77135,L/min,403.269,Pa (working pressure pb),7.5544,36.96,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,154.88851,L/min,390.61,Pa (working pressure pb),8.13855,35.8,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,167.90423,L/min,376.343,Pa (working pressure pb),8.82245,34.492,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,179.76823,L/min,363.562,Pa (working pressure pb),9.44584,33.32,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,192.76941,L/min,349.352,Pa (working pressure pb),10.12898,32.018,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,201.95514,L/min,334.808,Pa (working pressure pb),10.61164,30.685,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,214.88697,L/min,316.633,Pa (working pressure pb),11.29114,29.019,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,225.82637,L/min,301.039,Pa (working pressure pb),11.86594,27.59,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,238.43031,L/min,280.194,Pa (working pressure pb),12.52821,25.68,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,238.43031,L/min,280.194,Pa (working pressure pb),12.52821,25.68,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,248.63174,L/min,262.879,Pa (working pressure pb),13.06424,24.093,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,260.47905,L/min,242.732,Pa (working pressure pb),13.68675,22.246,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,271.20271,L/min,220.584,Pa (working pressure pb),14.25022,20.217,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig7,plastic_9000,9000,278.02053,L/min,207.504,Pa (working pressure pb),14.60846,19.018,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,17.61621,L/min,412.725,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,24.05495,L/min,416.314,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,34.82999,L/min,420.621,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,48.23309,L/min,422.631,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,60.19076,L/min,424.497,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,73.46246,L/min,425.933,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,86.47135,L/min,425.359,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,97.772,L/min,423.923,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,110.25528,L/min,421.195,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,121.68734,L/min,417.462,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,134.17062,L/min,410.571,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,144.81426,L/min,402.675,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,157.03473,L/min,391.477,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,168.861,L/min,378.125,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,181.08147,L/min,364.199,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,192.11932,L/min,351.565,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,206.31084,L/min,329.456,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,216.29746,L/min,314.668,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,228.38653,L/min,296.292,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,238.89877,L/min,280.643,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,263.86533,L/min,236.275,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,274.77177,L/min,214.309,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
+EPJ2018_02023,Fig8,plastic_wheel0_9000,9000,278.58246,L/min,206.844,Pa (working pressure pb),2.75979,3.015,m1_vector_pdf,measured; plastic (injection-moulded) wheel 0
