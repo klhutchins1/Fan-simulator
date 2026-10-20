@@ -156,6 +156,9 @@ Pass ships the tab as validated. Fail means fix it, or ship it labelled "experim
 Kimball's.
 
 - **R2.1 Propeller BEMT**: validated against UIUC (C_T PASS; SF static C_P −21 % is a known fail).
+  - 2026-10-20: on APC SF, BEMT's C_T error grows with J (−13 % static, −15 / −20 / −29 % at J 0.20 / 0.30 / 0.43), most likely
+    from the generic section. The release claim must say "±15 % at static; worse toward zero-thrust J on props with unknown
+    sections" until grok r19 B shows the known-section number.
   - Lane: Cursor labels the C_P limit; Claude confirms the claims list. Status: `ready`.
 - **R2.2 Propeller CFD: fix it** (Kimball 2026-10-17). FAIL, −44 % C_T against UIUC (audit-08).
   - Pre-registered diagnostic ladder: `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`. Read its rules
