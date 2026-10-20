@@ -163,7 +163,8 @@ Kimball's.
 - **R2.2 Propeller CFD: fix it** (Kimball 2026-10-17). FAIL, −44 % C_T against UIUC (audit-08).
   - Pre-registered diagnostic ladder: `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`. Read its rules
     before running anything; each rung's result picks the next rung.
-  - **R2.2a 2-D section case (rung A).** Lane: Cursor. CPU: day (minutes per run; not 4–9 PM). Status: `in progress (Cursor, 2026-10-20)`.
+  - **R2.2a 2-D section case (rung A).** Lane: Cursor. CPU: day (minutes per run; not 4–9 PM). Status: `done` (2026-10-20; verdict report to Claude).
+    - Landed: `scripts/prop_section_2d.py`, fast-suite case build + y+ ≤ 1, 2-D SST vs SST-LM at Re 8×10⁴. At α 4° SST C_l is −19 % vs the grok r17 reference and SST-LM is −24 % (neither A1 nor A2). Table in the ladder prereg. R2.2c stays blocked until Claude rules.
     - New `scripts/prop_section_2d.py`: a 2-D OpenFOAM case of the prop builder's generic section (6 % thick,
       camber 0.04) at Re 8×10⁴, y+ ≤ 1, α 0–8°, with `kOmegaSST` and `kOmegaSSTLM`.
     - Compare with NeuralFoil at the same Re, and write `runs/prop_section_2d/summary.json` plus a table in the
