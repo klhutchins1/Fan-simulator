@@ -67,3 +67,18 @@ Amended design:
 - The measured E387 anchor shows these tools reading about 8 % high on C_l at 1×10⁵. So rung A's "SST-LM within 10 %
   of the reference" tolerance stands, and "SST ≥ 25 % below" is judged against the reference value as given (not
   corrected by 8 %).
+
+## 5. Prop CFD rung B (R2.2b): J points
+
+The ladder named J = 0.3 / 0.5 / 0.7 at 6000 rpm. In the UIUC tables, C_T is about 0 or negative at J ≈ 0.6–0.7
+(kt1036: −0.038 at 0.753), so a relative tolerance there is meaningless. That is a property of the data, decided before
+any run.
+
+**Amended:**
+- J = **0.20, 0.30, 0.43** at **6029 rpm**, all from one table (kt1035): C_T 0.092 / 0.076 / 0.050.
+- **B1 (static-specific):** C_T within ±15 % at J = 0.30 **and** 0.43, while static is −44 %.
+- **B2 (sectional):** C_T ≤ −30 % at all three J.
+- Anything else, or a missing or unconverged point, is reported to Claude (INCONCLUSIVE when a point is missing).
+
+Runner: `scripts/prop_cfd_jsweep.py` (Claude wrote it 2026-10-19 because the Cursor lane was idle). Its rules are unit
+tested in `tests/test_prop_cfd_jsweep.py`.
