@@ -13,29 +13,19 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 - Known recovery gaps from README_RECOVERY.md / RECOVERY_TODO.md are not counted as bugs.
 - Paths like `/workspace/fansim/...` and `qa/...` are on the QA bot's machine (screenshots, scratch scripts); ask if you need one.
 
-## ▶ Next round for the QA bot: round 17 (queued by Claude 2026-10-17)
+## ▶ Next round for the QA bot: round 18 (queued by Claude 2026-10-19)
 
-> **To grok (2026-10-19):** round 17 has been waiting here since Saturday 2026-10-17 (`4c2e4b7`). Your last notes
-> name "master 9562574", but that was the tip of Cursor's `too-close-r03` branch, not master, so please pull
-> **`master`** fresh. Decisions on your r16 findings (Kimball 2026-10-17):
-> - **QA-43: yes.** The 2 mm limit is for the printed blade, checked as 1.75 × designed hang (board R1.8, for Cursor).
-> - **QA-44: yes.** The export's extra hub height goes below the blades, and search, score and export use one hub
->   (R1.7, for Cursor).
-> - Neither has landed yet. The install guide (R3.3) isn't written yet either, so your Task D waits too.
-> - Task C below (numbers for both options) is what lets R1.3 move.
-
-Rounds 14, 15 and 16-hang are **DONE**; results are below. Thank you, they were excellent. Rules: `AGENTS.md`. Board:
-`docs/release/RELEASE_PLAN.md`. Build: master after this commit; there is no bundle, so clone from the usual remote copy.
-Pre-register A–C in one commit before any data.
+Round 17 is **DONE** (results below; it caught three prereg problems before any run, which is exactly right). Rulings:
+`docs/validation/audits/2026-10-19-prereg-amendments-r17.md`. Delivered as `handoff/2026-10-19_to-qa-18/` + bundle.
+Pre-register A and B before data.
 
 | # | task | board |
 |---|---|---|
-| A | **Reference polars for prop CFD rung A** (prereg `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`). The prop builder's generic section is 6 % thick with camber 0.04; get the exact coordinates from the builder used by `scripts/audit_prop_cfd.py`. Produce C_l and C_d against α 0–10° at Re 6×10⁴, 8×10⁴ and 1.2×10⁵ from NeuralFoil and from XFOIL (Ncrit 9 and 5) if you can run it. Add the nearest **measured** low-Re polar (e.g. Selig/Lyon wind-tunnel E387 or SD-series) as a sanity anchor. Pre-register how far apart the references may be before we call the reference itself uncertain. Output: CSV + note | R2.2a |
-| B | **Digitise the two datasets you found** in r15: Shigemitsu 2018 CROR (40 mm) and EPJ WoC 180:02023 centrifugal (60 mm). Give P–Q (and efficiency if given) as CSV with a digitising uncertainty, every geometry number the paper gives, what is missing to build it, and the licence confirmed from the paper itself. Nothing downloaded is committed except your CSVs and notes, with a citation | R2.3, R2.5 |
-| C | **Numbers for R1.3 after QA-43/44.** On your 300 r16 designs: the hang-refused share if (i) the check uses 1.75 × designed hang, and (ii) the search uses the export hub (`min_hub_height`, growth below the blades), separately and together. Then say whether your r14 proposed bounds still keep refusals under ~5 % | R1.3, R1.7, R1.8 |
-| D | (when it lands) **Release export leak check:** run `scripts/export_release.py` on master after Cursor's R3.1 and grep the export for user paths, `archive/`, `memory/`, `handoff/`, `.bak`, NC data, and files over 5 MB | R3.1 |
+| A | **Built-hang reference values for R1.8 stage 2.** For 10 designs from your r16/r17 set (include S2_0269 and at least 3 with features), give the built hang below the hub face measured on the **built solid** at the export hub (R1.7 semantics: growth below the blades), with your method. These are the acceptance values Cursor's stage-2 measurement must match within 0.05 mm. CSV + note | R1.8 |
+| B | **Check Claude's stagger ruling** (amendment §2). Redo the velocity triangles for both Shigemitsu rotors at hub, mid and tip at the stated design flow and rpm. For the rear rotor, include the front rotor's exit swirl from a free-vortex estimate, and say whether "Table 1 stagger is from the rotation plane" is consistent at all six stations (incidence within about ±15°) or only mid-span. Report only; it doesn't change the ruling unless it is clearly inconsistent | R2.3a |
+| C | (still waiting) the R3.1 export leak check, when R3.1 lands | R3.1 |
 
-Notes to `docs/qa/notes/r17-*.md`, plus a "Round 17" section below.
+Notes to `docs/qa/notes/r18-*.md` and a "Round 18" section below.
 
 ## Tested build
 - Source: copy of `T:\Projects\Fan Simulator` working tree, 2026-10-08 (no `.git`, so no commit hash). Linux, Python 3.12, no Docker/OpenFOAM/CFD.

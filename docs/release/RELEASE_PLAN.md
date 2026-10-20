@@ -105,6 +105,13 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Old saved designs are disposable: mark them stale, don't migrate them.
   - grok r17 C: with the export hub (growth below), 174/300 r16 hubs grow (Δh ≤ 6.7 mm). Built/designed stays 1.77, and (i + ii) refuses 57/58 built > 2 mm with 0.4 % false refusals.
 - **R1.8 QA-43: the 2 mm hang limit is checked on the designed blade; the built blade hangs about 1.75× more**.
+  - **AMENDED 2026-10-19 (QA-46, `docs/validation/audits/2026-10-19-prereg-amendments-r17.md` §1): two stages.**
+    - Stage 1, 1.75× designed, is a search prefilter (≤ 3 % false refusals).
+    - Stage 2 measures the **built** solid's hang wherever the blade is built (Assess CFD build, Preview, Export) and
+      refuses when it is > 2 mm.
+    - Acceptance for stage 2: it matches grok's built values within 0.05 mm on 10 designs incl. S2_0269 (grok r18 A
+      supplies them).
+    - The single-factor acceptance below is recorded as FAIL (1/123), not re-tuned.
   Lane: Cursor (the rule is fixed below). CPU: day. Status: `ready` (Kimball 2026-10-17: **2 mm is for the printed blade**).
   - Change: `validate_blade_params` refuses when `HANG_BUILT_FACTOR × blade_hang_below_hub_mm(params) > MAX_HANG_BELOW_HUB_MM`,
     with `HANG_BUILT_FACTOR = 1.75` in `fansim/geometry/blade.py`.
@@ -170,7 +177,8 @@ Kimball's.
   - Lane: grok data hunt for small counter-rotating fan or prop P–Q / thrust data. Status: `done (grok r15 hunt, 2026-10-17)`; see `docs/qa/notes/r15-data-hunt-cror-mixed-centrifugal.md`.
 - **R2.3 CROR against Shigemitsu 2018** (CC BY 4.0, 40 mm). Pre-registered:
   `docs/validation/audits/2026-10-18-cror-centrifugal-validation-prereg.md`.
-  - **R2.3a geometry freeze + case script.** Lane: Cursor. CPU: day for the build. Status: `blocked (grok r17 B)`.
+  - **R2.3a geometry freeze + case script.** Lane: Cursor. CPU: day for the build. Status: `ready`.
+    - **Amended 2026-10-19 (§2):** S1 withdrawn (it was CFD vs CFD), replaced by S1′. Table 1 stagger is **from the rotation plane**. Camber NACA 4 % at 40 %; axial gap 4.9 mm. Now `ready` (grok r17 B delivered the data).
     - grok r17 B delivered 2026-10-19: `docs/qa/r17/r17-B-shigemitsu2018-digitised.csv` + `docs/qa/notes/r17-B-digitised-cror-centrifugal.md` (CC BY 4.0 confirmed). Only total P–Q is measured; the per-rotor data and η are CFD (QA-47). Stagger convention and camber are missing, so Claude rules before the freeze.
     - Follow step 0 exactly; fill missing values only by the stated rules.
     - Commit `validation/reference/cror_shigemitsu2018/geometry.json` + STL (that commit is the freeze), then
@@ -190,7 +198,8 @@ Kimball's.
   - **R2.5a convergence fix.** Lane: Cursor. CPU: day for short tests, night for full runs. Status: `ready`.
     - Get the existing volute case to ≤ 5 % peak-to-peak ΔP over the last 20 % of iterations (step 1).
     - Judge it **only** on convergence, never against the paper.
-  - **R2.5b geometry freeze + case script.** Lane: Cursor. Status: `blocked (grok r17 B)`.
+  - **R2.5b geometry freeze + case script.** Lane: Cursor. Status: `ready`.
+    - **Amended 2026-10-19 (§3):** A1 at 0.4 / 0.7 / 1.0 × Q_max,meas; outlet-tube static pressure; log-spiral volute; gap t 0.5 mm. Now `ready` (grok r17 B delivered the data).
     - grok r17 B delivered 2026-10-19: `docs/qa/r17/r17-B-epj2018-02023-digitised.csv` (CC BY 4.0 confirmed; plastic wheel at 6000/9000/11000). No curve reaches free delivery (QA-48), so A1 needs restating. b2 = 3.86 mm, d1/d2 ≈ 0.5, no blade angles, no scaled volute drawing.
     - Step 0, then `validation/reference/volute_epj2018/geometry.json` and `scripts/validate_volute_epj.py`.
   - **R2.5c runs.** Lane: night. Status: `blocked (R2.5a, R2.5b)`.
