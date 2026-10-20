@@ -67,7 +67,7 @@
   {
    "id": "prop-jsweep-r22b",
    "max_hours": 5,
-   "status": "queued",
+   "status": "done",
    "why": "R2.2b prop CFD rung B (prereg 2026-10-17-prop-cfd-fix-prereg.md, amended 2026-10-19 s5)",
    "cmd": [
     "python",
@@ -75,7 +75,8 @@
     "scripts/prop_cfd_jsweep.py",
     "--out",
     "T:/Projects/Fan Simulator/runs/prop_cfd_jsweep"
-   ]
+   ],
+   "note": "2026-10-20: 3/3 converged; verdict B2 sectional; exit 0xC0000005 at teardown after summary"
   }
  ]
 }
