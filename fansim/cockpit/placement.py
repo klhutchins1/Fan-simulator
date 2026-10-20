@@ -486,9 +486,14 @@ def prepare_export_flat(
         need = mount_min_hub_radius(spec)
         if need is not None and float(work.get("hub_radius", 0.0)) < need:
             set_mm("hub_radius", float(need) + 0.05)
-        min_h = float(getattr(getattr(spec, "motor_mount", None), "min_hub_height_mm", 0.0) or 0.0)
-        if min_h > 0.0 and float(work.get("hub_height", 0.0)) < min_h:
-            set_mm("hub_height", min_h)
+        if spec.motor_mount is not None:
+            from fansim.manufacturability.print_export import mount_hub_params
+            from fansim.optimize.search_space import blade_from_flat
+
+            grown, _note = mount_hub_params(blade_from_flat(work, features), spec.motor_mount)
+            if grown.hub_height_mm is not None:
+                set_mm("hub_height", float(grown.hub_height_mm))
+            set_mm("blade_hub_z", float(getattr(grown, "blade_hub_z_mm", 0.0) or 0.0))
 
     if not fit_frame:
         return work, changes

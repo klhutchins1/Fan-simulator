@@ -95,15 +95,20 @@ def test_old_planar_saves_and_unclipped_blades_are_not_refused():
 
 
 def test_optimizer_treats_overhang_as_early_infeasible(tmp_path, monkeypatch):
-    """Roadmap 27.8: a hang past 2 mm is infeasible before CAD/CFD, not a crash."""
+    """Roadmap 27.8: a hang past 2 mm is infeasible before CAD/CFD, not a crash.
+
+    R1.7 scores the print hub, so pick a grok r16 design that still hangs there
+    (S2_0176's auto-hub 2.6 mm hang drops to 0.4 mm once the hub grows below).
+    """
     from fansim.optimize.objectives import evaluate_candidate
+    from tests.test_one_hub import _r16
 
     def boom(*_a, **_k):
         raise AssertionError("must not build CAD for a hang refusal")
 
     monkeypatch.setattr("fansim.optimize.objectives.build_impeller", boom)
     monkeypatch.setattr("fansim.optimize.objectives.export_stl", boom)
-    result = evaluate_candidate(_design("S2_0176"), workdir=tmp_path)
+    result = evaluate_candidate(_r16("S1_0006"), workdir=tmp_path)
     assert result.feasible is False
     assert "below the hub" in (result.reason or "")
 

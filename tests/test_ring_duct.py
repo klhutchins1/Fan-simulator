@@ -43,7 +43,7 @@ def _load_meta(case_dir):
 
 
 def test_cfd_version_bumped_to_5():
-    assert CFD_VERSION == 5
+    assert CFD_VERSION == 6
 
 
 def test_default_duct_is_ring(tmp_path):

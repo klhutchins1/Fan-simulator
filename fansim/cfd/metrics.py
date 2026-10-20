@@ -27,7 +27,9 @@ from fansim.physics.air import RHO_AMCA as RHO_AIR
 #                    around the tips); casing corners sealed.
 #   5 (2026-09-27) — short sealed frame ring (25 mm) around the rotor, slip box walls elsewhere;
 #                    v4 full-length noSlip duct gave pipe friction.
-CFD_VERSION = 5
+#   6 (2026-10-20) — R1.7 print hub: validate/score/export grow min_hub_height below the blades.
+#                    Auto-hub scores are a different trailing edge; do not migrate them.
+CFD_VERSION = 6
 
 TAIL_FRAC = 0.25  # fraction of the run treated as the converged tail (see convergence())
 

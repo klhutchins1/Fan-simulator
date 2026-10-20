@@ -38,4 +38,4 @@ def test_too_short_history(tmp_path):
 
 
 def test_cfd_version_bumped():
-    assert CFD_VERSION == 5
+    assert CFD_VERSION == 6

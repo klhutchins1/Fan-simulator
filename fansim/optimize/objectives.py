@@ -207,6 +207,12 @@ def evaluate_candidate(
     t0 = time.time()
     target_rpm = float(rpm) if rpm is not None else float(spec.rpm)
 
+    # One hub for validate, CFD and export (R1.7 / QA-44): grow to the motor cup with
+    # the extra height below the blades, matching ``mount_hub_params``.
+    if spec.motor_mount is not None:
+        from fansim.manufacturability.print_export import mount_hub_params
+        params, _grow_note = mount_hub_params(params, spec.motor_mount)
+
     # --- Cheap gates first (no CFD) ---
     if require_mountable:
         need = mount_min_hub_radius(spec)
