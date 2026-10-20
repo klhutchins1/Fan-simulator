@@ -906,19 +906,21 @@ def validate_blade_params(params: BladeParams) -> None:
     if (bool(getattr(params, "clip_below_hub", True))
             and str(getattr(params, "section_wrap", "planar")) == "cylinder"):
         hang = blade_hang_below_hub_mm(params)
-        if hang > MAX_HANG_BELOW_HUB_MM:
+        printed = HANG_BUILT_FACTOR * hang
+        if printed > MAX_HANG_BELOW_HUB_MM:
             raise ValueError(
-                f"as designed, the trailing edge hangs {hang:.1f} mm below the hub's motor face "
-                f"(limit {MAX_HANG_BELOW_HUB_MM:.0f} mm) before the hub-face cut. That cut is what "
-                "Preview shows (the mesh is flush); past the limit it distorts the section and the "
-                "uncut corner would strike the frame struts. Reduce stagger or sweep at the "
-                "trailing edge, or make the hub taller (Fit envelope does this when depth allows)")
+                f"the printed blade would hang {printed:.1f} mm below the hub "
+                f"(limit {MAX_HANG_BELOW_HUB_MM:.0f} mm)")
 
 
 # Kimball 2026-10-13 (roadmap 27.4 / QA-32): wrapped designs may hang at most this far below the
 # hub's motor face. Stock hangs ~1 mm; 20 % of optimizer designs hung, median 2.5 mm, worst 13 mm.
 # Old planar saves are not refused (they rebuild exactly as scored).
 MAX_HANG_BELOW_HUB_MM = 2.0
+# Chord refill after the hub-face clip drops the trailing edge by half the clip again, so
+# 1 + ½ + ¼ = 1.75 after two iterations (grok r16, measured median 1.77, n = 140).
+# Stage 1 (search prefilter): refuse when 1.75 × designed hang > 2 mm.
+HANG_BUILT_FACTOR = 1.75
 
 
 def blade_hang_below_hub_mm(params: BladeParams) -> float:
@@ -945,6 +947,35 @@ def blade_hang_below_hub_mm(params: BladeParams) -> float:
             tip_notch_depth_mm=params.tip_notch_depth_mm, **kw)
         zmin = min(zmin, min(v.z for v in pts))
     return max(0.0, float(z_face - zmin))
+
+
+def blade_hang_built_mm(params: BladeParams, blade=None) -> float:
+    """Hang (mm) of the **built** blade solid below the hub face, 0 if it does not hang.
+
+    Stage 2 of the hang check (R1.8): the realised loft, including chord refill and the tip
+    cylinder trim, measured with an exact OCCT bounding box (QA-49). Pass ``blade`` to reuse a
+    solid already built for export/Assess.
+    """
+    z_face = _hub_axial_range(params)[0]
+    solid = blade if blade is not None else build_blade_solid(params)
+    from OCP.Bnd import Bnd_Box
+    from OCP.BRepBndLib import BRepBndLib
+
+    box = Bnd_Box()
+    BRepBndLib.AddOptimal_s(solid.wrapped, box, False, False)
+    zmin = float(box.CornerMin().Z())
+    return max(0.0, float(z_face - zmin))
+
+
+def _refuse_if_built_hang_past_limit(params: BladeParams, blade) -> None:
+    if not (bool(getattr(params, "clip_below_hub", True))
+            and str(getattr(params, "section_wrap", "planar")) == "cylinder"):
+        return
+    hang = blade_hang_built_mm(params, blade)
+    if hang > MAX_HANG_BELOW_HUB_MM:
+        raise ValueError(
+            f"the printed blade would hang {hang:.1f} mm below the hub "
+            f"(limit {MAX_HANG_BELOW_HUB_MM:.0f} mm)")
 
 
 CLIP_TOL_MM = 1e-3
@@ -988,6 +1019,7 @@ def build_impeller_parts(params: BladeParams):
     cq = _cq()
     validate_blade_params(params)
     blade = build_blade_solid(params)
+    _refuse_if_built_hang_past_limit(params, blade)
 
     z_bottom, z_top = _hub_axial_range(params, blade)
     hub = build_hub(params, z_bottom, z_top)

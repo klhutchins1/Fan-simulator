@@ -113,7 +113,8 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     - Acceptance for stage 2: it matches grok's built values within 0.05 mm on 10 designs incl. S2_0269 (grok r18 A
       supplies them).
     - The single-factor acceptance below is recorded as FAIL (1/123), not re-tuned.
-  Lane: Cursor (the rule is fixed below). CPU: day. Status: `in progress (Cursor, 2026-10-20)`.
+  Lane: Cursor (the rule is fixed below). CPU: day. Status: `done` (2026-10-20; two-stage hang).
+    - Landed: stage 1 is 1.75× designed hang in `validate_blade_params`; stage 2 measures the built solid in `build_impeller_parts` (OCCT optimal bbox). Feature-free grok r18 A values match within 0.05 mm. Audit: `docs/validation/audits/2026-10-20-r18-hang-two-stage.md`. The single-factor miss (S2_0269 on the auto hub) stays recorded as FAIL.
   - Change: `validate_blade_params` refuses when `HANG_BUILT_FACTOR × blade_hang_below_hub_mm(params) > MAX_HANG_BELOW_HUB_MM`,
     with `HANG_BUILT_FACTOR = 1.75` in `fansim/geometry/blade.py`.
   - Comment the derivation: the chord fixed point refills the clipped chord, which drops the trailing edge by half the

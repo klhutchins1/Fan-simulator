@@ -14,6 +14,7 @@ import pytest
 
 from fansim.geometry import build_impeller
 from fansim.geometry.blade import (
+    HANG_BUILT_FACTOR,
     MAX_HANG_BELOW_HUB_MM,
     _section_points_3d,
     _thick_scale_kw,
@@ -37,6 +38,7 @@ def _design(name, **over):
 
 def test_limit_is_two_mm():
     assert MAX_HANG_BELOW_HUB_MM == 2.0
+    assert HANG_BUILT_FACTOR == 1.75
 
 
 def test_hang_is_measured_from_the_sections_as_designed():
@@ -78,14 +80,16 @@ def test_fit_envelope_grows_hub_until_designed_hang_fits():
     assert blade_hang_below_hub_mm(before) > MAX_HANG_BELOW_HUB_MM
     res = fit_envelope(flat, spec, features=feat, max_depth_mm=35.0)
     after = blade_from_flat(res.flat, feat)
-    assert blade_hang_below_hub_mm(after) <= MAX_HANG_BELOW_HUB_MM
+    assert HANG_BUILT_FACTOR * blade_hang_below_hub_mm(after) <= MAX_HANG_BELOW_HUB_MM
     validate_blade_params(after)
 
 
 def test_a_design_hanging_past_the_limit_is_refused_plainly():
-    with pytest.raises(ValueError, match="below the hub"):
-        validate_blade_params(_design("S2_0176"))                              # 2.6 mm: refused
-    validate_blade_params(_design("S1_0400"))                                  # 1.6 mm: allowed
+    with pytest.raises(ValueError, match="printed blade would hang"):
+        validate_blade_params(_design("S2_0176"))                              # 2.6 mm designed
+    with pytest.raises(ValueError, match="printed blade would hang"):
+        validate_blade_params(_design("S1_0400"))                              # 1.6 × 1.75 > 2
+    validate_blade_params(_design("S1_0218"))                                  # 1.10 × 1.75 < 2
     validate_blade_params(load_blade_params("config/problems/a12x25_reference.yaml"))
 
 
@@ -139,7 +143,7 @@ def _analytic(p, st, r_mm, omega, n):
 def test_clip_reached_station_keeps_its_camber_and_angle():
     """QA-32: where the hub-face cut reaches, chord was restored but camber read 0.005-0.011 low and
     stagger up to 1 deg off. The realisation now corrects camber and stagger there too (V1 rule)."""
-    p = _design("S8_0056", n_blades=2)   # 1.96 mm: the worst allowed hang
+    p = _design("S1_0218", n_blades=2)   # 1.10 mm designed; 1.75× still under 2 mm
     fr = _station_measure_fracs(p)
     pairs = [(f, s) for f, s in zip(fr, p.stations) if f is not None]
     with tempfile.TemporaryDirectory() as td:
@@ -168,3 +172,38 @@ def test_stock_sections_read_as_designed_despite_its_1_mm_hang():
         a = _analytic(p, s, r["r_mm"], int(r.get("omega_sign", 1)), int(r["n_blades"]))
         assert r["camber_ratio"] == pytest.approx(a["camber_ratio"], abs=0.005), (s.r_frac, r, a)
         assert r["stagger_deg"] == pytest.approx(a["stagger_deg"], abs=1.5), (s.r_frac, r, a)
+
+
+# grok r18 A (feature-free subset): built hang at the R1.7 export hub, ±0.05 mm.
+_R18_BUILT_MM = {
+    "S2_0269": 0.000,
+    "S1_0461": 2.090,
+    "S1_0534": 0.991,
+    "S3_0173": 1.169,
+    "S4_0242": 5.359,
+    "G_0502": 1.936,
+}
+
+
+def _export_hub(p):
+    from fansim.fan_spec import get_fan_spec
+    from fansim.manufacturability.print_export import mount_hub_params
+
+    return mount_hub_params(p, get_fan_spec("a12x25").motor_mount)[0]
+
+
+def test_built_hang_matches_grok_r18_on_feature_free_designs():
+    from fansim.geometry.blade import blade_hang_built_mm
+    from tests.test_one_hub import _r16
+
+    for did, ref in _R18_BUILT_MM.items():
+        got = blade_hang_built_mm(_export_hub(_r16(did)))
+        assert got == pytest.approx(ref, abs=0.05), did
+
+
+def test_build_refuses_when_the_printed_blade_hangs_past_two_mm():
+    from tests.test_one_hub import _r16
+
+    p = _export_hub(_r16("S4_0242"))
+    with pytest.raises(ValueError, match="printed blade would hang"):
+        build_impeller(p)
