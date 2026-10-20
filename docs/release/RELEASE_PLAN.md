@@ -167,7 +167,7 @@ Kimball's.
       prereg doc.
     - Test: grid y+ ≤ 1 and the case builds (no solve) in the fast suite.
     - grok r17 A (2026-10-19, `docs/qa/notes/r17-A-reference-polars.md`, `docs/qa/r17/`): the reference at Re 8e4, α 4° is CERTAIN, C_l 0.855 [0.847, 0.863] and C_d 0.0201 (NeuralFoil + XFOIL, Ncrit 9). On the NASA E387 anchor the tools read about 8 % high at 1e5; Re 6e4 is UNUSABLE.
-  - **R2.2b Advance-ratio sweep (rung B).** Lane: Cursor builds; night runs. Status: `ready`.
+  - **R2.2b Advance-ratio sweep (rung B).** Lane: Claude built it (Cursor was idle); night runs. Status: `queued for 2026-10-20 00:30` (`night/queue.json` job `prop-jsweep-r22b`; J 0.20/0.30/0.43 per amendment §5).
     - Add `--j` to `scripts/audit_prop_cfd.py`: freestream U = J·n·D, at J 0.3 / 0.5 / 0.7, 6000 rpm, compared with
       kt1035/1036.
     - Launch as a Scheduled Task after 9 PM (AGENTS.md rule 2).

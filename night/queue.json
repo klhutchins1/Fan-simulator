@@ -63,6 +63,19 @@
     "--tb=line"
    ],
    "note": "2026-10-18/19: c1, c3 green; c2 one stale test (R0.3 semantics), fixed and re-run green 2026-10-19; R0.3 merged"
+  },
+  {
+   "id": "prop-jsweep-r22b",
+   "max_hours": 5,
+   "status": "queued",
+   "why": "R2.2b prop CFD rung B (prereg 2026-10-17-prop-cfd-fix-prereg.md, amended 2026-10-19 s5)",
+   "cmd": [
+    "python",
+    "-u",
+    "scripts/prop_cfd_jsweep.py",
+    "--out",
+    "T:/Projects/Fan Simulator/runs/prop_cfd_jsweep"
+   ]
   }
  ]
 }
