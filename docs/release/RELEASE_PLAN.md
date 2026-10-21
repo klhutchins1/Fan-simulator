@@ -137,9 +137,18 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - QA-41: `watch_parent` must treat a zombie or exited launcher as gone (not `os.kill(pid, 0)` alone on Linux);
   - QA-42: the Preview weight line names the material and infill ("11 g PLA+, 20 % infill");
   - QA-45: undersized cup hub gives the plain "hub radius too small" message.
-- **R1.4 Stock recipe gap**. Lane: Claude. CPU: day. Status: `ready`.
+- **R1.4 Stock recipe gap**. Lane: Cursor (decided). CPU: day. Status: `ready`.
   - Stock v3 is 55.7 CFM against 58.3 for the reference STL (−4.5 %).
-  - Either close the gap or state it in the UI and README as the recipe's known limit. Decide with Kimball.
+  - **Kimball 2026-10-21: state the gap and ship.** No more recipe fitting for v0.1.0.
+  - Wording, the same everywhere: "Stock is rebuilt from a parametric recipe and reads about 5 % less airflow than the
+    real A12x25 shape (55.7 vs 58.3 CFM in the same test). Designs are compared with this Stock, so comparisons are
+    like for like."
+  - Where it goes:
+    - the Stock entry's Expert detail in the cockpit (Simple mode shows nothing extra);
+    - the README "Known limits" list;
+    - `docs/VALIDATION.md` (R3.8), with links to `docs/validation/audits/2026-10-12-cylinder-sections.md` and the
+      `wrapped-sections` audit numbers.
+  - Test: the phrase "about 5 % less airflow than the real A12x25" appears in the README and in the Stock Expert text.
 - **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.
