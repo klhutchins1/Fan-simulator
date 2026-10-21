@@ -82,7 +82,7 @@
    "id": "suite-cursor-1020-c1",
    "branch": "r33-install-guide",
    "max_hours": 1.5,
-   "status": "queued",
+   "status": "done",
    "why": "merge gate for Cursor's R2.2a + R1.7 + R1.8 + R3.3 chain (r33-install-guide contains all four)",
    "cmd": [
     "python",
@@ -96,13 +96,14 @@
     "not docker and not slow",
     "-q",
     "--tb=line"
-   ]
+   ],
+   "note": "2026-10-21: c1, c3 green; c2 2 stale tests (hard-coded cfd_version 5), fixed fe899cd and re-run green; merged 027ebcb"
   },
   {
    "id": "suite-cursor-1020-c2",
    "branch": "r33-install-guide",
    "max_hours": 1.5,
-   "status": "queued",
+   "status": "done",
    "why": "merge gate for Cursor's R2.2a + R1.7 + R1.8 + R3.3 chain (r33-install-guide contains all four)",
    "cmd": [
     "python",
@@ -116,13 +117,14 @@
     "not docker and not slow",
     "-q",
     "--tb=line"
-   ]
+   ],
+   "note": "2026-10-21: c1, c3 green; c2 2 stale tests (hard-coded cfd_version 5), fixed fe899cd and re-run green; merged 027ebcb"
   },
   {
    "id": "suite-cursor-1020-c3",
    "branch": "r33-install-guide",
    "max_hours": 1.5,
-   "status": "queued",
+   "status": "done",
    "why": "merge gate for Cursor's R2.2a + R1.7 + R1.8 + R3.3 chain (r33-install-guide contains all four)",
    "cmd": [
     "python",
@@ -136,7 +138,8 @@
     "not docker and not slow",
     "-q",
     "--tb=line"
-   ]
+   ],
+   "note": "2026-10-21: c1, c3 green; c2 2 stale tests (hard-coded cfd_version 5), fixed fe899cd and re-run green; merged 027ebcb"
   }
  ]
 }

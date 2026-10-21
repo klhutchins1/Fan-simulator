@@ -55,9 +55,9 @@
       "verdict": "PASS"
     },
     "cfd.cfm_from_outlet_flow": {
-      "date": "2026-10-15",
-      "fingerprint": "5afa9a376f6f94b2",
-      "report": "docs/validation/audits/2026-10-15-ledger-refresh.md",
+      "date": "2026-10-21",
+      "fingerprint": "23792f03d450c3c0",
+      "report": "checks re-run 2026-10-21 after R1.7 (CFD_VERSION 6) / R1.8 (two-stage hang) merge 027ebcb: 88 passed",
       "verdict": "PASS"
     },
     "cfd.duct_area": {
@@ -103,9 +103,9 @@
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
-      "date": "2026-10-15",
-      "fingerprint": "d267092bbd3da153",
-      "report": "docs/validation/audits/2026-10-15-ledger-refresh.md",
+      "date": "2026-10-21",
+      "fingerprint": "27a36ab9d18c308e",
+      "report": "checks re-run 2026-10-21 after R1.7 (CFD_VERSION 6) / R1.8 (two-stage hang) merge 027ebcb: 88 passed",
       "verdict": "PASS"
     },
     "optimize.reject_dead_designs": {
