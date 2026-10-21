@@ -249,6 +249,9 @@ def bind(session) -> None:
             if ch.field == "hub_height" and ch.after > ch.before:
                 grew_h_from = ch.before
         params = session.build_edit_params()
+        if spec.motor_mount is not None:
+            from fansim.manufacturability.print_export import mount_hub_params
+            params, _grow_note = mount_hub_params(params, spec.motor_mount)
         try:
             validate_blade_params(params)
         except ValueError as exc:

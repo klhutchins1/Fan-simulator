@@ -390,7 +390,11 @@ def bind(session) -> None:
         if state.preview_busy or state.assess_busy:
             return
         try:
+            spec = session.active_spec()
             params = session.build_edit_params()
+            if spec.motor_mount is not None:
+                from fansim.manufacturability.print_export import mount_hub_params
+                params, _grow_note = mount_hub_params(params, spec.motor_mount)
             validate_blade_params(params)
             printable = check_printability(params)
             print_warn = "" if printable.printable else "\n" + preview_unprintable_note(printable.reason)
@@ -398,7 +402,6 @@ def bind(session) -> None:
             # Settings from the click (24.4, Kimball 2026-10-15): the fits/weight verdict and the cup
             # build use the fan model / material / leeway / cup switch as they were when Preview was
             # pressed, not as they are when the build finishes.
-            spec = session.active_spec()
             cup = bool(getattr(state, "preview_motor_cup", False))
         except ValueError as exc:
             state.preview_msg = f"⚠ {exc}"

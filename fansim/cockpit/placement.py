@@ -398,7 +398,11 @@ def fit_envelope(
     # it never saw this; Preview then refused a mesh that looks flush. Grow the hub until
     # hang ≤ 2 mm or we would exceed max_d.
     try:
-        from fansim.geometry.blade import MAX_HANG_BELOW_HUB_MM, blade_hang_below_hub_mm
+        from fansim.geometry.blade import (
+            HANG_BUILT_FACTOR,
+            MAX_HANG_BELOW_HUB_MM,
+            blade_hang_below_hub_mm,
+        )
 
         p_hang = blade_from_flat(work, feat)
         wrap_clip = (
@@ -406,9 +410,10 @@ def fit_envelope(
             and str(getattr(p_hang, "section_wrap", "planar")) == "cylinder"
         )
         hang = blade_hang_below_hub_mm(p_hang) if wrap_clip else 0.0
+        hang_limit = MAX_HANG_BELOW_HUB_MM / HANG_BUILT_FACTOR
     except Exception:  # noqa: BLE001
-        wrap_clip, hang, p_hang = False, 0.0, None
-    if wrap_clip and hang > MAX_HANG_BELOW_HUB_MM:
+        wrap_clip, hang, hang_limit, p_hang = False, 0.0, 2.0, None
+    if wrap_clip and hang > hang_limit:
         before_h = float(work.get("hub_height", 0.0) or 0.0)
         h = before_h
         if h <= 0.0:
@@ -421,7 +426,7 @@ def fit_envelope(
                 if impeller_z_extent(p2) > max_d - 0.1:
                     work["hub_height"] = h - 0.5
                     break
-                if blade_hang_below_hub_mm(p2) <= MAX_HANG_BELOW_HUB_MM:
+                if blade_hang_below_hub_mm(p2) <= hang_limit:
                     break
             except Exception:  # noqa: BLE001
                 work["hub_height"] = h - 0.5
@@ -486,9 +491,14 @@ def prepare_export_flat(
         need = mount_min_hub_radius(spec)
         if need is not None and float(work.get("hub_radius", 0.0)) < need:
             set_mm("hub_radius", float(need) + 0.05)
-        min_h = float(getattr(getattr(spec, "motor_mount", None), "min_hub_height_mm", 0.0) or 0.0)
-        if min_h > 0.0 and float(work.get("hub_height", 0.0)) < min_h:
-            set_mm("hub_height", min_h)
+        if spec.motor_mount is not None:
+            from fansim.manufacturability.print_export import mount_hub_params
+            from fansim.optimize.search_space import blade_from_flat
+
+            grown, _note = mount_hub_params(blade_from_flat(work, features), spec.motor_mount)
+            if grown.hub_height_mm is not None:
+                set_mm("hub_height", float(grown.hub_height_mm))
+            set_mm("blade_hub_z", float(getattr(grown, "blade_hub_z_mm", 0.0) or 0.0))
 
     if not fit_frame:
         return work, changes

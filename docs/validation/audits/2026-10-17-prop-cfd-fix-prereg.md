@@ -75,6 +75,25 @@ Failures are recorded, not re-tuned.
 
 ## Results
 
+### Rung A (2026-10-20, day CPU; `scripts/prop_section_2d.py`)
+
+NACA 4406 as built (`naca4(0.04, 0.4, 0.06)`), Re 8×10⁴, wall-resolved 2-D mesh (requested first-cell y+ = 0.8 ≤ 1),
+`kOmegaSST` and `kOmegaSSTLM`. Reference at α = 4° is grok r17 A / amendment §4: C_l 0.855 [0.847, 0.863].
+Other α use the same Ncrit-9 median (CERTAIN except α = 0°, which is UNCERTAIN).
+
+| α | ref C_l | SST C_l | SST vs ref | SST-LM C_l | SST-LM vs ref | SST C_d | SST-LM C_d |
+|---|---|---|---|---|---|---|---|
+| 0° | 0.230 | 0.371 | +61 % | 0.342 | +49 % | 0.0281 | 0.0310 |
+| 2° | 0.562 | 0.541 | −3.8 % | 0.513 | −8.8 % | 0.0325 | 0.0346 |
+| 4° | 0.855 | 0.691 | **−19.2 %** | 0.653 | **−23.6 %** | 0.0378 | 0.0408 |
+| 6° | 0.981 | 0.733 | −25 % | 0.738 | −25 % | 0.0492 | 0.0521 |
+| 8° | 1.170 | 0.748 | −36 % | 0.755 | −35 % | 0.0725 | 0.0728 |
+
+**Verdict: report to Claude.** A1 needs SST ≥ 25 % below the reference *and* SST-LM within 10 % (SST is only −19 % at
+α = 4°, and SST-LM is −24 %, not closer). A2 needs SST within 10 % (it is not). SST-LM did not recover the missing
+lift; it sits slightly below SST. Combined with rung B (B2 sectional), fully-turbulent SST vs a transition model is
+not the 25 %-class 2-D miss A1 was looking for. Recorded, not re-tuned.
+
 ### Rung B (2026-10-20 00:30–02:47, night queue; J points per amendment §5)
 
 `runs/prop_cfd_jsweep/summary.json`, all three points converged. The process exited 0xC0000005 at teardown, after the

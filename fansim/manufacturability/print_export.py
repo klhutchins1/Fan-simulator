@@ -212,12 +212,12 @@ def recommend_print_settings(material: str = DEFAULT_MATERIAL) -> dict:
 
 
 def mount_hub_params(params: BladeParams, mount) -> tuple[BladeParams, str]:
-    """Grow the hub so the motor cup has a floor (QA-18).
+    """Grow the hub so the motor cup has a floor (QA-18), all extra height below the blades (QA-44).
 
     The hub must be at least ``mount.min_hub_height_mm`` tall, and never shorter than the cup plus
-    one wall. Export's ``fit_hub`` already did this, but the cup Preview path did not, so a short
-    auto hub (10.9 mm seen) got a 13 mm cup cut straight through it. Returns ``(params, note)``;
-    ``params`` is returned unchanged (same object, empty note) when the hub is already tall enough.
+    one wall. Growth is ``hub_height_mm = need`` and ``blade_hub_z_mm += Δh/2`` so the intake face
+    stays put and the motor face drops. Returns ``(params, note)``; ``params`` is returned
+    unchanged (same object, empty note) when the hub is already tall enough.
     """
     import dataclasses
 
@@ -229,7 +229,10 @@ def mount_hub_params(params: BladeParams, mount) -> tuple[BladeParams, str]:
     have = z1 - z0
     if have >= need - 1e-6:
         return params, ""
-    grown = dataclasses.replace(params, hub_height_mm=need)
+    delta = need - have
+    bias = float(getattr(params, "blade_hub_z_mm", 0.0) or 0.0)
+    grown = dataclasses.replace(
+        params, hub_height_mm=need, blade_hub_z_mm=bias + delta / 2.0)
     return grown, f"hub grown {have:.1f} → {need:.1f} mm to hold the motor cup"
 
 

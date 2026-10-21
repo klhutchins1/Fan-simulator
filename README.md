@@ -89,6 +89,66 @@ optimize  ─►  browse/tweak in the cockpit  ─►  export print files  ─�
   `FANSIM_FLUIDX3D` (and `FANSIM_MSYS_BIN` for the msys2 runtime on Windows).
 - Print materials: PLA, PLA+, PETG (default), ABS, TPU.
 
+## Install
+
+Follow this on a clean machine. The goal is a running cockpit and one Assess. Python **3.12** is required
+(3.13+ has no CAD-kernel wheels).
+
+### 1. Install uv
+
+- **Windows:** `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"` then open a new terminal.
+- **Linux:** `curl -LsSf https://astral.sh/uv/install.sh | sh` then restart the shell.
+
+Check: `uv --version`.
+
+### 2. Clone and install the project
+
+```bash
+git clone <this-repo>
+cd Fan-simulator          # or whatever you named the folder
+uv sync --extra dev       # core + cockpit + pytest. Plain `uv sync` installs no pytest.
+```
+
+`uv` will fetch Python 3.12 if this machine does not have it.
+
+### 3. Docker (needed for CFD / Assess)
+
+- **Windows:** install [Docker Desktop](https://www.docker.com/products/docker-desktop/). It uses WSL2.
+  Give WSL2 enough RAM: in `%UserProfile%\.wslconfig` set `memory=16GB` (8 GB is tight; the full test
+  suite peaks around 8 GB in one pytest process). Restart WSL with `wsl --shutdown`, then start Docker
+  Desktop and wait until it says it is running.
+- **Linux:** install Docker Engine and add your user to the `docker` group, then log out and back in.
+
+Pull the OpenFOAM image (once, a few GB):
+
+```bash
+docker pull opencfd/openfoam-default:2406
+```
+
+Check: `docker image ls` lists that tag.
+
+### 4. First cockpit and first Assess
+
+```bash
+uv run python scripts/cockpit.py --run runs/opt_mountable --reload
+```
+
+Open the URL it prints (usually `http://localhost:9001`). In the Fan tab, click **Assess**. The first
+run downloads nothing extra if step 3 worked; it starts OpenFOAM in Docker and takes several minutes.
+
+Optional: a small UI test with no Docker is `uv run python -m pytest tests/test_ui_says_what_it_does.py`.
+The full fast suite is heavy — use `uv run python scripts/pytest_chunks.py --chunks 3 --all -- -m "not docker and not slow" -q` rather than one long pytest (about 8 GB RSS).
+
+### Troubleshooting
+
+| What you see | What to do |
+|---|---|
+| `Docker not running` | Start Docker Desktop (Windows) or `sudo systemctl start docker` (Linux). Wait until `docker info` works, then Assess again. |
+| image missing / cannot find `opencfd/openfoam-default:2406` | Run the `docker pull` in step 3. |
+| WSL2 out of memory / Docker Desktop dies on Windows | Raise `memory=` in `.wslconfig`, `wsl --shutdown`, restart Docker Desktop. |
+| `uv: command not found` | Step 1 did not land on PATH. Open a new terminal, or add `$HOME/.local/bin` (Linux) / the uv install dir (Windows). |
+| pytest / `No module named pytest` | You ran `uv sync` without `--extra dev`. Repeat step 2 with `--extra dev`. |
+
 ## Quickstart
 
 ```bash

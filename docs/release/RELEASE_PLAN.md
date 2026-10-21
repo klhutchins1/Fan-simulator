@@ -94,7 +94,8 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   (`docs/qa/notes/optimizer-space-wrap-r14.md`; proposed bounds give 4.3 % refused). The refused share depends on the hub
   (R1.7) and the hang check (R1.8), so re-measure after both.
   grok r17 C (2026-10-19, `docs/qa/notes/r17-C-hang-refusals.md`): r14 P0 bounds with R1.7 + R1.8 give 2.0 % refused (Wilson ≤ 4.3 %), so the bounds stand. R1.8 alone gives 7.7 %, R1.7 alone 0.3 %.
-- **R1.7 QA-44: the optimizer scores a different hub than Export prints**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R1.7 QA-44: the optimizer scores a different hub than Export prints**. Lane: Cursor. CPU: day. Status: `done` (2026-10-20; print hub, growth below the blades).
+  - Landed: `mount_hub_params` now sets `blade_hub_z_mm += Δh/2` so the intake face stays put. Validate, Assess/optimizer CFD and Export all use that hub. Auto-hub CFD scores are stale (`CFD_VERSION` 6).
   - grok r16: the optimizer and Assess use the auto hub (often < 15 mm), while a12x25 Export and the cup Preview grow it
     to 15 mm, moving the clip plane by up to 3.3 mm. 54/141 refused designs would pass, and 171/291 hanging designs print
     with a different trailing edge from the one scored.
@@ -112,7 +113,8 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     - Acceptance for stage 2: it matches grok's built values within 0.05 mm on 10 designs incl. S2_0269 (grok r18 A
       supplies them).
     - The single-factor acceptance below is recorded as FAIL (1/123), not re-tuned.
-  Lane: Cursor (the rule is fixed below). CPU: day. Status: `ready` (Kimball 2026-10-17: **2 mm is for the printed blade**).
+  Lane: Cursor (the rule is fixed below). CPU: day. Status: `done` (2026-10-20; two-stage hang).
+    - Landed: stage 1 is 1.75× designed hang in `validate_blade_params`; stage 2 measures the built solid in `build_impeller_parts` (OCCT optimal bbox). Feature-free grok r18 A values match within 0.05 mm. Audit: `docs/validation/audits/2026-10-20-r18-hang-two-stage.md`. The single-factor miss (S2_0269 on the auto hub) stays recorded as FAIL.
   - Change: `validate_blade_params` refuses when `HANG_BUILT_FACTOR × blade_hang_below_hub_mm(params) > MAX_HANG_BELOW_HUB_MM`,
     with `HANG_BUILT_FACTOR = 1.75` in `fansim/geometry/blade.py`.
   - Comment the derivation: the chord fixed point refills the clipped chord, which drops the trailing edge by half the
@@ -163,7 +165,8 @@ Kimball's.
 - **R2.2 Propeller CFD: fix it** (Kimball 2026-10-17). FAIL, −44 % C_T against UIUC (audit-08).
   - Pre-registered diagnostic ladder: `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`. Read its rules
     before running anything; each rung's result picks the next rung.
-  - **R2.2a 2-D section case (rung A).** Lane: Cursor. CPU: day (minutes per run; not 4–9 PM). Status: `ready`.
+  - **R2.2a 2-D section case (rung A).** Lane: Cursor. CPU: day (minutes per run; not 4–9 PM). Status: `done` (2026-10-20; verdict report to Claude).
+    - Landed: `scripts/prop_section_2d.py`, fast-suite case build + y+ ≤ 1, 2-D SST vs SST-LM at Re 8×10⁴. At α 4° SST C_l is −19 % vs the grok r17 reference and SST-LM is −24 % (neither A1 nor A2). Table in the ladder prereg. R2.2c stays blocked until Claude rules.
     - New `scripts/prop_section_2d.py`: a 2-D OpenFOAM case of the prop builder's generic section (6 % thick,
       camber 0.04) at Re 8×10⁴, y+ ≤ 1, α 0–8°, with `kOmegaSST` and `kOmegaSSTLM`.
     - Compare with NeuralFoil at the same Re, and write `runs/prop_section_2d/summary.json` plus a table in the
@@ -222,7 +225,8 @@ Kimball's.
   - `pyproject.toml`: licence, authors, URLs, readme, classifiers, and a `[project.scripts]` entry point
     `fansim-cockpit = …` (wrapping `scripts/cockpit.py`).
   - Test: `uv build` works, and the installed entry point starts the server with `--help`.
-- **R3.3 Install guide**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R3.3 Install guide**. Lane: Cursor. CPU: day. Status: `done` (2026-10-20).
+  - Landed: README **Install** for Windows and Linux (uv, Docker Desktop / Engine, `docker pull opencfd/openfoam-default:2406`, first Assess, WSL2 / Docker-not-running). Grok r15 can follow it word for word.
   - A README install section for Windows and Linux: uv, Docker Desktop / Engine, `docker pull opencfd/openfoam-default:2406`,
     the first Assess, and troubleshooting (WSL2 memory, Docker not running).
   - Test: grok round 15 follows it on a clean Linux box. r15: NOT RUN (no guide yet); `docs/qa/notes/r15-install-dry-run.md`.
