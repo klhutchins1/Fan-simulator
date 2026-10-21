@@ -13,32 +13,21 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 - Known recovery gaps from README_RECOVERY.md / RECOVERY_TODO.md are not counted as bugs.
 - Paths like `/workspace/fansim/...` and `qa/...` are on the QA bot's machine (screenshots, scratch scripts); ask if you need one.
 
-## ▶ Next round for the QA bot: round 18 (queued by Claude 2026-10-19)
+## ▶ Next round for the QA bot: round 20 (queued by Claude 2026-10-20). Delivered as `handoff/2026-10-20_to-qa-20/`
 
-Round 17 is **DONE** (results below; it caught three prereg problems before any run, which is exactly right). Rulings:
-`docs/validation/audits/2026-10-19-prereg-amendments-r17.md`. Delivered as `handoff/2026-10-19_to-qa-18/` + bundle.
-Pre-register A and B before data.
-
-| # | task | board |
-|---|---|---|
-| A | **Built-hang reference values for R1.8 stage 2.** For 10 designs from your r16/r17 set (include S2_0269 and at least 3 with features), give the built hang below the hub face measured on the **built solid** at the export hub (R1.7 semantics: growth below the blades), with your method. These are the acceptance values Cursor's stage-2 measurement must match within 0.05 mm. CSV + note | R1.8 |
-| B | **Check Claude's stagger ruling** (amendment §2). Redo the velocity triangles for both Shigemitsu rotors at hub, mid and tip at the stated design flow and rpm. For the rear rotor, include the front rotor's exit swirl from a free-vortex estimate, and say whether "Table 1 stagger is from the rotation plane" is consistent at all six stations (incidence within about ±15°) or only mid-span. Report only; it doesn't change the ruling unless it is clearly inconsistent | R2.3a |
-| C | (still waiting) the R3.1 export leak check, when R3.1 lands | R3.1 |
-
-Notes to `docs/qa/notes/r18-*.md` and a "Round 18" section below.
-
-## ▶ Then: round 19 (queued by Claude 2026-10-20; after round 18). Delivered as `handoff/2026-10-20_to-qa-19/`
-
-Context: prop CFD rung B came back **B2 sectional** (CFD C_T −40 to −58 % at J 0.20–0.43). BEMT on the same generic section
-is also −15 to −29 %, so the APC SF geometry (no published airfoil) can't validate CFD on its own. "Fixed" now needs a
-prop with **known sections** (the results section of `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`).
+Rounds 18 and 19 are **DONE**; thank you. Rulings: `docs/validation/audits/2026-10-20-rulings-r18-r19-rungA.md`. The
+bundle has `master` **and** Cursor's unmerged branch `r33-install-guide` (R2.2a, R1.7, R1.8, R3.3), which merges after
+tonight's suite. Pre-register B and D before data.
 
 | # | task | board |
 |---|---|---|
-| A | **A measured small prop with fully specified airfoil sections.** We need 5–12″ diameter, chord **and** twist **and** the named airfoil (or coordinates) per station, plus measured C_T and C_P at static and over J, under an open licence or public domain. Start with UIUC's own designs (Selig's group published geometry + airfoil for some props in the UIUC Propeller Database), NASA/TU Delft open props (e.g. TUD-XPROP), and any CC-BY paper with a printed or CNC prop. For each: URL, licence, geometry completeness, Re(0.75R) range, data format. Pick the best and say what we'd pre-register | R2.2 |
-| B | **How good is BEMT on known sections?** For the best candidate from A, run fansim's BEMT (`fansim.propeller.bemt.analyze`, NeuralFoil and the default polars) against the measured C_T and C_P. Pre-register "agree" first (suggested: C_T ±15 %, C_P ±20 % at static and mid J). This tells us whether the APC SF deficit grows with J because of the generic section | R2.1 / R2.2 |
+| A | **Rebuildable params for the 4 feature designs** of r18 A (S5_0207, S5_0073, S5_0112, S5_0023): their `flat` dict + `features`, exactly as you built them, as JSON (`docs/qa/r20/r20-A-feature-designs.json`), so Cursor's stage-2 test can rebuild them here and check your built-hang values. If you can, also run Cursor's `blade_hang_built_mm` (branch `r33-install-guide`) on all 10 and report against your CSV | R1.8 |
+| B | **Ladson NACA 0012 reference** (NASA TM-4074, 1988, public domain; the NASA Turbulence Modeling Resource 2-D validation page uses it): C_l and C_d at Re 6×10⁶, tripped, α 0°, 5° and 10°, with the source table or figure and your uncertainty. This is the pass reference for prop CFD rung A0 | R2.2 |
+| C | **Digitise the TU Delft low-Re benchmark prop** (Casalino et al. 2021, CC BY 4.0): chord and twist vs r/R (Fig 4) and the measured C_T and C_Q vs J at 5000 rpm, as CSV with a digitising uncertainty, plus anything the CFD build needs (hub, spinner, tip) | R2.2 |
+| D | **Install-guide dry run (R3.3)** on a clean Linux box from branch `r33-install-guide`'s README: follow it literally, stop at the first step that fails or is unclear, and note every assumption you had to make. The Docker/OpenFOAM step is a "would run" check if your box has no Docker | R3.3 |
+| E | (still waiting) R3.1 export leak check, when R3.1 lands | R3.1 |
 
-Notes to `docs/qa/notes/r19-*.md`, plus a "Round 19" section below.
+Notes to `docs/qa/notes/r20-*.md`, plus a "Round 20" section below.
 
 ## Tested build
 - Source: copy of `T:\Projects\Fan Simulator` working tree, 2026-10-08 (no `.git`, so no commit hash). Linux, Python 3.12, no Docker/OpenFOAM/CFD.
@@ -605,3 +594,77 @@ Summary in `handoff/2026-10-19_from-qa-17/README.md`. Box only. No CFD, Docker o
     the stand's own resistance. So the A1 points "0.4/0.7/0.9 × measured free delivery" are undefined.
   - Its pressure is the outflow-tube "working pressure p_b", and the volute has no scaled drawing (Fig 2 is a
     render), so the log-spiral fallback applies.
+
+## Round 18 (2026-10-20): master 1c86f65 (fansim code identical to 46a3408), run clone `/workspace/fansim/qa/run_r17`
+Prereg `5df5059` (`prereg_r6` branch `prereg/round18`, `qa_r18/PREREG_R18.md`, 08:17 MDT, before any data).
+Handoff: `handoff/2026-10-20_from-qa-18/`. Box only. No CFD and no fansim edits.
+- **A (R1.8 stage 2) built-hang reference values:** 10 designs: S2_0269, 4 feature designs and 5 feature-free.
+  - Measured on `build_blade_solid` at the R1.7 export hub (growth below the blades) with an exact OCCT bounding box.
+  - All gates PASS:
+    - vertex and mesh cross-checks within 1e-7 mm;
+    - fresh-process rebuild identical;
+    - S2_0269 at the auto hub reproduces 2.252 mm.
+  - Values (mm): S2_0269 **0.000** (−1.050 signed), S5_0207 2.829, S5_0073 2.303, S5_0112 2.626, S5_0023 7.322,
+    G_0502 1.936, S1_0461 2.090, S1_0534 0.991, S3_0173 1.169, S4_0242 5.359.
+  - Stage 2 refuses 6/10. `docs/qa/r18/r18-A-built-hang-reference.csv`, `docs/qa/notes/r18-A-built-hang-reference.md`.
+- **B (R2.3a) Shigemitsu velocity triangles:**
+  - "From the rotation plane" is **MID-ONLY**: 4/6 stations within ±15° (front hub −19.9°, rear tip +16.0°; mids
+    −1.0° / +6.7°), and 4–5/6 under every sensitivity setting.
+  - "From the axis" gets 0/6 (up to 3/6 with no swirl).
+  - Not clearly inconsistent, so **the ruling stands**. `docs/qa/notes/r18-B-shigemitsu-velocity-triangles.md` → QA-50.
+- **C (R3.1 leak check): WAITING.** R3.1 is still `ready`, not landed. Nothing was run.
+- **QA-49 (MED, new) R1.8 stage-2 measurement must use the built, trimmed solid:**
+  - Section points at the params' `n_span`/`n_chord` (the `blade_hang_below_hub_mm` / r16 P2 shortcut) read **0.14–0.37 mm
+    low on feature designs**. Features raise the loft to 31–43 span sections, and the lowest point at r/R = 0.5 falls
+    between the 18 sampled sections.
+  - They read **0.05 mm high** when the lowest point is at the tip (G_0502: the untrimmed over-radius wire).
+  - Measuring the `build_blade_solid` output, as the amendment says, avoids both. A section-point shortcut must copy
+    `required_span_sections`, n_span ≥ 30 for > 3 stations, and the tip trim.
+  - The acceptance values hold only once R1.7 is in. Today's `mount_hub_params` grows the hub symmetrically (the top
+    rises 0.14–1.74 mm too), which gives hangs up to 3.2 mm larger (S5_0073: 5.345 vs 2.303).
+  - Stage 1 also reads the designed hang at `n_span`. That's fine as a prefilter, but it's why the feature designs
+    need stage 2.
+- **QA-50 (LOW, new) R2.3a stagger and camber:** the ruling passes its own consistency test only at mid-span.
+  - Under "from the plane", the front rotor's chord angle falls 17.8° hub → tip while the flow angle rises 10.3°
+    (reversed twist).
+  - With the ruled 4 % camber, the ideal lossless Euler rise at mid-span is 67 + 212 = **279 Pa against 510 Pa
+    measured**, so A1 must miss low.
+  - "From the axis" with about 10 % camber is the coherent alternative: right twist sign everywhere, and 1240 Pa ideal.
+  - Report only: the pre-registered rule keeps the ruling. Claude may want to state now whether S1′ stays meaningful
+    for a model that can't reach the measured pressure.
+
+## Round 19 (2026-10-20): master 1c86f65, run clone `/workspace/fansim/qa/run_r17` (fansim code identical)
+Prereg `cab2825` (`prereg_r6` branch `prereg/round19`, `qa_r19/PREREG_R19.md`, 08:32 MDT, before any BEMT run or
+digitising). Handoff: `handoff/2026-10-20_from-qa-19/`.
+- **A (R2.2) known-section prop: the TU Delft low-Re benchmark** (Casalino et al. 2021, AST 113:106707, **CC BY 4.0**).
+  - D 0.30 m, 2 blades, **NACA 4412 full span**. Chord and twist come from Fig 4.
+  - Measured C_T and C_Q at 5000 rpm, J 0–0.8. Re(0.75R) ≈ 9×10⁴.
+  - The runner-up is UIUC DA4002 9×6.75 (SDA1075; licence citation-only). 8 candidates in all, in
+    `docs/qa/r19/r19-A-prop-candidates.csv`. TUD-XPROP is excluded (NC-ND).
+  - Note: `docs/qa/notes/r19-A-known-section-prop-hunt.md`, with a proposed CFD prereg for the TUD blade.
+- **B (R2.1/R2.2) fansim BEMT on the known-section prop:**
+  - The shipped `table` backend **AGREES**: C_T −4.9 % static and −7.1 % at J 0.4; C_P +0.5 % / +0.3 %. It holds
+    under twist ±0.5°, chord ±2 %, ρ and n_elem.
+  - Toward zero thrust C_T reads about 0.01 low: −14 % at J 0.48, −24 % at 0.60.
+  - The `neuralfoil` backend DISAGREES: C_T +16.8 % static, and non-converged at every point (QA-51).
+  - Section test G (J 0 → 0.4): known −2.2 pp, generic −4.4 pp → MIXED (table). The generic section isn't wrong on
+    this prop.
+  - APC SF's growth with J is partly a BEMT near-zero-thrust offset (about 0.01 in C_T) that known sections don't
+    remove.
+  - DA4002, report only: table −12 to −18 % C_T and −27 to −41 % static C_P, i.e. the static C_P deficit remains on
+    thick low-camber sections at Re 2.5–6×10⁴.
+  - **Deviation recorded:** the paper normalises by ρΩ²πR⁴ / ρΩ²πR⁵ (axes ×10² / ×10³). My first reading broke the
+    0.18 N·m torque-cell range and was corrected before any verdict was written; no rule or tolerance was changed.
+  - Note: `docs/qa/notes/r19-B-bemt-known-section-prop.md`.
+- **QA-51 (MED, new) NeuralFoil BEMT backend doesn't converge:**
+  - With `set_polar_backend("neuralfoil")`, **every** TUD point and every DA4002 point returns `PropPerf.converged =
+    False` (at least one element hits the 60-step inflow cap).
+  - The table backend converges everywhere except DA4002 design static.
+  - The NeuralFoil numbers also differ from the table by +22 pp of C_T at static on the same NACA 4412.
+  - Until fixed, label NeuralFoil-backend prop results unreliable whenever `converged` is False. Check any claim that
+    was validated with NeuralFoil for the flag.
+  - Proposal only: under-relaxation or a bisection fallback on the element that oscillates.
+- **QA-52 (LOW, new) PropPerf rounding:**
+  - `analyze` rounds `power_w` to 0.1 W, `thrust_n` to 1 mN and `torque_nm` to 1e-4 N·m. For small or slow props
+    (DA4002 at 3030 rpm, about 5–6 W) that is up to about 1 % of C_P in validation numbers.
+  - Proposal: keep unrounded fields for validation and round only for display.

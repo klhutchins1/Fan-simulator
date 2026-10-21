@@ -1,0 +1,347 @@
+{
+ "per_case": {
+  "DA4002|design|generic_naca4406|neuralfoil|nominal|5028": {
+   "verdict": "DISAGREE",
+   "fails": [],
+   "eCT_J0": -0.08618597833729935,
+   "eCP_J0": -0.09965316799753232,
+   "eCT_J04": 0.06668337978515027,
+   "eCP_J04": 0.03381044920646392,
+   "G_pp": 15.286935812244963,
+   "all_converged": false
+  },
+  "DA4002|design|generic_naca4406|table|nominal|5028": {
+   "verdict": "DISAGREE",
+   "fails": [],
+   "eCT_J0": -0.021365782145455037,
+   "eCP_J0": -0.18749188331484623,
+   "eCT_J04": 0.011140103204621665,
+   "eCP_J04": -0.03759387611410259,
+   "G_pp": 3.25058853500767,
+   "all_converged": false
+  },
+  "DA4002|design|sda1075_mapped|neuralfoil|nominal|3030": {
+   "verdict": "DISAGREE",
+   "fails": [
+    "J0.00: eCT -29.7% eCP -33.8%",
+    "J0.40: eCT -26.8% eCP -20.6%"
+   ],
+   "eCT_J0": -0.2966615380964319,
+   "eCP_J0": -0.3382345404520434,
+   "eCT_J04": -0.2675549616664403,
+   "eCP_J04": -0.20624541626555248,
+   "G_pp": 2.9106576429991593,
+   "all_converged": false
+  },
+  "DA4002|design|sda1075_mapped|neuralfoil|nominal|5028": {
+   "verdict": "DISAGREE",
+   "fails": [],
+   "eCT_J0": -0.0873919354757523,
+   "eCP_J0": -0.1710221241928499,
+   "eCT_J04": -0.07974889483624337,
+   "eCP_J04": -0.11520727320167479,
+   "G_pp": 0.7643040639508936,
+   "all_converged": false
+  },
+  "DA4002|design|sda1075_mapped|table|nominal|3030": {
+   "verdict": "DISAGREE",
+   "fails": [
+    "J0.00: eCT -12.8% eCP -36.1%"
+   ],
+   "eCT_J0": -0.12817136601879586,
+   "eCP_J0": -0.3610540390571454,
+   "eCT_J04": -0.14629733826339297,
+   "eCP_J04": -0.14851781017577426,
+   "G_pp": -1.812597224459711,
+   "all_converged": true
+  },
+  "DA4002|design|sda1075_mapped|table|nominal|5028": {
+   "verdict": "DISAGREE",
+   "fails": [
+    "J0.00: eCT -15.4% eCP -27.3%",
+    "J0.40: eCT -17.3% eCP -14.9%"
+   ],
+   "eCT_J0": -0.1540210673752762,
+   "eCP_J0": -0.27258563877849407,
+   "eCT_J04": -0.17274180486879476,
+   "eCP_J04": -0.1493571679202068,
+   "G_pp": -1.8720737493518547,
+   "all_converged": false
+  },
+  "DA4002|surveyed|generic_naca4406|neuralfoil|nominal|5028": {
+   "verdict": "DISAGREE",
+   "fails": [],
+   "eCT_J0": -0.10608427112177266,
+   "eCP_J0": -0.08043844902186992,
+   "eCT_J04": 0.12054352677232938,
+   "eCP_J04": 0.08348302334251034,
+   "G_pp": 22.6627797894102,
+   "all_converged": false
+  },
+  "DA4002|surveyed|generic_naca4406|table|nominal|5028": {
+   "verdict": "DISAGREE",
+   "fails": [
+    "J0.00: eCT -4.5% eCP -21.5%"
+   ],
+   "eCT_J0": -0.04548492491451339,
+   "eCP_J0": -0.21494148185150685,
+   "eCT_J04": 0.04606504226662067,
+   "eCP_J04": -0.0003394455120676598,
+   "G_pp": 9.154996718113406,
+   "all_converged": true
+  },
+  "DA4002|surveyed|sda1075_mapped|neuralfoil|nominal|3030": {
+   "verdict": "DISAGREE",
+   "fails": [
+    "J0.00: eCT -29.8% eCP -29.3%",
+    "J0.40: eCT -18.5% eCP -13.4%"
+   ],
+   "eCT_J0": -0.2983896424254332,
+   "eCP_J0": -0.29259554324183945,
+   "eCT_J04": -0.18549172158559002,
+   "eCP_J04": -0.13408590865332992,
+   "G_pp": 11.289792083984318,
+   "all_converged": false
+  },
+  "DA4002|surveyed|sda1075_mapped|neuralfoil|nominal|5028": {
+   "verdict": "DISAGREE",
+   "fails": [],
+   "eCT_J0": -0.122364692490887,
+   "eCP_J0": -0.17925700375384812,
+   "eCT_J04": -0.057447427724364286,
+   "eCP_J04": -0.09037098613365169,
+   "G_pp": 6.491726476652271,
+   "all_converged": false
+  },
+  "DA4002|surveyed|sda1075_mapped|table|nominal|3030": {
+   "verdict": "DISAGREE",
+   "fails": [
+    "J0.00: eCT -15.5% eCP -40.7%"
+   ],
+   "eCT_J0": -0.1549569831183174,
+   "eCP_J0": -0.4066930362673492,
+   "eCT_J04": -0.09730435911064639,
+   "eCP_J04": -0.11965400713088548,
+   "G_pp": 5.765262400767101,
+   "all_converged": true
+  },
+  "DA4002|surveyed|sda1075_mapped|table|nominal|5028": {
+   "verdict": "DISAGREE",
+   "fails": [
+    "J0.00: eCT -18.0% eCP -31.1%"
+   ],
+   "eCT_J0": -0.1802506351366272,
+   "eCP_J0": -0.3110150767298189,
+   "eCT_J04": -0.12351026426332623,
+   "eCP_J04": -0.1089982014346691,
+   "G_pp": 5.674037087330097,
+   "all_converged": true
+  },
+  "TUD||generic_naca4406|neuralfoil|nominal|5000": {
+   "verdict": "DISAGREE",
+   "fails": [],
+   "eCT_J0": -0.04031578713601103,
+   "eCP_J0": 0.07609828334551083,
+   "eCT_J04": 0.1345334901991102,
+   "eCP_J04": 0.12285215465015775,
+   "G_pp": 17.484927733512123,
+   "all_converged": false
+  },
+  "TUD||generic_naca4406|table|nominal|5000": {
+   "verdict": "AGREE",
+   "fails": [],
+   "eCT_J0": 0.07883208348141757,
+   "eCP_J0": 0.07609828334551083,
+   "eCT_J04": 0.034790177099616626,
+   "eCP_J04": 0.021542185809541925,
+   "G_pp": -4.404190638180094,
+   "all_converged": true
+  },
+  "TUD||known_naca4412|neuralfoil|chord+2%|5000": {
+   "verdict": "DISAGREE",
+   "fails": [
+    "J-0.00: eCT +18.8% eCP +20.6%",
+    "J0.40: eCT +15.1% eCP +16.7%"
+   ],
+   "eCT_J0": 0.18797803421490666,
+   "eCP_J0": 0.2064599039565096,
+   "eCT_J04": 0.15134416094621606,
+   "eCP_J04": 0.16747678378233366,
+   "G_pp": -3.663387326869061,
+   "all_converged": false
+  },
+  "TUD||known_naca4412|neuralfoil|chord-2%|5000": {
+   "verdict": "DISAGREE",
+   "fails": [],
+   "eCT_J0": 0.14847045067334586,
+   "eCP_J0": 0.15480718635592527,
+   "eCT_J04": 0.11155890684473246,
+   "eCP_J04": 0.126470367823037,
+   "G_pp": -3.691154382861339,
+   "all_converged": false
+  },
+  "TUD||known_naca4412|neuralfoil|nelem48|5000": {
+   "verdict": "DISAGREE",
+   "fails": [
+    "J-0.00: eCT +17.3% eCP +18.2%"
+   ],
+   "eCT_J0": 0.17297515438899747,
+   "eCP_J0": 0.18186337176575518,
+   "eCT_J04": 0.1302374298970721,
+   "eCP_J04": 0.14576750474505884,
+   "G_pp": -4.273772449192537,
+   "all_converged": false
+  },
+  "TUD||known_naca4412|neuralfoil|nominal|5000": {
+   "verdict": "DISAGREE",
+   "fails": [
+    "J-0.00: eCT +16.8% eCP +18.1%"
+   ],
+   "eCT_J0": 0.16834926644267556,
+   "eCP_J0": 0.18063354515621755,
+   "eCT_J04": 0.13154492651073602,
+   "eCP_J04": 0.14697357580268533,
+   "G_pp": -3.6804339931939545,
+   "all_converged": false
+  },
+  "TUD||known_naca4412|neuralfoil|rho1.18|5000": {
+   "verdict": "DISAGREE",
+   "fails": [
+    "J-0.00: eCT +16.8% eCP +18.1%"
+   ],
+   "eCT_J0": 0.16838634983207568,
+   "eCP_J0": 0.18097226858681048,
+   "eCT_J04": 0.1316493996057746,
+   "eCP_J04": 0.1468918082733548,
+   "G_pp": -3.673695022630108,
+   "all_converged": false
+  },
+  "TUD||known_naca4412|neuralfoil|twist+0.5|5000": {
+   "verdict": "DISAGREE",
+   "fails": [
+    "J-0.00: eCT +19.2% eCP +21.6%",
+    "J0.40: eCT +18.8% eCP +21.2%"
+   ],
+   "eCT_J0": 0.191853778169933,
+   "eCP_J0": 0.21629851683281176,
+   "eCT_J04": 0.18832763658984852,
+   "eCP_J04": 0.2121014129145098,
+   "G_pp": -0.3526141580084463,
+   "all_converged": false
+  },
+  "TUD||known_naca4412|neuralfoil|twist-0.5|5000": {
+   "verdict": "DISAGREE",
+   "fails": [
+    "J-0.00: eCT +15.4% eCP +14.6%"
+   ],
+   "eCT_J0": 0.1542215546066108,
+   "eCP_J0": 0.14619840008916118,
+   "eCT_J04": 0.07457543120110022,
+   "eCP_J04": 0.08305180974848736,
+   "G_pp": -7.964612340551058,
+   "all_converged": false
+  },
+  "TUD||known_naca4412|table|chord+2%|5000": {
+   "verdict": "AGREE",
+   "fails": [],
+   "eCT_J0": -0.030563915249170126,
+   "eCP_J0": 0.030594698792614672,
+   "eCT_J04": -0.05878922339260506,
+   "eCP_J04": 0.020336114751915657,
+   "G_pp": -2.8225308143434935,
+   "all_converged": true
+  },
+  "TUD||known_naca4412|table|chord-2%|5000": {
+   "verdict": "AGREE",
+   "fails": [],
+   "eCT_J0": -0.0683211628110415,
+   "eCP_J0": -0.02228784541750739,
+   "eCT_J04": -0.08437879997431041,
+   "eCP_J04": -0.012227803803996462,
+   "G_pp": -1.6057637163268912,
+   "all_converged": true
+  },
+  "TUD||known_naca4412|table|nelem48|5000": {
+   "verdict": "AGREE",
+   "fails": [],
+   "eCT_J0": -0.05056775501704902,
+   "eCP_J0": 0.0035385133827847692,
+   "eCT_J04": -0.07261133045133639,
+   "eCP_J04": 0.0034511199451463526,
+   "G_pp": -2.2043575434287366,
+   "all_converged": false
+  },
+  "TUD||known_naca4412|table|nominal|5000": {
+   "verdict": "AGREE",
+   "fails": [],
+   "eCT_J0": -0.04919249103300738,
+   "eCP_J0": 0.004768339992322623,
+   "eCT_J04": -0.07149061906819598,
+   "eCP_J04": 0.0034511199451463526,
+   "G_pp": -2.2298128035188602,
+   "all_converged": true
+  },
+  "TUD||known_naca4412|table|rho1.18|5000": {
+   "verdict": "AGREE",
+   "fails": [],
+   "eCT_J0": -0.049274604252393384,
+   "eCP_J0": 0.004783973381426998,
+   "eCT_J04": -0.07156659950095112,
+   "eCP_J04": 0.004156364885622876,
+   "G_pp": -2.229199524855774,
+   "all_converged": true
+  },
+  "TUD||known_naca4412|table|twist+0.5|5000": {
+   "verdict": "AGREE",
+   "fails": [],
+   "eCT_J0": -0.04331636310119291,
+   "eCP_J0": 0.01706660608769983,
+   "eCT_J04": -0.01919075452164476,
+   "eCP_J04": 0.0637546728264653,
+   "G_pp": 2.4125608579548152,
+   "all_converged": true
+  },
+  "TUD||known_naca4412|table|twist-0.5|5000": {
+   "verdict": "AGREE",
+   "fails": [],
+   "eCT_J0": -0.06069469889953771,
+   "eCP_J0": -0.016138712369818675,
+   "eCT_J04": -0.12397726884527027,
+   "eCP_J04": -0.05444029082091972,
+   "G_pp": -6.328256994573255,
+   "all_converged": true
+  }
+ },
+ "section_diag": {
+  "TUD||table": {
+   "G_known_pp": -2.2298128035188602,
+   "G_generic_pp": -4.404190638180094,
+   "cls": "MIXED"
+  },
+  "TUD||neuralfoil": {
+   "G_known_pp": -3.6804339931939545,
+   "G_generic_pp": 17.484927733512123,
+   "cls": "SECTION-DRIVEN"
+  },
+  "DA4002|design|table": {
+   "G_known_pp": -1.8720737493518547,
+   "G_generic_pp": 3.25058853500767,
+   "cls": "MIXED"
+  },
+  "DA4002|design|neuralfoil": {
+   "G_known_pp": 0.7643040639508936,
+   "G_generic_pp": 15.286935812244963,
+   "cls": "SECTION-DRIVEN"
+  },
+  "DA4002|surveyed|table": {
+   "G_known_pp": 5.674037087330097,
+   "G_generic_pp": 9.154996718113406,
+   "cls": "MIXED"
+  },
+  "DA4002|surveyed|neuralfoil": {
+   "G_known_pp": 6.491726476652271,
+   "G_generic_pp": 22.6627797894102,
+   "cls": "SECTION-DRIVEN"
+  }
+ }
+}

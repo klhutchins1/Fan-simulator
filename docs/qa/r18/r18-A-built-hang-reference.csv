@@ -1,0 +1,11 @@
+id,features,hub_growth_below_mm,z_hub_face_mm,z_blade_min_mm,signed_hang_mm,built_hang_ref_mm,m3_vertex_hang_mm,m3_mesh_hang_mm,m1_section_points_r17_mm,m1_minus_m2_mm,designed_hang_export_hub_mm,refuse_stage2,supp_auto_hub_hang_mm,supp_mount_hub_params_hang_mm,supp_mount_growth_top_mm,note
+S2_0269,0,2.3239,-8.5551,-7.5054,-1.0497,0.0,0.0,0.0,,,0.0,0,2.2524,0.3051,1.1619,
+S5_0207,1,2.2295,-8.5392,-11.3684,2.8292,2.8292,2.8292,2.8292,2.6177,-0.2115,0.862,1,6.9814,4.8534,1.1148,features raise loft span sections; lowest section missed at n_span
+S5_0073,1,3.4884,-9.1962,-11.4995,2.3032,2.3032,2.3032,2.3032,2.0293,-0.2739,1.3506,1,8.5422,5.3446,1.7442,features raise loft span sections; lowest section missed at n_span
+S5_0112,1,1.3755,-8.1679,-10.7944,2.6264,2.6264,2.6264,2.6264,2.2564,-0.37,1.1712,1,5.4026,3.9702,0.6878,features raise loft span sections; lowest section missed at n_span
+S5_0023,1,0.0,-7.5212,-14.8433,7.3221,7.3221,7.3221,7.3221,7.1837,-0.1384,3.7451,1,7.3221,7.3221,0.0,features raise loft span sections; lowest section missed at n_span
+G_0502,0,0.2828,-7.5776,-9.5138,1.9363,1.9363,1.9363,1.9363,1.986,0.0497,1.1345,0,2.4052,2.156,0.1414,lowest point at tip; r17 section method includes the untrimmed over-radius wire
+S1_0461,0,0.0,-8.4957,-10.586,2.0903,2.0903,2.0903,2.0903,2.0903,-0.0,1.256,1,2.0903,2.0903,0.0,
+S1_0534,0,0.0,-7.7526,-8.7431,0.9905,0.9905,0.9905,0.9905,0.9905,-0.0,0.6287,0,0.9905,0.9905,0.0,
+S3_0173,0,0.0,-9.4404,-10.609,1.1687,1.1687,1.1687,1.1687,1.1687,-0.0,0.589,0,1.1687,1.1687,0.0,
+S4_0242,0,2.4638,-8.5952,-13.9541,5.3589,5.3589,5.3589,5.3589,5.3589,-0.0,2.8841,1,10.0647,7.6481,1.2319,
