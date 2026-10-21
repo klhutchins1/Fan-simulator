@@ -77,6 +77,66 @@
     "T:/Projects/Fan Simulator/runs/prop_cfd_jsweep"
    ],
    "note": "2026-10-20: 3/3 converged; verdict B2 sectional; exit 0xC0000005 at teardown after summary"
+  },
+  {
+   "id": "suite-cursor-1020-c1",
+   "branch": "r33-install-guide",
+   "max_hours": 1.5,
+   "status": "queued",
+   "why": "merge gate for Cursor's R2.2a + R1.7 + R1.8 + R3.3 chain (r33-install-guide contains all four)",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--chunk",
+    "0",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ]
+  },
+  {
+   "id": "suite-cursor-1020-c2",
+   "branch": "r33-install-guide",
+   "max_hours": 1.5,
+   "status": "queued",
+   "why": "merge gate for Cursor's R2.2a + R1.7 + R1.8 + R3.3 chain (r33-install-guide contains all four)",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--chunk",
+    "1",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ]
+  },
+  {
+   "id": "suite-cursor-1020-c3",
+   "branch": "r33-install-guide",
+   "max_hours": 1.5,
+   "status": "queued",
+   "why": "merge gate for Cursor's R2.2a + R1.7 + R1.8 + R3.3 chain (r33-install-guide contains all four)",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--chunk",
+    "2",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ]
   }
  ]
 }
