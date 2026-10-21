@@ -2,6 +2,7 @@
 
 import json
 
+from fansim.cfd.metrics import CFD_VERSION
 from fansim.cockpit.design_names import (
     assign_display_names,
     design_key,
@@ -82,7 +83,7 @@ def test_loader_follows_case_dir_of_a_refreshed_design(tmp_path):
     (dd / "design.json").write_text(json.dumps({
         "trial": 9005, "params": {"n_blades": 9},
         "objectives": {"cfm_free": 50.0, "cfm_load": 40.0, "efficiency": 20.0},
-        "extra": {"cfd_version": 5, "case_dir": "screen_rank_audit/t9005/full"}}))
+        "extra": {"cfd_version": CFD_VERSION, "case_dir": "screen_rank_audit/t9005/full"}}))
     (d,) = _load_assessed_designs([runs / "opt_run1" / "cockpit_assess"])
     assert d.stl_path == new_case / "impeller.stl" and d.extra["cfd_stale"] is False
 
@@ -116,7 +117,7 @@ def test_coarse_mesh_scores_are_flagged_for_rerun():
     thick = {**flat, "thickness_root": 0.2, "thickness_mid": 0.2, "thickness_tip": 0.2}
     assert coarse_mesh_stale({}, thick)                      # legacy (unstamped) thick score
     assert not coarse_mesh_stale({"surf_max": 4}, thick)     # re-run at the new floor
-    assert stale_reason({"cfd_version": 5, "surf_max": 3}, flat) == "coarse mesh"
+    assert stale_reason({"cfd_version": CFD_VERSION, "surf_max": 3}, flat) == "coarse mesh"
     assert stale_reason({"cfd_version": 0}, flat) == "old solver"
     assert not coarse_mesh_stale({}, {"not": "a fan"})       # other archetypes: no judgement
 
