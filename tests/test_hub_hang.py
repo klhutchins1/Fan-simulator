@@ -207,3 +207,22 @@ def test_build_refuses_when_the_printed_blade_hangs_past_two_mm():
     p = _export_hub(_r16("S4_0242"))
     with pytest.raises(ValueError, match="printed blade would hang"):
         build_impeller(p)
+
+
+# grok r20 A / r18 A feature designs: built hang at the R1.7 export hub, ±0.05 mm.
+_R18_FEATURE_BUILT_MM = {
+    "S5_0207": 2.829,
+    "S5_0073": 2.303,
+    "S5_0112": 2.626,
+    "S5_0023": 7.322,
+}
+
+
+def test_built_hang_matches_grok_r18_on_feature_designs():
+    from fansim.geometry.blade import blade_hang_built_mm
+
+    for did, ref in _R18_FEATURE_BUILT_MM.items():
+        got = blade_hang_built_mm(_export_hub(_design(did)))
+        assert got == pytest.approx(ref, abs=0.05), did
+        with pytest.raises(ValueError, match="printed blade would hang"):
+            build_impeller(_export_hub(_design(did)))
