@@ -199,6 +199,10 @@ build/                 one-off / reference STLs
 Case internals (mesh, `processor*`, logs) are regenerable and safe to prune once solved — the results
 (`study.db` / `result.json` / catalog) and STLs are always kept, and any case can be re-meshed + re-run.
 
+## Known limits
+
+Stock is rebuilt from a parametric recipe and reads about 5 % less airflow than the real A12x25 shape (55.7 vs 58.3 CFM in the same test). Designs are compared with this Stock, so comparisons are like for like.
+
 ## Licence and credits
 
 The code is MIT (`LICENSE`). Third-party models and data keep their own licences and need credit; see

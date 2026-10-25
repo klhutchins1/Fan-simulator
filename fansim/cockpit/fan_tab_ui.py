@@ -12,6 +12,7 @@ import sys
 
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.fan_copy import CONTROL_DESC, OPT_SEARCH_HELP
+from fansim.cockpit.fan_trials import STOCK_RECIPE_GAP
 from fansim.cockpit.tab_shell import VTK_VIEW_STYLE, render_action_row
 from fansim.cockpit.fan_widgets import help_select, help_switch, opt_section, slider
 from fansim.cockpit.figures import filter_fitting_designs, scatter_figure
@@ -548,6 +549,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
 
                     with v3.VCard(classes="mb-2 pa-3", v_show="fan_subtab === 'design'"):
                         html.Div("Actions", classes="text-subtitle-2 mb-1")
+                        html.Div(
+                            STOCK_RECIPE_GAP,
+                            classes="text-caption text-medium-emphasis mb-2",
+                            v_show="ui_mode === 'expert' && selected_trial === 100000",
+                        )
                         html.Div(
                             "{{ assess_preset }} hose · {{ assess_material }} — "
                             "change under Assess & print below.",
