@@ -1,15 +1,18 @@
-"""Prop CFD rung A: 2-D NACA 4406 section at Re 8e4 (release R2.2a).
+"""Prop CFD 2-D section runner (release R2.2a / R2.2a′ rung A0).
+
+Defaults are rung A: NACA 4406 at Re 8e4, α 0–8°, SST and SST-LM.
+Rung A0: ``--section 0012 --re 6e6 --alphas 0 5 10 --models kOmegaSST --tu 0.001``.
 
 Pre-registered: docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md (rung A),
-amended in docs/validation/audits/2026-10-19-prereg-amendments-r17.md section 4
-(reference C_l 0.855 at α 4°, NeuralFoil + XFOIL Ncrit 9).
+amended in docs/validation/audits/2026-10-19-prereg-amendments-r17.md section 4,
+and docs/validation/audits/2026-10-20-rulings-r18-r19-rungA.md §1 (A0 vs Ladson).
 
-The fast suite only builds the case (no Docker, no solve). The day-CPU runner writes
-runs/prop_section_2d/summary.json after every α/model unit and will not start a new
-unit after 15:30 local.
+The fast suite only builds the case (no Docker, no solve). The runner writes
+summary.json after every α/model unit and will not start a new unit after 15:30 local.
 
     python scripts/prop_section_2d.py --build-only
     python scripts/prop_section_2d.py
+    python scripts/prop_section_2d.py --section 0012 --re 6e6 --alphas 0 5 10 --models kOmegaSST --tu 0.001
     python scripts/prop_section_2d.py --analyze
 """
 from __future__ import annotations
@@ -17,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re as _re
 import shutil
 import sys
 import time
@@ -32,10 +36,18 @@ from fansim.geometry.airfoil import naca4
 from fansim.physics.air import NU_AIR, RHO_ISA
 
 RE = 8.0e4
+DEFAULT_SECTION = "4406"
 CHORD = 0.10  # m
 SPAN = 0.002  # m (spanwise empty)
 ALPHAS = (0.0, 2.0, 4.0, 6.0, 8.0)
 MODELS = ("kOmegaSST", "kOmegaSSTLM")
+# Ladson TM-4074 tripped NACA 0012, Re 6e6 (grok r20 B / rulings §1).
+A0_CD_0 = 0.00808
+A0_CL_5 = 0.537
+A0_CL_10 = 1.063
+A0_CL_TOL = 0.05
+A0_CD_TOL = 0.20
+A0_TU = 0.001  # ~0.1 % freestream Tu; not the Ncrit-9 value.
 N_THETA = 96
 N_ITERS = 2000
 # grok r17 A / amendment §4, α = 4°, Re 8e4 (CERTAIN).
@@ -77,6 +89,16 @@ def first_cell_yplus(re: float = RE, chord: float = CHORD) -> float:
     """y+ of the first cell the case actually requests (target 0.8, always ≤ 1)."""
     ds = wall_spacing_m(re, chord, yplus_target=0.8)
     return ds * _u_tau(re, u_inf(re, chord)) / NU_AIR
+
+
+def parse_naca4_code(code: str) -> tuple[float, float, float]:
+    """NACA MPXX → (m, p, t) as fractions of chord. '0012' and 'NACA0012' both work."""
+    s = str(code).strip().upper().replace(" ", "").replace("-", "")
+    if s.startswith("NACA"):
+        s = s[4:]
+    if len(s) != 4 or not s.isdigit():
+        raise ValueError(f"need a NACA 4-digit code, got {code!r}")
+    return int(s[0]) / 100.0, int(s[1]) / 10.0, int(s[2:]) / 100.0
 
 
 def _foam(cls: str, obj: str) -> str:
@@ -123,8 +145,9 @@ def _block_mesh_dict() -> str:
     ])
 
 
-def _write_airfoil_stl(path: Path) -> None:
-    loop = naca4(0.04, 0.4, 0.06, N_THETA)[:-1] * CHORD
+def _write_airfoil_stl(path: Path, *, section: str = DEFAULT_SECTION) -> None:
+    m, p, t = parse_naca4_code(section)
+    loop = naca4(m, p, t, N_THETA)[:-1] * CHORD
     n = len(loop)
     facets: list[tuple[tuple[float, float, float], ...]] = []
     for i in range(n):
@@ -157,8 +180,8 @@ def _write_airfoil_stl(path: Path) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def _snappy_dict() -> str:
-    ds = wall_spacing_m()
+def _snappy_dict(*, re: float = RE) -> str:
+    ds = wall_spacing_m(re)
     locx, locy, locz = -2.0 * CHORD, 0.0, 0.5 * SPAN
     return "\n".join([
         _foam("dictionary", "snappyHexMeshDict"),
@@ -245,19 +268,30 @@ def _field_scalar(name: str, dims: str, value: float, wall: str, empty: bool = T
     ])
 
 
-def write_case(case_dir: Path, *, alpha_deg: float, model: str, n_iters: int = N_ITERS) -> Path:
+def write_case(
+    case_dir: Path,
+    *,
+    alpha_deg: float,
+    model: str,
+    n_iters: int = N_ITERS,
+    section: str = DEFAULT_SECTION,
+    re: float = RE,
+    tu: float | None = None,
+) -> Path:
     """Write a 2-D simpleFoam case. Does not run blockMesh or the solver."""
     if model not in MODELS:
         raise ValueError(f"model must be one of {MODELS}, got {model!r}")
+    parse_naca4_code(section)
+    tu_frac = TU_NCRIT9 if tu is None else float(tu)
     case = Path(case_dir)
     (case / "0").mkdir(parents=True, exist_ok=True)
     (case / "system").mkdir(parents=True, exist_ok=True)
     (case / "constant").mkdir(parents=True, exist_ok=True)
 
-    u = u_inf()
+    u = u_inf(re)
     a = math.radians(float(alpha_deg))
     ux, uy = u * math.cos(a), u * math.sin(a)
-    k = 1.5 * (TU_NCRIT9 * u) ** 2
+    k = 1.5 * (tu_frac * u) ** 2
     omega = math.sqrt(k) / (CMU ** 0.25 * 0.1 * CHORD)
     lift = (-math.sin(a), math.cos(a), 0.0)
     drag = (math.cos(a), math.sin(a), 0.0)
@@ -265,10 +299,10 @@ def write_case(case_dir: Path, *, alpha_deg: float, model: str, n_iters: int = N
     lm = model == "kOmegaSSTLM"
 
     (case / "system" / "blockMeshDict").write_text(_block_mesh_dict(), encoding="utf-8")
-    (case / "system" / "snappyHexMeshDict").write_text(_snappy_dict(), encoding="utf-8")
+    (case / "system" / "snappyHexMeshDict").write_text(_snappy_dict(re=re), encoding="utf-8")
     (case / "system" / "surfaceFeatureExtractDict").write_text(
         _surface_feature_dict(), encoding="utf-8")
-    _write_airfoil_stl(case / "constant" / "triSurface" / "airfoil.stl")
+    _write_airfoil_stl(case / "constant" / "triSurface" / "airfoil.stl", section=section)
 
     extra_div = ""
     extra_relax = ""
@@ -372,6 +406,12 @@ def write_case(case_dir: Path, *, alpha_deg: float, model: str, n_iters: int = N
         "        writeInterval   20;",
         "        log             true;",
         "    }",
+        "    yPlus",
+        "    {",
+        "        type            yPlus;",
+        "        libs            (fieldFunctionObjects);",
+        "        writeControl    writeTime;",
+        "    }",
         "}",
         "",
     ]), encoding="utf-8")
@@ -439,7 +479,7 @@ def write_case(case_dir: Path, *, alpha_deg: float, model: str, n_iters: int = N
     )
     if lm:
         # Langtry–Menter Reθt at Tu (%) < 1.3 % (Menter et al. 2006).
-        tu_pct = TU_NCRIT9 * 100.0
+        tu_pct = tu_frac * 100.0
         re_th = 1173.51 - 589.428 * tu_pct + 0.2196 / (tu_pct ** 2)
         (case / "0" / "gammaInt").write_text(
             _field_scalar(
@@ -471,6 +511,32 @@ def verdict(*, sst_cl: float | None, lm_cl: float | None, ref: float = REF_CL_4)
     return {"verdict": "report to Claude", "sst_err": sst_err, "lm_err": lm_err}
 
 
+def verdict_a0(points: dict) -> dict:
+    """Rung A0: C_l ±5 % at 5° and 10°, C_d ±20 % at 0° vs Ladson TM-4074."""
+    def _pt(alpha: float) -> dict | None:
+        return points.get(f"{alpha:.1f}") or points.get(str(alpha))
+
+    p0, p5, p10 = _pt(0.0), _pt(5.0), _pt(10.0)
+    if not p0 or not p5 or not p10:
+        return {"verdict": "INCONCLUSIVE", "why": "missing α 0/5/10"}
+    cd0, cl5, cl10 = p0.get("cd"), p5.get("cl"), p10.get("cl")
+    if cd0 is None or cl5 is None or cl10 is None:
+        return {"verdict": "INCONCLUSIVE", "why": "missing Cl/Cd"}
+    cd_err = float(cd0) / A0_CD_0 - 1.0
+    cl5_err = float(cl5) / A0_CL_5 - 1.0
+    cl10_err = float(cl10) / A0_CL_10 - 1.0
+    ok = (
+        abs(cd_err) <= A0_CD_TOL
+        and abs(cl5_err) <= A0_CL_TOL
+        and abs(cl10_err) <= A0_CL_TOL
+    )
+    return {
+        "verdict": "PASS" if ok else "FAIL",
+        "cd0_err": cd_err, "cl5_err": cl5_err, "cl10_err": cl10_err,
+        "ref": {"cd_0": A0_CD_0, "cl_5": A0_CL_5, "cl_10": A0_CL_10},
+    }
+
+
 def parse_cl_cd(case: Path) -> tuple[float, float] | None:
     hits = sorted(case.glob("postProcessing/forceCoeffs1/*/coefficient.dat"))
     if not hits:
@@ -494,6 +560,55 @@ def parse_cl_cd(case: Path) -> tuple[float, float] | None:
     return cl, cd
 
 
+def parse_yplus(case: Path) -> dict | None:
+    hits = sorted(Path(case).glob("postProcessing/yPlus/*/yPlus.dat"))
+    if not hits:
+        return None
+    last = None
+    for ln in hits[-1].read_text(encoding="utf-8", errors="replace").splitlines():
+        if not ln.strip() or ln.lstrip().startswith("#"):
+            continue
+        parts = ln.split()
+        if len(parts) < 5 or parts[1] != "airfoil":
+            continue
+        last = {
+            "min": float(parts[2]),
+            "max": float(parts[3]),
+            "mean": float(parts[4]),
+        }
+    return last
+
+
+def parse_layer_coverage(log: str) -> float | None:
+    hits = _re.findall(r"Extruding\s+\d+\s+faces\s+\(([\d.]+)%\s+of\s+\d+\)", log)
+    if not hits:
+        hits = _re.findall(r"([\d.]+)%\s+of\s+\d+\s+faces", log)
+    return float(hits[-1]) if hits else None
+
+
+def parse_surface_cells(case: Path) -> int | None:
+    path = Path(case) / "constant" / "polyMesh" / "boundary"
+    if not path.is_file():
+        return None
+    text = path.read_text(encoding="utf-8", errors="replace")
+    m = _re.search(r"airfoil\s*\{[^}]*nFaces\s+(\d+)", text, _re.DOTALL)
+    return int(m.group(1)) if m else None
+
+
+def parse_cli(argv: list[str] | None = None) -> argparse.Namespace:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--build-only", action="store_true", help="write one SST case and stop")
+    ap.add_argument("--analyze", action="store_true")
+    ap.add_argument("--out", type=Path, default=OUT)
+    ap.add_argument("--iters", type=int, default=N_ITERS)
+    ap.add_argument("--section", default=DEFAULT_SECTION, help="NACA 4-digit code (default 4406)")
+    ap.add_argument("--re", type=float, default=RE)
+    ap.add_argument("--alphas", type=float, nargs="+", default=list(ALPHAS))
+    ap.add_argument("--models", nargs="+", default=list(MODELS))
+    ap.add_argument("--tu", type=float, default=TU_NCRIT9, help="freestream Tu as a fraction")
+    return ap.parse_args(argv)
+
+
 def _past_cutoff(now: datetime | None = None) -> bool:
     t = now or datetime.now(UTC).astimezone()
     return (t.hour, t.minute) >= (CUTOFF_HOUR, CUTOFF_MINUTE)
@@ -503,19 +618,47 @@ def _write_progress(out: Path, payload: dict) -> None:
     (out / "progress.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
+def _is_a0(section: str, re: float, alphas: list[float]) -> bool:
+    return (
+        parse_naca4_code(section) == (0.0, 0.0, 0.12)
+        and abs(float(re) - 6.0e6) / 6.0e6 < 0.05
+        and {round(float(a), 1) for a in alphas} >= {0.0, 5.0, 10.0}
+    )
+
+
+def _judge(summary: dict, *, section: str, re: float, alphas: list[float]) -> dict:
+    points = summary.get("points") or {}
+    if _is_a0(section, re, alphas):
+        sst = points.get("kOmegaSST") or next(iter(points.values()), {})
+        return verdict_a0(sst)
+    sst = (points.get("kOmegaSST") or {}).get("4.0")
+    lm = (points.get("kOmegaSSTLM") or {}).get("4.0")
+    return verdict(
+        sst_cl=None if not sst else sst.get("cl"),
+        lm_cl=None if not lm else lm.get("cl"),
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--build-only", action="store_true", help="write one SST case and stop")
-    ap.add_argument("--analyze", action="store_true")
-    ap.add_argument("--out", type=Path, default=OUT)
-    ap.add_argument("--iters", type=int, default=N_ITERS)
-    a = ap.parse_args(argv)
+    a = parse_cli(argv)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
+    section = str(a.section)
+    re_n = float(a.re)
+    tu = float(a.tu)
+    alphas = [float(x) for x in a.alphas]
+    models = list(a.models)
+    for m in models:
+        if m not in MODELS:
+            raise SystemExit(f"model must be one of {MODELS}, got {m!r}")
 
     if a.build_only:
-        write_case(out / "build_only", alpha_deg=4.0, model="kOmegaSST")
-        print(f"wrote {out / 'build_only'} y+={first_cell_yplus():.3f}")
+        write_case(
+            out / "build_only", alpha_deg=alphas[0] if alphas else 4.0,
+            model=models[0] if models else "kOmegaSST",
+            section=section, re=re_n, tu=tu,
+        )
+        print(f"wrote {out / 'build_only'} y+={first_cell_yplus(re_n):.3f} section={section}")
         return 0
 
     summ_path = out / "summary.json"
@@ -523,18 +666,14 @@ def main(argv: list[str] | None = None) -> int:
         summary = json.loads(summ_path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         summary = {
-            "re": RE, "chord_m": CHORD, "ref_cl_4": REF_CL_4,
+            "section": section, "re": re_n, "chord_m": CHORD, "tu": tu,
+            "ref_cl_4": REF_CL_4,
             "ref_cl_4_band": [REF_CL_4_LO, REF_CL_4_HI], "ref_cd_4": REF_CD_4,
-            "yplus_first": first_cell_yplus(), "points": {},
+            "yplus_first": first_cell_yplus(re_n), "points": {},
         }
 
     if a.analyze:
-        sst = (summary.get("points") or {}).get("kOmegaSST", {}).get("4.0")
-        lm = (summary.get("points") or {}).get("kOmegaSSTLM", {}).get("4.0")
-        v = verdict(
-            sst_cl=None if not sst else sst.get("cl"),
-            lm_cl=None if not lm else lm.get("cl"),
-        )
+        v = _judge(summary, section=section, re=re_n, alphas=alphas)
         summary["verdict"] = v
         summ_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
         print(json.dumps(v))
@@ -548,32 +687,48 @@ def main(argv: list[str] | None = None) -> int:
 
     n_iters = int(a.iters)
     points = summary.setdefault("points", {})
-    mesh_src = out / "_mesh" / "constant" / "polyMesh"
+    mesh_dir = out / "_mesh"
+    mesh_src = mesh_dir / "constant" / "polyMesh"
     if not (mesh_src / "points").is_file():
-        write_case(out / "_mesh", alpha_deg=0.0, model="kOmegaSST", n_iters=n_iters)
-        mesh_run = OpenFOAMRunner(out / "_mesh")
+        write_case(
+            mesh_dir, alpha_deg=0.0, model="kOmegaSST", n_iters=n_iters,
+            section=section, re=re_n, tu=tu,
+        )
+        mesh_run = OpenFOAMRunner(mesh_dir)
         mesh_run.run("blockMesh")
         mesh_run.run("surfaceFeatureExtract")
         mesh_run.run("snappyHexMesh -overwrite")
-    for model in MODELS:
+        snap_log = (mesh_dir / "logs" / "snappyHexMesh.log")
+        coverage = None
+        if snap_log.is_file():
+            coverage = parse_layer_coverage(
+                snap_log.read_text(encoding="utf-8", errors="replace"))
+        summary["mesh"] = {
+            "layer_coverage_pct": coverage,
+            "surface_cells": parse_surface_cells(mesh_dir),
+            "yplus_requested": first_cell_yplus(re_n),
+        }
+        summ_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    for model in models:
         points.setdefault(model, {})
-        for alpha in ALPHAS:
+        for alpha in alphas:
             key = f"{alpha:.1f}"
             if points[model].get(key, {}).get("cl") is not None:
                 continue
             if _past_cutoff():
                 _write_progress(out, {"stopped": "cutoff", "next": [model, alpha]})
-                summary["verdict"] = verdict(
-                    sst_cl=(points.get("kOmegaSST") or {}).get("4.0", {}).get("cl"),
-                    lm_cl=(points.get("kOmegaSSTLM") or {}).get("4.0", {}).get("cl"),
-                )
+                summary["verdict"] = _judge(
+                    summary, section=section, re=re_n, alphas=alphas)
                 summ_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
                 print("stopped before 15:30 local; remaining units left for another day")
                 return 0
             tag = f"{model}_a{key}"
             case = out / tag
             _write_progress(out, {"current": tag, "start": time.time()})
-            write_case(case, alpha_deg=alpha, model=model, n_iters=n_iters)
+            write_case(
+                case, alpha_deg=alpha, model=model, n_iters=n_iters,
+                section=section, re=re_n, tu=tu,
+            )
             dest = case / "constant" / "polyMesh"
             if dest.exists():
                 shutil.rmtree(dest)
@@ -583,16 +738,16 @@ def main(argv: list[str] | None = None) -> int:
             run.run("simpleFoam")
             parsed = parse_cl_cd(case)
             cl, cd = (None, None) if parsed is None else parsed
+            yp = parse_yplus(case)
             points[model][key] = {
                 "cl": cl, "cd": cd, "wall_s": time.time() - t0,
-                "yplus_first": first_cell_yplus(),
+                "yplus_first": first_cell_yplus(re_n),
+                "yplus": yp,
             }
-            summary["verdict"] = verdict(
-                sst_cl=(points.get("kOmegaSST") or {}).get("4.0", {}).get("cl"),
-                lm_cl=(points.get("kOmegaSSTLM") or {}).get("4.0", {}).get("cl"),
-            )
+            summary["verdict"] = _judge(
+                summary, section=section, re=re_n, alphas=alphas)
             summ_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-            print(f"{tag} Cl={cl} Cd={cd}")
+            print(f"{tag} Cl={cl} Cd={cd} y+={yp}")
     print(json.dumps(summary.get("verdict")))
     return 0
 
