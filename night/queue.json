@@ -140,6 +140,32 @@
     "--tb=line"
    ],
    "note": "2026-10-21: c1, c3 green; c2 2 stale tests (hard-coded cfd_version 5), fixed fe899cd and re-run green; merged 027ebcb"
+  },
+  {
+   "id": "prop-section-a0",
+   "branch": "r22a-rung-a0",
+   "max_hours": 2,
+   "status": "queued",
+   "why": "R2.2a' rung A0: NACA 0012 Re 6e6 SST vs Ladson (prereg 2026-10-20-rulings-r18-r19-rungA.md §1). CLI landed; the solve is night CPU.",
+   "cmd": [
+    "python",
+    "-u",
+    "scripts/prop_section_2d.py",
+    "--section",
+    "0012",
+    "--re",
+    "6e6",
+    "--alphas",
+    "0",
+    "5",
+    "10",
+    "--models",
+    "kOmegaSST",
+    "--tu",
+    "0.001",
+    "--out",
+    "T:/Projects/Fan Simulator/runs/prop_section_a0"
+   ]
   }
  ]
 }
