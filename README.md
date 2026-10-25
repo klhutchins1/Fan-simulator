@@ -104,7 +104,7 @@ Check: `uv --version`.
 ### 2. Clone and install the project
 
 ```bash
-git clone <this-repo>
+git clone <the GitHub URL>
 cd Fan-simulator          # or whatever you named the folder
 uv sync --extra dev       # core + cockpit + pytest. Plain `uv sync` installs no pytest.
 ```
@@ -117,7 +117,8 @@ uv sync --extra dev       # core + cockpit + pytest. Plain `uv sync` installs no
   Give WSL2 enough RAM: in `%UserProfile%\.wslconfig` set `memory=16GB` (8 GB is tight; the full test
   suite peaks around 8 GB in one pytest process). Restart WSL with `wsl --shutdown`, then start Docker
   Desktop and wait until it says it is running.
-- **Linux:** install Docker Engine and add your user to the `docker` group, then log out and back in.
+- **Linux:** install [Docker Engine](https://docs.docker.com/engine/install/) and add your user to the
+  `docker` group (`sudo usermod -aG docker $USER`), then log out and back in.
 
 Pull the OpenFOAM image (once, a few GB):
 
@@ -133,8 +134,8 @@ Check: `docker image ls` lists that tag.
 uv run python scripts/cockpit.py --run runs/opt_mountable --reload
 ```
 
-Open the URL it prints (usually `http://localhost:9001`). In the Fan tab, click **Assess**. The first
-run downloads nothing extra if step 3 worked; it starts OpenFOAM in Docker and takes several minutes.
+Open the URL it prints (`http://127.0.0.1:8080`). In the Fan tab, click **Assess**. The first
+run downloads nothing extra if step 3 worked; it starts OpenFOAM in Docker and typically takes 30–40 min.
 
 Optional: a small UI test with no Docker is `uv run python -m pytest tests/test_ui_says_what_it_does.py`.
 The full fast suite is heavy — use `uv run python scripts/pytest_chunks.py --chunks 3 --all -- -m "not docker and not slow" -q` rather than one long pytest (about 8 GB RSS).

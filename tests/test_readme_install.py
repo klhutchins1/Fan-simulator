@@ -17,3 +17,22 @@ def test_readme_has_an_install_section_for_windows_and_linux():
     assert "docker not running" in lower
     assert "--extra dev" in README
     assert "pytest_chunks" in README
+
+
+def test_readme_clone_is_not_a_placeholder():
+    assert "<this-repo>" not in README
+    assert "GitHub URL" in README
+
+
+def test_readme_cockpit_port_is_8080():
+    assert "8080" in README
+    assert "localhost:9001" not in README
+
+
+def test_readme_assess_takes_thirty_to_forty_minutes():
+    assert "30–40 min" in README
+    assert "takes several minutes" not in README
+
+
+def test_readme_linux_docker_has_an_engine_link():
+    assert "docs.docker.com/engine/install" in README
