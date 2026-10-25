@@ -1,0 +1,3 @@
+$ cd /tmp/fsdry_clone.cr31s7/fansim && uv run python --version && uv run python -c 'import cadquery, OCP; print(cadquery.__version__)'
+Python 3.12.15
+2.8.0

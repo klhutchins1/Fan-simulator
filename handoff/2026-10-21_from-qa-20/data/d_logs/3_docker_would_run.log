@@ -1,0 +1,3 @@
+$ command -v docker || echo 'docker: command not found'; getent group docker || echo 'no docker group'
+docker: command not found
+no docker group

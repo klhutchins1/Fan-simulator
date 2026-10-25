@@ -1,0 +1,24 @@
+"# TU Delft low-Re benchmark prop: CFD-build details. Source: Casalino, Grande, Romani, Ragni, Avallone (2021) Aerospace Sci. Technol. 113:106707, doi:10.1016/j.ast.2021.106707, CC BY 4.0. Article page numbers (journal pagination). Compiled by grok QA r20 (prereg 2c4380d). kind: stated = text/table; scaled = read off a drawing (schematic, not to scale unless noted); not stated = absent from the paper."
+item,value,kind,source,note
+rotor diameter / tip radius,D = 0.300 m; R_T = 0.150 m,stated,"p.2 §2 text",2 blades; derived from an APC model reshaped with NACA 4412 and rescaled
+blade count,2,stated,"p.2 §2 text; Figs 2-3",
+hub radius,12.5 mm (r/R = 0.083),stated,"p.2 §2 text ('The hub radius is 1.25 cm')",
+hub/boss shape,flat-faced cylindrical boss; no spinner or nose cone shown,scaled,"Fig 3 (rendering), Fig 2 (exploded view)",no spinner in either figure; the boss front face is flat
+hub/boss axial length,not stated,not stated,"—",Fig 3 shows a short boss above a ring that steps out to the nacelle; no dimension given
+spinner diameter / length,none shown (no spinner),scaled,"Figs 2-3","model a flat hub face; any nose cone added for CFD is an assumption"
+blade root,elliptical root section merged with the profiled section 'starting from a radius of 1 cm (r/R_T = 6 %)',stated,"p.2 §2 text",text puts the root start (10 mm) inside the stated hub radius (12.5 mm): inconsistent or the root starts inside the boss
+where NACA 4412 starts,r/R ~ 0.19 (first point of the chord and twist curves),scaled,"Fig 4 (r19 digitisation first point r/R 0.193)",the paper says 'NACA4412' for each profile; the transition 12.5 mm to ~29 mm (r/R 0.083-0.19) is not given
+section,NACA 4412 at every profiled station,stated,"p.2 §2 text",
+tip shape,"finite-chord, squared (cut) tip; no rounding or tip cap stated",scaled,"Fig 3 (blunt tip ends); Fig 4 chord at r/R = 1 is c/R = 0.067 (c ~ 10 mm)",tip planform not specified beyond Fig 4
+blade material / finish,"aluminium alloy, CNC, Ra 0.4-0.8 um",stated,"p.2-3 §2 text",hydraulically smooth at these Re
+rig type,"open-jet, semi-anechoic (TU Delft A-Tunnel); vertical jet blowing upward",stated + scaled,"p.2 §2 text; Fig 1 photo; Fig 5 schematic (arrows up from nozzle)",
+nozzle,"convergent, contraction 15:1, exit diameter 0.60 m (jet area ~4x rotor disc)",stated,"p.2 §2 text; p.3",max 35 m/s; uniformity 0.6 %; Tu 0.14 % at 2.5 m/s and < 0.1 % above 10 m/s
+rotor to nozzle exit distance,"'about 0.5 m' and 'about 1.2 nozzle diameter' (= 0.72 m): the two statements disagree",stated,"p.2 §2 text (0.5 m); p.3 §2 text (1.2 D_nozzle)",Fig 5 schematic puts it at ~2.2 D_rotor (~0.66 m) but is not to scale
+configuration,"tractor: rotor at the upstream (nozzle-side) end of the nacelle, nacelle in the slipstream",scaled,"Fig 5 (rotor at the lower end of the vertical post, jet from below); Fig 3 (nacelle on +x behind the rotor)",
+nacelle,"profiled aluminium cylinder, diameter 50 mm",stated,"p.2 §2 text",houses motor (27.8 mm diameter Leopard 3536-5T 1520 KV) + encoder + load cell + torque cell
+nacelle length,not stated,not stated,"—",Fig 5 schematic: nacelle + vertical post ~2.3 D_rotor to the crossbar (not to scale)
+support,"stiffened hollow aluminium NACA 0012 struts of 6 cm chord (crossbar), held above the nozzle by four 2 cm wire tubes",stated,"p.2 §2 text; Fig 5 (T-shaped support)",
+balance,"thrust: Futek LSB200 load cell (22.2 N max, +-0.1 % RO); torque: Transducer Techniques RTS-25 (0.18 N m max, +-0.1 % RO); 5 kHz, 15 s",stated,"p.2 §2 text",inside the nacelle (measures rotor + hub; whether the spinner/boss drag is tared is not stated)
+operating points,"5000 rpm; V0 0/6/10/15/20 m/s -> J 0/0.24/0.4/0.6/0.8; Re 46-106 x10^3",stated,"Table 1; p.3 text",
+trip on force data,not stated,not stated,"Figs 19-20 captions; §6.1 and §7 text","noise was measured with and without a suction-side strip at 25 % chord; Fig 21 compares to untripped blades; Figs 19-20 do not say. Treat forces as clean blade (assumption)"
+paper's own CFD domain,"free stream only: nozzle, jet and rig not modelled; sphere 325 D",stated,"p.5 §4 text",the paper flags the jet's finite extent as an unquantified effect on loading (p.3)

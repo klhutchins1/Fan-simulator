@@ -668,3 +668,65 @@ digitising). Handoff: `handoff/2026-10-20_from-qa-19/`.
   - `analyze` rounds `power_w` to 0.1 W, `thrust_n` to 1 mN and `torque_nm` to 1e-4 N·m. For small or slow props
     (DA4002 at 3030 rpm, about 5–6 W) that is up to about 1 % of C_P in validation numbers.
   - Proposal: keep unrounded fields for validation and round only for display.
+
+## Round 20 (2026-10-21): master 027ebcb (merges `r33-install-guide` fe899cd), run clone `/workspace/fansim/qa/run_r20`
+Prereg **`2c4380d`** (`prereg_r6` branch `prereg/round20`, `qa_r20/PREREG_R20.md`, committed 08:38 MDT before any data).
+Handoff: `handoff/2026-10-21_from-qa-20/`.
+
+**Discrepancy:** the brief says `r33-install-guide` is unmerged, but master 027ebcb already merges it. Code, tests and
+README are identical on both, so master was tested. Kimball's PC working tree is on `r33-install-guide`; that is
+noted only.
+
+- **A (R1.8; QA-43/44/49): all PASS.**
+  - `docs/qa/r20/r20-A-feature-designs.json` holds the 4 feature designs in the `hub_hang_designs.json` layout, and
+    Cursor's `_design` + `mount_hub_params` recipe reproduces my r18 values bit-for-bit.
+  - `blade_hang_built_mm` at the mount hub on all 10 designs: max |Δ| vs r18 is **0.0 mm**. Stage 1 refuses 5/10 and
+    stage 2 refuses 6/10, both exactly as predicted.
+  - `build_impeller_parts` refuses every design with built hang > 2 mm (6/10) and builds the rest.
+  - The Export flat hub equals the evaluate hub to < 1e-6 mm.
+  - **Status:** QA-43, QA-44 and QA-49 are **verified fixed** on master. R1.8 acceptance becomes 10/10 once Cursor
+    adds the JSON.
+  - Note: `docs/qa/notes/r20-A-built-hang-recheck.md`.
+- **B (R2.2 rung A0 reference):** Ladson NASA TM-4074 (public domain), NACA 0012 at Re 6×10⁶, M 0.15, tripped, mean
+  of 80/120/180 grit.
+  - **C_d(0°) = 0.00808 ± 0.0002**, **C_l(5°) = 0.537** and **C_l(10°) = 1.063**.
+  - The A0 windows: C_d 0.00646–0.00969, C_l 0.510–0.564 at 5° and 1.010–1.116 at 10°.
+  - The lift slope is 0.1072/deg, within 0.3 % of McCroskey.
+  - My pre-registered band flags C_l at 5° (±19 %) because of a flawed nearest-row term. A post-hoc quadratic term
+    gives ±0.8 %, and either way the band sits inside the pass windows.
+  - The TMR data file has a typo at 180 grit, α 2.00° (0.2213 vs the table's 0.2113).
+  - Note: `docs/qa/notes/r20-B-ladson-naca0012-reference.md`.
+- **C (R2.2 TUD build details):**
+  - hub radius 12.5 mm, a flat boss with **no spinner**;
+  - an elliptical root "from r = 10 mm", which is inside the hub radius, so inconsistent. NACA 4412 is defined from
+    r/R ≈ 0.19 (Fig 4);
+  - a square-cut tip with c/R 0.067;
+  - an **open, upward vertical jet**, 0.60 m nozzle, and a tractor rotor on a 50 mm nacelle of unstated length;
+  - the rotor-to-nozzle distance is stated two ways that disagree (0.5 m vs 1.2 D_nozzle = 0.72 m);
+  - the trip status of the force data is not stated.
+  - `docs/qa/r20/r20-C-tud-build-details.csv` and `docs/qa/notes/r20-C-tud-build-details.md`.
+- **D (R3.3 install dry run):** on clean Linux (throwaway user, empty HOME, fresh clone and venv, no Docker), uv,
+  Python 3.12, the full install, the cockpit (HTTP 200 in 12 s) and the UI test (6/6) all work.
+  - **Stop point:** step 2, where `git clone <this-repo>` has no URL.
+  - **Doc errors:** the cockpit prints port **8080**, not the README's 9001. Assess is "30–40 min" in code against
+    "several minutes" in the README.
+  - The "Docker not running" troubleshooting text doesn't exist yet (R3.4). With no Docker, the error is
+    `FileNotFoundError: 'docker'`.
+  - Note: `docs/qa/notes/r20-D-install-guide-dry-run.md`.
+- **E (R3.1 leak check):** waiting, because R3.1 hasn't landed. Not run.
+- **QA-53 (MED, new) R3.3 README install section:** two factual errors and three gaps.
+  - **Errors:** the cockpit URL is `127.0.0.1:8080`, not `localhost:9001`. The first Assess takes about 30–40 min,
+    not "several minutes".
+  - **Gaps:**
+    - `<this-repo>` and `cd Fan-simulator` give no real URL or folder;
+    - there is no Linux Docker install link or `usermod` line;
+    - no troubleshooting row covers "Docker not installed" (`FileNotFoundError: … 'docker'`). The "Docker not
+      running" row refers to text that only R3.4 will add.
+  - Proposal: the six edits in the D note.
+- **QA-54 (LOW, new) Export `fit_hub` widens `hub_radius`; scoring does not:**
+  - S5_0073 goes 20.49 → 20.775 mm and S5_0023 19.38 → 20.775 mm.
+  - In a run without `--mountable`, `evaluate_candidate` scores the narrower hub, and Export (with "fit hub" on)
+    prints the wider one. The hang is unaffected (≤ 4e-5 mm), but the root and hub are not "one hub".
+  - The change is shown to the user.
+  - Proposal: apply the radius growth in `evaluate_candidate` as `mount_hub_params` does for height, or label the
+    difference in Export.

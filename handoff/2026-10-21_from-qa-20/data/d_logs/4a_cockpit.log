@@ -1,0 +1,12 @@
+[reload] DEV MODE — watching fansim, validation/ ; the server auto-restarts on edits. Ctrl+C to stop.
+2026-10-21 08:39:00.857 (   7.231s) [    7F5D2F508740]vtkXOpenGLRenderWindow.:1460  WARN| bad X server connection. DISPLAY=
+2026-10-21 08:39:00.861 (   7.234s) [    7F5D2F508740]vtkOpenGLRenderWindow.c:645   WARN| Failed to load EGL! Please install the EGL library from your distribution's package manager.
+2026-10-21 08:39:00.861 (   7.234s) [    7F5D2F508740]vtkOSOpenGLRenderWindow:149   WARN| libOSMesa not found. It appears that OSMesa is not installed in your system. Please install the OSMesa library from your distribution's package manager.
+2026-10-21 08:39:00.865 (   7.238s) [    7F5D2F508740]vtkOpenGLRenderWindow.c:645   WARN| Failed to load EGL! Please install the EGL library from your distribution's package manager.
+2026-10-21 08:39:00.865 (   7.238s) [    7F5D2F508740]vtkOSOpenGLRenderWindow:149   WARN| libOSMesa not found. It appears that OSMesa is not installed in your system. Please install the OSMesa library from your distribution's package manager.
+
+App running at:
+ - Local:   http://127.0.0.1:8080/
+ - Network: http://127.0.0.1:8080/
+
+Note that for multi-users you need to use and configure a launcher.

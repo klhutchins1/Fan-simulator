@@ -1,0 +1,1314 @@
+{
+ "fs44100_clean_snr40": {
+  "A_halfpower": [
+   {
+    "found": "10/10",
+    "f_med": 0.023,
+    "z_med": 0.2,
+    "z_p90": 0.4
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.086,
+    "z_med": 0.9,
+    "z_p90": 2.5
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.066,
+    "z_med": 1.0,
+    "z_p90": 3.6
+   },
+   {
+    "found": "6/10",
+    "f_med": 0.033,
+    "z_med": 1.2,
+    "z_p90": 2.6
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "10/10",
+    "f_med": 0.023,
+    "z_med": 0.2,
+    "z_p90": 0.5
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.086,
+    "z_med": 0.6,
+    "z_p90": 1.4
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.066,
+    "z_med": 23.8,
+    "z_p90": 28.5
+   },
+   {
+    "found": "6/10",
+    "f_med": 0.033,
+    "z_med": 1188.7,
+    "z_p90": 1374.2
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "10/10",
+    "f_med": 0.003,
+    "z_med": 0.2,
+    "z_p90": 0.4
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.018,
+    "z_med": 0.6,
+    "z_p90": 0.8
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.02,
+    "z_med": 1.4,
+    "z_p90": 4.1
+   },
+   {
+    "found": "8/10",
+    "f_med": 0.034,
+    "z_med": 1.3,
+    "z_p90": 3.2
+   }
+  ],
+  "B_time_s_med": 0.215,
+  "B_errors": 0
+ },
+ "fs44100_clean_snr20": {
+  "A_halfpower": [
+   {
+    "found": "10/10",
+    "f_med": 0.081,
+    "z_med": 2.1,
+    "z_p90": 5.2
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.2,
+    "z_med": 19.7,
+    "z_p90": 26.0
+   },
+   {
+    "found": "8/10",
+    "f_med": 0.25,
+    "z_med": 48.1,
+    "z_p90": 64.1
+   },
+   {
+    "found": "9/10",
+    "f_med": 0.166,
+    "z_med": 65.3,
+    "z_p90": 78.2
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "10/10",
+    "f_med": 0.081,
+    "z_med": 0.9,
+    "z_p90": 2.9
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.2,
+    "z_med": 4.9,
+    "z_p90": 9.4
+   },
+   {
+    "found": "8/10",
+    "f_med": 0.25,
+    "z_med": 23.1,
+    "z_p90": 36.7
+   },
+   {
+    "found": "9/10",
+    "f_med": 0.166,
+    "z_med": 1102.9,
+    "z_p90": 1379.9
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "10/10",
+    "f_med": 0.014,
+    "z_med": 0.7,
+    "z_p90": 1.9
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.016,
+    "z_med": 4.9,
+    "z_p90": 9.1
+   },
+   {
+    "found": "8/10",
+    "f_med": 0.051,
+    "z_med": 21.2,
+    "z_p90": 23.9
+   },
+   {
+    "found": "9/10",
+    "f_med": 0.072,
+    "z_med": 26.2,
+    "z_p90": 33.0
+   }
+  ],
+  "B_time_s_med": 0.22,
+  "B_errors": 0
+ },
+ "fs44100_clean_snr10": {
+  "A_halfpower": [
+   {
+    "found": "10/10",
+    "f_med": 0.181,
+    "z_med": 7.5,
+    "z_p90": 16.3
+   },
+   {
+    "found": "8/10",
+    "f_med": 0.367,
+    "z_med": 81.6,
+    "z_p90": 83.6
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "10/10",
+    "f_med": 0.181,
+    "z_med": 3.4,
+    "z_p90": 9.6
+   },
+   {
+    "found": "8/10",
+    "f_med": 0.367,
+    "z_med": 18.2,
+    "z_p90": 28.2
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "10/10",
+    "f_med": 0.046,
+    "z_med": 4.5,
+    "z_p90": 7.2
+   },
+   {
+    "found": "9/10",
+    "f_med": 0.054,
+    "z_med": 43.1,
+    "z_p90": 51.2
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_time_s_med": 0.22,
+  "B_errors": 0
+ },
+ "fs44100_clean_snr0": {
+  "A_halfpower": [
+   {
+    "found": "8/10",
+    "f_med": 0.562,
+    "z_med": 46.2,
+    "z_p90": 58.5
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "8/10",
+    "f_med": 0.562,
+    "z_med": 13.1,
+    "z_p90": 30.2
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "9/10",
+    "f_med": 0.113,
+    "z_med": 24.0,
+    "z_p90": 32.3
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_time_s_med": 0.22,
+  "B_errors": 1
+ },
+ "fs44100_phone_snr40": {
+  "A_halfpower": [
+   {
+    "found": "10/10",
+    "f_med": 0.045,
+    "z_med": 0.3,
+    "z_p90": 0.4
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.076,
+    "z_med": 1.0,
+    "z_p90": 4.1
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.077,
+    "z_med": 3.2,
+    "z_p90": 5.2
+   },
+   {
+    "found": "8/10",
+    "f_med": 0.116,
+    "z_med": 2.6,
+    "z_p90": 6.1
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "10/10",
+    "f_med": 0.045,
+    "z_med": 0.1,
+    "z_p90": 0.8
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.076,
+    "z_med": 0.8,
+    "z_p90": 1.7
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.077,
+    "z_med": 24.8,
+    "z_p90": 29.2
+   },
+   {
+    "found": "8/10",
+    "f_med": 0.116,
+    "z_med": 1063.2,
+    "z_p90": 1385.2
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "10/10",
+    "f_med": 0.012,
+    "z_med": 0.4,
+    "z_p90": 1.1
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.013,
+    "z_med": 1.1,
+    "z_p90": 4.2
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.03,
+    "z_med": 1.9,
+    "z_p90": 4.2
+   },
+   {
+    "found": "8/10",
+    "f_med": 0.031,
+    "z_med": 2.8,
+    "z_p90": 4.5
+   }
+  ],
+  "B_time_s_med": 0.2,
+  "B_errors": 0
+ },
+ "fs44100_phone_snr20": {
+  "A_halfpower": [
+   {
+    "found": "10/10",
+    "f_med": 0.24,
+    "z_med": 2.7,
+    "z_p90": 9.5
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.31,
+    "z_med": 29.0,
+    "z_p90": 48.6
+   },
+   {
+    "found": "3/10",
+    "f_med": 0.34,
+    "z_med": 73.1,
+    "z_p90": 74.7
+   },
+   {
+    "found": "3/10",
+    "f_med": 0.097,
+    "z_med": 82.1,
+    "z_p90": 84.6
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "10/10",
+    "f_med": 0.24,
+    "z_med": 0.7,
+    "z_p90": 3.6
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.31,
+    "z_med": 5.0,
+    "z_p90": 12.8
+   },
+   {
+    "found": "3/10",
+    "f_med": 0.34,
+    "z_med": 32.6,
+    "z_p90": 34.1
+   },
+   {
+    "found": "3/10",
+    "f_med": 0.097,
+    "z_med": 1012.9,
+    "z_p90": 1045.4
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "10/10",
+    "f_med": 0.041,
+    "z_med": 1.1,
+    "z_p90": 2.8
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.074,
+    "z_med": 13.6,
+    "z_p90": 16.9
+   },
+   {
+    "found": "3/10",
+    "f_med": 0.066,
+    "z_med": 33.2,
+    "z_p90": 44.7
+   },
+   {
+    "found": "4/10",
+    "f_med": 0.032,
+    "z_med": 47.1,
+    "z_p90": 56.1
+   }
+  ],
+  "B_time_s_med": 0.22,
+  "B_errors": 0
+ },
+ "fs44100_phone_snr10": {
+  "A_halfpower": [
+   {
+    "found": "10/10",
+    "f_med": 0.385,
+    "z_med": 13.3,
+    "z_p90": 21.4
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "10/10",
+    "f_med": 0.385,
+    "z_med": 3.4,
+    "z_p90": 11.7
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "10/10",
+    "f_med": 0.076,
+    "z_med": 5.3,
+    "z_p90": 10.0
+   },
+   {
+    "found": "1/10",
+    "f_med": 0.139,
+    "z_med": 73.0,
+    "z_p90": 73.0
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_time_s_med": 0.22,
+  "B_errors": 0
+ },
+ "fs44100_phone_snr0": {
+  "A_halfpower": [
+   {
+    "found": "2/10",
+    "f_med": 1.151,
+    "z_med": 51.7,
+    "z_p90": 61.6
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "2/10",
+    "f_med": 1.151,
+    "z_med": 27.2,
+    "z_p90": 37.5
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "8/10",
+    "f_med": 0.186,
+    "z_med": 50.9,
+    "z_p90": 61.6
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_time_s_med": 0.22,
+  "B_errors": 2
+ },
+ "fs48000_clean_snr40": {
+  "A_halfpower": [
+   {
+    "found": "10/10",
+    "f_med": 0.028,
+    "z_med": 0.3,
+    "z_p90": 0.4
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.126,
+    "z_med": 0.7,
+    "z_p90": 1.3
+   },
+   {
+    "found": "9/10",
+    "f_med": 0.045,
+    "z_med": 1.9,
+    "z_p90": 6.3
+   },
+   {
+    "found": "7/10",
+    "f_med": 0.066,
+    "z_med": 1.8,
+    "z_p90": 5.4
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "10/10",
+    "f_med": 0.028,
+    "z_med": 0.2,
+    "z_p90": 0.4
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.126,
+    "z_med": 0.4,
+    "z_p90": 0.7
+   },
+   {
+    "found": "9/10",
+    "f_med": 0.045,
+    "z_med": 25.2,
+    "z_p90": 29.8
+   },
+   {
+    "found": "7/10",
+    "f_med": 0.066,
+    "z_med": 1081.1,
+    "z_p90": 1387.8
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "10/10",
+    "f_med": 0.005,
+    "z_med": 0.1,
+    "z_p90": 0.3
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.018,
+    "z_med": 0.6,
+    "z_p90": 1.0
+   },
+   {
+    "found": "9/10",
+    "f_med": 0.022,
+    "z_med": 1.4,
+    "z_p90": 2.9
+   },
+   {
+    "found": "7/10",
+    "f_med": 0.027,
+    "z_med": 1.6,
+    "z_p90": 2.4
+   }
+  ],
+  "B_time_s_med": 0.215,
+  "B_errors": 0
+ },
+ "fs48000_clean_snr20": {
+  "A_halfpower": [
+   {
+    "found": "10/10",
+    "f_med": 0.101,
+    "z_med": 2.5,
+    "z_p90": 3.9
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.144,
+    "z_med": 15.2,
+    "z_p90": 22.4
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.126,
+    "z_med": 49.8,
+    "z_p90": 64.1
+   },
+   {
+    "found": "9/10",
+    "f_med": 0.07,
+    "z_med": 60.2,
+    "z_p90": 73.8
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "10/10",
+    "f_med": 0.101,
+    "z_med": 1.2,
+    "z_p90": 2.1
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.144,
+    "z_med": 4.5,
+    "z_p90": 7.4
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.126,
+    "z_med": 28.4,
+    "z_p90": 39.5
+   },
+   {
+    "found": "9/10",
+    "f_med": 0.07,
+    "z_med": 1088.4,
+    "z_p90": 1205.6
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "10/10",
+    "f_med": 0.011,
+    "z_med": 0.4,
+    "z_p90": 0.9
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.046,
+    "z_med": 5.1,
+    "z_p90": 6.6
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.039,
+    "z_med": 20.5,
+    "z_p90": 27.8
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.07,
+    "z_med": 25.0,
+    "z_p90": 33.8
+   }
+  ],
+  "B_time_s_med": 0.22,
+  "B_errors": 0
+ },
+ "fs48000_clean_snr10": {
+  "A_halfpower": [
+   {
+    "found": "10/10",
+    "f_med": 0.161,
+    "z_med": 6.9,
+    "z_p90": 21.1
+   },
+   {
+    "found": "4/10",
+    "f_med": 0.169,
+    "z_med": 66.5,
+    "z_p90": 75.8
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "10/10",
+    "f_med": 0.161,
+    "z_med": 4.1,
+    "z_p90": 7.7
+   },
+   {
+    "found": "4/10",
+    "f_med": 0.169,
+    "z_med": 12.8,
+    "z_p90": 16.1
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "10/10",
+    "f_med": 0.034,
+    "z_med": 3.1,
+    "z_p90": 6.4
+   },
+   {
+    "found": "6/10",
+    "f_med": 0.07,
+    "z_med": 35.5,
+    "z_p90": 44.2
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_time_s_med": 0.21,
+  "B_errors": 0
+ },
+ "fs48000_clean_snr0": {
+  "A_halfpower": [
+   {
+    "found": "9/10",
+    "f_med": 0.324,
+    "z_med": 36.1,
+    "z_p90": 54.2
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "9/10",
+    "f_med": 0.324,
+    "z_med": 15.2,
+    "z_p90": 24.4
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "9/10",
+    "f_med": 0.041,
+    "z_med": 25.0,
+    "z_p90": 35.0
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_time_s_med": 0.22,
+  "B_errors": 1
+ },
+ "fs48000_phone_snr40": {
+  "A_halfpower": [
+   {
+    "found": "10/10",
+    "f_med": 0.047,
+    "z_med": 0.4,
+    "z_p90": 0.6
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.105,
+    "z_med": 1.1,
+    "z_p90": 1.9
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.119,
+    "z_med": 2.7,
+    "z_p90": 4.4
+   },
+   {
+    "found": "5/10",
+    "f_med": 0.092,
+    "z_med": 2.5,
+    "z_p90": 8.6
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "10/10",
+    "f_med": 0.047,
+    "z_med": 0.2,
+    "z_p90": 0.7
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.105,
+    "z_med": 0.5,
+    "z_p90": 0.9
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.119,
+    "z_med": 24.7,
+    "z_p90": 28.0
+   },
+   {
+    "found": "5/10",
+    "f_med": 0.092,
+    "z_med": 1048.0,
+    "z_p90": 1280.1
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "10/10",
+    "f_med": 0.016,
+    "z_med": 0.5,
+    "z_p90": 1.2
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.015,
+    "z_med": 0.8,
+    "z_p90": 1.9
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.026,
+    "z_med": 1.8,
+    "z_p90": 3.7
+   },
+   {
+    "found": "6/10",
+    "f_med": 0.035,
+    "z_med": 3.1,
+    "z_p90": 11.8
+   }
+  ],
+  "B_time_s_med": 0.21,
+  "B_errors": 0
+ },
+ "fs48000_phone_snr20": {
+  "A_halfpower": [
+   {
+    "found": "10/10",
+    "f_med": 0.201,
+    "z_med": 3.3,
+    "z_p90": 5.8
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.215,
+    "z_med": 24.5,
+    "z_p90": 29.8
+   },
+   {
+    "found": "4/10",
+    "f_med": 0.148,
+    "z_med": 70.2,
+    "z_p90": 81.9
+   },
+   {
+    "found": "4/10",
+    "f_med": 0.062,
+    "z_med": 67.2,
+    "z_p90": 77.5
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "10/10",
+    "f_med": 0.201,
+    "z_med": 1.3,
+    "z_p90": 2.4
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.215,
+    "z_med": 5.6,
+    "z_p90": 9.8
+   },
+   {
+    "found": "4/10",
+    "f_med": 0.148,
+    "z_med": 29.7,
+    "z_p90": 38.6
+   },
+   {
+    "found": "4/10",
+    "f_med": 0.062,
+    "z_med": 1016.4,
+    "z_p90": 1265.0
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "10/10",
+    "f_med": 0.03,
+    "z_med": 1.5,
+    "z_p90": 7.0
+   },
+   {
+    "found": "10/10",
+    "f_med": 0.046,
+    "z_med": 8.9,
+    "z_p90": 11.8
+   },
+   {
+    "found": "4/10",
+    "f_med": 0.094,
+    "z_med": 40.6,
+    "z_p90": 48.6
+   },
+   {
+    "found": "7/10",
+    "f_med": 0.126,
+    "z_med": 48.0,
+    "z_p90": 65.5
+   }
+  ],
+  "B_time_s_med": 0.22,
+  "B_errors": 0
+ },
+ "fs48000_phone_snr10": {
+  "A_halfpower": [
+   {
+    "found": "10/10",
+    "f_med": 0.38,
+    "z_med": 8.5,
+    "z_p90": 15.4
+   },
+   {
+    "found": "2/10",
+    "f_med": 0.383,
+    "z_med": 72.6,
+    "z_p90": 74.2
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "10/10",
+    "f_med": 0.38,
+    "z_med": 5.5,
+    "z_p90": 8.7
+   },
+   {
+    "found": "2/10",
+    "f_med": 0.383,
+    "z_med": 16.9,
+    "z_p90": 17.6
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "10/10",
+    "f_med": 0.038,
+    "z_med": 8.6,
+    "z_p90": 12.8
+   },
+   {
+    "found": "5/10",
+    "f_med": 0.055,
+    "z_med": 65.7,
+    "z_p90": 68.1
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_time_s_med": 0.22,
+  "B_errors": 0
+ },
+ "fs48000_phone_snr0": {
+  "A_halfpower": [
+   {
+    "found": "6/10",
+    "f_med": 0.71,
+    "z_med": 25.7,
+    "z_p90": 59.3
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "1/10",
+    "f_med": 0.471,
+    "z_med": 77.9,
+    "z_p90": 77.9
+   }
+  ],
+  "A_envelope": [
+   {
+    "found": "6/10",
+    "f_med": 0.71,
+    "z_med": 12.7,
+    "z_p90": 43.6
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "1/10",
+    "f_med": 0.471,
+    "z_med": 83.6,
+    "z_p90": 83.6
+   }
+  ],
+  "B_sdypyEMA": [
+   {
+    "found": "9/10",
+    "f_med": 0.382,
+    "z_med": 57.1,
+    "z_p90": 67.3
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   },
+   {
+    "found": "0/10",
+    "f_med": null,
+    "z_med": null,
+    "z_p90": null
+   }
+  ],
+  "B_time_s_med": 0.22,
+  "B_errors": 1
+ }
+}

@@ -1,0 +1,3 @@
+$ command -v uv; uv --version
+/home/fsdry/.local/bin/uv
+uv 0.13.4 (x86_64-unknown-linux-gnu)

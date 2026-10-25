@@ -1,0 +1,237 @@
+{
+ "K": 9549.29658551372,
+ "tests": {
+  "exact": {
+   "correction_mass": 1.5000000000000002,
+   "correction_angle_deg": 250.0,
+   "trial_effect": 0.5999999999999999,
+   "b_from_constant": 0.6000000000000001,
+   "residual_rms": 1.2819751242557092e-16,
+   "ok": true,
+   "expected_mass": 1.5,
+   "expected_angle": 250.0
+  },
+  "angles_0_90_180": {
+   "correction_mass": 1.9999999999999996,
+   "correction_angle_deg": 20.000000000000004,
+   "trial_effect": 1.0000000000000002,
+   "b_from_constant": 1.0000000000000004,
+   "residual_rms": 2.8665835232995054e-16,
+   "ok": true
+  },
+  "reliabilityweb": {
+   "correction_mass": 62.0041199661834,
+   "correction_angle_deg": 40.11813570568451,
+   "trial_effect": 8.063980268935296,
+   "b_from_constant": 8.504900548115383,
+   "residual_rms": 0.37923305942241664,
+   "ok": true,
+   "published_mass": 59.0,
+   "published_angle": 42.0
+  },
+  "motionics": {
+   "correction_mass": 2.3674790386035487,
+   "correction_angle_deg": 252.3404544517635,
+   "trial_effect": 0.33405829031816736,
+   "b_from_constant": 0.35082958351123494,
+   "residual_rms": 0.018717493729911213,
+   "ok": true,
+   "published_mass": 2.37,
+   "published_angle": 252.0
+  },
+  "monte_carlo_residual_frac": {
+   "noise0.02_trial0.3": {
+    "median": 0.08026808972987326,
+    "p90": 0.15129406896144787
+   },
+   "noise0.02_trial0.6": {
+    "median": 0.05866735056219664,
+    "p90": 0.11365114759737086
+   },
+   "noise0.02_trial1.0": {
+    "median": 0.053748432131066184,
+    "p90": 0.10761568151834759
+   },
+   "noise0.05_trial0.3": {
+    "median": 0.19069134848767452,
+    "p90": 0.3820350542097378
+   },
+   "noise0.05_trial0.6": {
+    "median": 0.14158339419365457,
+    "p90": 0.28056582295621657
+   },
+   "noise0.05_trial1.0": {
+    "median": 0.13069620599685938,
+    "p90": 0.2630912526878413
+   },
+   "noise0.1_trial0.3": {
+    "median": 0.37397198960605615,
+    "p90": 0.8271439028214724
+   },
+   "noise0.1_trial0.6": {
+    "median": 0.28530338595413296,
+    "p90": 0.5609124312489651
+   },
+   "noise0.1_trial1.0": {
+    "median": 0.2573408290617617,
+    "p90": 0.542741851249674
+   }
+  }
+ },
+ "rotors": [
+  {
+   "rotor": "a12x25 Stock (printed, PETG)",
+   "rpm": 2000,
+   "blade_vol_mm3": 19882,
+   "hub_vol_mm3": 23961,
+   "n_blades": 9,
+   "m_solid_g": 55.68,
+   "m_realistic_g": 37.42,
+   "m_fansim_default_g": 11.14,
+   "tip_radius_mm": 54.5,
+   "G2.5_e_per_um": 11.94,
+   "G2.5_U_per_gmm_realistic": 0.4467,
+   "G2.5_U_per_gmm_solid": 0.6646,
+   "G2.5_blob_mg_at_0.9R": 9.11,
+   "G6.3_e_per_um": 30.08,
+   "G6.3_U_per_gmm_realistic": 1.1257,
+   "G6.3_U_per_gmm_solid": 1.6749,
+   "G6.3_blob_mg_at_0.9R": 22.95,
+   "blade_mass_g": 2.806,
+   "exp_U_from_1pct_blade_scatter_gmm": 2.439,
+   "exp_U_from_50um_mount_offset_gmm": 1.871
+  },
+  {
+   "rotor": "a12x25 Stock (printed, PETG)",
+   "rpm": 3900,
+   "blade_vol_mm3": 19882,
+   "hub_vol_mm3": 23961,
+   "n_blades": 9,
+   "m_solid_g": 55.68,
+   "m_realistic_g": 37.42,
+   "m_fansim_default_g": 11.14,
+   "tip_radius_mm": 54.5,
+   "G2.5_e_per_um": 6.12,
+   "G2.5_U_per_gmm_realistic": 0.2291,
+   "G2.5_U_per_gmm_solid": 0.3408,
+   "G2.5_blob_mg_at_0.9R": 4.67,
+   "G6.3_e_per_um": 15.43,
+   "G6.3_U_per_gmm_realistic": 0.5773,
+   "G6.3_U_per_gmm_solid": 0.8589,
+   "G6.3_blob_mg_at_0.9R": 11.77,
+   "blade_mass_g": 2.806,
+   "exp_U_from_1pct_blade_scatter_gmm": 2.439,
+   "exp_U_from_50um_mount_offset_gmm": 1.871
+  },
+  {
+   "rotor": "optimizer design G_0502 (r16)",
+   "rpm": 2000,
+   "blade_vol_mm3": 8833,
+   "hub_vol_mm3": 22059,
+   "n_blades": 7,
+   "m_solid_g": 39.23,
+   "m_realistic_g": 22.42,
+   "m_fansim_default_g": 7.85,
+   "tip_radius_mm": 57.1845852267093,
+   "G2.5_e_per_um": 11.94,
+   "G2.5_U_per_gmm_realistic": 0.2677,
+   "G2.5_U_per_gmm_solid": 0.4683,
+   "G2.5_blob_mg_at_0.9R": 5.2,
+   "G6.3_e_per_um": 30.08,
+   "G6.3_U_per_gmm_realistic": 0.6745,
+   "G6.3_U_per_gmm_solid": 1.1802,
+   "G6.3_blob_mg_at_0.9R": 13.11,
+   "blade_mass_g": 1.603,
+   "exp_U_from_1pct_blade_scatter_gmm": 1.289,
+   "exp_U_from_50um_mount_offset_gmm": 1.121
+  },
+  {
+   "rotor": "optimizer design S1_0534 (r16)",
+   "rpm": 2000,
+   "blade_vol_mm3": 12209,
+   "hub_vol_mm3": 23053,
+   "n_blades": 7,
+   "m_solid_g": 44.78,
+   "m_realistic_g": 27.22,
+   "m_fansim_default_g": 8.96,
+   "tip_radius_mm": 56.5,
+   "G2.5_e_per_um": 11.94,
+   "G2.5_U_per_gmm_realistic": 0.3249,
+   "G2.5_U_per_gmm_solid": 0.5346,
+   "G2.5_blob_mg_at_0.9R": 6.39,
+   "G6.3_e_per_um": 30.08,
+   "G6.3_U_per_gmm_realistic": 0.8187,
+   "G6.3_U_per_gmm_solid": 1.3471,
+   "G6.3_blob_mg_at_0.9R": 16.1,
+   "blade_mass_g": 2.215,
+   "exp_U_from_1pct_blade_scatter_gmm": 1.761,
+   "exp_U_from_50um_mount_offset_gmm": 1.361
+  },
+  {
+   "rotor": "prop 5x4.5 3-blade (approx)",
+   "rpm": 25000,
+   "blade_vol_mm3": 1327,
+   "hub_vol_mm3": 3784,
+   "n_blades": 3,
+   "m_solid_g": 6.49,
+   "m_realistic_g": 3.61,
+   "m_fansim_default_g": 1.3,
+   "tip_radius_mm": 63.5,
+   "G2.5_e_per_um": 0.95,
+   "G2.5_U_per_gmm_realistic": 0.0034,
+   "G2.5_U_per_gmm_solid": 0.0062,
+   "G2.5_blob_mg_at_0.9R": 0.06,
+   "G6.3_e_per_um": 2.41,
+   "G6.3_U_per_gmm_realistic": 0.0087,
+   "G6.3_U_per_gmm_solid": 0.0156,
+   "G6.3_blob_mg_at_0.9R": 0.15,
+   "blade_mass_g": 0.562,
+   "exp_U_from_1pct_blade_scatter_gmm": 0.328,
+   "exp_U_from_50um_mount_offset_gmm": 0.18
+  },
+  {
+   "rotor": "prop 5x4.5 3-blade (approx)",
+   "rpm": 10000,
+   "blade_vol_mm3": 1327,
+   "hub_vol_mm3": 3784,
+   "n_blades": 3,
+   "m_solid_g": 6.49,
+   "m_realistic_g": 3.61,
+   "m_fansim_default_g": 1.3,
+   "tip_radius_mm": 63.5,
+   "G2.5_e_per_um": 2.39,
+   "G2.5_U_per_gmm_realistic": 0.0086,
+   "G2.5_U_per_gmm_solid": 0.0155,
+   "G2.5_blob_mg_at_0.9R": 0.15,
+   "G6.3_e_per_um": 6.02,
+   "G6.3_U_per_gmm_realistic": 0.0217,
+   "G6.3_U_per_gmm_solid": 0.0391,
+   "G6.3_blob_mg_at_0.9R": 0.38,
+   "blade_mass_g": 0.562,
+   "exp_U_from_1pct_blade_scatter_gmm": 0.328,
+   "exp_U_from_50um_mount_offset_gmm": 0.18
+  },
+  {
+   "rotor": "prop 9x4.7 2-blade (approx)",
+   "rpm": 10000,
+   "blade_vol_mm3": 5086,
+   "hub_vol_mm3": 17612,
+   "n_blades": 2,
+   "m_solid_g": 28.83,
+   "m_realistic_g": 15.41,
+   "m_fansim_default_g": 5.77,
+   "tip_radius_mm": 114.3,
+   "G2.5_e_per_um": 2.39,
+   "G2.5_U_per_gmm_realistic": 0.0368,
+   "G2.5_U_per_gmm_solid": 0.0688,
+   "G2.5_blob_mg_at_0.9R": 0.36,
+   "G6.3_e_per_um": 6.02,
+   "G6.3_U_per_gmm_realistic": 0.0927,
+   "G6.3_U_per_gmm_solid": 0.1734,
+   "G6.3_blob_mg_at_0.9R": 0.9,
+   "blade_mass_g": 3.229,
+   "exp_U_from_1pct_blade_scatter_gmm": 2.776,
+   "exp_U_from_50um_mount_offset_gmm": 0.77
+  }
+ ]
+}

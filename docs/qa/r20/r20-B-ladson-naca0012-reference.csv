@@ -1,0 +1,8 @@
+"# NACA 0012, Re 6e6, M 0.15, transition fixed (grit at 0.05c both surfaces). Source: C.L. Ladson, NASA TM-4074 (1988), NTRS 19880019495, US Government work, public use permitted (NTRS: GOV_PUBLIC_USE_PERMITTED); Tables IX (80 grit, R 5.95e6), XI (120 grit, R 6.00e6), XIII (180 grit, R 5.95e6). C_l from surface-pressure integration, C_d from wake survey; tunnel-wall corrections (Allen & Vincenti) applied by the source (~2 %). Derived by grok QA r20 (prereg 2c4380d): linear interpolation in alpha per grit, mean over grits. band_prereg = RSS(half grit range, |linear - nearest row|, repeatability C_l 0.004 / C_d 0.0002 from the report). band_posthoc replaces the nearest-row term with |linear - quadratic through 3 nearest rows| (post-hoc, see note). Raw table rows are not reproduced here."
+alpha_deg,quantity,ref_mean_3grit,grit80,grit120,grit180,half_range_grit,interp_lin_minus_nearest,repeatability,band_prereg,band_prereg_pct,interp_lin_minus_quad_posthoc,band_posthoc,band_posthoc_pct,a0_pass_window
+0.0,cl,-0.00882,-0.00724,-0.01210,-0.00713,0.00249,0.00536,0.004,0.00713,80.86,0.00002,0.00471,53.38,
+0.0,cd,0.00808,0.00809,0.00807,0.00806,0.00001,0.00004,0.0002,0.00020,2.52,0.00000,0.00020,2.48,0.00646..0.00969 (+-20 %)
+5.0,cl,0.53723,0.53603,0.53760,0.53805,0.00101,0.10443,0.004,0.10451,19.45,0.00034,0.00414,0.77,0.5104..0.5641 (+-5 %)
+5.0,cd,0.00848,0.00852,0.00862,0.00831,0.00015,0.00029,0.0002,0.00038,4.53,0.00011,0.00028,3.25,
+10.0,cl,1.06283,1.05860,1.06723,1.06264,0.00432,0.01826,0.004,0.01918,1.80,0.00050,0.00591,0.56,1.0097..1.1160 (+-5 %)
+10.0,cd,0.01169,0.01191,0.01166,0.01149,0.00021,0.00016,0.0002,0.00033,2.80,0.00003,0.00029,2.48,

@@ -117,6 +117,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     - The single-factor acceptance below is recorded as FAIL (1/123), not re-tuned.
   Lane: Cursor (the rule is fixed below). CPU: day. Status: `done` (2026-10-20; two-stage hang).
     - Landed: stage 1 is 1.75× designed hang in `validate_blade_params`; stage 2 measures the built solid in `build_impeller_parts` (OCCT optimal bbox). Feature-free grok r18 A values match within 0.05 mm. Audit: `docs/validation/audits/2026-10-20-r18-hang-two-stage.md`. The single-factor miss (S2_0269 on the auto hub) stays recorded as FAIL.
+    - grok r20 A (2026-10-21, `docs/qa/notes/r20-A-built-hang-recheck.md`): the 4 feature designs' JSON is in `docs/qa/r20/r20-A-feature-designs.json`. On master, all 10 match r18 to 0.0 mm. Stage 1 refuses 5/10, stage 2 refuses 6/10, and `build_impeller_parts` refuses all 6 built > 2 mm. QA-43/44/49 are verified fixed. Acceptance is 10/10 once the JSON is in `tests/test_hub_hang.py`.
   - Change: `validate_blade_params` refuses when `HANG_BUILT_FACTOR × blade_hang_below_hub_mm(params) > MAX_HANG_BELOW_HUB_MM`,
     with `HANG_BUILT_FACTOR = 1.75` in `fansim/geometry/blade.py`.
   - Comment the derivation: the chord fixed point refills the clipped chord, which drops the trailing edge by half the
@@ -189,10 +190,12 @@ Kimball's.
       prereg doc.
     - Test: grid y+ ≤ 1 and the case builds (no solve) in the fast suite.
     - grok r17 A (2026-10-19, `docs/qa/notes/r17-A-reference-polars.md`, `docs/qa/r17/`): the reference at Re 8e4, α 4° is CERTAIN, C_l 0.855 [0.847, 0.863] and C_d 0.0201 (NeuralFoil + XFOIL, Ncrit 9). On the NASA E387 anchor the tools read about 8 % high at 1e5; Re 6e4 is UNUSABLE.
+    - grok r20 B (2026-10-21, `docs/qa/notes/r20-B-ladson-naca0012-reference.md`): the rung A0 reference is Ladson TM-4074 (public domain), Re 6e6, M 0.15, tripped: C_d(0°) 0.00808 ± 0.0002, C_l(5°) 0.537, C_l(10°) 1.063. The bands are inside the ±5 % / ±20 % windows.
   - **R2.2b Advance-ratio sweep (rung B).** Status: `done` 2026-10-20. **B2 sectional:** CFD C_T −40 / −45 / −58 % at J
     0.20 / 0.30 / 0.43. BEMT on the same geometry is also −15 … −29 %, so the generic section is a shared limit, and
     "fixed" was amended (results section of the ladder prereg). Next: rung A (R2.2a) confirms the turbulence model, then
     rung C. Validation needs a prop with known sections (grok r19 A).
+    - grok r20 C (2026-10-21, `docs/qa/r20/r20-C-tud-build-details.csv`): for the TUD prop, hub r 12.5 mm, flat boss, no spinner. The root transition from r 12.5 to about 29 mm is unspecified. The tip is square-cut. The rig is an upward open jet with a 50 mm nacelle of unstated length. The rotor-to-nozzle distance is stated as 0.5 m and also as 0.72 m.
     - Add `--j` to `scripts/audit_prop_cfd.py`: freestream U = J·n·D, at J 0.3 / 0.5 / 0.7, 6000 rpm, compared with
       kt1035/1036.
     - Launch as a Scheduled Task after 9 PM (AGENTS.md rule 2).
@@ -234,6 +237,7 @@ Kimball's.
 ## M3: Releasable repo (parallel, mostly Cursor)
 
 - **R3.1 Release export hygiene**. Lane: Cursor. CPU: day. Status: `ready`.
+  - grok r20 E: the leak check is waiting for R3.1 to land (not run).
   - Extend `RELEASE_EXCLUDE` and `scripts/export_release.py` to drop `archive/`, `memory/`, `handoff/`,
     `docs/qa/screenshots`, `*.bak`, chat-recovery dumps and any `C:\Users\…` / `E:\…` paths.
   - Test: an export of master contains none of them, and the grep for user paths is empty.
@@ -246,6 +250,7 @@ Kimball's.
   - A README install section for Windows and Linux: uv, Docker Desktop / Engine, `docker pull opencfd/openfoam-default:2406`,
     the first Assess, and troubleshooting (WSL2 memory, Docker not running).
   - Test: grok round 15 follows it on a clean Linux box. r15: NOT RUN (no guide yet); `docs/qa/notes/r15-install-dry-run.md`.
+  - grok r20 D (2026-10-21, `docs/qa/notes/r20-D-install-guide-dry-run.md`): the clean-Linux dry run WORKS (install, cockpit HTTP 200, UI test 6/6; Docker would-run). README fixes are needed (QA-53): port 8080 not 9001, Assess 30–40 min, the clone URL, a Linux Docker link, and a 'Docker not installed' row.
 - **R3.4 Docker/OpenFOAM readiness badge and first-run check (21.2g)**. Lane: Cursor. CPU: day. Status: `ready`.
   - The cockpit shows "CFD ready / Docker not running / image missing" with the fix in plain words.
 - **R3.5 GitHub Actions CI**. Lane: Cursor. CPU: none (cloud). Status: `ready`.
