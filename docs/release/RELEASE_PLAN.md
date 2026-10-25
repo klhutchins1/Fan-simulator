@@ -107,6 +107,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Old saved designs are disposable: mark them stale, don't migrate them.
   - grok r17 C: with the export hub (growth below), 174/300 r16 hubs grow (Δh ≤ 6.7 mm). Built/designed stays 1.77, and (i + ii) refuses 57/58 built > 2 mm with 0.4 % false refusals.
 - **R1.8 QA-43: the 2 mm hang limit is checked on the designed blade; the built blade hangs about 1.75× more**.
+  - **Next (Cursor, small):** add the 4 feature designs from `docs/qa/r20/r20-A-feature-designs.json` to `tests/data/hub_hang_designs.json` and to the stage-2 test, so the acceptance is 10/10 in our own suite (grok r20 A: 0.0 mm vs r18).
   - **Merged 027ebcb (2026-10-21).** Stage-2 acceptance 6/10 (feature-free); the 4 feature designs wait on grok r20 A's params, then Cursor adds them to `tests/test_hub_hang.py`. Claude review: approved (`docs/validation/audits/2026-10-20-rulings-r18-r19-rungA.md` §4).
   - **AMENDED 2026-10-19 (QA-46, `docs/validation/audits/2026-10-19-prereg-amendments-r17.md` §1): two stages.**
     - Stage 1, 1.75× designed, is a search prefilter (≤ 3 % false refusals).
@@ -178,7 +179,10 @@ Kimball's.
   - Pre-registered diagnostic ladder: `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`. Read its rules
     before running anything; each rung's result picks the next rung.
   - **R2.2a 2-D section case (rung A).** Lane: Cursor. CPU: day (minutes per run; not 4–9 PM). Status: `done` (2026-10-20; verdict report to Claude).
-  - **R2.2a′ rung A0: verify the 2-D setup on NACA 0012 at Re 6×10⁶ against Ladson.** Lane: Cursor. CPU: day (minutes). Status: `ready` once grok r20 B delivers the Ladson table.
+  - **R2.2a′ rung A0: verify the 2-D setup on NACA 0012 at Re 6×10⁶ against Ladson.** Lane: Cursor. CPU: day (minutes). Status: **`ready`** (grok r20 B delivered the table: C_d(0°) 0.00808, C_l(5°) 0.537, C_l(10°) 1.063; `docs/qa/r20/r20-B-ladson-naca0012-reference.csv`).
+    - Work: `scripts/prop_section_2d.py` hard-codes the section (`naca4(0.04, 0.4, 0.06)`) and `RE`. Add `--section` (NACA 4-digit code), `--re`, `--alphas`, `--models` and `--tu`, keeping the defaults equal to today's rung A.
+    - Then run `--section 0012 --re 6e6 --alphas 0 5 10 --models kOmegaSST`. Tripped data means fully turbulent, so use a normal freestream Tu of about 0.1 %, not the Ncrit-9 value.
+    - Report the achieved y+ (max and mean on the airfoil), layer coverage % and surface cells. Write the result into `2026-10-17-prop-cfd-fix-prereg.md` and judge it against the rulings doc §1. Don't re-tune.
     - Pre-registered in `docs/validation/audits/2026-10-20-rulings-r18-r19-rungA.md` §1. Same script, with only the section, Re and α changed.
     - Report the achieved y+ (max and mean), layer coverage % and surface cell count.
     - Pass: C_l ±5 % at 5° and 10°, C_d ±20 % at 0°.
@@ -246,6 +250,11 @@ Kimball's.
     `fansim-cockpit = …` (wrapping `scripts/cockpit.py`).
   - Test: `uv build` works, and the installed entry point starts the server with `--help`.
 - **R3.3 Install guide**. Lane: Cursor. CPU: day. Status: `done` (2026-10-20).
+  - **QA-53 fixes (Cursor, small):** grok's clean-Linux dry run works (`docs/qa/notes/r20-D-install-guide-dry-run.md`). Fix:
+    - `git clone <this-repo>` → the real URL, or "the GitHub URL" until the repo exists;
+    - the port: the cockpit prints **8080**, not 9001;
+    - Assess time "30–40 min", not "several minutes".
+    - "Docker not running" troubleshooting comes with R3.4.
   - Landed: README **Install** for Windows and Linux (uv, Docker Desktop / Engine, `docker pull opencfd/openfoam-default:2406`, first Assess, WSL2 / Docker-not-running). Grok r15 can follow it word for word.
   - A README install section for Windows and Linux: uv, Docker Desktop / Engine, `docker pull opencfd/openfoam-default:2406`,
     the first Assess, and troubleshooting (WSL2 memory, Docker not running).
@@ -293,3 +302,12 @@ Kimball's.
 - **Cursor**: all of M3, the implementation halves of M0 and M1, and any labels.
 - **grok**: round 14 (queued), then round 15 = the R2.3–R2.5 data hunts plus R3.3 install-guide dry run.
 - **Night**: R1.1 lt120 campaign, R2.x campaigns, any optimizer re-find (R1.3).
+
+---
+
+## After v0.1.0 (parked; not release work)
+
+- **grok lead 15: balance tolerance** (ISO 21940-11 + a phone four-run trim helper): `docs/qa/notes/balance-tolerance-proposal.md`.
+- **grok lead 16: tap-test calibration** of `FDM_E_K` (phone f1 tap test): `docs/qa/notes/tap-test-calibration-proposal.md`.
+  This needs printed parts, so it fits v0.1.1 (rig measurements) alongside 5.1/5.2.
+

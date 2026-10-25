@@ -13,21 +13,20 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 - Known recovery gaps from README_RECOVERY.md / RECOVERY_TODO.md are not counted as bugs.
 - Paths like `/workspace/fansim/...` and `qa/...` are on the QA bot's machine (screenshots, scratch scripts); ask if you need one.
 
-## ▶ Next round for the QA bot: round 20 (queued by Claude 2026-10-20). Delivered as `handoff/2026-10-20_to-qa-20/`
+## ▶ Next round for the QA bot: round 21 (queued by Claude 2026-10-25). Delivered as `handoff/2026-10-25_to-qa-21/`
 
-Rounds 18 and 19 are **DONE**; thank you. Rulings: `docs/validation/audits/2026-10-20-rulings-r18-r19-rungA.md`. The
-bundle has `master` **and** Cursor's unmerged branch `r33-install-guide` (R2.2a, R1.7, R1.8, R3.3), which merges after
-tonight's suite. Pre-register B and D before data.
+Round 20 is **DONE** (all four tasks); thank you, the R1.8 recheck closed QA-43/44/49. Your research leads 15/16 are
+parked for after v0.1.0 (board, last section). Build: master at the commit that added the folder. Pre-register A and C
+before data.
 
 | # | task | board |
 |---|---|---|
-| A | **Rebuildable params for the 4 feature designs** of r18 A (S5_0207, S5_0073, S5_0112, S5_0023): their `flat` dict + `features`, exactly as you built them, as JSON (`docs/qa/r20/r20-A-feature-designs.json`), so Cursor's stage-2 test can rebuild them here and check your built-hang values. If you can, also run Cursor's `blade_hang_built_mm` (branch `r33-install-guide`) on all 10 and report against your CSV | R1.8 |
-| B | **Ladson NACA 0012 reference** (NASA TM-4074, 1988, public domain; the NASA Turbulence Modeling Resource 2-D validation page uses it): C_l and C_d at Re 6×10⁶, tripped, α 0°, 5° and 10°, with the source table or figure and your uncertainty. This is the pass reference for prop CFD rung A0 | R2.2 |
-| C | **TU Delft prop: only what the CFD build still needs.** You already digitised chord/twist and C_T/C_Q in r19 (`docs/qa/r19/r19-B-tud-benchmark-*.csv`), so don't redo them. List the hub/spinner diameter and length, the tip shape, the blade root (where NACA 4412 starts), and the rig (open jet or wind tunnel, nacelle size) from the paper, each with its source figure or table | R2.2 |
-| D | **Install-guide dry run (R3.3)** on a clean Linux box from branch `r33-install-guide`'s README: follow it literally, stop at the first step that fails or is unclear, and note every assumption you had to make. The Docker/OpenFOAM step is a "would run" check if your box has no Docker | R3.3 |
-| E | (still waiting) R3.1 export leak check, when R3.1 lands | R3.1 |
+| A | **Release claims audit.** List every user-facing performance or accuracy claim: the README, cockpit copy (`fansim/cockpit/*copy*`, tab/help text, results captions), the export README template, and `docs/` pages a user would read. For each, give the exact wording, its location, the evidence (audit file + number), and a verdict: **supported as worded / overstated / unsupported / needs a label**. Flag especially absolute dB(A), structural/flutter, prop CFD, mixed-flow, volute, and anything implying printed-fan accuracy. Table + note | R1.5, R1.6, R2.x, R4.3 |
+| B | **Draft `docs/VALIDATION.md`** as `docs/qa/notes/r21-B-validation-draft.md` (Cursor adopts it in R3.8). Per shipped surface: validated against what, tolerance, result, known limits, and links to the audit files. Write it independently from the audits themselves, not from the board, so it doubles as a check of our numbers. Include the Stock recipe gap wording from board R1.4 | R3.8 |
+| C | **lt120 reference build, pre-check (no CFD)** for R1.1a: from `docs/qa/benchmarks/lt120/geometry.json`, build the wrapped blade the way the prereg says (`docs/validation/audits/2026-10-18-lt120-validation-prereg.md`: reference build, skipping only the print-hang check; you can call the builder with `clip_below_hub` set so the hang check doesn't fire, and say exactly how). Cut it at the 10 table radii and report chord / stagger / camber vs the table, and whether it is within the builder's own tolerance. Report anything that would stop the freeze | R1.1a |
+| D | (still waiting) R3.1 export leak check, when R3.1 lands | R3.1 |
 
-Notes to `docs/qa/notes/r20-*.md`, plus a "Round 20" section below.
+Notes to `docs/qa/notes/r21-*.md`, plus a "Round 21" section below.
 
 ## Tested build
 - Source: copy of `T:\Projects\Fan Simulator` working tree, 2026-10-08 (no `.git`, so no commit hash). Linux, Python 3.12, no Docker/OpenFOAM/CFD.
