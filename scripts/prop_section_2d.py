@@ -108,6 +108,143 @@ def _foam(cls: str, obj: str) -> str:
     )
 
 
+N_CGRID_TANGENT = 40
+N_CGRID_NORMAL = 80
+R_OUTER = 12.0 * CHORD
+
+
+def _grading_last_over_first(first: float, length: float, n: int) -> float:
+    """simpleGrading ratio (last cell / first cell) for a geometric edge of n cells."""
+    if n < 2 or first <= 0 or length <= first * n:
+        return 1.0
+    r = 1.15
+    for _ in range(50):
+        if abs(r - 1.0) < 1e-9:
+            r = 1.15
+        s = (r ** n - 1.0) / (r - 1.0)
+        ds = (n * r ** (n - 1) * (r - 1.0) - (r ** n - 1.0)) / (r - 1.0) ** 2
+        err = first * s - length
+        if abs(first * ds) < 1e-18:
+            break
+        r -= err / (first * ds)
+        r = min(max(r, 1.0001), 5.0)
+    return float(r ** (n - 1))
+
+
+def _cgrid_inner_outer(section: str):
+    """Four airfoil arcs (TE→top→LE→bot→TE) and matching outer-circle arcs."""
+    m, p, t = parse_naca4_code(section)
+    pts = naca4(m, p, t, N_THETA)[:-1] * CHORD
+    i_le = int(np.argmin(pts[:, 0]))
+    i_top = int(np.argmax(pts[:, 1]))
+    i_bot = int(np.argmin(pts[:, 1]))
+    inner_corners = [pts[0], pts[i_top], pts[i_le], pts[i_bot]]
+    arcs = [
+        pts[0:i_top + 1],
+        pts[i_top:i_le + 1],
+        pts[i_le:i_bot + 1],
+        np.vstack([pts[i_bot:], pts[0:1]]),
+    ]
+    centre = np.array([0.25 * CHORD, 0.0])
+
+    def _outer(p: np.ndarray) -> np.ndarray:
+        v = p - centre
+        nrm = float(np.linalg.norm(v))
+        if nrm < 1e-16:
+            v = np.array([0.0, 1.0])
+            nrm = 1.0
+        return centre + R_OUTER * v / nrm
+
+    outer_arcs = [np.vstack([_outer(p) for p in arc]) for arc in arcs]
+    return arcs, outer_arcs, inner_corners, [_outer(c) for c in inner_corners]
+
+
+def _pt(p: np.ndarray, z: float) -> str:
+    return f"({float(p[0]):.8g} {float(p[1]):.8g} {z:.8g})"
+
+
+def _cgrid_block_mesh_dict(*, section: str, re: float) -> str:
+    """Structured 4-block O-grid (closed TE). Inner patch is airfoil; outer is freestream."""
+    arcs, outer_arcs, inner_c, outer_c = _cgrid_inner_outer(section)
+    ds = wall_spacing_m(re)
+    gy = _grading_last_over_first(ds, R_OUTER - 0.25 * CHORD, N_CGRID_NORMAL)
+    nx, ny = N_CGRID_TANGENT, N_CGRID_NORMAL
+    verts: list[str] = []
+    for z in (0.0, SPAN):
+        for p in inner_c:
+            verts.append(f"    {_pt(p, z)}")
+        for p in outer_c:
+            verts.append(f"    {_pt(p, z)}")
+    # z=0: 0-3 inner TE,top,LE,bot; 4-7 outer. z=SPAN: 8-11 inner, 12-15 outer.
+    hexes = [
+        f"    hex (0 4 5 1 8 12 13 9) ({ny} {nx} 1) simpleGrading ({gy:.8g} 1 1)",
+        f"    hex (1 5 6 2 9 13 14 10) ({ny} {nx} 1) simpleGrading ({gy:.8g} 1 1)",
+        f"    hex (2 6 7 3 10 14 15 11) ({ny} {nx} 1) simpleGrading ({gy:.8g} 1 1)",
+        f"    hex (3 7 4 0 11 15 12 8) ({ny} {nx} 1) simpleGrading ({gy:.8g} 1 1)",
+    ]
+    # spline intermediates on each airfoil arc (0-1, 1-2, 2-3, 3-0) and outer (4-5, ...).
+    pairs = ((0, 1), (1, 2), (2, 3), (3, 0))
+    edge_lines = ["edges", "("]
+    for (a, b), arc in zip(pairs, arcs):
+        mid = arc[1:-1]
+        if len(mid):
+            body = " ".join(_pt(p, 0.0) for p in mid)
+            body_z = " ".join(_pt(p, SPAN) for p in mid)
+            edge_lines.append(f"    spline {a} {b} ( {body} )")
+            edge_lines.append(f"    spline {a + 8} {b + 8} ( {body_z} )")
+    for (a, b), arc in zip(((4, 5), (5, 6), (6, 7), (7, 4)), outer_arcs):
+        mid = arc[1:-1]
+        if len(mid):
+            body = " ".join(_pt(p, 0.0) for p in mid)
+            body_z = " ".join(_pt(p, SPAN) for p in mid)
+            edge_lines.append(f"    spline {a} {b} ( {body} )")
+            edge_lines.append(f"    spline {a + 8} {b + 8} ( {body_z} )")
+    edge_lines.append(");")
+    return "\n".join([
+        _foam("dictionary", "blockMeshDict"),
+        f"// cgrid firstLayer {ds:.8g} m  y+_req {first_cell_yplus(re):.3f}",
+        "scale 1;",
+        "vertices",
+        "(",
+        *verts,
+        ");",
+        "blocks",
+        "(",
+        *hexes,
+        ");",
+        *edge_lines,
+        "boundary",
+        "(",
+        "    airfoil",
+        "    {",
+        "        type wall;",
+        "        faces",
+        "        (",
+        "            (0 1 9 8)",
+        "            (1 2 10 9)",
+        "            (2 3 11 10)",
+        "            (3 0 8 11)",
+        "        );",
+        "    }",
+        "    freestream",
+        "    {",
+        "        type patch;",
+        "        faces",
+        "        (",
+        "            (4 12 13 5)",
+        "            (5 13 14 6)",
+        "            (6 14 15 7)",
+        "            (7 15 12 4)",
+        "        );",
+        "    }",
+        "    front { type empty; faces ((8 9 13 12) (9 10 14 13) (10 11 15 14) (11 8 12 15)); }",
+        "    back  { type empty; faces ((0 4 5 1) (1 5 6 2) (2 6 7 3) (3 7 4 0)); }",
+        ");",
+        "mergePatchPairs ();",
+        "",
+    ])
+
+
 def _block_mesh_dict() -> str:
     """Background hex: one cell in z, empty front/back. Airfoil comes from snappy."""
     xmin, xmax = -8.0 * CHORD, 16.0 * CHORD
@@ -277,10 +414,13 @@ def write_case(
     section: str = DEFAULT_SECTION,
     re: float = RE,
     tu: float | None = None,
+    mesh: str = "snappy",
 ) -> Path:
     """Write a 2-D simpleFoam case. Does not run blockMesh or the solver."""
     if model not in MODELS:
         raise ValueError(f"model must be one of {MODELS}, got {model!r}")
+    if mesh not in ("snappy", "cgrid"):
+        raise ValueError(f"mesh must be 'snappy' or 'cgrid', got {mesh!r}")
     parse_naca4_code(section)
     tu_frac = TU_NCRIT9 if tu is None else float(tu)
     case = Path(case_dir)
@@ -298,11 +438,15 @@ def write_case(
     aref = CHORD * SPAN
     lm = model == "kOmegaSSTLM"
 
-    (case / "system" / "blockMeshDict").write_text(_block_mesh_dict(), encoding="utf-8")
-    (case / "system" / "snappyHexMeshDict").write_text(_snappy_dict(re=re), encoding="utf-8")
-    (case / "system" / "surfaceFeatureExtractDict").write_text(
-        _surface_feature_dict(), encoding="utf-8")
-    _write_airfoil_stl(case / "constant" / "triSurface" / "airfoil.stl", section=section)
+    if mesh == "cgrid":
+        (case / "system" / "blockMeshDict").write_text(
+            _cgrid_block_mesh_dict(section=section, re=re), encoding="utf-8")
+    else:
+        (case / "system" / "blockMeshDict").write_text(_block_mesh_dict(), encoding="utf-8")
+        (case / "system" / "snappyHexMeshDict").write_text(_snappy_dict(re=re), encoding="utf-8")
+        (case / "system" / "surfaceFeatureExtractDict").write_text(
+            _surface_feature_dict(), encoding="utf-8")
+        _write_airfoil_stl(case / "constant" / "triSurface" / "airfoil.stl", section=section)
 
     extra_div = ""
     extra_relax = ""
@@ -608,6 +752,10 @@ def parse_cli(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--alphas", type=float, nargs="+", default=list(ALPHAS))
     ap.add_argument("--models", nargs="+", default=list(MODELS))
     ap.add_argument("--tu", type=float, default=TU_NCRIT9, help="freestream Tu as a fraction")
+    ap.add_argument(
+        "--mesh", choices=("snappy", "cgrid"), default="snappy",
+        help="snappy+layers (rung A default) or structured O-grid (A0 mesher fix)",
+    )
     return ap.parse_args(argv)
 
 
@@ -648,6 +796,7 @@ def main(argv: list[str] | None = None) -> int:
     section = str(a.section)
     re_n = float(a.re)
     tu = float(a.tu)
+    mesh = str(a.mesh)
     alphas = [float(x) for x in a.alphas]
     models = list(a.models)
     for m in models:
@@ -658,7 +807,7 @@ def main(argv: list[str] | None = None) -> int:
         write_case(
             out / "build_only", alpha_deg=alphas[0] if alphas else 4.0,
             model=models[0] if models else "kOmegaSST",
-            section=section, re=re_n, tu=tu,
+            section=section, re=re_n, tu=tu, mesh=mesh,
         )
         print(f"wrote {out / 'build_only'} y+={first_cell_yplus(re_n):.3f} section={section}")
         return 0
@@ -668,7 +817,7 @@ def main(argv: list[str] | None = None) -> int:
         summary = json.loads(summ_path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         summary = {
-            "section": section, "re": re_n, "chord_m": CHORD, "tu": tu,
+            "section": section, "re": re_n, "chord_m": CHORD, "tu": tu, "mesh": mesh,
             "ref_cl_4": REF_CL_4,
             "ref_cl_4_band": [REF_CL_4_LO, REF_CL_4_HI], "ref_cd_4": REF_CD_4,
             "yplus_first": first_cell_yplus(re_n), "points": {},
@@ -694,18 +843,23 @@ def main(argv: list[str] | None = None) -> int:
     if not (mesh_src / "points").is_file():
         write_case(
             mesh_dir, alpha_deg=0.0, model="kOmegaSST", n_iters=n_iters,
-            section=section, re=re_n, tu=tu,
+            section=section, re=re_n, tu=tu, mesh=mesh,
         )
         mesh_run = OpenFOAMRunner(mesh_dir)
         mesh_run.run("blockMesh")
-        mesh_run.run("surfaceFeatureExtract")
-        mesh_run.run("snappyHexMesh -overwrite")
-        snap_log = (mesh_dir / "logs" / "snappyHexMesh.log")
-        coverage = None
-        if snap_log.is_file():
-            coverage = parse_layer_coverage(
-                snap_log.read_text(encoding="utf-8", errors="replace"))
+        coverage: float | None
+        if mesh == "cgrid":
+            coverage = 100.0
+        else:
+            mesh_run.run("surfaceFeatureExtract")
+            mesh_run.run("snappyHexMesh -overwrite")
+            snap_log = (mesh_dir / "logs" / "snappyHexMesh.log")
+            coverage = None
+            if snap_log.is_file():
+                coverage = parse_layer_coverage(
+                    snap_log.read_text(encoding="utf-8", errors="replace"))
         summary["mesh"] = {
+            "kind": mesh,
             "layer_coverage_pct": coverage,
             "surface_cells": parse_surface_cells(mesh_dir),
             "yplus_requested": first_cell_yplus(re_n),
@@ -729,7 +883,7 @@ def main(argv: list[str] | None = None) -> int:
             _write_progress(out, {"current": tag, "start": time.time()})
             write_case(
                 case, alpha_deg=alpha, model=model, n_iters=n_iters,
-                section=section, re=re_n, tu=tu,
+                section=section, re=re_n, tu=tu, mesh=mesh,
             )
             dest = case / "constant" / "polyMesh"
             if dest.exists():

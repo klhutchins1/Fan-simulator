@@ -138,12 +138,31 @@ def test_cli_defaults_are_rung_a():
 def test_cli_a0_flags():
     ns = ps.parse_cli(
         ["--section", "0012", "--re", "6e6", "--alphas", "0", "5", "10",
-         "--models", "kOmegaSST", "--tu", "0.001"])
+         "--models", "kOmegaSST", "--tu", "0.001", "--mesh", "cgrid"])
     assert ns.section == "0012"
     assert ns.re == pytest.approx(6.0e6)
     assert list(ns.alphas) == [0.0, 5.0, 10.0]
     assert list(ns.models) == ["kOmegaSST"]
     assert ns.tu == pytest.approx(0.001)
+    assert ns.mesh == "cgrid"
+
+
+def test_cli_default_mesh_is_snappy():
+    assert ps.parse_cli([]).mesh == "snappy"
+
+
+def test_cgrid_case_has_no_snappy_and_clusters_the_wall(tmp_path):
+    case = ps.write_case(
+        tmp_path / "cgrid", alpha_deg=0.0, model="kOmegaSST",
+        section="0012", re=6.0e6, mesh="cgrid")
+    assert not (case / "system" / "snappyHexMeshDict").exists()
+    assert not (case / "constant" / "triSurface" / "airfoil.stl").exists()
+    block = (case / "system" / "blockMeshDict").read_text(encoding="utf-8")
+    assert "spline" in block or "polyLine" in block
+    assert "airfoil" in block
+    assert "empty" in block
+    ds = ps.wall_spacing_m(6.0e6)
+    assert f"{ds:.8g}" in block or "simpleGrading" in block
 
 
 def test_verdict_a0_ladson_windows():
