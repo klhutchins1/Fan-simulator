@@ -68,8 +68,23 @@ def section_xy() -> np.ndarray:
     return naca4(0.04, 0.4, 0.06, 60)
 
 
+CGRID_U = 1.0  # incompressible; Re is set by nu = U·c/Re (avoids U≈900 m/s at Re 6e6)
+
+
 def u_inf(re: float = RE, chord: float = CHORD) -> float:
     return float(re) * NU_AIR / float(chord)
+
+
+def solve_u_nu(re: float, *, mesh: str) -> tuple[float, float]:
+    """Velocity and viscosity that realise `re` on chord `CHORD`.
+
+    Snappy keeps physical air. The C-grid uses U = 1 m/s so SIMPLE is not
+    Mach-2 incompressible; Cl/Cd are unchanged.
+    """
+    if mesh == "cgrid":
+        u = CGRID_U
+        return u, u * CHORD / float(re)
+    return u_inf(re), NU_AIR
 
 
 def _cf_turb(re: float) -> float:
@@ -108,9 +123,11 @@ def _foam(cls: str, obj: str) -> str:
     )
 
 
-N_CGRID_TANGENT = 40
-N_CGRID_NORMAL = 80
-R_OUTER = 12.0 * CHORD
+N_CGRID_TANGENT = 48
+N_CGRID_NORMAL = 60
+N_CGRID_WAKE = 32
+R_OUTER = 8.0 * CHORD
+WAKE_LEN = 16.0 * CHORD
 
 
 def _grading_last_over_first(first: float, length: float, n: int) -> float:
@@ -131,74 +148,77 @@ def _grading_last_over_first(first: float, length: float, n: int) -> float:
     return float(r ** (n - 1))
 
 
-def _cgrid_inner_outer(section: str):
-    """Four airfoil arcs (TE→top→LE→bot→TE) and matching outer-circle arcs."""
-    m, p, t = parse_naca4_code(section)
-    pts = naca4(m, p, t, N_THETA)[:-1] * CHORD
-    i_le = int(np.argmin(pts[:, 0]))
-    i_top = int(np.argmax(pts[:, 1]))
-    i_bot = int(np.argmin(pts[:, 1]))
-    inner_corners = [pts[0], pts[i_top], pts[i_le], pts[i_bot]]
-    arcs = [
-        pts[0:i_top + 1],
-        pts[i_top:i_le + 1],
-        pts[i_le:i_bot + 1],
-        np.vstack([pts[i_bot:], pts[0:1]]),
-    ]
-    centre = np.array([0.25 * CHORD, 0.0])
-
-    def _outer(p: np.ndarray) -> np.ndarray:
-        v = p - centre
-        nrm = float(np.linalg.norm(v))
-        if nrm < 1e-16:
-            v = np.array([0.0, 1.0])
-            nrm = 1.0
-        return centre + R_OUTER * v / nrm
-
-    outer_arcs = [np.vstack([_outer(p) for p in arc]) for arc in arcs]
-    return arcs, outer_arcs, inner_corners, [_outer(c) for c in inner_corners]
-
-
 def _pt(p: np.ndarray, z: float) -> str:
     return f"({float(p[0]):.8g} {float(p[1]):.8g} {z:.8g})"
 
 
+def _cgrid_geometry(section: str):
+    """Corners and splines for a 4-block C-grid (cut in the wake, not at the TE).
+
+    Trailing-edge and outlet vertices are duplicated (same coordinates, different
+    indices) so the upper and lower surfaces are distinct edges. The wake slit is
+    stitched with mergePatchPairs.
+    """
+    m, p, t = parse_naca4_code(section)
+    foil = naca4(m, p, t, N_THETA) * CHORD  # closed: TE → upper → LE → lower → TE
+    te = foil[0].copy()
+    i_le = int(np.argmin(foil[:-1, 0]))
+    le = foil[i_le].copy()
+    lower = np.vstack([te, foil[-2:i_le - 1:-1]])  # TE → LE along lower
+    upper = foil[i_le::-1]  # LE → TE along upper
+    xmax = float(te[0] + WAKE_LEN)
+    outlet = np.array([xmax, 0.0])
+    centre = np.array([0.25 * CHORD, 0.0])
+    dx = float(te[0] - centre[0])
+    y_arc = math.sqrt(max(R_OUTER ** 2 - dx ** 2, 1e-18))
+    te_lo = np.array([float(te[0]), -y_arc])
+    te_hi = np.array([float(te[0]), y_arc])
+    le_out = centre + np.array([-R_OUTER, 0.0])
+    out_lo = np.array([xmax, -y_arc])
+    out_hi = np.array([xmax, y_arc])
+    n_arc = max(len(lower), 16)
+    ang_te = math.atan2(-y_arc, dx)
+    th_lo = np.linspace(ang_te, -math.pi, n_arc)
+    outer_lower = centre + R_OUTER * np.column_stack((np.cos(th_lo), np.sin(th_lo)))
+    th_hi = np.linspace(math.pi, -ang_te, n_arc)
+    outer_upper = centre + R_OUTER * np.column_stack((np.cos(th_hi), np.sin(th_hi)))
+    # 0 TE_lo, 1 LE, 2 outlet_lo, 3 LE_out, 4 TE_out_lo, 5 out_lo,
+    # 6 TE_out_hi, 7 out_hi, 8 TE_hi, 9 outlet_hi
+    corners = [te, le, outlet, le_out, te_lo, out_lo, te_hi, out_hi, te.copy(), outlet.copy()]
+    splines = {
+        (0, 1): lower[1:-1],
+        (1, 8): upper[1:-1],
+        (4, 3): outer_lower[1:-1],
+        (3, 6): outer_upper[1:-1],
+    }
+    return corners, splines
+
+
 def _cgrid_block_mesh_dict(*, section: str, re: float) -> str:
-    """Structured 4-block O-grid (closed TE). Inner patch is airfoil; outer is freestream."""
-    arcs, outer_arcs, inner_c, outer_c = _cgrid_inner_outer(section)
+    """Structured 4-block C-grid: two foil blocks + two wake blocks. Inner foil is `airfoil`."""
+    corners, splines = _cgrid_geometry(section)
     ds = wall_spacing_m(re)
     gy = _grading_last_over_first(ds, R_OUTER - 0.25 * CHORD, N_CGRID_NORMAL)
-    nx, ny = N_CGRID_TANGENT, N_CGRID_NORMAL
+    nx, nw, ny = N_CGRID_TANGENT, N_CGRID_WAKE, N_CGRID_NORMAL
     verts: list[str] = []
     for z in (0.0, SPAN):
-        for p in inner_c:
+        for p in corners:
             verts.append(f"    {_pt(p, z)}")
-        for p in outer_c:
-            verts.append(f"    {_pt(p, z)}")
-    # z=0: 0-3 inner TE,top,LE,bot; 4-7 outer. z=SPAN: 8-11 inner, 12-15 outer.
+    # z=0: 0..9 as in _cgrid_geometry; z=SPAN: +10
     hexes = [
-        f"    hex (0 4 5 1 8 12 13 9) ({ny} {nx} 1) simpleGrading ({gy:.8g} 1 1)",
-        f"    hex (1 5 6 2 9 13 14 10) ({ny} {nx} 1) simpleGrading ({gy:.8g} 1 1)",
-        f"    hex (2 6 7 3 10 14 15 11) ({ny} {nx} 1) simpleGrading ({gy:.8g} 1 1)",
-        f"    hex (3 7 4 0 11 15 12 8) ({ny} {nx} 1) simpleGrading ({gy:.8g} 1 1)",
+        f"    hex (0 1 3 4 10 11 13 14) ({nx} {ny} 1) simpleGrading (1 {gy:.8g} 1)",
+        f"    hex (1 8 6 3 11 18 16 13) ({nx} {ny} 1) simpleGrading (1 {gy:.8g} 1)",
+        f"    hex (2 0 4 5 12 10 14 15) ({nw} {ny} 1) simpleGrading (0.05 {gy:.8g} 1)",
+        f"    hex (8 9 7 6 18 19 17 16) ({nw} {ny} 1) simpleGrading (20 {gy:.8g} 1)",
     ]
-    # spline intermediates on each airfoil arc (0-1, 1-2, 2-3, 3-0) and outer (4-5, ...).
-    pairs = ((0, 1), (1, 2), (2, 3), (3, 0))
     edge_lines = ["edges", "("]
-    for (a, b), arc in zip(pairs, arcs):
-        mid = arc[1:-1]
-        if len(mid):
-            body = " ".join(_pt(p, 0.0) for p in mid)
-            body_z = " ".join(_pt(p, SPAN) for p in mid)
-            edge_lines.append(f"    spline {a} {b} ( {body} )")
-            edge_lines.append(f"    spline {a + 8} {b + 8} ( {body_z} )")
-    for (a, b), arc in zip(((4, 5), (5, 6), (6, 7), (7, 4)), outer_arcs):
-        mid = arc[1:-1]
-        if len(mid):
-            body = " ".join(_pt(p, 0.0) for p in mid)
-            body_z = " ".join(_pt(p, SPAN) for p in mid)
-            edge_lines.append(f"    spline {a} {b} ( {body} )")
-            edge_lines.append(f"    spline {a + 8} {b + 8} ( {body_z} )")
+    for (a, b), mid in splines.items():
+        if len(mid) == 0:
+            continue
+        body = " ".join(_pt(p, 0.0) for p in mid)
+        body_z = " ".join(_pt(p, SPAN) for p in mid)
+        edge_lines.append(f"    spline {a} {b} ( {body} )")
+        edge_lines.append(f"    spline {a + 10} {b + 10} ( {body_z} )")
     edge_lines.append(");")
     return "\n".join([
         _foam("dictionary", "blockMeshDict"),
@@ -220,10 +240,8 @@ def _cgrid_block_mesh_dict(*, section: str, re: float) -> str:
         "        type wall;",
         "        faces",
         "        (",
-        "            (0 1 9 8)",
-        "            (1 2 10 9)",
-        "            (2 3 11 10)",
-        "            (3 0 8 11)",
+        "            (0 1 11 10)",
+        "            (1 8 18 11)",
         "        );",
         "    }",
         "    freestream",
@@ -231,16 +249,34 @@ def _cgrid_block_mesh_dict(*, section: str, re: float) -> str:
         "        type patch;",
         "        faces",
         "        (",
-        "            (4 12 13 5)",
-        "            (5 13 14 6)",
-        "            (6 14 15 7)",
-        "            (7 15 12 4)",
-        "        );",
-        "    }",
-        "    front { type empty; faces ((8 9 13 12) (9 10 14 13) (10 11 15 14) (11 8 12 15)); }",
-        "    back  { type empty; faces ((0 4 5 1) (1 5 6 2) (2 6 7 3) (3 7 4 0)); }",
+            "            (4 14 13 3)",
+            "            (3 13 16 6)",
+            "            (4 5 15 14)",
+            "            (6 16 17 7)",
+            "        );",
+            "    }",
+            "    outlet",
+            "    {",
+            "        type patch;",
+            "        faces",
+            "        (",
+            "            (5 2 12 15)",
+            "            (9 7 17 19)",
+            "        );",
+            "    }",
+        "    wakeLower { type patch; faces ((2 0 10 12)); }",
+        "    wakeUpper { type patch; faces ((8 9 19 18)); }",
+        "    front { type empty; faces ("
+        "(10 11 13 14) (11 18 16 13) (12 10 14 15) (18 19 17 16)"
+        "); }",
+        "    back  { type empty; faces ("
+        "(0 4 3 1) (1 3 6 8) (2 5 4 0) (8 6 7 9)"
+        "); }",
         ");",
-        "mergePatchPairs ();",
+        "mergePatchPairs",
+        "(",
+        "    (wakeLower wakeUpper)",
+        ");",
         "",
     ])
 
@@ -386,7 +422,15 @@ def _surface_feature_dict() -> str:
     ])
 
 
-def _field_scalar(name: str, dims: str, value: float, wall: str, empty: bool = True) -> str:
+def _field_scalar(
+    name: str, dims: str, value: float, wall: str, empty: bool = True,
+    *, outlet: bool = False,
+) -> str:
+    outlet_bc = (
+        f"    outlet      {{ type inletOutlet; inletValue uniform {value:.8g}; "
+        f"value uniform {value:.8g}; }}"
+        if outlet else ""
+    )
     return "\n".join([
         _foam("volScalarField", name),
         f"dimensions {dims};",
@@ -398,6 +442,7 @@ def _field_scalar(name: str, dims: str, value: float, wall: str, empty: bool = T
             f"    freestream  {{ type inletOutlet; inletValue uniform {value:.8g}; "
             f"value uniform {value:.8g}; }}"
         ),
+        outlet_bc,
         "    front       { type empty; }" if empty else "",
         "    back        { type empty; }" if empty else "",
         "}",
@@ -428,7 +473,7 @@ def write_case(
     (case / "system").mkdir(parents=True, exist_ok=True)
     (case / "constant").mkdir(parents=True, exist_ok=True)
 
-    u = u_inf(re)
+    u, nu = solve_u_nu(re, mesh=mesh)
     a = math.radians(float(alpha_deg))
     ux, uy = u * math.cos(a), u * math.sin(a)
     k = 1.5 * (tu_frac * u) ** 2
@@ -437,6 +482,7 @@ def write_case(
     drag = (math.cos(a), math.sin(a), 0.0)
     aref = CHORD * SPAN
     lm = model == "kOmegaSSTLM"
+    has_outlet = mesh == "cgrid"
 
     if mesh == "cgrid":
         (case / "system" / "blockMeshDict").write_text(
@@ -481,6 +527,7 @@ def write_case(
         "    div(phi,omega) bounded Gauss upwind;",
         extra_div.rstrip(),
         "    div((nuEff*dev2(T(grad(U))))) Gauss linear;",
+        "    div(div(phi,U)) Gauss linear;",
         "}",
         "laplacianSchemes { default Gauss linear corrected; }",
         "interpolationSchemes { default linear; }",
@@ -494,17 +541,23 @@ def write_case(
         "solvers",
         "{",
         "    p { solver GAMG; smoother GaussSeidel; tolerance 1e-7; relTol 0.01; }",
+        "    Phi { solver PCG; preconditioner DIC; tolerance 1e-7; relTol 0.05; }",
         (
             "    \"(U|k|omega)\" { solver smoothSolver; smoother symGaussSeidel; "
             "tolerance 1e-8; relTol 0.1; }"
         ),
         extra_solvers.rstrip(),
         "}",
+        "potentialFlow { nNonOrthogonalCorrectors 3; }",
         "SIMPLE",
         "{",
-        "    nNonOrthogonalCorrectors 1;",
-        "    residualControl { p 1e-4; U 1e-4; k 1e-4; omega 1e-4; "
-        + extra_resid + "}",
+        f"    nNonOrthogonalCorrectors {2 if has_outlet else 1};",
+        (
+            "    residualControl {};"
+            if has_outlet else
+            "    residualControl { p 1e-4; U 1e-4; k 1e-4; omega 1e-4; "
+            + extra_resid + "}"
+        ),
         "}",
         "relaxationFactors",
         "{",
@@ -569,7 +622,7 @@ def write_case(
     )
     (case / "constant" / "transportProperties").write_text(
         _foam("dictionary", "transportProperties")
-        + f"transportModel Newtonian;\nnu {NU_AIR};\n",
+        + f"transportModel Newtonian;\nnu {nu:.16g};\n",
         encoding="utf-8",
     )
 
@@ -585,6 +638,12 @@ def write_case(
             f"freestreamValue uniform ({ux:.8g} {uy:.8g} 0); "
             f"value uniform ({ux:.8g} {uy:.8g} 0); }}"
         ),
+        (
+            "    outlet      { type inletOutlet; "
+            f"inletValue uniform ({ux:.8g} {uy:.8g} 0); "
+            f"value uniform ({ux:.8g} {uy:.8g} 0); }}"
+            if has_outlet else ""
+        ),
         "    front       { type empty; }",
         "    back        { type empty; }",
         "}",
@@ -598,19 +657,28 @@ def write_case(
         "{",
         "    airfoil     { type zeroGradient; }",
         "    freestream  { type freestreamPressure; freestreamValue uniform 0; value uniform 0; }",
+        (
+            "    outlet      { type fixedValue; value uniform 0; }"
+            if has_outlet else ""
+        ),
         "    front       { type empty; }",
         "    back        { type empty; }",
         "}",
         "",
     ]), encoding="utf-8")
     (case / "0" / "k").write_text(
-        _field_scalar("k", "[0 2 -2 0 0 0 0]", k, f"type kqRWallFunction; value uniform {k:.8g};"),
+        _field_scalar(
+            "k", "[0 2 -2 0 0 0 0]", k,
+            f"type kqRWallFunction; value uniform {k:.8g};",
+            outlet=has_outlet,
+        ),
         encoding="utf-8",
     )
     (case / "0" / "omega").write_text(
         _field_scalar(
             "omega", "[0 0 -1 0 0 0 0]", omega,
             f"type omegaWallFunction; value uniform {omega:.8g};",
+            outlet=has_outlet,
         ),
         encoding="utf-8",
     )
@@ -618,6 +686,7 @@ def write_case(
         _field_scalar(
             "nut", "[0 2 -1 0 0 0 0]", 0.0,
             "type nutUSpaldingWallFunction; value uniform 0;",
+            outlet=has_outlet,
         ),
         encoding="utf-8",
     )
@@ -629,6 +698,7 @@ def write_case(
             _field_scalar(
                 "gammaInt", "[0 0 0 0 0 0 0]", 1.0,
                 "type zeroGradient;",
+                outlet=has_outlet,
             ),
             encoding="utf-8",
         )
@@ -636,6 +706,7 @@ def write_case(
             _field_scalar(
                 "ReThetat", "[0 0 0 0 0 0 0]", re_th,
                 "type zeroGradient;",
+                outlet=has_outlet,
             ),
             encoding="utf-8",
         )
@@ -681,14 +752,29 @@ def verdict_a0(points: dict) -> dict:
     }
 
 
+def _latest_time_file(paths: list[Path]) -> Path | None:
+    """Pick the file in the highest numeric time directory (not lexicographic)."""
+    if not paths:
+        return None
+
+    def _t(p: Path) -> float:
+        try:
+            return float(p.parent.name)
+        except ValueError:
+            return -1.0
+
+    return max(paths, key=_t)
+
+
 def parse_cl_cd(case: Path) -> tuple[float, float] | None:
-    hits = sorted(case.glob("postProcessing/forceCoeffs1/*/coefficient.dat"))
+    hits = list(case.glob("postProcessing/forceCoeffs1/*/coefficient.dat"))
     if not hits:
-        hits = sorted(case.glob("postProcessing/forceCoeffs1/*/forceCoeffs.dat"))
-    if not hits:
+        hits = list(case.glob("postProcessing/forceCoeffs1/*/forceCoeffs.dat"))
+    latest = _latest_time_file(hits)
+    if latest is None:
         return None
     rows = []
-    for ln in hits[-1].read_text(encoding="utf-8", errors="replace").splitlines():
+    for ln in latest.read_text(encoding="utf-8", errors="replace").splitlines():
         if not ln.strip() or ln.lstrip().startswith("#"):
             continue
         parts = ln.split()
@@ -696,20 +782,22 @@ def parse_cl_cd(case: Path) -> tuple[float, float] | None:
             rows.append((float(parts[1]), float(parts[4])))  # Cd, Cl
         elif len(parts) >= 3:
             rows.append((float(parts[1]), float(parts[2])))
-    if len(rows) < 5:
+    if not rows:
         return None
-    tail = rows[-max(5, len(rows) // 5):]
+    n_tail = max(1, min(len(rows), max(5, len(rows) // 5)))
+    tail = rows[-n_tail:]
     cd = sum(r[0] for r in tail) / len(tail)
     cl = sum(r[1] for r in tail) / len(tail)
     return cl, cd
 
 
 def parse_yplus(case: Path) -> dict | None:
-    hits = sorted(Path(case).glob("postProcessing/yPlus/*/yPlus.dat"))
-    if not hits:
+    hits = list(Path(case).glob("postProcessing/yPlus/*/yPlus.dat"))
+    latest = _latest_time_file(hits)
+    if latest is None:
         return None
     last = None
-    for ln in hits[-1].read_text(encoding="utf-8", errors="replace").splitlines():
+    for ln in latest.read_text(encoding="utf-8", errors="replace").splitlines():
         if not ln.strip() or ln.lstrip().startswith("#"):
             continue
         parts = ln.split()
@@ -754,7 +842,7 @@ def parse_cli(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--tu", type=float, default=TU_NCRIT9, help="freestream Tu as a fraction")
     ap.add_argument(
         "--mesh", choices=("snappy", "cgrid"), default="snappy",
-        help="snappy+layers (rung A default) or structured O-grid (A0 mesher fix)",
+        help="snappy+layers (rung A default) or structured C-grid (A0 mesher fix)",
     )
     return ap.parse_args(argv)
 
@@ -849,6 +937,7 @@ def main(argv: list[str] | None = None) -> int:
         mesh_run.run("blockMesh")
         coverage: float | None
         if mesh == "cgrid":
+            mesh_run.run("checkMesh")
             coverage = 100.0
         else:
             mesh_run.run("surfaceFeatureExtract")
@@ -891,6 +980,8 @@ def main(argv: list[str] | None = None) -> int:
             shutil.copytree(mesh_src, dest)
             run = OpenFOAMRunner(case)
             t0 = time.time()
+            if mesh == "cgrid":
+                run.run("potentialFoam -writep")
             run.run("simpleFoam")
             parsed = parse_cl_cd(case)
             cl, cd = (None, None) if parsed is None else parsed

@@ -72,6 +72,21 @@ def test_parse_coefficient_dat_uses_cl_column(tmp_path):
     assert cl == pytest.approx(0.683, abs=0.02)
 
 
+def test_parse_cl_cd_prefers_numeric_latest_time(tmp_path):
+    root = tmp_path / "postProcessing" / "forceCoeffs1"
+    for t, cd, cl in (("80", 0.02, 0.1), ("2000", 0.008, 0.0)):
+        d = root / t
+        d.mkdir(parents=True)
+        (d / "coefficient.dat").write_text(
+            "# Time\tCd\tCd(f)\tCd(r)\tCl\n"
+            + "".join(f"{t}\t{cd}\t0.01\t0.01\t{cl}\n" for _ in range(6)),
+            encoding="utf-8",
+        )
+    cl, cd = ps.parse_cl_cd(tmp_path)
+    assert cd == pytest.approx(0.008)
+    assert cl == pytest.approx(0.0)
+
+
 def test_verdict_rules():
     # A1: SST ≥ 25 % below reference and SST-LM within 10 %.
     assert ps.verdict(sst_cl=0.855 * 0.70, lm_cl=0.855 * 0.95)["verdict"] == "A1"
@@ -163,6 +178,56 @@ def test_cgrid_case_has_no_snappy_and_clusters_the_wall(tmp_path):
     assert "empty" in block
     ds = ps.wall_spacing_m(6.0e6)
     assert f"{ds:.8g}" in block or "simpleGrading" in block
+
+
+def test_cgrid_is_wake_cut_not_trailing_edge_o(tmp_path):
+    """C-grid: cut in the wake, two foil wall faces, lower/upper 0012 not swapped."""
+    case = ps.write_case(
+        tmp_path / "cgrid_topo", alpha_deg=0.0, model="kOmegaSST",
+        section="0012", re=6.0e6, mesh="cgrid")
+    block = (case / "system" / "blockMeshDict").read_text(encoding="utf-8")
+    assert block.count("hex ") == 4
+    airfoil = block.split("airfoil", 1)[1].split("freestream", 1)[0]
+    wall_faces = [
+        ln for ln in airfoil.splitlines()
+        if ln.strip().startswith("(") and any(c.isdigit() for c in ln)
+    ]
+    assert len(wall_faces) == 2
+    corners, splines = ps._cgrid_geometry("0012")
+    te, le, outlet, _le_out, te_lo, _out_lo, te_hi, _out_hi, te_hi_in, outlet_hi = corners
+    assert outlet[0] > te[0] + 10.0 * ps.CHORD
+    assert te_lo[1] < 0.0 < te_hi[1]
+    assert le[0] < te[0]
+    np.testing.assert_allclose(te_hi_in, te)
+    np.testing.assert_allclose(outlet_hi, outlet)
+    lower_mid = splines[(0, 1)]
+    upper_mid = splines[(1, 8)]
+    assert np.max(lower_mid[:, 1]) <= 1e-9
+    assert np.min(upper_mid[:, 1]) >= -1e-9
+    assert "mergePatchPairs" in block
+    assert "wakeLower" in block
+    assert "outlet" in block
+
+
+def test_cgrid_keeps_re_without_supersonic_u(tmp_path):
+    """Incompressible similarity: Re 6e6 at U=1 m/s, not physical U≈900 m/s."""
+    case = ps.write_case(
+        tmp_path / "cgrid_re", alpha_deg=0.0, model="kOmegaSST",
+        section="0012", re=6.0e6, mesh="cgrid")
+    ctrl = (case / "system" / "controlDict").read_text(encoding="utf-8")
+    trans = (case / "constant" / "transportProperties").read_text(encoding="utf-8")
+    u = None
+    nu = None
+    for ln in ctrl.splitlines():
+        if "magUInf" in ln:
+            u = float(ln.split()[1].rstrip(";"))
+    for ln in trans.splitlines():
+        if ln.strip().startswith("nu "):
+            nu = float(ln.split()[1].rstrip(";"))
+    assert u is not None and nu is not None
+    assert u == pytest.approx(ps.CGRID_U)
+    assert u < 50.0
+    assert u * ps.CHORD / nu == pytest.approx(6.0e6, rel=1e-8)
 
 
 def test_verdict_a0_ladson_windows():

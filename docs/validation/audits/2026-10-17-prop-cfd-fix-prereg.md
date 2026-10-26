@@ -145,3 +145,18 @@ Mesh report (required): requested first-cell y+ = 0.8; **achieved y+ mean 1011 /
 **Verdict: FAIL.** The 2-D setup did not resolve the wall, so this does not judge SST at Re 6e6. Recorded, not re-tuned.
 Next, per rulings §1: fix the 2-D mesher (structured C-grid, or layers with coverage ≥ 95 %), judged only on A0. Do not
 change the 3-D prop mesher.
+
+### Rung A0 C-grid (2026-10-26, day CPU; `--mesh cgrid`)
+
+Wake-cut 4-block C-grid (cut in the wake, not an O at the TE). Incompressible similarity
+`U = 1 m/s`, `ν = U·c/Re` (same Re 6×10⁶). `runs/prop_section_a0_cgrid2/summary.json`.
+
+| α | Ladson | SST | error | window |
+|---|---|---|---|---|
+| 0° C_d | 0.00808 | 0.00788 | −2.4 % | ±20 % |
+| 5° C_l | 0.537 | 0.460 | **−14 %** | ±5 % |
+| 10° C_l | 1.063 | 0.600 | **−44 %** | ±5 % |
+
+Mesh report (required): requested first-cell y+ = 0.8; **achieved y+ mean 0.27 / 0.25 / 0.22** (max 0.46 / 0.59 / 0.69) at 0° / 5° / 10°. Structured mesh: 9600 hexes, 96 airfoil faces, layer coverage n/a (100 % walls). checkMesh: non-orthogonality max 70, skewness 1.51 (OK); high aspect ratio ~1.4×10⁵ from the 0.36 μm first cell (expected).
+
+**Verdict: FAIL.** The wall is resolved, so this does judge SST at Re 6e6. C_d(0°) is inside the window; lift is not. Recorded, not re-tuned. Do not change the 3-D prop mesher. Claude to read.
