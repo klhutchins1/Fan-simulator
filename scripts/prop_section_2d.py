@@ -582,6 +582,8 @@ def parse_yplus(case: Path) -> dict | None:
 def parse_layer_coverage(log: str) -> float | None:
     hits = _re.findall(r"Extruding\s+\d+\s+faces\s+\(([\d.]+)%\s+of\s+\d+\)", log)
     if not hits:
+        hits = _re.findall(r"Extruding\s+\d+\s+out of\s+\d+\s+faces\s+\(([\d.]+)%\)", log)
+    if not hits:
         hits = _re.findall(r"([\d.]+)%\s+of\s+\d+\s+faces", log)
     return float(hits[-1]) if hits else None
 

@@ -127,3 +127,21 @@ fixed, because its geometry is approximate.
   retuning.
 - The APC SF against UIUC numbers stay recorded as the starting point and are reported in the release notes as
   "approximate-geometry case".
+
+### Rung A0 (2026-10-26, day CPU; `scripts/prop_section_2d.py --section 0012 --re 6e6 --alphas 0 5 10 --models kOmegaSST --tu 0.001`)
+
+Same snappy+layers mesher as rung A. NACA 0012, Re 6×10⁶, fully turbulent SST, Tu 0.1 %. Ladson TM-4074 tripped
+(grok r20 B): C_d(0°) 0.00808, C_l(5°) 0.537, C_l(10°) 1.063. Pass: C_l ±5 % at 5° and 10°, C_d ±20 % at 0°.
+`runs/prop_section_a0/summary.json`.
+
+| α | Ladson | SST | error | window |
+|---|---|---|---|---|
+| 0° C_d | 0.00808 | 0.01186 | **+47 %** | ±20 % |
+| 5° C_l | 0.537 | 0.156 | **−71 %** | ±5 % |
+| 10° C_l | 1.063 | 0.330 | **−69 %** | ±5 % |
+
+Mesh report (required): requested first-cell y+ = 0.8; **achieved y+ mean 1011 / 1042 / 1128** (max 6.8e3 / 8.6e3 / 1.1e4) at 0° / 5° / 10°. Snappy log: **layer coverage 0 %** (`Extruding 0 out of 2592 faces`). Surface cells: 2592.
+
+**Verdict: FAIL.** The 2-D setup did not resolve the wall, so this does not judge SST at Re 6e6. Recorded, not re-tuned.
+Next, per rulings §1: fix the 2-D mesher (structured C-grid, or layers with coverage ≥ 95 %), judged only on A0. Do not
+change the 3-D prop mesher.

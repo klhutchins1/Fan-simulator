@@ -183,6 +183,8 @@ def test_parse_yplus_airfoil(tmp_path):
 def test_parse_layer_coverage_and_surface_cells(tmp_path):
     log = "Extruding 800 faces (95.2% of 840).\n"
     assert ps.parse_layer_coverage(log) == pytest.approx(95.2)
+    of2406 = "Extruding 0 out of 2592 faces (0%). Removed extrusion at 1483 faces.\n"
+    assert ps.parse_layer_coverage(of2406) == pytest.approx(0.0)
     bound = tmp_path / "constant" / "polyMesh"
     bound.mkdir(parents=True)
     (bound / "boundary").write_text(
