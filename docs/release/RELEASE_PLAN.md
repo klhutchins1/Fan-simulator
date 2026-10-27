@@ -77,13 +77,8 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
 
 - **R1.1 Second published axial case: lt120 (roadmap 25.7)**. Pre-registered:
   `docs/validation/audits/2026-10-18-lt120-validation-prereg.md`.
-  - **R1.1a reference build + freeze + script.** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-10-27)`.
-    - `reference_build=True` skips only the print-hang check, with a test proving that.
-    - Wrapped build from `docs/qa/benchmarks/lt120/geometry.json`, a cylinder-cut check against the table, and the
-      freeze commit.
-    - `scripts/validate_lt120.py` runs fixed back-pressure points at 6.85 / 13.71 / 14.69 / 17.14 Pa on meshes 5.8 and
-      6.2 mm, resumes finished points, and writes `runs/lt120/summary.json`.
-    - Then add the night job (about 6 h).
+  - **R1.1a reference build + freeze + script.** Lane: Cursor. CPU: day. Status: `done 6f25583`.
+    - Landed: `reference_build=True` skips hang only (clip stays on). Freeze STL + cylinder-cut 9/9 PASS, r=23 N/M, direction CONCLUSIVE. `scripts/validate_lt120.py` resumes and writes `runs/lt120/summary.json`. Night job `lt120-r11a` is queued (8 h); merge this branch to master so 00:30 can run it.
   - **R1.1b verdict.** Lane: Claude. Status: `blocked (R1.1a + night run)`.
 - **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `ready`.
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
