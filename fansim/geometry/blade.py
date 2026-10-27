@@ -130,6 +130,8 @@ class BladeParams:
     # PC fans: nothing may reach below the hub's motor face (-Z); the frame struts sit right there.
     # Blades are cut at that plane (props / wind turbines have no struts and turn this off).
     clip_below_hub: bool = True
+    # R1.1a: skip only the print-hang limit. Clip and every other check stay.
+    reference_build: bool = False
     hub_axial_margin: float = 1.5  # mm the hub extends beyond the blade ROOT z-span each side
     # Hub axial height, mm. None = AUTO: just tall enough to cover the blade ROOTS (+margins) so
     # swept tips no longer inflate the hub / depth. Set a number to force a taller hub (clamped to
@@ -904,7 +906,8 @@ def validate_blade_params(params: BladeParams) -> None:
         raise ValueError(
             f"blade_angles_deg has {len(params.blade_angles_deg)} entries, expected n_blades={n}")
     if (bool(getattr(params, "clip_below_hub", True))
-            and str(getattr(params, "section_wrap", "planar")) == "cylinder"):
+            and str(getattr(params, "section_wrap", "planar")) == "cylinder"
+            and not bool(getattr(params, "reference_build", False))):
         hang = blade_hang_below_hub_mm(params)
         printed = HANG_BUILT_FACTOR * hang
         if printed > MAX_HANG_BELOW_HUB_MM:
@@ -968,6 +971,8 @@ def blade_hang_built_mm(params: BladeParams, blade=None) -> float:
 
 
 def _refuse_if_built_hang_past_limit(params: BladeParams, blade) -> None:
+    if bool(getattr(params, "reference_build", False)):
+        return
     if not (bool(getattr(params, "clip_below_hub", True))
             and str(getattr(params, "section_wrap", "planar")) == "cylinder"):
         return

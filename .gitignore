@@ -16,6 +16,8 @@ catalog/*.db
 *.stl.meta.json
 # Exception: trusted A12x25 reference impeller for geometry/CFD gates
 !validation/reference/a12x25_impeller.stl
+# Exception: lt120 freeze (R1.1a)
+!validation/reference/lt120/lt120.stl
 # Exception: prepared drone radial / impeller reference batch for open-air prop CFD
 !validation/reference/drone_radial/*.stl
 # Parametric Stock preview (gold ✕) is a rebuildable runtime cache, not tracked reference

@@ -140,6 +140,19 @@
     "--tb=line"
    ],
    "note": "2026-10-21: c1, c3 green; c2 2 stale tests (hard-coded cfd_version 5), fixed fe899cd and re-run green; merged 027ebcb"
+  },
+  {
+   "id": "lt120-r11a",
+   "max_hours": 8,
+   "status": "queued",
+   "why": "R1.1a lt120 CFD (prereg 2026-10-18-lt120-validation-prereg.md). Night runner reads master only; this job runs after merge.",
+   "cmd": [
+    "python",
+    "-u",
+    "scripts/validate_lt120.py",
+    "--out",
+    "T:/Projects/Fan Simulator/runs/lt120"
+   ]
   }
  ]
 }
