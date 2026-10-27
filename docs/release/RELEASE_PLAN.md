@@ -77,7 +77,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
 
 - **R1.1 Second published axial case: lt120 (roadmap 25.7)**. Pre-registered:
   `docs/validation/audits/2026-10-18-lt120-validation-prereg.md`.
-  - **R1.1a reference build + freeze + script.** Lane: Cursor. CPU: day. Status: `ready`.
+  - **R1.1a reference build + freeze + script.** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-10-27)`.
     - `reference_build=True` skips only the print-hang check, with a test proving that.
     - Wrapped build from `docs/qa/benchmarks/lt120/geometry.json`, a cylinder-cut check against the table, and the
       freeze commit.
