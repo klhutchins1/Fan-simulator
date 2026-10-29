@@ -28,6 +28,13 @@ from validation.store import (
 
 _log = logging.getLogger(__name__)
 
+# R1.4 (Kimball 2026-10-21): same wording in Expert and the README Known limits list.
+STOCK_RECIPE_GAP = (
+    "Stock is rebuilt from a parametric recipe and reads about 5 % less airflow than the "
+    "real A12x25 shape (55.7 vs 58.3 CFM in the same test). Designs are compared with this "
+    "Stock, so comparisons are like for like."
+)
+
 
 def bind(session) -> None:
     state, ctrl = session.state, session.ctrl

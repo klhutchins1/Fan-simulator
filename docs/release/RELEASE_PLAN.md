@@ -78,7 +78,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
 - **R1.1 Second published axial case: lt120 (roadmap 25.7)**. Pre-registered:
   `docs/validation/audits/2026-10-18-lt120-validation-prereg.md`.
   - **R1.1a reference build + freeze + script.** Lane: Cursor. CPU: day. Status: `done 6f25583`.
-    - Landed: `reference_build=True` skips hang only (clip stays on). Freeze STL + cylinder-cut 9/9 PASS, r=23 N/M, direction CONCLUSIVE. `scripts/validate_lt120.py` resumes and writes `runs/lt120/summary.json`. Night job `lt120-r11a` is queued (8 h); merge this branch to master so 00:30 can run it.
+    - Landed: `reference_build=True` skips hang only (clip stays on). Freeze STL + cylinder-cut 9/9 PASS, r=23 N/M, direction CONCLUSIVE. `scripts/validate_lt120.py` resumes and writes `runs/lt120/summary.json`. Night job `lt120-r11a` is queued (8 h). grok r21 C pre-check: clip-off 9/9 PASS; freeze blockers (QA-60) are closed on this freeze.
   - **R1.1b verdict.** Lane: Claude. Status: `blocked (R1.1a + night run)`.
 - **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `ready`.
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
@@ -102,7 +102,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Old saved designs are disposable: mark them stale, don't migrate them.
   - grok r17 C: with the export hub (growth below), 174/300 r16 hubs grow (Δh ≤ 6.7 mm). Built/designed stays 1.77, and (i + ii) refuses 57/58 built > 2 mm with 0.4 % false refusals.
 - **R1.8 QA-43: the 2 mm hang limit is checked on the designed blade; the built blade hangs about 1.75× more**.
-  - **Next (Cursor, small):** add the 4 feature designs from `docs/qa/r20/r20-A-feature-designs.json` to `tests/data/hub_hang_designs.json` and to the stage-2 test, so the acceptance is 10/10 in our own suite (grok r20 A: 0.0 mm vs r18).
+  - **Next (Cursor, small):** `done` on `r22a-rung-a0` (`a42544e`): 4 feature designs in `tests/data/hub_hang_designs.json`; stage-2 test matches r18 within 0.05 mm and `build_impeller` refuses all four. Acceptance 10/10.
   - **Merged 027ebcb (2026-10-21).** Stage-2 acceptance 6/10 (feature-free); the 4 feature designs wait on grok r20 A's params, then Cursor adds them to `tests/test_hub_hang.py`. Claude review: approved (`docs/validation/audits/2026-10-20-rulings-r18-r19-rungA.md` §4).
   - **AMENDED 2026-10-19 (QA-46, `docs/validation/audits/2026-10-19-prereg-amendments-r17.md` §1): two stages.**
     - Stage 1, 1.75× designed, is a search prefilter (≤ 3 % false refusals).
@@ -134,9 +134,10 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - QA-41: `watch_parent` must treat a zombie or exited launcher as gone (not `os.kill(pid, 0)` alone on Linux);
   - QA-42: the Preview weight line names the material and infill ("11 g PLA+, 20 % infill");
   - QA-45: undersized cup hub gives the plain "hub radius too small" message.
-- **R1.4 Stock recipe gap**. Lane: Cursor (decided). CPU: day. Status: `ready`.
+- **R1.4 Stock recipe gap**. Lane: Cursor (decided). CPU: day. Status: `done` (2026-10-25, `r22a-rung-a0`).
   - Stock v3 is 55.7 CFM against 58.3 for the reference STL (−4.5 %).
   - **Kimball 2026-10-21: state the gap and ship.** No more recipe fitting for v0.1.0.
+  - Landed: `STOCK_RECIPE_GAP` on the Stock Expert caption (`selected_trial === 100000`) and a README **Known limits** section. Simple mode is unchanged. `docs/VALIDATION.md` still waits on R3.8.
   - Wording, the same everywhere: "Stock is rebuilt from a parametric recipe and reads about 5 % less airflow than the
     real A12x25 shape (55.7 vs 58.3 CFM in the same test). Designs are compared with this Stock, so comparisons are
     like for like."
@@ -146,14 +147,17 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     - `docs/VALIDATION.md` (R3.8), with links to `docs/validation/audits/2026-10-12-cylinder-sections.md` and the
       `wrapped-sections` audit numbers.
   - Test: the phrase "about 5 % less airflow than the real A12x25" appears in the README and in the Stock Expert text.
+  - grok r21 A/B (2026-10-25): not landed at 5063a65 (README:52 still v2 −5.5 %; `fan_trials.py:354` lacks the phrase). The "`wrapped-sections` audit" link has no file; use `2026-10-12-cylinder-sections.md`. QA-59.
 - **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.
     Add a test that the label is present.
+  - grok r21 A (2026-10-25): not landed at 5063a65 (README:27/62, `fan_tab_ui.py:889/911`, `figures.py:394`). QA-59.
 - **R1.6 Acoustics claims audit**. Lane: Cursor. CPU: day. Status: `ready`.
   - Grep the UI, export README and docs for any absolute dB(A) claim. Everything must say relative or ranking only
     (audit-06).
   - Add a test that greps the UI copy for "dB(A)" without the word "relative".
+  - grok r21 A (2026-10-25, `docs/qa/notes/r21-A-release-claims-audit.md`): 15 overstated / 5 unsupported claims across README, cockpit, docs; noise ones in QA-55 (incl. `data.py:205` "dBA", flow-card hint row, README:59). Also QA-56: Assess "vs stock free 60 CFM" is vs the datasheet.
 
 ## M2: Every other tab decided
 
@@ -174,7 +178,7 @@ Kimball's.
   - Pre-registered diagnostic ladder: `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`. Read its rules
     before running anything; each rung's result picks the next rung.
   - **R2.2a 2-D section case (rung A).** Lane: Cursor. CPU: day (minutes per run; not 4–9 PM). Status: `done` (2026-10-20; verdict report to Claude).
-  - **R2.2a′ rung A0: verify the 2-D setup on NACA 0012 at Re 6×10⁶ against Ladson.** Lane: Cursor. CPU: day (minutes). Status: **`ready`** (grok r20 B delivered the table: C_d(0°) 0.00808, C_l(5°) 0.537, C_l(10°) 1.063; `docs/qa/r20/r20-B-ladson-naca0012-reference.csv`).
+  - **R2.2a′ rung A0: verify the 2-D setup on NACA 0012 at Re 6×10⁶ against Ladson.** Lane: Cursor. CPU: day (minutes). Status: `done 3fe5c60` (2026-10-26, `r22a-rung-a0`). Snappy **FAIL** (layers 0 %, y+ ~1100). Wake-cut C-grid **FAIL** with the wall resolved: C_d(0°) −2.4 % (inside ±20 %), C_l(5°) −14 %, C_l(10°) −44 % (need ±5 %). y+ mean 0.27 / 0.25 / 0.22. Table in the ladder prereg. Recorded, not re-tuned. Claude to read. (grok r20 B: C_d(0°) 0.00808, C_l(5°) 0.537, C_l(10°) 1.063; `docs/qa/r20/r20-B-ladson-naca0012-reference.csv`).
     - Work: `scripts/prop_section_2d.py` hard-codes the section (`naca4(0.04, 0.4, 0.06)`) and `RE`. Add `--section` (NACA 4-digit code), `--re`, `--alphas`, `--models` and `--tu`, keeping the defaults equal to today's rung A.
     - Then run `--section 0012 --re 6e6 --alphas 0 5 10 --models kOmegaSST`. Tripped data means fully turbulent, so use a normal freestream Tu of about 0.1 %, not the Ncrit-9 value.
     - Report the achieved y+ (max and mean on the airfoil), layer coverage % and surface cells. Write the result into `2026-10-17-prop-cfd-fix-prereg.md` and judge it against the rulings doc §1. Don't re-tune.
@@ -245,7 +249,7 @@ Kimball's.
     `fansim-cockpit = …` (wrapping `scripts/cockpit.py`).
   - Test: `uv build` works, and the installed entry point starts the server with `--help`.
 - **R3.3 Install guide**. Lane: Cursor. CPU: day. Status: `done` (2026-10-20).
-  - **QA-53 fixes (Cursor, small):** grok's clean-Linux dry run works (`docs/qa/notes/r20-D-install-guide-dry-run.md`). Fix:
+  - **QA-53 fixes (Cursor, small):** `done` on `r22a-rung-a0` (`5705d0e`): clone placeholder → "the GitHub URL"; cockpit URL `http://127.0.0.1:8080`; Assess "typically 30–40 min"; Linux Docker Engine link. Docker-not-installed row waits for R3.4.
     - `git clone <this-repo>` → the real URL, or "the GitHub URL" until the repo exists;
     - the port: the cockpit prints **8080**, not 9001;
     - Assess time "30–40 min", not "several minutes".
@@ -275,6 +279,7 @@ Kimball's.
 - **R3.8 Validation page**. Lane: Cursor drafts, Claude checks the numbers. CPU: day. Status: `blocked (M1, M2)`.
   - `docs/VALIDATION.md`: per surface, what it was validated against, the tolerance, the result and the known limits.
     Every number links to its audit.
+  - grok r21 B (2026-10-25): draft from the audits in `docs/qa/notes/r21-B-validation-draft.md` (13 surfaces + Known limits, 9 mismatches listed) for Cursor to adapt and Claude to check.
 - **R3.9 Large files**. Lane: Cursor. CPU: day. Status: `ready`.
   - Decide per file between Git LFS, a release asset, or out of the export: `validation/reference/fan01/*.stl`
     (11 MB), `cad_model.zip` and `a12x25_impeller.stl`. Keep the CC-BY attribution in `THIRD_PARTY.md`.

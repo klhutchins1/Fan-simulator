@@ -1,15 +1,18 @@
-"""Prop CFD rung A: 2-D NACA 4406 section at Re 8e4 (release R2.2a).
+"""Prop CFD 2-D section runner (release R2.2a / R2.2a′ rung A0).
+
+Defaults are rung A: NACA 4406 at Re 8e4, α 0–8°, SST and SST-LM.
+Rung A0: ``--section 0012 --re 6e6 --alphas 0 5 10 --models kOmegaSST --tu 0.001``.
 
 Pre-registered: docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md (rung A),
-amended in docs/validation/audits/2026-10-19-prereg-amendments-r17.md section 4
-(reference C_l 0.855 at α 4°, NeuralFoil + XFOIL Ncrit 9).
+amended in docs/validation/audits/2026-10-19-prereg-amendments-r17.md section 4,
+and docs/validation/audits/2026-10-20-rulings-r18-r19-rungA.md §1 (A0 vs Ladson).
 
-The fast suite only builds the case (no Docker, no solve). The day-CPU runner writes
-runs/prop_section_2d/summary.json after every α/model unit and will not start a new
-unit after 15:30 local.
+The fast suite only builds the case (no Docker, no solve). The runner writes
+summary.json after every α/model unit and will not start a new unit after 15:30 local.
 
     python scripts/prop_section_2d.py --build-only
     python scripts/prop_section_2d.py
+    python scripts/prop_section_2d.py --section 0012 --re 6e6 --alphas 0 5 10 --models kOmegaSST --tu 0.001
     python scripts/prop_section_2d.py --analyze
 """
 from __future__ import annotations
@@ -17,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re as _re
 import shutil
 import sys
 import time
@@ -32,10 +36,18 @@ from fansim.geometry.airfoil import naca4
 from fansim.physics.air import NU_AIR, RHO_ISA
 
 RE = 8.0e4
+DEFAULT_SECTION = "4406"
 CHORD = 0.10  # m
 SPAN = 0.002  # m (spanwise empty)
 ALPHAS = (0.0, 2.0, 4.0, 6.0, 8.0)
 MODELS = ("kOmegaSST", "kOmegaSSTLM")
+# Ladson TM-4074 tripped NACA 0012, Re 6e6 (grok r20 B / rulings §1).
+A0_CD_0 = 0.00808
+A0_CL_5 = 0.537
+A0_CL_10 = 1.063
+A0_CL_TOL = 0.05
+A0_CD_TOL = 0.20
+A0_TU = 0.001  # ~0.1 % freestream Tu; not the Ncrit-9 value.
 N_THETA = 96
 N_ITERS = 2000
 # grok r17 A / amendment §4, α = 4°, Re 8e4 (CERTAIN).
@@ -56,8 +68,23 @@ def section_xy() -> np.ndarray:
     return naca4(0.04, 0.4, 0.06, 60)
 
 
+CGRID_U = 1.0  # incompressible; Re is set by nu = U·c/Re (avoids U≈900 m/s at Re 6e6)
+
+
 def u_inf(re: float = RE, chord: float = CHORD) -> float:
     return float(re) * NU_AIR / float(chord)
+
+
+def solve_u_nu(re: float, *, mesh: str) -> tuple[float, float]:
+    """Velocity and viscosity that realise `re` on chord `CHORD`.
+
+    Snappy keeps physical air. The C-grid uses U = 1 m/s so SIMPLE is not
+    Mach-2 incompressible; Cl/Cd are unchanged.
+    """
+    if mesh == "cgrid":
+        u = CGRID_U
+        return u, u * CHORD / float(re)
+    return u_inf(re), NU_AIR
 
 
 def _cf_turb(re: float) -> float:
@@ -79,11 +106,179 @@ def first_cell_yplus(re: float = RE, chord: float = CHORD) -> float:
     return ds * _u_tau(re, u_inf(re, chord)) / NU_AIR
 
 
+def parse_naca4_code(code: str) -> tuple[float, float, float]:
+    """NACA MPXX → (m, p, t) as fractions of chord. '0012' and 'NACA0012' both work."""
+    s = str(code).strip().upper().replace(" ", "").replace("-", "")
+    if s.startswith("NACA"):
+        s = s[4:]
+    if len(s) != 4 or not s.isdigit():
+        raise ValueError(f"need a NACA 4-digit code, got {code!r}")
+    return int(s[0]) / 100.0, int(s[1]) / 10.0, int(s[2:]) / 100.0
+
+
 def _foam(cls: str, obj: str) -> str:
     return (
         "FoamFile\n{\n    version     2.0;\n    format      ascii;\n"
         f"    class       {cls};\n    object      {obj};\n}}\n"
     )
+
+
+N_CGRID_TANGENT = 48
+N_CGRID_NORMAL = 60
+N_CGRID_WAKE = 32
+R_OUTER = 8.0 * CHORD
+WAKE_LEN = 16.0 * CHORD
+
+
+def _grading_last_over_first(first: float, length: float, n: int) -> float:
+    """simpleGrading ratio (last cell / first cell) for a geometric edge of n cells."""
+    if n < 2 or first <= 0 or length <= first * n:
+        return 1.0
+    r = 1.15
+    for _ in range(50):
+        if abs(r - 1.0) < 1e-9:
+            r = 1.15
+        s = (r ** n - 1.0) / (r - 1.0)
+        ds = (n * r ** (n - 1) * (r - 1.0) - (r ** n - 1.0)) / (r - 1.0) ** 2
+        err = first * s - length
+        if abs(first * ds) < 1e-18:
+            break
+        r -= err / (first * ds)
+        r = min(max(r, 1.0001), 5.0)
+    return float(r ** (n - 1))
+
+
+def _pt(p: np.ndarray, z: float) -> str:
+    return f"({float(p[0]):.8g} {float(p[1]):.8g} {z:.8g})"
+
+
+def _cgrid_geometry(section: str):
+    """Corners and splines for a 4-block C-grid (cut in the wake, not at the TE).
+
+    Trailing-edge and outlet vertices are duplicated (same coordinates, different
+    indices) so the upper and lower surfaces are distinct edges. The wake slit is
+    stitched with mergePatchPairs.
+    """
+    m, p, t = parse_naca4_code(section)
+    foil = naca4(m, p, t, N_THETA) * CHORD  # closed: TE → upper → LE → lower → TE
+    te = foil[0].copy()
+    i_le = int(np.argmin(foil[:-1, 0]))
+    le = foil[i_le].copy()
+    lower = np.vstack([te, foil[-2:i_le - 1:-1]])  # TE → LE along lower
+    upper = foil[i_le::-1]  # LE → TE along upper
+    xmax = float(te[0] + WAKE_LEN)
+    outlet = np.array([xmax, 0.0])
+    centre = np.array([0.25 * CHORD, 0.0])
+    dx = float(te[0] - centre[0])
+    y_arc = math.sqrt(max(R_OUTER ** 2 - dx ** 2, 1e-18))
+    te_lo = np.array([float(te[0]), -y_arc])
+    te_hi = np.array([float(te[0]), y_arc])
+    le_out = centre + np.array([-R_OUTER, 0.0])
+    out_lo = np.array([xmax, -y_arc])
+    out_hi = np.array([xmax, y_arc])
+    n_arc = max(len(lower), 16)
+    ang_te = math.atan2(-y_arc, dx)
+    th_lo = np.linspace(ang_te, -math.pi, n_arc)
+    outer_lower = centre + R_OUTER * np.column_stack((np.cos(th_lo), np.sin(th_lo)))
+    th_hi = np.linspace(math.pi, -ang_te, n_arc)
+    outer_upper = centre + R_OUTER * np.column_stack((np.cos(th_hi), np.sin(th_hi)))
+    # 0 TE_lo, 1 LE, 2 outlet_lo, 3 LE_out, 4 TE_out_lo, 5 out_lo,
+    # 6 TE_out_hi, 7 out_hi, 8 TE_hi, 9 outlet_hi
+    corners = [te, le, outlet, le_out, te_lo, out_lo, te_hi, out_hi, te.copy(), outlet.copy()]
+    splines = {
+        (0, 1): lower[1:-1],
+        (1, 8): upper[1:-1],
+        (4, 3): outer_lower[1:-1],
+        (3, 6): outer_upper[1:-1],
+    }
+    return corners, splines
+
+
+def _cgrid_block_mesh_dict(*, section: str, re: float) -> str:
+    """Structured 4-block C-grid: two foil blocks + two wake blocks. Inner foil is `airfoil`."""
+    corners, splines = _cgrid_geometry(section)
+    ds = wall_spacing_m(re)
+    gy = _grading_last_over_first(ds, R_OUTER - 0.25 * CHORD, N_CGRID_NORMAL)
+    nx, nw, ny = N_CGRID_TANGENT, N_CGRID_WAKE, N_CGRID_NORMAL
+    verts: list[str] = []
+    for z in (0.0, SPAN):
+        for p in corners:
+            verts.append(f"    {_pt(p, z)}")
+    # z=0: 0..9 as in _cgrid_geometry; z=SPAN: +10
+    hexes = [
+        f"    hex (0 1 3 4 10 11 13 14) ({nx} {ny} 1) simpleGrading (1 {gy:.8g} 1)",
+        f"    hex (1 8 6 3 11 18 16 13) ({nx} {ny} 1) simpleGrading (1 {gy:.8g} 1)",
+        f"    hex (2 0 4 5 12 10 14 15) ({nw} {ny} 1) simpleGrading (0.05 {gy:.8g} 1)",
+        f"    hex (8 9 7 6 18 19 17 16) ({nw} {ny} 1) simpleGrading (20 {gy:.8g} 1)",
+    ]
+    edge_lines = ["edges", "("]
+    for (a, b), mid in splines.items():
+        if len(mid) == 0:
+            continue
+        body = " ".join(_pt(p, 0.0) for p in mid)
+        body_z = " ".join(_pt(p, SPAN) for p in mid)
+        edge_lines.append(f"    spline {a} {b} ( {body} )")
+        edge_lines.append(f"    spline {a + 10} {b + 10} ( {body_z} )")
+    edge_lines.append(");")
+    return "\n".join([
+        _foam("dictionary", "blockMeshDict"),
+        f"// cgrid firstLayer {ds:.8g} m  y+_req {first_cell_yplus(re):.3f}",
+        "scale 1;",
+        "vertices",
+        "(",
+        *verts,
+        ");",
+        "blocks",
+        "(",
+        *hexes,
+        ");",
+        *edge_lines,
+        "boundary",
+        "(",
+        "    airfoil",
+        "    {",
+        "        type wall;",
+        "        faces",
+        "        (",
+        "            (0 1 11 10)",
+        "            (1 8 18 11)",
+        "        );",
+        "    }",
+        "    freestream",
+        "    {",
+        "        type patch;",
+        "        faces",
+        "        (",
+            "            (4 14 13 3)",
+            "            (3 13 16 6)",
+            "            (4 5 15 14)",
+            "            (6 16 17 7)",
+            "        );",
+            "    }",
+            "    outlet",
+            "    {",
+            "        type patch;",
+            "        faces",
+            "        (",
+            "            (5 2 12 15)",
+            "            (9 7 17 19)",
+            "        );",
+            "    }",
+        "    wakeLower { type patch; faces ((2 0 10 12)); }",
+        "    wakeUpper { type patch; faces ((8 9 19 18)); }",
+        "    front { type empty; faces ("
+        "(10 11 13 14) (11 18 16 13) (12 10 14 15) (18 19 17 16)"
+        "); }",
+        "    back  { type empty; faces ("
+        "(0 4 3 1) (1 3 6 8) (2 5 4 0) (8 6 7 9)"
+        "); }",
+        ");",
+        "mergePatchPairs",
+        "(",
+        "    (wakeLower wakeUpper)",
+        ");",
+        "",
+    ])
 
 
 def _block_mesh_dict() -> str:
@@ -123,8 +318,9 @@ def _block_mesh_dict() -> str:
     ])
 
 
-def _write_airfoil_stl(path: Path) -> None:
-    loop = naca4(0.04, 0.4, 0.06, N_THETA)[:-1] * CHORD
+def _write_airfoil_stl(path: Path, *, section: str = DEFAULT_SECTION) -> None:
+    m, p, t = parse_naca4_code(section)
+    loop = naca4(m, p, t, N_THETA)[:-1] * CHORD
     n = len(loop)
     facets: list[tuple[tuple[float, float, float], ...]] = []
     for i in range(n):
@@ -157,8 +353,8 @@ def _write_airfoil_stl(path: Path) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def _snappy_dict() -> str:
-    ds = wall_spacing_m()
+def _snappy_dict(*, re: float = RE) -> str:
+    ds = wall_spacing_m(re)
     locx, locy, locz = -2.0 * CHORD, 0.0, 0.5 * SPAN
     return "\n".join([
         _foam("dictionary", "snappyHexMeshDict"),
@@ -226,7 +422,15 @@ def _surface_feature_dict() -> str:
     ])
 
 
-def _field_scalar(name: str, dims: str, value: float, wall: str, empty: bool = True) -> str:
+def _field_scalar(
+    name: str, dims: str, value: float, wall: str, empty: bool = True,
+    *, outlet: bool = False,
+) -> str:
+    outlet_bc = (
+        f"    outlet      {{ type inletOutlet; inletValue uniform {value:.8g}; "
+        f"value uniform {value:.8g}; }}"
+        if outlet else ""
+    )
     return "\n".join([
         _foam("volScalarField", name),
         f"dimensions {dims};",
@@ -238,6 +442,7 @@ def _field_scalar(name: str, dims: str, value: float, wall: str, empty: bool = T
             f"    freestream  {{ type inletOutlet; inletValue uniform {value:.8g}; "
             f"value uniform {value:.8g}; }}"
         ),
+        outlet_bc,
         "    front       { type empty; }" if empty else "",
         "    back        { type empty; }" if empty else "",
         "}",
@@ -245,30 +450,49 @@ def _field_scalar(name: str, dims: str, value: float, wall: str, empty: bool = T
     ])
 
 
-def write_case(case_dir: Path, *, alpha_deg: float, model: str, n_iters: int = N_ITERS) -> Path:
+def write_case(
+    case_dir: Path,
+    *,
+    alpha_deg: float,
+    model: str,
+    n_iters: int = N_ITERS,
+    section: str = DEFAULT_SECTION,
+    re: float = RE,
+    tu: float | None = None,
+    mesh: str = "snappy",
+) -> Path:
     """Write a 2-D simpleFoam case. Does not run blockMesh or the solver."""
     if model not in MODELS:
         raise ValueError(f"model must be one of {MODELS}, got {model!r}")
+    if mesh not in ("snappy", "cgrid"):
+        raise ValueError(f"mesh must be 'snappy' or 'cgrid', got {mesh!r}")
+    parse_naca4_code(section)
+    tu_frac = TU_NCRIT9 if tu is None else float(tu)
     case = Path(case_dir)
     (case / "0").mkdir(parents=True, exist_ok=True)
     (case / "system").mkdir(parents=True, exist_ok=True)
     (case / "constant").mkdir(parents=True, exist_ok=True)
 
-    u = u_inf()
+    u, nu = solve_u_nu(re, mesh=mesh)
     a = math.radians(float(alpha_deg))
     ux, uy = u * math.cos(a), u * math.sin(a)
-    k = 1.5 * (TU_NCRIT9 * u) ** 2
+    k = 1.5 * (tu_frac * u) ** 2
     omega = math.sqrt(k) / (CMU ** 0.25 * 0.1 * CHORD)
     lift = (-math.sin(a), math.cos(a), 0.0)
     drag = (math.cos(a), math.sin(a), 0.0)
     aref = CHORD * SPAN
     lm = model == "kOmegaSSTLM"
+    has_outlet = mesh == "cgrid"
 
-    (case / "system" / "blockMeshDict").write_text(_block_mesh_dict(), encoding="utf-8")
-    (case / "system" / "snappyHexMeshDict").write_text(_snappy_dict(), encoding="utf-8")
-    (case / "system" / "surfaceFeatureExtractDict").write_text(
-        _surface_feature_dict(), encoding="utf-8")
-    _write_airfoil_stl(case / "constant" / "triSurface" / "airfoil.stl")
+    if mesh == "cgrid":
+        (case / "system" / "blockMeshDict").write_text(
+            _cgrid_block_mesh_dict(section=section, re=re), encoding="utf-8")
+    else:
+        (case / "system" / "blockMeshDict").write_text(_block_mesh_dict(), encoding="utf-8")
+        (case / "system" / "snappyHexMeshDict").write_text(_snappy_dict(re=re), encoding="utf-8")
+        (case / "system" / "surfaceFeatureExtractDict").write_text(
+            _surface_feature_dict(), encoding="utf-8")
+        _write_airfoil_stl(case / "constant" / "triSurface" / "airfoil.stl", section=section)
 
     extra_div = ""
     extra_relax = ""
@@ -303,6 +527,7 @@ def write_case(case_dir: Path, *, alpha_deg: float, model: str, n_iters: int = N
         "    div(phi,omega) bounded Gauss upwind;",
         extra_div.rstrip(),
         "    div((nuEff*dev2(T(grad(U))))) Gauss linear;",
+        "    div(div(phi,U)) Gauss linear;",
         "}",
         "laplacianSchemes { default Gauss linear corrected; }",
         "interpolationSchemes { default linear; }",
@@ -316,17 +541,23 @@ def write_case(case_dir: Path, *, alpha_deg: float, model: str, n_iters: int = N
         "solvers",
         "{",
         "    p { solver GAMG; smoother GaussSeidel; tolerance 1e-7; relTol 0.01; }",
+        "    Phi { solver PCG; preconditioner DIC; tolerance 1e-7; relTol 0.05; }",
         (
             "    \"(U|k|omega)\" { solver smoothSolver; smoother symGaussSeidel; "
             "tolerance 1e-8; relTol 0.1; }"
         ),
         extra_solvers.rstrip(),
         "}",
+        "potentialFlow { nNonOrthogonalCorrectors 3; }",
         "SIMPLE",
         "{",
-        "    nNonOrthogonalCorrectors 1;",
-        "    residualControl { p 1e-4; U 1e-4; k 1e-4; omega 1e-4; "
-        + extra_resid + "}",
+        f"    nNonOrthogonalCorrectors {2 if has_outlet else 1};",
+        (
+            "    residualControl {};"
+            if has_outlet else
+            "    residualControl { p 1e-4; U 1e-4; k 1e-4; omega 1e-4; "
+            + extra_resid + "}"
+        ),
         "}",
         "relaxationFactors",
         "{",
@@ -372,6 +603,12 @@ def write_case(case_dir: Path, *, alpha_deg: float, model: str, n_iters: int = N
         "        writeInterval   20;",
         "        log             true;",
         "    }",
+        "    yPlus",
+        "    {",
+        "        type            yPlus;",
+        "        libs            (fieldFunctionObjects);",
+        "        writeControl    writeTime;",
+        "    }",
         "}",
         "",
     ]), encoding="utf-8")
@@ -385,7 +622,7 @@ def write_case(case_dir: Path, *, alpha_deg: float, model: str, n_iters: int = N
     )
     (case / "constant" / "transportProperties").write_text(
         _foam("dictionary", "transportProperties")
-        + f"transportModel Newtonian;\nnu {NU_AIR};\n",
+        + f"transportModel Newtonian;\nnu {nu:.16g};\n",
         encoding="utf-8",
     )
 
@@ -401,6 +638,12 @@ def write_case(case_dir: Path, *, alpha_deg: float, model: str, n_iters: int = N
             f"freestreamValue uniform ({ux:.8g} {uy:.8g} 0); "
             f"value uniform ({ux:.8g} {uy:.8g} 0); }}"
         ),
+        (
+            "    outlet      { type inletOutlet; "
+            f"inletValue uniform ({ux:.8g} {uy:.8g} 0); "
+            f"value uniform ({ux:.8g} {uy:.8g} 0); }}"
+            if has_outlet else ""
+        ),
         "    front       { type empty; }",
         "    back        { type empty; }",
         "}",
@@ -414,19 +657,28 @@ def write_case(case_dir: Path, *, alpha_deg: float, model: str, n_iters: int = N
         "{",
         "    airfoil     { type zeroGradient; }",
         "    freestream  { type freestreamPressure; freestreamValue uniform 0; value uniform 0; }",
+        (
+            "    outlet      { type fixedValue; value uniform 0; }"
+            if has_outlet else ""
+        ),
         "    front       { type empty; }",
         "    back        { type empty; }",
         "}",
         "",
     ]), encoding="utf-8")
     (case / "0" / "k").write_text(
-        _field_scalar("k", "[0 2 -2 0 0 0 0]", k, f"type kqRWallFunction; value uniform {k:.8g};"),
+        _field_scalar(
+            "k", "[0 2 -2 0 0 0 0]", k,
+            f"type kqRWallFunction; value uniform {k:.8g};",
+            outlet=has_outlet,
+        ),
         encoding="utf-8",
     )
     (case / "0" / "omega").write_text(
         _field_scalar(
             "omega", "[0 0 -1 0 0 0 0]", omega,
             f"type omegaWallFunction; value uniform {omega:.8g};",
+            outlet=has_outlet,
         ),
         encoding="utf-8",
     )
@@ -434,17 +686,19 @@ def write_case(case_dir: Path, *, alpha_deg: float, model: str, n_iters: int = N
         _field_scalar(
             "nut", "[0 2 -1 0 0 0 0]", 0.0,
             "type nutUSpaldingWallFunction; value uniform 0;",
+            outlet=has_outlet,
         ),
         encoding="utf-8",
     )
     if lm:
         # Langtry–Menter Reθt at Tu (%) < 1.3 % (Menter et al. 2006).
-        tu_pct = TU_NCRIT9 * 100.0
+        tu_pct = tu_frac * 100.0
         re_th = 1173.51 - 589.428 * tu_pct + 0.2196 / (tu_pct ** 2)
         (case / "0" / "gammaInt").write_text(
             _field_scalar(
                 "gammaInt", "[0 0 0 0 0 0 0]", 1.0,
                 "type zeroGradient;",
+                outlet=has_outlet,
             ),
             encoding="utf-8",
         )
@@ -452,6 +706,7 @@ def write_case(case_dir: Path, *, alpha_deg: float, model: str, n_iters: int = N
             _field_scalar(
                 "ReThetat", "[0 0 0 0 0 0 0]", re_th,
                 "type zeroGradient;",
+                outlet=has_outlet,
             ),
             encoding="utf-8",
         )
@@ -471,14 +726,55 @@ def verdict(*, sst_cl: float | None, lm_cl: float | None, ref: float = REF_CL_4)
     return {"verdict": "report to Claude", "sst_err": sst_err, "lm_err": lm_err}
 
 
+def verdict_a0(points: dict) -> dict:
+    """Rung A0: C_l ±5 % at 5° and 10°, C_d ±20 % at 0° vs Ladson TM-4074."""
+    def _pt(alpha: float) -> dict | None:
+        return points.get(f"{alpha:.1f}") or points.get(str(alpha))
+
+    p0, p5, p10 = _pt(0.0), _pt(5.0), _pt(10.0)
+    if not p0 or not p5 or not p10:
+        return {"verdict": "INCONCLUSIVE", "why": "missing α 0/5/10"}
+    cd0, cl5, cl10 = p0.get("cd"), p5.get("cl"), p10.get("cl")
+    if cd0 is None or cl5 is None or cl10 is None:
+        return {"verdict": "INCONCLUSIVE", "why": "missing Cl/Cd"}
+    cd_err = float(cd0) / A0_CD_0 - 1.0
+    cl5_err = float(cl5) / A0_CL_5 - 1.0
+    cl10_err = float(cl10) / A0_CL_10 - 1.0
+    ok = (
+        abs(cd_err) <= A0_CD_TOL
+        and abs(cl5_err) <= A0_CL_TOL
+        and abs(cl10_err) <= A0_CL_TOL
+    )
+    return {
+        "verdict": "PASS" if ok else "FAIL",
+        "cd0_err": cd_err, "cl5_err": cl5_err, "cl10_err": cl10_err,
+        "ref": {"cd_0": A0_CD_0, "cl_5": A0_CL_5, "cl_10": A0_CL_10},
+    }
+
+
+def _latest_time_file(paths: list[Path]) -> Path | None:
+    """Pick the file in the highest numeric time directory (not lexicographic)."""
+    if not paths:
+        return None
+
+    def _t(p: Path) -> float:
+        try:
+            return float(p.parent.name)
+        except ValueError:
+            return -1.0
+
+    return max(paths, key=_t)
+
+
 def parse_cl_cd(case: Path) -> tuple[float, float] | None:
-    hits = sorted(case.glob("postProcessing/forceCoeffs1/*/coefficient.dat"))
+    hits = list(case.glob("postProcessing/forceCoeffs1/*/coefficient.dat"))
     if not hits:
-        hits = sorted(case.glob("postProcessing/forceCoeffs1/*/forceCoeffs.dat"))
-    if not hits:
+        hits = list(case.glob("postProcessing/forceCoeffs1/*/forceCoeffs.dat"))
+    latest = _latest_time_file(hits)
+    if latest is None:
         return None
     rows = []
-    for ln in hits[-1].read_text(encoding="utf-8", errors="replace").splitlines():
+    for ln in latest.read_text(encoding="utf-8", errors="replace").splitlines():
         if not ln.strip() or ln.lstrip().startswith("#"):
             continue
         parts = ln.split()
@@ -486,12 +782,69 @@ def parse_cl_cd(case: Path) -> tuple[float, float] | None:
             rows.append((float(parts[1]), float(parts[4])))  # Cd, Cl
         elif len(parts) >= 3:
             rows.append((float(parts[1]), float(parts[2])))
-    if len(rows) < 5:
+    if not rows:
         return None
-    tail = rows[-max(5, len(rows) // 5):]
+    n_tail = max(1, min(len(rows), max(5, len(rows) // 5)))
+    tail = rows[-n_tail:]
     cd = sum(r[0] for r in tail) / len(tail)
     cl = sum(r[1] for r in tail) / len(tail)
     return cl, cd
+
+
+def parse_yplus(case: Path) -> dict | None:
+    hits = list(Path(case).glob("postProcessing/yPlus/*/yPlus.dat"))
+    latest = _latest_time_file(hits)
+    if latest is None:
+        return None
+    last = None
+    for ln in latest.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not ln.strip() or ln.lstrip().startswith("#"):
+            continue
+        parts = ln.split()
+        if len(parts) < 5 or parts[1] != "airfoil":
+            continue
+        last = {
+            "min": float(parts[2]),
+            "max": float(parts[3]),
+            "mean": float(parts[4]),
+        }
+    return last
+
+
+def parse_layer_coverage(log: str) -> float | None:
+    hits = _re.findall(r"Extruding\s+\d+\s+faces\s+\(([\d.]+)%\s+of\s+\d+\)", log)
+    if not hits:
+        hits = _re.findall(r"Extruding\s+\d+\s+out of\s+\d+\s+faces\s+\(([\d.]+)%\)", log)
+    if not hits:
+        hits = _re.findall(r"([\d.]+)%\s+of\s+\d+\s+faces", log)
+    return float(hits[-1]) if hits else None
+
+
+def parse_surface_cells(case: Path) -> int | None:
+    path = Path(case) / "constant" / "polyMesh" / "boundary"
+    if not path.is_file():
+        return None
+    text = path.read_text(encoding="utf-8", errors="replace")
+    m = _re.search(r"airfoil\s*\{[^}]*nFaces\s+(\d+)", text, _re.DOTALL)
+    return int(m.group(1)) if m else None
+
+
+def parse_cli(argv: list[str] | None = None) -> argparse.Namespace:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--build-only", action="store_true", help="write one SST case and stop")
+    ap.add_argument("--analyze", action="store_true")
+    ap.add_argument("--out", type=Path, default=OUT)
+    ap.add_argument("--iters", type=int, default=N_ITERS)
+    ap.add_argument("--section", default=DEFAULT_SECTION, help="NACA 4-digit code (default 4406)")
+    ap.add_argument("--re", type=float, default=RE)
+    ap.add_argument("--alphas", type=float, nargs="+", default=list(ALPHAS))
+    ap.add_argument("--models", nargs="+", default=list(MODELS))
+    ap.add_argument("--tu", type=float, default=TU_NCRIT9, help="freestream Tu as a fraction")
+    ap.add_argument(
+        "--mesh", choices=("snappy", "cgrid"), default="snappy",
+        help="snappy+layers (rung A default) or structured C-grid (A0 mesher fix)",
+    )
+    return ap.parse_args(argv)
 
 
 def _past_cutoff(now: datetime | None = None) -> bool:
@@ -503,19 +856,48 @@ def _write_progress(out: Path, payload: dict) -> None:
     (out / "progress.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
+def _is_a0(section: str, re: float, alphas: list[float]) -> bool:
+    return (
+        parse_naca4_code(section) == (0.0, 0.0, 0.12)
+        and abs(float(re) - 6.0e6) / 6.0e6 < 0.05
+        and {round(float(a), 1) for a in alphas} >= {0.0, 5.0, 10.0}
+    )
+
+
+def _judge(summary: dict, *, section: str, re: float, alphas: list[float]) -> dict:
+    points = summary.get("points") or {}
+    if _is_a0(section, re, alphas):
+        sst = points.get("kOmegaSST") or next(iter(points.values()), {})
+        return verdict_a0(sst)
+    sst = (points.get("kOmegaSST") or {}).get("4.0")
+    lm = (points.get("kOmegaSSTLM") or {}).get("4.0")
+    return verdict(
+        sst_cl=None if not sst else sst.get("cl"),
+        lm_cl=None if not lm else lm.get("cl"),
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--build-only", action="store_true", help="write one SST case and stop")
-    ap.add_argument("--analyze", action="store_true")
-    ap.add_argument("--out", type=Path, default=OUT)
-    ap.add_argument("--iters", type=int, default=N_ITERS)
-    a = ap.parse_args(argv)
+    a = parse_cli(argv)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
+    section = str(a.section)
+    re_n = float(a.re)
+    tu = float(a.tu)
+    mesh = str(a.mesh)
+    alphas = [float(x) for x in a.alphas]
+    models = list(a.models)
+    for m in models:
+        if m not in MODELS:
+            raise SystemExit(f"model must be one of {MODELS}, got {m!r}")
 
     if a.build_only:
-        write_case(out / "build_only", alpha_deg=4.0, model="kOmegaSST")
-        print(f"wrote {out / 'build_only'} y+={first_cell_yplus():.3f}")
+        write_case(
+            out / "build_only", alpha_deg=alphas[0] if alphas else 4.0,
+            model=models[0] if models else "kOmegaSST",
+            section=section, re=re_n, tu=tu, mesh=mesh,
+        )
+        print(f"wrote {out / 'build_only'} y+={first_cell_yplus(re_n):.3f} section={section}")
         return 0
 
     summ_path = out / "summary.json"
@@ -523,18 +905,14 @@ def main(argv: list[str] | None = None) -> int:
         summary = json.loads(summ_path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         summary = {
-            "re": RE, "chord_m": CHORD, "ref_cl_4": REF_CL_4,
+            "section": section, "re": re_n, "chord_m": CHORD, "tu": tu, "mesh": mesh,
+            "ref_cl_4": REF_CL_4,
             "ref_cl_4_band": [REF_CL_4_LO, REF_CL_4_HI], "ref_cd_4": REF_CD_4,
-            "yplus_first": first_cell_yplus(), "points": {},
+            "yplus_first": first_cell_yplus(re_n), "points": {},
         }
 
     if a.analyze:
-        sst = (summary.get("points") or {}).get("kOmegaSST", {}).get("4.0")
-        lm = (summary.get("points") or {}).get("kOmegaSSTLM", {}).get("4.0")
-        v = verdict(
-            sst_cl=None if not sst else sst.get("cl"),
-            lm_cl=None if not lm else lm.get("cl"),
-        )
+        v = _judge(summary, section=section, re=re_n, alphas=alphas)
         summary["verdict"] = v
         summ_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
         print(json.dumps(v))
@@ -548,51 +926,75 @@ def main(argv: list[str] | None = None) -> int:
 
     n_iters = int(a.iters)
     points = summary.setdefault("points", {})
-    mesh_src = out / "_mesh" / "constant" / "polyMesh"
+    mesh_dir = out / "_mesh"
+    mesh_src = mesh_dir / "constant" / "polyMesh"
     if not (mesh_src / "points").is_file():
-        write_case(out / "_mesh", alpha_deg=0.0, model="kOmegaSST", n_iters=n_iters)
-        mesh_run = OpenFOAMRunner(out / "_mesh")
+        write_case(
+            mesh_dir, alpha_deg=0.0, model="kOmegaSST", n_iters=n_iters,
+            section=section, re=re_n, tu=tu, mesh=mesh,
+        )
+        mesh_run = OpenFOAMRunner(mesh_dir)
         mesh_run.run("blockMesh")
-        mesh_run.run("surfaceFeatureExtract")
-        mesh_run.run("snappyHexMesh -overwrite")
-    for model in MODELS:
+        coverage: float | None
+        if mesh == "cgrid":
+            mesh_run.run("checkMesh")
+            coverage = 100.0
+        else:
+            mesh_run.run("surfaceFeatureExtract")
+            mesh_run.run("snappyHexMesh -overwrite")
+            snap_log = (mesh_dir / "logs" / "snappyHexMesh.log")
+            coverage = None
+            if snap_log.is_file():
+                coverage = parse_layer_coverage(
+                    snap_log.read_text(encoding="utf-8", errors="replace"))
+        summary["mesh"] = {
+            "kind": mesh,
+            "layer_coverage_pct": coverage,
+            "surface_cells": parse_surface_cells(mesh_dir),
+            "yplus_requested": first_cell_yplus(re_n),
+        }
+        summ_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    for model in models:
         points.setdefault(model, {})
-        for alpha in ALPHAS:
+        for alpha in alphas:
             key = f"{alpha:.1f}"
             if points[model].get(key, {}).get("cl") is not None:
                 continue
             if _past_cutoff():
                 _write_progress(out, {"stopped": "cutoff", "next": [model, alpha]})
-                summary["verdict"] = verdict(
-                    sst_cl=(points.get("kOmegaSST") or {}).get("4.0", {}).get("cl"),
-                    lm_cl=(points.get("kOmegaSSTLM") or {}).get("4.0", {}).get("cl"),
-                )
+                summary["verdict"] = _judge(
+                    summary, section=section, re=re_n, alphas=alphas)
                 summ_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
                 print("stopped before 15:30 local; remaining units left for another day")
                 return 0
             tag = f"{model}_a{key}"
             case = out / tag
             _write_progress(out, {"current": tag, "start": time.time()})
-            write_case(case, alpha_deg=alpha, model=model, n_iters=n_iters)
+            write_case(
+                case, alpha_deg=alpha, model=model, n_iters=n_iters,
+                section=section, re=re_n, tu=tu, mesh=mesh,
+            )
             dest = case / "constant" / "polyMesh"
             if dest.exists():
                 shutil.rmtree(dest)
             shutil.copytree(mesh_src, dest)
             run = OpenFOAMRunner(case)
             t0 = time.time()
+            if mesh == "cgrid":
+                run.run("potentialFoam -writep")
             run.run("simpleFoam")
             parsed = parse_cl_cd(case)
             cl, cd = (None, None) if parsed is None else parsed
+            yp = parse_yplus(case)
             points[model][key] = {
                 "cl": cl, "cd": cd, "wall_s": time.time() - t0,
-                "yplus_first": first_cell_yplus(),
+                "yplus_first": first_cell_yplus(re_n),
+                "yplus": yp,
             }
-            summary["verdict"] = verdict(
-                sst_cl=(points.get("kOmegaSST") or {}).get("4.0", {}).get("cl"),
-                lm_cl=(points.get("kOmegaSSTLM") or {}).get("4.0", {}).get("cl"),
-            )
+            summary["verdict"] = _judge(
+                summary, section=section, re=re_n, alphas=alphas)
             summ_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-            print(f"{tag} Cl={cl} Cd={cd}")
+            print(f"{tag} Cl={cl} Cd={cd} y+={yp}")
     print(json.dumps(summary.get("verdict")))
     return 0
 
