@@ -84,10 +84,10 @@ Notes to `docs/qa/notes/r22-*.md`, plus a "Round 22" section below.
 | QA-17 | LOW | Export | `also_mirror` builds the as-designed solid twice; gauge cavity Ø is vertex-noisy | fixed (pending QA, r5) `1453c4f`: mirror pair copies the as-designed STL/STEP. Earlier: new (r4): `<stem>.stl` and `<stem>_as_designed.stl` are identical (Hausdorff 5e-11), a third full build (Stock export 205 s). The gauge `cavity_dia_mm` reads 38.06 / 37.79 for an identical 37.94 mm cup; `mount_msg` rounds to '37 mm'. Open |
 | UI-24 | HIGH | Fan | Motor-cup and fit switches ('Export options') sit at the bottom of the left column, ~2 screens below **Export STL**, so a user can't see what Export will do | fixed (pending QA, r5) `1453c4f`: Print / export card directly under the 3-D view (Export STL + switches + download + memory tier). Earlier: new (browser r4 B11, newcomer pass). `docs/qa/screenshots/2026-10-09-r4/B11_1366x768_export_options_far_below.png`. Open |
 | UI-25 | MED | Fan | After a cup-on Preview, turning the cup off leaves the carved mesh in the viewer, even across reloads, with no stale marker | fixed (pending QA, r5) `1453c4f`: per-cockpit preview files; carved mesh no longer survives across cockpits. Earlier: new (browser r4). Likely related to the box-global `/tmp/fansim_cockpit_preview.stl` (UI-30). Open |
-| UI-26 | MED | Fan | Jargon next to the action buttons: 'case hose · PETG — change under Assess & print below', 'camber 0.037/0.083/0.097', 'Difficulty 42/100 — FDM + supports', 'Gold = parametric Stock; published CFM is the ✕' | new (browser r4 B11/B12). Open |
-| UI-27 | MED | Fan | At 1366×768 the 3-D viewer is cut off below the fold; a long intro banner pushes the picker and Actions down | new (browser r4 B11). `docs/qa/screenshots/2026-10-09-r4/B11_1366x768_first_view.png`. Open |
+| UI-26 | MED | Fan | Jargon next to the action buttons: 'case hose · PETG — change under Assess & print below', 'camber 0.037/0.083/0.097', 'Difficulty 42/100 — FDM + supports', 'Gold = parametric Stock; published CFM is the ✕' | new (browser r4 B11/B12). Open r22 (b3d5543): **still open**: hose line now Expert-only and camber/Difficulty off the first view, but 'Gold = parametric Stock…' renders on first view in both modes and camber/Difficulty after Preview (`docs/qa/notes/r22-A-ui-bug-pass.md`). |
+| UI-27 | MED | Fan | At 1366×768 the 3-D viewer is cut off below the fold; a long intro banner pushes the picker and Actions down | new (browser r4 B11). `docs/qa/screenshots/2026-10-09-r4/B11_1366x768_first_view.png`. Open r22 (b3d5543): **still open**: picker and Preview now above the fold, but the viewer bottom is at 957 px of 768 (also 1172 of 1080 at 1920×1080). |
 | UI-28 | LOW | All | Disabled Cancel buttons (pale pink) and Randomize (pale teal) are hard to read | new (browser r4, by eye; contrast not measured). Open |
-| UI-29 | LOW | Fan | At 1920×1080: narrow controls column, tiny text, lots of empty space; 'Start here' is a tiny grey line | new (browser r4 B12). `docs/qa/screenshots/2026-10-09-r4/B12_1920x1080_first_view.png`. Open |
+| UI-29 | LOW | Fan | At 1920×1080: narrow controls column, tiny text, lots of empty space; 'Start here' is a tiny grey line | new (browser r4 B12). `docs/qa/screenshots/2026-10-09-r4/B12_1920x1080_first_view.png`. Open r22 (b3d5543): **still open**: column 41 % and body 16 px pass; 'Start here' still a 12 px grey caption. |
 | UI-30 | MED | Cockpit | All cockpits on one box share `tempfile.gettempdir()/fansim_cockpit_preview.stl` (+ `.progress.json`, `.meta.json`; Volute: `fansim_volute_preview.stl`), so concurrent cockpits overwrite each other's preview/progress, and a stale progress file seeds the next Preview's caption and bar (UI-4) | fixed (pending QA, r5) `1453c4f`: `<temp>/fansim_<pid>/` for Fan/Mixed/Prop/Volute/CROR. Earlier: new (r4 code reading, `fan_session.py:75`, `volute_tab.py:121`). Contradicts README's 'start a second cockpit on another `--port`'. Open |
 | QA-18 | MED | Geometry/cup Preview | Motor cup goes straight through a hub shorter than 13 mm (no cup floor) | new (r6 Task A, K7 3/29: S2_0000, S8 edge stagger_root min, S8 edge chord_root min; auto hubs 12.72 / 12.62 / 10.92 mm). `build_stl_isolated(motor_mount=…)` (the cockpit cup Preview path) doesn't enforce `MotorMount.min_hub_height_mm` (15) or refuse; only Export's `prepare_export_flat(fit_hub=True)` grows the hub. Grips/Ø are correct. Repro `stress/repro/A-F2_cup_through_short_hub.json`; `handoff/2026-10-09_from-qa-5/stress/summary.md`. Was open → **verified fixed `5980677`** (r7 stress: S2_0000, S8_0002, S8_0008 hubs grown to 15.0 mm, floor 12.985 mm, 20 grips; K7 0/14 FAIL over the 65-design run). |
 | QA-19 | MED | Audit/direction | `prove_direction` falsely refuses builder designs with max_camber < 0.02 and lean_tip ≥ 20° | r6 Task A, K5: 7/119 CONCLUSIVE-wrong (9605, 9606, 9620, 9630 plus new S3_0002 guided_lc, S4_0005, S4_0012; 8–11 blades) and 24 INCONCLUSIVE. All 7 are in that cell (7 FAIL + 10 INCONCLUSIVE of 22). Not all 11-blade: S4_0005 has 8 blades and S4_0012 has 9; the shared factor is low camber with high tip lean. The mirror check K6 passes on all of them, so the checker misreads lean curvature as camber. Repro `stress/repro/A-F3_direction_false_refusal.json`. Input to Task B. Was open → **mostly fixed `5980677`**: all 7 r6 false refusals now pass the new K5 rule (K5_old FAIL 8 → K5 FAIL 1 over 65 designs). **Residual:** S3_0014 (9 blades, max_camber 0.0242, lean_tip 42°) is CONCLUSIVE omega −1/pump +1, mirror passes K6, and the new rule refuses it because its camber is just above the 0.02 cut-off. Same lean-as-camber misread, one camber bin higher. See `docs/qa/stress/RESULTS_R7.md`. Still open for camber 0.02–0.04 × lean ≥ 30°.. **r8 Task B (fresh sample, 2-blade rebuilds):** the cylinder proof is still CONCLUSIVE-wrong on 6/72 (5 flat-leaned plus S3_0014 again). The radial-plane cut had 0 wrong on 72 parts + mirrors and read 54/54 cambered parts. The combined (both-agree) rule had 0 wrong but read only 43/54 (R5 FAIL). The builder rule R6 FAILS as registered. `docs/qa/notes/direction-radial-confirmation.md` |
@@ -111,9 +111,9 @@ Notes to `docs/qa/notes/r22-*.md`, plus a "Round 22" section below.
 | QA-37 | LOW | Export/28.2 | Killing the cockpit process mid-Export does not stop the isolated export worker (it keeps fusing, ~6 GB); if it dies after writing the STL, `{id}_….stl` is left with no README/sidecars and an id absent from index.jsonl | r12 Task C harness accident (Q8B8G): orphaned worker overlapped the next export and was OOM-killed (dmesg, 6.2 GB anon). **fixed (pending QA)** `5be865e` (workers exit within ~2 s of their launcher; Export staged in `.partial-*`, published when complete, print-id recorded after). **VERIFIED r14 A3** (worker gone 0.75 s, `.partial-*` only, index unchanged) when the launcher is reaped; zombie case → QA-41. |
 | QA-38 | LOW | UI/24.2 | At 1366×768 Simple Results, the scatter's plot body is below the fold (top at y=652, only the title visible) | r13 Task A S4 (report-only). |
 | QA-39 | LOW | CFD post/maths | `_pp_file` (and the same pattern in `sanity.py`, `timing.py`, the objectives copy) picks the "latest" postProcessing time dir by string sort, so `"1000" < "999"`. Latent today (runs write one time dir) | r14 B1(d). Sort by `float(name)`. `docs/qa/notes/maths-check-r14.md` |
-| QA-40 | LOW | UI/27.3b | Simple-mode flow card shows "No Stock comparison for noise." when the run has SWL but no Stock reference (case s3); noise was meant to be Expert-only | r14 A4. `docs/qa/notes/reverify-r14.md` |
-| QA-41 | LOW | Export/QA-37 | `watch_parent` uses `os.kill(pid, 0)`, which succeeds on a zombie: if the killed cockpit isn't reaped, the export worker keeps running (≥ 30 s seen). Files stay safe (`.partial-*`) | r14 A3 run 1 + `from-qa-14/data/a3_zombie_probe.txt`. Also exit on `os.getppid()` change or `/proc/<pid>/stat` state Z. |
-| QA-42 | LOW | UI/material | Preview line "✓ fits … (… 11 g)" doesn't say which material (or infill) it weighed; PLA+ 10.87 g and PETG 11.13 g both show "11 g", so the user can't see the picker took effect | r14 A2b1/b2. Name the material (and "20 % infill") in the line. |
+| QA-40 | LOW | UI/27.3b | Simple-mode flow card shows "No Stock comparison for noise." when the run has SWL but no Stock reference (case s3); noise was meant to be Expert-only | r14 A4. `docs/qa/notes/reverify-r14.md` r22 (b3d5543): **still open** (r14 harness, s3 still shows the line in Simple). |
+| QA-41 | LOW | Export/QA-37 | `watch_parent` uses `os.kill(pid, 0)`, which succeeds on a zombie: if the killed cockpit isn't reaped, the export worker keeps running (≥ 30 s seen). Files stay safe (`.partial-*`) | r14 A3 run 1 + `from-qa-14/data/a3_zombie_probe.txt`. Also exit on `os.getppid()` change or `/proc/<pid>/stat` state Z. r22 (b3d5543): re-observed by the repo's own `tests/test_worker_parent_watch.py` (2 tests fail on Linux: zombie parent reads alive). Not a formal re-test. |
+| QA-42 | LOW | UI/material | Preview line "✓ fits … (… 11 g)" doesn't say which material (or infill) it weighed; PLA+ 10.87 g and PETG 11.13 g both show "11 g", so the user can't see the picker took effect | r14 A2b1/b2. Name the material (and "20 % infill") in the line. r22 (b3d5543): **still open**: rendered Preview reads '… 11 g' for both PLA+ and PETG, no material. |
 
 ## Details
 (Numbered bugs below map to QA-n.)
@@ -817,3 +817,57 @@ Handoff: `handoff/2026-10-25_from-qa-21/`.
     - Tip 56.5→60 mm is extrapolated.
     - Clip-on and clip-off builds differ by up to 2.2 % chord.
   - Proposal: freeze P (clip off; it matches the table), record r 23 as an embedded root, add a cut test.
+
+## Round 22 (2026-10-29): master b3d5543, run clone `/workspace/fansim/repo-r22`
+Prereg **`715891f`** (`prereg_r6` branch `prereg/round22`, `qa_r22/PREREG_R22.md`, committed 20:24 MDT before any data).
+Handoff: `handoff/2026-10-29_from-qa-22/`. Bundle: `master_b3d5543.bundle` (the brief's `fansim.bundle` is not on the box).
+
+- **A (UI and bug pass; cockpit headless on :8080, Playwright with system Chrome; fast pytest):**
+  - **QA-53 verified.**
+    - The cockpit prints `http://127.0.0.1:8080/`, which is README:137.
+    - README:138 says "30–40 min", which matches `fan_assess.py:332`.
+    - README:107 "the GitHub URL" (interim).
+    - The Docker-not-installed row is still absent (R3.4).
+  - **R1.4 phrase verified:** it is in README:204 and renders in the Stock Expert caption. Simple shows nothing extra.
+  - **UI-26 still open:** 'Gold = parametric Stock…' renders on the first view in both modes, the hose line in Expert,
+    and camber/Difficulty after Preview.
+  - **UI-27 still open:** the viewer bottom is at 957 px of 768. The picker and Preview are now above the fold.
+  - **UI-29 still open:** only 'Start here' fails (12 px grey caption). The column is 41 % and the body is 16 px.
+  - **QA-40 still open:** in the r14 harness, s3 still shows "No Stock comparison for noise." in Simple.
+  - **QA-42 still open:** a rendered Preview reads "… 11 g" for both PLA+ and PETG, with no material.
+  - **Pytest** (`-m "not docker and not slow"`, one process, 40 min): **1880 passed, 4 failed**, 21 skipped, 23 deselected,
+    1 xfailed. All 4 failures repeat when run alone.
+    - QA-62: `test_axial_scripts_oriented`.
+    - QA-63: `test_fuse_memory`.
+    - QA-41: 2 × `test_worker_parent_watch`.
+  - Note: `docs/qa/notes/r22-A-ui-bug-pass.md`.
+- **B (lt120 freeze re-cut, R1.1a; committed `lt120.stl`, not rebuilt): PASS.**
+  - r = 23 is N/M, and **9/9** radii 26.7–56.5 PASS. Worst: chord −2.26 % (gate 3 %), stagger 0.063°, camber 0.0002.
+  - Identical to r21 S (Δ 0 at every radius). Against r21 P, 0.8–2.2 % shorter in chord outboard (clip on).
+  - The STL is watertight, 1 body, 7 blades; direction CONCLUSIVE.
+  - All 5 QA-60 sub-items are closed. → **QA-60 closed** (B passes, and the freeze/board text matches the code).
+  - Note: `docs/qa/notes/r22-B-lt120-freeze-recut.md`.
+- **C (A0b bookkeeping, `scripts/prop_section_2d.py`, code reading only): consistent, no setup bug, so it does not explain the A0 FAIL.**
+  - U = (cos α, sin α), liftDir = (−sin α, cos α), dragDir = (cos α, sin α), all from the same `a`. The geometry is not rotated, so α is applied once.
+  - The `coefficient.dat` Cd/Cl columns are read correctly.
+  - Code-visible candidates (report-only): convergence (`residualControl {}`, last-20 % mean), 48 uniform cells per
+    surface at the LE, 8c far field, fixed +x wake blocks.
+  - Note: `docs/qa/notes/r22-C-a0b-alpha-bookkeeping.md`.
+- **D (R3.1 export leak check):** waiting, because R3.1 has not landed. Not run.
+
+- **QA-61 (LOW, new) Assess time: the cockpit's static copy says "~15–30 min", while the README and the running note say "30–40 min".** Tested b3d5543. Status: open.
+  - **Repro:**
+    - the Actions button "ASSESS (~15–30 MIN)" (`fan_tab_ui.py:594`, rendered);
+    - `fan_tab_ui.py:494` (also in QA-58) and `:896`;
+    - `fan_core.py:84`;
+    - the sweep step `fan_assess.py:482`.
+  - These disagree with README:138, `fan_assess.py:332` and `run_settings.py:3`.
+  - Proposal: one constant, used everywhere.
+- **QA-62 (MED, new) `scripts/validate_lt120.py` calls `build_case` but is not in `AXIAL_SCRIPTS` or `EXEMPT`.** Tested b3d5543. Status: open.
+  - **Repro:** `pytest tests/test_axial_scripts_oriented.py` fails: "validate_lt120.py: add to AXIAL_SCRIPTS or EXEMPT".
+  - It came in with R1.1a `6f25583`, so the lt120 validation run is outside the orientation guard (same class as bug #7).
+  - Proposal: list it and orient it before the R1.1b night result is used.
+- **QA-63 (LOW, new) Fuse RAM guard: "remaining" estimate above "whole peak" at 18 084 faces.** Tested b3d5543. Status: open.
+  - **Repro:** `pytest tests/test_fuse_memory.py`: `fuse_remaining_estimate_gb(18084)` = 1.934 is not less than
+    `fuse_peak_estimate_gb(18084)` = 1.925. Both are pure functions, so this fails on every OS.
+  - Proposal: refit one of the two estimates, or fix the invariant.

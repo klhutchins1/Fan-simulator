@@ -79,6 +79,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   `docs/validation/audits/2026-10-18-lt120-validation-prereg.md`.
   - **R1.1a reference build + freeze + script.** Lane: Cursor. CPU: day. Status: `done 6f25583`.
     - Landed: `reference_build=True` skips hang only (clip stays on). Freeze STL + cylinder-cut 9/9 PASS, r=23 N/M, direction CONCLUSIVE. `scripts/validate_lt120.py` resumes and writes `runs/lt120/summary.json`. Night job `lt120-r11a` is queued (8 h). grok r21 C pre-check: clip-off 9/9 PASS; freeze blockers (QA-60) are closed on this freeze.
+    - grok r22 B (2026-10-29, `docs/qa/notes/r22-B-lt120-freeze-recut.md`): committed `lt120.stl` re-cut at b3d5543: r=23 N/M, 9/9 PASS (worst chord −2.26 %, stagger 0.06°, camber 0.0002), identical to r21 S; all 5 QA-60 sub-items closed → **QA-60 closed**. Note for R1.1b: the frozen (clip-on) reference is 2.0–2.3 % under the table chord from r 41.6 mm out. Also `scripts/validate_lt120.py` calls `build_case` without being in `AXIAL_SCRIPTS`/`EXEMPT` (orientation guard test fails, QA-62); fix before using the night result.
   - **R1.1b verdict.** Lane: Claude. Status: `blocked (R1.1a + night run)`.
 - **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `ready`.
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
@@ -148,6 +149,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
       `wrapped-sections` audit numbers.
   - Test: the phrase "about 5 % less airflow than the real A12x25" appears in the README and in the Stock Expert text.
   - grok r21 A/B (2026-10-25): not landed at 5063a65 (README:52 still v2 −5.5 %; `fan_trials.py:354` lacks the phrase). The "`wrapped-sections` audit" link has no file; use `2026-10-12-cylinder-sections.md`. QA-59.
+  - grok r22 A (2026-10-29, `docs/qa/notes/r22-A-ui-bug-pass.md`): landed at b3d5543: the phrase is in README:204 and renders in the Stock Expert caption (headless, :8080); Simple shows nothing extra. Verified.
 - **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.
@@ -182,6 +184,7 @@ Kimball's.
     - Work: `scripts/prop_section_2d.py` hard-codes the section (`naca4(0.04, 0.4, 0.06)`) and `RE`. Add `--section` (NACA 4-digit code), `--re`, `--alphas`, `--models` and `--tu`, keeping the defaults equal to today's rung A.
     - Then run `--section 0012 --re 6e6 --alphas 0 5 10 --models kOmegaSST`. Tripped data means fully turbulent, so use a normal freestream Tu of about 0.1 %, not the Ncrit-9 value.
     - Report the achieved y+ (max and mean on the airfoil), layer coverage % and surface cells. Write the result into `2026-10-17-prop-cfd-fix-prereg.md` and judge it against the rulings doc §1. Don't re-tune.
+    - grok r22 C (2026-10-29, `docs/qa/notes/r22-C-a0b-alpha-bookkeeping.md`, code reading only): U, liftDir and dragDir all use the same α once (geometry not rotated); `coefficient.dat` Cd/Cl columns read correctly. No setup bug, so it does not explain the C_l −14 %/−44 %. Code-visible candidates: convergence (`residualControl {}`, last-20 % mean), 48 uniform cells per surface at the LE, 8c far field, fixed +x wake blocks.
     - Pre-registered in `docs/validation/audits/2026-10-20-rulings-r18-r19-rungA.md` §1. Same script, with only the section, Re and α changed.
     - Report the achieved y+ (max and mean), layer coverage % and surface cell count.
     - Pass: C_l ±5 % at 5° and 10°, C_d ±20 % at 0°.
@@ -259,6 +262,7 @@ Kimball's.
     the first Assess, and troubleshooting (WSL2 memory, Docker not running).
   - Test: grok round 15 follows it on a clean Linux box. r15: NOT RUN (no guide yet); `docs/qa/notes/r15-install-dry-run.md`.
   - grok r20 D (2026-10-21, `docs/qa/notes/r20-D-install-guide-dry-run.md`): the clean-Linux dry run WORKS (install, cockpit HTTP 200, UI test 6/6; Docker would-run). README fixes are needed (QA-53): port 8080 not 9001, Assess 30–40 min, the clone URL, a Linux Docker link, and a 'Docker not installed' row.
+  - grok r22 A (2026-10-29): QA-53 verified at b3d5543 (cockpit prints http://127.0.0.1:8080/ = README:137; README:138 "30–40 min"; README:107 "the GitHub URL", interim). Docker-not-installed row still absent (R3.4).
 - **R3.4 Docker/OpenFOAM readiness badge and first-run check (21.2g)**. Lane: Cursor. CPU: day. Status: `ready`.
   - The cockpit shows "CFD ready / Docker not running / image missing" with the fix in plain words.
 - **R3.5 GitHub Actions CI**. Lane: Cursor. CPU: none (cloud). Status: `ready`.
