@@ -150,6 +150,10 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Test: the phrase "about 5 % less airflow than the real A12x25" appears in the README and in the Stock Expert text.
   - grok r21 A/B (2026-10-25): not landed at 5063a65 (README:52 still v2 −5.5 %; `fan_trials.py:354` lacks the phrase). The "`wrapped-sections` audit" link has no file; use `2026-10-12-cylinder-sections.md`. QA-59.
   - grok r22 A (2026-10-29, `docs/qa/notes/r22-A-ui-bug-pass.md`): landed at b3d5543: the phrase is in README:204 and renders in the Stock Expert caption (headless, :8080); Simple shows nothing extra. Verified.
+- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `ready`.
+  - Groups G1–G5 with exact wording: `docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`. One branch per
+    group, each with a grep or UI test.
+  - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
 - **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.
@@ -176,6 +180,7 @@ Kimball's.
     from the generic section. The release claim must say "±15 % at static; worse toward zero-thrust J on props with unknown
     sections" until grok r19 B shows the known-section number.
   - Lane: Cursor labels the C_P limit; Claude confirms the claims list. Status: `ready`.
+  - **Claude confirmed 2026-10-29** (`docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`): grok r21 A stands. The fixes are grouped G1–G5 there; G1 (the Assess message compares with the datasheet) goes first.
 - **R2.2 Propeller CFD: fix it** (Kimball 2026-10-17). FAIL, −44 % C_T against UIUC (audit-08).
   - Pre-registered diagnostic ladder: `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`. Read its rules
     before running anything; each rung's result picks the next rung.
@@ -281,6 +286,7 @@ Kimball's.
 - **R3.7 Cockpit UI regression tests (29.2)**. Lane: Cursor writes, grok proposes cases. CPU: day. Status: `ready`.
   - Headless "we say X, we do Y" tests (`tests/test_ui_says_what_it_does.py`), at least one per tab that ships.
 - **R3.8 Validation page**. Lane: Cursor drafts, Claude checks the numbers. CPU: day. Status: `blocked (M1, M2)`.
+  - **Claude reviewed grok r21 B 2026-10-29: approved as the base.** Apply M1–M9 (M3: name the rig for 58.3 vs 59.8; M5: the link is `2026-10-12-cylinder-sections.md`). See the review doc. grok checks the final page.
   - `docs/VALIDATION.md`: per surface, what it was validated against, the tolerance, the result and the known limits.
     Every number links to its audit.
   - grok r21 B (2026-10-25): draft from the audits in `docs/qa/notes/r21-B-validation-draft.md` (13 surfaces + Known limits, 9 mismatches listed) for Cursor to adapt and Claude to check.
