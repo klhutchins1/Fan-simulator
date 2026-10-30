@@ -729,3 +729,90 @@ noted only.
   - The change is shown to the user.
   - Proposal: apply the radius growth in `evaluate_candidate` as `mount_hub_params` does for height, or label the
     difference in Export.
+
+## Round 21 (2026-10-25): master 5063a65, run clone `/workspace/fansim/repo-r21`
+Prereg **`956b8ff`** (`prereg_r6` branch `prereg/round21`, `qa_r21/PREREG_R21.md`, committed 15:41 MDT before any data).
+Handoff: `handoff/2026-10-25_from-qa-21/`.
+
+- **A (release claims audit): FAIL** (gate: 0 overstated, 0 unsupported). 60 claims: 20 supported, 20 need a label,
+  15 overstated, 5 unsupported.
+  - Worst:
+    - the Assess message "vs stock free 60 CFM" compares a scored screening result with the datasheet (QA-56);
+    - the noise ranking is presented as usable (QA-55);
+    - Volute/Mixed "honest MRF CFD" (QA-57);
+    - `a12x25-reference.md` "validated on Stock: 59.8" (it is the close-ref STL), and "~3–5 % discretization" against
+      GCI ≈ 21 % (QA-58).
+  - The missing labels are the board's R1.4 / R1.5 / R1.6 / R2.1 / R2.4 items (QA-59).
+  - Note: `docs/qa/notes/r21-A-release-claims-audit.md`; table `handoff/2026-10-25_from-qa-21/data/r21-A-claims.csv`.
+- **B (draft `docs/VALIDATION.md`, R3.8):** 13 surfaces plus a Known-limits list, with R1.4 wording verbatim.
+  - 9 mismatches are listed, including: README Stock v2 −5.5 % vs v3 −4.5 %; 59.8 (v5 rig) vs 58.3 (cylinder rig) for the
+    same STL; the board's "`wrapped-sections` audit" link has no file; prop "35–45 % low" holds only near static.
+  - The rest recompute within rounding.
+  - Note: `docs/qa/notes/r21-B-validation-draft.md`.
+- **C (lt120 reference build pre-check, R1.1a, no CFD):**
+  - The cut check **PASSES on P**: `replace(load_blade_params(fansim_params.json), section_wrap="cylinder",
+    clip_below_hub=False)` → `build_impeller`.
+    - 9/9 cuttable radii PASS: worst 0.11 % chord, 0.06° stagger, 0.0006 camber.
+    - One watertight solid, 7 blades, direction CONCLUSIVE.
+  - C as pre-registered: **NOT PASS** on freeze blockers:
+    - r 23.0 mm is N/M (inside the hub);
+    - there is no `reference_build` path;
+    - `validation/reference/lt120/` is absent.
+  - Hang: 4.76 mm designed, 4.82 mm built; with the clip on the build is refused at 8.3 mm.
+  - S (clip on, hang checks bypassed) also passes, but is up to 2.2 % shorter in chord outboard. → QA-60.
+  - Note: `docs/qa/notes/r21-C-lt120-reference-precheck.md`; data `handoff/2026-10-25_from-qa-21/data/r21-C-lt120-cut-check.csv`.
+- **D (R3.1 export leak check):** waiting, because R3.1 has not landed. Not run.
+- **QA-53:** still **open** at 5063a65. The README still has `localhost:9001`, "several minutes" and `<this-repo>`.
+
+- **QA-55 (MED, new) Noise ranking presented as usable.** Tested 5063a65. Status: open.
+  - **Repro:**
+    - README:59 "tone + relative ranking are usable";
+    - `fansim/cfd/flow_verdicts.py:156-162`: the hint row is ✓/⚠/better "About x dB quieter than Stock";
+    - `fan_flow_report.py:30` "ranking";
+    - `fan_tab_ui.py:1108`;
+    - `a12x25-reference.md:57`;
+    - `data.py:205` shows the column "dBA";
+    - the finalist print sheet shows a bare `noise_swl`.
+  - Audit-06: validation INCONCLUSIVE. R0.4 ruling: the hint only restates CFM.
+  - Proposal: land R0.4 and R1.6. Say "relative, unvalidated", never "ranking is usable".
+- **QA-56 (MED, new) Assess "vs stock free 60 CFM" is not vs Stock.** Tested 5063a65. Status: open.
+  - **Repro:** `fansim/cockpit/fan_assess.py:405-411` compares `cfm_free` with `spec.ref_cfm` (the Noctua datasheet,
+    60.1). `cfm_free` is the scored screening Assess, after derate and the ×0.95 knockdown, with GCI ≈ 21 %.
+  - Assessing Stock itself prints about "−17 % (lower free-air)": 49.6 vs 60 (how-scores).
+  - Proposal: compare with Stock's own Assess score in the same mesh, or label the line "vs the Noctua datasheet; not
+    like for like".
+- **QA-57 (MED, new) Mixed/Volute "honest CFD" wording; Mixed not labelled experimental.** Tested 5063a65. Status: open.
+  - **Repro:**
+    - `mixed_tab.py:765` "honest MRF duct";
+    - `volute_tab.py:164, 691` "honest (radial MRF) CFD";
+    - `app.py:187-191` "Mixed · estimate";
+    - `fan_tab_ui.py:495`.
+  - The volute oscillates 17–23 % (audit-07:112), and Mixed has no published comparison (R2.4).
+  - Proposal: R2.4's "Experimental: not validated against published data", and "unconverged proxy (±20 %)" for Volute.
+- **QA-58 (LOW, new) Stale or incorrect validation numbers in user docs and cockpit copy.** Tested 5063a65. Status: open.
+  - **Repro:**
+    - `a12x25-reference.md:24` (59.8 attributed to Stock) and `:30` ("every gap closed");
+    - `design-rules.md:43` "~3–5 %", and `:39` "more blades raise airflow" against its own table (ρ −0.35);
+    - `adversarial-review.md:23-25, 237-239`, which README:12 links as "what is validated";
+    - README:66 "the one real gap";
+    - `fan_copy.py:129` "~0.6×" (audit-04:80 says stale);
+    - `fan_tab_ui.py:493` "one CFD solve (~15–30 min)";
+    - `figures.py:399` "under-predicts static ~2×".
+  - Proposal: correct these from r21 B, add historical banners, and point README:12 at `docs/VALIDATION.md`.
+- **QA-59 (LOW, new) Board-decided release labels not landed.** Tested 5063a65. Status: open (tracks R1.4/R1.5/R1.6/R2.1/R2.4).
+  - **Repro:**
+    - R1.4: no "about 5 % less airflow" phrase in the README or the Stock text (`fan_trials.py:354`), and no
+      "Known limits" list;
+    - R1.5: no "estimate, not validated" on structural/vibration (README:27, 62; `fan_tab_ui.py:889, 911`;
+      `figures.py:394` "safety gate");
+    - R2.1: the prop "rank and print from the BEMT numbers" lacks "±15 % at static; worse toward zero-thrust J";
+    - the export print sheet has a bare "Predicted performance (sim)" (`print_export.py:373`).
+  - Proposal: the wording in r21 B "Known limits".
+- **QA-60 (MED, new) lt120 reference build: freeze items.** Tested 5063a65. Status: open (R1.1a).
+  - **Repro:** `docs/qa/notes/r21-C-lt120-reference-precheck.md`.
+    - There is no `reference_build`. `clip_below_hub=False` also drops the clip and its correction.
+    - The table's r 23.0 station is inside the 25 mm hub (r0 = 23), so it is N/M.
+    - `validation/reference/lt120/` is absent.
+    - Tip 56.5→60 mm is extrapolated.
+    - Clip-on and clip-off builds differ by up to 2.2 % chord.
+  - Proposal: freeze P (clip off; it matches the table), record r 23 as an embedded root, add a cut test.
