@@ -2040,3 +2040,11 @@ leftover `--tip-gap` floor · winglet×shroud policy (§7.5): `--shroud` searche
 height and the winglet is gated off on full rings, in `suggest_params` + `blade_from_flat`.
 Tip-round and bio-features (tubercles/serrations/dimples) = tested NULL on flow AND
 noise — **do not re-optimize for tip shape.**
+
+- [ ] **Loaded-point fidelity near the knee of the fan curve** (from lt120, 2026-10-30, `docs/validation/audits/2026-10-30-lt120-tip-gap-prereg.md`).
+  - lt120's 13.71 Pa point reads +25 %, and a 1–2 mm geometry change jumps it between high-flow and low-flow states.
+  - Candidates:
+    - a URANS or pseudo-transient check of the loaded probe;
+    - a cockpit flag when a design's loaded probe sits near its knee (where dΔP/dQ flattens).
+  - Pre-register before any work. **[impact: med: the score's loaded airflow]** **[effort: med–high, CFD]**
+

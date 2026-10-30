@@ -85,6 +85,10 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     - CFD over-predicts loaded flow on this fan. The leading suspect is the unreported tip gap; testing it would be a new
       pre-registration.
     - The release wording is in that file, for R3.8 / R1.10.
+    - **Tip-gap follow-up (2026-10-30, `2026-10-30-lt120-tip-gap-prereg.md`): G3, not explained.**
+      - At 1.0 mm the 13.71 Pa point got worse (+28.9 %). At 1.5 mm it flipped to −9.6 % but was INCONCLUSIVE.
+      - The point sits on the curve's knee, where steady CFD is sensitive. The release wording is updated in that file.
+      - Loaded-point fidelity near the knee goes to the roadmap, not v0.1.0.
 - **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `ready`.
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
   - Make sure the UI and README never quote a number above the validated range. Add a test that the P–Q display
