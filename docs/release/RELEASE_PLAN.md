@@ -80,7 +80,11 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - **R1.1a reference build + freeze + script.** Lane: Cursor. CPU: day. Status: `done 6f25583`.
     - Landed: `reference_build=True` skips hang only (clip stays on). Freeze STL + cylinder-cut 9/9 PASS, r=23 N/M, direction CONCLUSIVE. `scripts/validate_lt120.py` resumes and writes `runs/lt120/summary.json`. Night job `lt120-r11a` is queued (8 h). grok r21 C pre-check: clip-off 9/9 PASS; freeze blockers (QA-60) are closed on this freeze.
     - grok r22 B (2026-10-29, `docs/qa/notes/r22-B-lt120-freeze-recut.md`): committed `lt120.stl` re-cut at b3d5543: r=23 N/M, 9/9 PASS (worst chord −2.26 %, stagger 0.06°, camber 0.0002), identical to r21 S; all 5 QA-60 sub-items closed → **QA-60 closed**. Note for R1.1b: the frozen (clip-on) reference is 2.0–2.3 % under the table chord from r 41.6 mm out. Also `scripts/validate_lt120.py` calls `build_case` without being in `AXIAL_SCRIPTS`/`EXEMPT` (orientation guard test fails, QA-62); fix before using the night result.
-  - **R1.1b verdict.** Lane: Claude. Status: `blocked (R1.1a + night run)`.
+  - **R1.1b verdict.** Lane: Claude. Status: `done` 2026-10-30: **TRENDS**.
+    - +8.1 % at 6.85 Pa (pass), +25.8 % at 13.71 Pa (fail); the meshes agree within 3 %. Results are in the lt120 prereg.
+    - CFD over-predicts loaded flow on this fan. The leading suspect is the unreported tip gap; testing it would be a new
+      pre-registration.
+    - The release wording is in that file, for R3.8 / R1.10.
 - **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `ready`.
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
   - Make sure the UI and README never quote a number above the validated range. Add a test that the P–Q display

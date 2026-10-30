@@ -58,3 +58,34 @@ The error at a point is the mean over the two meshes of Q_cfd / Q_meas − 1.
    - Then add the night job.
 2. Night: 4 points × 2 meshes = 8 runs, about 6 h. One night, from 00:30.
 3. Claude: verdict, recorded here.
+
+## Results (night queue 2026-10-30 00:30–02:19; `runs/lt120/summary.json`)
+
+All 8 units ran. The process exited 0xC0000005 at teardown, after the summary was written. Convergence gate: 7/8 pass; 17.14 Pa
+on the 6.2 mm mesh is INCONCLUSIVE (oscillation 2.7 %), which is report-only.
+
+| point | role | measured CFM | CFD 5.8 mm | CFD 6.2 mm | mean error | meshes agree |
+|---|---|---|---|---|---|---|
+| 6.85 Pa | high-flow | 84.0 | 89.6 | 92.0 | **+8.1 %** | 2.7 % ✓ |
+| 13.71 Pa | high-flow | 60.0 | 74.7 | 76.2 | **+25.8 %** | 2.0 % |
+| 14.69 Pa | report-only | 40.0 | 72.4 | 73.7 | +83 % | |
+| 17.14 Pa | report-only | 32.0 | 65.0 | 65.5 (INCONCL.) | +104 % | |
+
+**Verdict: TRENDS** (Claude, 2026-10-30, applying the rule as written):
+- The ±10 % rule passes at 6.85 Pa (+8.1 %) and fails at 13.71 Pa (+25.8 %, which is also outside ±15 %). "The ±10 % rule
+  fails on only one point" is the pre-registered definition of **trends**. Not re-tuned.
+
+**What it means:**
+- Near free air, CFD matches a second published PC-size fan (+8 %). That joins A12x25 (−0.5 %) and FAN-01 (+2.6 / +3.1 %).
+- As back pressure rises, CFD **over-predicts the flow on lt120**: +26 % at 13.7 Pa, and about +100 % on the flat
+  near-stall part.
+- The CFD curve is therefore too flat, with too much pressure capability for this fan. On A12x25 the 5/10 Pa points held,
+  so this depends on the fan.
+- **Leading explanation, not tested:** the tip gap. Lin & Tsai do not report it, and the freeze assumed 0.5 mm. A larger
+  real gap lowers pressure capability and steepens the curve. The rig and tap convention are unknown (`source.md`).
+  Testing either would be a new pre-registration, not a retune.
+
+**Release consequence (for R3.8 / R1.10):** state it plainly.
+- "Fan CFD: validated near free air on three published fans (within 8 %)."
+- "On one of them (lt120), loaded airflow reads high, by about 25 % at mid load."
+- "The scores' loaded airflow ranks designs; treat its absolute value as uncertain at higher back pressure."

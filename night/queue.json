@@ -144,7 +144,7 @@
   {
    "id": "lt120-r11a",
    "max_hours": 8,
-   "status": "queued",
+   "status": "done",
    "why": "R1.1a lt120 CFD (prereg 2026-10-18-lt120-validation-prereg.md). Night runner reads master only; this job runs after merge.",
    "cmd": [
     "python",
@@ -152,15 +152,16 @@
     "scripts/validate_lt120.py",
     "--out",
     "T:/Projects/Fan Simulator/runs/lt120"
-   ]
+   ],
+   "note": "2026-10-30: 8/8 units, verdict TRENDS (+8.1 % at 6.85 Pa, +25.8 % at 13.71 Pa); teardown 0xC0000005 after summary"
   },
   {
    "id": "prop-section-a0",
    "branch": "r22a-rung-a0",
    "max_hours": 2,
    "status": "done",
-   "why": "R2.2a' rung A0: NACA 0012 Re 6e6 SST vs Ladson (prereg 2026-10-20-rulings-r18-r19-rungA.md §1). CLI landed; the solve is night CPU.",
-   "note": "2026-10-26 day: FAIL. Snappy layers 0% of 2592 faces, y+ mean ~1100 (requested 0.8). Cd(0°) +47%, Cl(5°) −71%, Cl(10°) −69%. Do not rerun this mesh. Mesher fix next.",
+   "why": "R2.2a' rung A0: NACA 0012 Re 6e6 SST vs Ladson (prereg 2026-10-20-rulings-r18-r19-rungA.md \u00a71). CLI landed; the solve is night CPU.",
+   "note": "2026-10-26 day: FAIL. Snappy layers 0% of 2592 faces, y+ mean ~1100 (requested 0.8). Cd(0\u00b0) +47%, Cl(5\u00b0) \u221271%, Cl(10\u00b0) \u221269%. Do not rerun this mesh. Mesher fix next.",
    "cmd": [
     "python",
     "-u",
