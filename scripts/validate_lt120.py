@@ -54,7 +54,28 @@ def parse_cli(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--iters", type=int, default=1000)
     ap.add_argument("--procs", type=int, default=8)
+    # Tip-gap follow-up (docs/validation/audits/2026-10-30-lt120-tip-gap-prereg.md): rotor frozen, only the duct grows.
+    ap.add_argument("--tip-gap", type=float, default=TIP_GAP_MM, help="mm; duct ID = 2 r_tip + 2 gap")
+    ap.add_argument("--dp", type=float, nargs="+", default=None, help="subset of the frozen points (Pa)")
+    ap.add_argument("--meshes", type=float, nargs="+", default=list(MESHES_MM), help="base cells (mm)")
     return ap.parse_args(argv)
+
+
+def duct_id_mm(tip_gap_mm: float) -> float:
+    """Duct ID for a tip gap around the frozen rotor (121 mm at the frozen 0.5 mm gap)."""
+    return float(DUCT_ID_MM) + 2.0 * (float(tip_gap_mm) - float(TIP_GAP_MM))
+
+
+def select_points(dps) -> list[dict]:
+    if not dps:
+        return list(POINTS)
+    out = []
+    for dp in dps:
+        hit = [p for p in POINTS if abs(p["dp_pa"] - float(dp)) < 1e-6]
+        if not hit:
+            raise ValueError(f"{dp} Pa is not one of the frozen lt120 points")
+        out.append(hit[0])
+    return out
 
 
 def _unit_key(dp_pa: float, mesh_mm: float) -> str:
@@ -99,19 +120,20 @@ def main(argv: list[str] | None = None) -> int:
     try:
         summary = json.loads(summ_path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        summary = {"fan": "lt120", "points": POINTS, "meshes_mm": list(MESHES_MM), "units": {}}
+        summary = {"fan": "lt120", "points": select_points(a.dp), "meshes_mm": list(a.meshes),
+                   "tip_gap_mm": a.tip_gap, "duct_id_mm": duct_id_mm(a.tip_gap), "units": {}}
     units = summary.setdefault("units", {})
     params = lt120_params()
 
-    for mesh_mm in MESHES_MM:
+    for mesh_mm in a.meshes:
         mesh_dir = out / f"mesh_{mesh_mm:g}"
         mesh_dir.mkdir(parents=True, exist_ok=True)
         stl = mesh_dir / "impeller.stl"
         if not stl.is_file():
             stl.write_bytes(freeze_stl.read_bytes())
         rig = rig_for_impeller(
-            params, tip_gap_mm=TIP_GAP_MM, inlet_diameters=2.0, outlet_diameters=4.0,
-            casing_id_mm=DUCT_ID_MM)
+            params, tip_gap_mm=a.tip_gap, inlet_diameters=2.0, outlet_diameters=4.0,
+            casing_id_mm=duct_id_mm(a.tip_gap))
         stl, rig = prepare_axial_cfd(stl, rig, mesh_dir, source="builder")
         frame = mesh_dir / "frame.stl"
         if not frame.is_file():
@@ -128,11 +150,11 @@ def main(argv: list[str] | None = None) -> int:
                 return 0
             build_case(
                 mesh_dir, stl, rig, mesh=mesh_res, n_iters=a.iters,
-                n_subdomains=a.procs, back_pressure_pa=POINTS[0]["dp_pa"],
+                n_subdomains=a.procs, back_pressure_pa=select_points(a.dp)[0]["dp_pa"],
                 frame_stl_mm=frame)
             run_mesh(runner, n_procs=a.procs)
 
-        for pt in POINTS:
+        for pt in select_points(a.dp):
             key = _unit_key(pt["dp_pa"], mesh_mm)
             if units.get(key, {}).get("cfm") is not None:
                 continue

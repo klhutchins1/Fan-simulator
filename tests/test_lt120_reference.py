@@ -117,6 +117,6 @@ def test_frozen_cut_check_marks_embedded_root_nm():
 def test_night_queue_has_lt120_job():
     queue = json.loads(Path("night/queue.json").read_text(encoding="utf-8"))
     job = next(j for j in queue["jobs"] if j["id"] == "lt120-r11a")
-    assert job["status"] == "queued"
+    assert job["status"] in ("queued", "rerun", "done")   # done after the 2026-10-30 run
     assert any("validate_lt120.py" in str(part) for part in job["cmd"])
     assert float(job["max_hours"]) >= 6
