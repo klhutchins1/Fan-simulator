@@ -13,20 +13,21 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 - Known recovery gaps from README_RECOVERY.md / RECOVERY_TODO.md are not counted as bugs.
 - Paths like `/workspace/fansim/...` and `qa/...` are on the QA bot's machine (screenshots, scratch scripts); ask if you need one.
 
-## ▶ Next round for the QA bot: round 21 (queued by Claude 2026-10-25). Delivered as `handoff/2026-10-25_to-qa-21/`
+## ▶ Next round for the QA bot: round 22 (queued by Cursor 2026-10-29). Delivered as `handoff/2026-10-29_to-qa-22/`
 
-Round 20 is **DONE** (all four tasks); thank you, the R1.8 recheck closed QA-43/44/49. Your research leads 15/16 are
-parked for after v0.1.0 (board, last section). Build: master at the commit that added the folder. Pre-register A and C
-before data.
+Round 21 is **DONE**; thank you. Cursor is the lead now (`handoff/2026-10-29_claude-to-cursor/CLAUDE_TO_CURSOR.md`).
+Research leads 15/16 stay parked until after v0.1.0. Weekly paper hunts stay parked unless a paper is a validation
+case. Build: master at the commit that added this folder. No Docker, CFD, OpenFOAM, Assess or Sweep. Pre-register B
+and C before data.
 
 | # | task | board |
 |---|---|---|
-| A | **Release claims audit.** List every user-facing performance or accuracy claim: the README, cockpit copy (`fansim/cockpit/*copy*`, tab/help text, results captions), the export README template, and `docs/` pages a user would read. For each, give the exact wording, its location, the evidence (audit file + number), and a verdict: **supported as worded / overstated / unsupported / needs a label**. Flag especially absolute dB(A), structural/flutter, prop CFD, mixed-flow, volute, and anything implying printed-fan accuracy. Table + note | R1.5, R1.6, R2.x, R4.3 |
-| B | **Draft `docs/VALIDATION.md`** as `docs/qa/notes/r21-B-validation-draft.md` (Cursor adopts it in R3.8). Per shipped surface: validated against what, tolerance, result, known limits, and links to the audit files. Write it independently from the audits themselves, not from the board, so it doubles as a check of our numbers. Include the Stock recipe gap wording from board R1.4 | R3.8 |
-| C | **lt120 reference build, pre-check (no CFD)** for R1.1a: from `docs/qa/benchmarks/lt120/geometry.json`, build the wrapped blade the way the prereg says (`docs/validation/audits/2026-10-18-lt120-validation-prereg.md`: reference build, skipping only the print-hang check; you can call the builder with `clip_below_hub` set so the hang check doesn't fire, and say exactly how). Cut it at the 10 table radii and report chord / stagger / camber vs the table, and whether it is within the builder's own tolerance. Report anything that would stop the freeze | R1.1a |
+| A | **UI and bug pass on current master.** r21 tested `5063a65`. Master has since merged R1.1a (lt120 freeze), R1.4 Stock-gap wording, QA-53 README fixes, R1.8 10/10 hang, and A0 C-grid. Re-check: QA-53 (port 8080, Assess 30–40 min, clone URL); R1.4 phrase "about 5 % less airflow than the real A12x25"; open UI items you can hit headless or in a browser (UI-26, UI-27, UI-29, QA-40, QA-42). For each, **still open / verified / not re-tested**. Note new bugs. | UI, QA-53, R1.4 |
+| B | **lt120 freeze re-cut (no CFD).** The freeze is now `validation/reference/lt120/` (`lt120.stl` + `geometry_freeze.json`), built with `reference_build=True`, wrap cylinder, clip on. Cut the **committed STL** (do not rebuild unless the STL is missing) at the 10 table radii. Same gates as r21 C: chord within 3 % of the table; camber ±0.005 and stagger ±1.5° of `_ref`. r=23 mm must be N/M. Compare to your r21 S column. QA-60: closed, contradicted, or still open, with one line why. | R1.1a, QA-60 |
+| C | **A0b bookkeeping, code only (no solve).** Claude: C-grid A0 FAIL looks like a setup bug (C_d good, C_l low and worse with α). In `scripts/prop_section_2d.py`, for α = 0/5/10°, report: (1) how inflow U is set; (2) `liftDir` and `dragDir` written into the force function object; (3) whether those two use the **same** α. A liftDir off by α, or α applied twice or not at all, would match the FAIL. Table + note. Do not run OpenFOAM. | R2.2 A0b |
 | D | (still waiting) R3.1 export leak check, when R3.1 lands | R3.1 |
 
-Notes to `docs/qa/notes/r21-*.md`, plus a "Round 21" section below.
+Notes to `docs/qa/notes/r22-*.md`, plus a "Round 22" section below.
 
 ## Tested build
 - Source: copy of `T:\Projects\Fan Simulator` working tree, 2026-10-08 (no `.git`, so no commit hash). Linux, Python 3.12, no Docker/OpenFOAM/CFD.
