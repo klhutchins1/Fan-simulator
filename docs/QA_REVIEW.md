@@ -13,21 +13,26 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 - Known recovery gaps from README_RECOVERY.md / RECOVERY_TODO.md are not counted as bugs.
 - Paths like `/workspace/fansim/...` and `qa/...` are on the QA bot's machine (screenshots, scratch scripts); ask if you need one.
 
-## ▶ Next round for the QA bot: round 22 (queued by Cursor 2026-10-29). Delivered as `handoff/2026-10-29_to-qa-22/`
+## ▶ Next round for the QA bot: round 23 (queued by Claude 2026-10-31 for Kimball). Delivered as `handoff/2026-10-31_to-qa-23/`
 
-Round 21 is **DONE**; thank you. Cursor is the lead now (`handoff/2026-10-29_claude-to-cursor/CLAUDE_TO_CURSOR.md`).
-Research leads 15/16 stay parked until after v0.1.0. Weekly paper hunts stay parked unless a paper is a validation
-case. Build: master at the commit that added this folder. No Docker, CFD, OpenFOAM, Assess or Sweep. Pre-register B
-and C before data.
+Round 22 is **DONE** (results below); thank you. Build: master at the commit that added the folder. Pre-register A and B
+before data. No CFD.
+
+Context: lt120 is **TRENDS** (`docs/validation/audits/2026-10-18-lt120-validation-prereg.md`): CFD +8 % at 6.85 Pa, +26 % at
+13.71 Pa. The tip-gap follow-up (`2026-10-30-lt120-tip-gap-prereg.md`) came back **G3, not explained**:
+- at 1.0 mm the error got worse (+28.9 %);
+- at 1.5 mm it flipped to −9.6 % but was INCONCLUSIVE.
+
+Claude's reading is that 13.71 Pa sits on the **knee** of the curve, where steady CFD is sensitive. Please test that reading
+independently.
 
 | # | task | board |
 |---|---|---|
-| A | **UI and bug pass on current master.** r21 tested `5063a65`. Master has since merged R1.1a (lt120 freeze), R1.4 Stock-gap wording, QA-53 README fixes, R1.8 10/10 hang, and A0 C-grid. Re-check: QA-53 (port 8080, Assess 30–40 min, clone URL); R1.4 phrase "about 5 % less airflow than the real A12x25"; open UI items you can hit headless or in a browser (UI-26, UI-27, UI-29, QA-40, QA-42). For each, **still open / verified / not re-tested**. Note new bugs. | UI, QA-53, R1.4 |
-| B | **lt120 freeze re-cut (no CFD).** The freeze is now `validation/reference/lt120/` (`lt120.stl` + `geometry_freeze.json`), built with `reference_build=True`, wrap cylinder, clip on. Cut the **committed STL** (do not rebuild unless the STL is missing) at the 10 table radii. Same gates as r21 C: chord within 3 % of the table; camber ±0.005 and stagger ±1.5° of `_ref`. r=23 mm must be N/M. Compare to your r21 S column. QA-60: closed, contradicted, or still open, with one line why. | R1.1a, QA-60 |
-| C | **A0b bookkeeping, code only (no solve).** Claude: C-grid A0 FAIL looks like a setup bug (C_d good, C_l low and worse with α). In `scripts/prop_section_2d.py`, for α = 0/5/10°, report: (1) how inflow U is set; (2) `liftDir` and `dragDir` written into the force function object; (3) whether those two use the **same** α. A liftDir off by α, or α applied twice or not at all, would match the FAIL. Table + note. Do not run OpenFOAM. | R2.2 A0b |
-| D | (still waiting) R3.1 export leak check, when R3.1 lands | R3.1 |
+| A | **Is 13.71 Pa on lt120's knee?** From the measured curve (`docs/qa/benchmarks/lt120/curve.csv`, 5 points) and the CFD points (`runs` numbers in both audit files): estimate the measured slope dΔP/dQ between neighbouring points, and where the curve flattens or turns (the stall dip). Say whether 13.71 Pa / 60 CFM is on the steep stable branch, at the knee, or past it, with the uncertainty that only 5 points allow. Compare with the CFD curve's shape. Also check Tutar & Cam 2025's own CFD of this fan, if the paper reports it at these points: did *they* match 13.71 Pa? Pre-register what "on the knee" means before computing | R1.1b follow-up |
+| B | **Draft spec: a "near the knee" warning for a design's loaded point** (roadmap item "Loaded-point fidelity near the knee"). Using only what Assess already has (the free-air solve, the loaded probe, and the 2-point fan line in `fansim/optimize/system_curve.py`), propose a cheap rule that flags when a design's loaded operating point is likely near its knee. Test it on the cases we have: A12x25 Stock (5/10 Pa held; 15/20 Pa didn't converge), lt120 (6.85 good, 13.71 bad), FAN-01. Give its hit / miss on those, and the false-flag risk. Proposal only; no source edits | roadmap |
+| C | (still waiting) R3.1 export leak check, when R3.1 lands. Also re-run the r21 A claims audit once R1.10 lands | R3.1, R1.10 |
 
-Notes to `docs/qa/notes/r22-*.md`, plus a "Round 22" section below.
+Notes to `docs/qa/notes/r23-*.md`, plus a "Round 23" section below.
 
 ## Tested build
 - Source: copy of `T:\Projects\Fan Simulator` working tree, 2026-10-08 (no `.git`, so no commit hash). Linux, Python 3.12, no Docker/OpenFOAM/CFD.
