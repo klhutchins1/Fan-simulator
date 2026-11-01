@@ -138,7 +138,8 @@ def bind(session) -> None:
             gp_floor=40.0 if state.opt_gp else 0.0,
             gp_boost=bool(state.opt_gp_boost),
             gp_nn=bool(state.opt_gp_nn),
-            surrogate_guided=bool(state.opt_surrogate_guided),
+            surrogate_guided=False,  # R1.11 / UI-31: never rank with synthetic_label
+
             study_name=resume_study,
             stator=bool(state.opt_stator) and not bool(state.opt_stator_stack),
             stator_stack=bool(state.opt_stator_stack),
