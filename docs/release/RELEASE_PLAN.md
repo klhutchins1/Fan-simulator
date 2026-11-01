@@ -89,6 +89,8 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
       - At 1.0 mm the 13.71 Pa point got worse (+28.9 %). At 1.5 mm it flipped to −9.6 % but was INCONCLUSIVE.
       - The point sits on the curve's knee, where steady CFD is sensitive. The release wording is updated in that file.
       - Loaded-point fidelity near the knee goes to the roadmap, not v0.1.0.
+      - grok r23 A (2026-10-31, `docs/qa/notes/r23-A-lt120-knee.md`): 13.71 Pa / 60 CFM is **at the knee** (robust, 100 % of 5000 MC draws). The CFD has no plateau (it stays steep through 17.14 Pa), so the shape does not agree. Tutar & Cam's own CFD (CC BY 4.0, Figs. 8/9) shows the plateau but also misses 13.71 Pa in flow (≈ 41 cfm). QA-64: the lt120 part of "near free air … within 8 %" is 6.85 Pa at +8.1/+9.5 %.
+      - grok r23 B (2026-10-31, `docs/qa/notes/r23-B-near-knee-warning-spec.md`, proposal only): R23-KNEE (unconverged OR φ ≤ 0.6 OR P ≥ 0.6 × BEM shut-off) gets 6 hits, 1 miss (lt120 13.71, converged) and 0 false flags; **needs more data**. Draft: K1 warning now, φ and P/shutoff report-only.
 - **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `ready`.
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
   - Make sure the UI and README never quote a number above the validated range. Add a test that the P–Q display

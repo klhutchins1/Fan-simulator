@@ -1,0 +1,48 @@
+{
+ "a12x25": {
+  "5": {
+   "q_bem_cfm": 54.5,
+   "abs_slope": 0.813,
+   "ref": 0.532,
+   "ratio": 1.53,
+   "K4x": false
+  },
+  "10": {
+   "q_bem_cfm": 47.8,
+   "abs_slope": 0.645,
+   "ref": 0.532,
+   "ratio": 1.21,
+   "K4x": false
+  },
+  "15": {
+   "q_bem_cfm": 36.9,
+   "abs_slope": 0.25,
+   "ref": 0.532,
+   "ratio": 0.47,
+   "K4x": true
+  },
+  "20": {
+   "q_bem_cfm": 12.7,
+   "abs_slope": 0.452,
+   "ref": 0.532,
+   "ratio": 0.85,
+   "K4x": false
+  }
+ },
+ "lt120": {
+  "6.85": {
+   "q_bem_cfm": 78.8,
+   "abs_slope": 0.336,
+   "ref": 0.274,
+   "ratio": 1.23,
+   "K4x": false
+  },
+  "13.71": {
+   "q_bem_cfm": 39.8,
+   "abs_slope": 0.14,
+   "ref": 0.274,
+   "ratio": 0.51,
+   "K4x": false
+  }
+ }
+}

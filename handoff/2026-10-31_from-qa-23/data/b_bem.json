@@ -1,0 +1,40 @@
+{
+ "a12x25_stock": {
+  "rpm": 2000.0,
+  "euler": {
+   "shutoff_dp_pa": 38.87,
+   "free_delivery_cfm": 60.4
+  },
+  "axial_force": {
+   "shutoff_dp_pa": 22.97,
+   "free_delivery_cfm": 63.1
+  },
+  "bem_screen_cfm": "n/a (TypeError)"
+ },
+ "lt120_validation_params": {
+  "rpm": 2000.0,
+  "euler": {
+   "shutoff_dp_pa": 45.21,
+   "free_delivery_cfm": 93.7
+  },
+  "axial_force": {
+   "shutoff_dp_pa": 27.32,
+   "free_delivery_cfm": 94.8
+  },
+  "bem_screen_cfm": "n/a (TypeError)"
+ },
+ "lt120_benchmark_params": {
+  "rpm": 2000.0,
+  "euler": {
+   "shutoff_dp_pa": 45.21,
+   "free_delivery_cfm": 93.7
+  },
+  "axial_force": {
+   "shutoff_dp_pa": 27.32,
+   "free_delivery_cfm": 94.8
+  },
+  "bem_screen_cfm": "n/a (TypeError)"
+ },
+ "fan01": "n/a: STL-only case, no BladeParams for pq_curve",
+ "elapsed_s": 4.7
+}

@@ -94,6 +94,14 @@ Notes to `docs/qa/notes/r23-*.md`, plus a "Round 23" section below.
 | UI-28 | LOW | All | Disabled Cancel buttons (pale pink) and Randomize (pale teal) are hard to read | new (browser r4, by eye; contrast not measured). Open |
 | UI-29 | LOW | Fan | At 1920×1080: narrow controls column, tiny text, lots of empty space; 'Start here' is a tiny grey line | new (browser r4 B12). `docs/qa/screenshots/2026-10-09-r4/B12_1920x1080_first_view.png`. Open r22 (b3d5543): **still open**: column 41 % and body 16 px pass; 'Start here' still a 12 px grey caption. |
 | UI-30 | MED | Cockpit | All cockpits on one box share `tempfile.gettempdir()/fansim_cockpit_preview.stl` (+ `.progress.json`, `.meta.json`; Volute: `fansim_volute_preview.stl`), so concurrent cockpits overwrite each other's preview/progress, and a stale progress file seeds the next Preview's caption and bar (UI-4) | fixed (pending QA, r5) `1453c4f`: `<temp>/fansim_<pid>/` for Fan/Mixed/Prop/Volute/CROR. Earlier: new (r4 code reading, `fan_session.py:75`, `volute_tab.py:121`). Contradicts README's 'start a second cockpit on another `--port`'. Open |
+| UI-31 | HIGH | Fan/Optimize | Surrogate-guided Optimize from the cockpit never runs CFD. Training labels and 'verify' come from `synthetic_label()`, a test formula (`surrogate_search.py:309-326,458,477`), because the cockpit never passes `--verify-cfd` (no toggle exists). The path also silently ignores Trials, all Geometry stamps, Search RPM, Refine op and roughness (`run_optimization.py:160-192`). | new (tooltip audit 2026-10-31, code reading; not run). `docs/qa/notes/tooltip-audit-2026-10-31.md` §3/§5. Open |
+| UI-32 | MED | Fan/Optimize | No image tooltips for Optimize (16 controls) or the Assess honesty switches. `fan_copy.py:14` loads only `docs/control_images/e_*.png`, so `opt_*`/`assess_*` images could not show even if present. | new (tooltip audit 2026-10-31). 16 proposed PNGs in `handoff/2026-10-31_from-qa-tooltips/img/`. Open |
+| UI-33 | MED | Fan/Optimize | The UI doesn't say Optimize ignores the current Design sliders. It searches the guided space for the fan model from scratch (`study.py:176`, no seed/enqueue); only fan model, stamps and Assess settings carry over. | new (tooltip audit 2026-10-31; Kimball's question). Open |
+| UI-34 | MED | Fan/Optimize | 'Boost + GP mean' / 'NN + GP mean' do nothing unless Catalog GP skip or Surrogate-guided is on (`cli_argv.py:164-173`). Not disabled; the tooltip names only GP skip. | new (tooltip audit 2026-10-31). Open |
+| UI-35 | MED | Fan/Geometry | 13 tooltip images label min/max values that differ from the slider range (`generate_control_images.py` CONTROLS drift), e.g. Skew ±6 shown for a ±20/±25 slider; camber 0.12 vs 0.15; hub radius 30 vs 35. | new (tooltip audit 2026-10-31). `range_check.json`; re-renders in `handoff/2026-10-31_from-qa-tooltips/img/range_fix/`. Open |
+| UI-36 | MED | Fan | 49 Fan-tab settings have no tooltip, including ones that change results: Fan model, Hub profile (no text or image), Application preset, Print material, Sweep, Intake overbuild, Seed-from-duty, Export fit switches, action row. | new (tooltip audit 2026-10-31, headless hover confirmed). Open |
+| UI-37 | LOW | Prop/Mixed/Volute/CROR | 108 of 109 proxy-tab controls have no tooltip: shared `slider()` looks up `CONTROL_DESC` by prefixed model names (`p_`, `mf_`, `cror_f_`…), which never match; `BLADE_DESC` is used only for Cylindrical tip. | new (tooltip audit 2026-10-31). Open |
+| UI-38 | LOW | Fan/Assess+Optimize | Application/Print material don't say they also drive Optimize; picking a design silently resets preset/refine/roughness to its saved values (`fan_trials.py:103-105`). | new (tooltip audit 2026-10-31). Open |
 | QA-18 | MED | Geometry/cup Preview | Motor cup goes straight through a hub shorter than 13 mm (no cup floor) | new (r6 Task A, K7 3/29: S2_0000, S8 edge stagger_root min, S8 edge chord_root min; auto hubs 12.72 / 12.62 / 10.92 mm). `build_stl_isolated(motor_mount=…)` (the cockpit cup Preview path) doesn't enforce `MotorMount.min_hub_height_mm` (15) or refuse; only Export's `prepare_export_flat(fit_hub=True)` grows the hub. Grips/Ø are correct. Repro `stress/repro/A-F2_cup_through_short_hub.json`; `handoff/2026-10-09_from-qa-5/stress/summary.md`. Was open → **verified fixed `5980677`** (r7 stress: S2_0000, S8_0002, S8_0008 hubs grown to 15.0 mm, floor 12.985 mm, 20 grips; K7 0/14 FAIL over the 65-design run). |
 | QA-19 | MED | Audit/direction | `prove_direction` falsely refuses builder designs with max_camber < 0.02 and lean_tip ≥ 20° | r6 Task A, K5: 7/119 CONCLUSIVE-wrong (9605, 9606, 9620, 9630 plus new S3_0002 guided_lc, S4_0005, S4_0012; 8–11 blades) and 24 INCONCLUSIVE. All 7 are in that cell (7 FAIL + 10 INCONCLUSIVE of 22). Not all 11-blade: S4_0005 has 8 blades and S4_0012 has 9; the shared factor is low camber with high tip lean. The mirror check K6 passes on all of them, so the checker misreads lean curvature as camber. Repro `stress/repro/A-F3_direction_false_refusal.json`. Input to Task B. Was open → **mostly fixed `5980677`**: all 7 r6 false refusals now pass the new K5 rule (K5_old FAIL 8 → K5 FAIL 1 over 65 designs). **Residual:** S3_0014 (9 blades, max_camber 0.0242, lean_tip 42°) is CONCLUSIVE omega −1/pump +1, mirror passes K6, and the new rule refuses it because its camber is just above the 0.02 cut-off. Same lean-as-camber misread, one camber bin higher. See `docs/qa/stress/RESULTS_R7.md`. Still open for camber 0.02–0.04 × lean ≥ 30°.. **r8 Task B (fresh sample, 2-blade rebuilds):** the cylinder proof is still CONCLUSIVE-wrong on 6/72 (5 flat-leaned plus S3_0014 again). The radial-plane cut had 0 wrong on 72 parts + mirrors and read 54/54 cambered parts. The combined (both-agree) rule had 0 wrong but read only 43/54 (R5 FAIL). The builder rule R6 FAILS as registered. `docs/qa/notes/direction-radial-confirmation.md` |
 | QA-20 | LOW | Resources/docs | Memory tiers give equal solids but **not byte-identical STLs** | r6 Task A, K8: volume within 1e-6 and the same vertex count 11/11, but the sha256 differs between 16gb/8gb/6gb in **11/11**. The `fansim/resources.py` docstring's 'byte-identical solid' claim is false at the file level. Repro `stress/repro/A-F4_tiers_not_byte_identical.json`. Open |
@@ -876,3 +884,41 @@ Handoff: `handoff/2026-10-29_from-qa-22/`. Bundle: `master_b3d5543.bundle` (the 
   - **Repro:** `pytest tests/test_fuse_memory.py`: `fuse_remaining_estimate_gb(18084)` = 1.934 is not less than
     `fuse_peak_estimate_gb(18084)` = 1.925. Both are pure functions, so this fails on every OS.
   - Proposal: refit one of the two estimates, or fix the invariant.
+
+
+## Round 23 (2026-10-31): master 3b92eea, run clone `/workspace/fansim/repo-r23`
+Prereg **`0006f9b`** (`prereg_r6` branch `prereg/round23`, `qa_r23/PREREG_R23.md`, committed 12:19 MDT before any data).
+Handoff: `handoff/2026-10-31_from-qa-23/`. Bundle: `master_3b92eea.bundle` (the brief's `fansim.bundle` is not on the box).
+
+- **A (lt120 knee, no CFD): 13.71 Pa / 60 CFM is AT THE KNEE, robust (100 % of 5000 MC draws, Q ±3 %, ΔP ±0.5 Pa).**
+  - Measured slopes, 8→32→40→60→84 CFM: −0.703 / −0.307 / **−0.049** / −0.286 Pa/CFM (steep, flat, flat, flat).
+    60 CFM ends a 40–60 CFM plateau; PCHIP slope −0.08 vs −0.42 Pa/CFM at 84 CFM, so 1 Pa ≈ 12 CFM there.
+    The 5 points do not resolve a stall dip.
+  - **CFD shape does not agree:** steep through 17.14 Pa with no plateau. The 6.85–13.71 Pa slope is 1.5–1.6× the measured
+    one (1.5 mm gap 0.68, INCONCLUSIVE).
+  - **Tutar & Cam 2025** (CC BY 4.0, Figs. 8/9, prescribed-flow CFD): they show the plateau and call 40–60 cfm the
+    "stall range". 6.85 Pa is matched (≈ −3.5 %). 13.71 Pa is not matched in flow (≈ 41 cfm, 38–50), even though they
+    are only ≈ 1 Pa low.
+  - Note: `docs/qa/notes/r23-A-lt120-knee.md`.
+- **B ("near the knee" warning, proposal only): NEEDS MORE DATA.**
+  - R23-KNEE = K1 unconverged OR K2 φ ≤ 0.6 OR K3 P ≥ 0.6 × BEM shut-off.
+  - On A12x25 Stock 5/10/15/20, lt120 6.85/13.71 and FAN-01 7–253 Pa: **6 hits, 1 miss (lt120 13.71, converged +24.5 %),
+    0 false flags.** Only K1 fires; K2 is n/a without a free-air CFD, and K3 never fires.
+  - Draft: land K1 as the warning, show φ and P/shutoff as report-only, and add a converged-near-knee caveat. A BEM-
+    flattening K4 is exploratory (lt120 0.51, A12x25 15 Pa 0.47).
+  - Note: `docs/qa/notes/r23-B-near-knee-warning-spec.md`.
+- **C:** waiting (R3.1 export leak check; r21 A re-run after R1.10). Not run.
+
+- **QA-64 (LOW, new) The release wording "Fan CFD: validated near free air on three published fans, within 8 %" overstates lt120.** Tested 3b92eea. Status: open.
+  - **Repro:** `docs/validation/audits/2026-10-30-lt120-tip-gap-prereg.md:69` and `2026-10-18-lt120-validation-prereg.md:79/89`.
+    - lt120's point is 6.85 Pa, about 20 % of the 34 Pa near-shut-off point. It is on the stable branch, and the dataset
+      has no free-air point.
+    - The error is +8.1 % as a two-mesh mean, and +9.5 % on the 6.2 mm mesh.
+  - Proposal: "within 10 %", and for lt120 "at its lowest measured load (6.85 Pa)" instead of "near free air".
+
+## Tooltip audit (2026-10-31): master 3b92eea, clean clone `/workspace/fansim/repo-tt`
+Asked by Kimball 12:58 MDT. Note: `docs/qa/notes/tooltip-audit-2026-10-31.md`. Handoff: `handoff/2026-10-31_from-qa-tooltips/`. No source edits, no CFD/Docker/Assess/Sweep/Optimize run.
+
+- **Inventory:** 229 setting-bound controls: 53 image+text (all Fan › Geometry), 19 text-only, 157 none. Optimize: 16/16 text-only, 0 images.
+- **Generator found:** `scripts/generate_control_images.py` (pyvista, 460×250). Driven unmodified via a wrapper to make the missing rotor images. Stator/casing and SEARCH/EVAL settings use fallback renders/schematics.
+- **New:** UI-31 (HIGH), UI-32 … UI-36 (MED), UI-37, UI-38 (LOW).

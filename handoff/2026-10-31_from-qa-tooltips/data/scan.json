@@ -1,0 +1,5367 @@
+[
+ {
+  "file": "fansim/cockpit/app.py",
+  "line": 163,
+  "func": "build_server",
+  "widget": "VBtnToggle",
+  "label": null,
+  "model": "(ui_mode)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/app.py",
+  "line": 165,
+  "func": "build_server",
+  "widget": "VBtn",
+  "label": "Simple",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/app.py",
+  "line": 166,
+  "func": "build_server",
+  "widget": "VBtn",
+  "label": "Expert",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/app.py",
+  "line": 183,
+  "func": "build_server",
+  "widget": "VTab",
+  "label": "Fan \u00b7 CFD",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": "Fan \u2014 CFD-checked axial PC-fan blades (printable STL)",
+  "tooltip_line": 177,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/app.py",
+  "line": 190,
+  "func": "build_server",
+  "widget": "VTab",
+  "label": "Mixed \u00b7 estimate",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": "ui_mode === 'expert'",
+  "disabled": null,
+  "click": null,
+  "tooltip_text": "Mixed-flow \u2014 drop-in impeller (rough estimate, not full Fan CFD)",
+  "tooltip_line": 184,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/app.py",
+  "line": 202,
+  "func": "build_server",
+  "widget": "VTab",
+  "label": "Volute \u00b7 estimate",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": "ui_mode === 'expert'",
+  "disabled": null,
+  "click": null,
+  "tooltip_text": "Volute \u2014 radial blower (rough estimate, ranking only)",
+  "tooltip_line": 196,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/app.py",
+  "line": 214,
+  "func": "build_server",
+  "widget": "VTab",
+  "label": "Prop \u00b7 fast estimate",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": "Propeller \u2014 fast estimate (~1 s). Optional CFD check.",
+  "tooltip_line": 208,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/app.py",
+  "line": 221,
+  "func": "build_server",
+  "widget": "VTab",
+  "label": "CROR \u00b7 estimate",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": "ui_mode === 'expert'",
+  "disabled": null,
+  "click": null,
+  "tooltip_text": "CROR \u2014 stacked rotors (fast estimate, not full CFD)",
+  "tooltip_line": 215,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 121,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "_lab(\"thick_mm\", \"Uniform wall\")",
+  "model": "f\"{p}thick_mm\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 127,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "t/c root",
+  "model": "f\"{p}thickness_root\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 128,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "t/c mid",
+  "model": "f\"{p}thickness_mid\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 129,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "t/c tip",
+  "model": "f\"{p}thickness_tip\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 130,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "Camber root",
+  "model": "f\"{p}camber_root\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 131,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "Camber mid",
+  "model": "f\"{p}camber_mid\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 132,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "Camber tip",
+  "model": "f\"{p}camber_tip\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 133,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "Camber pos",
+  "model": "f\"{p}camber_pos\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 136,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "Sweep mid",
+  "model": "f\"{p}sweep_mid\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 137,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "Sweep tip",
+  "model": "f\"{p}sweep_tip\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 138,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "LE curve mid",
+  "model": "f\"{p}le_sweep_mid\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 139,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "LE curve tip",
+  "model": "f\"{p}le_sweep_tip\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 140,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "Sickle mid",
+  "model": "f\"{p}le_skew_mid\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 141,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "Sickle tip",
+  "model": "f\"{p}le_skew_tip\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 142,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "Wrap mid",
+  "model": "f\"{p}lean_mid\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 143,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "Wrap tip",
+  "model": "f\"{p}lean_tip\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 147,
+  "func": "render_shape_panels",
+  "widget": "help_switch",
+  "label": "Cylindrical tip",
+  "model": "f\"{p}cylindrical_tip\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 152,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "Tip round",
+  "model": "f\"{p}tip_round\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/blade_editor.py",
+  "line": 153,
+  "func": "render_shape_panels",
+  "widget": "slider",
+  "label": "Tip round start",
+  "model": "f\"{p}tip_round_start\"",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 597,
+  "func": "_cror_design",
+  "widget": "_slider",
+  "label": "Hub R (mm)",
+  "model": "cror_hub_r",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 598,
+  "func": "_cror_design",
+  "widget": "_slider",
+  "label": "Tip R (mm)",
+  "model": "cror_tip_r",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 599,
+  "func": "_cror_design",
+  "widget": "_slider",
+  "label": "Axial gap (mm)",
+  "model": "cror_gap",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 603,
+  "func": "_cror_design",
+  "widget": "_slider",
+  "label": "Front blades",
+  "model": "cror_f_n",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 604,
+  "func": "_cror_design",
+  "widget": "_slider",
+  "label": "Chord root",
+  "model": "cror_f_chord_root",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 606,
+  "func": "_cror_design",
+  "widget": "_slider",
+  "label": "Chord mid",
+  "model": "cror_f_chord_mid",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 608,
+  "func": "_cror_design",
+  "widget": "_slider",
+  "label": "Chord tip",
+  "model": "cror_f_chord_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 610,
+  "func": "_cror_design",
+  "widget": "_slider",
+  "label": "Stagger",
+  "model": "cror_f_stagger",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 626,
+  "func": "_cror_design",
+  "widget": "_slider",
+  "label": "Rear blades",
+  "model": "cror_r_n",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 627,
+  "func": "_cror_design",
+  "widget": "_slider",
+  "label": "Chord root",
+  "model": "cror_r_chord_root",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 629,
+  "func": "_cror_design",
+  "widget": "_slider",
+  "label": "Chord mid",
+  "model": "cror_r_chord_mid",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 631,
+  "func": "_cror_design",
+  "widget": "_slider",
+  "label": "Chord tip",
+  "model": "cror_r_chord_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 633,
+  "func": "_cror_design",
+  "widget": "_slider",
+  "label": "Stagger",
+  "model": "cror_r_stagger",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 647,
+  "func": "_cror_design",
+  "widget": "VBtn",
+  "label": "Thin to depth",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(_cror_busy_expr,)",
+  "click": "(getattr(ctx, \"thin_cror_now\"),)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 714,
+  "func": "_cror_design",
+  "widget": "VTextField",
+  "label": "Trials",
+  "model": "(cror_trials)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 723,
+  "func": "_cror_design",
+  "widget": "VTextField",
+  "label": "RPM",
+  "model": "(cror_rpm)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 732,
+  "func": "_cror_design",
+  "widget": "VTextField",
+  "label": "Max depth mm",
+  "model": "(cror_max_depth)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 742,
+  "func": "_cror_design",
+  "widget": "VTextField",
+  "label": "CFD refine top N",
+  "model": "(cror_cfd_top)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 751,
+  "func": "_cror_design",
+  "widget": "VBtn",
+  "label": "CFD refine",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(\n                                        f\"{_cror_busy_expr} || !cror_has_front || !(cror_cfd_top > 0)\",\n                                    )",
+  "click": "(getattr(ctx, \"refine_cror_cfd\"),)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 766,
+  "func": "_cror_results",
+  "widget": "VSelect",
+  "label": "Previous runs",
+  "model": "(cror_sel_idx)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 788,
+  "func": "_cror_library",
+  "widget": "VSelect",
+  "label": "Previous runs",
+  "model": "(cror_sel_idx)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 840,
+  "func": "render_cror_tab",
+  "widget": "VBtnToggle",
+  "label": null,
+  "model": "(cror_airflow_field)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'",
+   "cror_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 847,
+  "func": "render_cror_tab",
+  "widget": "VBtn",
+  "label": "|U| midplane",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'",
+   "cror_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 848,
+  "func": "render_cror_tab",
+  "widget": "VBtn",
+  "label": "pressure midplane",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'",
+   "cror_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 849,
+  "func": "render_cror_tab",
+  "widget": "VBtn",
+  "label": "axial Uz",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'",
+   "cror_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/cror_tab.py",
+  "line": 850,
+  "func": "render_cror_tab",
+  "widget": "VBtn",
+  "label": "streamlines",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'cror'",
+   "cror_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 92,
+  "func": "render_fan_tab",
+  "widget": "VSelect",
+  "label": "Fan model (hub)",
+  "model": "(fan_model)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 111,
+  "func": "render_fan_tab",
+  "widget": "VTab",
+  "label": "Design",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 112,
+  "func": "render_fan_tab",
+  "widget": "VTab",
+  "label": "Results",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 113,
+  "func": "render_fan_tab",
+  "widget": "VTab",
+  "label": "Library",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 116,
+  "func": "render_fan_tab",
+  "widget": "VSwitch",
+  "label": "Fits this fan only",
+  "model": "(fits_only)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 132,
+  "func": "render_fan_tab",
+  "widget": "VSwitch",
+  "label": "Declutter (hide near-duplicates)",
+  "model": "(declutter)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 141,
+  "func": "render_fan_tab",
+  "widget": "VSwitch",
+  "label": "Show stock (published)",
+  "model": "(show_stock)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 170,
+  "func": "render_fan_tab",
+  "widget": "VSelect",
+  "label": "Design",
+  "model": "(selected_trial)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 231,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "Scale to this hub",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(!library_sel || preview_busy || assess_busy || export_busy || opt_running)",
+  "click": "(on_library_scale_to_hub,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 256,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Tip past frame",
+  "model": "lee_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 257,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Extra depth Z",
+  "model": "lee_depth",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 258,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Over-voltage",
+  "model": "lee_overvolt",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 259,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Extra weight",
+  "model": "lee_weight",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 268,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "Load selected model into form",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": "(load_model_into_form,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 276,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Model name (new name = create)",
+  "model": "(fm_key)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 286,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Max tip dia (mm)",
+  "model": "(fm_tip_max)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 296,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Max depth (mm)",
+  "model": "(fm_depth_max)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 307,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Hub dia min (mm)",
+  "model": "(fm_hub_min)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 317,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Hub dia max (mm)",
+  "model": "(fm_hub_max)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 329,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Cavity dia",
+  "model": "(fm_cav_dia)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 339,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Cavity depth",
+  "model": "(fm_cav_depth)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 349,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Min hub H",
+  "model": "(fm_hub_h)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 360,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "\ud83d\udcbe Save model",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": "(save_model,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 362,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "\ud83d\uddd1 Delete",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(model_is_builtin)",
+  "click": "(delete_model,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 384,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Measured CFM",
+  "model": "(meas_cfm)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 394,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Static Pa",
+  "model": "(meas_static)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 405,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Noise dB(A)",
+  "model": "(meas_noise)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 415,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "RPM",
+  "model": "(meas_rpm)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 426,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Material (printed)",
+  "model": "(meas_material)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 435,
+  "func": "render_fan_tab",
+  "widget": "VSelect",
+  "label": "Print type",
+  "model": "(meas_print_type)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 445,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Weight g",
+  "model": "(meas_weight)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 454,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Instrument",
+  "model": "(meas_instrument)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 462,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Notes",
+  "model": "(meas_notes)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 472,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "Save measurement",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": "(save_measurement,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 480,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "Show store calibration",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": "(show_store_calibration,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'library'",
+   "fan_subtab === 'library'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 516,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "About",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": "(show_fan_about,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 522,
+  "func": "render_fan_tab",
+  "widget": "VSelect",
+  "label": "(edited_stale ? '\u270e Edited copy (not saved) \u2014 based on:' : 'Design (unlocks Preview / Assess / Export)')",
+  "model": "(selected_trial)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 639,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "Reset",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(_action_busy,)",
+  "click": "(select, \"[selected_trial]\")",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 677,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Blades",
+  "model": "e_n_blades",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 678,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Chord root",
+  "model": "e_chord_root",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 679,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Chord mid",
+  "model": "e_chord_mid",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 680,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Chord tip",
+  "model": "e_chord_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 688,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Stagger root",
+  "model": "e_stagger_root",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 689,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Stagger mid",
+  "model": "e_stagger_mid",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 690,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Stagger tip",
+  "model": "e_stagger_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 693,
+  "func": "render_fan_tab",
+  "widget": "_help_select",
+  "label": "Section family",
+  "model": "e_section_family",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 706,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Camber root",
+  "model": "e_camber_root",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 707,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Camber mid",
+  "model": "e_camber_mid",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 708,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Camber tip",
+  "model": "e_camber_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 716,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Camber position",
+  "model": "e_camber_pos",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 717,
+  "func": "render_fan_tab",
+  "widget": "_help_select",
+  "label": "Thickness span",
+  "model": "e_thick_mode",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 727,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Wall thickness",
+  "model": "e_thick_mm",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(e_thick_mode !== 'uniform')",
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 732,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Wall t/c root",
+  "model": "e_thick_root",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(e_thick_mode === 'uniform')",
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 737,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Wall t/c mid",
+  "model": "e_thick_mid",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(e_thick_mode === 'uniform')",
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 742,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Wall t/c tip",
+  "model": "e_thick_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(e_thick_mode === 'uniform')",
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 754,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "LE thick / roundness",
+  "model": "e_le_thick",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 758,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "TE thick / roundness",
+  "model": "e_te_thick",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 772,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Smooth span curves",
+  "model": "e_smooth_span",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 778,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Wrap mid",
+  "model": "e_lean_mid",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 779,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Wrap tip",
+  "model": "e_lean_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 780,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Sweep mid",
+  "model": "e_sweep_mid",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 781,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Sweep tip",
+  "model": "e_sweep_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 782,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "LE curve mid",
+  "model": "e_le_mid",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 783,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "LE curve tip",
+  "model": "e_le_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 784,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Sickle mid",
+  "model": "e_le_skew_mid",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 785,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Sickle tip",
+  "model": "e_le_skew_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 786,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Skew mid",
+  "model": "e_skew_mid",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 787,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Skew tip",
+  "model": "e_skew_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 791,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Cylindrical tip (match cover)",
+  "model": "e_cylindrical_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 796,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Tip round",
+  "model": "e_tip_round",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 797,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Tip round start",
+  "model": "e_tip_start",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 798,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Tip TE notches (3 boxy bites)",
+  "model": "e_tip_notched",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 803,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Tip notch depth",
+  "model": "e_tip_notch_depth",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(!e_tip_notched)",
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 818,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Winglet start",
+  "model": "e_winglet_span",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 819,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Winglet sweep",
+  "model": "e_winglet_sweep",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 820,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Winglet lean",
+  "model": "e_winglet_lean",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 821,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Shroud thickness",
+  "model": "e_shroud_thick",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 822,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Shroud height",
+  "model": "e_shroud_height",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(e_shroud_thick == 0)",
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 838,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Hub radius",
+  "model": "e_hub_radius",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 840,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Tip radius / length",
+  "model": "e_tip_radius",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 842,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Hub height (0=auto)",
+  "model": "e_hub_height",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 846,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Blade on hub",
+  "model": "e_blade_hub_z",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 856,
+  "func": "render_fan_tab",
+  "widget": "VSelect",
+  "label": "Hub profile",
+  "model": "(e_hub_profile)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 865,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Hub nose (cone/dome)",
+  "model": "e_hub_nose",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 871,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Uneven spacing",
+  "model": "e_spacing",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 874,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "\ud83c\udfb2 Randomize features",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(_action_busy,)",
+  "click": "(randomize_features,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 884,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Tubercle amp",
+  "model": "e_tub_amp",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 885,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Tubercle waves",
+  "model": "e_tub_waves",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 886,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Serration amp",
+  "model": "e_ser_amp",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 887,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Serration teeth",
+  "model": "e_ser_waves",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 888,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Dimple depth",
+  "model": "e_dim_amp",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 889,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Dimple rows",
+  "model": "e_dim_rows",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 890,
+  "func": "render_fan_tab",
+  "widget": "_slider",
+  "label": "Dimple cols",
+  "model": "e_dim_cols",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 901,
+  "func": "render_fan_tab",
+  "widget": "VSelect",
+  "label": "Application (hose resistance)",
+  "model": "(assess_preset)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 916,
+  "func": "render_fan_tab",
+  "widget": "VSelect",
+  "label": "Print material (stress gate + vibration warning)",
+  "model": "(assess_material)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 931,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "Score multi-point BEM (ranking only)",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": "(score_multi_point_bem,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 951,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Third CFD at operating point (~50% longer)",
+  "model": "assess_refine_op",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 956,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "FDM wall roughness (ks\u22480.1 mm)",
+  "model": "assess_wall_ks",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 963,
+  "func": "render_fan_tab",
+  "widget": "VSelect",
+  "label": "Sweep",
+  "model": "(sweep_param)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 972,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "steps",
+  "model": "(sweep_steps)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 981,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "Run",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(assess_busy)",
+  "click": "(on_sweep,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1000,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "\u23f9 Cancel",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(sweep_cancel)",
+  "click": "(cancel_sweep,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "sweep_active"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1024,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Trials",
+  "model": "(opt_trials)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": 1022,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1035,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Continue the last Optimize run",
+  "model": "opt_resume",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1043,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Tip ring / shroud",
+  "model": "opt_shroud",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1044,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Stator vanes",
+  "model": "opt_stator",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1045,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Stator + frame stack",
+  "model": "opt_stator_stack",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1046,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Sickle leading edge",
+  "model": "opt_sickle",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1047,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Stepped inlet casing",
+  "model": "opt_stepped",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1048,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Notched tip trailing edge",
+  "model": "opt_notched",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1054,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "BEM ranking screen \u2014 skip CFD below ~32 CFM",
+  "model": "opt_bem",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1058,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Catalog GP skip below ~40 CFM free",
+  "model": "opt_gp",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1062,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Boost + GP mean",
+  "model": "opt_gp_boost",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1066,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "NN + GP mean",
+  "model": "opt_gp_nn",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1070,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Surrogate-guided (DoE\u2192NSGA on GP\u2192verify top-k)",
+  "model": "opt_surrogate_guided",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1078,
+  "func": "render_fan_tab",
+  "widget": "_help_switch",
+  "label": "Search RPM in PWM band",
+  "model": "opt_search_rpm",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1085,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "PWM RPM min",
+  "model": "(opt_rpm_min)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": 1083,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'",
+   "opt_search_rpm"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1098,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "PWM RPM max",
+  "model": "(opt_rpm_max)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": 1096,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'",
+   "ui_mode === 'expert'",
+   "opt_search_rpm"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1121,
+  "func": "render_fan_tab",
+  "widget": "VSwitch",
+  "label": "Allow intake overbuild (+Z)",
+  "model": "(intake_overbuild)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1130,
+  "func": "render_fan_tab",
+  "widget": "VSlider",
+  "label": "Extra intake (mm)",
+  "model": "(intake_overbuild_mm)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(!intake_overbuild)",
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1158,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "Fit envelope",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(_action_busy,)",
+  "click": "(on_fit_envelope,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1168,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "Scale to this hub",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(_action_busy,)",
+  "click": "(on_scale_to_hub,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1183,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Target CFM",
+  "model": "(seed_duty_cfm)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1192,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "\u0394P (Pa)",
+  "model": "(seed_duty_pa)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1201,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "RPM",
+  "model": "(seed_duty_rpm)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1209,
+  "func": "render_fan_tab",
+  "widget": "VSelect",
+  "label": "Vortex",
+  "model": "(seed_duty_vortex)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1218,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "Apply stagger/camber seed",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(_action_busy,)",
+  "click": "(seed_from_duty,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1239,
+  "func": "render_fan_tab",
+  "widget": "VSwitch",
+  "label": "Highlight out-of-spec (red)",
+  "model": "(highlight_spec)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1248,
+  "func": "render_fan_tab",
+  "widget": "VSwitch",
+  "label": "Case envelope",
+  "model": "(show_envelope)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1258,
+  "func": "render_fan_tab",
+  "widget": "VSwitch",
+  "label": "Rotation (CCW) + airflow (\u2212Z) cues",
+  "model": "(show_dir_cues)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1268,
+  "func": "render_fan_tab",
+  "widget": "VBtnToggle",
+  "label": null,
+  "model": "(glyph_mode)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1275,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "Arrows on",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1276,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "Arrows off",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1278,
+  "func": "render_fan_tab",
+  "widget": "VSelect",
+  "label": "Arrow density",
+  "model": "(glyph_density)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(glyph_mode === 'off')",
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1288,
+  "func": "render_fan_tab",
+  "widget": "VTextField",
+  "label": "Scale",
+  "model": "(glyph_scale)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(glyph_mode === 'off')",
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1343,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "Export STL",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(_action_busy,)",
+  "click": "(export_stl_current,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1353,
+  "func": "render_fan_tab",
+  "widget": "VSwitch",
+  "label": "Fit hub to the motor",
+  "model": "(export_fit_hub)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1358,
+  "func": "render_fan_tab",
+  "widget": "VSwitch",
+  "label": "Fit tip + depth to the frame",
+  "model": "(export_fit_frame)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1364,
+  "func": "render_fan_tab",
+  "widget": "VSwitch",
+  "label": "Also export the mirror-image fan (CW + CCW)",
+  "model": "(export_also_mirror)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1369,
+  "func": "render_fan_tab",
+  "widget": "VSwitch",
+  "label": "Show the motor cup in Preview (slower)",
+  "model": "(preview_motor_cup)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(!cup_build_ok)",
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'design'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1439,
+  "func": "render_fan_tab",
+  "widget": "VBtnToggle",
+  "label": null,
+  "model": "(airflow_field)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'results' && ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1446,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "|U| midplane",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'results' && ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1447,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "pressure midplane",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'results' && ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1448,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "axial Uz",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'results' && ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1449,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "streamlines",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'results' && ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1450,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "spanwise",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'results' && ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1451,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "b2b Cp",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'results' && ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_tab_ui.py",
+  "line": 1468,
+  "func": "render_fan_tab",
+  "widget": "VBtn",
+  "label": "\u23f9 Cancel viz",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(!airflow_busy)",
+  "click": "(cancel_airflow,)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'fan'",
+   "fan_subtab === 'results' && ui_mode === 'expert'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/fan_widgets.py",
+  "line": 38,
+  "func": "_body",
+  "widget": "VSlider",
+  "label": null,
+  "model": "(model,)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/fan_widgets.py",
+  "line": 105,
+  "func": "help_switch",
+  "widget": "VSwitch",
+  "label": null,
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/fan_widgets.py",
+  "line": 109,
+  "func": "help_switch",
+  "widget": "VSwitch",
+  "label": null,
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": 107,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/fan_widgets.py",
+  "line": 145,
+  "func": "help_select",
+  "widget": "VSelect",
+  "label": null,
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/fan_widgets.py",
+  "line": 149,
+  "func": "help_select",
+  "widget": "VSelect",
+  "label": null,
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": 147,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 672,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Blades",
+  "model": "mf_n_blades",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 673,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Eye hub R (mm)",
+  "model": "mf_r_eye",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 674,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Back hub R (mm)",
+  "model": "mf_r_back",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 675,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Tip R (mm)",
+  "model": "mf_r_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 676,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Z span (mm)",
+  "model": "mf_z_span",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 678,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Chord root (mm)",
+  "model": "mf_chord_root",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 679,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Chord mid (mm)",
+  "model": "mf_chord",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 680,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Chord tip (mm)",
+  "model": "mf_chord_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 681,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Stagger root (\u00b0)",
+  "model": "mf_stagger_root",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 682,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Stagger mid (\u00b0)",
+  "model": "mf_stagger",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 683,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Stagger tip (\u00b0)",
+  "model": "mf_stagger_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 685,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Thickness t/c",
+  "model": "mf_thickness",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 686,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Camber",
+  "model": "mf_camber",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 687,
+  "func": "_mf_design",
+  "widget": "_slider",
+  "label": "Camber pos",
+  "model": "mf_camber_pos",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 689,
+  "func": "_mf_design",
+  "widget": "VSelect",
+  "label": "Application",
+  "model": "(mf_assess_preset)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 698,
+  "func": "_mf_design",
+  "widget": "VSwitch",
+  "label": "Third CFD at operating point",
+  "model": "(mf_refine_op)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 772,
+  "func": "_mf_design",
+  "widget": "VTextField",
+  "label": "Trials",
+  "model": "(mf_trials)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 781,
+  "func": "_mf_design",
+  "widget": "VSwitch",
+  "label": "Continue last",
+  "model": "(mf_resume)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 792,
+  "func": "_mf_design",
+  "widget": "VTextField",
+  "label": "CFD refine top N",
+  "model": "(mf_cfd_top)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 801,
+  "func": "_mf_design",
+  "widget": "VBtn",
+  "label": "CFD refine",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(\n                                        f\"{_mf_busy_expr} || !mf_has_front || !(mf_cfd_top > 0)\",\n                                    )",
+  "click": "(getattr(ctx, \"refine_mixed_cfd\"),)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 816,
+  "func": "_mf_results",
+  "widget": "VSelect",
+  "label": "Previous runs",
+  "model": "(mf_sel_trial)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 838,
+  "func": "_mf_library",
+  "widget": "VSelect",
+  "label": "Previous runs",
+  "model": "(mf_sel_trial)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 883,
+  "func": "render_mixed_tab",
+  "widget": "VBtnToggle",
+  "label": null,
+  "model": "(mf_airflow_field)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'",
+   "mf_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 890,
+  "func": "render_mixed_tab",
+  "widget": "VBtn",
+  "label": "|U| midplane",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'",
+   "mf_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 891,
+  "func": "render_mixed_tab",
+  "widget": "VBtn",
+  "label": "pressure midplane",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'",
+   "mf_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 892,
+  "func": "render_mixed_tab",
+  "widget": "VBtn",
+  "label": "axial Uz",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'",
+   "mf_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/mixed_tab.py",
+  "line": 893,
+  "func": "render_mixed_tab",
+  "widget": "VBtn",
+  "label": "streamlines",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'mixed'",
+   "mf_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 981,
+  "func": "_prop_design",
+  "widget": "VSelect",
+  "label": "Propeller size",
+  "model": "(prop_model)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1090,
+  "func": "_prop_design",
+  "widget": "_slider",
+  "label": "Blades",
+  "model": "p_n_blades",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1091,
+  "func": "_prop_design",
+  "widget": "_slider",
+  "label": "Pitch (in)",
+  "model": "p_pitch",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1092,
+  "func": "_prop_design",
+  "widget": "_slider",
+  "label": "Chord root (\u00d7tip R)",
+  "model": "p_chord_root",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1093,
+  "func": "_prop_design",
+  "widget": "_slider",
+  "label": "Chord mid (\u00d7tip R)",
+  "model": "p_chord_mid",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1094,
+  "func": "_prop_design",
+  "widget": "_slider",
+  "label": "Chord tip (\u00d7tip R)",
+  "model": "p_chord_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1095,
+  "func": "_prop_design",
+  "widget": "VSelect",
+  "label": "Wall mode",
+  "model": "(p_thick_mode)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1108,
+  "func": "_pslider",
+  "widget": "_slider",
+  "label": "label",
+  "model": "model",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "disabled",
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1132,
+  "func": "_prop_design",
+  "widget": "VTextField",
+  "label": "Trials",
+  "model": "(prop_trials)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1141,
+  "func": "_prop_design",
+  "widget": "VTextField",
+  "label": "Max power W (0=any)",
+  "model": "(prop_maxpower)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1149,
+  "func": "_prop_design",
+  "widget": "VSelect",
+  "label": "Mission",
+  "model": "(prop_mission)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1160,
+  "func": "_prop_design",
+  "widget": "VTextField",
+  "label": "Weight (N)",
+  "model": "(prop_weight_n)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1169,
+  "func": "_prop_design",
+  "widget": "VTextField",
+  "label": "Rotors",
+  "model": "(prop_n_rotors)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1178,
+  "func": "_prop_design",
+  "widget": "VTextField",
+  "label": "Battery (Wh)",
+  "model": "(prop_battery_wh)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1188,
+  "func": "_prop_design",
+  "widget": "VTextField",
+  "label": "Cruise (m/s)",
+  "model": "(prop_cruise_mps)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1197,
+  "func": "_prop_design",
+  "widget": "VTextField",
+  "label": "Min hover (min)",
+  "model": "(prop_min_minutes)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1204,
+  "func": "_prop_design",
+  "widget": "VSwitch",
+  "label": "Continue last prop study",
+  "model": "(prop_resume)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1225,
+  "func": "_prop_design",
+  "widget": "VTextField",
+  "label": "CFD top N",
+  "model": "(prop_cfd_top)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1234,
+  "func": "_prop_design",
+  "widget": "VTextField",
+  "label": "BEMT floor g",
+  "model": "(prop_bemt_floor)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1243,
+  "func": "_prop_design",
+  "widget": "VSelect",
+  "label": "CFD mesh",
+  "model": "(prop_cfd_mesh_preset)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1252,
+  "func": "_prop_design",
+  "widget": "VBtn",
+  "label": "CFD refine",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": "(prop_busy || prop_refine_busy || !prop_has_front || !(prop_cfd_top > 0))",
+  "click": "(getattr(ctx, \"refine_prop_cfd\"),)",
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1264,
+  "func": "_prop_design",
+  "widget": "VSelect",
+  "label": "BEMT polar backend",
+  "model": "(prop_polar_backend)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1273,
+  "func": "_prop_design",
+  "widget": "VTextField",
+  "label": "Polar V\u221e (m/s, comma)",
+  "model": "(prop_polar_v)",
+  "title_kw": null,
+  "hint": "BEMT forward-flight sweep on Analyze",
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1285,
+  "func": "_prop_results",
+  "widget": "VSelect",
+  "label": "Previous runs",
+  "model": "(prop_sel_idx)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1328,
+  "func": "_prop_library",
+  "widget": "VSelect",
+  "label": "Previous runs",
+  "model": "(prop_sel_idx)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1376,
+  "func": "render_prop_tab",
+  "widget": "VBtnToggle",
+  "label": null,
+  "model": "(prop_airflow_field)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'",
+   "prop_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1383,
+  "func": "render_prop_tab",
+  "widget": "VBtn",
+  "label": "|U| midplane",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'",
+   "prop_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1384,
+  "func": "render_prop_tab",
+  "widget": "VBtn",
+  "label": "pressure midplane",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'",
+   "prop_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1385,
+  "func": "render_prop_tab",
+  "widget": "VBtn",
+  "label": "axial Uz",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'",
+   "prop_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/prop_tab.py",
+  "line": 1386,
+  "func": "render_prop_tab",
+  "widget": "VBtn",
+  "label": "streamlines",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'propeller'",
+   "prop_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/tab_shell.py",
+  "line": 24,
+  "func": "render_subtabs",
+  "widget": "VTab",
+  "label": "Design",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/tab_shell.py",
+  "line": 25,
+  "func": "render_subtabs",
+  "widget": "VTab",
+  "label": "Results",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/tab_shell.py",
+  "line": 26,
+  "func": "render_subtabs",
+  "widget": "VTab",
+  "label": "Library",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/tab_shell.py",
+  "line": 46,
+  "func": "render_action_row",
+  "widget": "VBtn",
+  "label": "label",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": []
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 594,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Blades",
+  "model": "volute_n_blades",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 595,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Hub R (mm)",
+  "model": "volute_r_hub",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 596,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Tip R (mm)",
+  "model": "volute_r_tip",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 597,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Blade height (mm)",
+  "model": "volute_blade_h",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 598,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Blade thick (mm)",
+  "model": "volute_blade_thick",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 599,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Backplate (mm)",
+  "model": "volute_backplate",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 603,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Spiral growth (mm)",
+  "model": "volute_spiral",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 604,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Tip clearance (mm)",
+  "model": "volute_clearance",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 605,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Wall (mm)",
+  "model": "volute_wall",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 606,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Tongue angle (\u00b0)",
+  "model": "volute_tongue_angle",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 607,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Tongue clear (mm)",
+  "model": "volute_tongue_clear",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 608,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Tongue fillet (mm)",
+  "model": "volute_tongue_fillet",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 611,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Outlet width (mm)",
+  "model": "volute_out_w",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 612,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Outlet length (mm)",
+  "model": "volute_out_l",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 613,
+  "func": "_volute_design",
+  "widget": "_slider",
+  "label": "Outlet height (mm)",
+  "model": "volute_out_h",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 617,
+  "func": "_volute_design",
+  "widget": "VTextField",
+  "label": "RPM",
+  "model": "(volute_rpm)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 626,
+  "func": "_volute_design",
+  "widget": "VTextField",
+  "label": "Load Pa@50CFM",
+  "model": "(volute_load_pa)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 696,
+  "func": "_volute_design",
+  "widget": "VTextField",
+  "label": "Trials",
+  "model": "(volute_trials)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 705,
+  "func": "_volute_design",
+  "widget": "VCheckbox",
+  "label": "Resume last Optimize front",
+  "model": "(volute_resume)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 714,
+  "func": "_volute_results",
+  "widget": "VSelect",
+  "label": "Previous runs",
+  "model": "(volute_sel_trial)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 736,
+  "func": "_volute_library",
+  "widget": "VSelect",
+  "label": "Previous runs",
+  "model": "(volute_sel_trial)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 788,
+  "func": "render_volute_tab",
+  "widget": "VBtnToggle",
+  "label": null,
+  "model": "(volute_airflow_field)",
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'",
+   "volute_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 795,
+  "func": "render_volute_tab",
+  "widget": "VBtn",
+  "label": "|U| scroll",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'",
+   "volute_subtab === 'results'"
+  ]
+ },
+ {
+  "file": "fansim/cockpit/volute_tab.py",
+  "line": 796,
+  "func": "render_volute_tab",
+  "widget": "VBtn",
+  "label": "pressure scroll",
+  "model": null,
+  "title_kw": null,
+  "hint": null,
+  "own_v_show": null,
+  "disabled": null,
+  "click": null,
+  "tooltip_text": null,
+  "tooltip_line": null,
+  "ancestor_show": [
+   "active_tab === 'volute'",
+   "volute_subtab === 'results'"
+  ]
+ }
+]
