@@ -97,6 +97,10 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
   - Make sure the UI and README never quote a number above the validated range. Add a test that the P–Q display
     stops at the last converged point.
+  - **QA-65 (grok r24 C; Claude reviewed 2026-11-01): adopt.** An Assess score whose loaded point did not converge shows no
+    warning. Apply `docs/qa/patches/r24-C-k1-visible.patch` (the caption reads "⚠ loaded point did not settle (CFD unconverged):
+    loaded CFM is uncertain"), with a test that a `converged=False` result shows it and a converged one does not. This is the
+    near-knee rule's K1. The rest of r23 B stays a roadmap proposal.
 - **R1.3 Optimizer space under wrap (27.7)**. Lane: grok data (round 14 Task C), Cursor implements, Claude reviews.
   CPU: day for the bounds, night for any re-find campaign. Status: `blocked (R1.7, R1.8)`. grok r14 C delivered 2026-10-17
   (`docs/qa/notes/optimizer-space-wrap-r14.md`; proposed bounds give 4.3 % refused). The refused share depends on the hub
