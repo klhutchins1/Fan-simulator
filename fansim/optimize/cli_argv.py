@@ -194,3 +194,13 @@ def optimization_argv(
     if material:
         argv.extend(["--material", str(material)])
     return argv
+
+
+def surrogate_guided_cli_error(*, guided: bool, verify_cfd: bool, stub_labels: bool) -> str | None:
+    """Refuse an ungated stub rank. R1.11: synthetic labels are not CFD."""
+    if guided and not verify_cfd and not stub_labels:
+        return (
+            "ERROR: --surrogate-guided needs --verify-cfd or --stub-labels "
+            "(synthetic labels, not CFD)."
+        )
+    return None

@@ -110,6 +110,9 @@ def build_parser() -> argparse.ArgumentParser:
                          "--verify-cfd to call evaluate_candidate when the OpenFOAM image exists.")
     ap.add_argument("--verify-cfd", action="store_true",
                     help="with --surrogate-guided: CFD-verify top-k (needs Docker). Off = stub.")
+    ap.add_argument("--stub-labels", action="store_true",
+                    help="with --surrogate-guided: allow synthetic_label ranks (not CFD). "
+                         "Required if --verify-cfd is off.")
     ap.add_argument("--doe", type=int, default=24,
                     help="with --surrogate-guided: space-filling DoE sample count.")
     ap.add_argument("--nsga-trials", type=int, default=64,
@@ -156,8 +159,15 @@ def main() -> int:
     if preset_name:
         print(f"PRESET {preset_name}: load_pa={load_pa:g}")
 
-    # §20.5 surrogate-guided loop: software-first; Docker only when --verify-cfd.
+    # §20.5 surrogate-guided loop: CFD when --verify-cfd; stub only with --stub-labels (R1.11).
     if args.surrogate_guided:
+        from fansim.optimize.cli_argv import surrogate_guided_cli_error
+
+        err = surrogate_guided_cli_error(
+            guided=True, verify_cfd=args.verify_cfd, stub_labels=args.stub_labels)
+        if err:
+            print(err)
+            return 2
         if args.verify_cfd and not image_available():
             print("ERROR: --verify-cfd needs the OpenFOAM Docker image.")
             return 2
@@ -166,6 +176,8 @@ def main() -> int:
             f"SURROGATE-GUIDED Doe={args.doe} nsga={args.nsga_trials} "
             f"top_k={args.top_k} rounds={args.rounds} verify_cfd={args.verify_cfd}"
         )
+        if args.stub_labels and not args.verify_cfd:
+            print("synthetic labels, not CFD")
         result = run_surrogate_guided(
             out_dir=out,
             n_doe=args.doe,
