@@ -1,0 +1,72 @@
+{
+ "fans": {
+  "A12x25": {
+   "P": 0.0,
+   "Pmax": 22.9,
+   "Pmax_src": "docs/a12x25-reference.md:13 (Noctua spec 2.34 mmH2O)",
+   "E_headline": -0.499168053244603,
+   "E_src": "docs/validation/a12x25_pq_report.md:27 (59.8 vs 60.1 CFM)",
+   "E_alt": {
+    "no prism layers (same STL)": -2.828618968386032
+   },
+   "alt_src": "a12x25_pq_report.md:53",
+   "published": "Noctua datasheet (docs/a12x25-reference.md:5)",
+   "validated": "free air validated; all physics PASS (a12x25_pq_report.md:27,36)",
+   "P_over_Pmax": 0.0,
+   "i_published": true,
+   "ii_validated": true,
+   "iii_near_free_air": true,
+   "iv_within_8": true,
+   "within_10_all": true
+  },
+  "FAN-01": {
+   "P": 7.0,
+   "Pmax": 252.842,
+   "Pmax_src": "validation/reference/fan01/characteristic.csv (max p_chamber_static_pa)",
+   "E_headline": 2.550529355149189,
+   "E_src": "docs/validation/fan01/fan01_report.md:23 (2.131 vs 2.078 m3/s)",
+   "E_alt": {
+    "64 Pa (mid-curve, report-only)": 3.0487804878048808
+   },
+   "alt_src": "fan01_report.md:24",
+   "published": "Zenodo 10787093, CC-BY-4.0 (validation/reference/fan01/README.md)",
+   "validated": "high-flow branch validated (fan01_report.md:32-33)",
+   "P_over_Pmax": 0.027685273807357955,
+   "i_published": true,
+   "ii_validated": true,
+   "iii_near_free_air": true,
+   "iv_within_8": true,
+   "within_10_all": true
+  },
+  "lt120": {
+   "P": 6.85,
+   "Pmax": 34.01,
+   "Pmax_src": "docs/qa/benchmarks/lt120/curve.csv (max dp_pa)",
+   "E_headline": 8.095238095238088,
+   "E_src": "docs/validation/audits/2026-10-18-lt120-validation-prereg.md:69 (84.0 meas; 89.6 / 92.0 CFD)",
+   "E_alt": {
+    "5.8 mm mesh": 6.666666666666665,
+    "6.2 mm mesh": 9.523809523809534
+   },
+   "alt_src": "same line",
+   "E_tipgap_report_only": {
+    "0.5 mm": 6.6,
+    "1.0 mm": 13.0,
+    "1.5 mm": 6.3
+   },
+   "tipgap_src": "docs/validation/audits/2026-10-30-lt120-tip-gap-prereg.md:51-53",
+   "published": "Lin & Tsai 2011 Proc IMechE C doi:10.1243/09544062JMES2231, via Tutar & Cam CC BY 4.0 (docs/qa/benchmarks/lt120/source.md:6,8)",
+   "validated": "\u00b110 % rule passes at 6.85 Pa; audit overall TRENDS (2026-10-18-lt120-validation-prereg.md:74-75)",
+   "lowest_load_measured": 6.85,
+   "P_over_Pmax": 0.20141134960305793,
+   "i_published": true,
+   "ii_validated": true,
+   "iii_near_free_air": false,
+   "iv_within_8": false,
+   "within_10_all": true
+  }
+ },
+ "claim_supported": false,
+ "proposed_wording_holds": true,
+ "verdict": "needs grok's proposed wording"
+}
