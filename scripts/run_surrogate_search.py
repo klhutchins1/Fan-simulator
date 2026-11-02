@@ -1,7 +1,7 @@
 """Standalone entry for surrogate-guided search (roadmap §20.5).
 
-Thin wrapper around ``run_optimization.py --surrogate-guided`` so campaigns can
-run without the full CFD study path. Docker is only required with ``--verify-cfd``.
+Thin wrapper around ``run_optimization.py --surrogate-guided``. Without
+``--verify-cfd`` this path adds ``--stub-labels`` (synthetic labels, not CFD).
 
 Usage (PowerShell)::
 
@@ -23,6 +23,8 @@ def main() -> int:
     argv = list(sys.argv[1:])
     if "--surrogate-guided" not in argv:
         argv = ["--surrogate-guided", *argv]
+    if "--verify-cfd" not in argv and "--stub-labels" not in argv:
+        argv = ["--stub-labels", *argv]
     sys.argv = [sys.argv[0], *argv]
 
     opt_path = Path(__file__).resolve().parent / "run_optimization.py"

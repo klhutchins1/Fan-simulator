@@ -143,13 +143,6 @@ OPT_SEARCH_HELP = {
         "(wins over Boost if both on). When to use: experimental surrogate. Cost: tiny. "
         "Risk: needs PyTorch or falls back to GP-only."
     ),
-    "opt_surrogate_guided": (
-        "Pro loop: space-filling DoE → fit GP/boost/NN → NSGA-II on the surrogate → "
-        "verify top-k (stub by default; CFD when Docker verify is on) → refit. "
-        "Uses ensemble/GP spread as the acquisition signal. When to use: explore many "
-        "designs cheaply before spending CFD. Cost: CPU for DoE+NSGA; CFD only on top-k "
-        "if verify is enabled. Risk: surrogate can mis-rank early; verify is the honesty gate."
-    ),
     "opt_search_rpm": (
         "Treat RPM as a searchable dial inside the fan’s PWM band (not fixed nameplate speed). "
         "When to use: PWM / thermal fans. Cost: wider search → more trials to cover well. "
