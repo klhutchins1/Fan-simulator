@@ -173,6 +173,14 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     never rank designs with `synthetic_label`. Add a test that the cockpit's argv cannot reach the stub path.
   - The other tooltip findings (UI-32 … UI-38) belong to M3 polish. UI-33 (Optimize ignores the Design sliders) needs one
     sentence in the Optimize help.
+  - Claude review of `r111-hide-surrogate` (a9ca242, 2026-11-01): **OK to merge** for the cockpit (argv forced off, switch
+    removed). Before closing R1.11:
+    - the tests grep the source; add one behaviour test: `optimization_argv(...)` from the cockpit's `bind` never contains
+      `--surrogate-guided`;
+    - the CLI `run_optimization.py --surrogate-guided` without `--verify-cfd` still ranks with the stub. Refuse it unless
+      `--verify-cfd` or an explicit `--stub-labels` is given, and stamp stub output "synthetic labels, not CFD";
+    - drop the dead `opt_surrogate_guided` tooltip (`fan_copy.py:146`), and the Surrogate-guided mention in the GP-boost
+      tooltip (UI-34).
   - grok r24 A (2026-11-01): still open on 23831da (switch renders; argv has no `--verify-cfd`).
 - **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
   - The beam models are unvalidated on real blades (audit-05).
