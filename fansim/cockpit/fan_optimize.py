@@ -33,6 +33,45 @@ from fansim.optimize.cli_argv import (
 _log = logging.getLogger(__name__)
 
 
+def cockpit_optimization_argv(
+    state,
+    *,
+    trials: int,
+    out,
+    resume_study: str | None,
+    search_rpm: bool,
+    rpm_min: float | None,
+    rpm_max: float | None,
+) -> list[str]:
+    """Argv for cockpit Optimize. Never ranks with synthetic_label (R1.11 / UI-31)."""
+    from fansim.cfd.wall_roughness import FDM_WALL_KS_MM
+
+    return optimization_argv(
+        trials=trials,
+        out=out,
+        fan_model=str(state.fan_model or "a12x25"),
+        preset=str(state.assess_preset or "case"),
+        refine_op=bool(state.assess_refine_op),
+        shroud=bool(state.opt_shroud),
+        bem_floor=32.0 if state.opt_bem else 0.0,
+        gp_floor=40.0 if state.opt_gp else 0.0,
+        gp_boost=bool(state.opt_gp_boost),
+        gp_nn=bool(state.opt_gp_nn),
+        surrogate_guided=False,
+        study_name=resume_study,
+        stator=bool(state.opt_stator) and not bool(state.opt_stator_stack),
+        stator_stack=bool(state.opt_stator_stack),
+        sickle=bool(state.opt_sickle),
+        stepped_inlet=bool(state.opt_stepped),
+        notched_tips=bool(state.opt_notched),
+        search_rpm=search_rpm,
+        rpm_min=rpm_min,
+        rpm_max=rpm_max,
+        wall_ks_mm=FDM_WALL_KS_MM if state.assess_wall_ks else None,
+        material=str(state.assess_material or "PETG"),
+    )
+
+
 def bind(session) -> None:
     state = session.state
     run_dir = session.run_dir
@@ -125,31 +164,15 @@ def bind(session) -> None:
             state.opt_rpm_min = rpm_min
             state.opt_rpm_max = rpm_max
             state.opt_pwm_caption = pwm_caption(tab)
-        from fansim.cfd.wall_roughness import FDM_WALL_KS_MM
 
-        argv = optimization_argv(
+        argv = cockpit_optimization_argv(
+            state,
             trials=trials,
             out=out,
-            fan_model=str(state.fan_model or "a12x25"),
-            preset=str(state.assess_preset or "case"),
-            refine_op=bool(state.assess_refine_op),
-            shroud=bool(state.opt_shroud),
-            bem_floor=32.0 if state.opt_bem else 0.0,
-            gp_floor=40.0 if state.opt_gp else 0.0,
-            gp_boost=bool(state.opt_gp_boost),
-            gp_nn=bool(state.opt_gp_nn),
-            surrogate_guided=bool(state.opt_surrogate_guided),
-            study_name=resume_study,
-            stator=bool(state.opt_stator) and not bool(state.opt_stator_stack),
-            stator_stack=bool(state.opt_stator_stack),
-            sickle=bool(state.opt_sickle),
-            stepped_inlet=bool(state.opt_stepped),
-            notched_tips=bool(state.opt_notched),
+            resume_study=resume_study,
             search_rpm=search_rpm,
             rpm_min=rpm_min,
             rpm_max=rpm_max,
-            wall_ks_mm=FDM_WALL_KS_MM if state.assess_wall_ks else None,
-            material=str(state.assess_material or "PETG"),
         )
 
         async def task():

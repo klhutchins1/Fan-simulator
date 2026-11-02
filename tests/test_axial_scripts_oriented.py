@@ -11,6 +11,7 @@ AXIAL_SCRIPTS = [
     "capture_convergence.py", "run_grid_convergence.py", "test_bistability.py", "validate_stl.py",
     "grid_convergence_stl.py", "evaluate_des_fwh.py", "run_fan01.py",
     "run_loaded_ladder.py",
+    "validate_lt120.py",
 ]
 # Non-axial or audit tooling that deliberately controls orientation itself.
 EXEMPT = {
