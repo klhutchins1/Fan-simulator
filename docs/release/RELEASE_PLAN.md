@@ -170,21 +170,19 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Groups G1–G5 with exact wording: `docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`. One branch per
     group, each with a grep or UI test.
   - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
-- **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `ready`.
+- **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `done 23704f5`.
   - Claude confirmed 2026-11-01: the cockpit never passes `--verify-cfd` (`scripts/run_optimization.py:111,159`), so its
     labels and "verify" come from `synthetic_label()` (`fansim/optimize/surrogate_search.py:309`), a test formula.
   - For v0.1.0: hide the Surrogate-guided switch, or wire it to `--verify-cfd` and refuse to run without Docker. It must
     never rank designs with `synthetic_label`. Add a test that the cockpit's argv cannot reach the stub path.
   - The other tooltip findings (UI-32 … UI-38) belong to M3 polish. UI-33 (Optimize ignores the Design sliders) needs one
     sentence in the Optimize help.
-  - Claude review of `r111-hide-surrogate` (a9ca242, 2026-11-01): **OK to merge** for the cockpit (argv forced off, switch
-    removed). Before closing R1.11:
-    - the tests grep the source; add one behaviour test: `optimization_argv(...)` from the cockpit's `bind` never contains
-      `--surrogate-guided`;
-    - the CLI `run_optimization.py --surrogate-guided` without `--verify-cfd` still ranks with the stub. Refuse it unless
-      `--verify-cfd` or an explicit `--stub-labels` is given, and stamp stub output "synthetic labels, not CFD";
-    - drop the dead `opt_surrogate_guided` tooltip (`fan_copy.py:146`), and the Surrogate-guided mention in the GP-boost
-      tooltip (UI-34).
+  - Landed: switch hidden; `cockpit_optimization_argv` never passes `--surrogate-guided` even if state is on; CLI refuses
+    `--surrogate-guided` without `--verify-cfd` or `--stub-labels` and stamps stub output "synthetic labels, not CFD";
+    dead `opt_surrogate_guided` tooltip dropped. QA-62: `validate_lt120.py` is on `AXIAL_SCRIPTS`. Fast chunks 679+506+705
+    passed (OCCT teardown exit only).
+  - Claude review of `r111-hide-surrogate` (a9ca242, 2026-11-01): **OK to merge** for the cockpit. Close-out items above
+    are done (`23704f5`).
   - grok r24 A (2026-11-01): still open on 23831da (switch renders; argv has no `--verify-cfd`).
 - **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
   - The beam models are unvalidated on real blades (audit-05).
