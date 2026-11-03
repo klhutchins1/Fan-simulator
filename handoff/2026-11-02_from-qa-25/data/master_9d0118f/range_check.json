@@ -1,0 +1,982 @@
+[
+ {
+  "model": "e_blade_hub_z",
+  "ui": {
+   "label": "Blade on hub",
+   "line": 846,
+   "mn": -8,
+   "mx": "e_blade_hub_z_max"
+  },
+  "gen": {
+   "label": "Blade on hub",
+   "mn": -5,
+   "mx": 5,
+   "mode": "fan",
+   "line": 84
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_camber",
+  "ui": null,
+  "gen": {
+   "label": "Camber / scoop",
+   "mn": 0.0,
+   "mx": 0.12,
+   "mode": "blade",
+   "line": 47
+  },
+  "has_img": true
+ },
+ {
+  "model": "e_camber_mid",
+  "ui": {
+   "label": "Camber mid",
+   "line": 707,
+   "mn": 0.0,
+   "mx": 0.15
+  },
+  "gen": {
+   "label": "Camber / scoop \u2014 mid",
+   "mn": 0.0,
+   "mx": 0.12,
+   "mode": "blade",
+   "line": 49
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_camber_pos",
+  "ui": {
+   "label": "Camber position",
+   "line": 716,
+   "mn": 0.2,
+   "mx": 0.6
+  },
+  "gen": {
+   "label": "Camber position",
+   "mn": 0.2,
+   "mx": 0.6,
+   "mode": "blade",
+   "line": 88
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_camber_root",
+  "ui": {
+   "label": "Camber root",
+   "line": 706,
+   "mn": 0.0,
+   "mx": 0.15
+  },
+  "gen": {
+   "label": "Camber / scoop \u2014 root",
+   "mn": 0.0,
+   "mx": 0.12,
+   "mode": "blade",
+   "line": 48
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_camber_tip",
+  "ui": {
+   "label": "Camber tip",
+   "line": 708,
+   "mn": 0.0,
+   "mx": 0.15
+  },
+  "gen": {
+   "label": "Camber / scoop \u2014 tip",
+   "mn": 0.0,
+   "mx": 0.12,
+   "mode": "blade",
+   "line": 50
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_chord_mid",
+  "ui": {
+   "label": "Chord mid",
+   "line": 679,
+   "mn": 14,
+   "mx": 60
+  },
+  "gen": {
+   "label": "Chord \u2014 mid",
+   "mn": 14,
+   "mx": 60,
+   "mode": "fan",
+   "line": 55
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_chord_root",
+  "ui": {
+   "label": "Chord root",
+   "line": 678,
+   "mn": 14,
+   "mx": 50
+  },
+  "gen": {
+   "label": "Chord \u2014 root",
+   "mn": 14,
+   "mx": 50,
+   "mode": "fan",
+   "line": 54
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_chord_tip",
+  "ui": {
+   "label": "Chord tip",
+   "line": 680,
+   "mn": 14,
+   "mx": 70
+  },
+  "gen": {
+   "label": "Chord \u2014 tip",
+   "mn": 14,
+   "mx": 70,
+   "mode": "fan",
+   "line": 56
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_cylindrical_tip",
+  "ui": null,
+  "gen": {
+   "label": "Cylindrical tip",
+   "mn": 0,
+   "mx": 1,
+   "mode": "fan",
+   "line": 78
+  },
+  "has_img": true
+ },
+ {
+  "model": "e_dim_amp",
+  "ui": {
+   "label": "Dimple depth",
+   "line": 888,
+   "mn": 0.0,
+   "mx": 0.35
+  },
+  "gen": {
+   "label": "Dimple depth",
+   "mn": 0.0,
+   "mx": 0.35,
+   "mode": "blade",
+   "line": 113
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_dim_cols",
+  "ui": {
+   "label": "Dimple cols",
+   "line": 890,
+   "mn": 0,
+   "mx": 6
+  },
+  "gen": {
+   "label": "Dimple cols",
+   "mn": 1,
+   "mx": 6,
+   "mode": "blade",
+   "line": 117
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_dim_rows",
+  "ui": {
+   "label": "Dimple rows",
+   "line": 889,
+   "mn": 0,
+   "mx": 6
+  },
+  "gen": {
+   "label": "Dimple rows",
+   "mn": 1,
+   "mx": 6,
+   "mode": "blade",
+   "line": 115
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_hub_height",
+  "ui": {
+   "label": "Hub height (0=auto)",
+   "line": 842,
+   "mn": 0,
+   "mx": "e_hub_height_max"
+  },
+  "gen": {
+   "label": "Hub height",
+   "mn": 6,
+   "mx": 30,
+   "mode": "fan",
+   "line": 83
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_hub_nose",
+  "ui": {
+   "label": "Hub nose (cone/dome)",
+   "line": 865,
+   "mn": 0,
+   "mx": "e_hub_nose_max"
+  },
+  "gen": {
+   "label": "Hub nose",
+   "mn": 0.0,
+   "mx": 15.0,
+   "mode": "fan",
+   "line": 86
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_hub_radius",
+  "ui": {
+   "label": "Hub radius",
+   "line": 838,
+   "mn": 15,
+   "mx": 35
+  },
+  "gen": {
+   "label": "Hub radius",
+   "mn": 15,
+   "mx": 30,
+   "mode": "fan",
+   "line": 67
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_le_mid",
+  "ui": {
+   "label": "LE curve mid",
+   "line": 782,
+   "mn": -12,
+   "mx": 12
+  },
+  "gen": {
+   "label": "LE curve \u2014 mid",
+   "mn": -12,
+   "mx": 12,
+   "mode": "blade",
+   "line": 61
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_le_skew_mid",
+  "ui": {
+   "label": "Sickle mid",
+   "line": 784,
+   "mn": 0,
+   "mx": 12
+  },
+  "gen": {
+   "label": "Sickle \u2014 mid",
+   "mn": 0,
+   "mx": 12,
+   "mode": "fan",
+   "line": 63
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_le_skew_tip",
+  "ui": {
+   "label": "Sickle tip",
+   "line": 785,
+   "mn": 0,
+   "mx": 15
+  },
+  "gen": {
+   "label": "Sickle \u2014 tip",
+   "mn": 0,
+   "mx": 15,
+   "mode": "fan",
+   "line": 65
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_le_thick",
+  "ui": {
+   "label": "LE thick / roundness",
+   "line": 754,
+   "mn": 0.0,
+   "mx": 2.0
+  },
+  "gen": {
+   "label": "LE thick scale",
+   "mn": 0.5,
+   "mx": 2.0,
+   "mode": "blade",
+   "line": 95
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_le_tip",
+  "ui": {
+   "label": "LE curve tip",
+   "line": 783,
+   "mn": -12,
+   "mx": 12
+  },
+  "gen": {
+   "label": "LE curve \u2014 tip",
+   "mn": -12,
+   "mx": 12,
+   "mode": "blade",
+   "line": 62
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_lean_mid",
+  "ui": {
+   "label": "Wrap mid",
+   "line": 778,
+   "mn": 0,
+   "mx": 30
+  },
+  "gen": {
+   "label": "Wrap \u2014 mid",
+   "mn": 0,
+   "mx": 30,
+   "mode": "fan",
+   "line": 57
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_lean_tip",
+  "ui": {
+   "label": "Wrap tip",
+   "line": 779,
+   "mn": 0,
+   "mx": 45
+  },
+  "gen": {
+   "label": "Wrap \u2014 tip",
+   "mn": 0,
+   "mx": 45,
+   "mode": "fan",
+   "line": 58
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_n_blades",
+  "ui": {
+   "label": "Blades",
+   "line": 677,
+   "mn": 5,
+   "mx": 11
+  },
+  "gen": {
+   "label": "Blades",
+   "mn": 5,
+   "mx": 11,
+   "mode": "fan",
+   "line": 46
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_section_family",
+  "ui": null,
+  "gen": {
+   "label": "Section family",
+   "mn": "naca",
+   "mx": "plate",
+   "mode": "blade",
+   "line": 100
+  },
+  "has_img": true
+ },
+ {
+  "model": "e_ser_amp",
+  "ui": {
+   "label": "Serration amp",
+   "line": 886,
+   "mn": 0.0,
+   "mx": 0.06
+  },
+  "gen": {
+   "label": "Serration amp",
+   "mn": 0.0,
+   "mx": 0.06,
+   "mode": "blade",
+   "line": 111
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_ser_waves",
+  "ui": {
+   "label": "Serration teeth",
+   "line": 887,
+   "mn": 0,
+   "mx": 12
+  },
+  "gen": {
+   "label": "Serration teeth",
+   "mn": 3,
+   "mx": 12,
+   "mode": "blade",
+   "line": 112
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_shroud_height",
+  "ui": {
+   "label": "Shroud height",
+   "line": 822,
+   "mn": 0,
+   "mx": 1
+  },
+  "gen": {
+   "label": "Shroud height",
+   "mn": 0.2,
+   "mx": 1.0,
+   "mode": "fan",
+   "line": 81
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_shroud_thick",
+  "ui": {
+   "label": "Shroud thickness",
+   "line": 821,
+   "mn": 0,
+   "mx": 3
+  },
+  "gen": {
+   "label": "Shroud thickness",
+   "mn": 0.0,
+   "mx": 3.0,
+   "mode": "fan",
+   "line": 80
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_skew_mid",
+  "ui": {
+   "label": "Skew mid",
+   "line": 786,
+   "mn": -20,
+   "mx": 20
+  },
+  "gen": {
+   "label": "Skew mid",
+   "mn": -6,
+   "mx": 6,
+   "mode": "fan",
+   "line": 69
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_skew_tip",
+  "ui": {
+   "label": "Skew tip",
+   "line": 787,
+   "mn": -25,
+   "mx": 25
+  },
+  "gen": {
+   "label": "Skew tip",
+   "mn": -6,
+   "mx": 6,
+   "mode": "fan",
+   "line": 70
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_smooth_span",
+  "ui": null,
+  "gen": {
+   "label": "Smooth span",
+   "mn": "linear",
+   "mx": "pchip",
+   "mode": "fan",
+   "line": 106
+  },
+  "has_img": true
+ },
+ {
+  "model": "e_spacing",
+  "ui": {
+   "label": "Uneven spacing",
+   "line": 871,
+   "mn": 0.0,
+   "mx": 0.6
+  },
+  "gen": {
+   "label": "Uneven spacing",
+   "mn": 0.0,
+   "mx": 0.6,
+   "mode": "fan",
+   "line": 108
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_stagger_mid",
+  "ui": {
+   "label": "Stagger mid",
+   "line": 689,
+   "mn": 15,
+   "mx": 55
+  },
+  "gen": {
+   "label": "Stagger / pitch \u2014 mid",
+   "mn": 15,
+   "mx": 55,
+   "mode": "fan",
+   "line": 52
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_stagger_root",
+  "ui": {
+   "label": "Stagger root",
+   "line": 688,
+   "mn": 15,
+   "mx": 55
+  },
+  "gen": {
+   "label": "Stagger / pitch \u2014 root",
+   "mn": 15,
+   "mx": 55,
+   "mode": "fan",
+   "line": 51
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_stagger_tip",
+  "ui": {
+   "label": "Stagger tip",
+   "line": 690,
+   "mn": 15,
+   "mx": 55
+  },
+  "gen": {
+   "label": "Stagger / pitch \u2014 tip",
+   "mn": 15,
+   "mx": 55,
+   "mode": "fan",
+   "line": 53
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_sweep_mid",
+  "ui": {
+   "label": "Sweep mid",
+   "line": 780,
+   "mn": -10,
+   "mx": 20
+  },
+  "gen": {
+   "label": "Sweep \u2014 mid",
+   "mn": -10,
+   "mx": 20,
+   "mode": "blade",
+   "line": 59
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_sweep_tip",
+  "ui": {
+   "label": "Sweep tip",
+   "line": 781,
+   "mn": -8,
+   "mx": 25
+  },
+  "gen": {
+   "label": "Sweep \u2014 tip",
+   "mn": -8,
+   "mx": 25,
+   "mode": "blade",
+   "line": 60
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_te_thick",
+  "ui": {
+   "label": "TE thick / roundness",
+   "line": 758,
+   "mn": 0.0,
+   "mx": 2.0
+  },
+  "gen": {
+   "label": "TE thick / roundness",
+   "mn": 0.15,
+   "mx": 1.0,
+   "mode": "blade",
+   "line": 97
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_thick_mid",
+  "ui": {
+   "label": "Wall t/c mid",
+   "line": 737,
+   "mn": 0.03,
+   "mx": 0.15
+  },
+  "gen": {
+   "label": "Thickness \u2014 mid",
+   "mn": 0.03,
+   "mx": 0.15,
+   "mode": "blade",
+   "line": 90
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_thick_mm",
+  "ui": {
+   "label": "Wall thickness",
+   "line": 727,
+   "mn": 0.8,
+   "mx": 4.0
+  },
+  "gen": {
+   "label": "Wall thickness",
+   "mn": 1.0,
+   "mx": 3.0,
+   "mode": "blade",
+   "line": 92
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_thick_mode",
+  "ui": null,
+  "gen": {
+   "label": "Thickness span",
+   "mn": "tapered",
+   "mx": "uniform",
+   "mode": "blade",
+   "line": 94
+  },
+  "has_img": true
+ },
+ {
+  "model": "e_thick_root",
+  "ui": {
+   "label": "Wall t/c root",
+   "line": 732,
+   "mn": 0.03,
+   "mx": 0.15
+  },
+  "gen": {
+   "label": "Thickness \u2014 root",
+   "mn": 0.03,
+   "mx": 0.15,
+   "mode": "blade",
+   "line": 89
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_thick_tip",
+  "ui": {
+   "label": "Wall t/c tip",
+   "line": 742,
+   "mn": 0.03,
+   "mx": 0.15
+  },
+  "gen": {
+   "label": "Thickness \u2014 tip",
+   "mn": 0.03,
+   "mx": 0.15,
+   "mode": "blade",
+   "line": 91
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_tip_notch_depth",
+  "ui": {
+   "label": "Tip notch depth",
+   "line": 803,
+   "mn": 0.5,
+   "mx": 3.0
+  },
+  "gen": {
+   "label": "Tip notch depth",
+   "mn": 0.5,
+   "mx": 2.5,
+   "mode": "fan",
+   "line": 104
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_tip_notched",
+  "ui": null,
+  "gen": {
+   "label": "Tip TE notches",
+   "mn": 0,
+   "mx": 1,
+   "mode": "fan",
+   "line": 102
+  },
+  "has_img": true
+ },
+ {
+  "model": "e_tip_radius",
+  "ui": {
+   "label": "Tip radius / length",
+   "line": 840,
+   "mn": 45,
+   "mx": 59
+  },
+  "gen": {
+   "label": "Tip radius / length",
+   "mn": 45,
+   "mx": 59,
+   "mode": "fan",
+   "line": 68
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_tip_round",
+  "ui": {
+   "label": "Tip round",
+   "line": 796,
+   "mn": 0.0,
+   "mx": 1.0
+  },
+  "gen": {
+   "label": "Tip round",
+   "mn": 0.0,
+   "mx": 1.0,
+   "mode": "fan",
+   "line": 75
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_tip_start",
+  "ui": {
+   "label": "Tip round start",
+   "line": 797,
+   "mn": 0.5,
+   "mx": 0.92
+  },
+  "gen": {
+   "label": "Tip round start",
+   "mn": 0.5,
+   "mx": 0.92,
+   "mode": "fan",
+   "line": 76
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_tub_amp",
+  "ui": {
+   "label": "Tubercle amp",
+   "line": 884,
+   "mn": 0.0,
+   "mx": 0.1
+  },
+  "gen": {
+   "label": "Tubercle amp",
+   "mn": 0.0,
+   "mx": 0.1,
+   "mode": "blade",
+   "line": 109
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_tub_waves",
+  "ui": {
+   "label": "Tubercle waves",
+   "line": 885,
+   "mn": 0,
+   "mx": 8
+  },
+  "gen": {
+   "label": "Tubercle waves",
+   "mn": 2,
+   "mx": 8,
+   "mode": "blade",
+   "line": 110
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_winglet_lean",
+  "ui": {
+   "label": "Winglet lean",
+   "line": 820,
+   "mn": 0,
+   "mx": 30
+  },
+  "gen": {
+   "label": "Winglet lean",
+   "mn": 0,
+   "mx": 25,
+   "mode": "fan",
+   "line": 72
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "e_winglet_span",
+  "ui": {
+   "label": "Winglet start",
+   "line": 818,
+   "mn": 0.6,
+   "mx": 0.95
+  },
+  "gen": {
+   "label": "Winglet start",
+   "mn": 0.6,
+   "mx": 0.95,
+   "mode": "fan",
+   "line": 73
+  },
+  "has_img": true,
+  "match": true
+ },
+ {
+  "model": "e_winglet_sweep",
+  "ui": {
+   "label": "Winglet sweep",
+   "line": 819,
+   "mn": 0,
+   "mx": 15
+  },
+  "gen": {
+   "label": "Winglet sweep",
+   "mn": 0,
+   "mx": 12,
+   "mode": "fan",
+   "line": 71
+  },
+  "has_img": true,
+  "match": false
+ },
+ {
+  "model": "lee_depth",
+  "ui": {
+   "label": "Extra depth Z",
+   "line": 257,
+   "mn": 0,
+   "mx": 12
+  },
+  "gen": null,
+  "has_img": false
+ },
+ {
+  "model": "lee_overvolt",
+  "ui": {
+   "label": "Over-voltage",
+   "line": 258,
+   "mn": 0,
+   "mx": 12
+  },
+  "gen": null,
+  "has_img": false
+ },
+ {
+  "model": "lee_tip",
+  "ui": {
+   "label": "Tip past frame",
+   "line": 256,
+   "mn": 0,
+   "mx": 10
+  },
+  "gen": null,
+  "has_img": false
+ },
+ {
+  "model": "lee_weight",
+  "ui": {
+   "label": "Extra weight",
+   "line": 259,
+   "mn": 0,
+   "mx": 40
+  },
+  "gen": null,
+  "has_img": false
+ }
+]

@@ -93,6 +93,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
       - grok r23 B (2026-10-31, `docs/qa/notes/r23-B-near-knee-warning-spec.md`, proposal only): R23-KNEE (unconverged OR φ ≤ 0.6 OR P ≥ 0.6 × BEM shut-off) gets 6 hits, 1 miss (lt120 13.71, converged) and 0 false flags; **needs more data**. Draft: K1 warning now, φ and P/shutoff report-only.
       - grok r24 B (2026-11-01, `docs/qa/notes/r24-B-qa64-wording.md`): "near free air … within 8 %" fails on lt120 (P/Pmax 0.20; +8.1 %); **use "within 10 %", lt120 "at its lowest measured load (6.85 Pa)"** (all numbers ≤ 9.5 %; frozen 0.5 mm gap). QA-64.
       - grok r24 C (2026-11-01, `docs/qa/notes/r24-C-k1-visibility.md`): K1 is **not** shown for a converged=False score (only in reject text). QA-65 (MED); patch `docs/qa/patches/r24-C-k1-visible.patch`.
+      - grok r25 C (2026-11-02, `docs/qa/notes/r25-C-qa64-strings.md`): both audit lines (`2026-10-18-…:89`, `2026-10-30-…:69`) still say "near free air … within 8 %" on 9d0118f; QA-64 open until R1.10.
 - **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `ready`.
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
   - Make sure the UI and README never quote a number above the validated range. Add a test that the P–Q display
@@ -101,6 +102,8 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     warning. Apply `docs/qa/patches/r24-C-k1-visible.patch` (the caption reads "⚠ loaded point did not settle (CFD unconverged):
     loaded CFM is uncertain"), with a test that a `converged=False` result shows it and a converged one does not. This is the
     near-knee rule's K1. The rest of r23 B stays a roadmap proposal.
+  - grok r25 B (2026-11-02, `docs/qa/notes/r25-B-qa65-adopted-review.md`): 9d0118f is board-only, the patch is **not applied** (`git apply --check` still passes); behaviour OK (only `converged is False` warns). **Holes:** Optimize trials never carry `converged`, no test. Add-on `docs/qa/patches/r25-B-qa65-test-and-trials.patch`.
+  - grok r25b (2026-11-02, `docs/qa/notes/r25b-master-0635a18-recheck.md`): **still not on master 0635a18**: `r24-C-k1-visible.patch` still applies; unpatched master shows no warning for `converged=False`. r25-B add-on still applies (score_caption 11 passed on scratch, 9 on master). QA-65 open (MED).
 - **R1.3 Optimizer space under wrap (27.7)**. Lane: grok data (round 14 Task C), Cursor implements, Claude reviews.
   CPU: day for the bounds, night for any re-find campaign. Status: `blocked (R1.7, R1.8)`. grok r14 C delivered 2026-10-17
   (`docs/qa/notes/optimizer-space-wrap-r14.md`; proposed bounds give 4.3 % refused). The refused share depends on the hub
@@ -184,6 +187,8 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Claude review of `r111-hide-surrogate` (a9ca242, 2026-11-01): **OK to merge** for the cockpit. Close-out items above
     are done (`23704f5`).
   - grok r24 A (2026-11-01): still open on 23831da (switch renders; argv has no `--verify-cfd`).
+  - grok r25 A (2026-11-02, `docs/qa/notes/r25-A-r111-branch-check.md`): on unmerged 237a094 UI-31 and QA-62 **fixed on branch (pending merge)**; master 9d0118f still open. CLI behaviour test still guard-only (`docs/qa/patches/r25-A-r111-cli-behaviour-test.patch`); new **QA-66** (MED): `--verify-cfd` still trains on `synthetic_label` DoE, `run_surrogate_search.py` adds `--stub-labels` silently. Merge conflicts in this file only.
+  - grok r25b (2026-11-02, `docs/qa/notes/r25b-master-0635a18-recheck.md`): on master 0635a18 UI-31 and QA-62 **verified**. **Not closable:** CLI behaviour test still guard-only (r25-A patch: 7 passed on scratch, master 5); **QA-66 still open 0/3** (`--verify-cfd` DoE = `synthetic_label`, `surrogate_search.py:458,484`; `run_surrogate_search.py:26-27` adds `--stub-labels`; "stamps stub output" is stdout only, `run_optimization.py:179-180`, nothing on disk).
 - **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.

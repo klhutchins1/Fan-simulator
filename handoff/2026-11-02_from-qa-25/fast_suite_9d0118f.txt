@@ -1,0 +1,7 @@
+fast suite -m 'not docker and not slow' on 9d0118f (MST 2026-11-02, both heads in parallel from 08:23)
+FAILED tests/test_axial_scripts_oriented.py::test_no_unlisted_script_calls_build_case
+FAILED tests/test_fuse_memory.py::test_remaining_growth_is_less_than_whole_peak_and_shroud_adds_blade_faces
+FAILED tests/test_worker_parent_watch.py::test_worker_exits_soon_after_its_parent_dies
+FAILED tests/test_worker_parent_watch.py::test_watchdog_runs_the_cleanup_hook_before_exiting
+4 failed, 1883 passed, 21 skipped, 23 deselected, 1 xfailed in 2568.00s (0:42:48)
+EXIT 1

@@ -1,0 +1,8 @@
+README.md:138:run downloads nothing extra if step 3 worked; it starts OpenFOAM in Docker and typically takes 30–40 min.
+fansim/cockpit/fan_assess.py:332:            note = (f"typically 30–40 min free+load; stops only if stalled "
+fansim/cockpit/fan_assess.py:482:                        f"(~15–30 min/step; {done} added so far)"
+fansim/cockpit/fan_core.py:84:        "(~15–30 min)."
+fansim/cockpit/fan_tab_ui.py:494:                            "Assess runs one CFD solve (~15–30 min); Optimize searches many "
+fansim/cockpit/fan_tab_ui.py:594:                                    "label": "Assess (~15–30 min)",
+fansim/cockpit/fan_tab_ui.py:896:                                    "CFD (~15–30 min) and reports free/load CFM. Rejected designs show "
+fansim/cockpit/mixed_tab.py:362:        note = (f"hose {hose}; typically 15–30 min; stops only if stalled "

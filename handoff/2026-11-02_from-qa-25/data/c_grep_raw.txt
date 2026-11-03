@@ -1,0 +1,19 @@
+./docs/QA_REVIEW.md:25:| B | **QA-64 wording check (no CFD).** Independently compare "Fan CFD: validated near free air on three published fans (within 8 %)" with the A12x25, FAN-01 and lt120 audit numbers. Verdict: **supported as worded / overstated / needs gr
+./docs/QA_REVIEW.md:905:- **QA-64 (LOW, new) The release wording "Fan CFD: validated near free air on three published fans, within 8 %" overstates lt120.** Tested 3b92eea. Status: open.
+./docs/QA_REVIEW.md:910:  - Proposal: "within 10 %", and for lt120 "at its lowest measured load (6.85 Pa)" instead of "near free air".
+./docs/QA_REVIEW.md:950:  - As worded, the claim fails twice on lt120: it is not near free air, and 8.1 > 8.0.
+./docs/qa/notes/r23-A-lt120-knee.md:82:- So the proposed wording "validated near free air on three published fans, within 8 %" slightly overstates lt120. See QA-64.
+./docs/qa/notes/r24-B-qa64-wording.md:8:**Claim tested:** "Fan CFD: validated near free air on three published fans (within 8 %)".
+./docs/qa/notes/r24-B-qa64-wording.md:41:The claim as worded fails twice, both on lt120: (iii) near free air, and (iv) within 8 %.
+./docs/qa/notes/r24-B-qa64-wording.md:46:- A12x25 and FAN-01 both pass near free air.
+./docs/qa/notes/r24-B-qa64-wording.md:48:**Suggested text:** "Fan CFD: matches published data within 10 % on three fans: near free air on two (A12x25, FAN-01), and on lt120 at its lowest measured load (6.85 Pa)."
+./docs/validation/audits/2026-10-18-lt120-validation-prereg.md:89:- "Fan CFD: validated near free air on three published fans (within 8 %)."
+./docs/validation/audits/2026-10-30-lt120-tip-gap-prereg.md:69:- "Fan CFD: validated near free air on three published fans, within 8 %."
+./docs/release/RELEASE_PLAN.md:92:      - grok r23 A (2026-10-31, `docs/qa/notes/r23-A-lt120-knee.md`): 13.71 Pa / 60 CFM is **at the knee** (robust, 100 % of 5000 MC draws). The CFD has no plateau (it stays steep through 17.14 Pa), so the shape does not agree
+./docs/release/RELEASE_PLAN.md:94:      - grok r24 B (2026-11-01, `docs/qa/notes/r24-B-qa64-wording.md`): "near free air … within 8 %" fails on lt120 (P/Pmax 0.20; +8.1 %); **use "within 10 %", lt120 "at its lowest measured load (6.85 Pa)"** (all numbers ≤
+./handoff/2026-11-01_from-qa-24/README.md:25:  - lt120 fails both "near free air" and "within 8 %". "Within 10 % … lt120 at its lowest measured load (6.85 Pa)" holds.
+./handoff/2026-11-01_from-qa-24/PREREG_R24_copy.md:70:**Claim:** "Fan CFD: validated near free air on three published fans (within 8 %)".
+./handoff/2026-11-01_from-qa-24/PREREG_R24_copy.md:86:- **(iii) near free air:** P is 0 Pa, or P/Pmax ≤ 0.10.
+./handoff/2026-11-01_from-qa-24/PREREG_R24_copy.md:87:- **(iv) within 8 %:** |E| ≤ 8.0 % on the headline number. Report-only: whether any per-mesh number exceeds 8.0 %.
+./handoff/2026-10-31_from-qa-23/README.md:33:- **New QA item:** QA-64 (LOW): the lt120 part of "validated near free air … within 8 %" is a 6.85 Pa point (about 20 % of
+./handoff/2026-11-01_to-qa-24/CLAUDE_TO_QA.md:14:| B | **QA-64 wording check (no CFD).** Independently compare "Fan CFD: validated near free air on three published fans (within 8 %)" with the A12x25, FAN-01 and lt120 audit numbers. Verdict: **supported as word
