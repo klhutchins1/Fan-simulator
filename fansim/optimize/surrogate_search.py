@@ -58,12 +58,14 @@ class GuidedSearchResult:
     y: dict[str, np.ndarray]
     rounds: int
     notes: list[str] = field(default_factory=list)
+    labels: str = ""
 
     def to_dict(self) -> dict:
         return {
             "rounds": self.rounds,
             "notes": list(self.notes),
             "n_train": int(len(self.X)),
+            "labels": self.labels,
             "verified": [
                 {
                     "params": c.params,
@@ -332,7 +334,12 @@ def stub_verify(params: Mapping, workdir: Path) -> tuple[bool, dict[str, float],
     workdir.mkdir(parents=True, exist_ok=True)
     y = synthetic_label(params)
     (workdir / "stub_result.json").write_text(
-        json.dumps({"params": dict(params), **y}, indent=2), encoding="utf-8")
+        json.dumps(
+            {"params": dict(params), **y, "labels": "synthetic labels, not CFD"},
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     return True, y, "stub-verify"
 
 
@@ -440,6 +447,7 @@ def run_surrogate_guided(
     label_fn: LabelFn | None = None,
     verify_fn: VerifyFn | None = None,
     verify_cfd: bool = False,
+    stub_labels: bool = False,
     fan_model: str = "a12x25",
     procs: int = 8,
     base_cell: float = 0.005,
@@ -449,50 +457,62 @@ def run_surrogate_guided(
 ) -> GuidedSearchResult:
     """Run DoE → fit → NSGA-on-surrogate → top-k verify → refit for ``n_rounds``.
 
-    When ``verify_cfd`` is True and no ``verify_fn`` is given, attempts CFD via
-    ``evaluate_candidate``. Otherwise uses ``stub_verify`` (Docker-free).
+    ``verify_cfd`` trains on catalog rows plus CFD verifies (no ``synthetic_label``
+    DoE) and refuses if Docker is missing. ``stub_labels`` is the Docker-free
+    path and stamps the JSON ``synthetic labels, not CFD``.
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     notes: list[str] = []
-    label = label_fn or synthetic_label
+    labels_kind = ""
 
-    if verify_fn is None:
-        if verify_cfd:
-            try:
-                from fansim.cfd.runner import image_available
-                if image_available():
-                    verify_fn = make_cfd_verify_fn(
-                        procs=procs, base_cell=base_cell, iters=iters,
-                        load_pa=load_pa, fan_model=fan_model, material=material,
-                    )
-                    notes.append("verify=cfd")
-                else:
-                    verify_fn = stub_verify
-                    notes.append("verify=stub (Docker image missing)")
-            except Exception as exc:  # noqa: BLE001
-                verify_fn = stub_verify
-                notes.append(f"verify=stub ({exc})")
+    if verify_cfd:
+        if verify_fn is None:
+            from fansim.cfd.runner import image_available
+            if not image_available():
+                raise RuntimeError("ERROR: --verify-cfd needs the OpenFOAM Docker image.")
+            verify_fn = make_cfd_verify_fn(
+                procs=procs, base_cell=base_cell, iters=iters,
+                load_pa=load_pa, fan_model=fan_model, material=material,
+            )
+            notes.append("verify=cfd")
+        if label_fn is None:
+            label = None
+            labels_kind = "catalog + CFD verify"
+            notes.append("labels: catalog + CFD verify (no synthetic DoE)")
         else:
+            label = label_fn
+            labels_kind = "injected"
+            notes.append("labels: injected")
+    else:
+        label = label_fn or synthetic_label
+        if stub_labels or label_fn is None:
+            labels_kind = "synthetic labels, not CFD"
+            notes.append("synthetic labels, not CFD")
+        else:
+            labels_kind = "injected"
+        if verify_fn is None:
             verify_fn = stub_verify
             notes.append("verify=stub")
 
     X, y, seed_note = seed_from_catalog(catalog_db)
     notes.append(seed_note)
 
-    doe = space_filling_doe(n_doe, space=space, seed=seed)
-    doe_labels = [dict(label(p)) for p in doe]
-    X, y = _append_labels(X, y, doe, doe_labels)
-    notes.append(f"DoE n={len(doe)}")
-
-    # Guard: all objectives must match X rows
-    if any(len(y[n]) != len(X) for n in OBJECTIVE_NAMES):
-        X = design_matrix_from_params(doe)
-        y = {
-            n: np.asarray([float(lab[n]) for lab in doe_labels], float)
-            for n in OBJECTIVE_NAMES
-        }
-        notes.append("training reset to DoE-only (catalog length mismatch)")
+    if label is not None and n_doe > 0:
+        doe = space_filling_doe(n_doe, space=space, seed=seed)
+        doe_labels = [dict(label(p)) for p in doe]
+        X, y = _append_labels(X, y, doe, doe_labels)
+        notes.append(f"DoE n={len(doe)}")
+        # Guard: all objectives must match X rows
+        if any(len(y[n]) != len(X) for n in OBJECTIVE_NAMES):
+            X = design_matrix_from_params(doe)
+            y = {
+                n: np.asarray([float(lab[n]) for lab in doe_labels], float)
+                for n in OBJECTIVE_NAMES
+            }
+            notes.append("training reset to DoE-only (catalog length mismatch)")
+    else:
+        notes.append("DoE skipped (no synthetic labels under --verify-cfd)")
 
     verified_all: list[SurrogateCandidate] = []
     last_top: list[SurrogateCandidate] = []
@@ -536,6 +556,7 @@ def run_surrogate_guided(
         y=y,
         rounds=int(n_rounds),
         notes=notes,
+        labels=labels_kind,
     )
     (out_dir / "surrogate_guided.json").write_text(
         json.dumps(result.to_dict(), indent=2), encoding="utf-8")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -155,3 +156,71 @@ def test_run_surrogate_guided_stub_loop(tmp_path):
     assert (tmp_path / "sg" / "surrogate_guided.json").exists()
     assert len(result.X) >= 16 + 6  # DoE + verified
     assert any("DoE" in n for n in result.notes)
+
+
+def test_verify_cfd_does_not_label_doe_with_synthetic(tmp_path, monkeypatch):
+    """QA-66: --verify-cfd must not train the DoE on synthetic_label."""
+    from fansim.optimize import surrogate_search as ss
+
+    calls = {"n": 0}
+    real = ss.synthetic_label
+
+    def counting(params):
+        calls["n"] += 1
+        return real(params)
+
+    monkeypatch.setattr(ss, "synthetic_label", counting)
+
+    def verify(params, workdir):
+        Path(workdir).mkdir(parents=True, exist_ok=True)
+        return True, real(params), "mock-cfd"
+
+    ss.run_surrogate_guided(
+        out_dir=tmp_path / "sg",
+        n_doe=8,
+        n_nsga=8,
+        top_k=1,
+        n_rounds=1,
+        space="guided",
+        seed=3,
+        verify_fn=verify,
+        verify_cfd=True,
+        catalog_db=None,
+    )
+    assert calls["n"] == 0
+
+
+def test_verify_cfd_refuses_stub_when_docker_missing(tmp_path, monkeypatch):
+    """QA-66: missing Docker under --verify-cfd is a refuse, not stub_verify."""
+    monkeypatch.setattr("fansim.cfd.runner.image_available", lambda: False)
+    with pytest.raises(RuntimeError, match="OpenFOAM Docker"):
+        run_surrogate_guided(
+            out_dir=tmp_path / "sg",
+            n_doe=4,
+            n_nsga=4,
+            top_k=1,
+            n_rounds=1,
+            verify_cfd=True,
+        )
+
+
+def test_stub_labels_stamped_on_disk(tmp_path):
+    """QA-66: --stub-labels writes 'synthetic labels, not CFD' into the JSON."""
+
+    def verify(params, workdir):
+        Path(workdir).mkdir(parents=True, exist_ok=True)
+        return True, synthetic_label(params), "mock"
+
+    run_surrogate_guided(
+        out_dir=tmp_path / "sg",
+        n_doe=8,
+        n_nsga=8,
+        top_k=1,
+        n_rounds=1,
+        space="guided",
+        seed=2,
+        verify_fn=verify,
+        stub_labels=True,
+    )
+    data = json.loads((tmp_path / "sg" / "surrogate_guided.json").read_text(encoding="utf-8"))
+    assert "synthetic labels, not CFD" in json.dumps(data)
