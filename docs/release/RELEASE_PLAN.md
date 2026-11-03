@@ -202,6 +202,13 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     - apply grok's `docs/qa/patches/r25-A-r111-cli-behaviour-test.patch` (a behaviour test, not a grep).
     - If that is too much for v0.1.0, ship the surrogate-guided CLI as "developer only, experimental" in `--help` and
       the README, with the refusal still in place.
+  - Claude review of `r111-qa66` (6c0b10e, 2026-11-03): **OK to merge**; 17/17 in `test_surrogate_guided.py` +
+    `test_r111_cockpit_surrogate.py`. It closes the three QA-66 holes. Two small follow-ups, not blockers:
+    - `--verify-cfd` with no catalog, or fewer than 8 rows, ends with an empty result ("need ≥2 cfm_free labels") after the
+      Docker check. Refuse up front: "needs a catalog with ≥ 8 CFD rows (--surrogate-db)".
+    - `seed_from_catalog` fills `cfm_load` (0.55 × free, when missing) and `efficiency` (always 0.2 × free) with made-up
+      priors. The ranks use `cfm_free` only, so they are real, but stamp those two predictions "prior, not CFD" in the JSON,
+      or drop them.
 - **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.
