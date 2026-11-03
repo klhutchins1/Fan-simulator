@@ -102,6 +102,9 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     warning. Apply `docs/qa/patches/r24-C-k1-visible.patch` (the caption reads "⚠ loaded point did not settle (CFD unconverged):
     loaded CFM is uncertain"), with a test that a `converged=False` result shows it and a converged one does not. This is the
     near-knee rule's K1. The rest of r23 B stays a roadmap proposal.
+    **Not yet in the code** (grok r25/r25b): 9d0118f was this board note only. To do (Cursor): apply
+    `docs/qa/patches/r24-C-k1-visible.patch`, then `docs/qa/patches/r25-B-qa65-test-and-trials.patch` (test, plus
+    Optimize trials carry `converged`).
   - grok r25 B (2026-11-02, `docs/qa/notes/r25-B-qa65-adopted-review.md`): 9d0118f is board-only, the patch is **not applied** (`git apply --check` still passes); behaviour OK (only `converged is False` warns). **Holes:** Optimize trials never carry `converged`, no test. Add-on `docs/qa/patches/r25-B-qa65-test-and-trials.patch`.
   - grok r25b (2026-11-02, `docs/qa/notes/r25b-master-0635a18-recheck.md`): **still not on master 0635a18**: `r24-C-k1-visible.patch` still applies; unpatched master shows no warning for `converged=False`. r25-B add-on still applies (score_caption 11 passed on scratch, 9 on master). QA-65 open (MED).
 - **R1.3 Optimizer space under wrap (27.7)**. Lane: grok data (round 14 Task C), Cursor implements, Claude reviews.
@@ -173,7 +176,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Groups G1–G5 with exact wording: `docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`. One branch per
     group, each with a grep or UI test.
   - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
-- **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `done 23704f5`.
+- **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `ready` (reopened by Claude review 2026-11-02: QA-66).
   - Claude confirmed 2026-11-01: the cockpit never passes `--verify-cfd` (`scripts/run_optimization.py:111,159`), so its
     labels and "verify" come from `synthetic_label()` (`fansim/optimize/surrogate_search.py:309`), a test formula.
   - For v0.1.0: hide the Surrogate-guided switch, or wire it to `--verify-cfd` and refuse to run without Docker. It must
@@ -189,6 +192,16 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - grok r24 A (2026-11-01): still open on 23831da (switch renders; argv has no `--verify-cfd`).
   - grok r25 A (2026-11-02, `docs/qa/notes/r25-A-r111-branch-check.md`): on unmerged 237a094 UI-31 and QA-62 **fixed on branch (pending merge)**; master 9d0118f still open. CLI behaviour test still guard-only (`docs/qa/patches/r25-A-r111-cli-behaviour-test.patch`); new **QA-66** (MED): `--verify-cfd` still trains on `synthetic_label` DoE, `run_surrogate_search.py` adds `--stub-labels` silently. Merge conflicts in this file only.
   - grok r25b (2026-11-02, `docs/qa/notes/r25b-master-0635a18-recheck.md`): on master 0635a18 UI-31 and QA-62 **verified**. **Not closable:** CLI behaviour test still guard-only (r25-A patch: 7 passed on scratch, master 5); **QA-66 still open 0/3** (`--verify-cfd` DoE = `synthetic_label`, `surrogate_search.py:458,484`; `run_surrogate_search.py:26-27` adds `--stub-labels`; "stamps stub output" is stdout only, `run_optimization.py:179-180`, nothing on disk).
+  - Claude review 2026-11-02: **QA-66 confirmed** in code. The cockpit fix stands (UI-31 verified), but the CLI
+    still ranks with synthetic labels: `run_surrogate_guided` labels the DoE with `label_fn or synthetic_label` even under
+    `--verify-cfd`, and falls back to `stub_verify` silently when Docker fails. To close R1.11:
+    - under `--verify-cfd`, label the DoE with CFD too (or train only on real catalog rows), and **refuse** instead of
+      falling back to the stub;
+    - `--stub-labels` (and `run_surrogate_search.py`, which adds it silently) writes "synthetic labels, not CFD" into
+      `surrogate_guided.json` itself, not only stdout;
+    - apply grok's `docs/qa/patches/r25-A-r111-cli-behaviour-test.patch` (a behaviour test, not a grep).
+    - If that is too much for v0.1.0, ship the surrogate-guided CLI as "developer only, experimental" in `--help` and
+      the README, with the refusal still in place.
 - **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.
