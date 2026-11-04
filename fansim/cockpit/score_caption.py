@@ -29,6 +29,9 @@ def score_caption(extra: dict) -> str:
     if extra.get("near_stall"):
         why = extra.get("near_stall_reason") or extra.get("near_stall_rule") or "BEM"
         parts.append(f"⚠ near stall on this hose ({why})")
+    if extra.get("converged") is False:
+        # K1 (grok r23 B / r24 C): the only near-knee signal with evidence (6/6 bad points, 0 false flags).
+        parts.append("⚠ loaded point did not settle (CFD unconverged): loaded CFM is uncertain")
     if extra.get("beam_regime_ok") is False:
         aspect = extra.get("beam_aspect")
         if aspect is not None:
@@ -72,7 +75,7 @@ def stamp_score_extra(
         if raw.get(key) is not None:
             extra[key] = raw[key]
     for key in ("beam_regime_ok", "beam_aspect", "beam_regime_warn", "f1_bpf_margin",
-                "near_stall", "near_stall_reason", "near_stall_rule"):
+                "near_stall", "near_stall_reason", "near_stall_rule", "converged"):
         if raw.get(key) is not None:
             extra[key] = raw[key]
     if refine_op:

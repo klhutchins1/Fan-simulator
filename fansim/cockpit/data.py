@@ -151,6 +151,7 @@ def load_designs(out_dir: str | Path, study_name: str | None = None) -> list[Des
                    "runtime_s": t.user_attrs.get("runtime_s"),
                    "cfd_version": t.user_attrs.get("cfd_version"),
                    "surf_max": t.user_attrs.get("surf_max"),
+                   "converged": t.user_attrs.get("converged"),  # QA-65; None on old studies
                    "cfd_stale": bool(_reason := stale_reason(
                        {"cfd_version": t.user_attrs.get("cfd_version"),
                         "surf_max": t.user_attrs.get("surf_max"),

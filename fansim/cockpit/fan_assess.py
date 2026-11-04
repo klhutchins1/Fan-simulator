@@ -232,6 +232,7 @@ def bind(session) -> None:
             is_pareto=False,
             stl_path=stl if stl.exists() else None,
             extra=extra,
+            reason=result.reason or "",
         )
         try:
             (workdir / "design.json").write_text(
@@ -281,7 +282,7 @@ def bind(session) -> None:
         d.feasible = True
         d.is_pareto = False
         d.stl_path = stl if stl.exists() else None
-        d.reason = ""
+        d.reason = result.reason or ""
         d.extra.update(
             {
                 "source": d.extra.get("source", "user"),
