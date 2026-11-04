@@ -171,7 +171,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Test: the phrase "about 5 % less airflow than the real A12x25" appears in the README and in the Stock Expert text.
   - grok r21 A/B (2026-10-25): not landed at 5063a65 (README:52 still v2 −5.5 %; `fan_trials.py:354` lacks the phrase). The "`wrapped-sections` audit" link has no file; use `2026-10-12-cylinder-sections.md`. QA-59.
   - grok r22 A (2026-10-29, `docs/qa/notes/r22-A-ui-bug-pass.md`): landed at b3d5543: the phrase is in README:204 and renders in the Stock Expert caption (headless, :8080); Simple shows nothing extra. Verified.
-- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `ready`.
+- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-04)` (G1).
   - Groups G1–G5 with exact wording: `docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`. One branch per
     group, each with a grep or UI test.
   - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
