@@ -31,6 +31,7 @@ from fansim.cockpit.figures import reject_hint
 from fansim.cockpit.placement import frame_gap_note, impeller_z_extent
 from fansim.cockpit.run_settings import RunSettings
 from fansim.cockpit.score_caption import score_caption
+from fansim.cockpit.vs_stock import vs_stock_same_test_line
 from fansim.fan_spec import (
     check_build,
     estimate_weight_g,
@@ -403,13 +404,11 @@ def bind(session) -> None:
                         f"load {o['cfm_load']:.1f}  eff {o['efficiency']:.1f}%"
                         f"  (added to Results plot){rpm_tag}{tag}"
                     )
-                    ref_cfm = getattr(spec, "ref_cfm", None)
-                    if ref_cfm:
-                        pct = 100.0 * (float(o["cfm_free"]) - float(ref_cfm)) / float(ref_cfm)
-                        state.assess_msg += (
-                            f"\nvs stock free {float(ref_cfm):.0f} CFM: {pct:+.0f}% "
-                            f"({'better' if pct >= 0 else 'lower'} free-air)"
-                        )
+                    vs = vs_stock_same_test_line(
+                        float(o["cfm_free"]), d.extra, list(by_trial.values()),
+                    )
+                    if vs:
+                        state.assess_msg += f"\n{vs}"
                     cap = score_caption(d.extra)
                     if cap:
                         state.assess_msg += f"\n{cap}"
