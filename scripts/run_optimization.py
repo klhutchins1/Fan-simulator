@@ -105,11 +105,13 @@ def build_parser() -> argparse.ArgumentParser:
                          "catalog GP for std (roadmap 7.4). Needs torch; else falls back to GP-only. "
                          "Wins over --surrogate-boost when both are set. Off by default.")
     ap.add_argument("--surrogate-guided", action="store_true",
-                    help="roadmap §20.5: DoE → fit GP/ensemble → NSGA-II on the surrogate → "
-                         "CFD-verify top-k → refit. Default verify is stub (no Docker); pass "
-                         "--verify-cfd to call evaluate_candidate when the OpenFOAM image exists.")
+                    help="developer / experimental (roadmap §20.5): DoE → fit GP/ensemble → "
+                         "NSGA-II on the surrogate → verify top-k → refit. Needs --verify-cfd "
+                         "(catalog + CFD; no synthetic DoE) or --stub-labels "
+                         "(synthetic labels, not CFD).")
     ap.add_argument("--verify-cfd", action="store_true",
-                    help="with --surrogate-guided: CFD-verify top-k (needs Docker). Off = stub.")
+                    help="with --surrogate-guided: train on catalog rows and CFD-verify top-k "
+                         "(needs Docker). Does not label the DoE with synthetic_label.")
     ap.add_argument("--stub-labels", action="store_true",
                     help="with --surrogate-guided: allow synthetic_label ranks (not CFD). "
                          "Required if --verify-cfd is off.")
@@ -190,6 +192,7 @@ def main() -> int:
             nn=args.surrogate_nn,
             catalog_db=args.surrogate_db,
             verify_cfd=args.verify_cfd,
+            stub_labels=args.stub_labels,
             fan_model=args.fan_model,
             procs=args.procs,
             base_cell=args.base_cell,
