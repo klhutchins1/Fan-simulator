@@ -59,6 +59,7 @@ class GuidedSearchResult:
     rounds: int
     notes: list[str] = field(default_factory=list)
     labels: str = ""
+    priors: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -66,6 +67,7 @@ class GuidedSearchResult:
             "notes": list(self.notes),
             "n_train": int(len(self.X)),
             "labels": self.labels,
+            "priors": dict(self.priors),
             "verified": [
                 {
                     "params": c.params,
@@ -398,37 +400,43 @@ def seed_from_catalog(
     db: str | Path | None,
     *,
     min_rows: int = 8,
-) -> tuple[np.ndarray, dict[str, np.ndarray], str]:
+) -> tuple[np.ndarray, dict[str, np.ndarray], str, dict[str, str]]:
     """Optional catalog seed with aligned (X, y) for all three objectives.
 
     Efficiency is rarely in the catalog; when missing we use a soft prior
     ``0.2 * cfm_free`` so GP training stays row-aligned. Empty when unavailable.
+    Priors are stamped ``prior, not CFD`` (they are not measured CFD).
     """
     empty_X = np.zeros((0, len(FEATURE_KEYS)))
     empty_y = {n: np.zeros(0) for n in OBJECTIVE_NAMES}
     if db is None:
-        return empty_X, empty_y, "no db"
+        return empty_X, empty_y, "no db", {}
     from fansim.catalog import load_catalog
     from fansim.surrogate.catalog import training_xy
 
     path = Path(db)
     if not path.exists():
-        return empty_X, empty_y, f"no catalog at {path}"
+        return empty_X, empty_y, f"no catalog at {path}", {}
     entries = load_catalog(path)
     Xf, yf = training_xy(entries, y_attr="cfm_free")
     if len(yf) < min_rows:
-        return empty_X, empty_y, f"{len(yf)} free rows (need {min_rows})"
+        return empty_X, empty_y, f"{len(yf)} free rows (need {min_rows})", {}
     Xl, yl = training_xy(entries, y_attr="cfm_load", require_k=True)
+    priors: dict[str, str] = {"efficiency": "prior, not CFD"}
     if len(yl) == len(yf):
         y_load = yl
     else:
         y_load = 0.55 * yf
+        priors["cfm_load"] = "prior, not CFD"
     y = {
         "cfm_free": yf,
         "cfm_load": y_load,
         "efficiency": 0.2 * yf,
     }
-    return Xf, y, f"seeded {len(yf)} free rows from catalog"
+    note = f"seeded {len(yf)} free rows from catalog; efficiency prior, not CFD"
+    if "cfm_load" in priors:
+        note += "; cfm_load prior, not CFD"
+    return Xf, y, note, priors
 
 
 def run_surrogate_guided(
@@ -495,8 +503,12 @@ def run_surrogate_guided(
             verify_fn = stub_verify
             notes.append("verify=stub")
 
-    X, y, seed_note = seed_from_catalog(catalog_db)
+    X, y, seed_note, priors = seed_from_catalog(catalog_db)
     notes.append(seed_note)
+    if verify_cfd and label is None and len(X) < 8:
+        raise RuntimeError(
+            "ERROR: --verify-cfd needs a catalog with ≥ 8 CFD rows (--surrogate-db)."
+        )
 
     if label is not None and n_doe > 0:
         doe = space_filling_doe(n_doe, space=space, seed=seed)
@@ -557,6 +569,7 @@ def run_surrogate_guided(
         rounds=int(n_rounds),
         notes=notes,
         labels=labels_kind,
+        priors=priors,
     )
     (out_dir / "surrogate_guided.json").write_text(
         json.dumps(result.to_dict(), indent=2), encoding="utf-8")
