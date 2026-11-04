@@ -13,20 +13,18 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 - Known recovery gaps from README_RECOVERY.md / RECOVERY_TODO.md are not counted as bugs.
 - Paths like `/workspace/fansim/...` and `qa/...` are on the QA bot's machine (screenshots, scratch scripts); ask if you need one.
 
-## ▶ Next round for the QA bot: round 25 (queued by Cursor 2026-11-02). Delivered as `handoff/2026-11-01_to-qa-25/`
+## ▶ Next round for the QA bot: round 26 (queued by Cursor 2026-11-04). Delivered as `handoff/2026-11-04_to-qa-26/`
 
-Round 24 is **DONE**; thank you. R1.11 is on this master (Surrogate-guided hidden; CLI stub gated). QA-65 landed in
-`9d0118f`. Research leads stay parked. Build: master at the commit that added this folder. No Docker, CFD, OpenFOAM,
-Assess, Sweep or Optimize run. Pre-register B before data.
+Round 25 / 25b is **DONE**; thank you. R1.11 (QA-66) landed in `5611332`. QA-65 landed in `c10c06b` (the real code this time — 9d0118f was board-only). Research leads stay parked. Build: master at the commit that added this folder. No Docker, CFD, OpenFOAM, Assess, Sweep or Optimize run. Pre-register A and B before data.
 
 | # | task | board |
 |---|---|---|
-| A | **Re-check UI-31 and QA-62 on this master.** Confirm: Surrogate-guided switch is gone; cockpit argv has no `--surrogate-guided`; `test_axial_scripts_oriented` passes (validate_lt120.py listed). Other UI (26, 27, 29, 32–38) and QA-40, 42, 61, 63 stay **still open / verified / not re-tested**. Note new bugs. | R1.11, QA-62 |
-| B | **QA-65 re-check (landed, do not re-apply the patch).** `9d0118f` adopted `docs/qa/patches/r24-C-k1-visible.patch`. Code-read: does a scored design with `converged=False` now show the unconverged warning in the score caption? Quote the path. Independent of r24 C. | QA-65, R1.2 |
-| C | **QA-64 strings still live?** Confirm the audits still say "near free air" and "within 8 %" (R1.10 has not landed). Quote the exact lines. If Cursor already changed them, say so. | QA-64, R1.10 |
-| D | (still waiting) R3.1 export leak check, when R3.1 lands. Re-run the r21 A claims audit once R1.10 lands | R3.1, R1.10 |
+| A | **Re-check QA-66 on this master.** Confirm all three r25b rules, plus the two review follow-ups: (1) `--verify-cfd` does not label the DoE with `synthetic_label` (catalog + CFD, or refuse); (2) `run_surrogate_search.py` refuses rather than adding `--stub-labels`; (3) stub JSON stamps "synthetic labels, not CFD"; (4) empty / <8-row catalog under `--verify-cfd` refuses up front; (5) catalog load/efficiency priors stamp "prior, not CFD". Run `tests/test_surrogate_guided.py` and `tests/test_r111_cockpit_surrogate.py`. UI-31 and QA-62 stay **verified / not re-tested** unless you spot a regression. | R1.11, QA-66 |
+| B | **QA-65 re-check (landed in `c10c06b`, do not re-apply the patches).** A scored design with `converged=False` must show "did not settle" in the score caption; True / missing must not. Optimize trials must carry `converged`. Run `tests/test_score_caption.py`. Quote paths. | QA-65, R1.2 |
+| C | **UI-26 still on first view?** Confirm 'Gold = parametric Stock…' still renders on the first view in Simple and Expert. Other UI (27, 29, 32–38) and QA-40, 42, 61, 63 stay **still open / not re-tested**. Note new bugs. | UI-26 |
+| D | (still waiting) R3.1 export leak check, when R3.1 lands. Re-run the r21 A claims audit once R1.10 lands. QA-64 strings wait on R1.10. | R3.1, R1.10 |
 
-Notes to `docs/qa/notes/r25-*.md`, plus a "Round 25" section below.
+Notes to `docs/qa/notes/r26-*.md`, plus a "Round 26" section below.
 
 ## Tested build
 - Source: copy of `T:\Projects\Fan Simulator` working tree, 2026-10-08 (no `.git`, so no commit hash). Linux, Python 3.12, no Docker/OpenFOAM/CFD.
