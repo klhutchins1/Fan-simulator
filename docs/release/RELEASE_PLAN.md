@@ -176,7 +176,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Groups G1–G5 with exact wording: `docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`. One branch per
     group, each with a grep or UI test.
   - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
-- **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-02)` (reopened: QA-66).
+- **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `done 5611332`.
   - Claude confirmed 2026-11-01: the cockpit never passes `--verify-cfd` (`scripts/run_optimization.py:111,159`), so its
     labels and "verify" come from `synthetic_label()` (`fansim/optimize/surrogate_search.py:309`), a test formula.
   - For v0.1.0: hide the Surrogate-guided switch, or wire it to `--verify-cfd` and refuse to run without Docker. It must
@@ -209,6 +209,10 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     - `seed_from_catalog` fills `cfm_load` (0.55 × free, when missing) and `efficiency` (always 0.2 × free) with made-up
       priors. The ranks use `cfm_free` only, so they are real, but stamp those two predictions "prior, not CFD" in the JSON,
       or drop them.
+  - Landed (QA-66, 2026-11-04, `5611332`): `--verify-cfd` trains on catalog + CFD verify (no synthetic DoE), refuses
+    missing Docker and a catalog with < 8 rows; `run_surrogate_search.py` refuses an ungated stub; JSON stamps
+    `synthetic labels, not CFD` and catalog load/efficiency `prior, not CFD`. r25-A CLI behaviour tests. Fast chunks
+    679+512+707 (OCCT teardown only). Review follow-ups included.
 - **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.
