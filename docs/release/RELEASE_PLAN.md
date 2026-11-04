@@ -98,13 +98,12 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
   - Make sure the UI and README never quote a number above the validated range. Add a test that the P–Q display
     stops at the last converged point.
-  - **QA-65 (grok r24 C; Claude reviewed 2026-11-01): adopt.** Status: `in progress (Cursor, 2026-11-02)`. An Assess score whose loaded point did not converge shows no
+  - **QA-65 (grok r24 C; Claude reviewed 2026-11-01): adopt.** Status: `done c10c06b`. An Assess score whose loaded point did not converge shows no
     warning. Apply `docs/qa/patches/r24-C-k1-visible.patch` (the caption reads "⚠ loaded point did not settle (CFD unconverged):
     loaded CFM is uncertain"), with a test that a `converged=False` result shows it and a converged one does not. This is the
     near-knee rule's K1. The rest of r23 B stays a roadmap proposal.
-    **Not yet in the code** (grok r25/r25b): 9d0118f was this board note only. To do (Cursor): apply
-    `docs/qa/patches/r24-C-k1-visible.patch`, then `docs/qa/patches/r25-B-qa65-test-and-trials.patch` (test, plus
-    Optimize trials carry `converged`).
+    Landed (2026-11-04, `c10c06b`): r24-C caption + reason on Assess; r25-B tests and Optimize trials carry `converged`.
+    `test_score_caption` 11 passed.
   - grok r25 B (2026-11-02, `docs/qa/notes/r25-B-qa65-adopted-review.md`): 9d0118f is board-only, the patch is **not applied** (`git apply --check` still passes); behaviour OK (only `converged is False` warns). **Holes:** Optimize trials never carry `converged`, no test. Add-on `docs/qa/patches/r25-B-qa65-test-and-trials.patch`.
   - grok r25b (2026-11-02, `docs/qa/notes/r25b-master-0635a18-recheck.md`): **still not on master 0635a18**: `r24-C-k1-visible.patch` still applies; unpatched master shows no warning for `converged=False`. r25-B add-on still applies (score_caption 11 passed on scratch, 9 on master). QA-65 open (MED).
 - **R1.3 Optimizer space under wrap (27.7)**. Lane: grok data (round 14 Task C), Cursor implements, Claude reviews.
