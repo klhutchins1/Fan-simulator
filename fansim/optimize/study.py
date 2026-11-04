@@ -227,6 +227,8 @@ def run_study(
                 pass
         trial.set_user_attr("feasible", result.feasible)
         trial.set_user_attr("reason", result.reason)
+        if result.raw.get("converged") is not None:  # QA-65: loaded point settled? (caption K1)
+            trial.set_user_attr("converged", bool(result.raw["converged"]))
         trial.set_user_attr("n_blades", params.n_blades)
         trial.set_user_attr("runtime_s", result.runtime_s)
         trial.set_user_attr("cfd_version", CFD_VERSION)  # so stale (pre-fix) scores are detectable
