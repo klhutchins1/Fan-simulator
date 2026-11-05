@@ -1107,7 +1107,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     classes="text-caption mt-1 mb-1",
                                 )
                                 html.Div(
-                                    "Noise ranking: use scripts/evaluate_noise.py (mic cal needed for absolute dB).",
+                                    "Noise ranking is not validated. The blade-pass tone is rpm × blades; sound levels are estimates for exploration only.",
                                     classes="text-caption mt-2 text-medium-emphasis",
                                     style="white-space: pre-line",
                                 )

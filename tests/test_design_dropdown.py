@@ -29,3 +29,11 @@ def test_empty_and_missing_trial():
     assert design_dropdown_items(None) == []
     items = design_dropdown_items([{"objectives": {}}])  # no trial → falls back to index head
     assert items[0]["value"] == 0 and items[0]["title"].startswith("#0")
+
+
+def test_swl_column_is_not_bare_dba():
+    """G2 / QA-55: model SWL in the design list is not labelled dB(A)."""
+    items = design_dropdown_items([{"trial": 1, "objectives": {"swl_dba": 44.2}}])
+    title = items[0]["title"]
+    assert "44.2" in title
+    assert "dBA" not in title and "dB(A)" not in title
