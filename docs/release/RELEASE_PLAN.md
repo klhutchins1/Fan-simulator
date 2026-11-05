@@ -59,7 +59,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     Recommendation: accept the residual flips. Design-minus-Stock pairs scatter more than √2 × Stock's own 2σ (9610 push
     paired 2σ ≈ 10 %), but sizing CLOSE from them would hide 9610's real backflow, and any line flips for cases that
     sit on it. Merge once Kimball agrees; Cursor runs the fast suite first.
-- **R0.4 Noise hint review (27.3c)**. Lane: Claude ruled, Cursor implements. CPU: day. Status: `in progress (Cursor, 2026-11-04)` (via R1.10 G2).
+- **R0.4 Noise hint review (27.3c)**. Lane: Claude ruled, Cursor implements. CPU: day. Status: `done 8d06672`.
   - **Ruling (Claude 2026-10-17):** stop *judging* the hint.
     - At fixed rpm and tip radius, L = 55 log U_tip + 10 log CFM differs between designs only through CFM. So
       "louder" just restates "moves more air", which is the standard fan-law result at equal pressure, and it can never
@@ -68,6 +68,8 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     - Change: the noise row is never ✓/⚠/better. Expert shows the hint number with "scales with tip speed and airflow
       only; not a comparison of how quiet the design is". The README claims no noise comparison for v0.1.0.
     - Test: a design with more CFM gets no ⚠ on noise.
+  - Landed (`8d06672`, via R1.10 G2): noise row always `na` / not better; Expert keeps the hint number plus
+    "Scales with tip speed and airflow only; this is not a comparison of how quiet the design is."
   - Cursor's tip-speed + CFM hint (`fansim/acoustics/tip_loading.py`) only varies with CFM, because rpm and tip
     radius are fixed for a12x25. As written, a fan that moves more air reads "louder".
   - Decide: keep it as Expert-only information, or replace it with a loading-based estimate. Test the candidates
@@ -171,12 +173,15 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Test: the phrase "about 5 % less airflow than the real A12x25" appears in the README and in the Stock Expert text.
   - grok r21 A/B (2026-10-25): not landed at 5063a65 (README:52 still v2 −5.5 %; `fan_trials.py:354` lacks the phrase). The "`wrapped-sections` audit" link has no file; use `2026-10-12-cylinder-sections.md`. QA-59.
   - grok r22 A (2026-10-29, `docs/qa/notes/r22-A-ui-bug-pass.md`): landed at b3d5543: the phrase is in README:204 and renders in the Stock Expert caption (headless, :8080); Simple shows nothing extra. Verified.
-- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-04)` (G2).
+- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-04)` (G3).
   - Groups G1–G5 with exact wording: `docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`. One branch per
     group, each with a grep or UI test.
   - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
   - G1 landed (`bf2ee37`): Assess compares with scored Stock at the same hose/material/refine, or omits the line.
     Never vs the datasheet. Stock vs itself is +0 %. Fast chunks 692+514+702. QA-56.
+  - G2 landed (`8d06672`): noise row never judged; README "Noise outputs are not validated"; no bare dB(A) on
+    model outputs (design list "SWL est.", print sheet labelled, Optimize caption). Related tests 25 passed.
+    Fast chunks not run (peak window). Carries out R0.4 and R1.6. QA-55. Merge after 21:00 chunks. G3 next.
 - **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `done 5611332`.
   - Claude confirmed 2026-11-01: the cockpit never passes `--verify-cfd` (`scripts/run_optimization.py:111,159`), so its
     labels and "verify" come from `synthetic_label()` (`fansim/optimize/surrogate_search.py:309`), a test formula.
@@ -219,11 +224,13 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.
     Add a test that the label is present.
   - grok r21 A (2026-10-25): not landed at 5063a65 (README:27/62, `fan_tab_ui.py:889/911`, `figures.py:394`). QA-59.
-- **R1.6 Acoustics claims audit**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R1.6 Acoustics claims audit**. Lane: Cursor. CPU: day. Status: `done 8d06672`.
   - Grep the UI, export README and docs for any absolute dB(A) claim. Everything must say relative or ranking only
     (audit-06).
   - Add a test that greps the UI copy for "dB(A)" without the word "relative".
   - grok r21 A (2026-10-25, `docs/qa/notes/r21-A-release-claims-audit.md`): 15 overstated / 5 unsupported claims across README, cockpit, docs; noise ones in QA-55 (incl. `data.py:205` "dBA", flow-card hint row, README:59). Also QA-56: Assess "vs stock free 60 CFM" is vs the datasheet.
+  - Landed (`8d06672`, via R1.10 G2): UI grep requires published/relative/measured/estimate/not validated next to
+    dB(A)/dBA on model outputs; user-measured "Noise dB(A)" and datasheet "published" stay.
 
 ## M2: Every other tab decided
 
