@@ -104,3 +104,30 @@ def test_run_surrogate_search_refuses_ungated_stub(tmp_path, monkeypatch, capsys
     captured = capsys.readouterr()
     assert "synthetic labels, not CFD" in (captured.out + captured.err)
 
+
+def test_cli_verify_cfd_without_catalog_exits_2_not_traceback(tmp_path, monkeypatch, capsys):
+    """QA-68 (grok r26): the catalog refusal is a clean exit 2, not an uncaught RuntimeError. No CFD runs."""
+    import importlib.util
+    import sys
+
+    import fansim.cfd.runner as runner
+    import fansim.optimize.surrogate_search as ss
+
+    script = Path(__file__).resolve().parents[1] / "scripts" / "run_optimization.py"
+    spec = importlib.util.spec_from_file_location("run_opt_qa68", script)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    monkeypatch.setattr(mod, "image_available", lambda: True)
+    monkeypatch.setattr(runner, "image_available", lambda: True)
+
+    def no_cfd(*a, **k):
+        def fn(*a, **k):
+            raise AssertionError("CFD verify must not be called")
+        return fn
+
+    monkeypatch.setattr(ss, "make_cfd_verify_fn", no_cfd)
+    monkeypatch.setattr(sys, "argv", [
+        "run_optimization.py", "--surrogate-guided", "--verify-cfd",
+        "--out", str(tmp_path / "opt"), "--surrogate-db", str(tmp_path / "missing.db")])
+    assert mod.main() == 2
+    assert "needs a catalog with" in capsys.readouterr().out
