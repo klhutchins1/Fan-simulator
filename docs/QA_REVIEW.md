@@ -1071,3 +1071,37 @@ Note: `docs/qa/notes/r25b-master-0635a18-recheck.md`.
   - 4 files: 1 failed (QA-63), 33 passed, 1 skipped;
   - `test_score_caption` + R1.11 + argv: 30 passed.
 - **ID changes:** UI-31 and QA-62 → **verified**. There are no new IDs.
+
+## Round 26 (grok, 2026-11-04): re-check of QA-66 / R1.11 and QA-65 on master bd6abdd
+
+**Build:** master `bd6abdd` (2026-11-04 12:23 MST), which includes `5611332` (QA-66) and `c10c06b` (QA-65). Run clone: `/workspace/fansim/repo-r26`.
+
+**Prereg:** `prereg/round26` 00ed802 (`qa_r26/PREREG_R26.md`), committed 2026-11-04 12:25 MST, before any data.
+
+No CFD, Docker, OpenFOAM, Assess, Sweep or Optimize was run, and no full fast suite. The probes are library and CLI calls with Docker monkeypatched and CFD verify faked. No source was edited.
+
+Note: `docs/qa/notes/r26-qa66-qa65-recheck.md`.
+
+- **Targeted tests:** surrogate_guided, r111, score_caption and argv give **46 passed**.
+- **QA-66 (MED): verified, 5/5.**
+  1. `--verify-cfd` makes 0 `synthetic_label` calls; labels are "catalog + CFD verify".
+  2. `run_surrogate_search.py` refuses with neither flag.
+  3. "synthetic labels, not CFD" is written to `surrogate_guided.json` and 2/2 `stub_result.json`.
+  4. With fewer than 8 catalog rows or no catalog, the run refuses before any search (0 synthetic calls, no JSON).
+  5. `priors` are stamped "prior, not CFD".
+  - The r25-A CLI behaviour test is **covered** (both tests are on master verbatim).
+- **R1.11: closable.**
+- **QA-68 (LOW, new): the CLI catalog refusal is an uncaught traceback.**
+  - `run_optimization.py` main does not catch the `RuntimeError` from `run_surrogate_guided`, so a user with Docker and no catalog gets a traceback (exit 1), not a clean exit 2. The out dir is created first.
+  - Patch: `docs/qa/patches/r26-A-qa68-catch-refusal.patch`, with a test that fails on master and passes when patched; 36 passed on scratch.
+  - Not a blocker.
+- **QA-65 (MED): verified, 3/3. Closable.**
+  - `r24-C-k1-visible.patch` and `r25-B-qa65-test-and-trials.patch` both reverse-apply cleanly, so their content is present (r25-B is now redundant).
+  - Only `converged is False` warns; this was checked for 7 cases.
+  - Optimize trials carry `converged` through `load_designs` to the caption (probe).
+  - `test_score_caption`: 11 passed.
+  - Optional: `docs/qa/patches/r26-B-qa65-trial-test.patch` adds a repo test for the trial path.
+- **UI-26: still open.** "Gold = parametric Stock" is on the first view in 3/4 views (1366 Expert, 1920 Simple, 1920 Expert). The 1366 Simple miss is render timing (the Stock cache was still building), the same as r25/r25b.
+- **Not re-tested; carried still open:** UI-27, UI-29, UI-32…38, QA-40, QA-42, QA-61, QA-63, QA-64, QA-67.
+- **Still waiting:** R3.1 (export leak check) and R1.10 (claims audit, QA-64 strings).
+- **ID changes:** QA-66 and QA-65 → **verified**. New: **QA-68** (LOW).

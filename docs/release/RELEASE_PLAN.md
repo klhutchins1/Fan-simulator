@@ -106,6 +106,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     `test_score_caption` 11 passed.
   - grok r25 B (2026-11-02, `docs/qa/notes/r25-B-qa65-adopted-review.md`): 9d0118f is board-only, the patch is **not applied** (`git apply --check` still passes); behaviour OK (only `converged is False` warns). **Holes:** Optimize trials never carry `converged`, no test. Add-on `docs/qa/patches/r25-B-qa65-test-and-trials.patch`.
   - grok r25b (2026-11-02, `docs/qa/notes/r25b-master-0635a18-recheck.md`): **still not on master 0635a18**: `r24-C-k1-visible.patch` still applies; unpatched master shows no warning for `converged=False`. r25-B add-on still applies (score_caption 11 passed on scratch, 9 on master). QA-65 open (MED).
+  - grok r26 (2026-11-04, `docs/qa/notes/r26-qa66-qa65-recheck.md`): on bd6abdd **QA-65 verified 3/3, closable** (r24-C and r25-B reverse-apply; only `converged is False` warns; trials carry `converged`). Optional test: `docs/qa/patches/r26-B-qa65-trial-test.patch`.
 - **R1.3 Optimizer space under wrap (27.7)**. Lane: grok data (round 14 Task C), Cursor implements, Claude reviews.
   CPU: day for the bounds, night for any re-find campaign. Status: `blocked (R1.7, R1.8)`. grok r14 C delivered 2026-10-17
   (`docs/qa/notes/optimizer-space-wrap-r14.md`; proposed bounds give 4.3 % refused). The refused share depends on the hub
@@ -214,6 +215,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     missing Docker and a catalog with < 8 rows; `run_surrogate_search.py` refuses an ungated stub; JSON stamps
     `synthetic labels, not CFD` and catalog load/efficiency `prior, not CFD`. r25-A CLI behaviour tests. Fast chunks
     679+512+707 (OCCT teardown only). Review follow-ups included.
+  - grok r26 (2026-11-04, `docs/qa/notes/r26-qa66-qa65-recheck.md`): on bd6abdd **QA-66 verified 5/5; r25-A CLI test covered; R1.11 closable.** New **QA-68** (LOW): CLI catalog refusal is an uncaught traceback, not exit 2; `docs/qa/patches/r26-A-qa68-catch-refusal.patch`.
 - **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.

@@ -1,0 +1,26 @@
+diff --git a/tests/test_score_caption.py b/tests/test_score_caption.py
+index dca250d..ef69b3e 100644
+--- a/tests/test_score_caption.py
++++ b/tests/test_score_caption.py
+@@ -101,3 +101,21 @@ def test_score_caption_no_unconverged_flag_when_settled_or_unknown():
+         extra = stamp_score_extra({}, raw, load_pa=8.0, preset="case", refine_op=False)
+         assert "did not settle" not in score_caption(extra)
+     assert "did not settle" not in score_caption({"preset": "case", "load_pa": 8.0})
++
++
++def test_optimize_trial_converged_false_reaches_caption(tmp_path):
++    """QA-65 rule 3 (grok r26): an Optimize trial's `converged` user attr reaches Design.extra and the caption."""
++    import optuna
++
++    from fansim.cockpit.data import load_designs
++
++    st = optuna.create_study(study_name="s", storage=f"sqlite:///{(tmp_path / 'study.db').as_posix()}",
++                             directions=["maximize"] * 3)
++    for conv in (False, True, None):
++        t = st.ask()
++        t.set_user_attr("feasible", True)
++        if conv is not None:
++            t.set_user_attr("converged", conv)
++        st.tell(t, [50.0, 30.0, 40.0])
++    warn = {d.trial: "did not settle" in score_caption(d.extra) for d in load_designs(tmp_path)}
++    assert warn == {0: True, 1: False, 2: False}

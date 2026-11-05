@@ -1,0 +1,19 @@
+{
+ "trial0": {
+  "extra_converged": false,
+  "warn": true,
+  "caption": "⚠ loaded point did not settle (CFD unconverged): loaded CFM is uncertain"
+ },
+ "trial1": {
+  "extra_converged": true,
+  "warn": false,
+  "caption": ""
+ },
+ "trial2": {
+  "extra_converged": null,
+  "warn": false,
+  "caption": ""
+ },
+ "shows_only_for_False": true,
+ "study_sets_converged_attr": true
+}

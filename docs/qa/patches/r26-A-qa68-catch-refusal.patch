@@ -1,0 +1,91 @@
+diff --git a/scripts/run_optimization.py b/scripts/run_optimization.py
+index 5795a9f..9af0cdd 100644
+--- a/scripts/run_optimization.py
++++ b/scripts/run_optimization.py
+@@ -180,26 +180,30 @@ def main() -> int:
+         )
+         if args.stub_labels and not args.verify_cfd:
+             print("synthetic labels, not CFD")
+-        result = run_surrogate_guided(
+-            out_dir=out,
+-            n_doe=args.doe,
+-            n_nsga=args.nsga_trials,
+-            top_k=args.top_k,
+-            n_rounds=args.rounds,
+-            space=space,
+-            kappa=args.acq_kappa,
+-            boost=args.surrogate_boost,
+-            nn=args.surrogate_nn,
+-            catalog_db=args.surrogate_db,
+-            verify_cfd=args.verify_cfd,
+-            stub_labels=args.stub_labels,
+-            fan_model=args.fan_model,
+-            procs=args.procs,
+-            base_cell=args.base_cell,
+-            iters=args.iters,
+-            load_pa=load_pa,
+-            material=args.material,
+-        )
++        try:
++            result = run_surrogate_guided(
++                out_dir=out,
++                n_doe=args.doe,
++                n_nsga=args.nsga_trials,
++                top_k=args.top_k,
++                n_rounds=args.rounds,
++                space=space,
++                kappa=args.acq_kappa,
++                boost=args.surrogate_boost,
++                nn=args.surrogate_nn,
++                catalog_db=args.surrogate_db,
++                verify_cfd=args.verify_cfd,
++                stub_labels=args.stub_labels,
++                fan_model=args.fan_model,
++                procs=args.procs,
++                base_cell=args.base_cell,
++                iters=args.iters,
++                load_pa=load_pa,
++                material=args.material,
++            )
++        except RuntimeError as exc:  # QA-68: catalog / Docker refusal -> clean exit 2
++            print(exc)
++            return 2
+         for note in result.notes:
+             print(f"  {note}")
+         print(f"Wrote {out / 'surrogate_guided.json'} "
+diff --git a/tests/test_r111_cockpit_surrogate.py b/tests/test_r111_cockpit_surrogate.py
+index 1de57dc..af6f68d 100644
+--- a/tests/test_r111_cockpit_surrogate.py
++++ b/tests/test_r111_cockpit_surrogate.py
+@@ -104,3 +104,31 @@ def test_run_surrogate_search_refuses_ungated_stub(tmp_path, monkeypatch, capsys
+     captured = capsys.readouterr()
+     assert "synthetic labels, not CFD" in (captured.out + captured.err)
+ 
++
++
++def test_cli_verify_cfd_without_catalog_exits_2_not_traceback(tmp_path, monkeypatch, capsys):
++    """QA-68 (grok r26): the catalog refusal is a clean exit 2, not an uncaught RuntimeError. No CFD runs."""
++    import importlib.util
++    import sys
++
++    import fansim.cfd.runner as runner
++    import fansim.optimize.surrogate_search as ss
++
++    script = Path(__file__).resolve().parents[1] / "scripts" / "run_optimization.py"
++    spec = importlib.util.spec_from_file_location("run_opt_qa68", script)
++    mod = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(mod)
++    monkeypatch.setattr(mod, "image_available", lambda: True)
++    monkeypatch.setattr(runner, "image_available", lambda: True)
++
++    def no_cfd(*a, **k):
++        def fn(*a, **k):
++            raise AssertionError("CFD verify must not be called")
++        return fn
++
++    monkeypatch.setattr(ss, "make_cfd_verify_fn", no_cfd)
++    monkeypatch.setattr(sys, "argv", [
++        "run_optimization.py", "--surrogate-guided", "--verify-cfd",
++        "--out", str(tmp_path / "opt"), "--surrogate-db", str(tmp_path / "missing.db")])
++    assert mod.main() == 2
++    assert "needs a catalog with" in capsys.readouterr().out

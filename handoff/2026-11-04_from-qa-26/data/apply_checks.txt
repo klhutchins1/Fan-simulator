@@ -1,0 +1,15 @@
+== r25-A-r111-cli-behaviour-test (docs/qa/patches/r25-A-r111-cli-behaviour-test.patch)
+
+
+error: patch failed: tests/test_r111_cockpit_surrogate.py:66
+error: tests/test_r111_cockpit_surrogate.py: patch does not apply
+== r24-C-k1-visible (docs/qa/patches/r24-C-k1-visible.patch)
+        if aspect is not None:
+
+error: patch failed: fansim/cockpit/score_caption.py:29
+error: fansim/cockpit/score_caption.py: patch does not apply
+== r25-B-qa65-test-and-trials (docs/qa/patches/r25-B-qa65-test-and-trials.patch)
+    assert extra["case_dir"] == "screen_rank_audit/x/full"
+
+error: patch failed: tests/test_score_caption.py:86
+error: tests/test_score_caption.py: patch does not apply
