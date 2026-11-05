@@ -178,6 +178,9 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
   - G1 landed (`bf2ee37`): Assess compares with scored Stock at the same hose/material/refine, or omits the line.
     Never vs the datasheet. Stock vs itself is +0 %. Fast chunks 692+514+702. QA-56.
+  - Claude review of `r110-g2` (8d06672, 2026-11-04): **OK to merge**. The noise row is `na` (never ✓/⚠); the README and
+    Expert text match the ruled wording; dB(A) stays only on published values; the export print sheet says "not dB(A);
+    not validated".
 - **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `done 5611332`.
   - Claude confirmed 2026-11-01: the cockpit never passes `--verify-cfd` (`scripts/run_optimization.py:111,159`), so its
     labels and "verify" come from `synthetic_label()` (`fansim/optimize/surrogate_search.py:309`), a test formula.
@@ -216,6 +219,8 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     `synthetic labels, not CFD` and catalog load/efficiency `prior, not CFD`. r25-A CLI behaviour tests. Fast chunks
     679+512+707 (OCCT teardown only). Review follow-ups included.
   - grok r26 (2026-11-04, `docs/qa/notes/r26-qa66-qa65-recheck.md`): on bd6abdd **QA-66 verified 5/5; r25-A CLI test covered; R1.11 closable.** New **QA-68** (LOW): CLI catalog refusal is an uncaught traceback, not exit 2; `docs/qa/patches/r26-A-qa68-catch-refusal.patch`.
+  - QA-68 done (Claude, 2026-11-04, merge of `r26-qa68`): grok's patch. The catalog/Docker refusal exits 2 with the
+    message; its test failed first (uncaught RuntimeError). Fast chunks 692+515+702 passed (OCCT teardown exit only).
 - **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.
@@ -343,6 +348,8 @@ Kimball's.
   - A chunk whose pytest summary line says "N passed, 0 failed" but whose exit is non-zero is reported as
     "passed (teardown exit <rc>)", not as a failure. Any real failure still fails the run.
   - Test with a fake pytest command.
+  - Also (Claude, 2026-11-04): `--chunk 3` with `--chunks 3` (indexes are 0-based) runs no tests and exits 0. Refuse an
+    out-of-range `--chunk`, and fail any chunk that collects 0 tests.
 - **R3.6 CHANGELOG, CONTRIBUTING, issue templates**. Lane: Cursor. CPU: day. Status: `ready`.
   - CONTRIBUTING points to `AGENTS.md`'s rules (pre-registration, tests first).
 - **R3.7 Cockpit UI regression tests (29.2)**. Lane: Cursor writes, grok proposes cases. CPU: day. Status: `ready`.
