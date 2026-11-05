@@ -180,26 +180,30 @@ def main() -> int:
         )
         if args.stub_labels and not args.verify_cfd:
             print("synthetic labels, not CFD")
-        result = run_surrogate_guided(
-            out_dir=out,
-            n_doe=args.doe,
-            n_nsga=args.nsga_trials,
-            top_k=args.top_k,
-            n_rounds=args.rounds,
-            space=space,
-            kappa=args.acq_kappa,
-            boost=args.surrogate_boost,
-            nn=args.surrogate_nn,
-            catalog_db=args.surrogate_db,
-            verify_cfd=args.verify_cfd,
-            stub_labels=args.stub_labels,
-            fan_model=args.fan_model,
-            procs=args.procs,
-            base_cell=args.base_cell,
-            iters=args.iters,
-            load_pa=load_pa,
-            material=args.material,
-        )
+        try:
+            result = run_surrogate_guided(
+                out_dir=out,
+                n_doe=args.doe,
+                n_nsga=args.nsga_trials,
+                top_k=args.top_k,
+                n_rounds=args.rounds,
+                space=space,
+                kappa=args.acq_kappa,
+                boost=args.surrogate_boost,
+                nn=args.surrogate_nn,
+                catalog_db=args.surrogate_db,
+                verify_cfd=args.verify_cfd,
+                stub_labels=args.stub_labels,
+                fan_model=args.fan_model,
+                procs=args.procs,
+                base_cell=args.base_cell,
+                iters=args.iters,
+                load_pa=load_pa,
+                material=args.material,
+            )
+        except RuntimeError as exc:  # QA-68: catalog / Docker refusal -> clean exit 2
+            print(exc)
+            return 2
         for note in result.notes:
             print(f"  {note}")
         print(f"Wrote {out / 'surrogate_guided.json'} "
