@@ -136,15 +136,14 @@ def test_baked_tolerances_are_stock_v3_two_sigma():
     assert HINT_MARGIN_DB == 0.5    # 27.3c tip+CFM 2σ was 0.069 dB
 
 
-def test_noise_hint_is_judged_but_stays_off_the_simple_line():
-    """27.3c: Expert row uses tip-speed + CFM; Simple overall must not mention it."""
+def test_noise_hint_is_never_judged():
+    """R0.4 / G2: the hint restates CFM; never ✓/⚠/better. Expert keeps the number + honesty."""
     stock = _m(noise_hint_db=75.4)
-    same = judge(_m(noise_hint_db=75.4), stock)[4]
-    assert same.status == "ok" and same.expert_only and "About as loud" in same.text
-    quiet = judge(_m(noise_hint_db=74.4), stock)[4]
-    assert quiet.status == "ok" and quiet.better is True and "quieter" in quiet.text
-    loud = judge(_m(noise_hint_db=76.4), stock)[4]
-    assert loud.status == "warn" and loud.better is False and "louder" in loud.text
+    loud = judge(_m(noise_hint_db=76.4), stock)[4]  # more CFM → higher hint
+    assert loud.status == "na" and loud.better is None and loud.expert_only
+    assert "⚠" not in loud.text and loud.status != "warn"
+    assert "Scales with tip speed and airflow only" in loud.text
+    assert "not a comparison of how quiet the design is" in loud.text
     rows = judge(_m(noise_hint_db=76.4, swirl_frac=0.20), stock)
     assert overall_line(rows, compared=True) == "About the same as Stock on every check."
 

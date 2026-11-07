@@ -27,7 +27,7 @@ MSG_BUILDING = "Working out how the air moves…"
 NUMBER_LABELS = {"backflow_frac": "backflow share", "swirl_frac": "swirl energy share",
                  "dead_frac": "dead-air share", "tip_band_uz_ratio": "tip / mean forward speed",
                  "noise_swl_db": "Proudman SWL (dB, relative; mesh-dependent, don't compare)",
-                 "noise_hint_db": "tip-speed + airflow ranking (dB-ish, 27.3c)",
+                 "noise_hint_db": "tip-speed + airflow hint (not a quietness ranking)",
                  "mean_uz_exit": "mean exit Uz (m/s)",
                  "mean_dp0_pa": "mean push (Pa, area-weighted)"}
 

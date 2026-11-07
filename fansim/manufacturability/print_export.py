@@ -370,8 +370,13 @@ def print_readme(name: str, params: BladeParams, material: str, report: Watertig
             "",
         ]
     if objectives:
-        L.append("**Predicted performance (sim):** "
-                 + ", ".join(f"{k} {v:.1f}" for k, v in objectives.items()))
+        bits = []
+        for k, v in objectives.items():
+            if k == "noise_swl":
+                bits.append(f"noise estimate {v:.1f} (not dB(A); not validated)")
+            else:
+                bits.append(f"{k} {v:.1f}")
+        L.append("**Predicted performance (sim):** " + ", ".join(bits))
         L.append("")
     L += [
         "## Geometry",

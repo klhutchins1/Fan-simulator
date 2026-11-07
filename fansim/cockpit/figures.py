@@ -333,7 +333,7 @@ def scatter_figure(study_designs, user_designs=(), stock_ref: dict | None = None
     if stock_ref and stock_ref.get("cfm_free") is not None and stock_ref.get("cfm_load") is not None:
         label = str(stock_ref.get("name") or "stock")
         noise = stock_ref.get("noise_dba")
-        noise_bit = f"<br>noise {noise:.1f} dB(A)" if noise is not None else ""
+        noise_bit = f"<br>published noise {noise:.1f} dB(A)" if noise is not None else ""
         fig.add_trace(go.Scatter(
             x=[float(stock_ref["cfm_free"])],
             y=[float(stock_ref["cfm_load"])],
