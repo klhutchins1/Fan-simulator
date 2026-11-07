@@ -252,7 +252,7 @@ Kimball's.
   - Pre-registered diagnostic ladder: `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`. Read its rules
     before running anything; each rung's result picks the next rung.
   - **R2.2a 2-D section case (rung A).** Lane: Cursor. CPU: day (minutes per run; not 4–9 PM). Status: `done` (2026-10-20; verdict report to Claude).
-  - **R2.2a′ rung A0: verify the 2-D setup on NACA 0012 at Re 6×10⁶ against Ladson.** Lane: Cursor. CPU: day (minutes). Status: `done 3fe5c60` (2026-10-26, `r22a-rung-a0`). Snappy **FAIL** (layers 0 %, y+ ~1100). Wake-cut C-grid **FAIL** with the wall resolved: C_d(0°) −2.4 % (inside ±20 %), C_l(5°) −14 %, C_l(10°) −44 % (need ±5 %). y+ mean 0.27 / 0.25 / 0.22. Table in the ladder prereg. Recorded, not re-tuned. Claude to read. (grok r20 B: C_d(0°) 0.00808, C_l(5°) 0.537, C_l(10°) 1.063; `docs/qa/r20/r20-B-ladson-naca0012-reference.csv`).
+  - **R2.2a′ rung A0: verify the 2-D setup on NACA 0012 at Re 6×10⁶ against Ladson.** Lane: Cursor. CPU: day (minutes). Status: `done 3fe5c60` (2026-10-26, `r22a-rung-a0`). Snappy **FAIL** (layers 0 %, y+ ~1100). Wake-cut C-grid **FAIL** with the wall resolved: C_d(0°) −2.4 % (inside ±20 %), C_l(5°) −14 %, C_l(10°) −44 % (need ±5 %). y+ mean 0.27 / 0.25 / 0.22. Table in the ladder prereg. Recorded, not re-tuned. (grok r20 B: C_d(0°) 0.00808, C_l(5°) 0.537, C_l(10°) 1.063; `docs/qa/r20/r20-B-ladson-naca0012-reference.csv`).
     - Work: `scripts/prop_section_2d.py` hard-codes the section (`naca4(0.04, 0.4, 0.06)`) and `RE`. Add `--section` (NACA 4-digit code), `--re`, `--alphas`, `--models` and `--tu`, keeping the defaults equal to today's rung A.
     - Then run `--section 0012 --re 6e6 --alphas 0 5 10 --models kOmegaSST`. Tripped data means fully turbulent, so use a normal freestream Tu of about 0.1 %, not the Ncrit-9 value.
     - Report the achieved y+ (max and mean on the airfoil), layer coverage % and surface cells. Write the result into `2026-10-17-prop-cfd-fix-prereg.md` and judge it against the rulings doc §1. Don't re-tune.
@@ -260,6 +260,19 @@ Kimball's.
     - Pre-registered in `docs/validation/audits/2026-10-20-rulings-r18-r19-rungA.md` §1. Same script, with only the section, Re and α changed.
     - Report the achieved y+ (max and mean), layer coverage % and surface cell count.
     - Pass: C_l ±5 % at 5° and 10°, C_d ±20 % at 0°.
+  - **R2.2a″ rung A0c: last A0 attempt for v0.1.0.** Lane: Cursor. CPU: day (minutes; not 4–9 PM). Status: `ready`.
+    - **Claude ruling 2026-11-06** (`docs/validation/audits/2026-11-06-ruling-rung-a0-cgrid.md`): the C-grid result is **INVALID as a judge of SST, not a FAIL of it**.
+      - 0° and 5° are not converged (C_l(0°) swings −0.19…+0.22 in the tail).
+      - The LE is about 2 cells across (48 uniform tangential cells; LE radius 1.6 mm).
+      - There is a 3.7× cell jump foil→wake at the TE, normal growth is about 1.25, and the far field is at 8c.
+    - Work: make the C-grid parameters CLI options (keep today's values as defaults), then run 0012 / Re 6e6 / SST / α 0 5 10 on a grid that meets the ruling's **grid-quality gate**:
+      - ≥ 128 clustered cells per surface, LE and TE cells ≤ 0.1 % c, every adjacent-cell ratio ≤ 1.2;
+      - normal growth ≤ 1.15, y+ max ≤ 1;
+      - far field and wake ≥ 50c;
+      - converged: C_l tail peak-to-peak ≤ 1 % (≤ 0.005 abs at 0°), |C_l(0°)| ≤ 0.01, iters up to 10 000;
+      - one 2×-refined run at 10° that changes C_l ≤ 2 %.
+    - Report the gate table and then the numbers. Pass windows are unchanged.
+    - Outcomes (fixed): gate met + PASS → re-run rung A unchanged on this mesher and judge A1/A2. Anything else → the ladder closes for v0.1.0 (prop CFD stays "direction and bookkeeping only"), and the result is reported to Kimball.
   - **QA-51: the NeuralFoil prop backend doesn't converge on the TUD prop.** Lane: Cursor. Status: `ready`. Until fixed, the backend appears only in Expert, labelled "experimental".
     - Landed: `scripts/prop_section_2d.py`, fast-suite case build + y+ ≤ 1, 2-D SST vs SST-LM at Re 8×10⁴. At α 4° SST C_l is −19 % vs the grok r17 reference and SST-LM is −24 % (neither A1 nor A2). Table in the ladder prereg. R2.2c stays blocked until Claude rules.
     - New `scripts/prop_section_2d.py`: a 2-D OpenFOAM case of the prop builder's generic section (6 % thick,
@@ -277,8 +290,8 @@ Kimball's.
     - Add `--j` to `scripts/audit_prop_cfd.py`: freestream U = J·n·D, at J 0.3 / 0.5 / 0.7, 6000 rpm, compared with
       kt1035/1036.
     - Launch as a Scheduled Task after 9 PM (AGENTS.md rule 2).
-  - **R2.2c 3-D transition (rung C)** and **R2.2d domain size (rung D)**: `blocked` on Claude's ruling from A and B.
-    - Claude: read R2.2a and R2.2b's results against the prereg rules, record the ruling there, and unblock C or D.
+  - **R2.2c 3-D transition (rung C)** and **R2.2d domain size (rung D)**: `blocked (R2.2a″ A0c)`.
+    - Claude ruled A, B and A0 (2026-10-20, 2026-11-06). C or D are unblocked only if A0c passes and the re-run of rung A then gives A1 or A2.
 - **R2.3 CROR**: direction proof only.
   - Lane: grok data hunt for small counter-rotating fan or prop P–Q / thrust data. Status: `done (grok r15 hunt, 2026-10-17)`; see `docs/qa/notes/r15-data-hunt-cror-mixed-centrifugal.md`.
 - **R2.3 CROR against Shigemitsu 2018** (CC BY 4.0, 40 mm). Pre-registered:
