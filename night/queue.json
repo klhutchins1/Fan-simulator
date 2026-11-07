@@ -181,6 +181,66 @@
     "--out",
     "T:/Projects/Fan Simulator/runs/prop_section_a0"
    ]
+  },
+  {
+   "id": "suite-r110-g2-merge-c0",
+   "branch": "r110-g2-merge",
+   "max_hours": 1.5,
+   "status": "queued",
+   "why": "merge gate for R1.10 G2 (noise copy, QA-55), merged onto master as r110-g2-merge a3c112b; merge to master --no-ff if all 3 chunks are green",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--chunk",
+    "0",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ]
+  },
+  {
+   "id": "suite-r110-g2-merge-c1",
+   "branch": "r110-g2-merge",
+   "max_hours": 1.5,
+   "status": "queued",
+   "why": "merge gate for R1.10 G2 (noise copy, QA-55), merged onto master as r110-g2-merge a3c112b; merge to master --no-ff if all 3 chunks are green",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--chunk",
+    "1",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ]
+  },
+  {
+   "id": "suite-r110-g2-merge-c2",
+   "branch": "r110-g2-merge",
+   "max_hours": 1.5,
+   "status": "queued",
+   "why": "merge gate for R1.10 G2 (noise copy, QA-55), merged onto master as r110-g2-merge a3c112b; merge to master --no-ff if all 3 chunks are green",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--chunk",
+    "2",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ]
   }
  ]
 }
