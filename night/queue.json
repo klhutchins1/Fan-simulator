@@ -186,7 +186,7 @@
    "id": "suite-r110-g2-merge-c0",
    "branch": "r110-g2-merge",
    "max_hours": 1.5,
-   "status": "queued",
+   "status": "done",
    "why": "merge gate for R1.10 G2 (noise copy, QA-55), merged onto master as r110-g2-merge a3c112b; merge to master --no-ff if all 3 chunks are green",
    "cmd": [
     "python",
@@ -200,13 +200,14 @@
     "not docker and not slow",
     "-q",
     "--tb=line"
-   ]
+   ],
+   "note": "2026-11-07: 717 passed, 0 failed; exit 4294967295 is the known teardown crash. Merged to master 3fca917."
   },
   {
    "id": "suite-r110-g2-merge-c1",
    "branch": "r110-g2-merge",
    "max_hours": 1.5,
-   "status": "queued",
+   "status": "done",
    "why": "merge gate for R1.10 G2 (noise copy, QA-55), merged onto master as r110-g2-merge a3c112b; merge to master --no-ff if all 3 chunks are green",
    "cmd": [
     "python",
@@ -220,13 +221,14 @@
     "not docker and not slow",
     "-q",
     "--tb=line"
-   ]
+   ],
+   "note": "2026-11-07: 544 passed, 0 failed; exit 4294967295 is the known teardown crash. Merged to master 3fca917."
   },
   {
    "id": "suite-r110-g2-merge-c2",
    "branch": "r110-g2-merge",
    "max_hours": 1.5,
-   "status": "queued",
+   "status": "done",
    "why": "merge gate for R1.10 G2 (noise copy, QA-55), merged onto master as r110-g2-merge a3c112b; merge to master --no-ff if all 3 chunks are green",
    "cmd": [
     "python",
@@ -240,7 +242,8 @@
     "not docker and not slow",
     "-q",
     "--tb=line"
-   ]
+   ],
+   "note": "2026-11-07: 653 passed, 0 failed; exit 4294967295 is the known teardown crash. Merged to master 3fca917."
   },
   {
    "id": "suite-r35b-chunks-all",
@@ -258,8 +261,69 @@
     "--tb=line"
    ],
    "max_hours": 3,
+   "status": "rerun",
+   "why": "merge gate for R3.5b (chunk runner) and its first real --all run: expect 3 verdict lines, teardown crashes reported as 'passed (teardown exit ...)', exit 0; merge r35b-chunks to master --no-ff if so",
+   "note": "2026-11-07: exit 1. Runner worked (ran all 3 chunks, teardown exits reported as passed), but chunk 0 hit a 1-in-680 flake in test_search_space (unseeded TPE; fixed ffd8155). Rerun on r35b-chunks d2a87cd with that fix."
+  },
+  {
+   "id": "suite-r110-g3-merge-c0",
+   "branch": "r110-g3-merge",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--chunk",
+    "0",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ],
+   "max_hours": 1.5,
    "status": "queued",
-   "why": "merge gate for R3.5b (chunk runner) and its first real --all run: expect 3 verdict lines, teardown crashes reported as 'passed (teardown exit ...)', exit 0; merge r35b-chunks to master --no-ff if so"
+   "why": "merge gate for R1.10 G3 (Mixed/Volute copy, QA-57), merged onto master as r110-g3-merge dd13be7; merge to master --no-ff if all 3 chunks are green"
+  },
+  {
+   "id": "suite-r110-g3-merge-c1",
+   "branch": "r110-g3-merge",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--chunk",
+    "1",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ],
+   "max_hours": 1.5,
+   "status": "queued",
+   "why": "merge gate for R1.10 G3 (Mixed/Volute copy, QA-57), merged onto master as r110-g3-merge dd13be7; merge to master --no-ff if all 3 chunks are green"
+  },
+  {
+   "id": "suite-r110-g3-merge-c2",
+   "branch": "r110-g3-merge",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--chunk",
+    "2",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ],
+   "max_hours": 1.5,
+   "status": "queued",
+   "why": "merge gate for R1.10 G3 (Mixed/Volute copy, QA-57), merged onto master as r110-g3-merge dd13be7; merge to master --no-ff if all 3 chunks are green"
   }
  ]
 }
