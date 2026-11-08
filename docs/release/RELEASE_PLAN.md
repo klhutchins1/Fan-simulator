@@ -174,7 +174,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Test: the phrase "about 5 % less airflow than the real A12x25" appears in the README and in the Stock Expert text.
   - grok r21 A/B (2026-10-25): not landed at 5063a65 (README:52 still v2 −5.5 %; `fan_trials.py:354` lacks the phrase). The "`wrapped-sections` audit" link has no file; use `2026-10-12-cylinder-sections.md`. QA-59.
   - grok r22 A (2026-10-29, `docs/qa/notes/r22-A-ui-bug-pass.md`): landed at b3d5543: the phrase is in README:204 and renders in the Stock Expert caption (headless, :8080); Simple shows nothing extra. Verified.
-- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-04)` (G3).
+- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-07)` (G4).
   - Groups G1–G5 with exact wording: `docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`. One branch per
     group, each with a grep or UI test.
   - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
@@ -185,7 +185,10 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
     Fast chunks not run (peak window). Carries out R0.4 and R1.6. QA-55. Merge after 21:00 chunks. G3 next.
   - Claude review of `r110-g2` (8d06672, 2026-11-04): **OK to merge**. The noise row is `na` (never ✓/⚠); the README and
     Expert text match the ruled wording; dB(A) stays only on published values; the export print sheet says "not dB(A);
-    not validated".
+    not validated". Night chunks for `r110-g2-merge` queued 2026-11-07 (`0c2e3c6`).
+  - G3 landed (`5945620`): Mixed tab "Experimental: not validated against published data"; Assess "runs MRF CFD
+    (not validated against published data)"; Volute "ranking only, unvalidated (CFD not yet converged)". Related tests
+    38 passed. Peak window: no fast chunks. QA-57 / R2.4. G4 next.
 - **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `done 5611332`.
   - Claude confirmed 2026-11-01: the cockpit never passes `--verify-cfd` (`scripts/run_optimization.py:111,159`), so its
     labels and "verify" come from `synthetic_label()` (`fansim/optimize/surrogate_search.py:309`), a test formula.
@@ -312,10 +315,11 @@ Kimball's.
   - **R2.3b runs.** Lane: night. Status: `blocked (R2.3a)`. Add the job to `night/queue.json`.
 - **R2.4 Mixed-flow**: no published comparison.
   - grok r15: no small CC-licensed mixed-flow data. The 85 mm Treder rig is cite-only.
-  - **Kimball 2026-10-17: label it experimental.** Lane: Cursor. CPU: day. Status: `ready`.
+  - **Kimball 2026-10-17: label it experimental.** Lane: Cursor. CPU: day. Status: `done 5945620`.
     - The Mixed tab title and its Assess/Optimize results say "Experimental: not validated against published data".
     - Same in the README feature list, and in exported READMEs for mixed-flow parts.
     - Test: the label appears on the tab and in the export README.
+    - Landed (`5945620`, via R1.10 G3): tab "Mixed · experimental"; export sidecar `.md`; README Known limits.
   - Lane: grok data hunt for mixed-flow fan curves at small diameter. Status: `done (grok r15 hunt, 2026-10-17)`; same note.
 - **R2.5 Volute / centrifugal**: CFD is unconverged (17–23 % oscillation), a ±20 % proxy.
   - Lane: grok data hunt for a small centrifugal blower curve. Claude decides converge-or-label. Status: hunt `done (grok r15,
