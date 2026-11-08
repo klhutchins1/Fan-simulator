@@ -29,7 +29,8 @@ NOISE_MARGIN_DB = 0.5  # 2σ floor of the same five repeats; was 2.8 dB from tha
 # Proudman is NOT judged (Kimball 2026-10-16): Stock alone read -13.7..+22.2 dB across five meshes (27.3b).
 NOISE_JUDGED = False
 NOISE_MESH_SPREAD_DB = 36  # max - min of Stock's Proudman SWL over the 27.3b meshes, rounded
-# 27.3c: tip-speed + CFM hint is judged. 2σ on m1–m5 was 0.069 dB; floor 0.5.
+# 27.3c / R0.4: the tip-speed + CFM hint is never judged (it restates CFM at fixed rpm/tip).
+# 2σ on m1–m5 was 0.069 dB; floor kept at 0.5 if judging is ever restored.
 HINT_MARGIN_DB = 0.5
 
 
@@ -148,20 +149,17 @@ def _dead(d, s):
 
 
 def _noise(d, s):
+    # R0.4 / G2: the hint restates CFM at fixed rpm/tip. Never ✓/⚠/better.
+    g2 = ("Scales with tip speed and airflow only; this is not a comparison of "
+          "how quiet the design is.")
     hint_d = getattr(d, "noise_hint_db", None)
     hint_s = getattr(s, "noise_hint_db", None) if s is not None else None
-    if hint_d is not None and hint_s is not None:
-        delta = float(hint_d) - float(hint_s)
-        if abs(delta) <= HINT_MARGIN_DB + 1e-12:
-            text = ("About as loud as Stock from tip speed and airflow "
-                    "(ranking only, not a microphone reading).")
-            row = _row("noise", "ok", text, better=False)
+    if hint_d is not None:
+        if hint_s is not None:
+            text = f"Hint {float(hint_d):.1f} (Stock {float(hint_s):.1f}). {g2}"
         else:
-            word = "quieter" if delta < 0 else "louder"
-            text = (f"About {abs(delta):.1f} dB {word} than Stock from tip speed and airflow "
-                    "(ranking only, not a microphone reading).")
-            row = _row("noise", "ok" if delta < 0 else "warn", text,
-                       better=delta < 0)
+            text = f"Hint {float(hint_d):.1f}. {g2}"
+        row = _row("noise", "na", text)
         row.expert_only = True
         return row
     if d.noise_swl_db is None:

@@ -54,4 +54,5 @@ physics — not datasheet-tuning of BEM alone:
    controlled printed baseline remain valid before then.
 
 ## Noise target
-22.6 dB(A) max is the number the noise tier (FluidX3D LBM: Curle dipole → BPF tone + relative dB(A)) must eventually reproduce. Today it ranks designs relatively; it is not yet calibrated to absolute dB(A).
+22.6 dB(A) max is the published datasheet number. Noise outputs are not validated: the blade-pass
+tone frequency is exact (rpm × blades); sound levels are estimates for exploration only.
