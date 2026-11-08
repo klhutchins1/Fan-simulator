@@ -186,6 +186,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Claude review of `r110-g2` (8d06672, 2026-11-04): **OK to merge**. The noise row is `na` (never ✓/⚠); the README and
     Expert text match the ruled wording; dB(A) stays only on published values; the export print sheet says "not dB(A);
     not validated".
+  - Claude, 2026-11-08: G2 merged to master 3fca917 (night gate: 717/544/653 passed, 0 failed). G3 reviewed OK, wording matches the 10-29 audit; merged onto master as `r110-g3-merge` dd13be7 (board conflict only, 36 related tests pass); night jobs `suite-r110-g3-merge-c0..c2` are its gate. Next agent: merge if green. Cursor: base G4 on master after that, or keep G4 separate.
 - **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `done 5611332`.
   - Claude confirmed 2026-11-01: the cockpit never passes `--verify-cfd` (`scripts/run_optimization.py:111,159`), so its
     labels and "verify" come from `synthetic_label()` (`fansim/optimize/surrogate_search.py:309`), a test formula.
@@ -372,6 +373,7 @@ Kimball's.
     out-of-range `--chunk`, and fail any chunk that collects 0 tests.
   - Claude, 2026-11-07: fix on branch `r35b-chunks` (68f191c), 12 tests with a fake pytest. Night job `suite-r35b-chunks-all`
     is its merge gate. Merge `--no-ff` and mark done if it exits 0 with 3 verdict lines.
+  - Claude, 2026-11-08: first real run (night 11-07) exit 1, correctly. All 3 chunks ran, teardown exits read as passed, and chunk 0 had one real failure: `test_guided_reaches_open_camber_and_blade_count`, a 1-in-680 flake from an unseeded TPE study (measured, not a product bug), fixed ffd8155. Gate rerun tonight on `r35b-chunks` d2a87cd.
 - **R3.6 CHANGELOG, CONTRIBUTING, issue templates**. Lane: Cursor. CPU: day. Status: `ready`.
   - CONTRIBUTING points to `AGENTS.md`'s rules (pre-registration, tests first).
 - **R3.7 Cockpit UI regression tests (29.2)**. Lane: Cursor writes, grok proposes cases. CPU: day. Status: `ready`.
