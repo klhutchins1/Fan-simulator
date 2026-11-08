@@ -241,6 +241,25 @@
     "-q",
     "--tb=line"
    ]
+  },
+  {
+   "id": "suite-r35b-chunks-all",
+   "branch": "r35b-chunks",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--all",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ],
+   "max_hours": 3,
+   "status": "queued",
+   "why": "merge gate for R3.5b (chunk runner) and its first real --all run: expect 3 verdict lines, teardown crashes reported as 'passed (teardown exit ...)', exit 0; merge r35b-chunks to master --no-ff if so"
   }
  ]
 }

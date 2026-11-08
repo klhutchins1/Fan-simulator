@@ -363,6 +363,8 @@ Kimball's.
   - Test with a fake pytest command.
   - Also (Claude, 2026-11-04): `--chunk 3` with `--chunks 3` (indexes are 0-based) runs no tests and exits 0. Refuse an
     out-of-range `--chunk`, and fail any chunk that collects 0 tests.
+  - Claude, 2026-11-07: fix on branch `r35b-chunks` (68f191c), 12 tests with a fake pytest. Night job `suite-r35b-chunks-all`
+    is its merge gate. Merge `--no-ff` and mark done if it exits 0 with 3 verdict lines.
 - **R3.6 CHANGELOG, CONTRIBUTING, issue templates**. Lane: Cursor. CPU: day. Status: `ready`.
   - CONTRIBUTING points to `AGENTS.md`'s rules (pre-registration, tests first).
 - **R3.7 Cockpit UI regression tests (29.2)**. Lane: Cursor writes, grok proposes cases. CPU: day. Status: `ready`.
