@@ -184,11 +184,11 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                     with v3.VTooltip(
                         location="bottom",  # beside the tab it covered the next tab name (§23.27)
                         open_delay=400,
-                        text="Mixed-flow — drop-in impeller (rough estimate, not full Fan CFD)",
+                        text="Experimental: not validated against published data",
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
                             v3.VTab(
-                                "Mixed · estimate",
+                                "Mixed · experimental",
                                 value="mixed",
                                 v_bind="props",
                                 v_show="ui_mode === 'expert'",
@@ -196,7 +196,7 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                     with v3.VTooltip(
                         location="bottom",  # beside the tab it covered the next tab name (§23.27)
                         open_delay=400,
-                        text="Volute — radial blower (rough estimate, ranking only)",
+                        text="Volute — ranking only, unvalidated (CFD not yet converged)",
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
                             v3.VTab(
