@@ -327,6 +327,25 @@
    "status": "done",
    "why": "merge gate for R1.10 G3 (Mixed/Volute copy, QA-57), merged onto master as r110-g3-merge dd13be7; merge to master --no-ff if all 3 chunks are green",
    "note": "2026-11-08: 683 passed, 13 skipped, 1 xfailed; exit 4294967295 is the known teardown crash. Cursor daytime; do not rerun."
+  },
+  {
+   "id": "suite-process-tools-all",
+   "branch": "process-tools",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--all",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ],
+   "max_hours": 3,
+   "status": "queued",
+   "why": "merge gate for branch process-tools (scripts/gate.py, scripts/morning_check.py, night runner follows origin/master, AGENTS.md process rules). Exit 0 = merge to master --no-ff. Last test suite that should need the night queue."
   }
  ]
 }

@@ -6,6 +6,12 @@ take it; do not keep a second TODO list here.
 
 Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edits this file; it never edits code.
 
+**From round 28 (Kimball, 2026-11-09): the QA bot no longer edits this file or the board.** It writes its round as one new
+file, `docs/qa/rounds/r<NN>.md` (results, plus any new or changed tracker rows written out in full), with notes and
+patches under `docs/qa/` as before. The lead copies the rows into the tracker. Reason: the bot works on a delivered
+copy, so its edits to shared files had to be hand-merged every round. Rounds are for independent re-derivations and
+bug hunts; re-check a fix only when the bug was HIGH.
+
 ## How to use this file (for Claude / whoever fixes things)
 - Each item has an ID (`QA-n` for code/math, `UI-n` for cockpit UI). Keep IDs stable; never renumber.
 - When you fix something, change its **Status** to `fixed (pending QA)` and add the commit hash. The QA bot re-tests and marks it `verified` or `reopened`.
