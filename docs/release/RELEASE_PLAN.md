@@ -110,7 +110,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - grok r25b (2026-11-02, `docs/qa/notes/r25b-master-0635a18-recheck.md`): **still not on master 0635a18**: `r24-C-k1-visible.patch` still applies; unpatched master shows no warning for `converged=False`. r25-B add-on still applies (score_caption 11 passed on scratch, 9 on master). QA-65 open (MED).
   - grok r26 (2026-11-04, `docs/qa/notes/r26-qa66-qa65-recheck.md`): on bd6abdd **QA-65 verified 3/3, closable** (r24-C and r25-B reverse-apply; only `converged is False` warns; trials carry `converged`). Optional test: `docs/qa/patches/r26-B-qa65-trial-test.patch`.
 - **R1.3 Optimizer space under wrap (27.7)**. Lane: grok data (round 14 Task C), Cursor implements, Claude reviews.
-  CPU: day for the bounds, night for any re-find campaign. Status: `blocked (R1.7, R1.8)`. grok r14 C delivered 2026-10-17
+  CPU: day for the bounds, night for any re-find campaign. Status: `ready` (Claude 2026-11-09: R1.7 and R1.8 are both done, and grok r17 C re-measured 2.0 % refused with both, so the block is gone). grok r14 C delivered 2026-10-17
   (`docs/qa/notes/optimizer-space-wrap-r14.md`; proposed bounds give 4.3 % refused). The refused share depends on the hub
   (R1.7) and the hang check (R1.8), so re-measure after both.
   grok r17 C (2026-10-19, `docs/qa/notes/r17-C-hang-refusals.md`): r14 P0 bounds with R1.7 + R1.8 give 2.0 % refused (Wilson ≤ 4.3 %), so the bounds stand. R1.8 alone gives 7.7 %, R1.7 alone 0.3 %.
@@ -367,7 +367,7 @@ Kimball's.
   - Port `.github/workflows/ci.yml` for GitHub: ubuntu fast suite in 3 chunks, plus a Windows job for the fast
     geometry and export subset.
   - Widen ruff to the default rule set on changed files only.
-- **R3.5b `pytest_chunks.py --all` stops after a green chunk on Windows**. Lane: Cursor. CPU: day. Status: `in progress (Claude, 2026-11-07)`.
+- **R3.5b `pytest_chunks.py --all` stops after a green chunk on Windows**. Lane: Cursor. CPU: day. Status: `done 70ab65c`.
   - On 2026-10-17, chunk 1 printed "658 passed" and then pytest exited 127, the known OCCT teardown crash
     (`docs/validation/suite_baseline_2026-09-14.md`). `--all` returned and chunks 2–3 never ran.
   - Fix: run every chunk, then print one summary line per chunk.
@@ -379,6 +379,7 @@ Kimball's.
   - Claude, 2026-11-07: fix on branch `r35b-chunks` (68f191c), 12 tests with a fake pytest. Night job `suite-r35b-chunks-all`
     is its merge gate. Merge `--no-ff` and mark done if it exits 0 with 3 verdict lines.
   - Claude, 2026-11-08: first real run (night 11-07) exit 1, correctly. All 3 chunks ran, teardown exits read as passed, and chunk 0 had one real failure: `test_guided_reaches_open_camber_and_blade_count`, a 1-in-680 flake from an unseeded TPE study (measured, not a product bug), fixed ffd8155. Gate rerun tonight on `r35b-chunks` d2a87cd.
+  - Landed (70ab65c, 2026-11-09): rerun exit 0 with 3 verdict lines (717/555/653 passed). Nothing left. A job that uses `--all` or `--chunk` now exits 0 on a green suite, so `results.json` can be trusted without reading the log.
 - **R3.6 CHANGELOG, CONTRIBUTING, issue templates**. Lane: Cursor. CPU: day. Status: `ready`.
   - CONTRIBUTING points to `AGENTS.md`'s rules (pre-registration, tests first).
 - **R3.7 Cockpit UI regression tests (29.2)**. Lane: Cursor writes, grok proposes cases. CPU: day. Status: `ready`.

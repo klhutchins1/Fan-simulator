@@ -261,9 +261,9 @@
     "--tb=line"
    ],
    "max_hours": 3,
-   "status": "rerun",
+   "status": "done",
    "why": "merge gate for R3.5b (chunk runner) and its first real --all run: expect 3 verdict lines, teardown crashes reported as 'passed (teardown exit ...)', exit 0; merge r35b-chunks to master --no-ff if so",
-   "note": "2026-11-07: exit 1. Runner worked (ran all 3 chunks, teardown exits reported as passed), but chunk 0 hit a 1-in-680 flake in test_search_space (unseeded TPE; fixed ffd8155). Rerun on r35b-chunks d2a87cd with that fix."
+   "note": "2026-11-08 rerun: exit 0, 3 verdict lines (717/555/653 passed; teardown exits reported as passed). Merged to master 70ab65c. First run 11-07 failed on a test flake fixed in ffd8155."
   },
   {
    "id": "suite-r110-g3-merge-c0",
