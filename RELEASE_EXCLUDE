@@ -1,5 +1,11 @@
-# Paths (prefixes, relative to the repo root) that must NOT ship in a public release.
-# scripts/export_release.py copies the tracked files minus these. See THIRD_PARTY.md.
+# Paths (prefixes, globs, or path-segments, relative to the repo root) that must NOT
+# ship in a public release. scripts/export_release.py copies the tracked files minus
+# these. See THIRD_PARTY.md. R3.1 also drops files whose contents embed C:\Users or E:\.
 validation/reference/drone_radial/   # prop STLs of unknown origin (Kimball, 2026-10-10)
 docs/qa/benchmarks/nv150/            # CC BY-NC-ND 4.0 data: not MIT-compatible
 handoff/                             # internal QA-bot exchange; its scripts embed the nv150 numbers
+archive/                             # chat-recovery dumps and old snapshots
+memory/                              # local agent notes
+docs/qa/screenshots/                 # QA bot screenshots
+*.bak                                # editor backups
+CHAT_RECOVERY/                       # chat-recovery dumps, wherever they sit
