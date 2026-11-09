@@ -31,6 +31,14 @@ def test_design_rules_drop_stale_blade_and_gci():
     assert "~3–5%" not in src and "~3–5 %" not in src
     assert "screening mesh, GCI ≈ 21 %" in src
     assert "±1 % run to run on Stock" in src
+    assert "Noise dB(A) (min)" not in src
+    assert "Noise estimate (min)" in src
+
+
+def test_extract_design_rules_does_not_label_lbm_as_dba():
+    src = (ROOT / "scripts" / "extract_design_rules.py").read_text(encoding="utf-8")
+    assert '"Noise dB(A) (min)"' not in src
+    assert '"Noise estimate (min)"' in src
 
 
 def test_adversarial_review_gci_is_21_percent():

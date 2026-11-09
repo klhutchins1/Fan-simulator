@@ -7,7 +7,7 @@ From `opt_v3`: **14 feasible trials**, **14 noise-scored** (LBM control-volume d
 - **Free-air airflow (max)** — driven by `max_camber` (-0.79), `stagger_mid` (+0.65), `stagger_mean` (+0.50), `chord_tip` (+0.49)
 - **Airflow under load (max)** — driven by `max_camber` (-0.78), `stagger_mid` (+0.65), `stagger_mean` (+0.50), `chord_tip` (+0.49)
 - **Efficiency (max)** — driven by `max_camber` (-0.78), `n_blades` (-0.61), `chord_tip` (+0.60), `sol_mid` (-0.57)
-- **Noise dB(A) (min)** — driven by `stagger_mid` (-0.79), `sol_tip` (+0.70), `sol_mid` (+0.67), `n_blades` (+0.64)
+- **Noise estimate (min)** — driven by `stagger_mid` (-0.79), `sol_tip` (+0.70), `sol_mid` (+0.67), `n_blades` (+0.64)
 - **Blade-pass tone (min)** — driven by `chord_tip` (-0.50), `chord_mean` (-0.50), `lean_mid` (+0.50), `stagger_mid` (+0.47)
 - **Blade loading |thrust|** — driven by `stagger_tip` (+0.51), `sol_hub` (+0.49), `sol_mid` (+0.46), `stagger_root` (-0.44)
 
