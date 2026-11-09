@@ -64,7 +64,7 @@ Blade vibration (flutter) is a **warning**, not a reject, until printed blades c
 **Scaffolds, not validated:** the wind-turbine archetype (`fansim/wind_turbine`) — tip-speed ratio
 does not drive its geometry and its Cp saturates at ≥ 4 blades; do not use it for design claims.
 
-**Known limits** (also listed at the end of this file): nothing printed or measured yet; propeller CFD is not a performance predictor (BEMT is); volute CFD is unconverged; mixed-flow and CROR are not validated against published data; noise levels are not validated; the Stock recipe reads about 5 % low.
+**Known limits** (also listed at the end of this file): nothing printed or measured yet; propeller CFD is not a performance predictor (BEMT is); volute CFD is unconverged; mixed-flow and CROR are not validated against published data; noise levels are not validated; the Stock recipe reads about 5 % less airflow than the real A12x25.
 
 ## The workflow
 
@@ -206,7 +206,7 @@ Case internals (mesh, `processor*`, logs) are regenerable and safe to prune once
 - volute CFD is unconverged;
 - mixed-flow and CROR are not validated against published data;
 - noise levels are not validated;
-- the Stock recipe reads about 5 % low (parametric Stock vs the real A12x25 shape, 55.7 vs 58.3 CFM in the same test). Designs are compared with this Stock, so comparisons are like for like.
+- the Stock recipe reads about 5 % less airflow than the real A12x25 shape (55.7 vs 58.3 CFM in the same test). Designs are compared with this Stock, so comparisons are like for like.
 
 Mixed-flow: Experimental: not validated against published data. Assess runs MRF CFD (not validated against published data).
 Volute: ranking only, unvalidated (CFD not yet converged).
