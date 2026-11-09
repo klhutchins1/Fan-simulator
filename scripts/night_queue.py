@@ -14,12 +14,15 @@ Jobs live in ``night/queue.json`` (tracked, so any agent can add one):
 - The runner never starts a job at or after 15:30 or when the next job's `max_hours` would reach 16:00. The 4–9 PM
   peak-demand window is never touched.
 - The Scheduled Task runs this file from its own worktree of master (``T:/Projects/fansim-night``) with
-  ``--self-update``: it first moves that worktree to the latest local ``master``, then re-runs itself. A job
-  therefore runs only once it is committed to master's ``night/queue.json``.
+  ``--self-update``: it first fetches and moves that worktree to ``origin/master`` (or to local ``master`` if that
+  has unpushed commits or the fetch fails), then re-runs itself. A job therefore runs once it is on master's
+  ``night/queue.json`` and pushed.
 - Jobs get ``PYTHONPATH=<their checkout>``, because the venv's editable install points at the main checkout.
 - Results always go to the **main** checkout (``<main>/runs/night``), not the night worktree:
-  ``runs/night/<date>/<id>.log`` and ``runs/night/<date>/results.json``. The queue file itself is not
-  edited by the runner; a human or agent marks jobs done.
+  ``runs/night/<date>/<id>.log`` and ``runs/night/<date>/results.json``.
+- After the last job the runner calls ``scripts/morning_check.py --apply``: it marks jobs done/failed on master,
+  merges a green branch whose job has ``"merge_on_green": true`` (only when that is safe; see that file), and
+  writes ``runs/night/STATUS.md``.
 
     python scripts/night_queue.py            # run now (what the Scheduled Task does)
     python scripts/night_queue.py --dry-run  # show what would run
@@ -88,6 +91,19 @@ def resolve_cmd(cmd: list[str]) -> list[str]:
     return [sys.executable if (i == 0 and c == "python") else c for i, c in enumerate(cmd)]
 
 
+def update_target(root: Path = ROOT) -> str:
+    """``origin/master`` if a fetch works and it contains local master; else local ``master``."""
+    try:
+        if subprocess.run(["git", "fetch", "-q", "origin", "master"], cwd=root, capture_output=True,
+                          timeout=120).returncode != 0:
+            return "master"
+        ahead = subprocess.run(["git", "merge-base", "--is-ancestor", "master", "origin/master"], cwd=root,
+                               capture_output=True, timeout=60).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return "master"
+    return "origin/master" if ahead else "master"
+
+
 def _worktree(branch: str, job_id: str) -> Path:
     wt = OUT / f"wt-{job_id}"
     if wt.exists():
@@ -120,6 +136,9 @@ def run(dry_run: bool = False, now_fn=dt.datetime.now) -> list[dict]:
             continue
         day.mkdir(parents=True, exist_ok=True)
         cwd = _worktree(job["branch"], job["id"]) if job.get("branch") else ROOT
+        if job.get("branch"):
+            rec["sha"] = subprocess.run(["git", "rev-parse", "HEAD"], cwd=cwd, capture_output=True,
+                                        text=True).stdout.strip()
         log = day / f"{job['id']}.log"
         with log.open("w", encoding="utf-8") as fh:
             try:
@@ -148,11 +167,16 @@ def main(argv: list[str] | None = None) -> int:
                     help="move this worktree to the latest local master, then re-run without this flag")
     args = ap.parse_args(argv)
     if args.self_update:
-        subprocess.run(["git", "checkout", "-q", "--detach", "master"], cwd=ROOT, check=True)
+        subprocess.run(["git", "checkout", "-q", "--detach", update_target()], cwd=ROOT, check=True)
         rest = ["--dry-run"] if args.dry_run else []
         return subprocess.run([sys.executable, str(Path(__file__).resolve()), *rest], cwd=ROOT).returncode
-    for r in run(dry_run=args.dry_run):
+    results = run(dry_run=args.dry_run)
+    for r in results:
         print(json.dumps(r), flush=True)
+    if results and not args.dry_run:
+        # Close the jobs and merge what is safely green; a failure here must never fail the night run.
+        subprocess.run([sys.executable, str(Path(__file__).with_name("morning_check.py")), "--apply"],
+                       cwd=ROOT, check=False)
     return 0
 
 

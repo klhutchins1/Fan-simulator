@@ -49,3 +49,53 @@ def test_results_go_to_the_main_checkout():
     out = nq.results_root()
     assert out.name == "night" and out.parent.name == "runs"
     assert "fansim-night" not in str(out)
+
+
+# --- self-update follows origin/master, so a pushed job runs even if nobody updated the local branch ---
+
+import subprocess
+
+
+def _g(cwd, *args):
+    return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True).stdout.strip()
+
+
+def _clone(tmp_path):
+    origin = tmp_path / "origin.git"
+    _g(tmp_path, "init", "-q", "--bare", "-b", "master", str(origin))
+    work = tmp_path / "work"
+    _g(tmp_path, "clone", "-q", str(origin), str(work))
+    _g(work, "config", "user.email", "t@example.com")
+    _g(work, "config", "user.name", "t")
+    (work / "a.txt").write_text("1")
+    _g(work, "add", "-A")
+    _g(work, "commit", "-q", "-m", "base")
+    _g(work, "push", "-q", "origin", "HEAD:master")
+    return origin, work
+
+
+def test_self_update_uses_origin_master_when_it_is_ahead(tmp_path):
+    origin, work = _clone(tmp_path)
+    other = tmp_path / "other"
+    _g(tmp_path, "clone", "-q", str(origin), str(other))
+    _g(other, "config", "user.email", "t@example.com")
+    _g(other, "config", "user.name", "t")
+    (other / "b.txt").write_text("2")
+    _g(other, "add", "-A")
+    _g(other, "commit", "-q", "-m", "pushed by another agent")
+    _g(other, "push", "-q", "origin", "HEAD:master")
+    assert nq.update_target(work) == "origin/master"
+
+
+def test_self_update_keeps_local_master_when_it_has_unpushed_commits(tmp_path):
+    _, work = _clone(tmp_path)
+    (work / "c.txt").write_text("3")
+    _g(work, "add", "-A")
+    _g(work, "commit", "-q", "-m", "local only")
+    assert nq.update_target(work) == "master"
+
+
+def test_self_update_falls_back_to_local_master_when_fetch_fails(tmp_path):
+    _, work = _clone(tmp_path)
+    _g(work, "remote", "set-url", "origin", str(tmp_path / "gone.git"))
+    assert nq.update_target(work) == "master"
