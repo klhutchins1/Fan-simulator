@@ -21,11 +21,12 @@ TURB_INTENSITY = 0.05
 P_INF = 101325.0
 T_INF = 300.0
 STATIC_FREESTREAM_MAX = 1.5  # m/s; the default 1 m/s epsilon counts as static (hover)
+from fansim.propeller.honesty import PROP_BEMT_HONESTY, PROP_CFD_HONESTY  # noqa: F401
+
 # Audit #8: open-air prop CFD reads 34-44 % low on thrust/power vs UIUC (APC SF 9x4.7) across mesh,
 # boundary and wall-treatment variants (fully turbulent RANS at chord Re < 1e5). It is proven for
 # direction and sign bookkeeping only; rank and pick props from BEMT.
-PROP_CFD_HONESTY = ("direction/sanity check only: open-air prop CFD reads ~35-45 % low on "
-                    "thrust and power at small-prop Reynolds numbers (Audit #8); use BEMT numbers")
+# R1.10 G5 (2026-10-29 review): UI wording is 40–60 % (J-sweep included); BEMT honesty is R2.1.
 
 
 def _turb_from_u(u: float, tip_radius: float) -> tuple[float, float]:

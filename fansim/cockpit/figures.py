@@ -391,7 +391,8 @@ def reject_hint(reason: str) -> str:
             "↳ Plain English: blades whoosh past a fixed point at the blade-pass rate (BPF). "
             "If that rate is too close to how the blade likes to flex, it can buzz. "
             "This check runs before CFD. Fastest fix: fewer Blades. Next: Thickness mid up, "
-            "or Tip radius down. (Not a full FEA — just a cheap safety gate.)"
+            "or Tip radius down. (Not a full FEA — cheap gate; "
+            "estimate, not validated (resonance check, not flutter).)"
         )
     if "stalls at this hose" in r:
         return ("↳ the fan's CFD static-pressure ceiling is below this hose, so the loaded solve "

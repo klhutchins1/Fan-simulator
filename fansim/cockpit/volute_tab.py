@@ -156,11 +156,13 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
     state.volute_has_front = bool(_volute_last) or bool(volute_design_store)
     state.volute_msg = (
         "Radial impeller + sealed volute enclosure (smooth Archimedean scroll). "
-        "Assess runs radial MRF; Optimize is a geometry proxy (not CFM)."
+        "Assess runs radial MRF CFD — ranking only, unvalidated (CFD not yet converged); "
+        "Optimize is a geometry proxy (not CFM)."
     )
     state.volute_readout = [
         "Preview / Export: impeller + sealed casing STLs.",
-        "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker).",
+        "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker) — ranking only, "
+        "unvalidated (CFD not yet converged).",
         "Optimize: NSGA geometry proxy — ranking only, unvalidated (CFD not yet converged).",
     ]
     if volute_design_store:
@@ -415,6 +417,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
                     f"CFM free {res.cfm_free:.1f} · load {res.cfm_load:.1f} · "
                     f"η {res.efficiency:.1f}% · {rpm:.0f} RPM",
                     f"Domain: radial MRF stage 1 ({res.raw.get('honesty', '')}).",
+                    "Volute CFD: ranking only, unvalidated (CFD not yet converged).",
                     f"Workdir: {workdir}",
                 ]
                 state.volute_last_assess = str(workdir)

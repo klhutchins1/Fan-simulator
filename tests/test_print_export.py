@@ -147,7 +147,8 @@ def test_motor_mount_refuses_small_hub(tmp_path):
     p.hub_radius = 15.0  # < 19.8 mm needed for the 37.25 mm cup + 1.2 mm wall
     rep = export_print_ready(p, tmp_path / "small.stl", mount=mount)
     assert rep.mount_fits is False
-    assert "too small" in rep.mount_msg
+    assert "hub radius too small" in (rep.mount_msg or "")
+    assert "did not join into one solid" not in (rep.mount_msg or "")
 
 
 def test_fan_spec_motor_mount_roundtrips():

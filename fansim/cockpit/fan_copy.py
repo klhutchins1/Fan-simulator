@@ -157,7 +157,7 @@ OPT_SEARCH_HELP = {
     ),
     "assess_wall_ks": (
         "Models FDM print roughness (~0.1 mm sand grain) on impeller + frame/stator; casing "
-        "stays smooth. Used by Assess and Optimize. When to use: printed-part honesty. "
+        "stays smooth. Used by Assess and Optimize. When to use: an assumed 5 % print loss, not yet measured. "
         "Cost: same solve time. Risk: slightly lower predicted CFM vs smooth walls."
     ),
 }

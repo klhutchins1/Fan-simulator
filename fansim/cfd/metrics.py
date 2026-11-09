@@ -74,12 +74,24 @@ def _tail_mean_row(path: Path, tail_frac: float = TAIL_FRAC) -> list[float]:
     return [sum(r[i] for r in tail) / len(tail) for i in range(ncol)]
 
 
-def _pp_file(case_dir: Path, fo_name: str, filename: str) -> Path:
-    """Find the newest time-directory instance of a postProcessing file."""
-    candidates = sorted((case_dir / "postProcessing" / fo_name).glob(f"*/{filename}"))
+def latest_pp_file(case_dir: Path, fo_name: str, filename: str) -> Path:
+    """Newest postProcessing time-directory instance, sorted by numeric time (QA-39)."""
+    candidates = list((Path(case_dir) / "postProcessing" / fo_name).glob(f"*/{filename}"))
     if not candidates:
         raise FileNotFoundError(f"missing postProcessing/{fo_name}/*/{filename}")
-    return candidates[-1]
+
+    def _time_key(path: Path) -> float:
+        try:
+            return float(path.parent.name)
+        except ValueError:
+            return float("-inf")
+
+    return max(candidates, key=_time_key)
+
+
+def _pp_file(case_dir: Path, fo_name: str, filename: str) -> Path:
+    """Find the newest time-directory instance of a postProcessing file."""
+    return latest_pp_file(case_dir, fo_name, filename)
 
 
 @dataclass

@@ -99,9 +99,7 @@ def carve_motor_mount(model: cq.Workplane, mount, hub_radius_mm: float, *,
         _cav, r_c, g_r = layout
         need = max(need, r_c + g_r + 0.05)
     if hub_radius_mm < need:
-        return (model, False,
-                f"hub radius {hub_radius_mm:.1f} mm too small to house the {mount.cavity_dia_mm:.0f} mm "
-                f"motor (need >= {need:.1f} mm; widen the hub or this can't be mounted)")
+        return (model, False, "hub radius too small")
     shape = model.val()
     bb = shape.BoundingBox()
     if z_bounds is not None:
@@ -254,6 +252,10 @@ def _carve_with_mount(params: BladeParams, mount) -> tuple[cq.Workplane, bool, s
     from fansim.geometry.blade import build_impeller_parts, fuse_impeller
 
     hub, blades, ring = build_impeller_parts(params)
+    # QA-45: an undersized cup hub used to fuse first and raise "did not join into one solid".
+    need = mount.cavity_dia_mm / 2.0 + float(getattr(mount, "grip_clearance_mm", 0.0) or 0.0) + mount.min_wall_mm
+    if params.hub_radius < need:
+        return cq.Workplane(obj=hub), False, "hub radius too small"
     # Fast path (roadmap §23.19): carving the fused 9-blade impeller was ~3 of ~4.5 min of an export.
     # When no blade reaches into the cup/grip zone, carve the bare hub and fuse the blades after:
     # identical solid (Stock A/B: volume and bounds equal), ~3x faster. Otherwise the original order.
@@ -270,9 +272,9 @@ def _carve_with_mount(params: BladeParams, mount) -> tuple[cq.Workplane, bool, s
         bb = cq.Compound.makeCompound([hub, *blades] + ([ring] if ring is not None else [])).BoundingBox()
         carved, fits, msg = carve_motor_mount(
             cq.Workplane(obj=hub), mount, params.hub_radius, z_bounds=(hub_face, bb.zmax))
-        if fits:
-            return cq.Workplane(obj=fuse_impeller(carved.val(), blades, ring)), True, msg
-        return cq.Workplane(obj=fuse_impeller(hub, blades, ring)), fits, msg
+        if not fits:
+            return cq.Workplane(obj=hub), False, msg
+        return cq.Workplane(obj=fuse_impeller(carved.val(), blades, ring)), True, msg
     model = cq.Workplane(obj=fuse_impeller(hub, blades, ring))
     return carve_motor_mount(model, mount, params.hub_radius,
                              z_bounds=(hub_face, float(model.val().BoundingBox().zmax)))
@@ -431,6 +433,11 @@ def print_readme(name: str, params: BladeParams, material: str, report: Watertig
         L.append(f"- ⚠ Residual static unbalance {balance['normalized_unbalance']:.3f}. Add a "
                  f"counterweight (m·r {balance['counterweight_mr']:.3f}) at "
                  f"{balance['counterweight_angle_deg']:.0f}°, or test-spin and trim the heavy blade.")
-    L += ["", "*Print at your own risk — printed blades are a relative-comparison baseline, not a "
-          "Noctua replacement. Tip clearance and balance matter; spin up gently the first time.*"]
+    L += [
+        "",
+        "screening mesh: compare designs, not absolute airflow; Stock reads about 5 % low",
+        "",
+        "*Print at your own risk — printed blades are a relative-comparison baseline, not a "
+        "Noctua replacement. Tip clearance and balance matter; spin up gently the first time.*",
+    ]
     return "\n".join(L)

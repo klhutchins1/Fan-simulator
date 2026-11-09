@@ -45,9 +45,9 @@ Other docs: [`docs/high-accuracy-plan.md`](docs/high-accuracy-plan.md),
 
 **Validated CFD method (CFD v5: sealed ring + four-bar frame + prism layers; see
 `docs/validation/a12x25_pq_report.md` and `docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md`):**
-- Noctua NF-A12x25 close-reference STL: free-air **59.8 CFM vs published 60.1 (−0.5%)**; 5 / 10 Pa
-  converged (52.5 / 41.0 CFM); shut-off ≈ 20–21 Pa vs published 22.9 Pa, but the near-stall points do
-  not converge (steady-RANS limit).
+- Noctua NF-A12x25 close-reference STL: free-air **59.8 CFM vs published 60.1 (−0.5%)**; last
+  converged loaded points 5 / 10 Pa (52.5 / 41.0 CFM). Near-stall points are not shown (steady-RANS
+  does not converge there). Published shut-off is 22.9 Pa.
 - External benchmark FAN-01 (exact published CAD): within **+2.6% / +3.1%**.
 - Parametric Stock recipe v2: 56.5 / 49.8 / 40.2 CFM at 0 / 5 / 10 Pa (−5.5% vs the close-ref STL at
   free air).
@@ -60,7 +60,7 @@ built from a 3-station / uniform-wall approximation of the recipe and should be 
 (rpm × blades); sound levels are estimates for exploration only. Bio-feature benefit tested
 **null at achievable fidelity** — only a physical print settles it. BEM is **ranking-only**, not
 absolute CFM.
-Blade vibration (flutter) is a **warning**, not a reject, until printed blades confirm the beam model.
+Blade vibration is an estimate, not validated (resonance check, not flutter).
 **Scaffolds, not validated:** the wind-turbine archetype (`fansim/wind_turbine`) — tip-speed ratio
 does not drive its geometry and its Cp saturates at ≥ 4 blades; do not use it for design claims.
 

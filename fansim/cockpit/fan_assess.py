@@ -33,6 +33,7 @@ from fansim.cockpit.run_settings import RunSettings
 from fansim.cockpit.score_caption import score_caption
 from fansim.cockpit.vs_stock import vs_stock_same_test_line
 from fansim.fan_spec import (
+    _default_infill_frac,
     check_build,
     estimate_weight_g,
     get_fan_spec,
@@ -124,7 +125,11 @@ def bind(session) -> None:
         if over:
             dm = session._depth_driver_msg(flat) if (flat and any("depth" in o for o in over)) else ""
             return True, "⚠ OVER-SPEC (allowed via leeway): " + "; ".join(over) + dm
-        return True, f"✓ fits {spec.name} (dia {dia:.0f} mm, depth {depth:.0f} mm, {weight:.0f} g)"
+        infill_pct = 100.0 * _default_infill_frac(spec.material)
+        return True, (
+            f"✓ fits {spec.name} (dia {dia:.0f} mm, depth {depth:.0f} mm, "
+            f"{weight:.0f} g {spec.material}, {infill_pct:.0f} % infill)"
+        )
 
     def _blocking_eval(flat, features, workdir, rs: RunSettings):
         """Run the CFD with the settings captured when Run was pressed (25.11), never live state."""

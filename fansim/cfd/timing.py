@@ -77,15 +77,15 @@ def read_fo_time_column(
 ) -> list[float]:
     """Time column of a postProcessing function-object .dat file (newest time-dir instance).
 
-    Mirrors :func:`fansim.cfd.metrics._pp_file`'s file-finding without importing the metrics
-    module, so timing stays independent of a solved case's metrics being parseable. Returns
+    Uses :func:`fansim.cfd.metrics.latest_pp_file` (numeric time-dir order, QA-39). Returns
     ``[]`` when the file is missing (no completed run yet).
     """
-    case_dir = Path(case_dir)
-    candidates = sorted((case_dir / "postProcessing" / fo_name).glob(f"*/{filename}"))
-    if not candidates:
+    from fansim.cfd.metrics import latest_pp_file
+
+    try:
+        path = latest_pp_file(case_dir, fo_name, filename)
+    except FileNotFoundError:
         return []
-    path = candidates[-1]
     times: list[float] = []
     for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
         line = line.strip()

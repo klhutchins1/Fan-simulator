@@ -22,7 +22,10 @@ def score_caption(extra: dict) -> str:
     k_cfm = extra.get("print_k_cfm")
     k_eta = extra.get("print_k_eta")
     if k_cfm is not None and k_eta is not None:
-        parts.append(f"printed ×{float(k_cfm):g} / ×{float(k_eta):g}")
+        parts.append(
+            f"printed ×{float(k_cfm):g} / ×{float(k_eta):g} "
+            "(an assumed 5 % print loss, not yet measured)"
+        )
     op_cfd = extra.get("op_cfd")
     if op_cfd:
         parts.append(f"op CFD: {op_cfd}")
