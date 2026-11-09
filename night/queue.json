@@ -345,7 +345,26 @@
    ],
    "max_hours": 3,
    "status": "queued",
-   "why": "merge gate for branch process-tools (scripts/gate.py, scripts/morning_check.py, night runner follows origin/master, AGENTS.md process rules). Exit 0 = merge to master --no-ff. Last test suite that should need the night queue."
+   "why": "merge gate for branch process-tools (scripts/gate.py, scripts/morning_check.py, night runner follows origin/master, AGENTS.md process rules). Exit 0 = merge to master --no-ff."
+  },
+  {
+   "id": "suite-r110-batch-all",
+   "branch": "r110-batch",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--all",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ],
+   "max_hours": 3,
+   "status": "queued",
+   "why": "merge gate for R1.10 batch (G5 + R1.2 + R1.5 + R1.9, QA-57) at 957a483; merge r110-batch to master --no-ff if exit 0"
   }
  ]
 }
