@@ -161,7 +161,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
     state.volute_readout = [
         "Preview / Export: impeller + sealed casing STLs.",
         "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker).",
-        "Optimize: NSGA geometry proxy — ranking only; Assess for honest CFD.",
+        "Optimize: NSGA geometry proxy — ranking only, unvalidated (CFD not yet converged).",
     ]
     if volute_design_store:
         state.volute_msg = (
@@ -587,7 +587,7 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                         html.Div(
                             "90° discharge collector — not an A12x25 drop-in. "
                             "Assess uses sealed-enclosure radial MRF (+Z inlet / +X outlet). "
-                            "Optimize is a geometry proxy (ranking only — not CFM).",
+                            "Optimize is a geometry proxy — ranking only, unvalidated (CFD not yet converged).",
                             classes="text-caption mb-2",
                             style="white-space: pre-line",
                         )
@@ -688,7 +688,7 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                             classes="text-subtitle-2 mb-1",
                         )
                         html.Div(
-                            "NSGA ranks impeller + scroll geometry. Assess for honest radial MRF CFD. "
+                            "NSGA ranks impeller + scroll geometry. Ranking only, unvalidated (CFD not yet converged). "
                             "Resume continues the last cockpit_volute_opt_* study.",
                             classes="text-caption mb-2",
                             style="white-space: pre-line",

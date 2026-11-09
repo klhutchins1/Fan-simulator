@@ -208,6 +208,9 @@ Case internals (mesh, `processor*`, logs) are regenerable and safe to prune once
 - noise levels are not validated;
 - the Stock recipe reads about 5 % low (parametric Stock vs the real A12x25 shape, 55.7 vs 58.3 CFM in the same test). Designs are compared with this Stock, so comparisons are like for like.
 
+Mixed-flow: Experimental: not validated against published data. Assess runs MRF CFD (not validated against published data).
+Volute: ranking only, unvalidated (CFD not yet converged).
+
 ## Licence and credits
 
 The code is MIT (`LICENSE`). Third-party models and data keep their own licences and need credit; see

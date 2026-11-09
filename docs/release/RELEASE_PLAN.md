@@ -186,8 +186,11 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Claude review of `r110-g2` (8d06672, 2026-11-04): **OK to merge**. The noise row is `na` (never ✓/⚠); the README and
     Expert text match the ruled wording; dB(A) stays only on published values; the export print sheet says "not dB(A);
     not validated".
-  - Claude, 2026-11-08: G2 merged to master 3fca917 (night gate: 717/544/653 passed, 0 failed). G3 reviewed OK, wording matches the 10-29 audit; merged onto master as `r110-g3-merge` dd13be7 (board conflict only, 36 related tests pass); night jobs `suite-r110-g3-merge-c0..c2` are its gate. Next agent: merge if green. Cursor: base G4 on master after that, or keep G4 separate.
-  - G4 in progress on `r110-g4` (2026-11-08): drop stale ~2× / ~0.6× / ~3–5 %; Assess "two CFD solves … 20–40 min"; README Known limits list. Do not merge until G3 is on master.
+  - Claude, 2026-11-08: G2 merged to master 3fca917 (night gate: 717/544/653 passed, 0 failed). G3 reviewed OK, wording matches the 10-29 audit; merged onto master as `r110-g3-merge` dd13be7 (board conflict only, 36 related tests pass).
+  - G3 landed (`5945620`): Mixed tab "Experimental: not validated against published data"; Assess "runs MRF CFD
+    (not validated against published data)"; Volute "ranking only, unvalidated (CFD not yet converged)". Related tests
+    38 passed. QA-57 / R2.4. Merge gate 2026-11-08: 668/568/683 passed (OCCT teardown only). Merged to master `41e2dc9`.
+  - G4 in progress on `r110-g4` (2026-11-08): drop stale ~2× / ~0.6× / ~3–5 %; Assess "two CFD solves … 20–40 min"; README Known limits list.
 - **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `done 5611332`.
   - Claude confirmed 2026-11-01: the cockpit never passes `--verify-cfd` (`scripts/run_optimization.py:111,159`), so its
     labels and "verify" come from `synthetic_label()` (`fansim/optimize/surrogate_search.py:309`), a test formula.
@@ -314,10 +317,11 @@ Kimball's.
   - **R2.3b runs.** Lane: night. Status: `blocked (R2.3a)`. Add the job to `night/queue.json`.
 - **R2.4 Mixed-flow**: no published comparison.
   - grok r15: no small CC-licensed mixed-flow data. The 85 mm Treder rig is cite-only.
-  - **Kimball 2026-10-17: label it experimental.** Lane: Cursor. CPU: day. Status: `ready`.
+  - **Kimball 2026-10-17: label it experimental.** Lane: Cursor. CPU: day. Status: `done 5945620`.
     - The Mixed tab title and its Assess/Optimize results say "Experimental: not validated against published data".
     - Same in the README feature list, and in exported READMEs for mixed-flow parts.
     - Test: the label appears on the tab and in the export README.
+    - Landed (`5945620`, via R1.10 G3): tab "Mixed · experimental"; export sidecar `.md`; README Known limits.
   - Lane: grok data hunt for mixed-flow fan curves at small diameter. Status: `done (grok r15 hunt, 2026-10-17)`; same note.
 - **R2.5 Volute / centrifugal**: CFD is unconverged (17–23 % oscillation), a ±20 % proxy.
   - Lane: grok data hunt for a small centrifugal blower curve. Claude decides converge-or-label. Status: hunt `done (grok r15,
