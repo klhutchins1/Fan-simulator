@@ -174,7 +174,7 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Test: the phrase "about 5 % less airflow than the real A12x25" appears in the README and in the Stock Expert text.
   - grok r21 A/B (2026-10-25): not landed at 5063a65 (README:52 still v2 −5.5 %; `fan_trials.py:354` lacks the phrase). The "`wrapped-sections` audit" link has no file; use `2026-10-12-cylinder-sections.md`. QA-59.
   - grok r22 A (2026-10-29, `docs/qa/notes/r22-A-ui-bug-pass.md`): landed at b3d5543: the phrase is in README:204 and renders in the Stock Expert caption (headless, :8080); Simple shows nothing extra. Verified.
-- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-07)` (G4).
+- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-08)` (G4).
   - Groups G1–G5 with exact wording: `docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`. One branch per
     group, each with a grep or UI test.
   - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
@@ -186,10 +186,10 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
   - Claude review of `r110-g2` (8d06672, 2026-11-04): **OK to merge**. The noise row is `na` (never ✓/⚠); the README and
     Expert text match the ruled wording; dB(A) stays only on published values; the export print sheet says "not dB(A);
     not validated".
-  - Claude, 2026-11-08: G2 merged to master 3fca917 (night gate: 717/544/653 passed, 0 failed). G3 reviewed OK, wording matches the 10-29 audit; merged onto master as `r110-g3-merge` dd13be7 (board conflict only, 36 related tests pass); night jobs `suite-r110-g3-merge-c0..c2` are its gate. Next agent: merge if green. Cursor: base G4 on master after that, or keep G4 separate.
+  - Claude, 2026-11-08: G2 merged to master 3fca917 (night gate: 717/544/653 passed, 0 failed). G3 reviewed OK, wording matches the 10-29 audit; merged onto master as `r110-g3-merge` dd13be7 (board conflict only, 36 related tests pass).
   - G3 landed (`5945620`): Mixed tab "Experimental: not validated against published data"; Assess "runs MRF CFD
     (not validated against published data)"; Volute "ranking only, unvalidated (CFD not yet converged)". Related tests
-    38 passed. QA-57 / R2.4.
+    38 passed. QA-57 / R2.4. Merge gate 2026-11-08: 668/568/683 passed (OCCT teardown only). G4 next (`r110-g4`).
 - **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `done 5611332`.
   - Claude confirmed 2026-11-01: the cockpit never passes `--verify-cfd` (`scripts/run_optimization.py:111,159`), so its
     labels and "verify" come from `synthetic_label()` (`fansim/optimize/surrogate_search.py:309`), a test formula.

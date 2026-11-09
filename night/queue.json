@@ -282,8 +282,9 @@
     "--tb=line"
    ],
    "max_hours": 1.5,
-   "status": "queued",
-   "why": "merge gate for R1.10 G3 (Mixed/Volute copy, QA-57), merged onto master as r110-g3-merge dd13be7; merge to master --no-ff if all 3 chunks are green"
+   "status": "done",
+   "why": "merge gate for R1.10 G3 (Mixed/Volute copy, QA-57), merged onto master as r110-g3-merge dd13be7; merge to master --no-ff if all 3 chunks are green",
+   "note": "2026-11-08: 668 passed, 7 skipped; exit 4294967295 is the known teardown crash. Cursor daytime; do not rerun."
   },
   {
    "id": "suite-r110-g3-merge-c1",
@@ -302,8 +303,9 @@
     "--tb=line"
    ],
    "max_hours": 1.5,
-   "status": "queued",
-   "why": "merge gate for R1.10 G3 (Mixed/Volute copy, QA-57), merged onto master as r110-g3-merge dd13be7; merge to master --no-ff if all 3 chunks are green"
+   "status": "done",
+   "why": "merge gate for R1.10 G3 (Mixed/Volute copy, QA-57), merged onto master as r110-g3-merge dd13be7; merge to master --no-ff if all 3 chunks are green",
+   "note": "2026-11-08: 568 passed, 1 skipped; exit 4294967295 is the known teardown crash. Cursor daytime; do not rerun."
   },
   {
    "id": "suite-r110-g3-merge-c2",
@@ -322,8 +324,9 @@
     "--tb=line"
    ],
    "max_hours": 1.5,
-   "status": "queued",
-   "why": "merge gate for R1.10 G3 (Mixed/Volute copy, QA-57), merged onto master as r110-g3-merge dd13be7; merge to master --no-ff if all 3 chunks are green"
+   "status": "done",
+   "why": "merge gate for R1.10 G3 (Mixed/Volute copy, QA-57), merged onto master as r110-g3-merge dd13be7; merge to master --no-ff if all 3 chunks are green",
+   "note": "2026-11-08: 683 passed, 13 skipped, 1 xfailed; exit 4294967295 is the known teardown crash. Cursor daytime; do not rerun."
   }
  ]
 }
