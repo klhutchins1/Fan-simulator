@@ -13,18 +13,18 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 - Known recovery gaps from README_RECOVERY.md / RECOVERY_TODO.md are not counted as bugs.
 - Paths like `/workspace/fansim/...` and `qa/...` are on the QA bot's machine (screenshots, scratch scripts); ask if you need one.
 
-## ▶ Next round for the QA bot: round 26 (queued by Cursor 2026-11-04). Delivered as `handoff/2026-11-04_to-qa-26/`
+## ▶ Next round for the QA bot: round 27 (queued by Cursor 2026-11-09). Delivered as `handoff/2026-11-09_to-qa-27/`
 
-Round 25 / 25b is **DONE**; thank you. R1.11 (QA-66) landed in `5611332`. QA-65 landed in `c10c06b` (the real code this time — 9d0118f was board-only). Research leads stay parked. Build: master at the commit that added this folder. No Docker, CFD, OpenFOAM, Assess, Sweep or Optimize run. Pre-register A and B before data.
+Round 26 and the 2026-11-08/09 self-initiated packs (QA-68, G2, ui-hunt-1, G3, leads 23–30) are **DONE**; thank you. Build: master at the commit that added this folder. No Docker, CFD, OpenFOAM, Assess, Sweep or Optimize run. Pre-register A and B before data. Do not re-prove G2 or G3 claims C22/C24/C25.
 
 | # | task | board |
 |---|---|---|
-| A | **Re-check QA-66 on this master.** Confirm all three r25b rules, plus the two review follow-ups: (1) `--verify-cfd` does not label the DoE with `synthetic_label` (catalog + CFD, or refuse); (2) `run_surrogate_search.py` refuses rather than adding `--stub-labels`; (3) stub JSON stamps "synthetic labels, not CFD"; (4) empty / <8-row catalog under `--verify-cfd` refuses up front; (5) catalog load/efficiency priors stamp "prior, not CFD". Run `tests/test_surrogate_guided.py` and `tests/test_r111_cockpit_surrogate.py`. UI-31 and QA-62 stay **verified / not re-tested** unless you spot a regression. | R1.11, QA-66 |
-| B | **QA-65 re-check (landed in `c10c06b`, do not re-apply the patches).** A scored design with `converged=False` must show "did not settle" in the score caption; True / missing must not. Optimize trials must carry `converged`. Run `tests/test_score_caption.py`. Quote paths. | QA-65, R1.2 |
-| C | **UI-26 still on first view?** Confirm 'Gold = parametric Stock…' still renders on the first view in Simple and Expert. Other UI (27, 29, 32–38) and QA-40, 42, 61, 63 stay **still open / not re-tested**. Note new bugs. | UI-26 |
-| D | (still waiting) R3.1 export leak check, when R3.1 lands. Re-run the r21 A claims audit once R1.10 lands. QA-64 strings wait on R1.10. | R3.1, R1.10 |
+| A | **QA-57 closeout.** On this master, Volute Assess copy (`volute_tab.py` Assess lines and result readout) must carry "ranking only, unvalidated (CFD not yet converged)", not only Optimize. If Cursor has applied `docs/qa/patches/g3-QA57-volute-assess-label.patch`, verify it (red check + tests). If not, confirm the gap is still there. Mixed side stays **verified / not re-tested**. | QA-57, R1.10 G3 |
+| B | **UI-39 and UI-40.** Sweep steps must refuse empty / non-int / out of 2–12 with a visible message, never queue a huge CFD sweep. Optimize Trials must show "2–40" and refuse out-of-range instead of silent clamp. Apply/verify `docs/qa/patches/ui-hunt-1-UI39-UI40-steps-trials.patch` if landed; else re-probe. Do not click Run. | UI-39, UI-40 |
+| C | **QA-70.** Expert noise-hint row must still show when a run has the tip-speed+CFM hint but no turbulence SWL. Patch `docs/qa/patches/ui-hunt-1-QA70-noise-hint-row.patch`. G2 claims stay **verified / not re-tested**. | QA-70, R1.10 G2 |
+| D | **G4 if it is on this master.** Dropped ~2× / ~0.6× / ~3–5 %; Assess "two CFD solves … 20–40 min"; README Known limits list still has R1.4's "about 5 % less airflow than the real A12x25". If G4 is not merged, say so and skip. QA-69 (`design-rules.md` "Noise dB(A) (min)") is G4's. | R1.10 G4, QA-58, QA-69 |
 
-Notes to `docs/qa/notes/r26-*.md`, plus a "Round 26" section below.
+Notes to `docs/qa/notes/r27-*.md`, plus a "Round 27" section below.
 
 ## Tested build
 - Source: copy of `T:\Projects\Fan Simulator` working tree, 2026-10-08 (no `.git`, so no commit hash). Linux, Python 3.12, no Docker/OpenFOAM/CFD.
@@ -94,6 +94,12 @@ Notes to `docs/qa/notes/r26-*.md`, plus a "Round 26" section below.
 | UI-36 | MED | Fan | 49 Fan-tab settings have no tooltip, including ones that change results: Fan model, Hub profile (no text or image), Application preset, Print material, Sweep, Intake overbuild, Seed-from-duty, Export fit switches, action row. | new (tooltip audit 2026-10-31, headless hover confirmed). Open r24 (23831da): **still open, 0/8** hovered controls show a tooltip; inventory unchanged (49). r25: still open on master and branch (0/8 hovers; inventory 293 / 292 = Surrogate row removed). r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch) (0/8 hovers; inventory 292 rows, byte-identical to branch). |
 | UI-37 | LOW | Prop/Mixed/Volute/CROR | 108 of 109 proxy-tab controls have no tooltip: shared `slider()` looks up `CONTROL_DESC` by prefixed model names (`p_`, `mf_`, `cror_f_`…), which never match; `BLADE_DESC` is used only for Cylindrical tip. | new (tooltip audit 2026-10-31). Open r24 (23831da): **still open**: proxy-tab inventory 1/100 with tooltip. r25: still open on master and branch. r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch). |
 | UI-38 | LOW | Fan/Assess+Optimize | Application/Print material don't say they also drive Optimize; picking a design silently resets preset/refine/roughness to its saved values (`fan_trials.py:103-105`). | new (tooltip audit 2026-10-31). Open r24 (23831da): **still open**: design pick still silently resets preset/refine/roughness. Correction: the Expert Print-material caption already says 'Used by Assess and Optimize' (`fan_tab_ui.py:926`, present at 3b92eea), so the first clause was overstated; Application's caption does not mention Optimize. r25: still open on master and branch. r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch). |
+| UI-39 | MED | Fan/Sweep | Sweep "steps" accepts anything and has no cap; empty/"1e9" make Run fail silently; a large count queues that many CFD Assess runs (`fan_assess.py:448`) | new (ui-hunt-1, 2026-11-09). Patch `docs/qa/patches/ui-hunt-1-UI39-UI40-steps-trials.patch`. Open. |
+| UI-40 | MED | Fan/Optimize | Optimize "Trials" accepts −5/100/1e9 then silently clamps to 2–40 (`fan_optimize.py:130-133`); label doesn't say so | new (ui-hunt-1, 2026-11-09). Same patch as UI-39. Open. |
+| UI-41 | LOW | Fan | Seed CFM, ΔP, RPM and arrow Scale show no validation state; they store typed text | new (ui-hunt-1, 2026-11-09). Open. |
+| UI-42 | LOW | Fan | Slider readouts print raw 4-decimal values with cryptic units (`fan_widgets.py:35`) | new (ui-hunt-1, 2026-11-09). Open. |
+| QA-69 | LOW | Docs | `docs/design-rules.md:10` says "Noise dB(A) (min)" for the LBM model output (`scripts/extract_design_rules.py:106`) | new (r26 G2 follow-up, 2026-11-08). Address in G4. Open. |
+| QA-70 | LOW | Fan/flow card | Expert G2 noise-hint row is dropped when a run has no turbulence SWL, though the hint only needs tip speed + CFM (`fan_flow_report.py:146`) | new (ui-hunt-1, 2026-11-09). Patch `docs/qa/patches/ui-hunt-1-QA70-noise-hint-row.patch`. Open. |
 | QA-18 | MED | Geometry/cup Preview | Motor cup goes straight through a hub shorter than 13 mm (no cup floor) | new (r6 Task A, K7 3/29: S2_0000, S8 edge stagger_root min, S8 edge chord_root min; auto hubs 12.72 / 12.62 / 10.92 mm). `build_stl_isolated(motor_mount=…)` (the cockpit cup Preview path) doesn't enforce `MotorMount.min_hub_height_mm` (15) or refuse; only Export's `prepare_export_flat(fit_hub=True)` grows the hub. Grips/Ø are correct. Repro `stress/repro/A-F2_cup_through_short_hub.json`; `handoff/2026-10-09_from-qa-5/stress/summary.md`. Was open → **verified fixed `5980677`** (r7 stress: S2_0000, S8_0002, S8_0008 hubs grown to 15.0 mm, floor 12.985 mm, 20 grips; K7 0/14 FAIL over the 65-design run). |
 | QA-19 | MED | Audit/direction | `prove_direction` falsely refuses builder designs with max_camber < 0.02 and lean_tip ≥ 20° | r6 Task A, K5: 7/119 CONCLUSIVE-wrong (9605, 9606, 9620, 9630 plus new S3_0002 guided_lc, S4_0005, S4_0012; 8–11 blades) and 24 INCONCLUSIVE. All 7 are in that cell (7 FAIL + 10 INCONCLUSIVE of 22). Not all 11-blade: S4_0005 has 8 blades and S4_0012 has 9; the shared factor is low camber with high tip lean. The mirror check K6 passes on all of them, so the checker misreads lean curvature as camber. Repro `stress/repro/A-F3_direction_false_refusal.json`. Input to Task B. Was open → **mostly fixed `5980677`**: all 7 r6 false refusals now pass the new K5 rule (K5_old FAIL 8 → K5 FAIL 1 over 65 designs). **Residual:** S3_0014 (9 blades, max_camber 0.0242, lean_tip 42°) is CONCLUSIVE omega −1/pump +1, mirror passes K6, and the new rule refuses it because its camber is just above the 0.02 cut-off. Same lean-as-camber misread, one camber bin higher. See `docs/qa/stress/RESULTS_R7.md`. Still open for camber 0.02–0.04 × lean ≥ 30°.. **r8 Task B (fresh sample, 2-blade rebuilds):** the cylinder proof is still CONCLUSIVE-wrong on 6/72 (5 flat-leaned plus S3_0014 again). The radial-plane cut had 0 wrong on 72 parts + mirrors and read 54/54 cambered parts. The combined (both-agree) rule had 0 wrong but read only 43/54 (R5 FAIL). The builder rule R6 FAILS as registered. `docs/qa/notes/direction-radial-confirmation.md` |
 | QA-20 | LOW | Resources/docs | Memory tiers give equal solids but **not byte-identical STLs** | r6 Task A, K8: volume within 1e-6 and the same vertex count 11/11, but the sha256 differs between 16gb/8gb/6gb in **11/11**. The `fansim/resources.py` docstring's 'byte-identical solid' claim is false at the file level. Repro `stress/repro/A-F4_tiers_not_byte_identical.json`. Open |
@@ -1105,3 +1111,119 @@ Note: `docs/qa/notes/r26-qa66-qa65-recheck.md`.
 - **Not re-tested; carried still open:** UI-27, UI-29, UI-32…38, QA-40, QA-42, QA-61, QA-63, QA-64, QA-67.
 - **Still waiting:** R3.1 (export leak check) and R1.10 (claims audit, QA-64 strings).
 - **ID changes:** QA-66 and QA-65 → **verified**. New: **QA-68** (LOW).
+
+
+
+## Round 26 follow-up (grok, 2026-11-08): QA-68 re-check on master 419df2e
+
+**Build:** master `419df2e`, from bundle sha256 `24bcef9c…2e25c` (verified). Clone: `/workspace/fansim/repo-r26-qa68`. **Prereg:** `prereg/round26-qa68-recheck` 491f0d2, committed 2026-11-08 13:30 MST, before data. No Docker, CFD, OpenFOAM, Assess, Sweep or Optimize compute: Docker presence is mocked and CFD verify is guarded. No source edits. Note: `docs/qa/notes/r26-qa68-recheck.md`.
+
+- **QA-68 (LOW): verified, closable.**
+  - **Behavioural:** `run_optimization.py --surrogate-guided --verify-cfd` returns 2 with the refusal message and no exception in all 4 refusal cases (no catalog; 7-row catalog; Docker absent at the CLI guard; Docker absent at the library refusal). A real subprocess exits 2 with empty stderr. There were 0 CFD verify calls and no JSON written. An 8-row control reaches the guarded verify, which shows the mock is live.
+  - **Tests:** r111 (9), surrogate_guided (11) and argv (16) give 36 passed. With the fix reverted in a scratch clone, the QA-68 test fails (1 failed, 8 passed).
+  - **Static:** d08e48c (merged d365bea) is our script hunk exactly, and nothing later touches it.
+  - **Info only, no ID:** the `except RuntimeError` covers the whole run, so a later runtime error would also exit 2 without a traceback.
+- **Not re-tested:** R1.10 G2 (queued, not merged), R3.1 (not landed), R3.3 and the r26 carried items.
+- **ID changes:** QA-68 → **verified**.
+
+
+
+## Round 26 follow-up (grok, 2026-11-08): R1.10 G2 / QA-55 noise claims on master 83681c2
+
+**Build:** master `83681c2`, from bundle sha256 `fdea337f…8736` (verified). Clone: `/workspace/fansim/repo-r26-g2`. G2 = `8d06672` (merged `3fca917`). **Prereg:** `prereg/round26-g2-noise-claims` 414177a, committed 2026-11-08 13:38 MST, before data. No Docker, CFD, Assess, Sweep or Optimize; no browser. No source edits. Note: `docs/qa/notes/r26-g2-noise-claims-recheck.md`.
+
+- **G2 / QA-55 noise claims (A01, A04, A10, C10, C14, C16, C17, D03, E01): verified, closable.**
+  - **Behavioural:**
+    - The noise row is `na`, never better, in 7/7 cases (hint ±5/±30 dB, equal, no Stock, SWL ±10 dB), with no noise in the overall line.
+    - The Expert hint text is exact and carries the `expert_only` flag.
+    - The design list shows "SWL est. 44.2".
+    - The print sheet shows "noise estimate 44.2 (not dB(A); not validated)".
+  - **Tests:** g2_noise_copy (4), flow_verdicts (16) and design_dropdown (4) give 24 passed. Red checks on a scratch clone: a "dBA" label gives 2 failed; the pre-G2 `flow_verdicts` gives 1 failed.
+  - **Static only:** README wording (ruled sentence present; old phrases appear 0 times); the Optimize text at `fan_tab_ui.py:1110`; `fan_flow_report` and `a12x25-reference` wording; 7 cockpit dB(A) hits, all published, measured or qualified.
+  - **Visual not done:** the noise row's Expert/Simple visibility (`v_show` at `fan_tab_ui.py:1392`).
+- **QA-69 (LOW, new): `docs/design-rules.md:10` (from `scripts/extract_design_rules.py:106`) says "Noise dB(A) (min)" for the LBM model output.** Suggest relabelling it in G4, which owns `design-rules.md`. Not a G2 blocker.
+- **R1.10 stays open** (G3 not merged, G4/G5 pending, release re-audit). R3.1 is not landed; R3.5b is queued, not passed. Night-gate counts were not re-checked.
+- **ID changes:** QA-55 (noise claims) → **verified**. New: **QA-69** (LOW).
+
+
+
+## ui-hunt-1 (grok, 2026-11-09): exploratory UI bug hunt on master 83681c2
+
+**Build:** master `83681c2`, clone `/workspace/fansim/repo-r26-g2`. **Prereg:** `prereg/ui-hunt-1` cf2c813, committed 2026-11-09 08:46 MST, before data. Headless cockpit, empty run. Assess, Sweep, Optimize, Export and Randomize were never clicked. No CFD, Docker or OpenFOAM. No source edits. Note: `docs/qa/notes/ui-hunt-1-2026-11-09.md`.
+
+- **UI-39 (MED, new): Sweep "steps" has no validation and no cap.**
+  - Empty or "1e9" make Run fail silently (`int()` ValueError, `fan_assess.py:448`).
+  - Any large count queues that many full CFD Assess runs.
+  - Patch: `docs/qa/patches/ui-hunt-1-UI39-UI40-steps-trials.patch` (2–12 with a visible refusal).
+- **UI-40 (MED, new): Optimize "Trials" accepts −5, 100 or 1e9 silently, then runs 2–40 (`fan_optimize.py:130-133`).** Same patch: the label reads "Trials (2–40)", with min/max on the field.
+- **UI-41 (LOW, new): Fan number boxes (Seed CFM, ΔP and RPM; arrow Scale) show no validation state and store typed text.** Errors surface only on click (Seed) or as a silent clamp (Scale 0.2–20).
+- **UI-42 (LOW, new): slider readouts are unrounded with cryptic units** ("18.7018 mm", "0 0–1", "0 c", "0 t"; `fan_widgets.py:35`).
+- **QA-70 (LOW, new): the G2 Expert noise-hint row is dropped when a run has no turbulence SWL** (`fan_flow_report.py:146`), though the hint needs only tip speed + CFM. Patch: `docs/qa/patches/ui-hunt-1-QA70-noise-hint-row.patch`, with a test that fails without the fix (21 passed on scratch).
+- **G2 noise row visual: verified** (template render with injected rows: shown in Expert, hidden in Simple).
+- **No bug found in:**
+  - page errors (0);
+  - HTTP errors (UI-15's 405 only);
+  - overflow or clipping at 1366/1920 (0);
+  - tooltip images (3/3 load);
+  - links;
+  - state across a tab switch or reload;
+  - Simple/Expert toggling;
+  - the Expert-only-tab → Simple fallback.
+- **Re-checked, still open:**
+  - UI-26: shown 2.2 s after load on a warm cache. After an edit, the caption stays "Stock reference loaded" until Preview.
+  - UI-27: 957/768 and 1172/1080.
+  - UI-29: 12 px.
+  - UI-32, UI-33, UI-34, UI-36 (0/8).
+  - UI-35 (20/58, unchanged).
+  - UI-37: inventory identical to r25b.
+  - UI-38: picking a design still silently resets settings.
+- **ID changes:** new UI-39, UI-40 (MED), UI-41, UI-42 and QA-70 (LOW).
+
+
+## Research leads #23–29 (2026-11-09) — Fan Sim QA
+
+Prereg `1bfb38c` on `prereg/research-leads23-29` before prototypes. Clone master `83681c2`. No CFD/Assess/Sweep/Optimize; no PyTorch; patches not applied.
+
+| Lead | Status | Note |
+|---|---|---|
+| #23 UIUC flat-plate Cl@40k | worth-it/proposed | Cl/Cm check table + test patch; no Cd online; flat≠Stock cambered |
+| #24 Pelz tip η (C·s·ψ) | worth-it/proposed | `pelz-tip-eta.patch`; calibrate C; patents expired |
+| #25 Kim 2021 OGV rules | worth-it/proposed | `stator-linear-exit-frac.patch`; CC BY 4.0; avoid US8333559B2 tip lean |
+| #26 fluids ISO 5167 | blocked (hardware) | MIT maths OK; same gate as #18 |
+| #27 BPF / acoustic tach | worth-it/proposed | MIT; BPF sketch recovers 2000 rpm synthetic |
+| #28 Ax/BoTorch qNEHVI | worth-it/proposed (optional) | MIT; ~800 MB torch; park until CFD-finalist path |
+| #29 PartForge UX pattern | worth-it/proposed | 51 controls → Preset/Primary/Advanced/Hidden; tie ui-hunt-1 |
+
+Zip: `research_leads23-29_out.zip` (placement needs Kimball approval).
+
+
+
+## G3 re-check (grok, 2026-11-09): R1.10 G3 / QA-57 on master 41e2dc9
+
+**Build:** master `41e2dc9`, from bundle sha256 `f999d7de…5939` (verified). Clone: `/workspace/fansim/repo-r26-g3`. **Prereg:** `prereg/g3-41e2dc9` 7e3e214, committed 2026-11-09 09:33 MST, before data (from a separate worktree). No CFD, Docker or OpenFOAM, and no Assess, Sweep, Optimize, Export or Randomize. No source edits. Note: `docs/qa/notes/g3-recheck-2026-11-09.md`.
+
+- **G3 claims C22, C24 and C25: verified.**
+  - **Rendered (headless, empty run):** the Expert tab reads "MIXED · EXPERIMENTAL", with tooltip "Experimental: not validated against published data". Mixed Design and Results show "Assess runs MRF CFD (not validated against published data)". The Volute tooltip and Optimize lines say "ranking only, unvalidated (CFD not yet converged)". There are 0 "honest" lines in Mixed or Volute.
+  - **Probe:** the mixed export sidecar text carries both sentences.
+  - **Tests:** G3 copy (4) + simple-mode copy (28) give 32 passed. A red check fails 2 tests.
+- **QA-57 (MED): partly fixed.**
+  - The Mixed side is done.
+  - The **Volute Assess** copy and result readout still have no unvalidated/unconverged label (`volute_tab.py:159,163,410-419`); the label sits only on the Optimize lines.
+  - Patch: `docs/qa/patches/g3-QA57-volute-assess-label.patch`, with a test that fails without the fix (33 passed on scratch).
+- **Info only:** the Mixed Optimize done-message has no label (the readout keeps it), and the Export message doesn't mention the sidecar `.md`.
+- **ui-hunt-1 regression:** UI-39, UI-40, UI-41, UI-42 and QA-70 are **still open** on 41e2dc9. The cited files are unchanged since 83681c2, both patches still apply, and the probes repeat.
+- **R1.10 stays open** (G4/G5, release re-audit). R3.1 is not landed; R3.5b is still "rerun". The night-gate counts 668/568/683 were not re-checked.
+- **ID changes:** none new. QA-57 → **partly fixed**.
+
+
+## Research lead #30 (2026-11-09) — Fan Sim QA
+
+Prereg `067eb89` on `prereg/research-lead30` before prototypes. Clone master `83681c2`. No CFD/Assess/Sweep/Optimize. Patch not applied.
+
+| Lead | Status | Note |
+|---|---|---|
+| #30 Amiet/Sears via amiet_tools (BSD-3) | worth-it/proposed | Thin `strut_gust.py` relative strut-tone vs gap/skew; ranking stable under ±2× gust; absolute levels need wake model. Patch: amiet-strut-tone.patch (4 tests). LE broadband parked (needs turbulence input; pairs with BPM #3). |
+
+Zip: `research_lead30_out.zip` (placement needs Kimball approval). Does not modify the #23–29 zip.
+
+

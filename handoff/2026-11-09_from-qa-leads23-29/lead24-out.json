@@ -1,0 +1,73 @@
+{
+  "formula_corrected": "\u03c8_gap \u2248 C*s*\u03c8_ideal^2 ; \u0394\u03b7_gap \u2248 C*s*\u03c8_ideal (lead said s^2\u03c8^2; paper is s\u00b7\u03c8^2 for \u03c8_gap)",
+  "C_low_undigitized": 2.0,
+  "C_ito_anchored": 41.56,
+  "rows_C_ito": [
+    {
+      "gap_mm": 0.3,
+      "s_Do": 0.0025,
+      "deta_free": 0.0156,
+      "deta_load": 0.0364
+    },
+    {
+      "gap_mm": 0.5,
+      "s_Do": 0.00417,
+      "deta_free": 0.026,
+      "deta_load": 0.0606
+    },
+    {
+      "gap_mm": 1.0,
+      "s_Do": 0.00833,
+      "deta_free": 0.0519,
+      "deta_load": 0.1212
+    },
+    {
+      "gap_mm": 1.5,
+      "s_Do": 0.0125,
+      "deta_free": 0.0779,
+      "deta_load": 0.1818
+    },
+    {
+      "gap_mm": 2.0,
+      "s_Do": 0.01667,
+      "deta_free": 0.1039,
+      "deta_load": 0.2424
+    }
+  ],
+  "rows_C_low": [
+    {
+      "gap_mm": 0.3,
+      "s_Do": 0.0025,
+      "deta_free": 0.0008,
+      "deta_load": 0.0017
+    },
+    {
+      "gap_mm": 0.5,
+      "s_Do": 0.00417,
+      "deta_free": 0.0013,
+      "deta_load": 0.0029
+    },
+    {
+      "gap_mm": 1.0,
+      "s_Do": 0.00833,
+      "deta_free": 0.0025,
+      "deta_load": 0.0058
+    },
+    {
+      "gap_mm": 1.5,
+      "s_Do": 0.0125,
+      "deta_free": 0.0037,
+      "deta_load": 0.0087
+    },
+    {
+      "gap_mm": 2.0,
+      "s_Do": 0.01667,
+      "deta_free": 0.005,
+      "deta_load": 0.0117
+    }
+  ],
+  "deta_0.5_to_1.5mm_load_Cito": 0.1212,
+  "meaningful_ge_1pct_with_Cito": true,
+  "ranking_value": "Even before C is fit, Pelz makes tip-gap \u03b7 loss grow with loading \u03c8, unlike today's flat K_TIP_LEAK swirl knockdown. Shrouded (s=0) vs open ranking benefits. Calibrate C on Stock tip A/Bs.",
+  "patents": "US7326032B2 Expired-Lifetime; US8568095B2 Expired-Fee Related (hardware, not formula)"
+}

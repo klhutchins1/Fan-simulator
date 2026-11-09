@@ -1,0 +1,62 @@
+{
+ "head": "419df2ec0c17c028063bc3afe5a40642e75c0125",
+ "c1_no_catalog": {
+  "returned": 2,
+  "stdout_tail": [
+   "ERROR: --verify-cfd needs a catalog with ≥ 8 CFD rows (--surrogate-db)."
+  ],
+  "traceback_in_stdout": false,
+  "json_written": false,
+  "out_dir_created": true
+ },
+ "c2_catalog_7rows": {
+  "returned": 2,
+  "stdout_tail": [
+   "ERROR: --verify-cfd needs a catalog with ≥ 8 CFD rows (--surrogate-db)."
+  ],
+  "traceback_in_stdout": false,
+  "json_written": false,
+  "out_dir_created": true
+ },
+ "c3_docker_absent_cli_guard": {
+  "returned": 2,
+  "stdout_tail": [
+   "ERROR: --verify-cfd needs the OpenFOAM Docker image."
+  ],
+  "traceback_in_stdout": false,
+  "json_written": false,
+  "out_dir_created": false
+ },
+ "c3b_docker_absent_library_refusal": {
+  "returned": 2,
+  "stdout_tail": [
+   "ERROR: --verify-cfd needs the OpenFOAM Docker image."
+  ],
+  "traceback_in_stdout": false,
+  "json_written": false,
+  "out_dir_created": true
+ },
+ "ctrl_catalog_8rows_reaches_verify": {
+  "uncaught": "SystemExit: ABORT: CFD verify called",
+  "tb_tail": [
+   "                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+   "SystemExit: ABORT: CFD verify called"
+  ],
+  "stdout_tail": [
+   "SURROGATE-GUIDED Doe=24 nsga=64 top_k=4 rounds=2 verify_cfd=True"
+  ],
+  "traceback_in_stdout": false,
+  "json_written": false,
+  "out_dir_created": true
+ },
+ "cfd_verify_calls_total": 1,
+ "c5_subprocess_no_catalog": {
+  "exit": 2,
+  "traceback_in_stderr": false,
+  "stderr_tail": [],
+  "stdout_tail": [
+   "SURROGATE-GUIDED Doe=24 nsga=64 top_k=4 rounds=2 verify_cfd=True",
+   "ERROR: --verify-cfd needs a catalog with ≥ 8 CFD rows (--surrogate-db)."
+  ]
+ }
+}

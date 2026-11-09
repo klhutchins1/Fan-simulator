@@ -1,0 +1,48 @@
+diff --git a/fansim/cfd/stator.py b/fansim/cfd/stator.py
+index bb256e3..54f1796 100644
+--- a/fansim/cfd/stator.py
++++ b/fansim/cfd/stator.py
+@@ -33,6 +33,11 @@ STATOR_CAMBER = 0.04
+ STATOR_CAMBER_POS = 0.4
+ STATOR_THICKNESS = 0.12
+ _N_CHORD_PTS = 40
++# Kim et al. 2021 (CC BY 4.0) short-OGV rule: ~30% of meridional length at 0° (linear exit)
++# is best; 70% is worst. Param reserved for a cambered-LE + flat-TE profile; default keeps
++# today's single NACA4 until the piecewise builder lands. Use rules, not Kim's absolute angles
++# (industrial wall fan, hub ratio 0.41). Avoid US8333559B2 tip-lean stacking geometry (Active).
++STATOR_LINEAR_EXIT_FRAC = 0.30
+ 
+ 
+ def n_stator_vanes(params: BladeParams, n_extra: int | None = None) -> int:
+@@ -66,9 +71,19 @@ def build_stator_solid(
+     stagger_deg: float | None = None,
+     n_vanes: int | None = None,
+     n_extra: int | None = None,
++    linear_exit_frac: float | None = None,
+ ) -> cq.Solid:
+-    """N cambered NACA vanes fused with a hub barrel, just downstream of the MRF zone."""
++    """N cambered NACA vanes fused with a hub barrel, just downstream of the MRF zone.
++
++    ``linear_exit_frac`` (Kim 2021): fraction of chord with 0° exit; default
++    ``STATOR_LINEAR_EXIT_FRAC`` (0.30). Geometry still uses the single NACA4 until the
++    piecewise cambered-LE/flat-TE builder is implemented; the kwarg is plumbed so
++    searches/tests can lock the rule without a silent API break.
++    """
+     stagger = float(STAGGER_DEG if stagger_deg is None else stagger_deg)
++    _linear = STATOR_LINEAR_EXIT_FRAC if linear_exit_frac is None else float(linear_exit_frac)
++    if not (0.0 <= _linear <= 1.0):
++        raise ValueError(f"linear_exit_frac must be in [0, 1], got {_linear}")
+     z_start = rig.mrf_z_max / MM_TO_M + AFTER_MRF_MM
+     outer_r = rig.duct_radius / MM_TO_M - WALL_INSET_MM
+     hub_r = params.hub_radius
+@@ -123,7 +138,9 @@ def export_stator_stl(
+     stagger_deg: float | None = None,
+     n_vanes: int | None = None,
+     n_extra: int | None = None,
++    linear_exit_frac: float | None = None,
+ ) -> Path:
+     solid = build_stator_solid(
+-        params, rig, stagger_deg=stagger_deg, n_vanes=n_vanes, n_extra=n_extra)
++        params, rig, stagger_deg=stagger_deg, n_vanes=n_vanes, n_extra=n_extra,
++        linear_exit_frac=linear_exit_frac)
+     return export_stl(cq.Workplane(obj=solid), path)

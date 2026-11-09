@@ -1,0 +1,60 @@
+diff --git a/fansim/cockpit/fan_assess.py b/fansim/cockpit/fan_assess.py
+index 939f76f..35e6125 100644
+--- a/fansim/cockpit/fan_assess.py
++++ b/fansim/cockpit/fan_assess.py
+@@ -78,6 +78,9 @@ SWEEP_OPTIONS = [
+ ]
+ 
+ 
++
++SWEEP_STEPS_MIN, SWEEP_STEPS_MAX = 2, 12  # UI-39
++
+ def bind(session) -> None:
+     state = session.state
+     run_dir = session.run_dir
+@@ -445,7 +448,16 @@ def bind(session) -> None:
+         label, kind, field, mn, mx = opt
+         base_flat, base_feat = session.edit_flat(), session._feat_dict()
+         rs = run_settings.capture(state, session.active_spec)  # 25.11: one snapshot for every step
+-        steps = max(2, int(state.sweep_steps))
++        # UI-39 (ui-hunt-1): every step is a full CFD Assess; refuse bad or huge step counts visibly.
++        try:
++            steps = int(float(state.sweep_steps))
++        except (TypeError, ValueError):
++            steps = -1
++        if not SWEEP_STEPS_MIN <= steps <= SWEEP_STEPS_MAX:
++            state.assess_msg = (f"⚠ Sweep steps must be a whole number from {SWEEP_STEPS_MIN} to "
++                                f"{SWEEP_STEPS_MAX} (each step is a full CFD Assess).")
++            state.flush()
++            return
+         raw = list(np.linspace(mn, mx, steps))
+         values = sorted(set(int(round(v)) for v in raw)) if field == "n_blades" else raw
+ 
+diff --git a/fansim/cockpit/fan_tab_ui.py b/fansim/cockpit/fan_tab_ui.py
+index b1f25b2..dc47f5e 100644
+--- a/fansim/cockpit/fan_tab_ui.py
++++ b/fansim/cockpit/fan_tab_ui.py
+@@ -970,9 +970,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
+                                         )
+                                     with v3.VCol(cols=3, classes="px-1"):
+                                         v3.VTextField(
+-                                            label="steps",
++                                            label="steps (2–12)",
+                                             v_model=("sweep_steps",),
+                                             type="number",
++                                            min=2, max=12, step=1,
+                                             density="compact",
+                                             variant="outlined",
+                                             hide_details=True,
+@@ -1023,9 +1024,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
+                                     with v3.Template(v_slot_activator="{ props }"):
+                                         v3.VTextField(
+                                             v_bind="props",
+-                                            label="Trials",
++                                            label="Trials (2–40)",
+                                             v_model=("opt_trials",),
+                                             type="number",
++                                            min=2, max=40, step=1,
+                                             density="compact",
+                                             variant="outlined",
+                                             hide_details=True,

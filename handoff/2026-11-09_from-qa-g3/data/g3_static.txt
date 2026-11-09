@@ -1,0 +1,144 @@
+== G3-7 'honest' anywhere in fansim/ README docs/*.md (user-facing)
+fansim/cockpit/fan_tab_ui.py:945:                                _opt_section("Honesty / fidelity")
+fansim/cockpit/fan_tab_ui.py:1016:                                    "Multi-objective CFD search. Reuses Application hose + Honesty "
+fansim/cockpit/fan_copy.py:155:        "from two points. Used by Assess and by Optimize. When to use: more honest load CFM. "
+fansim/cockpit/fan_copy.py:160:        "stays smooth. Used by Assess and Optimize. When to use: printed-part honesty. "
+fansim/cockpit/volute_tab.py:417:                    f"Domain: radial MRF stage 1 ({res.raw.get('honesty', '')}).",
+fansim/cockpit/volute_tab.py:429:                    f"topology={res.raw.get('topology')} honesty={res.raw.get('honesty')}",
+fansim/cockpit/prop_tab.py:185:    state.prop_ux_banner = True  # dismissible BEMT honesty (§21.1c / §21.2d)
+fansim/cockpit/busy.py:5:stage hint. True percent is rare (sweep only); everything else is honest-indeterminate.
+fansim/surrogate/fno.py:3:This module is intentionally honest: operator learning is not feasible without field data
+fansim/cror/optimize.py:3:Dual-MRF CFD stays the honesty path. This module (1) thins the stack toward a 25 mm
+fansim/cror/optimize.py:185:    """Dual-MRF CFD-refine the top N CROR Pareto rows (proxy screen → honesty check).
+fansim/centrifugal/optimize.py:5:calibrated mixed-flow CFM. CFD Assess remains the honest score.
+fansim/centrifugal/optimize.py:169:    is calibrated — CFD is the honest score.
+fansim/volute/__init__.py:6:    "VOLUTE_HONESTY",
+fansim/volute/__init__.py:35:        "VOLUTE_HONESTY",
+fansim/volute/evaluate.py:25:from fansim.volute.geometry import VOLUTE_HONESTY, VoluteParams, export_volute_stls
+fansim/volute/evaluate.py:62:        "honesty": VOLUTE_HONESTY,
+fansim/volute/evaluate.py:67:        # GCI honesty (§11.1 / §10.8). No circular inlet-area check: sealed scroll, not tube-in-hex.
+fansim/volute/case.py:26:from fansim.volute.geometry import VOLUTE_HONESTY
+fansim/volute/case.py:182:        "honesty": VOLUTE_HONESTY,
+fansim/volute/optimize.py:5:calibrated CFM. CFD Assess remains the honest score; Optimize is a Design search aid.
+fansim/volute/geometry.py:19:# Honesty stamp for stage-3 smooth scroll (sealed fill + dense Archimedean wall).
+fansim/volute/geometry.py:20:VOLUTE_HONESTY = "stage3_smooth_scroll"
+fansim/fan_bem.py:14:HONEST SCOPE: RANKING-ONLY screening. Do not quote BEM CFM as absolute or beside CFD as
+fansim/propeller/cfd_fixture.py:10:FORCE_DRIFT_TOL_PCT = 25.0  # smoke mesh limit-cycle; not fan-path 2% honesty
+fansim/propeller/cfd_fixture.py:68:    # abs() above is only for the magnitude floor -- it must never stand in for an honest sign
+fansim/propeller/calibrate.py:87:    """Compare a result to ``spec.ref_*`` at affinity-scaled RPM. Honest ratios only."""
+fansim/propeller/optimize.py:129:    from fansim.propeller.cfd import PROP_CFD_HONESTY, evaluate_prop_cfd
+fansim/propeller/optimize.py:150:            "honesty": PROP_CFD_HONESTY,
+fansim/propeller/cfd.py:27:PROP_CFD_HONESTY = ("direction/sanity check only: open-air prop CFD reads ~35-45 % low on "
+fansim/propeller/cfd.py:461:    out["honesty"] = PROP_CFD_HONESTY
+fansim/propeller/noise.py:10:Honest caveat: this is NOT a calibrated dB(A). For absolute numbers you'd need a CAA/FW-H run (or a
+fansim/manufacturability/print_export.py:5:HONEST CAVEAT ON THE BORE: simple ``BoreSpec`` diameters are placeholders until measured.
+fansim/manufacturability/printability_score.py:5:HONEST SCOPE: analytic heuristics, not a slicer. The score is a RELATIVE difficulty ranking + a
+fansim/optimize/motor_curve.py:56:    """Honesty stamps for evaluate raw dicts (Kv-ish no-load slope + stall torque)."""
+fansim/optimize/pwm_table.py:4:between those endpoints (honest approximation — real fans have a deadband and
+fansim/optimize/pwm_table.py:92:    """One-line duty↔RPM honesty string for the cockpit PWM editor."""
+fansim/cfd/frame.py:1:"""Stationary exhaust-frame geometry for honest CFD (CadQuery solids in mm)."""
+fansim/cfd/lbm_geometry_ab.py:34:HONESTY = "impeller_lbm_shutoff_plus_casing_stl_export"
+fansim/cfd/lbm_geometry_ab.py:146:        f"Honesty: `{payload.get('honesty', HONESTY)}`",
+fansim/cfd/stator.py:1:"""Stationary outlet-guide vanes for honest CFD (CadQuery solids in mm).
+fansim/cfd/casing.py:1:"""Cylindrical screening-duct wall for honest CFD (CadQuery solid in mm)."""
+fansim/cfd/des_fwh.py:5:Not calibrated dB(A); MRF rotation is an honesty limitation.
+fansim/cfd/duct_area.py:1:"""Circular screening-duct honesty helpers (roadmap §10.10)."""
+fansim/wind_turbine/evaluate.py:3:Not field-validated. Stamps an honesty note so callers cannot mistake this for RANS.
+fansim/wind_turbine/evaluate.py:15:WIND_TURBINE_HONESTY = (
+fansim/wind_turbine/evaluate.py:46:            "honesty": WIND_TURBINE_HONESTY,
+fansim/validation/pq_shutoff.py:42:    honest = shut_off_pa(points, q_near_zero=q_near_zero)
+fansim/validation/pq_shutoff.py:43:    if honest is not None:
+fansim/validation/pq_shutoff.py:44:        so = float(honest)
+fansim/validation/loaded_ladder.py:6:for the shut-off estimate so the ladder uses the same honest-vs-proxy method as the
+fansim/acoustics/loading.py:11:HONESTY: calibrated on only 7 LBM points (opt_noise Pareto). In-sample rho 0.82 / R2 0.81, but
+fansim/acoustics/farfield.py:68:    anywhere in the harmonic series, the honest 'how tonal is it' number to compare even vs uneven."""
+fansim/acoustics/farfield.py:102:        # loudest tone across ALL shaft-order harmonics — the honest tonality when a design (e.g. uneven
+README.md:9:The honest north star is **validated relative gains + a real "fan showdown"** against a printed baseline,
+README.md:16:## Status (honest)
+README.md:59:**Honest caveats:** Noise outputs are not validated. The blade-pass tone frequency is exact
+docs/QA_REVIEW.md:90:| UI-32 | MED | Fan/Optimize | No image tooltips for Optimize (16 controls) or the Assess honesty switches. `fan_copy.py:14` loads only `docs/control_images/e_*.png`, so `opt_*`/`assess_*` images could not show even if present. | new (tooltip audit 2026-10-31). 16 proposed PNGs in `handoff/2026-10-31_from-qa-tooltips/img/`. Open r24 (23831da): **still open**: loader returns 54 `e_*` keys, 0 `opt_*`/`assess_*`; Optimize hovers show 0 images. r25: still open on master and branch (54 `e_*` / 0 `opt_*`,`assess_*`). r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch). |
+docs/QA_REVIEW.md:747:    - Volute/Mixed "honest MRF CFD" (QA-57);
+docs/QA_REVIEW.md:789:- **QA-57 (MED, new) Mixed/Volute "honest CFD" wording; Mixed not labelled experimental.** Tested 5063a65. Status: open.
+docs/QA_REVIEW.md:791:    - `mixed_tab.py:765` "honest MRF duct";
+docs/QA_REVIEW.md:792:    - `volute_tab.py:164, 691` "honest (radial MRF) CFD";
+docs/a12x25-reference.md:36:(see `validation/reference/a12x25_impeller.stl`), resolved tip gap (**0.5 mm**), and honest duct/frame
+docs/adversarial-review.md:22:**The honest one-line version of where we actually are:** we have a *fast, self-consistent,
+docs/adversarial-review.md:98:  fan and under-predicted flow ~15%. **Honest note: I first mis-diagnosed this as a solve-
+docs/adversarial-review.md:171:| **Physical digital-twin loop** | LOW-now | deferred; keep `ingest.py` hook honest |
+docs/adversarial-review.md:192:   test the roughness hypothesis honestly.
+docs/bibliography.md:86:  discretization error honestly. **→ code:** `scripts/run_grid_convergence.py`,
+docs/bibliography.md:176:  corpus for geometry-honest BEMT cross-check (Track A **A3**).
+docs/high-accuracy-plan.md:23:Honest driver: only Tier-2 numbers are strong enough for a "fan showdown" claim; Tier-1 is
+docs/high-accuracy-plan.md:72:## Tier 2: real acoustics (the honest noise number)
+docs/known-issues.md:27:`docs/validation/a12x25_pq_report.md` (P–Q honesty). Absolute free-air CFD is **not** +2%.
+docs/roadmap.md:48:2. ~~Math audit / §12~~ — cockpit thickness, Fit, scoring honesty closed 2026-09-15.
+docs/roadmap.md:75:    Do **not** start until wrap is merged and external-STL spin is honest (round 9 D unconfirmed).
+docs/roadmap.md:98:§8 / §9 / §10 / §12 / §13 stage-1 are **closed in code**. Absolute CFM honesty waits on hardware (§5) or a new fidelity lever beyond screening.
+docs/roadmap.md:225:  **drone_radial GCI (2026-09-22):** honest ladder 0.005/0.0035/0.0025 on both STLs;
+docs/roadmap.md:332:  OUTCOME (honest): made the physics correct (prop FM 0.78→0.71 = more realistic; fan ref free-delivery
+docs/roadmap.md:343:  (63 vs 65). The BEM is now a usable **coarse pre-screen**. Honest ceiling: ~0.6-0.7 is likely the limit
+docs/roadmap.md:413:- [x] **10.8 Screening honesty:** `SCREENING_GRID_STAMP` on axial/mixed/CROR/volute evaluate.
+docs/roadmap.md:424:- [x] **11.1 Volute screening honesty parity.** `SCREENING_GRID_STAMP`; no circular inlet on sealed scroll.
+docs/roadmap.md:473:### 12.3 Scoring / BEM honesty — HIGH **[impact: high]** **[effort: med–high]**
+docs/roadmap.md:482:### 12.4 Geometry honesty — MEDIUM **[impact: med]** **[effort: med–high]**
+docs/roadmap.md:505:- [x] **13.3 Front-door honesty.** `README.md` Status matches P–Q report (−17% / −26%); old +2% claim retired.
+docs/roadmap.md:567:BEM is ~14 ms after polar cache — **leave it**. OpenFOAM `base_cell` is a validation honesty choice, not a speed knob.
+docs/roadmap.md:596:  scatter / click-to-load. CFD Assess remains the honest score (no top-N refine yet).
+docs/roadmap.md:648:**0** `time.sleep` in `fansim/`; the FNO/archetype `NotImplementedError`s are *honest* fail-loud stubs;
+docs/roadmap.md:828:- [x] **19.7 Stock recipe fidelity.** **v2 2026-09-29:** builder airfoil fixed + section refit → CFD within 2–6% of close-ref STL at 0/5/10 Pa (was +29%/−73%); **v2 promoted to Stock (commit; v1 kept as `a12x25_reference_v1.yaml`)**. **Honest chord DONE 2026-09-30:** station `chord` is the measured cylinder-cut target; `chord_realisation.prepare_loft_chords` raises loft chord under `cylindrical_tip` and scales `thickness`/`max_camber` so absolute wall stays (~2.44 mm tip). Stock YAML tip chord **33.53** (was loft-inflated 49.8). Root station still extrapolated. **Chord basis 2026-10-01:** 37728b9 changed chord meaning for *every* design (saved trials rebuilt wider than scored, e.g. t9000 +1.0% volume). `BladeParams.chord_basis` (`measured` default / `loft` legacy), trial replay by stamp or `CHORD_BASIS_CUTOFF`, saved designs + legacy YAMLs stamped; legacy rebuild verified identical (t9000 39533.41 mm³ before/after) so 19.8 numbers stand. Optimizer chord bounds now mean measured chord (bracket Stock tip 33.5). Stock CFD re-check 56.4 vs 56.5 CFM (−0.2%). Report: `docs/validation/audits/2026-10-01-chord-basis.md`. **[impact: critical for the optimizer]** **[effort: med–high]**
+docs/roadmap.md:959:tell). Software-only; does not touch CFD honesty.
+docs/roadmap.md:975:  (Prop).** Actions strip + Geometry / Optimize & CFD refine ExpansionPanels; BEMT honesty
+docs/roadmap.md:990:- [x] **21.2d Tab honesty badges.** **DONE 2026-09-30.** Fan · CFD / Prop · BEMT / Mixed·Volute·
+docs/roadmap.md:1205:  stuck near 20%. Make progress honest and find why preview is that heavy. **[impact: med]**
+docs/roadmap.md:1684:### Honest evaluation (do / don't)
+docs/roadmap.md:1705:2. **26.2 Prep + honesty UI.** Refuse fused frame+rotor assemblies; show orientation proof;
+docs/roadmap.md:1849:  campaign):** keep OPEN/GUIDED `max_camber` (0.0, 0.06) — that range is now *honest built* camber, and
+docs/roadmap.md:1900:### Honest evaluation (do / don't)
+docs/roadmap.md:1948:## 29. Cockpit honesty leftovers (2026-10-14)
+docs/roadmap.md:2034:honest scorecard. Axial-fan BEM screen + `--bem-prescreen` · `--preset case|heatsink|radiator` ·
+docs/roadmap.md:2036:(stage 2) · honest optimizer CFD (stage 1): 0.5 mm tip gap +
+== G3-1 mixed_tab MRF/validated lines
+54:        "Experimental: not validated against published data.\n\n"
+55:        "Assess runs MRF CFD (not validated against published data).\n"
+141:        "Experimental: not validated against published data.",
+142:        "Assess runs MRF CFD (not validated against published data).",
+455:                    "Assess runs MRF CFD (not validated against published data).",
+640:            "Experimental: not validated against published data.",
+778:                            "Assess runs MRF CFD (not validated against published data). Continue last "
+891:                        "From the last Assess. Experimental: not validated against published data. "
+== G3-2 volute_tab ranking/validated/converged/MRF lines
+159:        "Assess runs radial MRF; Optimize is a geometry proxy (not CFM)."
+163:        "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker).",
+164:        "Optimize: NSGA geometry proxy — ranking only, unvalidated (CFD not yet converged).",
+168:            f"Loaded {len(volute_design_store)} Optimize proxy point(s) onto the volute scatter."
+388:            note=f"radial MRF, {rpm:.0f} RPM, {load_pa:g} Pa",
+417:                    f"Domain: radial MRF stage 1 ({res.raw.get('honesty', '')}).",
+440:        """Geometry-proxy NSGA for volute Design (§14.4b) — not CFD / not CFM."""
+468:                note=f"{trials} proxy trials @ {rpm:.0f} rpm, {mode}",
+493:                f"✓ {len(pareto)} proxy front design(s) → {out_dir.name} "
+543:            f"#{tid}  capacity {o.get('capacity_proxy', 0):.1f}  ·  "
+544:            f"head {o.get('head_proxy', 0):.2f}  (proxy — not CFM)",
+584:                            "Radial impeller + sealed volute (radial MRF Assess)",
+589:                            "Assess uses sealed-enclosure radial MRF (+Z inlet / +X outlet). "
+590:                            "Optimize is a geometry proxy — ranking only, unvalidated (CFD not yet converged).",
+687:                            "Optimize (geometry proxy) — not CFM",
+691:                            "NSGA ranks impeller + scroll geometry. Ranking only, unvalidated (CFD not yet converged). "
+== G3-3 app.py tab labels
+180:                        text="Fan — CFD-checked axial PC-fan blades (printable STL)",
+183:                            v3.VTab("Fan · CFD", value="fan", v_bind="props")
+187:                        text="Experimental: not validated against published data",
+190:                            v3.VTab(
+191:                                "Mixed · experimental",
+199:                        text="Volute — ranking only, unvalidated (CFD not yet converged)",
+202:                            v3.VTab(
+203:                                "Volute · estimate",
+211:                        text="Propeller — fast estimate (~1 s). Optional CFD check.",
+214:                            v3.VTab("Prop · fast estimate", value="propeller", v_bind="props")
+218:                        text="CROR — stacked rotors (fast estimate, not full CFD)",
+221:                            v3.VTab(
+222:                                "CROR · estimate",
+== G3-6 fan_tab_ui intro (QA-57 :495)
+497:                            "faster estimates or proxies. Docs: README, docs/design-rules.md, "
+== G3-5 README mixed/volute lines
+207:Mixed-flow: Experimental: not validated against published data. Assess runs MRF CFD (not validated against published data).
+208:Volute: ranking only, unvalidated (CFD not yet converged).
