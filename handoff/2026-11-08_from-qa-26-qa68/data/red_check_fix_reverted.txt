@@ -1,0 +1,128 @@
+........F                                                                [100%]
+=================================== FAILURES ===================================
+__________ test_cli_verify_cfd_without_catalog_exits_2_not_traceback ___________
+
+tmp_path = PosixPath('/tmp/pytest-of-box/pytest-1/test_cli_verify_cfd_without_ca0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f5eb707d1c0>
+capsys = <_pytest.capture.CaptureFixture object at 0x7f5eb707d100>
+
+    def test_cli_verify_cfd_without_catalog_exits_2_not_traceback(tmp_path, monkeypatch, capsys):
+        """QA-68 (grok r26): the catalog refusal is a clean exit 2, not an uncaught RuntimeError. No CFD runs."""
+        import importlib.util
+        import sys
+    
+        import fansim.cfd.runner as runner
+        import fansim.optimize.surrogate_search as ss
+    
+        script = Path(__file__).resolve().parents[1] / "scripts" / "run_optimization.py"
+        spec = importlib.util.spec_from_file_location("run_opt_qa68", script)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        monkeypatch.setattr(mod, "image_available", lambda: True)
+        monkeypatch.setattr(runner, "image_available", lambda: True)
+    
+        def no_cfd(*a, **k):
+            def fn(*a, **k):
+                raise AssertionError("CFD verify must not be called")
+            return fn
+    
+        monkeypatch.setattr(ss, "make_cfd_verify_fn", no_cfd)
+        monkeypatch.setattr(sys, "argv", [
+            "run_optimization.py", "--surrogate-guided", "--verify-cfd",
+            "--out", str(tmp_path / "opt"), "--surrogate-db", str(tmp_path / "missing.db")])
+>       assert mod.main() == 2
+               ^^^^^^^^^^
+
+tests/test_r111_cockpit_surrogate.py:132: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/run_optimization.py:183: in main
+    result = run_surrogate_guided(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+out_dir = PosixPath('/tmp/pytest-of-box/pytest-1/test_cli_verify_cfd_without_ca0/opt')
+n_doe = 24, n_nsga = 64, top_k = 4, n_rounds = 2, space = 'open', seed = 42
+kappa = 1.0, boost = False, nn = False
+catalog_db = '/tmp/pytest-of-box/pytest-1/test_cli_verify_cfd_without_ca0/missing.db'
+label_fn = None
+verify_fn = <function test_cli_verify_cfd_without_catalog_exits_2_not_traceback.<locals>.no_cfd.<locals>.fn at 0x7f5eb6f6b560>
+verify_cfd = True, stub_labels = False, fan_model = 'a12x25', procs = 8
+base_cell = 0.005, iters = 1000, load_pa = 1.0, material = 'PETG'
+
+    def run_surrogate_guided(
+        *,
+        out_dir: str | Path,
+        n_doe: int = 24,
+        n_nsga: int = 64,
+        top_k: int = 4,
+        n_rounds: int = 2,
+        space: str = "guided",
+        seed: int = 42,
+        kappa: float = 1.0,
+        boost: bool = False,
+        nn: bool = False,
+        catalog_db: str | Path | None = None,
+        label_fn: LabelFn | None = None,
+        verify_fn: VerifyFn | None = None,
+        verify_cfd: bool = False,
+        stub_labels: bool = False,
+        fan_model: str = "a12x25",
+        procs: int = 8,
+        base_cell: float = 0.005,
+        iters: int = 1000,
+        load_pa: float = 1.0,
+        material: str = "PETG",
+    ) -> GuidedSearchResult:
+        """Run DoE → fit → NSGA-on-surrogate → top-k verify → refit for ``n_rounds``.
+    
+        ``verify_cfd`` trains on catalog rows plus CFD verifies (no ``synthetic_label``
+        DoE) and refuses if Docker is missing. ``stub_labels`` is the Docker-free
+        path and stamps the JSON ``synthetic labels, not CFD``.
+        """
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        notes: list[str] = []
+        labels_kind = ""
+    
+        if verify_cfd:
+            if verify_fn is None:
+                from fansim.cfd.runner import image_available
+                if not image_available():
+                    raise RuntimeError("ERROR: --verify-cfd needs the OpenFOAM Docker image.")
+                verify_fn = make_cfd_verify_fn(
+                    procs=procs, base_cell=base_cell, iters=iters,
+                    load_pa=load_pa, fan_model=fan_model, material=material,
+                )
+                notes.append("verify=cfd")
+            if label_fn is None:
+                label = None
+                labels_kind = "catalog + CFD verify"
+                notes.append("labels: catalog + CFD verify (no synthetic DoE)")
+            else:
+                label = label_fn
+                labels_kind = "injected"
+                notes.append("labels: injected")
+        else:
+            label = label_fn or synthetic_label
+            if stub_labels or label_fn is None:
+                labels_kind = "synthetic labels, not CFD"
+                notes.append("synthetic labels, not CFD")
+            else:
+                labels_kind = "injected"
+            if verify_fn is None:
+                verify_fn = stub_verify
+                notes.append("verify=stub")
+    
+        X, y, seed_note, priors = seed_from_catalog(catalog_db)
+        notes.append(seed_note)
+        if verify_cfd and label is None and len(X) < 8:
+>           raise RuntimeError(
+                "ERROR: --verify-cfd needs a catalog with ≥ 8 CFD rows (--surrogate-db)."
+            )
+E           RuntimeError: ERROR: --verify-cfd needs a catalog with ≥ 8 CFD rows (--surrogate-db).
+
+fansim/optimize/surrogate_search.py:509: RuntimeError
+----------------------------- Captured stdout call -----------------------------
+SURROGATE-GUIDED Doe=24 nsga=64 top_k=4 rounds=2 verify_cfd=True
+=========================== short test summary info ============================
+FAILED tests/test_r111_cockpit_surrogate.py::test_cli_verify_cfd_without_catalog_exits_2_not_traceback
+1 failed, 8 passed in 2.37s

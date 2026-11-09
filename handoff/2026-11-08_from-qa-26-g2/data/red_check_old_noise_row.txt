@@ -1,0 +1,18 @@
+..............F.                                                         [100%]
+=================================== FAILURES ===================================
+_______________________ test_noise_hint_is_never_judged ________________________
+
+    def test_noise_hint_is_never_judged():
+        """R0.4 / G2: the hint restates CFM; never ✓/⚠/better. Expert keeps the number + honesty."""
+        stock = _m(noise_hint_db=75.4)
+        loud = judge(_m(noise_hint_db=76.4), stock)[4]  # more CFM → higher hint
+>       assert loud.status == "na" and loud.better is None and loud.expert_only
+E       AssertionError: assert ('warn' == 'na'
+E         
+E         - na
+E         + warn)
+
+tests/test_flow_verdicts.py:143: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_flow_verdicts.py::test_noise_hint_is_never_judged - Asserti...
+1 failed, 15 passed in 1.90s

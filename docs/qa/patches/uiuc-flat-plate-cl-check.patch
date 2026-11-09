@@ -1,0 +1,103 @@
+diff --git a/docs/qa/data/UIUC_LSAT_NOTICE.txt b/docs/qa/data/UIUC_LSAT_NOTICE.txt
+new file mode 100644
+index 0000000..6164e68
+--- /dev/null
++++ b/docs/qa/data/UIUC_LSAT_NOTICE.txt
+@@ -0,0 +1,7 @@
++UIUC Low-Speed Airfoil Tests (LSATs) polar excerpts
++====================================================
++Data produced under the UIUC Low-Speed Airfoil Test program
++(https://m-selig.ae.illinois.edu/pd.html). Free for commercial use with
++attribution; redistribution of the source data must include the UIUC
++copyright notice, their data GPL, and the Manifesto, and must not add
++restrictions. See the pd.html "GPL'd Data" section.
+diff --git a/docs/qa/data/uiuc_flat_plate_re4e4_clcm.csv b/docs/qa/data/uiuc_flat_plate_re4e4_clcm.csv
+new file mode 100644
+index 0000000..8ac2685
+--- /dev/null
++++ b/docs/qa/data/uiuc_flat_plate_re4e4_clcm.csv
+@@ -0,0 +1,31 @@
++# UIUC LSATs Vol 5 flat-plate baseline (Goudeseune). Re≈40021. Cl+Cm only; no Cd in online ASCII.
++# Free for commercial use with attribution: UIUC Low-Speed Airfoil Tests. Ship copyright/GPL/Manifesto with redistributed tables.
++# Source: https://m-selig.web.engr.illinois.edu/pd/pub/lsat/vol5/fp_baseline_lift.dat
++alpha_deg,cl,cm
++-2.06,-0.2400,-0.0204
++-1.01,-0.1200,-0.0147
++0.03,-0.0000,-0.0086
++1.09,0.1100,-0.0065
++2.10,0.2200,-0.0037
++3.08,0.3500,-0.0037
++4.13,0.5000,-0.0152
++5.18,0.6300,-0.0392
++6.13,0.7100,-0.0652
++7.11,0.7400,-0.0876
++8.15,0.7700,-0.1031
++9.12,0.7900,-0.1112
++10.13,0.8100,-0.1172
++11.13,0.8000,-0.1129
++12.12,0.7800,-0.1126
++13.08,0.8100,-0.1213
++14.14,0.8300,-0.1243
++15.04,0.8100,-0.1291
++16.12,0.9200,-0.1419
++17.13,0.8900,-0.1425
++18.14,0.8900,-0.1502
++19.15,1.0100,-0.1666
++20.08,1.0000,-0.1704
++21.11,1.0600,-0.1980
++22.14,0.9800,-0.1847
++23.14,1.0800,-0.2169
++24.08,1.1000,-0.2329
+diff --git a/tests/test_uiuc_flat_plate_cl.py b/tests/test_uiuc_flat_plate_cl.py
+new file mode 100644
+index 0000000..8205ba1
+--- /dev/null
++++ b/tests/test_uiuc_flat_plate_cl.py
+@@ -0,0 +1,47 @@
++"""Lead #23: UIUC Vol 5 flat-plate Cl@Re≈40k sanity (Cl+Cm only; not a BEM polar)."""
++from __future__ import annotations
++
++from pathlib import Path
++
++import pytest
++
++CSV = Path(__file__).resolve().parents[1] / "docs" / "qa" / "data" / "uiuc_flat_plate_re4e4_clcm.csv"
++
++# Pre-registered known points from fp_baseline_lift.dat Re≈40021 upsweep
++KNOWN = {
++    2.10: 0.22,
++    4.13: 0.50,
++    6.13: 0.71,
++    8.15: 0.77,
++}
++
++
++def _load():
++    rows = []
++    for line in CSV.read_text().splitlines():
++        if not line or line.startswith("#") or line.startswith("alpha"):
++            continue
++        a, cl, cm = line.split(",")
++        rows.append((float(a), float(cl), float(cm)))
++    return rows
++
++
++@pytest.mark.skipif(not CSV.is_file(), reason="UIUC flat-plate Cl table not vendored yet")
++def test_uiuc_flat_plate_cl_known_points():
++    rows = _load()
++    assert len(rows) >= 8
++    by_a = {round(a, 2): cl for a, cl, _ in rows}
++    for a, cl in KNOWN.items():
++        assert a in by_a, f"missing alpha {a}"
++        assert abs(by_a[a] - cl) < 0.02
++    # rising Cl 2→6
++    assert by_a[6.13] > by_a[2.10] > 0.0
++
++
++@pytest.mark.skipif(not CSV.is_file(), reason="UIUC flat-plate Cl table not vendored yet")
++def test_uiuc_notice_present():
++    notice = CSV.parent / "UIUC_LSAT_NOTICE.txt"
++    assert notice.is_file()
++    text = notice.read_text()
++    assert "UIUC" in text
++    assert "attribution" in text.lower() or "commercial" in text.lower()
