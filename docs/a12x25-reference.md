@@ -21,14 +21,14 @@ Sources: [Noctua specs](https://noctua.at/en/nf-a12x25-pwm/specification),
 Two **separate** gates apply before absolute-performance claims; they must not be merged into one pass/fail:
 
 1. **Geometry fidelity** — blade count, tip/hub radii, axial depth, LE sickle character, and **0.5 mm** tip clearance vs the **110 mm** frame ID (vs trusted STL when available, else the parametric envelope).
-2. **CFD fidelity** — vs this table at 2000 RPM: interim **±10%** on free-air (**60.1 CFM**) and **±5 Pa** on shut-off (**22.9 Pa**), until further validation on more fans tightens them (the CFD v5 setup — sealed ring + four-bar frame + prism layers — is validated on Stock: 59.8 vs 60.1 CFM; `docs/validation/a12x25_pq_report.md`).
+2. **CFD fidelity** — vs this table at 2000 RPM: interim **±10%** on free-air (**60.1 CFM**) and **±5 Pa** on shut-off (**22.9 Pa**), until further validation on more fans tightens them (the CFD v5 setup — sealed ring + four-bar frame + prism layers — is validated on a close-reference STL of the A12x25: 59.8 vs 60.1 CFM; `docs/validation/a12x25_pq_report.md`).
 
 Full criteria, numeric bands (e.g. tip radius **54.0–54.5 mm**, hub **20–23 mm**, **9** blades), and the rule that geometry pass **does not** imply CFD pass (and vice versa): [validation/a12x25_geometry_acceptance.md](validation/a12x25_geometry_acceptance.md).
 
 ## Historical: the reality check that drove the validation work (2026-09)
 
-*Kept for context. Every gap below has since been closed by the validated CFD v5 setup (sealed
-ring + four-bar frame + prism layers, resolved 0.5 mm tip gap, grid study); see
+*Kept for context. Still open: near-stall points (steady RANS does not settle) and the Stock
+recipe gap (parametric Stock reads about 5 % low vs the real shape). See
 `docs/validation/a12x25_pq_report.md` and `docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md`.*
 
 Our parametric Stock / approximate recipes historically under-resolved tip leakage and frame losses;

@@ -234,9 +234,8 @@ untrustworthy points.
 **Grid convergence (capped STL, free delivery):** 6mm→100k cells→56.8 CFM; 4mm→258k→57.7;
 3mm→550k→**59.6** (−1% vs published 60.1). Monotonic convergence TOWARD the real value — strong
 validation. NOT fully flat yet (last step 3.2%), so the screening mesh (4–5mm) carries a
-**~3–5% quantified discretization error**; a finer ~2mm mesh would likely land ~60–61 CFM but
-costs a lot (550k cells ≈ 16 min/point). Practical: report absolute numbers with a ~4% error
-bar (or use a fine mesh); relative rankings are fine at the coarse mesh since it's consistent.
+**screening mesh, GCI ≈ 21 %; ranks designs, ±1 % run to run on Stock**. A finer ~2mm mesh would likely land ~60–61 CFM but
+costs a lot (550k cells ≈ 16 min/point). Practical: use the screening mesh to rank designs, not as absolute CFM.
 Remaining: the transient tier (URANS/LBM) for shut-off pressure + noise (GPU).
 
 

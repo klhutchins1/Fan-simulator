@@ -36,8 +36,8 @@ From `opt_v3`: **14 feasible trials**, **14 noise-scored** (LBM control-volume d
 
 ## Read-out
 
-- **Blade count / solidity** trades airflow & pressure against noise & efficiency: more blades (higher solidity) raise loading (|thrust|) and airflow but lift the blade-pass tone and cost efficiency.
-- **Efficiency** favours *fewer, lightly-loaded* blades; **airflow** favours *more chord / more blades*. The quiet+efficient and the high-flow corners are geometrically distinct.
+- **Blade count / solidity** trades loading, tone and efficiency. The table's airflow correlation with blade count is negative (ρ −0.35), so do not assume more blades mean more airflow.
+- **Efficiency** favours *fewer, lightly-loaded* blades; **airflow** favours *more chord*. The quiet+efficient and the high-flow corners are geometrically distinct.
 - **Noise** tracks blade loading (|thrust|) and blade count more than any single angle — so to get quieter at fixed flow, spread the load (more blades at lower stagger) rather than over-loading few blades.
 
-_Caveats: n is small; CFD is screening fidelity (~3–5% discretization); absolute noise is coarse-grid-limited so only the ranking is used; correlations are not causation._
+_Caveats: n is small; screening mesh, GCI ≈ 21 %; ranks designs, ±1 % run to run on Stock; absolute noise is coarse-grid-limited so only the ranking is used; correlations are not causation._

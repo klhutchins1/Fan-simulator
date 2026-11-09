@@ -395,7 +395,7 @@ def reject_hint(reason: str) -> str:
         )
     if "stalls at this hose" in r:
         return ("↳ the fan's CFD static-pressure ceiling is below this hose, so the loaded solve "
-                "reverses (CFD also under-predicts static ~2×). Pick a lighter **Application** "
+                "reverses (CFD's static-pressure ceiling is a little below the datasheet's (about 10 %)). Pick a lighter **Application** "
                 "preset (Case 8 → try a lower load), or read the free-air delivery above.")
     if "tip gap" in r or "frame gap" in r:
         return ("↳ too close to the frame: a real fan needs ≥0.5 mm tip clearance, and CFD won't run "
