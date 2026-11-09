@@ -47,6 +47,15 @@ from fansim.cockpit.paths import exports_dir, session_tmp
 
 _RUNNING_TESTS = "pytest" in sys.modules
 
+def mixed_export_readme() -> str:
+    """Sidecar markdown for an exported mixed-flow STL (R2.4 / G3)."""
+    return (
+        "# Mixed-flow export\n\n"
+        "Experimental: not validated against published data.\n\n"
+        "Assess runs MRF CFD (not validated against published data).\n"
+    )
+
+
 if _RUNNING_TESTS:
     pv = None  # type: ignore[assignment]
     plotly_widgets = None  # type: ignore[assignment]
@@ -129,7 +138,8 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
     )
     state.mf_msg = "Tune the cone and tip, then Preview → Assess → Export → Optimize (BEM)."
     state.mf_readout = [
-        "Assess uses the axial MRF duct (approximate for mixed-flow).",
+        "Experimental: not validated against published data.",
+        "Assess runs MRF CFD (not validated against published data).",
         "Optimize is a BEM screen (axial adapter) — not CFD.",
     ]
     if mf_design_store:
@@ -332,6 +342,8 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                 return export_mixed_flow_stl(params, out)
 
             path = await loop.run_in_executor(None, _do)
+            md = Path(path).with_suffix(".md")
+            md.write_text(mixed_export_readme(), encoding="utf-8")
             state.mf_msg = f"✓ Saved {Path(path).resolve()}"
             _refresh_mf_export_items()
         except Exception as exc:  # noqa: BLE001
@@ -440,7 +452,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                 state.mf_readout = [
                     f"cfm_free {result.cfm_free:.1f}  ·  cfm_load {result.cfm_load:.1f}  ·  "
                     f"efficiency {result.efficiency:.1f}%",
-                    "Domain: axial MRF duct (approximate for mixed-flow).",
+                    "Assess runs MRF CFD (not validated against published data).",
                     f"workdir {workdir}",
                 ]
                 stl = workdir / "impeller.stl"
@@ -625,6 +637,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
         state.mf_readout = [
             f"#{tid}  cfm_free {o.get('cfm_free', 0):.1f}  ·  cfm_load {o.get('cfm_load', 0):.1f}  ·  "
             f"efficiency {o.get('efficiency', 0):.1f}%",
+            "Experimental: not validated against published data.",
             f"Loaded from {row.get('extra', {}).get('source_run', row.get('workdir', ''))}",
         ]
         stl = row.get("stl_path")
@@ -762,7 +775,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                         )
                         html.Div(
                             "NSGA on free↔load CFM via the axial BEM stand-in. Not CFD. "
-                            "Assess still scores the honest MRF duct. Continue last "
+                            "Assess runs MRF CFD (not validated against published data). Continue last "
                             "appends into the newest cockpit_mf_opt_* study. "
                             "Optional CFD refine scores the top-N BEM finalists "
                             "(same hose as Assess; writes cfd_refine.json).",
@@ -875,7 +888,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                 with v3.VCard(classes="mb-2 pa-2", v_show="mf_subtab === 'results'"):
                     html.Div("Duct airflow — slices & streamlines", classes="text-subtitle-2 mb-1")
                     html.Div(
-                        "From the last Assess (axial MRF duct, approximate for mixed-flow). "
+                        "From the last Assess. Experimental: not validated against published data. "
                         "|U|/pressure midplane; axial Uz (blue = delivery, red = reverse); "
                         "streamlines colored by |U|.",
                         classes="text-caption text-medium-emphasis mb-2",
