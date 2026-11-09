@@ -491,7 +491,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         v3.VAlert(
                             "Design 3D-printable replacement blades for a PC cooling fan "
                             "(start: Noctua A12x25). Preview updates the shape in seconds; "
-                            "Assess runs one CFD solve (~15–30 min); Optimize searches many "
+                            "Assess runs two CFD solves (free air and a loaded point), about 20–40 min; Optimize searches many "
                             "designs (hours). Export writes a print-ready STL. "
                             "Fan is CFD-checked — Mixed / Volute / Prop / CROR tabs are "
                             "faster estimates or proxies. Docs: README, docs/design-rules.md, "

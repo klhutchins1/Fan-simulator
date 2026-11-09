@@ -126,7 +126,7 @@ OPT_SEARCH_HELP = {
     ),
     "opt_bem": (
         "RANKING-ONLY blade-element screen: skip CFD if predicted hose CFM is below ~32. "
-        "Not absolute CFM — ignores thickness/lean/wrap/LE-TE/plate; typically under-ranks CFD (~0.6×). "
+        "Ranking only; coarse; can't separate close designs. "
         "When to use: large campaigns to burn fewer CFD hours. Never quote BEM beside CFD as equal."
     ),
     "opt_gp": (

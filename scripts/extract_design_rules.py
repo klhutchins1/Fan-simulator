@@ -103,7 +103,7 @@ def main():
           "**design guidance to test, not law**.", "",
           "## Strongest driver of each objective", ""]
     label = {"cfm_free": "Free-air airflow (max)", "cfm_load": "Airflow under load (max)",
-             "efficiency": "Efficiency (max)", "noise_dba_band": "Noise dB(A) (min)",
+             "efficiency": "Efficiency (max)", "noise_dba_band": "Noise estimate (min)",
              "bpf_tone_db": "Blade-pass tone (min)", "thrust_abs": "Blade loading |thrust|"}
     for ob in OBJECTIVES:
         drv = top_drivers(ob)
