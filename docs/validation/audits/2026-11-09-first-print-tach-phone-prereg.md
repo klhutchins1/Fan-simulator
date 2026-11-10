@@ -14,8 +14,12 @@ bag method below, and only roughly.
 
 | # | article |
 |---|---|
-| A | genuine Noctua A12x25 impeller on its own frame and motor |
-| B | printed Stock v3 on the donor frame and motor, with its print-id |
+| A | genuine Noctua A12x25 impeller |
+| B | printed Stock v3, with its print-id |
+
+**Same motor or two motors (added 2026-11-09, before any data):** the 2026-10-13 plan runs A and B on the same
+frame and motor. If that is not possible and they run on two fans, T5 is INCONCLUSIVE whatever it reads, because
+Noctua's own speed tolerance is ±10 % from motor to motor. T6 still works, with the rpm scaling in step 5.
 
 Note material, layer height, nozzle, infill and the export's print-id for B.
 
