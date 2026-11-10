@@ -56,7 +56,7 @@ laser tach and a phone. No airflow meter. Rules and pass/fail are pre-registered
 optimizer candidate. This does not change the v0.1.0 definition of done.
 
 - **P1 Engraved print-id on the hub (roadmap 28.3).** Lane: Cursor. CPU: day (a few geometry builds; not 4–9 PM).
-  Status: `ready`. This is the only code that blocks the print.
+  Status: `in progress (Cursor, 2026-11-09)`. Grok r28: QA-73 HIGH (mirror), QA-74 depth, QA-75 6=G, QA-76 one-cut.
   - Follow `docs/qa/notes/print-id-mark-spec-r10.md`: +Z hub top, strokes engraved 0.5 mm deep, cap height 3.2 mm,
     stroke width 0.6 mm, band r 11.5–14.7 mm, 5 characters (the 4-character code plus its check digit), read along
     the arc.
