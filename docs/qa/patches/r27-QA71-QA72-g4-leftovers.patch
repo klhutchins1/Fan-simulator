@@ -1,0 +1,111 @@
+diff --git a/fansim/fan_bem.py b/fansim/fan_bem.py
+index 7cee660..9daedb8 100644
+--- a/fansim/fan_bem.py
++++ b/fansim/fan_bem.py
+@@ -12,8 +12,8 @@ power, efficiency. Losses: airfoil profile drag (from the polar) now; TIP-CLEARA
+ low-Reynolds airfoil polars are the next upgrades (roadmap §7.2/§7.3).
+ 
+ HONEST SCOPE: RANKING-ONLY screening. Do not quote BEM CFM as absolute or beside CFD as
+-equivalent — BEM ignores thickness/lean/wrap/LE-TE scales/plate sections and typically
+-under-ranks CFD (~0.6×). Absolute free-air needs CFD + print/measure (P–Q report: CFD Stock
++equivalent — BEM ignores thickness/lean/wrap/LE-TE scales/plate sections; ranking only,
++coarse, can't separate close designs. Absolute free-air needs CFD + print/measure (P–Q report: CFD Stock
+ ~−26% vs published 60.1 CFM; the old “+2%” claim is retired).
+ 
+ Audit #4 (docs/validation/audits/2026-09-29-audit-04-fan-bem.md): the loss buckets SLIP / K_FRICTION /
+diff --git a/fansim/optimize/objectives.py b/fansim/optimize/objectives.py
+index 66d9fa8..0d2692e 100644
+--- a/fansim/optimize/objectives.py
++++ b/fansim/optimize/objectives.py
+@@ -134,7 +134,8 @@ def _operating_point_reason(
+ 
+     * free delivery itself reversed -> almost always a duct/spin sign problem (actionable hint);
+     * free delivery is fine but the hose probe reversed -> the fan's CFD static ceiling is below
+-      the hose, so it stalls at this load (CFD also under-predicts static ~2x). Suggest a lighter
++      the hose, so it stalls at this load (CFD's static ceiling is a little below the datasheet's,
++      about 10 %; G4 / QA-71). Suggest a lighter
+       hose instead of a cryptic reject.
+     """
+     conv = "" if converged else (
+@@ -151,7 +152,8 @@ def _operating_point_reason(
+         return (
+             f"stalls at this hose — free delivery {free_signed * derate:.1f} CFM, but the "
+             f"{p_probe_pa:.1f} Pa probe reverses to {probe_signed:+.1f} CFM (CFD static ceiling "
+-            f"is below the hose; CFD under-predicts static ~2×). Try a lighter hose.{conv}"
++            f"is below the hose; CFD's static ceiling is a little below the datasheet's, about 10 %). "
++            f"Try a lighter hose.{conv}"
+         )
+     return (
+         f"system-curve: {exc} (free {p_free_pa:.1f} Pa, probe {p_probe_pa:.1f} Pa)"
+diff --git a/scripts/extract_design_rules.py b/scripts/extract_design_rules.py
+index 31d0478..48d5207 100644
+--- a/scripts/extract_design_rules.py
++++ b/scripts/extract_design_rules.py
+@@ -3,7 +3,7 @@
+ Pulls every feasible trial's geometry parameters, adds derived quantities (blade solidity/overlap,
+ mean chord/stagger/lean), and joins the LBM noise metrics (runs/<dir>/all_noise.json). Then it
+ Spearman-rank-correlates each design variable against each objective (CFM free/load, efficiency,
+-relative noise dB(A), blade-pass tone, thrust) and writes docs/design-rules.md + a correlation
++relative noise estimate (not dB(A)), blade-pass tone, thrust) and writes docs/design-rules.md + a correlation
+ heatmap. The rules are correlational (n is small, CFD is screening-fidelity, noise is relative) --
+ design guidance to test, not physical law -- but they turn a scatter of Pareto points into "what
+ makes a fan quiet / efficient / high-flow" that transfers to the next design.
+@@ -136,7 +136,7 @@ def main():
+            "", "**Design recipe implied:** high mid-stagger + wide tip chord + low camber + the "
+            "*fewest* blades / lowest solidity that still meets the flow-and-pressure target. Add "
+            "solidity only to buy pressure you can't otherwise get, knowing it costs noise.", "",
+-           "_Caveats: n=14; CFD is screening fidelity (~3–5% discretization); absolute noise is "
++           "_Caveats: n=14; screening mesh, GCI ≈ 21 %; ranks designs, ±1 % run to run on Stock; absolute noise is "
+            "coarse-grid-limited so only the ranking is used; cfm_free and cfm_load are near-duplicate "
+            "objectives here; correlations are not causation._"]
+     (Path("docs") / "design-rules.md").write_text("\n".join(md), encoding="utf-8")
+diff --git a/scripts/run_optimization.py b/scripts/run_optimization.py
+index 9af0cdd..ae0fe67 100644
+--- a/scripts/run_optimization.py
++++ b/scripts/run_optimization.py
+@@ -88,7 +88,7 @@ def build_parser() -> argparse.ArgumentParser:
+                          "constraint: hub radius >= motor cavity/2 + wall). Needs a model with a motor_mount.")
+     ap.add_argument("--bem-prescreen", type=float, default=0.0, metavar="CFM_FLOOR",
+                     help="RANKING-ONLY BEM: skip CFD when predicted hose CFM is below CFM_FLOOR "
+-                         "(not absolute CFM; ignores thickness/lean/wrap/LE-TE/plate; BEM≈0.6× CFD). "
++                         "(not absolute CFM; ignores thickness/lean/wrap/LE-TE/plate; ranking only, coarse). "
+                          "Never quote BEM beside CFD as equivalent. 0 = off.")
+     ap.add_argument("--surrogate-prescreen", type=float, default=0.0, metavar="CFM_FLOOR",
+                     help="skip CFD when the catalog GP mean+1 std of free-delivery CFM is below "
+diff --git a/tests/test_r27_g4_leftovers.py b/tests/test_r27_g4_leftovers.py
+new file mode 100644
+index 0000000..22d372e
+--- /dev/null
++++ b/tests/test_r27_g4_leftovers.py
+@@ -0,0 +1,31 @@
++"""QA-71 / QA-72 (grok r27): stale ~2× / ~0.6× / ~3–5 % that G4's file list missed."""
++
++from __future__ import annotations
++
++from pathlib import Path
++
++from fansim.optimize.objectives import _operating_point_reason
++from fansim.optimize.system_curve import SystemCurveError
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++def test_stalled_hose_reject_text_has_no_2x():
++    msg = _operating_point_reason(
++        SystemCurveError("probe CFM must be positive"), free_signed=35.0, probe_signed=-22.0,
++        derate=0.88, p_free_pa=1.4, p_probe_pa=7.3, converged=True, free_drift_pct=0.0, load_drift_pct=0.0,
++    )
++    assert "stalls at this hose" in msg and "lighter hose" in msg
++    assert "~2×" not in msg and "~2x" not in msg
++    assert "about 10 %" in msg
++
++
++def test_bem_prescreen_help_has_no_0_6x():
++    src = (ROOT / "scripts" / "run_optimization.py").read_text(encoding="utf-8")
++    assert "BEM≈0.6× CFD" not in src
++
++
++def test_design_rules_generator_caveat_matches_g4():
++    src = (ROOT / "scripts" / "extract_design_rules.py").read_text(encoding="utf-8")
++    assert "~3–5% discretization" not in src
++    assert "screening mesh, GCI ≈ 21 %" in src

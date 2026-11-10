@@ -1,0 +1,4 @@
+{
+ "assess_msg_as_shown": "Design: rejected — stalls at this hose — free delivery 30.8 CFM, but the 7.3 Pa probe reverses to -22.0 CFM (CFD static ceiling is below the hose; CFD under-predicts static ~2×). Try a lighter hose.",
+ "has_stale_2x": true
+}

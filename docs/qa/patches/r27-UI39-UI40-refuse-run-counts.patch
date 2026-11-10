@@ -1,0 +1,153 @@
+diff --git a/fansim/cockpit/fan_assess.py b/fansim/cockpit/fan_assess.py
+index 939f76f..98ded01 100644
+--- a/fansim/cockpit/fan_assess.py
++++ b/fansim/cockpit/fan_assess.py
+@@ -445,7 +445,13 @@ def bind(session) -> None:
+         label, kind, field, mn, mx = opt
+         base_flat, base_feat = session.edit_flat(), session._feat_dict()
+         rs = run_settings.capture(state, session.active_spec)  # 25.11: one snapshot for every step
+-        steps = max(2, int(state.sweep_steps))
++        from fansim.cockpit.input_checks import sweep_steps as _check_steps
++
++        steps, err = _check_steps(state.sweep_steps)  # UI-39: refuse, never clamp or crash
++        if err:
++            state.assess_msg = err
++            state.flush()
++            return
+         raw = list(np.linspace(mn, mx, steps))
+         values = sorted(set(int(round(v)) for v in raw)) if field == "n_blades" else raw
+ 
+diff --git a/fansim/cockpit/fan_optimize.py b/fansim/cockpit/fan_optimize.py
+index 3319816..7b1f484 100644
+--- a/fansim/cockpit/fan_optimize.py
++++ b/fansim/cockpit/fan_optimize.py
+@@ -126,11 +126,13 @@ def bind(session) -> None:
+     def on_optimize_fan():
+         if state.assess_busy or state.preview_busy or state.export_busy or state.opt_running:
+             return
+-        try:
+-            trials = int(float(state.opt_trials))
+-        except (TypeError, ValueError):
+-            trials = 8
+-        trials = max(2, min(40, trials))
++        from fansim.cockpit.input_checks import opt_trials as _check_trials
++
++        trials, err = _check_trials(state.opt_trials)  # UI-40: refuse out-of-range, no silent clamp
++        if err:
++            state.opt_msg = err
++            state.flush()
++            return
+         resume = bool(state.opt_resume)
+         # "Continue" adds trials to the latest cockpit Optimize run so the sampler keeps learning
+         # from earlier batches; with none on disk it falls back to the opened run.
+diff --git a/fansim/cockpit/fan_tab_ui.py b/fansim/cockpit/fan_tab_ui.py
+index e7edc1e..f73567d 100644
+--- a/fansim/cockpit/fan_tab_ui.py
++++ b/fansim/cockpit/fan_tab_ui.py
+@@ -970,9 +970,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
+                                         )
+                                     with v3.VCol(cols=3, classes="px-1"):
+                                         v3.VTextField(
+-                                            label="steps",
++                                            label="steps (2–12)",
+                                             v_model=("sweep_steps",),
+                                             type="number",
++                                            min=2,
++                                            max=12,
++                                            step=1,
+                                             density="compact",
+                                             variant="outlined",
+                                             hide_details=True,
+@@ -1023,9 +1026,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
+                                     with v3.Template(v_slot_activator="{ props }"):
+                                         v3.VTextField(
+                                             v_bind="props",
+-                                            label="Trials",
++                                            label="Trials (2–40)",
+                                             v_model=("opt_trials",),
+                                             type="number",
++                                            min=2,
++                                            max=40,
++                                            step=1,
+                                             density="compact",
+                                             variant="outlined",
+                                             hide_details=True,
+diff --git a/fansim/cockpit/input_checks.py b/fansim/cockpit/input_checks.py
+new file mode 100644
+index 0000000..bd0d76e
+--- /dev/null
++++ b/fansim/cockpit/input_checks.py
+@@ -0,0 +1,32 @@
++"""Whole-number checks for cockpit run-count fields (UI-39 Sweep steps, UI-40 Optimize trials).
++
++Each returns ``(value, None)`` when the typed value is a whole number inside the range, else ``(None, message)``.
++Nothing is clamped: a run must use exactly what the field shows, or refuse visibly.
++"""
++
++from __future__ import annotations
++
++SWEEP_STEPS_RANGE = (2, 12)
++OPT_TRIALS_RANGE = (2, 40)
++
++
++def whole_in_range(raw, lo: int, hi: int, what: str, why: str = "") -> tuple[int | None, str | None]:
++    text = "" if raw is None else str(raw).strip()
++    try:
++        val = float(text)
++    except ValueError:
++        val = None
++    if val is None or val != val or not val.is_integer() or not lo <= val <= hi:
++        tail = f" ({why})" if why else ""
++        return None, f"⚠ {what} must be a whole number from {lo} to {hi}{tail}. Nothing was started."
++    return int(val), None
++
++
++def sweep_steps(raw):
++    lo, hi = SWEEP_STEPS_RANGE
++    return whole_in_range(raw, lo, hi, "Sweep steps", "each step is a full CFD Assess")
++
++
++def opt_trials(raw):
++    lo, hi = OPT_TRIALS_RANGE
++    return whole_in_range(raw, lo, hi, "Optimize trials", "each trial is a full CFD solve")
+diff --git a/tests/test_ui39_ui40_run_counts.py b/tests/test_ui39_ui40_run_counts.py
+new file mode 100644
+index 0000000..2e410d5
+--- /dev/null
++++ b/tests/test_ui39_ui40_run_counts.py
+@@ -0,0 +1,35 @@
++"""UI-39 / UI-40 (grok ui-hunt-1, r27): run-count fields refuse bad values visibly; nothing is clamped."""
++
++from pathlib import Path
++
++import pytest
++
++from fansim.cockpit.input_checks import opt_trials, sweep_steps
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++@pytest.mark.parametrize("raw", ["", None, "abc", "2.5", "1e9", "1", "13", "100", "-5", "nan"])
++def test_sweep_steps_refuses(raw):
++    val, msg = sweep_steps(raw)
++    assert val is None and "2 to 12" in msg and "Nothing was started" in msg
++
++
++@pytest.mark.parametrize("raw,want", [("2", 2), ("12", 12), (3, 3), ("5.0", 5)])
++def test_sweep_steps_accepts(raw, want):
++    assert sweep_steps(raw) == (want, None)
++
++
++@pytest.mark.parametrize("raw", ["", "abc", "1", "41", "100", "1e9", "-5", "8.5"])
++def test_opt_trials_refuses_instead_of_clamping(raw):
++    val, msg = opt_trials(raw)
++    assert val is None and "2 to 40" in msg
++
++
++def test_handlers_use_the_checks_and_labels_show_ranges():
++    assess = (ROOT / "fansim" / "cockpit" / "fan_assess.py").read_text(encoding="utf-8")
++    opt = (ROOT / "fansim" / "cockpit" / "fan_optimize.py").read_text(encoding="utf-8")
++    ui = (ROOT / "fansim" / "cockpit" / "fan_tab_ui.py").read_text(encoding="utf-8")
++    assert "max(2, int(state.sweep_steps))" not in assess and "_check_steps(state.sweep_steps)" in assess
++    assert "max(2, min(40, trials))" not in opt and "_check_trials(state.opt_trials)" in opt
++    assert 'label="steps (2–12)"' in ui and 'label="Trials (2–40)"' in ui
