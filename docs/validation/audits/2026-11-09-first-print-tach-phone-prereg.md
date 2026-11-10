@@ -21,6 +21,9 @@ bag method below, and only roughly.
 frame and motor. If that is not possible and they run on two fans, T5 is INCONCLUSIVE whatever it reads, because
 Noctua's own speed tolerance is ±10 % from motor to motor. T6 still works, with the rpm scaling in step 5.
 
+**Kimball, 2026-11-09 (before any data): A and B will run on the same motor.** So T5 is judged as written. Measure A
+first: fitting B may not be reversible.
+
 Note material, layer height, nozzle, infill and the export's print-id for B.
 
 ## Judged checks (pass / fail rules fixed now)
