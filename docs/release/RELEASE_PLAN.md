@@ -366,8 +366,8 @@ Kimball's.
 
 ## Unparked by Kimball 2026-11-09: print-part ID (roadmap §28)
 
-- **28.3 Recessed hub glyphs**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)`.
-  - Mark-spec: `docs/qa/notes/print-id-mark-spec-r10.md`. +Z r 11.5–14.7 mm, 0.5 mm deep, stroke ≥0.5 mm.
+- **28.3 Recessed hub glyphs**. Lane: Cursor. CPU: day. Status: `done 11f97d6`.
+  - Stroke-engrave the 5-char Crockford code on +Z r 11.5–14.7 mm, 0.5 mm deep, 0.6 mm stroke. Disk tests green; full print-ready impeller + K7 is grok's next-round check. 28.4 still open.
 
 ## After v0.1.0 (parked; not release work)
 

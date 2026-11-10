@@ -19,18 +19,19 @@ bug hunts; re-check a fix only when the bug was HIGH.
 - Known recovery gaps from README_RECOVERY.md / RECOVERY_TODO.md are not counted as bugs.
 - Paths like `/workspace/fansim/...` and `qa/...` are on the QA bot's machine (screenshots, scratch scripts); ask if you need one.
 
-## ▶ Next round for the QA bot: round 27 (queued by Cursor 2026-11-09). Delivered as `handoff/2026-11-09_to-qa-27/`
+## ▶ Next round for the QA bot: round 28 (queued by Cursor 2026-11-09). Delivered as `handoff/2026-11-09_to-qa-28/`
 
-Round 26 and the 2026-11-08/09 self-initiated packs (QA-68, G2, ui-hunt-1, G3, leads 23–30) are **DONE**; thank you. Build: master at the commit that added this folder. No Docker, CFD, OpenFOAM, Assess, Sweep or Optimize run. Pre-register A and B before data. Do not re-prove G2 or G3 claims C22/C24/C25.
+Round 27 is still queued (`handoff/2026-11-09_to-qa-27/`) on older master. If you have not started 27, do 27 A–D **on this new master** (it has G4) and add **E**. If 27 is already in progress, skip A–D here and only do E. Build: master at the commit that added this folder. No Docker, CFD, OpenFOAM, Assess, Sweep or Optimize run. Pre-register E before data. Do not re-prove G2 or G3 claims C22/C24/C25. Do not CFD the hub glyphs.
 
 | # | task | board |
 |---|---|---|
-| A | **QA-57 closeout.** On this master, Volute Assess copy (`volute_tab.py` Assess lines and result readout) must carry "ranking only, unvalidated (CFD not yet converged)", not only Optimize. If Cursor has applied `docs/qa/patches/g3-QA57-volute-assess-label.patch`, verify it (red check + tests). If not, confirm the gap is still there. Mixed side stays **verified / not re-tested**. | QA-57, R1.10 G3 |
-| B | **UI-39 and UI-40.** Sweep steps must refuse empty / non-int / out of 2–12 with a visible message, never queue a huge CFD sweep. Optimize Trials must show "2–40" and refuse out-of-range instead of silent clamp. Apply/verify `docs/qa/patches/ui-hunt-1-UI39-UI40-steps-trials.patch` if landed; else re-probe. Do not click Run. | UI-39, UI-40 |
-| C | **QA-70.** Expert noise-hint row must still show when a run has the tip-speed+CFM hint but no turbulence SWL. Patch `docs/qa/patches/ui-hunt-1-QA70-noise-hint-row.patch`. G2 claims stay **verified / not re-tested**. | QA-70, R1.10 G2 |
-| D | **G4 if it is on this master.** Dropped ~2× / ~0.6× / ~3–5 %; Assess "two CFD solves … 20–40 min"; README Known limits list still has R1.4's "about 5 % less airflow than the real A12x25". If G4 is not merged, say so and skip. QA-69 (`design-rules.md` "Noise dB(A) (min)") is G4's. | R1.10 G4, QA-58, QA-69 |
+| A | **QA-57 closeout.** On this master, Volute Assess copy (`volute_tab.py` Assess lines and result readout) must carry "ranking only, unvalidated (CFD not yet converged)", not only Optimize. If Cursor has applied `docs/qa/patches/g3-QA57-volute-assess-label.patch`, verify it (red check + tests). If not, confirm the gap is still there. Mixed side stays **verified / not re-tested**. Skip if already reported in r27. | QA-57, R1.10 G3 |
+| B | **UI-39 and UI-40.** Sweep steps must refuse empty / non-int / out of 2–12 with a visible message, never queue a huge CFD sweep. Optimize Trials must show "2–40" and refuse out-of-range instead of silent clamp. Apply/verify `docs/qa/patches/ui-hunt-1-UI39-UI40-steps-trials.patch` if landed; else re-probe. Do not click Run. Skip if already reported in r27. | UI-39, UI-40 |
+| C | **QA-70.** Expert noise-hint row must still show when a run has the tip-speed+CFM hint but no turbulence SWL. Patch `docs/qa/patches/ui-hunt-1-QA70-noise-hint-row.patch`. G2 claims stay **verified / not re-tested**. Skip if already reported in r27. | QA-70, R1.10 G2 |
+| D | **G4.** Dropped ~2× / ~0.6× / ~3–5 %; Assess "two CFD solves … 20–40 min"; README Known limits list still has R1.4's "about 5 % less airflow than the real A12x25". QA-69 (`design-rules.md` "Noise dB(A) (min)") is G4's. Skip if already reported in r27. | R1.10 G4, QA-58, QA-69 |
+| E | **28.3 recessed hub glyphs (new).** Export with a print-id must stroke-engrave the 5-char Crockford code on the +Z hub in r 11.5–14.7 mm, 0.5 mm deep, stroke ≥0.5 mm (`print_id_mark.engrave_print_id`, mark-spec `docs/qa/notes/print-id-mark-spec-r10.md`). Pre-register before data. **PASS** if: `tests/test_print_id.py` + `tests/test_print_id_glyphs.py` green; a print-ready Stock impeller with a known print_id is 1 solid, watertight, 1 body; ΔV is a shallow recess not a through-cut; cup gauge K7 is unchanged vs the same impeller without glyphs (floor ~13 mm above the face, 20 grips); README no longer says "No glyphs on the part yet". **FAIL** if the marked STL splits, leaks, or the cup changes. Do not CFD the pocket. Write `docs/qa/rounds/r28.md`. | roadmap §28.3 |
 
-Notes to `docs/qa/notes/r27-*.md`, plus a "Round 27" section below.
+Notes to `docs/qa/notes/r28-*.md` (and `r27-*.md` if you also close 27), plus round sections below. Grok writes `docs/qa/rounds/r<NN>.md` only (not this file).
 
 ## Tested build
 - Source: copy of `T:\Projects\Fan Simulator` working tree, 2026-10-08 (no `.git`, so no commit hash). Linux, Python 3.12, no Docker/OpenFOAM/CFD.

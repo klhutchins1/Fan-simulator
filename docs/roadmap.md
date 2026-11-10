@@ -54,7 +54,7 @@ move the unique open item here and leave a pointer, do not keep a second list.
 5. **Print + measure (Phase 5)** — `docs/validation/north-star-staged.md`; **do not** check §5.1 until hardware data exists. Primary path to close absolute free-air.
 6. ~~**§14 Archetype Design Parity (stage 1)**~~ — Prop/Mixed/Volute/CROR Design depth landed 2026-09-15.
    Leftovers: none for stage-1 Design UI (~~14.4b~~ 2026-09-16).
-**→ Next (2026-10-17): R0.3 too-close is on `too-close-r03` (C1/C2 PASS, C3 FAIL — Kimball: widen CLOSE from paired |Δ|, or keep residual flips). 28.3 glyphs in progress (Cursor, 2026-11-09). Do not restart the optimizer.**
+**→ Next (2026-10-17): R0.3 too-close is on `too-close-r03` (C1/C2 PASS, C3 FAIL — Kimball: widen CLOSE from paired |Δ|, or keep residual flips). 28.3 glyphs done `11f97d6`. Do not restart the optimizer.**
 7. **§15 adversarial leftovers** — ~~15.1–15.6~~ all done 2026-09-16 (incl. 15.5 binder split).
 8. **Only then** (post-hardware) optional deferred depth: §7.4 CNN/FNO, absolute noise (§1.4), archetype CFD (§4.x) — not active software.
 9. **§20 external feature radar** — ~~20.1~~ / ~~20.2~~ / ~~20.3~~ / ~~20.4~~ / ~~20.5~~ / ~~20.6~~ DONE 2026-09-30;
@@ -74,9 +74,9 @@ move the unique open item here and leave a pointer, do not keep a second list.
   - **§26** (parked idea) — cockpit “Bring your STL” Assess; optional inverse-fit; no mass-scrape.
     Do **not** start until wrap is merged and external-STL spin is honest (round 9 D unconfirmed).
     CLI already has `scripts/validate_stl.py`.
-  - **§28** (28.1 mark-spec PASS; **28.2 registry done**; 28.3 glyphs in progress Cursor 2026-11-09) —
+  - **§28** (28.1 mark-spec PASS; **28.2 registry done**; **28.3 glyphs done `11f97d6`**) —
     +Z hub ring r 10–21.45 mm is flat 360°. Dummy 8×3.2×0.5 recess stays one solid; aero 1.76 %.
-    28.2 registry is in; glyphs wait. Handoff: `handoff/2026-10-13_from-qa-10/`.
+    Glyphs are stroke-engraved at Export. Handoff: `handoff/2026-10-13_from-qa-10/`.
   - **§29** — 29.1 material picker (PLA+ still looks like PETG); 29.2 UI regression tests. Grok r12 D/E.
   - ~~**§24.2 / 24.3**~~ DONE 2026-10-15 (Kimball signed off Simple copy). Leftover: QA-38 scatter
     below the fold at 768p (LOW). 24.4 is investigate-only until Kimball picks lock/snapshot/queue.
@@ -1884,7 +1884,7 @@ Kimball, 2026-10-13: two printed fans from a month ago, and only the Noctua is i
 ~30 parts in a box, a re-test has to attach to the **export** (recipe, wrap, git, CFD run, material),
 not “the black 120 mm one”. A sharpie works as a fallback **if the code already exists** to copy.
 
-**Status:** 28.1 **done**. **28.2 done 2026-10-14** (registry + README, no cut). 28.3 glyphs **in progress (Cursor, 2026-11-09)**.
+**Status:** 28.1 **done**. **28.2 done 2026-10-14** (registry + README, no cut). **28.3 done `11f97d6`.**
 Mark-spec: `docs/qa/notes/print-id-mark-spec-r10.md`. +Z ring r 10–21.45 mm, full circle; dummy recess
 M1–M3 PASS; Data Matrix at 0.5 mm/module is marginal. Aero of the full box pocket is 1.76 % (not
 auto-exempt). Claude's view still stands: 28.2 (registry + README, no cut) is cheap; 28.3 only if a
@@ -1939,7 +1939,8 @@ index. Genuine Noctua (article A) has no code — that is fine.
   Export issues a 4-char Crockford code + check digit, stems the STL `{code}_{name}_{stamp}`,
   writes it in the README (Sharpie line) and `*_print_fit.json`, and appends
   `validation/prints/index.jsonl` (gitignored). No hub recess.
-- [ ] **28.3 Recessed hub glyphs** from the mark-spec.
+- [x] **28.3 Recessed hub glyphs** from the mark-spec. **DONE 2026-11-09 `11f97d6`.**
+  Stroke-engrave on +Z r 11.5–14.7 mm, 0.5 mm deep. `print_id_mark.engrave_print_id`. Disk tests in `tests/test_print_id_glyphs.py`.
 - [ ] **28.4 Measurement ingest by `print_id`.**
 - [x] **28.5 Hash-as-the-part / blade QR / vision on old prints.** **Not adopted.**
 
