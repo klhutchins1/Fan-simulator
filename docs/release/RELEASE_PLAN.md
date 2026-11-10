@@ -40,10 +40,44 @@ The tasks that unblock CFD validation sat `ready` behind wording fixes. So accur
    `night/queue.json` (R2.3b, R2.5c): that is the point of doing them first.
 4. **R1.3** optimizer bounds under wrap (now `ready`).
 5. **M3 packaging** (R3.1, R3.2, R3.4–R3.9) fills any time the steps above are waiting on a night run.
+   **P1** (engraved print-id, section below) goes ahead of M3: it is the only code blocking Kimball's first print.
 6. grok: after round 27, one re-derivation or bug-hunt round per CFD result, and the full claims audit at the release
    candidate. No routine re-check rounds.
 
 Merge gates run the same day with `scripts/gate.py <branch>` (lands with branch `process-tools`); nights are for CFD.
+
+---
+
+## Print session 1 (Kimball 2026-11-09; runs beside the release work)
+
+Goal: print Stock v3 once and learn what works: fit, shape, the engraved ID and the test routine. Kimball has a
+laser tach and a phone. No airflow meter. Rules and pass/fail are pre-registered in
+`docs/validation/audits/2026-11-09-first-print-tach-phone-prereg.md` (T1–T6). Only Stock v3 is printed; no
+optimizer candidate. This does not change the v0.1.0 definition of done.
+
+- **P1 Engraved print-id on the hub (roadmap 28.3).** Lane: Cursor. CPU: day (a few geometry builds; not 4–9 PM).
+  Status: `ready`. This is the only code that blocks the print.
+  - Follow `docs/qa/notes/print-id-mark-spec-r10.md`: +Z hub top, strokes engraved 0.5 mm deep, cap height 3.2 mm,
+    stroke width 0.6 mm, band r 11.5–14.7 mm, 5 characters (the 4-character code plus its check digit), read along
+    the arc.
+  - Draw the Crockford characters from line segments defined in code (no system font), fuse them, and make **one**
+    cut on the mounted print solid. Export only: the scored and CFD geometry never carries the mark.
+  - If the flat ring on a design is too narrow, skip the cut and keep the Sharpie line in the README; say so.
+  - Tests: after the cut there is 1 watertight solid; removed volume is within 10 % of stroke area × 0.5 mm; the
+    mount gauge reads the same as before the cut; every one of the 32 characters has a segment definition; the
+    engraved code equals the code in the README and `*_print_fit.json`.
+  - Also put the predicted weight (material, infill) in the export README, as Preview shows it (check T2).
+  - README states: "ID engraving removes about 0.9 % of the hub face; its effect on airflow was not simulated."
+- **P2 Recording tool.** Lane: Claude. Status: `in progress (Claude, 2026-11-09)`: branch `print-session-prep`
+  (`bd6b12e`), `scripts/analyze_fan_recording.py` + `validation/recording.py`, 12 tests. Gate: night job
+  `suite-print-session-prep-all`. Merge if green.
+- **P3 Export the print.** Lane: Cursor or Kimball, after P1. Cockpit: Fan → Reference · Noctua A12x25 → Export
+  print STL (Fit hub/frame on). Status: `blocked (P1)`. Record the print-id, material, layer height, nozzle, infill.
+- **P4 The session.** Lane: Kimball. Status: `blocked (P3)`. Follow T1–T6 in the pre-registration; keep the WAV
+  files, the bag videos and the photos in `validation/prints/<print-id>/`.
+- **P5 Write up.** Lane: Claude or Cursor. Status: `blocked (P4)`. Fill the Results table in the pre-registration
+  (nothing above it is edited) and put each failed check on this board as its own task.
+- Later, not blocking: roadmap 28.4 (Record measurement by `print_id`); a vane anemometer (about $25) for session 2.
 
 ---
 

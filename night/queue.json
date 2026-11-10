@@ -365,6 +365,25 @@
    "max_hours": 3,
    "status": "queued",
    "why": "merge gate for R1.10 batch (G5 + R1.2 + R1.5 + R1.9, QA-57) at 957a483; merge r110-batch to master --no-ff if exit 0"
+  },
+  {
+   "id": "suite-print-session-prep-all",
+   "branch": "print-session-prep",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--all",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ],
+   "max_hours": 3,
+   "status": "queued",
+   "why": "merge gate for board P2 (phone-recording tool for print session 1). Exit 0 = merge to master --no-ff."
   }
  ]
 }
