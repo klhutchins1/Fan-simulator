@@ -364,6 +364,11 @@ Kimball's.
 
 ---
 
+## Unparked by Kimball 2026-11-09: print-part ID (roadmap §28)
+
+- **28.3 Recessed hub glyphs**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)`.
+  - Mark-spec: `docs/qa/notes/print-id-mark-spec-r10.md`. +Z r 11.5–14.7 mm, 0.5 mm deep, stroke ≥0.5 mm.
+
 ## After v0.1.0 (parked; not release work)
 
 - **grok lead 15: balance tolerance** (ISO 21940-11 + a phone four-run trim helper): `docs/qa/notes/balance-tolerance-proposal.md`.
