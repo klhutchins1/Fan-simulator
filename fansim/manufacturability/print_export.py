@@ -287,11 +287,13 @@ def export_print_ready(
     tolerance: float = 0.02,          # finer than CFD export (0.05) — smooth printed surfaces
     angular_tolerance: float = 0.1,
     also_step: bool = True,
+    print_id: str | None = None,
 ) -> WatertightReport:
     """Build the impeller, carve the motor mount (or a simple bore), export a fine STL, return the
     watertight report (with mount_fits/mount_msg when a MotorMount is given).
 
     When ``also_step`` is True (default), write a sibling ``.step`` B-rep next to the STL (§20.1).
+    ``print_id`` engraves the Crockford code on the +Z hub (roadmap 28.3) when the hub is wide enough.
     """
     out_stl = Path(out_stl)
     mount_fits, mount_msg = None, ""
@@ -301,6 +303,19 @@ def export_print_ready(
         model = build_impeller(params)
         if bore is not None:
             model = bore_hub(model, bore)
+    if print_id:
+        from fansim.manufacturability.print_id_mark import engrave_print_id
+
+        bore_r = 0.0
+        if mount is not None:
+            bore_r = float(getattr(mount, "rear_bore_dia_mm", 0.0) or 0.0) / 2.0
+        elif bore is not None:
+            bore_r = float(bore.bore_dia_mm) / 2.0
+        bb = model.val().BoundingBox()
+        model = engrave_print_id(
+            model, print_id, z_top=float(bb.zmax), hub_radius=float(params.hub_radius),
+            bore_r=bore_r,
+        )
     export_stl(model, out_stl, tolerance=tolerance, angular_tolerance=angular_tolerance)
     if also_step:
         export_step(model, out_stl.with_suffix(".step"))
@@ -320,6 +335,7 @@ def export_handedness_pair(
     tolerance: float = 0.02,
     angular_tolerance: float = 0.1,
     as_designed_stl: str | Path | None = None,
+    print_id: str | None = None,
 ) -> dict[str, Path]:
     """Export as-designed + mirrored STLs with paired ``*.handedness.json`` spin metadata (§19.4).
 
@@ -346,6 +362,7 @@ def export_handedness_pair(
             export_print_ready(
                 variant.params, stl, bore=bore, mount=mount,
                 tolerance=tolerance, angular_tolerance=angular_tolerance,
+                print_id=print_id,
             )
         write_handedness_meta(variant, meta)
         paths[f"{variant.label}_stl"] = stl
@@ -366,7 +383,7 @@ def print_readme(name: str, params: BladeParams, material: str, report: Watertig
         L += [
             f"**Sharpie this on the hub (+Z, inlet): `{print_id}`**",
             "",
-            "Same code as the filename and `*_print_fit.json`. No glyphs on the part yet (28.2).",
+            "Same code as the filename and `*_print_fit.json`. Recessed on the hub (+Z, inlet); Sharpie it if the recess is hard to read.",
             "",
         ]
     if objectives:

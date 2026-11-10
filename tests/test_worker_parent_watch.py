@@ -59,7 +59,7 @@ def _stub_export(monkeypatch, tmp_path, *, crash_in_readme=False):
 
     monkeypatch.setattr(pid_mod, "INDEX_PATH", tmp_path / "index.jsonl")
 
-    def fake_export(params, out, mount=None):
+    def fake_export(params, out, mount=None, **_kw):
         Path(out).write_text("solid x\nendsolid x\n")
         Path(out).with_suffix(".step").write_text("step")
         return SimpleNamespace(ok=True, mount_fits=None, mount_msg="")
