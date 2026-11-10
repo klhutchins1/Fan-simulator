@@ -97,12 +97,13 @@ def do_export(params, out, spec, also_mirror: bool = False, *,
     )
     from fansim.manufacturability.print_id import git_head, recipe_hash, record_export
 
-    rep = export_print_ready(params, out, mount=mount)
+    rep = export_print_ready(params, out, mount=mount, print_id=print_id)
     mirror_note = ""
     if also_mirror:
         try:
             paths = export_handedness_pair(
                 params, out.parent, stem=out.stem, mount=mount, as_designed_stl=out,
+                print_id=print_id,
             )
             mirror_note = (
                 f"\n↳ Opposite-hand pair: {paths['mirrored_stl'].name} "
@@ -347,7 +348,7 @@ def bind(session) -> None:
                     " Press Preview to see it; the CFM/eff shown were for the original geometry, so "
                     "they're now approximate — re-Assess for exact numbers."
                 )
-            pid_txt = f"\n↳ Print-id `{print_id}` — Sharpie that on the hub (+Z). Same code in the README."
+            pid_txt = f"\n↳ Print-id `{print_id}` — recessed on the hub (+Z). Sharpie the same code if you can't read it."
             state.export_msg = (
                 f"✓ Saved {out.resolve()} (+ .step)  ({wt}{mnt})"
                 f"{mirror_note}{gauge_txt}{pid_txt}{extra}"

@@ -28,6 +28,7 @@ def main() -> int:
         job["out"],
         mount=mount,
         also_step=bool(job.get("also_step", True)),
+        print_id=job.get("print_id") or None,
     )
     with open(job["result"], "w", encoding="utf-8") as fh:
         json.dump(

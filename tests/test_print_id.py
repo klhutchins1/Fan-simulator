@@ -90,3 +90,5 @@ def test_readme_puts_the_code_first():
     assert md.splitlines()[0].startswith("# Print sheet")
     assert "A1B2C" in md.splitlines()[0] or "A1B2C" in md.splitlines()[1] or "A1B2C" in "\n".join(md.splitlines()[:6])
     assert "Sharpie" in md
+    assert "No glyphs on the part yet" not in md
+    assert "recess" in md.lower()
