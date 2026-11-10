@@ -48,8 +48,12 @@ def main(argv: list[str] | None = None) -> int:
 
     results = []
     for path, hint in zip(args.wav, hints):
-        x, fs = rec.load_wav(path)
-        r = rec.analyze(x, fs, n_blades=args.blades, rpm_hint=hint)
+        try:
+            x, fs = rec.load_wav(path)
+            r = rec.analyze(x, fs, n_blades=args.blades, rpm_hint=hint)
+        except (OSError, ValueError) as exc:
+            print(f"cannot read {path}: {exc}. Record uncompressed WAV (not m4a/mp3).")
+            return 2
         r["file"] = str(path)
         results.append(r)
         _show(path.name, r)

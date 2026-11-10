@@ -94,3 +94,25 @@ def test_compare_says_when_the_speeds_do_not_match():
     a = rec.analyze(_tone(300.0, 0.02) + _noise(0.002), FS, n_blades=9, rpm_hint=2000)
     b = rec.analyze(_tone(270.0, 0.02) + _noise(0.002), FS, n_blades=9, rpm_hint=1800)
     assert rec.compare(a, b)["comparable"] is False
+
+
+def test_cli_compares_two_files_and_reports_a_missing_one_plainly(tmp_path, capsys):
+    import importlib.util
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "analyze_fan_recording", Path(__file__).resolve().parents[1] / "scripts" / "analyze_fan_recording.py")
+    cli = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cli)
+    for name, amp in (("a", 0.03), ("b", 0.06)):
+        x = _tone(300.0, amp, seconds=4.0) + _noise(amp / 8, seconds=4.0)
+        wavfile.write(tmp_path / f"{name}.wav", FS, (x * 32767).astype(np.int16))
+    out_json = tmp_path / "o.json"
+    assert cli.main([str(tmp_path / "a.wav"), str(tmp_path / "b.wav"), "--blades", "9", "--rpm", "2000",
+                     "--json", str(out_json)]) == 0
+    out = capsys.readouterr().out
+    assert "b.wav minus a.wav: +6.0 dB" in out
+    assert "not dB(A) SPL" in out
+    assert out_json.exists()
+    assert cli.main([str(tmp_path / "missing.wav"), "--blades", "9", "--rpm", "2000"]) == 2
+    assert "cannot read" in capsys.readouterr().out
