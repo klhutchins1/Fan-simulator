@@ -315,7 +315,7 @@ Kimball's.
 
 ## M3: Releasable repo (parallel, mostly Cursor)
 
-- **R3.1 Release export hygiene**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R3.1 Release export hygiene**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-11)`.
   - grok r20 E: the leak check is waiting for R3.1 to land (not run).
   - Extend `RELEASE_EXCLUDE` and `scripts/export_release.py` to drop `archive/`, `memory/`, `handoff/`,
     `docs/qa/screenshots`, `*.bak`, chat-recovery dumps and any `C:\Users\…` / `E:\…` paths.
