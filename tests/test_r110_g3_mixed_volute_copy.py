@@ -46,3 +46,13 @@ def test_mixed_export_readme_labels_experimental():
     helper = src[src.index("def mixed_export_readme") : src.index("def mixed_export_readme") + 800]
     assert EXPERIMENTAL in helper
     assert ASSESS_MRF in helper
+
+
+def test_volute_assess_copy_is_labelled_unvalidated():
+    """QA-57 rest (grok g3-recheck): the Volute *Assess* lines and result readout carry the ranking-only label too."""
+    src = VOLUTE.read_text(encoding="utf-8")
+    assess_lines = [ln for ln in src.splitlines() if "Assess runs radial MRF" in ln or "Assess: free+load CFD" in ln]
+    assert assess_lines
+    assert "Volute CFD: ranking only, unvalidated (CFD not yet converged)." in src
+    i = src.index("Assess runs radial MRF")
+    assert VOLUTE_RANK in src[i:i + 200]

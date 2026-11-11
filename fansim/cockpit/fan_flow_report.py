@@ -144,8 +144,9 @@ def build_report(case_dir, ref_dir) -> dict:
     pic_for = {"direction": "face", "push": "push", "spin": "spin", "dead": "face", "noise": "noise"}
     out_rows = []
     for r in rows:
-        if r.key == "noise" and r.status == "na" and m.noise_swl_db is None:
-            continue  # spec: hide the noise row when the run has no turbulence data
+        if (r.key == "noise" and r.status == "na" and m.noise_swl_db is None
+                and getattr(m, "noise_hint_db", None) is None):
+            continue  # no turbulence data and no R0.4 hint: nothing to show (QA-70 keeps the Expert hint)
         name = pic_for[r.key]
         out_rows.append({
             "key": r.key, "title": r.title, "icon": ICONS[r.status], "status": r.status,
