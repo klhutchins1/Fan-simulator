@@ -320,7 +320,7 @@ Kimball's.
   - Extend `RELEASE_EXCLUDE` and `scripts/export_release.py` to drop `archive/`, `memory/`, `handoff/`,
     `docs/qa/screenshots`, `*.bak`, chat-recovery dumps and any `C:\Users\…` / `E:\…` paths.
   - Test: an export of master contains none of them, and the grep for user paths is empty.
-- **R3.2 Packaging**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R3.2 Packaging**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-11)`.
   - `pyproject.toml`: licence, authors, URLs, readme, classifiers, and a `[project.scripts]` entry point
     `fansim-cockpit = …` (wrapping `scripts/cockpit.py`).
   - Test: `uv build` works, and the installed entry point starts the server with `--help`.
