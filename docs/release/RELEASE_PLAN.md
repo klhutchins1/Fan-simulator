@@ -56,10 +56,9 @@ laser tach and a phone. No airflow meter. Rules and pass/fail are pre-registered
 optimizer candidate. This does not change the v0.1.0 definition of done.
 
 - **P1 Engraved print-id on the hub (roadmap 28.3).** Lane: Cursor. CPU: day (a few geometry builds; not 4–9 PM).
-  Status: `in progress (Cursor, 2026-11-09)`. Grok r28 ingested 2026-11-10 (`handoff/2026-11-09_from-qa-28/`).
-  QA-73 HIGH (mirror), QA-74 depth, QA-75 6=G, QA-76 one-cut applied on `p1-glyphs` (uncommitted). Extra: QA-79 hub-face
-  not bbox. QA-78 skip-copy fixed. Still open: QA-77 lands. Prints: H7MQ8 Stock T1–T6 (PLA+, 0.6 mm, **27.41 g**, T3 FAIL → P6);
-  E0MWW t9002 extra. P6 live mark: cap 5.0 mm, stroke 0.9 mm, band r 11.5–16.5.
+  Status: `done 2bfde35`. Grok r28 ingested; QA-73 HIGH (mirror), QA-74 depth, QA-75 6=G, QA-76 one-cut, QA-78 skip-copy,
+  QA-79 hub-face. Merge gate 750/521/683. Still open: QA-77 lands. Prints: H7MQ8 Stock T1–T6 (PLA+, 0.6 mm, **27.41 g**,
+  T3 FAIL → P6); E0MWW t9002 extra. Live mark: cap 5.0 mm, stroke 0.9 mm, band r 11.5–16.5.
   - Follow `docs/qa/notes/print-id-mark-spec-r10.md` (P6 addendum): +Z hub top, strokes engraved 0.5 mm deep, cap height 5.0 mm,
     stroke width 0.9 mm, band r 11.5–16.5 mm, 5 characters (the 4-character code plus its check digit), read along
     the arc.
@@ -80,7 +79,7 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   Still open: T1 fit, T4 tach/phone, T5 12 V rpm, T6 bag. Keep WAV/photos in `validation/prints/H7MQ8/`.
 - **P5 Write up.** Lane: Claude or Cursor. Status: `blocked (P4)`. Fill the Results table in the pre-registration
   (nothing above it is edited) and put each failed check on this board as its own task.
-- **P6 Enlarge print-id glyphs (T3 FAIL / QA-80).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-11)`.
+- **P6 Enlarge print-id glyphs (T3 FAIL / QA-80).** Lane: Cursor. CPU: day. Status: `done 2bfde35` (code); T3 coupon **needs Kimball**.
   H7MQ8 (Stock v3, PLA+, 0.6 mm nozzle, 27.41 g): 3.2 mm cap / 0.6 mm stroke is too small to read at arm's length.
   Raise cap and stroke a little. Proposal: cap **5.0 mm**, stroke **0.9 mm**, advance **3.6 mm**, band r **11.5–16.5**
   (`print_id.py` + r10 mark-spec). Depth stays 0.5 mm. Keep ≥1 mm from the bore and rim. Widen the cell with the
@@ -89,9 +88,8 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   full impeller (prereg T3-fail path).
   Balance: extra recess ~0.02 g at r ~14 mm. Even if the mark were fully one-sided that is ~0.3 g·mm, under ordinary
   blade print scatter (lead 15: 1.7–2.4 g·mm).
-  - Landed (uncommitted): constants 5.0 / 0.9 / 3.6; sheet "about 2 %"; coupon
-    `exports/H7MQ8_id_coupon_20261111-190250.stl` (9.1 cm³, watertight). Glyph tests 25 passed.
-    **needs Kimball:** print the coupon, marked face on the bed, no supports, and try T3 again.
+  - Landed `2bfde35`: constants 5.0 / 0.9 / 3.6; sheet "about 2 %"; coupon script `scripts/export_id_coupon.py`.
+    Glyph tests 25 passed. **needs Kimball:** print `exports/H7MQ8_id_coupon_20261111-190250.stl`, marked face on the bed, no supports, and try T3 again.
 - Later, not blocking: roadmap 28.4 (Record measurement by `print_id`); a vane anemometer (about $25) for session 2.
 
 ---
@@ -381,9 +379,7 @@ Kimball's.
 
 ## Unparked by Kimball 2026-11-09: print-part ID (roadmap §28)
 
-- **28.3 Recessed hub glyphs**. Lane: Cursor. CPU: day. Status: `done 11f97d6`.
-  - Stroke-engrave the 5-char Crockford code on +Z r 11.5–14.7 mm, 0.5 mm deep, 0.6 mm stroke. Disk tests green; full print-ready impeller + K7 is grok's next-round check. 28.4 still open.
-  - Print session 1 T3 FAIL on H7MQ8: glyphs too small. Follow-up **P6 / QA-80**.
+- **28.3 Recessed hub glyphs**. Lane: Cursor. CPU: day. Status: `done 2bfde35` (QA-73 un-mirror; P6 5 mm cap). First cut was `11f97d6`.
 
 ## After v0.1.0 (parked; not release work)
 
