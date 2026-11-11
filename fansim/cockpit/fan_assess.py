@@ -445,7 +445,13 @@ def bind(session) -> None:
         label, kind, field, mn, mx = opt
         base_flat, base_feat = session.edit_flat(), session._feat_dict()
         rs = run_settings.capture(state, session.active_spec)  # 25.11: one snapshot for every step
-        steps = max(2, int(state.sweep_steps))
+        from fansim.cockpit.input_checks import sweep_steps as _check_steps
+
+        steps, err = _check_steps(state.sweep_steps)  # UI-39: refuse, never clamp or crash
+        if err:
+            state.assess_msg = err
+            state.flush()
+            return
         raw = list(np.linspace(mn, mx, steps))
         values = sorted(set(int(round(v)) for v in raw)) if field == "n_blades" else raw
 

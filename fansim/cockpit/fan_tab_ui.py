@@ -970,9 +970,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         )
                                     with v3.VCol(cols=3, classes="px-1"):
                                         v3.VTextField(
-                                            label="steps",
+                                            label="steps (2–12)",
                                             v_model=("sweep_steps",),
                                             type="number",
+                                            min=2,
+                                            max=12,
+                                            step=1,
                                             density="compact",
                                             variant="outlined",
                                             hide_details=True,
@@ -1023,9 +1026,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     with v3.Template(v_slot_activator="{ props }"):
                                         v3.VTextField(
                                             v_bind="props",
-                                            label="Trials",
+                                            label="Trials (2–40)",
                                             v_model=("opt_trials",),
                                             type="number",
+                                            min=2,
+                                            max=40,
+                                            step=1,
                                             density="compact",
                                             variant="outlined",
                                             hide_details=True,

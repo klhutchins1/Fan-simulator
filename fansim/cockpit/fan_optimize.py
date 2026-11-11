@@ -126,11 +126,13 @@ def bind(session) -> None:
     def on_optimize_fan():
         if state.assess_busy or state.preview_busy or state.export_busy or state.opt_running:
             return
-        try:
-            trials = int(float(state.opt_trials))
-        except (TypeError, ValueError):
-            trials = 8
-        trials = max(2, min(40, trials))
+        from fansim.cockpit.input_checks import opt_trials as _check_trials
+
+        trials, err = _check_trials(state.opt_trials)  # UI-40: refuse out-of-range, no silent clamp
+        if err:
+            state.opt_msg = err
+            state.flush()
+            return
         resume = bool(state.opt_resume)
         # "Continue" adds trials to the latest cockpit Optimize run so the sampler keeps learning
         # from earlier batches; with none on disk it falls back to the opened run.

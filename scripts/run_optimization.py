@@ -88,7 +88,7 @@ def build_parser() -> argparse.ArgumentParser:
                          "constraint: hub radius >= motor cavity/2 + wall). Needs a model with a motor_mount.")
     ap.add_argument("--bem-prescreen", type=float, default=0.0, metavar="CFM_FLOOR",
                     help="RANKING-ONLY BEM: skip CFD when predicted hose CFM is below CFM_FLOOR "
-                         "(not absolute CFM; ignores thickness/lean/wrap/LE-TE/plate; BEM≈0.6× CFD). "
+                         "(not absolute CFM; ignores thickness/lean/wrap/LE-TE/plate; ranking only, coarse). "
                          "Never quote BEM beside CFD as equivalent. 0 = off.")
     ap.add_argument("--surrogate-prescreen", type=float, default=0.0, metavar="CFM_FLOOR",
                     help="skip CFD when the catalog GP mean+1 std of free-delivery CFM is below "
