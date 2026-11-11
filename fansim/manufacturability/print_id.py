@@ -18,13 +18,15 @@ CHECK_ALPHABET = CROCKFORD + "*~$=U"
 INDEX_PATH = Path(__file__).resolve().parents[2] / "validation" / "prints" / "index.jsonl"
 
 # Hub-face mark-spec (QA r10, docs/qa/notes/print-id-mark-spec-r10.md). +Z inlet.
+# P6 / QA-80 (2026-11-11): H7MQ8 T3 FAIL — 3.2 mm cap / 0.6 mm stroke unreadable on 0.6 mm
+# PLA+. Cap 5.0 mm, stroke 0.9 mm, advance 3.6 mm; depth unchanged.
 MARK_R_INNER = 11.5
-MARK_R_OUTER = 14.7
+MARK_R_OUTER = 16.5
 MARK_DEPTH_MM = 0.5
-MARK_STROKE_MM = 0.6
-GLYPH_ADVANCE_MM = 2.4
+MARK_STROKE_MM = 0.9
+GLYPH_ADVANCE_MM = 3.6
 MARK_THETA0_DEG = 90.0
-_GLYPH_WIDTH_MM = GLYPH_ADVANCE_MM * 0.75  # 1.8 mm cell; 0.6 mm gap
+_GLYPH_WIDTH_MM = GLYPH_ADVANCE_MM * 0.75  # 2.7 mm cell; 0.9 mm gap
 _BORE_KEEP_MM = 1.0
 _RIM_KEEP_MM = 1.0
 
@@ -37,7 +39,7 @@ def _s(*xy: float) -> tuple[tuple[float, float, float, float], ...]:
     return tuple(out)
 
 
-# 7-segment bits plus a few distinct letters so 8/B, 0/D, 5/S stay readable at 3.2 mm.
+# 7-segment bits plus a few distinct letters so 8/B, 0/D, 5/S stay readable at 5.0 mm.
 _A, _B, _C, _D, _E, _F, _G = (
     (0.22, 0.88, 0.78, 0.88),
     (0.78, 0.88, 0.78, 0.50),
@@ -75,7 +77,9 @@ _FONT: dict[str, tuple[tuple[float, float, float, float], ...]] = {
             0.52, 0.12, 0.18, 0.12),
     "E": _seg(_A, _F, _E, _D, _G),
     "F": _seg(_A, _F, _E, _G),
-    "G": _seg(_A, _F, _E, _D, _C, (0.50, 0.50, 0.78, 0.50)),
+    # QA-75: no half bar. At 0.6 mm stroke in a 1.8 mm cell (same ratio as 0.9 / 2.7) the half bar fused with the left stroke, so G cut
+    # exactly like 6. 7-segment G (A F E D C) differs from 6 (bar), C (lower right) and U/0 (top bar / left).
+    "G": _seg(_A, _F, _E, _D, _C),
     "H": _seg(_F, _E, _B, _C, _G),
     "J": _seg(_B, _C, _D, _E),
     "K": _s(0.22, 0.12, 0.22, 0.88, 0.22, 0.50, 0.78, 0.88, 0.22, 0.50, 0.78, 0.12),
@@ -119,6 +123,14 @@ def hub_can_take_mark(hub_radius: float, bore_r: float = 10.0) -> bool:
     return MARK_R_INNER - _BORE_KEEP_MM >= b - 1e-9 and MARK_R_OUTER + _RIM_KEEP_MM <= r + 1e-9
 
 
+def mark_will_cut(code: str, hub_radius: float, bore_r: float = 10.0) -> bool:
+    """True when ``engrave_print_id`` will actually recess the hub (QA-78)."""
+    raw = (code or "").strip().upper()
+    if len(raw) != 5 or any(ch in "ILO" for ch in raw):
+        return False
+    return hub_can_take_mark(hub_radius, bore_r)
+
+
 def mark_strokes_xy(code: str) -> tuple[tuple[float, float, float, float], ...]:
     """World-XY centreline strokes for a 5-character code on the +Z hub band."""
     code = normalize_read(code)
@@ -130,12 +142,15 @@ def mark_strokes_xy(code: str) -> tuple[tuple[float, float, float, float], ...]:
     dtheta = GLYPH_ADVANCE_MM / r_mid
     theta0 = math.radians(MARK_THETA0_DEG)
     out: list[tuple[float, float, float, float]] = []
+    # QA-73: seen from outside the +Z face (looking -Z) with glyph "up" radially outward, "right" is
+    # clockwise (decreasing theta). Advance and the glyph u axis both run clockwise, or the mark is a
+    # mirror image that reads backwards.
     for i, ch in enumerate(code):
-        theta = theta0 + (i - 2) * dtheta
+        theta = theta0 - (i - 2) * dtheta
 
         def xy(u: float, v: float, theta: float = theta) -> tuple[float, float]:
             r = MARK_R_INNER + v * h
-            th = theta + (u - 0.5) * w / r_mid
+            th = theta - (u - 0.5) * w / r_mid
             return r * math.cos(th), r * math.sin(th)
 
         for x0, y0, x1, y1 in glyph_strokes(ch):

@@ -63,6 +63,38 @@ def test_gauge_accepts_carved_stock_export(tmp_path):
     assert stl.with_name("print_print_fit.json").is_file()
 
 
+def test_inlet_glyph_ring_does_not_inflate_rear_bore():
+    """Engraved print-id strokes sit on +Z at r 11.5–16.5 mm. The bore sampler used to take
+    the 90th percentile of everything inside 0.75×cup, so a Stock hub with glyphs read ~26 mm
+    instead of the 20 mm rear bore (P1: gauge must match the unmarked cup)."""
+    import numpy as np
+    import trimesh
+
+    from fansim.manufacturability.mount_gauge import _estimate_cavity
+
+    th = np.linspace(0.0, 2.0 * np.pi, 72, endpoint=False)
+    cav_r, bore_r, mark_r = 18.625, 10.0, 13.1
+    z_rear, z_floor, z_inlet = 0.0, 13.0, 16.5
+    chunks = []
+    for r, z, n in (
+        (cav_r, z_rear, 72),
+        (bore_r, z_rear, 72),
+        (cav_r, z_floor, 72),
+        (bore_r, z_floor, 72),
+        (bore_r, z_inlet, 72),
+        (mark_r, z_inlet, 400),  # dense glyph tessellation, like a fused stroke cut
+    ):
+        t = np.linspace(0.0, 2.0 * np.pi, n, endpoint=False)
+        chunks.append(np.column_stack([r * np.cos(t), r * np.sin(t), np.full(n, z)]))
+    v = np.vstack(chunks)
+    mesh = trimesh.Trimesh(vertices=v, faces=[[0, 1, 2]], process=False)
+    _cav, _dep, bore_dia = _estimate_cavity(
+        mesh, expected_cavity_r=cav_r, expected_cavity_depth=13.0, expected_bore_r=bore_r,
+    )
+    assert bore_dia is not None
+    assert abs(bore_dia - 20.0) <= 1.25, f"rear bore read {bore_dia:.2f} mm (mark ring is 26.2)"
+
+
 def test_cfd_reference_stl_is_not_print_mount_ready():
     """CFD close-ref mesh must not be mistaken for a carved motor cup."""
     from pathlib import Path

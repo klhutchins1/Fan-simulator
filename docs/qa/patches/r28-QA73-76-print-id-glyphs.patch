@@ -1,0 +1,132 @@
+diff --git a/fansim/manufacturability/print_id.py b/fansim/manufacturability/print_id.py
+index 47391fd..1a5dcb4 100644
+--- a/fansim/manufacturability/print_id.py
++++ b/fansim/manufacturability/print_id.py
+@@ -75,7 +75,9 @@ _FONT: dict[str, tuple[tuple[float, float, float, float], ...]] = {
+             0.52, 0.12, 0.18, 0.12),
+     "E": _seg(_A, _F, _E, _D, _G),
+     "F": _seg(_A, _F, _E, _G),
+-    "G": _seg(_A, _F, _E, _D, _C, (0.50, 0.50, 0.78, 0.50)),
++    # QA-75: no half bar. At 0.6 mm stroke in a 1.8 mm cell the half bar fused with the left stroke, so G cut
++    # exactly like 6. 7-segment G (A F E D C) differs from 6 (bar), C (lower right) and U/0 (top bar / left).
++    "G": _seg(_A, _F, _E, _D, _C),
+     "H": _seg(_F, _E, _B, _C, _G),
+     "J": _seg(_B, _C, _D, _E),
+     "K": _s(0.22, 0.12, 0.22, 0.88, 0.22, 0.50, 0.78, 0.88, 0.22, 0.50, 0.78, 0.12),
+@@ -130,12 +132,15 @@ def mark_strokes_xy(code: str) -> tuple[tuple[float, float, float, float], ...]:
+     dtheta = GLYPH_ADVANCE_MM / r_mid
+     theta0 = math.radians(MARK_THETA0_DEG)
+     out: list[tuple[float, float, float, float]] = []
++    # QA-73: seen from outside the +Z face (looking -Z) with glyph "up" radially outward, "right" is
++    # clockwise (decreasing theta). Advance and the glyph u axis both run clockwise, or the mark is a
++    # mirror image that reads backwards.
+     for i, ch in enumerate(code):
+-        theta = theta0 + (i - 2) * dtheta
++        theta = theta0 - (i - 2) * dtheta
+ 
+         def xy(u: float, v: float, theta: float = theta) -> tuple[float, float]:
+             r = MARK_R_INNER + v * h
+-            th = theta + (u - 0.5) * w / r_mid
++            th = theta - (u - 0.5) * w / r_mid
+             return r * math.cos(th), r * math.sin(th)
+ 
+         for x0, y0, x1, y1 in glyph_strokes(ch):
+diff --git a/fansim/manufacturability/print_id_mark.py b/fansim/manufacturability/print_id_mark.py
+index c909d84..dd35053 100644
+--- a/fansim/manufacturability/print_id_mark.py
++++ b/fansim/manufacturability/print_id_mark.py
+@@ -47,9 +47,12 @@ def engrave_print_id(
+     segs = mark_strokes_xy(code)
+     if not segs:
+         return model
+-    z0 = float(z_top) - MARK_DEPTH_MM - 0.15
++    # QA-74: the floor sits exactly MARK_DEPTH_MM below the face (was 0.65 mm); the tool only overshoots upward.
++    z0 = float(z_top) - MARK_DEPTH_MM
+     height = MARK_DEPTH_MM + 0.20
+-    shape = model.val()
+-    for x0, y0, x1, y1 in segs:
+-        shape = shape.cut(_stroke_box(x0, y0, x1, y1, MARK_STROKE_MM, z0, height))
++    # QA-76: fuse the strokes into one tool and cut once; one boolean per stroke on the whole
++    # impeller took ~9x the unmarked export time and >11 GB.
++    boxes = [_stroke_box(x0, y0, x1, y1, MARK_STROKE_MM, z0, height) for x0, y0, x1, y1 in segs]
++    tool = boxes[0].fuse(*boxes[1:]).clean() if len(boxes) > 1 else boxes[0]
++    shape = model.val().cut(tool)
+     return cq.Workplane(obj=shape)
+diff --git a/tests/test_print_id_glyphs.py b/tests/test_print_id_glyphs.py
+index fb06f0c..0820613 100644
+--- a/tests/test_print_id_glyphs.py
++++ b/tests/test_print_id_glyphs.py
+@@ -96,3 +96,73 @@ def test_engrave_skips_a_hub_too_small_for_the_band():
+     v0 = float(hub.val().Volume())
+     out = engrave_print_id(hub, "A1B2C", z_top=10.0, hub_radius=12.0)
+     assert abs(float(out.val().Volume()) - v0) < 1e-6
++
++
++# --- grok r28 (QA-73 / QA-75): reading direction and glyph distinctness, CAD-free -------------------
++
++def _view_xy(code):
++    """Strokes seen from outside the +Z face (looking -Z): x right, y up; theta0 = 90 deg puts the mark at +Y."""
++    return [((x0, y0), (x1, y1)) for x0, y0, x1, y1 in mark_strokes_xy(code)]
++
++
++def test_mark_reads_left_to_right_from_plus_z():
++    from fansim.manufacturability.print_id import check_digit
++
++    code = "K7WB" + check_digit("K7WB")
++    per = len(glyph_strokes("K")), len(glyph_strokes("7")), len(glyph_strokes("W")), len(glyph_strokes("B"))
++    segs = _view_xy(code)
++    xs, i = [], 0
++    for n in per:
++        chunk = segs[i:i + n]; i += n
++        xs.append(sum(a[0] + b[0] for a, b in chunk) / (2 * n))
++    assert xs == sorted(xs), f"glyph centres not left-to-right seen from +Z: {xs}"
++
++
++def test_seven_is_not_mirrored_from_plus_z():
++    # "7": top bar plus the right-hand vertical. Seen from +Z the vertical must be on the right of the bar centre.
++    segs = _view_xy("77777")[:3]  # A, B, C of the first glyph
++    (a0, a1), (b0, b1) = segs[0], segs[1]
++    bar_cx = (a0[0] + a1[0]) / 2
++    assert (b0[0] + b1[0]) / 2 > bar_cx
++
++
++def test_no_two_glyphs_cut_identically_at_stroke_width():
++    import itertools
++
++    pts = {}
++    w, h, s = 1.8, MARK_R_OUTER - MARK_R_INNER, MARK_STROKE_MM
++    n = 60
++    for ch in CHECK_ALPHABET:
++        cells = set()
++        for x0, y0, x1, y1 in glyph_strokes(ch):
++            ax, ay, bx, by = x0 * w, y0 * h, x1 * w, y1 * h
++            L = math.hypot(bx - ax, by - ay) or 1e-9
++            ux, uy = (bx - ax) / L, (by - ay) / L
++            for gx in range(n):
++                for gy in range(n):
++                    px, py = (gx + 0.5) * w / n, (gy + 0.5) * h / n
++                    t = (px - ax) * ux + (py - ay) * uy
++                    d = abs(-(px - ax) * uy + (py - ay) * ux)
++                    if -s / 2 <= t <= L + s / 2 and d <= s / 2:
++                        cells.add((gx, gy))
++        pts[ch] = frozenset(cells)
++    same = [a + b for a, b in itertools.combinations(CHECK_ALPHABET, 2)
++            if len(pts[a] & pts[b]) / len(pts[a] | pts[b]) >= 0.98]
++    assert not same, f"glyphs that cut identically: {same}"
++
++
++def test_recess_depth_is_mark_depth_on_a_plain_hub_disk():
++    """QA-74: the recess floor is MARK_DEPTH_MM below the face (cheap CAD: a 21.5 mm disk, not an impeller)."""
++    import cadquery as cq
++
++    from fansim.manufacturability.print_id import check_digit
++    from fansim.manufacturability.print_id_mark import engrave_print_id
++
++    disk = cq.Workplane("XY").circle(21.5).circle(10.0).extrude(5.0)
++    code = "K7WB" + check_digit("K7WB")
++    cut = engrave_print_id(disk, code, z_top=5.0, hub_radius=21.5, bore_r=10.0)
++    removed = disk.val().cut(cut.val())
++    bb = removed.BoundingBox()
++    assert len(cut.val().Solids()) == 1
++    assert abs(bb.zmax - 5.0) < 1e-6
++    assert abs(bb.zmin - (5.0 - MARK_DEPTH_MM)) < 1e-3, f"recess floor at {bb.zmin}"

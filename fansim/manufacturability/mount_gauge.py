@@ -41,6 +41,7 @@ def _estimate_cavity(
     *,
     expected_cavity_r: float,
     expected_cavity_depth: float,
+    expected_bore_r: float = 0.0,
 ) -> tuple[float | None, float | None, float | None]:
     """Estimate cup cavity dia/depth and rear bore from a Z-up mesh.
 
@@ -96,6 +97,10 @@ def _estimate_cavity(
     if np.any(forward):
         # Bore wall = small-r cluster inside the cup radius.
         cap = (cav_r if cav_r is not None else expected_cavity_r) * 0.75
+        if expected_bore_r > 0:
+            # Glyphs on the +Z hub live at r 11.5–16.5 mm. That sits inside 0.75×cup
+            # (~14 mm) and pulled Stock's 90th-percentile "bore" out to the mark ring.
+            cap = min(cap, float(expected_bore_r) * 1.12)
         bore_band = forward & (r < cap)
         if int(np.count_nonzero(bore_band)) >= 15:
             bore_r = float(np.percentile(r[bore_band], 90))
@@ -168,6 +173,7 @@ def gauge_print_stl(
             mesh,
             expected_cavity_r=cut_r,
             expected_cavity_depth=mount.cavity_depth_mm,
+            expected_bore_r=float(mount.rear_bore_dia_mm) / 2.0,
         )
         ok_parts = []
         if cav_dia is None:
