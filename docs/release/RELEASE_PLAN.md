@@ -336,7 +336,7 @@ Kimball's.
   - Test: grok round 15 follows it on a clean Linux box. r15: NOT RUN (no guide yet); `docs/qa/notes/r15-install-dry-run.md`.
   - grok r20 D (2026-10-21, `docs/qa/notes/r20-D-install-guide-dry-run.md`): the clean-Linux dry run WORKS (install, cockpit HTTP 200, UI test 6/6; Docker would-run). README fixes are needed (QA-53): port 8080 not 9001, Assess 30–40 min, the clone URL, a Linux Docker link, and a 'Docker not installed' row.
   - grok r22 A (2026-10-29): QA-53 verified at b3d5543 (cockpit prints http://127.0.0.1:8080/ = README:137; README:138 "30–40 min"; README:107 "the GitHub URL", interim). Docker-not-installed row still absent (R3.4).
-- **R3.4 Docker/OpenFOAM readiness badge and first-run check (21.2g)**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R3.4 Docker/OpenFOAM readiness badge and first-run check (21.2g)**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-11)`.
   - The cockpit shows "CFD ready / Docker not running / image missing" with the fix in plain words.
 - **R3.5 GitHub Actions CI**. Lane: Cursor. CPU: none (cloud). Status: `ready`.
   - Port `.github/workflows/ci.yml` for GitHub: ubuntu fast suite in 3 chunks, plus a Windows job for the fast
