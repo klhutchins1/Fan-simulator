@@ -56,9 +56,12 @@ laser tach and a phone. No airflow meter. Rules and pass/fail are pre-registered
 optimizer candidate. This does not change the v0.1.0 definition of done.
 
 - **P1 Engraved print-id on the hub (roadmap 28.3).** Lane: Cursor. CPU: day (a few geometry builds; not 4–9 PM).
-  Status: `in progress (Cursor, 2026-11-09)`. Grok r28: QA-73 HIGH (mirror), QA-74 depth, QA-75 6=G, QA-76 one-cut.
-  - Follow `docs/qa/notes/print-id-mark-spec-r10.md`: +Z hub top, strokes engraved 0.5 mm deep, cap height 3.2 mm,
-    stroke width 0.6 mm, band r 11.5–14.7 mm, 5 characters (the 4-character code plus its check digit), read along
+  Status: `in progress (Cursor, 2026-11-09)`. Grok r28 ingested 2026-11-10 (`handoff/2026-11-09_from-qa-28/`).
+  QA-73 HIGH (mirror), QA-74 depth, QA-75 6=G, QA-76 one-cut applied on `p1-glyphs` (uncommitted). Extra: QA-79 hub-face
+  not bbox. QA-78 skip-copy fixed. Still open: QA-77 lands. Prints: H7MQ8 Stock T1–T6 (PLA+, 0.6 mm, **27.41 g**, T3 FAIL → P6);
+  E0MWW t9002 extra. P6 live mark: cap 5.0 mm, stroke 0.9 mm, band r 11.5–16.5.
+  - Follow `docs/qa/notes/print-id-mark-spec-r10.md` (P6 addendum): +Z hub top, strokes engraved 0.5 mm deep, cap height 5.0 mm,
+    stroke width 0.9 mm, band r 11.5–16.5 mm, 5 characters (the 4-character code plus its check digit), read along
     the arc.
   - Draw the Crockford characters from line segments defined in code (no system font), fuse them, and make **one**
     cut on the mounted print solid. Export only: the scored and CFD geometry never carries the mark.
@@ -67,16 +70,28 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
     mount gauge reads the same as before the cut; every one of the 32 characters has a segment definition; the
     engraved code equals the code in the README and `*_print_fit.json`.
   - Also put the predicted weight (material, infill) in the export README, as Preview shows it (check T2).
-  - README states: "ID engraving removes about 0.9 % of the hub face; its effect on airflow was not simulated."
+  - README states: "ID engraving removes about 2 % of the hub face; its effect on airflow was not simulated."
 - **P2 Recording tool.** Lane: Claude. Status: `in progress (Claude, 2026-11-09)`: branch `print-session-prep`
   (`bd6b12e`), `scripts/analyze_fan_recording.py` + `validation/recording.py`, 12 tests. Gate: night job
   `suite-print-session-prep-all`. Merge if green.
-- **P3 Export the print.** Lane: Cursor or Kimball, after P1. Cockpit: Fan → Reference · Noctua A12x25 → Export
-  print STL (Fit hub/frame on). Status: `blocked (P1)`. Record the print-id, material, layer height, nozzle, infill.
-- **P4 The session.** Lane: Kimball. Status: `blocked (P3)`. Follow T1–T6 in the pre-registration; keep the WAV
-  files, the bag videos and the photos in `validation/prints/<print-id>/`.
+- **P3 Export the print.** Lane: Cursor. Status: `done` 2026-11-09. H7MQ8 Stock v3
+  (`exports/H7MQ8_a12x25_stock_reference_20261109-220053.stl`); E0MWW t9002 extra. Material PLA+, 0.6 mm nozzle.
+- **P4 The session.** Lane: Kimball. Status: `in progress (Kimball, 2026-11-11)`. T2 27.41 g record-only; T3 FAIL → P6.
+  Still open: T1 fit, T4 tach/phone, T5 12 V rpm, T6 bag. Keep WAV/photos in `validation/prints/H7MQ8/`.
 - **P5 Write up.** Lane: Claude or Cursor. Status: `blocked (P4)`. Fill the Results table in the pre-registration
   (nothing above it is edited) and put each failed check on this board as its own task.
+- **P6 Enlarge print-id glyphs (T3 FAIL / QA-80).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-11)`.
+  H7MQ8 (Stock v3, PLA+, 0.6 mm nozzle, 27.41 g): 3.2 mm cap / 0.6 mm stroke is too small to read at arm's length.
+  Raise cap and stroke a little. Proposal: cap **5.0 mm**, stroke **0.9 mm**, advance **3.6 mm**, band r **11.5–16.5**
+  (`print_id.py` + r10 mark-spec). Depth stays 0.5 mm. Keep ≥1 mm from the bore and rim. Widen the cell with the
+  stroke so QA-77 lands do not get worse.
+  Tests first: glyphs still distinct; 1 watertight solid; K7 cup unchanged. Prove T3 on a **hub-face coupon**, not a
+  full impeller (prereg T3-fail path).
+  Balance: extra recess ~0.02 g at r ~14 mm. Even if the mark were fully one-sided that is ~0.3 g·mm, under ordinary
+  blade print scatter (lead 15: 1.7–2.4 g·mm).
+  - Landed (uncommitted): constants 5.0 / 0.9 / 3.6; sheet "about 2 %"; coupon
+    `exports/H7MQ8_id_coupon_20261111-190250.stl` (9.1 cm³, watertight). Glyph tests 25 passed.
+    **needs Kimball:** print the coupon, marked face on the bed, no supports, and try T3 again.
 - Later, not blocking: roadmap 28.4 (Record measurement by `print_id`); a vane anemometer (about $25) for session 2.
 
 ---
@@ -368,6 +383,7 @@ Kimball's.
 
 - **28.3 Recessed hub glyphs**. Lane: Cursor. CPU: day. Status: `done 11f97d6`.
   - Stroke-engrave the 5-char Crockford code on +Z r 11.5–14.7 mm, 0.5 mm deep, 0.6 mm stroke. Disk tests green; full print-ready impeller + K7 is grok's next-round check. 28.4 still open.
+  - Print session 1 T3 FAIL on H7MQ8: glyphs too small. Follow-up **P6 / QA-80**.
 
 ## After v0.1.0 (parked; not release work)
 

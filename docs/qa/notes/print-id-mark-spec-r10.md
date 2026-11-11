@@ -61,3 +61,16 @@ Roof over the cup on +Z: 8.314 − 4.799 = **3.5 mm** thick between r 10 and 18.
 
 Sketch: `docs/qa/notes/print-id-mark-spec-r10_top.png`. No patch proposed. The pocket code is in a_mark.py (≈ 3 lines of
 CadQuery: makeBox → rotate → `shape.cut`).
+
+## P6 addendum (2026-11-11) — T3 FAIL on H7MQ8
+
+Printed Stock v3, PLA+, 0.6 mm nozzle: 3.2 mm cap / 0.6 mm stroke was too small to read at arm's length.
+Live constants in `fansim/manufacturability/print_id.py`:
+
+- band r **11.5–16.5 mm** (cap **5.0 mm**)
+- stroke **0.9 mm**, advance **3.6 mm** (cell 2.7 mm)
+- depth still **0.5 mm**
+- keep-out still ≥1 mm from bore r=10 and rim r=21.5
+
+Stroke area scales ~2.3× vs r10's 13 mm² → about **2 %** of the hub disk. Still in the low-velocity core; not CFD'd.
+Prove T3 on `scripts/export_id_coupon.py` (8 mm washer), not a full impeller. Extra recess ~0.02 g at r ~14 mm.

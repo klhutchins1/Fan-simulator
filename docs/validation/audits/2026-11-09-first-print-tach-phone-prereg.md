@@ -93,8 +93,8 @@ baseline.
 | check | A | B | result |
 |---|---|---|---|
 | T1 fit | n/a | | |
-| T2 weight (g) | n/a | measured ___ / Preview ___ | |
-| T3 ID read | n/a | code ___ read as ___ | |
+| T2 weight (g) | n/a | measured **27.41** / Preview **13.9** (PETG, 40% infill) | **record only** — printed PLA+ 0.6 mm nozzle, not the sheet settings. CAD×40% undercounts walls (same as E0MWW). Volume 27.4 cm³ → 27.41 g is ~1.00 g/cm³ (~80 % of solid PLA+) |
+| T3 ID read | n/a | code **H7MQ8**; too small, hard to read at arm's length | **FAIL** → QA-80 / board P6 (enlarge glyphs; hub-face coupon) |
 | T4 tach / phone rpm | ___ / ___ | ___ / ___ | |
 | T5 rpm at 12 V | | | ratio ___ |
 | T6 fill times (s) | | | B/A ___ |

@@ -26,6 +26,13 @@ from fansim.manufacturability.print_export import (  # noqa: E402
     print_readme,
     recommend_print_settings,
 )
+from fansim.manufacturability.print_id import (  # noqa: E402
+    export_stem,
+    git_head,
+    issue_print_id,
+    recipe_hash,
+    record_export,
+)
 from fansim.optimize.search_space import blade_from_flat, stock_blade_flat  # noqa: E402
 
 
@@ -57,12 +64,14 @@ def main() -> int:
 
     params = blade_from_flat(flat)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    print_id = issue_print_id()
+    base = "a12x25_stock_reference"
     out_dir = Path(args.out) if args.out else Path("exports") / f"print_a12x25_stock_{stamp}"
     out_dir.mkdir(parents=True, exist_ok=True)
-    stl = out_dir / "impeller_print.stl"
+    stl = out_dir / f"{export_stem(print_id, base, stamp)}.stl"
 
     material = args.material or spec.material
-    rep = export_print_ready(params, stl, mount=spec.motor_mount)
+    rep = export_print_ready(params, stl, mount=spec.motor_mount, print_id=print_id)
     bal = balance_summary(params, float(params.rpm or spec.rpm))
     settings = recommend_print_settings(material)
     sheet = print_readme(
@@ -74,8 +83,10 @@ def main() -> int:
         settings,
         bore=None,
         objectives=None,
+        print_id=print_id,
     )
     (out_dir / "print_sheet.md").write_text(sheet, encoding="utf-8")
+    (stl.with_suffix(".md")).write_text(sheet, encoding="utf-8")
 
     gauge = write_print_fit_sidecars(
         stl,
@@ -91,6 +102,24 @@ def main() -> int:
             "fit_changes": changes,
             "nominal_fits_spec": nominal_fits_spec(flat, spec, measure_flat(flat)),
         },
+        extra={
+            "print_id": print_id,
+            "design_id": base,
+            "section_wrap": str(getattr(params, "section_wrap", "") or ""),
+            "recipe_hash": recipe_hash(params),
+            "git": git_head(),
+            "material": material,
+        },
+    )
+    record_export(
+        print_id=print_id,
+        design_id=base,
+        recipe_hash=recipe_hash(params),
+        section_wrap=str(getattr(params, "section_wrap", "") or ""),
+        git=git_head(),
+        material=material,
+        stl=str(stl),
+        session="print-session-1-article-B",
     )
     # Also keep the friendly names used by the north-star runbook.
     checklist = stl.with_name(stl.stem + "_mount_checklist.md")
@@ -100,6 +129,7 @@ def main() -> int:
     if fit_json.is_file():
         (out_dir / "print_fit.json").write_text(fit_json.read_text(encoding="utf-8"), encoding="utf-8")
 
+    print(f"print_id: {print_id}")
     print(f"STL: {stl}")
     print(f"sheet: {out_dir / 'print_sheet.md'}")
     print(f"checklist: {out_dir / 'mount_checklist.md'}")

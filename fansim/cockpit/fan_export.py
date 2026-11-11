@@ -348,7 +348,20 @@ def bind(session) -> None:
                     " Press Preview to see it; the CFM/eff shown were for the original geometry, so "
                     "they're now approximate — re-Assess for exact numbers."
                 )
-            pid_txt = f"\n↳ Print-id `{print_id}` — recessed on the hub (+Z). Sharpie the same code if you can't read it."
+            from fansim.manufacturability.print_id import mark_will_cut
+
+            bore_r = 0.0
+            if spec.motor_mount is not None:
+                bore_r = float(getattr(spec.motor_mount, "rear_bore_dia_mm", 0.0) or 0.0) / 2.0
+            if mark_will_cut(print_id, hub_r_export, bore_r):
+                pid_txt = (
+                    f"\n↳ Print-id `{print_id}` — recessed on the hub (+Z). "
+                    "Sharpie the same code if you can't read it."
+                )
+            else:
+                pid_txt = (
+                    f"\n↳ Print-id `{print_id}` — nothing was cut; Sharpie this on the hub (+Z)."
+                )
             state.export_msg = (
                 f"✓ Saved {out.resolve()} (+ .step)  ({wt}{mnt})"
                 f"{mirror_note}{gauge_txt}{pid_txt}{extra}"

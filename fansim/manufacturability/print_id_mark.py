@@ -12,8 +12,8 @@ import cadquery as cq
 from fansim.manufacturability.print_id import (
     MARK_DEPTH_MM,
     MARK_STROKE_MM,
-    hub_can_take_mark,
     mark_strokes_xy,
+    mark_will_cut,
 )
 
 
@@ -42,14 +42,17 @@ def engrave_print_id(
     bore_r: float = 10.0,
 ) -> cq.Workplane:
     """Cut 0.5 mm stroke recesses for ``code`` into the hub top. No-op if the band will not fit."""
-    if not hub_can_take_mark(hub_radius, bore_r):
+    if not mark_will_cut(code, hub_radius, bore_r):
         return model
     segs = mark_strokes_xy(code)
     if not segs:
         return model
-    z0 = float(z_top) - MARK_DEPTH_MM - 0.15
+    # QA-74: the floor sits exactly MARK_DEPTH_MM below the face (was 0.65 mm); the tool only overshoots upward.
+    z0 = float(z_top) - MARK_DEPTH_MM
     height = MARK_DEPTH_MM + 0.20
-    shape = model.val()
-    for x0, y0, x1, y1 in segs:
-        shape = shape.cut(_stroke_box(x0, y0, x1, y1, MARK_STROKE_MM, z0, height))
+    # QA-76: fuse the strokes into one tool and cut once; one boolean per stroke on the whole
+    # impeller took ~9x the unmarked export time.
+    boxes = [_stroke_box(x0, y0, x1, y1, MARK_STROKE_MM, z0, height) for x0, y0, x1, y1 in segs]
+    tool = boxes[0].fuse(*boxes[1:]).clean() if len(boxes) > 1 else boxes[0]
+    shape = model.val().cut(tool)
     return cq.Workplane(obj=shape)

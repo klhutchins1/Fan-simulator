@@ -1,0 +1,141 @@
+{
+ "code": "K7WB2",
+ "sibling": {
+  "step_manifold_solid_brep": 1,
+  "step_bytes": 150132355,
+  "watertight": true,
+  "winding_consistent": true,
+  "bodies": 1,
+  "volume_mm3": 27447.811735777694,
+  "euler": 0,
+  "faces": 92726,
+  "zmin": -8.18622875213623,
+  "zmax": 8.31377124786377,
+  "K7": {
+   "cup_found": true,
+   "floor_z": 4.798771247863954,
+   "floor_above_hub_face": 12.985000000000184,
+   "cup_dia_mm": 37.94276240723802,
+   "grip_count": 20,
+   "grip_protrude_mm": 0.6960141314641177
+  }
+ },
+ "marked": {
+  "step_manifold_solid_brep": 1,
+  "step_bytes": 150813077,
+  "watertight": true,
+  "winding_consistent": true,
+  "bodies": 1,
+  "volume_mm3": 27438.71278805514,
+  "euler": 0,
+  "faces": 93302,
+  "zmin": -8.18622875213623,
+  "zmax": 8.31377124786377,
+  "K7": {
+   "cup_found": true,
+   "floor_z": 4.798771247863954,
+   "floor_above_hub_face": 12.985000000000184,
+   "cup_dia_mm": 37.94276240723802,
+   "grip_count": 20,
+   "grip_protrude_mm": 0.6960141314641177
+  }
+ },
+ "z_top": 8.31377124786377,
+ "dV_mm3": 9.098947722552111,
+ "removed_area_by_depth_mm2": {
+  "0.05": 18.1978,
+  "0.25": 18.1978,
+  "0.45": 18.1978,
+  "0.48": 18.1978,
+  "0.52": 0.0,
+  "0.55": 0.0,
+  "0.6": 0.0,
+  "1.0": 0.0,
+  "3.0": 0.0
+ },
+ "mid_removed_area_mm2": 18.198,
+ "slab_diff_area_below_0p6": {
+  "7.71377124786377": 0.0,
+  "7.3137712478637695": 0.0,
+  "5.3137712478637695": 0.0,
+  "0.31377124786376953": 0.0,
+  "-7.6862287521362305": 0.0
+ },
+ "removed_r_range": [
+  11.461885650098624,
+  14.737001364247103
+ ],
+ "removed_theta_range_deg": [
+  65.26452007464101,
+  115.0505429596579
+ ],
+ "E4_in_band": true,
+ "E9c_footprint_plus1mm_on_top_face": true,
+ "E9c_dist_to_bore_mm": 1.4618856500986244,
+ "E9c_dist_to_rim_mm": 6.762998635752897,
+ "groove_components": 5,
+ "groove_survives_open_0p25": 0.97,
+ "groove_survives_open_0p29": 0.958,
+ "counter_lands": [
+  {
+   "area": 0.258,
+   "max_inscribed_w_mm": 0.474,
+   "centroid_r": 13.71
+  },
+  {
+   "area": 0.204,
+   "max_inscribed_w_mm": 0.389,
+   "centroid_r": 12.49
+  }
+ ],
+ "land_area_narrower_than_0.2mm": 0.557,
+ "land_area_narrower_than_0.4mm": 1.297,
+ "neighbour_glyph_gap_mm": [
+  0.57,
+  0.59,
+  0.661,
+  0.804
+ ],
+ "E9a_per_glyph": [
+  {
+   "best": "K",
+   "best_is_mirrored": false,
+   "best_iou": 0.932,
+   "best_unmirrored": "K",
+   "best_unmirrored_iou": 0.932
+  },
+  {
+   "best": "7",
+   "best_is_mirrored": false,
+   "best_iou": 0.93,
+   "best_unmirrored": "7",
+   "best_unmirrored_iou": 0.93
+  },
+  {
+   "best": "W",
+   "best_is_mirrored": false,
+   "best_iou": 0.95,
+   "best_unmirrored": "W",
+   "best_unmirrored_iou": 0.95
+  },
+  {
+   "best": "B",
+   "best_is_mirrored": false,
+   "best_iou": 0.945,
+   "best_unmirrored": "B",
+   "best_unmirrored_iou": 0.945
+  },
+  {
+   "best": "2",
+   "best_is_mirrored": false,
+   "best_iou": 0.96,
+   "best_unmirrored": "2",
+   "best_unmirrored_iou": 0.96
+  }
+ ],
+ "E9a_read_left_to_right_from_plus_Z": "K7WB2",
+ "E9a_glyphs_unmirrored": true,
+ "E9a_order_matches_code": true,
+ "recess_area_ratio_of_hub_disk_pct": 1.253,
+ "E5_K7_identical": true
+}
