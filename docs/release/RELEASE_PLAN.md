@@ -324,7 +324,8 @@ Kimball's.
     `docs/qa/screenshots`, `*.bak`, chat-recovery dumps, and any user-home or E: drive prefix (either slash).
   - Test: an export of master contains none of them, and the grep for user paths is empty.
   - Ruling (Cursor, 2026-11-11): named large files stay in git and out of the public export. No Git LFS. CC-BY attribution in `THIRD_PARTY.md` stays. Tracked: `validation/reference/fan01/fan01_rotor.stl` (the only `fan01/*.stl`), `validation/reference/fan01/cad_model.zip`, `validation/reference/a12x25_impeller.stl`.
-- **R3.2 Packaging**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R3.2 Packaging**. Lane: Cursor. CPU: day. Status: `done 26ccf29`.
+  Landed: MIT metadata, author Kimball with no email, the Gitea repository URL, and `fansim-cockpit` via `fansim/cockpit_entry.py`; the wheel is the installed artifact.
   - `pyproject.toml`: licence, authors, URLs, readme, classifiers, and a `[project.scripts]` entry point
     `fansim-cockpit = …` (wrapping `scripts/cockpit.py`).
   - Test: `uv build` works, and the installed entry point starts the server with `--help`.
