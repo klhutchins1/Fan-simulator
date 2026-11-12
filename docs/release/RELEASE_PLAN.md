@@ -345,8 +345,9 @@ Kimball's.
     geometry and export subset.
   - Widen ruff to the default rule set on changed files only.
 - R3.5b Chunk runner runs every chunk: done `70ab65c`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
-- **R3.6 CHANGELOG, CONTRIBUTING, issue templates**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-11)`.
+- **R3.6 CHANGELOG, CONTRIBUTING, issue templates**. Lane: Cursor. CPU: day. Status: `done 2311d26`.
   - CONTRIBUTING points to `AGENTS.md`'s rules (pre-registration, tests first).
+  - Landed CONTRIBUTING, an Unreleased CHANGELOG, two issue templates, and one README contributing link; the print-id coupon has not passed.
 - **R3.7 Cockpit UI regression tests (29.2)**. Lane: Cursor writes, grok proposes cases. CPU: day. Status: `ready`.
   - Headless "we say X, we do Y" tests (`tests/test_ui_says_what_it_does.py`), at least one per tab that ships.
 - **R3.8 Validation page**. Lane: Cursor drafts, Claude checks the numbers. CPU: day. Status: `blocked (M1, M2)`.
