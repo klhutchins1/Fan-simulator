@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import importlib.util
+import inspect
+import re
 from pathlib import Path
 
 import numpy as np
@@ -277,3 +279,344 @@ def test_parse_layer_coverage_and_surface_cells(tmp_path):
         encoding="utf-8",
     )
     assert ps.parse_surface_cells(tmp_path) == 640
+
+
+_NUM = re.compile(r"[+-]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?")
+
+
+def _matching_paren(text: str, open_at: int) -> int:
+    depth = 0
+    for j in range(open_at, len(text)):
+        if text[j] == "(":
+            depth += 1
+        elif text[j] == ")":
+            depth -= 1
+            if depth == 0:
+                return j
+    raise ValueError("unbalanced parenthesis in blockMeshDict")
+
+
+def _parse_grading_expr(text: str, i: int):
+    while i < len(text) and text[i].isspace():
+        i += 1
+    if i >= len(text):
+        return None, i
+    if text[i] == "(":
+        items = []
+        i += 1
+        while True:
+            while i < len(text) and text[i].isspace():
+                i += 1
+            if i < len(text) and text[i] == ")":
+                return items, i + 1
+            item, i = _parse_grading_expr(text, i)
+            items.append(item)
+        return items, i
+    match = _NUM.match(text, i)
+    if match is None:
+        raise ValueError(f"expected number in grading near {text[i:i + 24]!r}")
+    return float(match.group(0)), match.end()
+
+
+def _grading_directions(body: str):
+    dirs = []
+    i = 0
+    while len(dirs) < 3:
+        item, i = _parse_grading_expr(body, i)
+        if item is None:
+            break
+        dirs.append(item)
+    if len(dirs) != 3:
+        raise ValueError(f"simpleGrading needs 3 directions, got {dirs!r}")
+    return dirs
+
+
+def _geom_cell_sizes(length: float, n: int, expansion: float) -> list[float]:
+    """OpenFOAM simpleGrading: expansion is last cell / first cell along the edge."""
+    if n <= 0:
+        return []
+    if n == 1 or abs(expansion - 1.0) <= 1e-12:
+        return [length / n] * n
+    r = expansion ** (1.0 / (n - 1))
+    if abs(r - 1.0) <= 1e-14:
+        return [length / n] * n
+    first = length * (r - 1.0) / (r ** n - 1.0)
+    return [first * (r ** i) for i in range(n)]
+
+
+def _direction_cell_sizes(length: float, n: int, grading) -> list[float]:
+    if isinstance(grading, (int, float)):
+        sections = [(1.0, 1.0, float(grading))]
+    else:
+        sections = [(float(s[0]), float(s[1]), float(s[2])) for s in grading]
+    block_sum = sum(s[0] for s in sections)
+    div_sum = sum(s[1] for s in sections)
+    sections = [(s[0] / block_sum, s[1] / div_sum, s[2]) for s in sections]
+    counts = [int(s[1] * n + 0.5) for s in sections]
+    drift = n - sum(counts)
+    if counts and drift:
+        biggest = max(range(len(counts)), key=lambda i: counts[i])
+        counts[biggest] += drift
+    sizes: list[float] = []
+    for (block_frac, _div_frac, expansion), n_cells in zip(sections, counts):
+        sizes.extend(_geom_cell_sizes(block_frac * length, n_cells, expansion))
+    return sizes
+
+
+def _polyline_length(pts: list[tuple[float, float]]) -> float:
+    total = 0.0
+    for a, b in zip(pts, pts[1:]):
+        total += float(np.hypot(b[0] - a[0], b[1] - a[1]))
+    return total
+
+
+def _size_ratio(a: float, b: float) -> float:
+    lo = min(abs(a), abs(b))
+    if lo <= 0.0:
+        return float("inf")
+    return max(abs(a), abs(b)) / lo
+
+
+def _max_step_ratio(sizes: list[float]) -> float:
+    if len(sizes) < 2:
+        return 1.0
+    return max(_size_ratio(a, b) for a, b in zip(sizes, sizes[1:]))
+
+
+def measure_cgrid(block_mesh_text: str, chord: float) -> dict:
+    """Cell sizes implied by a C-grid blockMeshDict (no OpenFOAM run).
+
+    Tangential size is arc length along the wall or wake edge. simpleGrading
+    matches OpenFOAM: one number is last/first, and a list of
+    (length fraction, cell fraction, expansion) is multi-grading.
+    """
+    vsec = block_mesh_text.split("vertices", 1)[1].split("blocks", 1)[0]
+    verts = []
+    for raw in re.findall(r"\(([^()]*)\)", vsec):
+        parts = raw.split()
+        verts.append((float(parts[0]), float(parts[1]), float(parts[2])))
+    xy = [(x, y) for x, y, _z in verts[:10]]
+
+    splines: dict[tuple[int, int], list[tuple[float, float]]] = {}
+    for line in block_mesh_text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("spline "):
+            continue
+        head, rest = stripped.split("(", 1)
+        ids = [int(tok) for tok in head.split()[1:3]]
+        if ids[0] >= 10:
+            continue
+        pts = []
+        for raw in re.findall(r"\(([^()]*)\)", rest):
+            parts = raw.split()
+            pts.append((float(parts[0]), float(parts[1])))
+        splines[(ids[0], ids[1])] = pts
+
+    def edge_length(a: int, b: int) -> float:
+        if (a, b) in splines:
+            pts = [xy[a], *splines[(a, b)], xy[b]]
+        elif (b, a) in splines:
+            pts = [xy[a], *splines[(b, a)][::-1], xy[b]]
+        else:
+            pts = [xy[a], xy[b]]
+        return _polyline_length(pts)
+
+    hexes = []
+    cursor = 0
+    while True:
+        at = block_mesh_text.find("hex (", cursor)
+        if at < 0:
+            break
+        open_v = block_mesh_text.find("(", at)
+        close_v = _matching_paren(block_mesh_text, open_v)
+        open_n = block_mesh_text.find("(", close_v)
+        close_n = _matching_paren(block_mesh_text, open_n)
+        g_at = block_mesh_text.find("simpleGrading", close_n)
+        open_g = block_mesh_text.find("(", g_at)
+        close_g = _matching_paren(block_mesh_text, open_g)
+        ids = [int(tok) for tok in block_mesh_text[open_v + 1:close_v].split()]
+        counts = [int(tok) for tok in block_mesh_text[open_n + 1:close_n].split()]
+        grading = _grading_directions(block_mesh_text[open_g + 1:close_g])
+        hexes.append({"ids": ids, "counts": counts, "grading": grading})
+        cursor = close_g
+
+    by_edge = {(h["ids"][0], h["ids"][1]): h for h in hexes}
+    lower = by_edge[(0, 1)]
+    upper = by_edge[(1, 8)]
+    wake_lo = by_edge[(2, 0)]
+    wake_hi = by_edge[(8, 9)]
+
+    def tangential(hex_rec) -> list[float]:
+        a, b = hex_rec["ids"][0], hex_rec["ids"][1]
+        return _direction_cell_sizes(edge_length(a, b), hex_rec["counts"][0], hex_rec["grading"][0])
+
+    lo = tangential(lower)
+    up = tangential(upper)
+    wlo = tangential(wake_lo)
+    whi = tangential(wake_hi)
+    # Lower wall runs TE → LE. Upper wall runs LE → TE.
+    # Lower wake runs outlet → TE. Upper wake runs TE → outlet.
+    le_cell = max(lo[-1], up[0])
+    te_cell = max(lo[0], up[-1])
+    foil_wake = max(_size_ratio(lo[0], wlo[-1]), _size_ratio(up[-1], whi[0]))
+    adjacent = max(
+        _max_step_ratio(lo),
+        _max_step_ratio(up),
+        _max_step_ratio(wlo),
+        _max_step_ratio(whi),
+        foil_wake,
+        _size_ratio(lo[-1], up[0]),
+        _size_ratio(wlo[-1], whi[0]),
+    )
+    ny = lower["counts"][1]
+    gy = float(lower["grading"][1])
+    normal_growth = 1.0 if ny < 2 else gy ** (1.0 / (ny - 1))
+    centre = (0.25 * chord, 0.0)
+    r_outer = float(np.hypot(xy[3][0] - centre[0], xy[3][1] - centre[1]))
+    wake_len = float(xy[2][0] - xy[0][0])
+    return {
+        "n_tangent": lower["counts"][0],
+        "n_normal": ny,
+        "n_wake": wake_lo["counts"][0],
+        "n_tangent_upper": upper["counts"][0],
+        "r_outer": r_outer,
+        "wake_len": wake_len,
+        "le_cell": le_cell,
+        "te_cell": te_cell,
+        "foil_edge_length": edge_length(0, 1),
+        "foil_ratio_max": max(_max_step_ratio(lo), _max_step_ratio(up)),
+        "adjacent_ratio": adjacent,
+        "foil_wake_ratio": foil_wake,
+        "normal_growth": normal_growth,
+        "foil_expansion": lower["grading"][0],
+        "wake_lower_expansion": wake_lo["grading"][0],
+        "wake_upper_expansion": wake_hi["grading"][0],
+    }
+
+
+_GATE_FLAGS = [
+    "--cgrid-tangent", "128",
+    "--cgrid-normal", "120",
+    "--cgrid-wake", "64",
+    "--cgrid-far", "50",
+    "--cgrid-wake-len", "50",
+    "--cgrid-end-cell", "0.001",
+    "--cgrid-max-ratio", "1.2",
+    "--cgrid-normal-growth", "1.15",
+]
+
+
+def test_a0c_cgrid_flags_meet_geometric_gate_and_defaults_stay(tmp_path):
+    """A0c flags build a gate mesh; omitting them keeps today's 48/60/32 C-grid.
+
+    The production change that fails this test is the C-grid CLI
+    (counts, far field, wake length, LE/TE clustering, ratio caps) leaving
+    the blockMeshDict on today's uniform 48/60/32, 8c domain.
+    """
+    default_out = tmp_path / "default"
+    assert ps.main([
+        "--build-only", "--mesh", "cgrid", "--section", "0012",
+        "--out", str(default_out),
+    ]) == 0
+    dblock = (default_out / "build_only" / "system" / "blockMeshDict").read_text(encoding="utf-8")
+    default = measure_cgrid(dblock, ps.CHORD)
+    assert default["n_tangent"] == 48
+    assert default["n_tangent_upper"] == 48
+    assert default["n_normal"] == 60
+    assert default["n_wake"] == 32
+    assert default["r_outer"] == pytest.approx(8 * ps.CHORD, rel=1e-6)
+    assert default["wake_len"] == pytest.approx(16 * ps.CHORD, rel=1e-6)
+    assert default["foil_expansion"] == pytest.approx(1.0)
+    assert default["wake_lower_expansion"] == pytest.approx(0.05)
+    assert default["wake_upper_expansion"] == pytest.approx(20.0)
+    assert default["te_cell"] == pytest.approx(default["foil_edge_length"] / 48, rel=1e-6)
+    assert default["foil_ratio_max"] == pytest.approx(1.0, abs=1e-6)
+
+    gate_out = tmp_path / "gate"
+    gate_argv = [
+        "--build-only", "--mesh", "cgrid", "--section", "0012", "--re", "6e6",
+        "--iters", "10000",
+        *_GATE_FLAGS,
+        "--out", str(gate_out),
+    ]
+    try:
+        rc = ps.main(gate_argv)
+    except SystemExit as exc:
+        pytest.fail(f"A0c cgrid flags rejected: {exc}")
+    assert rc == 0
+    case = gate_out / "build_only"
+    gate = measure_cgrid(
+        (case / "system" / "blockMeshDict").read_text(encoding="utf-8"),
+        ps.CHORD,
+    )
+    chord = ps.CHORD
+    assert gate["n_tangent"] >= 128, gate
+    assert gate["n_tangent_upper"] >= 128, gate
+    assert gate["le_cell"] <= 0.001 * chord, gate
+    assert gate["te_cell"] <= 0.001 * chord, gate
+    assert gate["adjacent_ratio"] <= 1.2, gate
+    assert gate["foil_wake_ratio"] <= 1.2, gate
+    assert gate["normal_growth"] <= 1.15, gate
+    assert gate["r_outer"] >= 50 * chord - 1e-9, gate
+    assert gate["wake_len"] >= 50 * chord - 1e-9, gate
+    ctrl = (case / "system" / "controlDict").read_text(encoding="utf-8")
+    assert re.search(r"endTime\s+10000\s*;", ctrl)
+
+
+def test_cgrid_refine_flag_doubles_the_gate_grid_at_ten_degrees(tmp_path):
+    """--cgrid-refine 2 plans one extra 10° mesh with twice the cells each way."""
+    if not hasattr(ps, "cgrid_jobs"):
+        pytest.fail("cgrid_jobs is missing")
+    argv = [
+        "--mesh", "cgrid", "--section", "0012", "--re", "6e6",
+        "--alphas", "0", "5", "10", "--models", "kOmegaSST", "--tu", "0.001",
+        "--iters", "10000",
+        *_GATE_FLAGS,
+        "--cgrid-refine", "2", "--cgrid-refine-alpha", "10",
+    ]
+    try:
+        ns = ps.parse_cli(argv)
+    except SystemExit as exc:
+        pytest.fail(f"A0c refine flags rejected: {exc}")
+    jobs = ps.cgrid_jobs(ns)
+    assert len(jobs) == 2
+    assert jobs[0]["alphas"] == [0.0, 5.0, 10.0]
+    assert jobs[1]["alphas"] == [10.0]
+    assert jobs[1]["n_tangent"] == 2 * jobs[0]["n_tangent"]
+    assert jobs[1]["n_normal"] == 2 * jobs[0]["n_normal"]
+    assert jobs[1]["n_wake"] == 2 * jobs[0]["n_wake"]
+    assert jobs[1]["end_cell_frac"] == pytest.approx(0.0005)
+    assert jobs[1]["yplus_target"] == pytest.approx(0.4)
+    if "end_cell_frac" not in inspect.signature(ps.write_case).parameters:
+        pytest.fail("write_case does not take cgrid parameters")
+    case = ps.write_case(
+        tmp_path / "refine",
+        alpha_deg=10.0,
+        model="kOmegaSST",
+        section="0012",
+        re=6.0e6,
+        mesh="cgrid",
+        n_iters=10000,
+        n_tangent=jobs[1]["n_tangent"],
+        n_normal=jobs[1]["n_normal"],
+        n_wake=jobs[1]["n_wake"],
+        far_chords=jobs[1]["far_chords"],
+        wake_chords=jobs[1]["wake_chords"],
+        end_cell_frac=jobs[1]["end_cell_frac"],
+        max_ratio=jobs[1]["max_ratio"],
+        normal_growth=jobs[1]["normal_growth"],
+        yplus_target=jobs[1]["yplus_target"],
+    )
+    gate = measure_cgrid(
+        (case / "system" / "blockMeshDict").read_text(encoding="utf-8"),
+        ps.CHORD,
+    )
+    assert gate["n_tangent"] >= 256, gate
+    assert gate["n_normal"] >= 240, gate
+    assert gate["le_cell"] <= 0.0005 * ps.CHORD, gate
+    assert gate["te_cell"] <= 0.0005 * ps.CHORD, gate
+    assert gate["adjacent_ratio"] <= 1.2, gate
+    assert gate["foil_wake_ratio"] <= 1.2, gate
+    assert gate["normal_growth"] <= 1.15, gate
+    ctrl = (case / "system" / "controlDict").read_text(encoding="utf-8")
+    assert re.search(r"endTime\s+10000\s*;", ctrl)
