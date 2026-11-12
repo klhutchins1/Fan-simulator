@@ -26,3 +26,7 @@ Fail if the tip diameter is still 36.55 mm. INCONCLUSIVE is not a pass.
 ## Result
 
 PASS. `grip_protrude_mm` 0.7 → 0.35 on the A12x25 mount. Layout tip diameter 37.25 mm. `cavity_dia_mm` 37.25, grip count 20, grip diameter 2.4 mm, clearance 0.35 mm. Mount minimum hub radius moved 20.725 → 21.075 mm (Stock hub is 21.5 mm). Tests: `test_a12x25_pad_tips_match_the_opening_that_fits`, `test_mount_min_hub_radius`, `test_fan_spec_motor_mount_roundtrips` — 3 passed. No mesh rebuild in the 4–9 PM window.
+
+## Printed coupon (Kimball, 2026-11-12)
+
+`exports/hub_fit_37.25mm_20261111-215225.stl` (6 mm ring, pad tips 37.25 mm in the file) **fits the motor better** than H7MQ8 and E0MWW. Those two stay the T1 fail (pad IDs 36.21 mm and 36.73 mm). This coupon is not T1: T1 is a full impeller, seated, spinning, with the tip gap checked.
