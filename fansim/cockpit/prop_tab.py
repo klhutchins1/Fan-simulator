@@ -162,6 +162,25 @@ def _vehicle(weight_n, n_rotors, battery_wh) -> dict:
     }}
 
 
+def prop_polar_backend_items(ui_mode: str) -> list[dict]:
+    """BEMT polar choices. NeuralFoil stays Expert-only until it converges (QA-51)."""
+    items = [{"title": "UIUC tables (default)", "value": "table"}]
+    if str(ui_mode or "simple") == "expert":
+        items.append({
+            "title": "NeuralFoil (experimental, needs --extra neuralfoil)",
+            "value": "neuralfoil",
+        })
+    return items
+
+
+def _apply_prop_polar_backend_items(state, ui_mode) -> None:
+    mode = str(ui_mode or "simple")
+    state.prop_polar_backend_items = prop_polar_backend_items(mode)
+    backend = str(getattr(state, "prop_polar_backend", "table") or "table")
+    if mode != "expert" and backend == "neuralfoil":
+        state.prop_polar_backend = "table"
+
+
 def setup_prop_tab(ctx: CockpitCtx) -> None:
     """Init prop_* state and controllers (call before SinglePageLayout)."""
     state, ctrl = ctx.state, ctx.ctrl
@@ -212,10 +231,12 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     state.prop_cfd_mesh_preset = "smoke"
     state.prop_bemt_floor = 0.0
     state.prop_polar_backend = "table"  # §19.15 / §20.2: table | neuralfoil
-    state.prop_polar_backend_items = [
-        {"title": "UIUC tables (default)", "value": "table"},
-        {"title": "NeuralFoil (needs --extra neuralfoil)", "value": "neuralfoil"},
-    ]
+    _apply_prop_polar_backend_items(state, getattr(state, "ui_mode", "simple"))
+
+    @state.change("ui_mode")
+    def _prop_polar_items_follow_mode(ui_mode=None, **_kwargs):
+        _apply_prop_polar_backend_items(state, ui_mode)
+
     state.prop_refine_busy = False
     state.prop_polar_v = "0,5,10,15,20"
     state.prop_geo_ready = False
