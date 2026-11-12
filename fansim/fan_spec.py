@@ -42,7 +42,8 @@ class MotorMount:
     grip_count: int = 0            # 0 = smooth cup; ~20 matches A12x25-style grip pads
     grip_dia_mm: float = 2.4       # diameter of each axial grip cylinder (mm)
     grip_clearance_mm: float = 0.35  # radial oversize of the cup cut before grips are fused back
-    grip_protrude_mm: float = 0.7  # how far each pad sticks into the cavity (rest sits in the wall)
+    grip_protrude_mm: float = 0.35  # how far each pad sticks into the cavity (rest sits in the wall).
+                                    # Equal to the default clearance, so the pad tips sit on cavity_dia_mm.
 
 
 @dataclass
@@ -137,7 +138,8 @@ def mount_grip_pad_layout(mount: MotorMount) -> tuple[float, float, float] | Non
     grip_r = grip_d / 2.0
     protrude = float(getattr(mount, "grip_protrude_mm", 0.0) or 0.0)
     if protrude <= 0.0:
-        protrude = min(0.7, 0.35 * grip_d)
+        # Unset means the pad tips stay on the motor-hub diameter, not 0.7 mm inside it.
+        protrude = clear if clear > 0.0 else min(0.35, 0.35 * grip_d)
     protrude = min(protrude, max(0.15, grip_d - 0.1))
     wall_embed = grip_r - protrude
     if wall_embed < 0.05:

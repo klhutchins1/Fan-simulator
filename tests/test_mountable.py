@@ -15,6 +15,35 @@ optuna.logging.set_verbosity(optuna.logging.WARNING)
 A12_MIN_HUB = 21.075  # pad outer + margin once tips sit on the 37.25 mm circle (wall alone is 20.175)
 
 
+def test_a12x25_default_pads_stay_on_the_motor_hub_diameter():
+    """Leaving protrude unset must not close the hole past the A12x25 hub diameter.
+
+    The motor-hub number is the pad circle. A 0.7 mm default stuck the pads in to 36.55 mm.
+    """
+    from fansim.fan_spec import MotorMount, mount_grip_pad_layout
+
+    mount = MotorMount(
+        cavity_dia_mm=37.25,
+        cavity_depth_mm=13.0,
+        rear_bore_dia_mm=20.0,
+        grip_count=20,
+        grip_dia_mm=2.4,
+        grip_clearance_mm=0.35,
+    )
+    layout = mount_grip_pad_layout(mount)
+    assert layout is not None
+    _cav_r, r_center, grip_r = layout
+    assert 2.0 * (r_center - grip_r) == pytest.approx(37.25, abs=0.02)
+    assert mount.grip_protrude_mm == pytest.approx(mount.grip_clearance_mm)
+    zeroed = MotorMount(
+        cavity_dia_mm=37.25, cavity_depth_mm=13.0, rear_bore_dia_mm=20.0,
+        grip_count=20, grip_dia_mm=2.4, grip_clearance_mm=0.35, grip_protrude_mm=0.0,
+    )
+    z_layout = mount_grip_pad_layout(zeroed)
+    assert z_layout is not None
+    assert 2.0 * (z_layout[1] - z_layout[2]) == pytest.approx(37.25, abs=0.02)
+
+
 def test_a12x25_pad_tips_match_the_opening_that_fits():
     """Pad tips sit on the 37.25 mm circle, not inside it.
 

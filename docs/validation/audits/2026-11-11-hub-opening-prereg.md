@@ -29,4 +29,6 @@ PASS. `grip_protrude_mm` 0.7 → 0.35 on the A12x25 mount. Layout tip diameter 3
 
 ## Printed coupon (Kimball, 2026-11-12)
 
-`exports/hub_fit_37.25mm_20261111-215225.stl` (6 mm ring, pad tips 37.25 mm in the file) **fits the motor better** than H7MQ8 and E0MWW. Those two stay the T1 fail (pad IDs 36.21 mm and 36.73 mm). This coupon is not T1: T1 is a full impeller, seated, spinning, with the tip gap checked.
+`exports/hub_fit_37.25mm_20261111-215225.stl` (6 mm ring, pad tips 37.25 mm in the file) **fits the motor better** than H7MQ8 and E0MWW. Those two stay the T1 fail (pad IDs 36.21 mm and 36.73 mm). Kimball will sand those two so they go on. This coupon is not T1: T1 is a full impeller, seated, spinning, with the tip gap checked.
+
+The A12x25 motor-hub diameter is the pad circle. The class default protrude matched the 0.35 mm clearance, so a mount that leaves protrude unset no longer closes the tips to 36.55 mm. Export uses `get_fan_spec(fan_model).motor_mount` for the selected model.
