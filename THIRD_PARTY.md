@@ -7,6 +7,7 @@ keep **their own licences**. Credit them as shown when you reuse them.
 paths in `RELEASE_EXCLUDE`: data we may not redistribute (nv150, the drone props) and the internal
 QA-bot `handoff/` folder. Start the public repository from that export (no git history), so excluded
 files never appear in it. Tests that need excluded data skip when it is absent.
+Large CC-BY geometry stays in git and is left out of the public export (no Git LFS): `validation/reference/fan01/*.stl`, `validation/reference/fan01/cad_model.zip`, and `validation/reference/a12x25_impeller.stl`.
 
 | What | Where in this repo | Source and author | Licence | Notes |
 |---|---|---|---|---|

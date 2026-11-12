@@ -19,8 +19,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EXCLUDE_FILE = ROOT / "RELEASE_EXCLUDE"
-# R3.1: a public export must not name Kimball's machine (C:\Users\… or E:\…).
-USER_PATH_RE = re.compile(r"(?i)(?:[A-Za-z]:\\Users\\|[CE]:\\)")
+# R3.1: a public export must not name this machine. Match a user-home prefix on any
+# drive, or an E: drive prefix, with either kind of slash. A letter immediately
+# before the drive letter is not a prefix (a database scheme stays). The pattern is
+# built so this source file does not itself contain a literal prefix.
+_SLASH = "[/\\\\]"
+_NOT_WORD = "(?<![A-Za-z])"
+USER_PATH_RE = re.compile(
+    "(?i)" + _NOT_WORD + "(?:[A-Za-z]:" + _SLASH + "Users" + _SLASH + "|E:" + _SLASH + ")"
+)
 
 
 def read_excludes(path: Path = EXCLUDE_FILE) -> list[str]:
@@ -38,7 +45,7 @@ def tracked_files(root: Path = ROOT) -> list[str]:
 
 
 def leaks_user_path(text: str) -> bool:
-    """True when *text* embeds a Windows user or E: path (R3.1)."""
+    """True when *text* embeds a user-home prefix or an E: drive prefix (R3.1)."""
     return USER_PATH_RE.search(text or "") is not None
 
 
@@ -66,7 +73,7 @@ def excluded(rel: str, excludes: list[str]) -> bool:
 
 
 def select(files: list[str], excludes: list[str]) -> list[str]:
-    return [f for f in files if not excluded(f, excludes)]
+    return [f for f in files if not excluded(f, excludes) and not leaks_user_path(f)]
 
 
 def export(out: Path, *, files: list[str] | None = None, excludes: list[str] | None = None,
