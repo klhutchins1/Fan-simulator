@@ -12,6 +12,7 @@ not beating a molded LCP fan on absolute numbers with a home print.
 Read [`docs/adversarial-review.md`](docs/adversarial-review.md) — it documents what is validated vs. not.
 Other docs: [`docs/high-accuracy-plan.md`](docs/high-accuracy-plan.md),
 [`docs/design-rules.md`](docs/design-rules.md), [`docs/a12x25-reference.md`](docs/a12x25-reference.md).
+Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Status (honest)
 
