@@ -76,7 +76,9 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
 - **P3 Export the print.** Lane: Cursor. Status: `done` 2026-11-09. H7MQ8 Stock v3
   (`exports/H7MQ8_a12x25_stock_reference_20261109-220053.stl`); E0MWW t9002 extra. Material PLA+, 0.6 mm nozzle.
 - **P4 The session.** Lane: Kimball. Status: `in progress (Kimball, 2026-11-11)`. T2 27.41 g record-only; T3 FAIL → P6.
-  Still open: T1 fit, T4 tach/phone, T5 12 V rpm, T6 bag. Keep WAV/photos in `validation/prints/H7MQ8/`.
+  T1 FAIL: H7MQ8 pad tips 36.55 mm in the file (caliper 36.21 mm) will not seat. Still open: T4 tach/phone, T5 12 V rpm, T6 bag. Keep WAV/photos in `validation/prints/H7MQ8/`.
+- **P4a Hub opening.** Lane: Cursor. Status: `done 0beb057`. Branch `hub-opening-3725` (not merged).
+  Pad tips back on the 37.25 mm circle (the 2026-08-31 opening and the reference STL). `cavity_dia_mm` stays 37.25. Protrude 0.7 → 0.35, equal to the clearance. Wrap, loft, and Stock YAML untouched. Layout tests passed. Fit coupon, no blades: `exports/hub_fit_37.25mm_20261111-215225.stl` (also copied beside the other prints). 6 mm ring, pad tips 37.25 mm, 1.96 cm³. Kimball 2026-11-12: that ring fits the motor better than H7MQ8 and E0MWW; he will sand those two. Selecting A12x25 uses this pad circle (37.25 mm). The class default no longer sticks the pads in 0.7 mm. T1 stays open until a full impeller with this opening is on the frame.
 - **P5 Write up.** Lane: Claude or Cursor. Status: `blocked (P4)`. Fill the Results table in the pre-registration
   (nothing above it is edited) and put each failed check on this board as its own task.
 - **P6 Enlarge print-id glyphs (T3 FAIL / QA-80).** Lane: Cursor. CPU: day. Status: `done 2bfde35` (code); T3 coupon **needs Kimball**.
@@ -338,10 +340,11 @@ Kimball's.
   - grok r22 A (2026-10-29): QA-53 verified at b3d5543 (cockpit prints http://127.0.0.1:8080/ = README:137; README:138 "30–40 min"; README:107 "the GitHub URL", interim). Docker-not-installed row still absent (R3.4).
 - **R3.4 Docker/OpenFOAM readiness badge and first-run check (21.2g)**. Lane: Cursor. CPU: day. Status: `ready`.
   - The cockpit shows "CFD ready / Docker not running / image missing" with the fix in plain words.
-- **R3.5 GitHub Actions CI**. Lane: Cursor. CPU: none (cloud). Status: `in progress (Cursor, 2026-11-11)`.
+- **R3.5 GitHub Actions CI**. Lane: Cursor. CPU: none (cloud). Status: `done 8c34965`.
   - Port `.github/workflows/ci.yml` for GitHub: ubuntu fast suite in 3 chunks, plus a Windows job for the fast
     geometry and export subset.
   - Widen ruff to the default rule set on changed files only.
+  - Landed: Windows job `windows-geometry` runs `test_export_release.py`, `test_geometry.py`, `test_stl_sanitize.py`, and `test_span_interp.py` with `-m "not docker and not slow"`, judged by `pytest_chunks.judge()` so an OCCT teardown after a green summary counts as a pass; ruff's default rules stay on changed `.py` only, the whole-tree gate stays F811,F821, and the Ubuntu fast suite is unchanged.
 - R3.5b Chunk runner runs every chunk: done `70ab65c`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
 - **R3.6 CHANGELOG, CONTRIBUTING, issue templates**. Lane: Cursor. CPU: day. Status: `ready`.
   - CONTRIBUTING points to `AGENTS.md`'s rules (pre-registration, tests first).

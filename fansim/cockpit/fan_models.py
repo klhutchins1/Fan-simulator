@@ -165,7 +165,7 @@ def bind(session) -> None:
                 grip_count=int(getattr(base.motor_mount, "grip_count", 0) or 0) if base.motor_mount else 0,
                 grip_dia_mm=float(getattr(base.motor_mount, "grip_dia_mm", 2.4) or 2.4) if base.motor_mount else 2.4,
                 grip_clearance_mm=float(getattr(base.motor_mount, "grip_clearance_mm", 0.35) or 0.35) if base.motor_mount else 0.35,
-                grip_protrude_mm=float(getattr(base.motor_mount, "grip_protrude_mm", 0.7) or 0.7) if base.motor_mount else 0.7,
+                grip_protrude_mm=float(getattr(base.motor_mount, "grip_protrude_mm", 0.35) or 0.35) if base.motor_mount else 0.35,
             )
         spec = dataclasses.replace(
             base,
