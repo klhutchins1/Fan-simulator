@@ -76,7 +76,9 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
 - **P3 Export the print.** Lane: Cursor. Status: `done` 2026-11-09. H7MQ8 Stock v3
   (`exports/H7MQ8_a12x25_stock_reference_20261109-220053.stl`); E0MWW t9002 extra. Material PLA+, 0.6 mm nozzle.
 - **P4 The session.** Lane: Kimball. Status: `in progress (Kimball, 2026-11-11)`. T2 27.41 g record-only; T3 FAIL → P6.
-  Still open: T1 fit, T4 tach/phone, T5 12 V rpm, T6 bag. Keep WAV/photos in `validation/prints/H7MQ8/`.
+  T1 FAIL: H7MQ8 pad tips 36.55 mm in the file (caliper 36.21 mm) will not seat. Still open: T4 tach/phone, T5 12 V rpm, T6 bag. Keep WAV/photos in `validation/prints/H7MQ8/`.
+- **P4a Hub opening.** Lane: Cursor. Status: `done 0beb057`. Branch `hub-opening-3725` (not merged).
+  Pad tips back on the 37.25 mm circle (the 2026-08-31 opening and the reference STL). `cavity_dia_mm` stays 37.25. Protrude 0.7 → 0.35, equal to the clearance. Wrap, loft, and Stock YAML untouched. Layout tests passed. Fit coupon, no blades: `exports/hub_fit_37.25mm_20261111-215225.stl` (also copied beside the other prints). 6 mm ring, pad tips 37.25 mm, 1.96 cm³. Kimball 2026-11-12: that ring fits the motor better than H7MQ8 and E0MWW; he will sand those two. Selecting A12x25 uses this pad circle (37.25 mm). The class default no longer sticks the pads in 0.7 mm. T1 stays open until a full impeller with this opening is on the frame.
 - **P5 Write up.** Lane: Claude or Cursor. Status: `blocked (P4)`. Fill the Results table in the pre-registration
   (nothing above it is edited) and put each failed check on this board as its own task.
 - **P6 Enlarge print-id glyphs (T3 FAIL / QA-80).** Lane: Cursor. CPU: day. Status: `done 2bfde35` (code); T3 coupon **needs Kimball**.
@@ -315,8 +317,9 @@ Kimball's.
 
 ## M3: Releasable repo (parallel, mostly Cursor)
 
-- **R3.1 Release export hygiene**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-11)`.
-  - grok r20 E: the leak check is waiting for R3.1 to land (not run).
+- **R3.1 Release export hygiene**. Lane: Cursor. CPU: day. Status: `done ac4024f`.
+  - Landed: the public export drops archive, memory, handoff, screenshots, bak files, and chat-recovery dumps, and the product docs still ship with user-home and E: prefixes redacted.
+  - grok r20 E: the leak check is still not run.
   - Extend `RELEASE_EXCLUDE` and `scripts/export_release.py` to drop `archive/`, `memory/`, `handoff/`,
     `docs/qa/screenshots`, `*.bak`, chat-recovery dumps, and any user-home or E: drive prefix (either slash).
   - Test: an export of master contains none of them, and the grep for user paths is empty.
@@ -353,7 +356,8 @@ Kimball's.
   - `docs/VALIDATION.md`: per surface, what it was validated against, the tolerance, the result and the known limits.
     Every number links to its audit.
   - grok r21 B (2026-10-25): draft from the audits in `docs/qa/notes/r21-B-validation-draft.md` (13 surfaces + Known limits, 9 mismatches listed) for Cursor to adapt and Claude to check.
-- **R3.9 Large files**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R3.9 Large files**. Lane: Cursor. CPU: day. Status: `done ac4024f`.
+  - Landed: `fan01_rotor.stl`, `cad_model.zip`, and `a12x25_impeller.stl` stay in git and out of the public export, with no Git LFS, and the CC-BY attribution stays in `THIRD_PARTY.md`.
   - Decide per file between Git LFS, a release asset, or out of the export: `validation/reference/fan01/*.stl`
     (11 MB), `cad_model.zip` and `a12x25_impeller.stl`. Keep the CC-BY attribution in `THIRD_PARTY.md`.
 

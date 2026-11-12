@@ -356,6 +356,65 @@ def export_id_coupon(
     return watertight_report(out_stl)
 
 
+def export_hub_fit_coupon(
+    out_stl: str | Path,
+    mount,
+    *,
+    hub_radius: float = 21.5,
+    height_mm: float = 6.0,
+    tolerance: float = 0.05,
+    angular_tolerance: float = 0.2,
+    also_step: bool = False,
+) -> WatertightReport:
+    """Short ring with the motor-cup grip pads. Fit check only — no blades.
+
+    Same pad-tip circle as a full export (``mount_grip_pad_layout``). The cavity is cut
+    through so the part is a few millimetres tall. Either face on the bed, no supports.
+    Press the motor boss into the pad ring.
+    """
+    import math
+
+    from fansim.fan_spec import mount_grip_pad_layout
+
+    layout = mount_grip_pad_layout(mount)
+    if layout is None:
+        raise ValueError("hub fit coupon needs grip pads on the motor mount")
+    cav_r, r_center, grip_r = layout
+    h = float(height_mm)
+    eps = 0.5
+    hub = cq.Solid.makeCylinder(float(hub_radius), h, cq.Vector(0, 0, 0), cq.Vector(0, 0, 1))
+    cutter = cq.Solid.makeCylinder(cav_r, h + 2.0 * eps, cq.Vector(0, 0, -eps), cq.Vector(0, 0, 1))
+    result = hub.cut(cutter)
+    pads = None
+    n_grip = int(getattr(mount, "grip_count", 0) or 0)
+    for k in range(n_grip):
+        a = 2.0 * math.pi * k / n_grip
+        pad = cq.Solid.makeCylinder(
+            grip_r, h,
+            cq.Vector(r_center * math.cos(a), r_center * math.sin(a), 0.0),
+            cq.Vector(0, 0, 1),
+        )
+        pads = pad if pads is None else pads.fuse(pad)
+    if pads is not None:
+        result = result.fuse(pads)
+    bore_d = float(getattr(mount, "rear_bore_dia_mm", 0.0) or 0.0)
+    if bore_d > 0.0:
+        bore = cq.Solid.makeCylinder(
+            bore_d / 2.0, h + 2.0 * eps,
+            cq.Vector(0, 0, -eps), cq.Vector(0, 0, 1),
+        )
+        result = result.cut(bore)
+    try:
+        result = result.clean()
+    except Exception:  # noqa: BLE001
+        pass
+    out_stl = Path(out_stl)
+    export_stl(cq.Workplane(obj=result), out_stl, tolerance=tolerance, angular_tolerance=angular_tolerance)
+    if also_step:
+        export_step(cq.Workplane(obj=result), out_stl.with_suffix(".step"))
+    return watertight_report(out_stl)
+
+
 def export_handedness_pair(
     params: BladeParams,
     out_dir: str | Path,
