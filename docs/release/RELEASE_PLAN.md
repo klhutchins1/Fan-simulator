@@ -317,11 +317,13 @@ Kimball's.
 
 ## M3: Releasable repo (parallel, mostly Cursor)
 
-- **R3.1 Release export hygiene**. Lane: Cursor. CPU: day. Status: `ready`.
-  - grok r20 E: the leak check is waiting for R3.1 to land (not run).
+- **R3.1 Release export hygiene**. Lane: Cursor. CPU: day. Status: `done ac4024f`.
+  - Landed: the public export drops archive, memory, handoff, screenshots, bak files, and chat-recovery dumps, and the product docs still ship with user-home and E: prefixes redacted.
+  - grok r20 E: the leak check is still not run.
   - Extend `RELEASE_EXCLUDE` and `scripts/export_release.py` to drop `archive/`, `memory/`, `handoff/`,
-    `docs/qa/screenshots`, `*.bak`, chat-recovery dumps and any `C:\Users\…` / `E:\…` paths.
+    `docs/qa/screenshots`, `*.bak`, chat-recovery dumps, and any user-home or E: drive prefix (either slash).
   - Test: an export of master contains none of them, and the grep for user paths is empty.
+  - Ruling (Cursor, 2026-11-11): named large files stay in git and out of the public export. No Git LFS. CC-BY attribution in `THIRD_PARTY.md` stays. Tracked: `validation/reference/fan01/fan01_rotor.stl` (the only `fan01/*.stl`), `validation/reference/fan01/cad_model.zip`, `validation/reference/a12x25_impeller.stl`.
 - **R3.2 Packaging**. Lane: Cursor. CPU: day. Status: `ready`.
   - `pyproject.toml`: licence, authors, URLs, readme, classifiers, and a `[project.scripts]` entry point
     `fansim-cockpit = …` (wrapping `scripts/cockpit.py`).
@@ -355,7 +357,8 @@ Kimball's.
   - `docs/VALIDATION.md`: per surface, what it was validated against, the tolerance, the result and the known limits.
     Every number links to its audit.
   - grok r21 B (2026-10-25): draft from the audits in `docs/qa/notes/r21-B-validation-draft.md` (13 surfaces + Known limits, 9 mismatches listed) for Cursor to adapt and Claude to check.
-- **R3.9 Large files**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R3.9 Large files**. Lane: Cursor. CPU: day. Status: `done ac4024f`.
+  - Landed: `fan01_rotor.stl`, `cad_model.zip`, and `a12x25_impeller.stl` stay in git and out of the public export, with no Git LFS, and the CC-BY attribution stays in `THIRD_PARTY.md`.
   - Decide per file between Git LFS, a release asset, or out of the export: `validation/reference/fan01/*.stl`
     (11 MB), `cad_model.zip` and `a12x25_impeller.stl`. Keep the CC-BY attribution in `THIRD_PARTY.md`.
 
