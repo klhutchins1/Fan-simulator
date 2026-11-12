@@ -110,11 +110,82 @@ class OpenFOAMRunner:
         return result
 
 
+def _docker_image_query(image: str) -> list[str]:
+    """Argv shared by ``image_available`` and the cockpit readiness line."""
+    return ["docker", "images", "-q", image]
+
+
 def image_available(image: str = DEFAULT_IMAGE) -> bool:
     proc = subprocess.run(
-        ["docker", "images", "-q", image], capture_output=True, text=True
+        _docker_image_query(image), capture_output=True, text=True
     )
     return proc.returncode == 0 and bool(proc.stdout.strip())
+
+
+# One sentence each. Simple mode: a hobbyist can act without knowing OpenFOAM.
+_LINE_READY = "CFD ready. You can press Assess."
+_LINE_NOT_RUNNING = (
+    "Docker not running. Start Docker Desktop, wait until it is running, then press Assess."
+)
+
+
+@dataclass(frozen=True)
+class CfdReadiness:
+    """Docker/OpenFOAM state for the cockpit badge. ``line`` is the whole message."""
+
+    state: str
+    line: str
+
+
+def _line_image_missing(image: str) -> str:
+    return f"image missing. Pull it once: docker pull {image}"
+
+
+def _line_not_installed(image: str) -> str:
+    return f"Docker not installed. Install Docker Desktop, then pull {image}."
+
+
+def cfd_readiness(
+    image: str = DEFAULT_IMAGE, *, run=None, timeout: float = 5.0
+) -> CfdReadiness:
+    """Say whether Assess can run, and the one fix when it cannot.
+
+    Uses the same ``docker images -q`` query as ``image_available``. ``docker info``
+    tells "Docker not running" apart from a missing image. A missing ``docker``
+    program is "Docker not installed" (``image_available`` still raises there).
+    """
+    run = run or subprocess.run
+    try:
+        info = run(["docker", "info"], capture_output=True, text=True, timeout=timeout)
+    except FileNotFoundError:
+        return CfdReadiness("docker_not_installed", _line_not_installed(image))
+    except (OSError, subprocess.TimeoutExpired):
+        return CfdReadiness("docker_not_running", _LINE_NOT_RUNNING)
+    if getattr(info, "returncode", 1) != 0:
+        return CfdReadiness("docker_not_running", _LINE_NOT_RUNNING)
+    try:
+        images = run(
+            _docker_image_query(image), capture_output=True, text=True, timeout=timeout
+        )
+    except FileNotFoundError:
+        return CfdReadiness("docker_not_installed", _line_not_installed(image))
+    except (OSError, subprocess.TimeoutExpired):
+        return CfdReadiness("docker_not_running", _LINE_NOT_RUNNING)
+    if getattr(images, "returncode", 1) != 0:
+        return CfdReadiness("docker_not_running", _LINE_NOT_RUNNING)
+    if not (getattr(images, "stdout", "") or "").strip():
+        return CfdReadiness("image_missing", _line_image_missing(image))
+    return CfdReadiness("ready", _LINE_READY)
+
+
+def publish_cfd_readiness(state) -> str:
+    """Write the one readiness line onto cockpit state. Never raises."""
+    try:
+        line = cfd_readiness().line
+    except Exception:  # noqa: BLE001 — the cockpit still opens if the probe misbehaves
+        line = _LINE_NOT_RUNNING
+    state.cfd_readiness = line
+    return line
 
 
 def kill_cfd_containers(*, session: str | None = None, timeout: float = 30.0) -> int:
