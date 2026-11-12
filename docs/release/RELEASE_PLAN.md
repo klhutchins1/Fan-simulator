@@ -340,10 +340,11 @@ Kimball's.
   - grok r22 A (2026-10-29): QA-53 verified at b3d5543 (cockpit prints http://127.0.0.1:8080/ = README:137; README:138 "30–40 min"; README:107 "the GitHub URL", interim). Docker-not-installed row still absent (R3.4).
 - **R3.4 Docker/OpenFOAM readiness badge and first-run check (21.2g)**. Lane: Cursor. CPU: day. Status: `ready`.
   - The cockpit shows "CFD ready / Docker not running / image missing" with the fix in plain words.
-- **R3.5 GitHub Actions CI**. Lane: Cursor. CPU: none (cloud). Status: `ready`.
+- **R3.5 GitHub Actions CI**. Lane: Cursor. CPU: none (cloud). Status: `done 8c34965`.
   - Port `.github/workflows/ci.yml` for GitHub: ubuntu fast suite in 3 chunks, plus a Windows job for the fast
     geometry and export subset.
   - Widen ruff to the default rule set on changed files only.
+  - Landed: Windows job `windows-geometry` runs `test_export_release.py`, `test_geometry.py`, `test_stl_sanitize.py`, and `test_span_interp.py` with `-m "not docker and not slow"`, judged by `pytest_chunks.judge()` so an OCCT teardown after a green summary counts as a pass; ruff's default rules stay on changed `.py` only, the whole-tree gate stays F811,F821, and the Ubuntu fast suite is unchanged.
 - R3.5b Chunk runner runs every chunk: done `70ab65c`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
 - **R3.6 CHANGELOG, CONTRIBUTING, issue templates**. Lane: Cursor. CPU: day. Status: `ready`.
   - CONTRIBUTING points to `AGENTS.md`'s rules (pre-registration, tests first).
