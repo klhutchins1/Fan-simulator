@@ -262,7 +262,7 @@ Kimball's.
       - one 2×-refined run at 10° that changes C_l ≤ 2 %.
     - Report the gate table and then the numbers. Pass windows are unchanged.
     - Outcomes (fixed): gate met + PASS → re-run rung A unchanged on this mesher and judge A1/A2. Anything else → the ladder closes for v0.1.0 (prop CFD stays "direction and bookkeeping only"), and the result is reported to Kimball.
-  - **QA-51: the NeuralFoil prop backend doesn't converge on the TUD prop.** Lane: Cursor. Status: `ready`. Until fixed, the backend appears only in Expert, labelled "experimental".
+  - **QA-51: the NeuralFoil prop backend doesn't converge on the TUD prop.** Lane: Cursor. Status: `in progress (Cursor, 2026-11-12)`. Until fixed, the backend appears only in Expert, labelled "experimental".
     - Landed: `scripts/prop_section_2d.py`, fast-suite case build + y+ ≤ 1, 2-D SST vs SST-LM at Re 8×10⁴. At α 4° SST C_l is −19 % vs the grok r17 reference and SST-LM is −24 % (neither A1 nor A2). Table in the ladder prereg. R2.2c stays blocked until Claude rules.
     - New `scripts/prop_section_2d.py`: a 2-D OpenFOAM case of the prop builder's generic section (6 % thick,
       camber 0.04) at Re 8×10⁴, y+ ≤ 1, α 0–8°, with `kOmegaSST` and `kOmegaSSTLM`.
