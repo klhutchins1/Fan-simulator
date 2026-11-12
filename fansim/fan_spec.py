@@ -269,14 +269,18 @@ _REGISTRY: dict[str, FanSpec] = {
         motor_efficiency=0.50, max_weight_g=65.0, material="PETG",
         ref_cfm=60.1, ref_static_pa=22.9, ref_noise_dba=22.6,
         # Motor interface: REAL MEASURED 2026-08-31 (user printed a fan + measured; the old 50 mm was a
-        # WRONG Google value that made the printed hub oversize). Motor hub the printed cup slips over =
-        # 37.25 mm inner dia; cup ~13 mm deep; hub must be >=15 mm tall to clear the frame spokes; ~20 mm
-        # rear bore; 3 mm shaft. Outer dia must be <=110 mm to clear the frame (tip_dia max above).
+        # WRONG Google value that made the printed hub oversize). The opening that slipped over the motor
+        # is 37.25 mm inner dia — the pad tips, not the metal boss. The reference impeller STL
+        # (validation/reference/a12x25_impeller.stl) has the same 37.25 mm inscribed opening.
+        # Clearance opens the cut so the pads have wall to sit in; protrude equals that clearance so the
+        # tips land back on 37.25. A 0.7 mm protrude (2026-09-15, d2aeed8) closed the tips to 36.55 mm
+        # and the printed hub stopped fitting (H7MQ8). Cup ~13 mm deep; hub >=15 mm tall to clear the
+        # frame spokes; ~20 mm rear bore; 3 mm shaft. Outer dia <=110 mm (tip_dia max above).
         # See [[fan-sim-a12x25-specs]].
         motor_mount=MotorMount(
             cavity_dia_mm=37.25, cavity_depth_mm=13.0, rear_bore_dia_mm=20.0,
             shaft_dia_mm=3.0, min_hub_height_mm=15.0,
-            grip_count=20, grip_dia_mm=2.4, grip_clearance_mm=0.35, grip_protrude_mm=0.7,
+            grip_count=20, grip_dia_mm=2.4, grip_clearance_mm=0.35, grip_protrude_mm=0.35,
         )),
     # A very different company + regime: Delta high-power industrial 120x38 mm fan. ~11x the power
     # budget, ~2x RPM, 38 mm thick -> a genuinely different constraint envelope (proves generality).

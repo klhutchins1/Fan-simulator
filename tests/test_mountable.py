@@ -12,7 +12,24 @@ from fansim.optimize.search_space import suggest_params
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-A12_MIN_HUB = 20.725  # grip-aware: pad outer + margin (cavity/2+clear+wall alone is 20.175)
+A12_MIN_HUB = 21.075  # pad outer + margin once tips sit on the 37.25 mm circle (wall alone is 20.175)
+
+
+def test_a12x25_pad_tips_match_the_opening_that_fits():
+    """Pad tips sit on the 37.25 mm circle, not inside it.
+
+    That circle is the 2026-08-31 measured inner diameter that slipped over the motor,
+    and the inscribed opening of validation/reference/a12x25_impeller.stl (37.24 mm).
+    Sticking the pads in 0.7 mm closed the tips to 36.55 mm, and H7MQ8 would not seat.
+    """
+    from fansim.fan_spec import mount_grip_pad_layout
+
+    mount = get_fan_spec("a12x25").motor_mount
+    layout = mount_grip_pad_layout(mount)
+    assert layout is not None
+    _cav_r, r_center, grip_r = layout
+    tip_dia = 2.0 * (r_center - grip_r)
+    assert tip_dia == pytest.approx(mount.cavity_dia_mm, abs=0.02)
 
 
 def test_mount_min_hub_radius():

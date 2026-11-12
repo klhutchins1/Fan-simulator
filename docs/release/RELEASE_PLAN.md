@@ -76,7 +76,9 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
 - **P3 Export the print.** Lane: Cursor. Status: `done` 2026-11-09. H7MQ8 Stock v3
   (`exports/H7MQ8_a12x25_stock_reference_20261109-220053.stl`); E0MWW t9002 extra. Material PLA+, 0.6 mm nozzle.
 - **P4 The session.** Lane: Kimball. Status: `in progress (Kimball, 2026-11-11)`. T2 27.41 g record-only; T3 FAIL → P6.
-  Still open: T1 fit, T4 tach/phone, T5 12 V rpm, T6 bag. Keep WAV/photos in `validation/prints/H7MQ8/`.
+  T1 FAIL: H7MQ8 pad tips 36.55 mm in the file (caliper 36.21 mm) will not seat. Still open: T4 tach/phone, T5 12 V rpm, T6 bag. Keep WAV/photos in `validation/prints/H7MQ8/`.
+- **P4a Hub opening.** Lane: Cursor. Status: `in progress (Cursor, 2026-11-11)`. Branch `hub-opening-3725`.
+  Pad tips back on the 37.25 mm circle (the 2026-08-31 opening and the reference STL). `cavity_dia_mm` stays 37.25. Protrude 0.7 → 0.35, equal to the clearance. Wrap, loft, and Stock YAML untouched.
 - **P5 Write up.** Lane: Claude or Cursor. Status: `blocked (P4)`. Fill the Results table in the pre-registration
   (nothing above it is edited) and put each failed check on this board as its own task.
 - **P6 Enlarge print-id glyphs (T3 FAIL / QA-80).** Lane: Cursor. CPU: day. Status: `done 2bfde35` (code); T3 coupon **needs Kimball**.
