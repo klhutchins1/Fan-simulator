@@ -190,3 +190,26 @@ def test_msys_default_is_not_a_user_machine_prefix():
 def test_export_test_module_does_not_embed_a_user_machine_path():
     text = (ROOT / "tests" / "test_export_release.py").read_text(encoding="utf-8")
     assert not er.leaks_user_path(text)
+
+
+# These product docs must ship. Machine paths in them are redacted, not a reason to drop the file.
+MUST_SHIP_DOCS = (
+    "docs/QA_REVIEW.md",
+    "docs/roadmap.md",
+    "docs/fluidx3d-setup.md",
+    "docs/release/RELEASE_PLAN.md",
+)
+
+
+def test_export_ships_product_docs_without_machine_prefixes(tmp_path):
+    out = tmp_path / "rel"
+    kept = er.export(
+        out,
+        files=list(MUST_SHIP_DOCS),
+        excludes=er.read_excludes(ROOT / "RELEASE_EXCLUDE"),
+        root=ROOT,
+    )
+    assert kept == list(MUST_SHIP_DOCS)
+    for rel in MUST_SHIP_DOCS:
+        text = (out / rel).read_text(encoding="utf-8")
+        assert not er.leaks_user_path(text), rel

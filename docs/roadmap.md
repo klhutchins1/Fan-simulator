@@ -1181,9 +1181,9 @@ marked *(verified 2026-10-08)*. Fix order: 23.1 first; it changes what "Stock" m
   (CI already uses it). **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — README/RECOVERY_TODO use `uv sync --extra dev` and CI's marker set.**
 - [x] **23.13 Hard-coded Windows paths:** `scripts/evaluate_noise.py:23–25` and
-  `scripts/evaluate_shutoff.py:27–29` (`E:/Projects/programming_2/FluidX3D`, `C:\msys64\ucrt64\bin`;
+  `scripts/evaluate_shutoff.py:27–29` (`<local FluidX3D path>`, `C:\msys64\ucrt64\bin`;
   README says `../FluidX3D`); `scripts/import_prop_stls.py` usage example uses
-  `C:/Users/Kimball/Downloads/...`. Move to env vars / config. **[impact: low]** **[effort: low]**
+  `<user-home>/Downloads/...`. Move to env vars / config. **[impact: low]** **[effort: low]**
   **DONE 2026-10-08 — `fansim/external_tools.py` (`FANSIM_FLUIDX3D`, `FANSIM_MSYS_BIN`); personal paths removed.**
 - [x] **23.14 Recovery leftovers:** RECOVERED-FROM-CHAT banners still in `README.md`,
   `scripts/cockpit.py`, `scripts/export_finalists.py`, `scripts/validate_stl.py`,

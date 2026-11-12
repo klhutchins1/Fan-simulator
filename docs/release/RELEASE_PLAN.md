@@ -318,7 +318,7 @@ Kimball's.
 - **R3.1 Release export hygiene**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-11)`.
   - grok r20 E: the leak check is waiting for R3.1 to land (not run).
   - Extend `RELEASE_EXCLUDE` and `scripts/export_release.py` to drop `archive/`, `memory/`, `handoff/`,
-    `docs/qa/screenshots`, `*.bak`, chat-recovery dumps and any `C:\Users\…` / `E:\…` paths.
+    `docs/qa/screenshots`, `*.bak`, chat-recovery dumps, and any user-home or E: drive prefix (either slash).
   - Test: an export of master contains none of them, and the grep for user paths is empty.
   - Ruling (Cursor, 2026-11-11): named large files stay in git and out of the public export. No Git LFS. CC-BY attribution in `THIRD_PARTY.md` stays. Tracked: `validation/reference/fan01/fan01_rotor.stl` (the only `fan01/*.stl`), `validation/reference/fan01/cad_model.zip`, `validation/reference/a12x25_impeller.stl`.
 - **R3.2 Packaging**. Lane: Cursor. CPU: day. Status: `ready`.
