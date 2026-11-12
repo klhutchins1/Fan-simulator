@@ -313,7 +313,7 @@ Kimball's.
     - Step 0, then `validation/reference/volute_epj2018/geometry.json` and `scripts/validate_volute_epj.py`.
   - **R2.5c runs.** Lane: night. Status: `blocked (R2.5a, R2.5b)`.
 - **R2.6 Centrifugal (no tab) and wind turbine (scaffold)**: excluded from v0.1.0.
-  - Lane: Cursor makes sure neither is reachable from the cockpit or the README quickstart. Status: `ready`.
+  - Lane: Cursor makes sure neither is reachable from the cockpit or the README quickstart. Status: `in progress (Cursor, 2026-11-12)`.
 
 ## M3: Releasable repo (parallel, mostly Cursor)
 
