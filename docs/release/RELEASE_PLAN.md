@@ -76,7 +76,9 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
 - **P3 Export the print.** Lane: Cursor. Status: `done` 2026-11-09. H7MQ8 Stock v3
   (`exports/H7MQ8_a12x25_stock_reference_20261109-220053.stl`); E0MWW t9002 extra. Material PLA+, 0.6 mm nozzle.
 - **P4 The session.** Lane: Kimball. Status: `in progress (Kimball, 2026-11-11)`. T2 27.41 g record-only; T3 FAIL → P6.
-  Still open: T1 fit, T4 tach/phone, T5 12 V rpm, T6 bag. Keep WAV/photos in `validation/prints/H7MQ8/`.
+  T1 FAIL: H7MQ8 pad tips 36.55 mm in the file (caliper 36.21 mm) will not seat. Still open: T4 tach/phone, T5 12 V rpm, T6 bag. Keep WAV/photos in `validation/prints/H7MQ8/`.
+- **P4a Hub opening.** Lane: Cursor. Status: `done 0beb057`. Branch `hub-opening-3725` (not merged).
+  Pad tips back on the 37.25 mm circle (the 2026-08-31 opening and the reference STL). `cavity_dia_mm` stays 37.25. Protrude 0.7 → 0.35, equal to the clearance. Wrap, loft, and Stock YAML untouched. Layout tests passed. Fit coupon, no blades: `exports/hub_fit_37.25mm_20261111-215225.stl` (also copied beside the other prints). 6 mm ring, pad tips 37.25 mm, 1.96 cm³. Kimball 2026-11-12: that ring fits the motor better than H7MQ8 and E0MWW; he will sand those two. Selecting A12x25 uses this pad circle (37.25 mm). The class default no longer sticks the pads in 0.7 mm. T1 stays open until a full impeller with this opening is on the frame.
 - **P5 Write up.** Lane: Claude or Cursor. Status: `blocked (P4)`. Fill the Results table in the pre-registration
   (nothing above it is edited) and put each failed check on this board as its own task.
 - **P6 Enlarge print-id glyphs (T3 FAIL / QA-80).** Lane: Cursor. CPU: day. Status: `done 2bfde35` (code); T3 coupon **needs Kimball**.
@@ -336,8 +338,9 @@ Kimball's.
   - Test: grok round 15 follows it on a clean Linux box. r15: NOT RUN (no guide yet); `docs/qa/notes/r15-install-dry-run.md`.
   - grok r20 D (2026-10-21, `docs/qa/notes/r20-D-install-guide-dry-run.md`): the clean-Linux dry run WORKS (install, cockpit HTTP 200, UI test 6/6; Docker would-run). README fixes are needed (QA-53): port 8080 not 9001, Assess 30–40 min, the clone URL, a Linux Docker link, and a 'Docker not installed' row.
   - grok r22 A (2026-10-29): QA-53 verified at b3d5543 (cockpit prints http://127.0.0.1:8080/ = README:137; README:138 "30–40 min"; README:107 "the GitHub URL", interim). Docker-not-installed row still absent (R3.4).
-- **R3.4 Docker/OpenFOAM readiness badge and first-run check (21.2g)**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-11)`.
+- **R3.4 Docker/OpenFOAM readiness badge and first-run check (21.2g)**. Lane: Cursor. CPU: day. Status: `done 540829e`.
   - The cockpit shows "CFD ready / Docker not running / image missing" with the fix in plain words.
+  - Landed: Simple mode shows one of four lines (CFD ready, start Docker Desktop, pull the OpenFOAM image, or install Docker); Kimball still signs off the wording.
 - **R3.5 GitHub Actions CI**. Lane: Cursor. CPU: none (cloud). Status: `ready`.
   - Port `.github/workflows/ci.yml` for GitHub: ubuntu fast suite in 3 chunks, plus a Windows job for the fast
     geometry and export subset.

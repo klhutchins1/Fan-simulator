@@ -157,7 +157,7 @@ def test_fan_spec_motor_mount_roundtrips():
     back = fan_spec_from_dict(fan_spec_to_dict(spec))
     assert back.motor_mount.cavity_dia_mm == 37.25 and back.motor_mount.rear_bore_dia_mm == 20.0
     assert back.motor_mount.grip_count == 20 and back.motor_mount.grip_dia_mm == 2.4
-    assert back.motor_mount.grip_protrude_mm == 0.7
+    assert back.motor_mount.grip_protrude_mm == 0.35
 
 
 def test_readme_flags_placeholder_bore(tmp_path):
