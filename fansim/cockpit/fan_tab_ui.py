@@ -579,6 +579,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             classes="mb-2",
                             style="white-space: pre-line",
                         )
+                        html.Div(
+                            "{{ cfd_readiness }}",
+                            classes="text-caption mb-2",
+                        )
                         render_action_row(
                             v3,
                             {
