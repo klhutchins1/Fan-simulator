@@ -90,7 +90,8 @@ def test_classify_puts_small_blade_on_a12x25(tmp_path):
     from fansim.catalog import results_for_hub
     runs = tmp_path / "runs"
     params = {
-        "n_blades": 5, "hub_radius": 21.0, "tip_radius": 49.8,
+        # Stock's hub (21.5 mm). Since a6b77c9 the A12x25 grip pads need r >= 21.075 mm, so 21.0 no longer fits.
+        "n_blades": 5, "hub_radius": 21.5, "tip_radius": 49.8,
         "stagger_root": 26, "stagger_mid": 26, "stagger_tip": 22,
         "chord_root": 34, "chord_mid": 30, "chord_tip": 28,
         "sweep_mid": 0, "sweep_tip": 2, "max_camber": 0.02,
