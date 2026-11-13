@@ -344,8 +344,9 @@
     "--tb=line"
    ],
    "max_hours": 3,
-   "status": "queued",
-   "why": "merge gate for branch process-tools (scripts/gate.py, scripts/morning_check.py, night runner follows origin/master, AGENTS.md process rules). Exit 0 = merge to master --no-ff."
+   "status": "done",
+   "why": "merge gate for branch process-tools (scripts/gate.py, scripts/morning_check.py, night runner follows origin/master, AGENTS.md process rules). Exit 0 = merge to master --no-ff.",
+   "note": "2026-11-09 green (exit 0); merged to master 2026-11-13 (Claude)"
   },
   {
    "id": "suite-r110-batch-all",
@@ -363,8 +364,9 @@
     "--tb=line"
    ],
    "max_hours": 3,
-   "status": "queued",
-   "why": "merge gate for R1.10 batch (G5 + R1.2 + R1.5 + R1.9, QA-57) at 957a483; merge r110-batch to master --no-ff if exit 0"
+   "status": "done",
+   "why": "merge gate for R1.10 batch (G5 + R1.2 + R1.5 + R1.9, QA-57) at 957a483; merge r110-batch to master --no-ff if exit 0",
+   "note": "2026-11-09 green (exit 0); NOT merged: master moved (r110-g3 merge) and tests/test_r110_g3_mixed_volute_copy.py now conflicts. Resolve, re-gate with scripts/gate.py, merge."
   },
   {
    "id": "suite-print-session-prep-all",
@@ -382,12 +384,12 @@
     "--tb=line"
    ],
    "max_hours": 3,
-   "status": "queued",
-   "why": "merge gate for board P2 (phone-recording tool for print session 1). Exit 0 = merge to master --no-ff."
+   "status": "done",
+   "why": "merge gate for board P2 (phone-recording tool for print session 1). Exit 0 = merge to master --no-ff.",
+   "note": "2026-11-09 green (exit 0); merged to master 2026-11-13 (Claude)"
   },
   {
    "id": "r22a-a0c-gate",
-   "branch": "r22a-a0c",
    "cmd": [
     "python",
     "-u",
@@ -429,11 +431,12 @@
     "--cgrid-refine-alpha",
     "10",
     "--out",
-    "runs/prop_section_a0c"
+    "T:/Projects/Fan Simulator/runs/prop_section_a0c"
    ],
-   "max_hours": 8,
+   "max_hours": 12,
    "status": "queued",
-   "why": "the pre-registered A0c gate"
+   "why": "the pre-registered A0c gate",
+   "note": "2026-11-12 night: exit 0xC0000005 after 71 s, 'OpenFOAM image not available', no solves. 2026-11-13 (Claude): the 3 base angles run on day CPU into the same absolute --out; this job resumes there, skips the solved angles and runs the 2x-refined 10 deg grid (about 8 h serial). Spec changed, so it runs once more. Docker Desktop must be running at 23:30."
   }
  ]
 }

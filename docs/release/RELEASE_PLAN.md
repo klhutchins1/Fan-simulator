@@ -70,7 +70,7 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
     engraved code equals the code in the README and `*_print_fit.json`.
   - Also put the predicted weight (material, infill) in the export README, as Preview shows it (check T2).
   - README states: "ID engraving removes about 2 % of the hub face; its effect on airflow was not simulated."
-- **P2 Recording tool.** Lane: Claude. Status: `in progress (Claude, 2026-11-09)`: branch `print-session-prep`
+- **P2 Recording tool.** Lane: Claude. Status: `done f60d234` (merged 2026-11-13; night gate green 2026-11-09): branch `print-session-prep`
   (`bd6b12e`), `scripts/analyze_fan_recording.py` + `validation/recording.py`, 12 tests. Gate: night job
   `suite-print-session-prep-all`. Merge if green.
 - **P3 Export the print.** Lane: Cursor. Status: `done` 2026-11-09. H7MQ8 Stock v3
@@ -152,6 +152,7 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   - QA-45: undersized cup hub gives the plain "hub radius too small" message.
 - R1.4 Stock recipe gap stated (about 5 % low): done 2026-10-25. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
 - **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)` (G5).
+  - 2026-11-13 (Claude): night gate `suite-r110-batch-all` was green on 957a483 (2026-11-09), but the branch is **not merged**. Master moved (the r110-g3 merge), and `tests/test_r110_g3_mixed_volute_copy.py` now conflicts; it is the only conflict. Resolve it, re-gate with `scripts/gate.py r110-batch`, then merge.
   - Groups G1–G5 with exact wording: `docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`. One branch per
     group, each with a grep or UI test.
   - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
@@ -251,6 +252,7 @@ Kimball's.
     - Pass: C_l ±5 % at 5° and 10°, C_d ±20 % at 0°.
   - **R2.2a″ rung A0c: last A0 attempt for v0.1.0.** Lane: Cursor. CPU: day (minutes; not 4–9 PM). Status: `in progress (Cursor, 2026-11-12)`.
     - 2026-11-12: C-grid counts, far field, wake length and LE/TE clustering are CLI flags; defaults stay 48/60/32, 8c and the old grading. A build-only gate mesh meets the geometric items. Night job `r22a-a0c-gate` is queued (0012, Re 6e6, SST, Tu 0.001, α 0 5 10, iters 10000, then 2× at 10°). The solve has not been started.
+    - 2026-11-13 (Claude): the night run of 2026-11-12 failed in 71 s ("OpenFOAM image not available": Docker was not up at 23:30; no solves). The 3 base angles are now running on day CPU as the one-shot Scheduled Task `fansim-a0c-day` into `T:/Projects/Fan Simulator/runs/prop_section_a0c` (about 2 h per angle, 10 000 iterations; it stops itself before 15:30). Night job `r22a-a0c-gate` now writes to the same absolute folder: tonight it skips the solved angles and runs only the 2×-refined 10° grid (about 8 h). Docker Desktop must be running at 23:30.
     - **Claude ruling 2026-11-06** (`docs/validation/audits/2026-11-06-ruling-rung-a0-cgrid.md`): the C-grid result is **INVALID as a judge of SST, not a FAIL of it**.
       - 0° and 5° are not converged (C_l(0°) swings −0.19…+0.22 in the tail).
       - The LE is about 2 cells across (48 uniform tangential cells; LE radius 1.6 mm).
