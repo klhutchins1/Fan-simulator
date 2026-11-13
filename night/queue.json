@@ -434,9 +434,9 @@
     "T:/Projects/Fan Simulator/runs/prop_section_a0c"
    ],
    "max_hours": 12,
-   "status": "queued",
+   "status": "hold",
    "why": "the pre-registered A0c gate",
-   "note": "2026-11-12 night: exit 0xC0000005 after 71 s, 'OpenFOAM image not available', no solves. 2026-11-13 (Claude): the 3 base angles run on day CPU into the same absolute --out; this job resumes there, skips the solved angles and runs the 2x-refined 10 deg grid (about 8 h serial). Spec changed, so it runs once more. Docker Desktop must be running at 23:30."
+   "note": "2026-11-12 night: exit 0xC0000005 after 71 s, 'OpenFOAM image not available', no solves. 2026-11-13 (Claude): the 3 base angles run on day CPU into the same absolute --out; this job resumes there, skips the solved angles and runs the 2x-refined 10 deg grid (about 8 h serial). Spec changed, so it runs once more. Docker Desktop must be running at 23:30. 2026-11-13 11:55 (Claude): HOLD. The day run diverged at once: at 0 deg simpleFoam hit a floating-point exception at iteration 48 (forces ~1e13), so no angle solved. Cursor is already on it in worktree fansim-a0c-wake (branch r22a-wake-aspect). Re-queue after that fix."
   }
  ]
 }
