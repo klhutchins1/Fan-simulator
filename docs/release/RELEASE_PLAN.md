@@ -249,7 +249,8 @@ Kimball's.
     - Pre-registered in `docs/validation/audits/2026-10-20-rulings-r18-r19-rungA.md` §1. Same script, with only the section, Re and α changed.
     - Report the achieved y+ (max and mean), layer coverage % and surface cell count.
     - Pass: C_l ±5 % at 5° and 10°, C_d ±20 % at 0°.
-  - **R2.2a″ rung A0c: last A0 attempt for v0.1.0.** Lane: Cursor. CPU: day (minutes; not 4–9 PM). Status: `ready`.
+  - **R2.2a″ rung A0c: last A0 attempt for v0.1.0.** Lane: Cursor. CPU: day (minutes; not 4–9 PM). Status: `in progress (Cursor, 2026-11-12)`.
+    - 2026-11-12: C-grid counts, far field, wake length and LE/TE clustering are CLI flags; defaults stay 48/60/32, 8c and the old grading. A build-only gate mesh meets the geometric items. Night job `r22a-a0c-gate` is queued (0012, Re 6e6, SST, Tu 0.001, α 0 5 10, iters 10000, then 2× at 10°). The solve has not been started.
     - **Claude ruling 2026-11-06** (`docs/validation/audits/2026-11-06-ruling-rung-a0-cgrid.md`): the C-grid result is **INVALID as a judge of SST, not a FAIL of it**.
       - 0° and 5° are not converged (C_l(0°) swings −0.19…+0.22 in the tail).
       - The LE is about 2 cells across (48 uniform tangential cells; LE radius 1.6 mm).

@@ -14,6 +14,10 @@ summary.json after every α/model unit and will not start a new unit after 15:30
     python scripts/prop_section_2d.py
     python scripts/prop_section_2d.py --section 0012 --re 6e6 --alphas 0 5 10 --models kOmegaSST --tu 0.001
     python scripts/prop_section_2d.py --analyze
+
+A0c gate grid (defaults stay 48/60/32, far field 8c). Iteration count is not tuning:
+
+    python scripts/prop_section_2d.py --build-only --mesh cgrid --section 0012 --re 6e6 --iters 10000 --cgrid-tangent 128 --cgrid-normal 120 --cgrid-wake 64 --cgrid-far 50 --cgrid-wake-len 50 --cgrid-end-cell 0.001 --cgrid-max-ratio 1.2 --cgrid-normal-growth 1.15
 """
 from __future__ import annotations
 
@@ -152,13 +156,15 @@ def _pt(p: np.ndarray, z: float) -> str:
     return f"({float(p[0]):.8g} {float(p[1]):.8g} {z:.8g})"
 
 
-def _cgrid_geometry(section: str):
+def _cgrid_geometry(section: str, r_outer: float | None = None, wake_len: float | None = None):
     """Corners and splines for a 4-block C-grid (cut in the wake, not at the TE).
 
     Trailing-edge and outlet vertices are duplicated (same coordinates, different
     indices) so the upper and lower surfaces are distinct edges. The wake slit is
     stitched with mergePatchPairs.
     """
+    r_outer = R_OUTER if r_outer is None else float(r_outer)
+    wake_len = WAKE_LEN if wake_len is None else float(wake_len)
     m, p, t = parse_naca4_code(section)
     foil = naca4(m, p, t, N_THETA) * CHORD  # closed: TE → upper → LE → lower → TE
     te = foil[0].copy()
@@ -166,22 +172,22 @@ def _cgrid_geometry(section: str):
     le = foil[i_le].copy()
     lower = np.vstack([te, foil[-2:i_le - 1:-1]])  # TE → LE along lower
     upper = foil[i_le::-1]  # LE → TE along upper
-    xmax = float(te[0] + WAKE_LEN)
+    xmax = float(te[0] + wake_len)
     outlet = np.array([xmax, 0.0])
     centre = np.array([0.25 * CHORD, 0.0])
     dx = float(te[0] - centre[0])
-    y_arc = math.sqrt(max(R_OUTER ** 2 - dx ** 2, 1e-18))
+    y_arc = math.sqrt(max(r_outer ** 2 - dx ** 2, 1e-18))
     te_lo = np.array([float(te[0]), -y_arc])
     te_hi = np.array([float(te[0]), y_arc])
-    le_out = centre + np.array([-R_OUTER, 0.0])
+    le_out = centre + np.array([-r_outer, 0.0])
     out_lo = np.array([xmax, -y_arc])
     out_hi = np.array([xmax, y_arc])
     n_arc = max(len(lower), 16)
     ang_te = math.atan2(-y_arc, dx)
     th_lo = np.linspace(ang_te, -math.pi, n_arc)
-    outer_lower = centre + R_OUTER * np.column_stack((np.cos(th_lo), np.sin(th_lo)))
+    outer_lower = centre + r_outer * np.column_stack((np.cos(th_lo), np.sin(th_lo)))
     th_hi = np.linspace(math.pi, -ang_te, n_arc)
-    outer_upper = centre + R_OUTER * np.column_stack((np.cos(th_hi), np.sin(th_hi)))
+    outer_upper = centre + r_outer * np.column_stack((np.cos(th_hi), np.sin(th_hi)))
     # 0 TE_lo, 1 LE, 2 outlet_lo, 3 LE_out, 4 TE_out_lo, 5 out_lo,
     # 6 TE_out_hi, 7 out_hi, 8 TE_hi, 9 outlet_hi
     corners = [te, le, outlet, le_out, te_lo, out_lo, te_hi, out_hi, te.copy(), outlet.copy()]
@@ -194,22 +200,235 @@ def _cgrid_geometry(section: str):
     return corners, splines
 
 
-def _cgrid_block_mesh_dict(*, section: str, re: float) -> str:
+def _edge_length(corners, splines, a: int, b: int) -> float:
+    if (a, b) in splines:
+        pts = np.vstack([corners[a], splines[(a, b)], corners[b]])
+    elif (b, a) in splines:
+        pts = np.vstack([corners[a], splines[(b, a)][::-1], corners[b]])
+    else:
+        pts = np.vstack([corners[a], corners[b]])
+    return float(np.linalg.norm(np.diff(pts, axis=0), axis=1).sum())
+
+
+def _geom_cell_sizes(length: float, n: int, expansion: float) -> list[float]:
+    """Cell lengths for OpenFOAM simpleGrading (expansion = last/first)."""
+    if n <= 0:
+        return []
+    if n == 1 or abs(expansion - 1.0) <= 1e-12:
+        return [length / n] * n
+    r = expansion ** (1.0 / (n - 1))
+    if abs(r - 1.0) <= 1e-14:
+        return [length / n] * n
+    first = length * (r - 1.0) / (r ** n - 1.0)
+    return [first * (r ** i) for i in range(n)]
+
+
+def _sizes_from_sections(length: float, n: int, sections: list[tuple[float, float, float]]) -> list[float]:
+    block_sum = sum(s[0] for s in sections)
+    div_sum = sum(s[1] for s in sections)
+    norm = [(s[0] / block_sum, s[1] / div_sum, s[2]) for s in sections]
+    counts = [int(s[1] * n + 0.5) for s in norm]
+    drift = n - sum(counts)
+    if counts and drift:
+        biggest = max(range(len(counts)), key=lambda i: counts[i])
+        counts[biggest] += drift
+    sizes: list[float] = []
+    for (block_frac, _div_frac, expansion), n_cells in zip(norm, counts):
+        sizes.extend(_geom_cell_sizes(block_frac * length, n_cells, expansion))
+    return sizes
+
+
+def _max_step_ratio(sizes: list[float]) -> float:
+    if len(sizes) < 2:
+        return 1.0
+    worst = 1.0
+    for a, b in zip(sizes, sizes[1:]):
+        lo = min(abs(a), abs(b))
+        if lo <= 0.0:
+            return float("inf")
+        worst = max(worst, max(abs(a), abs(b)) / lo)
+    return worst
+
+
+def _cluster_sections(length: float, n_req: int, end_max: float, ratio_max: float):
+    """Two-ended geometric clustering. Returns (n_cells, grading sections).
+
+    Sections are (edge-length fraction, cell fraction, last/first expansion).
+    The first cell and the last cell are each <= end_max, and every adjacent
+    ratio is <= ratio_max. n_cells is at least n_req.
+    """
+    if ratio_max <= 1.0:
+        raise ValueError(f"max adjacent ratio must be > 1, got {ratio_max}")
+    n = max(int(n_req), 4)
+    limit = n + 512
+
+    def attempt(n_cells: int, r: float):
+        for n_ramp in range(2, n_cells // 2 + 1):
+            n_mid = n_cells - 2 * n_ramp
+            ramp_unit = (r ** n_ramp - 1.0) / (r - 1.0)
+            plateau = r ** (n_ramp - 1)
+            factor = 2.0 * ramp_unit + n_mid * plateau
+            delta = length / factor
+            if delta > end_max:
+                continue
+            length_ramp = delta * ramp_unit
+            length_mid = n_mid * delta * plateau
+            expand = r ** (n_ramp - 1)
+            parts = [(length_ramp, n_ramp, expand)]
+            if n_mid > 0:
+                parts.append((length_mid, n_mid, 1.0))
+            parts.append((length_ramp, n_ramp, 1.0 / expand))
+            sections = [(part_l / length, nc / n_cells, exp) for part_l, nc, exp in parts]
+            sizes = _sizes_from_sections(length, n_cells, sections)
+            if not sizes or abs(sum(sizes) - length) / length > 1e-6:
+                continue
+            if sizes[0] > end_max or sizes[-1] > end_max:
+                continue
+            if _max_step_ratio(sizes) > ratio_max:
+                continue
+            return sections
+        return None
+
+    while n <= limit:
+        for scale in (1.0, 1.0 - 1e-6, 0.999, 0.99, 0.98):
+            r = 1.0 + (float(ratio_max) - 1.0) * scale
+            if r <= 1.0:
+                continue
+            found = attempt(n, r)
+            if found is not None:
+                return n, found
+        n += 1
+    raise ValueError(
+        f"cannot cluster length {length:.6g} m into >= {n_req} cells "
+        f"with ends <= {end_max:.6g} m and ratio <= {ratio_max}"
+    )
+
+
+def _wake_expansion(length: float, n_req: int, te_cell: float, ratio_max: float) -> tuple[int, float]:
+    """Cells and last/first expansion so the first cell equals the foil TE cell.
+
+    The edge runs TE → outlet. The reciprocal expansion is the outlet → TE edge.
+    """
+    def first_of(n_cells: int, r: float) -> float:
+        if abs(r - 1.0) <= 1e-15:
+            return length / n_cells
+        return length * (r - 1.0) / (r ** n_cells - 1.0)
+
+    n = max(int(n_req), 2)
+    while n <= n_req + 400:
+        uniform = length / n
+        if te_cell >= uniform:
+            if uniform <= 0.0 or te_cell / uniform <= ratio_max:
+                return n, 1.0
+            n += 1
+            continue
+        if first_of(n, ratio_max) > te_cell:
+            n += 1
+            continue
+        lo, hi = 1.0, float(ratio_max)
+        for _ in range(70):
+            mid = 0.5 * (lo + hi)
+            if first_of(n, mid) > te_cell:
+                lo = mid
+            else:
+                hi = mid
+        r = hi
+        if r <= 1.0 + 1e-15:
+            return n, 1.0
+        expansion = r ** (n - 1)
+        sizes = _geom_cell_sizes(length, n, expansion)
+        step = _max_step_ratio(sizes)
+        if sizes and sizes[0] <= te_cell * (1.0 + 1e-6) and step <= ratio_max:
+            return n, expansion
+        n += 1
+    raise ValueError(
+        f"cannot match wake cell {te_cell:.6g} m over {length:.6g} m "
+        f"with >= {n_req} cells and ratio <= {ratio_max}"
+    )
+
+
+def _normal_grading(re: float, r_outer: float, n_normal: int, yplus_target: float, growth_cap: float | None):
+    """Return (n_normal, last/first, first-cell metres). Growth cap adds cells, not y+."""
+    ds = wall_spacing_m(re, yplus_target=yplus_target)
+    length = float(r_outer) - 0.25 * CHORD
+    n = max(int(n_normal), 2)
+    while True:
+        gy = _grading_last_over_first(ds, length, n)
+        growth = 1.0 if n < 2 else gy ** (1.0 / (n - 1))
+        if growth_cap is None or growth <= float(growth_cap):
+            return n, gy, ds
+        n += 1
+        if n > max(int(n_normal), 2) + 8000:
+            raise ValueError(
+                f"normal growth stays above {growth_cap} at {n} cells "
+                f"(first cell {ds:.6g} m, length {length:.6g} m)"
+            )
+
+
+def _fmt_tangential(spec, gy: float, *, legacy: str | None = None) -> str:
+    gy_s = f"{gy:.8g}" if legacy is not None else f"{gy:.12g}"
+    if legacy is not None:
+        return f"simpleGrading ({legacy} {gy_s} 1)"
+    if isinstance(spec, (int, float)):
+        return f"simpleGrading ({float(spec):.12g} {gy_s} 1)"
+    rows = " ".join(f"({bf:.16g} {nf:.16g} {exp:.16g})" for bf, nf, exp in spec)
+    return f"simpleGrading ( ( {rows} ) {gy_s} 1 )"
+
+
+def _cgrid_block_mesh_dict(
+    *,
+    section: str,
+    re: float,
+    n_tangent: int | None = None,
+    n_normal: int | None = None,
+    n_wake: int | None = None,
+    far_chords: float | None = None,
+    wake_chords: float | None = None,
+    end_cell_frac: float | None = None,
+    max_ratio: float = 1.2,
+    normal_growth: float | None = None,
+    yplus_target: float = 0.8,
+) -> str:
     """Structured 4-block C-grid: two foil blocks + two wake blocks. Inner foil is `airfoil`."""
-    corners, splines = _cgrid_geometry(section)
-    ds = wall_spacing_m(re)
-    gy = _grading_last_over_first(ds, R_OUTER - 0.25 * CHORD, N_CGRID_NORMAL)
-    nx, nw, ny = N_CGRID_TANGENT, N_CGRID_WAKE, N_CGRID_NORMAL
+    r_outer = R_OUTER if far_chords is None else float(far_chords) * CHORD
+    wake_len = WAKE_LEN if wake_chords is None else float(wake_chords) * CHORD
+    n_tangent = N_CGRID_TANGENT if n_tangent is None else int(n_tangent)
+    n_normal_req = N_CGRID_NORMAL if n_normal is None else int(n_normal)
+    n_wake = N_CGRID_WAKE if n_wake is None else int(n_wake)
+    corners, splines = _cgrid_geometry(section, r_outer, wake_len)
+    ny, gy, ds = _normal_grading(re, r_outer, n_normal_req, yplus_target, normal_growth)
+    if end_cell_frac is None:
+        nx_lo = nx_hi = n_tangent
+        nw = n_wake
+        grade_lo = _fmt_tangential(1.0, gy, legacy="1")
+        grade_hi = _fmt_tangential(1.0, gy, legacy="1")
+        grade_wlo = _fmt_tangential(0.05, gy, legacy="0.05")
+        grade_whi = _fmt_tangential(20.0, gy, legacy="20")
+    else:
+        end_max = float(end_cell_frac) * CHORD
+        ratio_max = float(max_ratio)
+        len_lo = _edge_length(corners, splines, 0, 1)
+        len_hi = _edge_length(corners, splines, 1, 8)
+        nx_lo, sec_lo = _cluster_sections(len_lo, n_tangent, end_max, ratio_max)
+        nx_hi, sec_hi = _cluster_sections(len_hi, n_tangent, end_max, ratio_max)
+        te_lo = _sizes_from_sections(len_lo, nx_lo, sec_lo)[0]
+        te_hi = _sizes_from_sections(len_hi, nx_hi, sec_hi)[-1]
+        te_cell = max(te_lo, te_hi)
+        nw, wake_exp = _wake_expansion(wake_len, n_wake, te_cell, ratio_max)
+        grade_lo = _fmt_tangential(sec_lo, gy)
+        grade_hi = _fmt_tangential(sec_hi, gy)
+        grade_wlo = _fmt_tangential(1.0 / wake_exp, gy)
+        grade_whi = _fmt_tangential(wake_exp, gy)
     verts: list[str] = []
     for z in (0.0, SPAN):
         for p in corners:
             verts.append(f"    {_pt(p, z)}")
     # z=0: 0..9 as in _cgrid_geometry; z=SPAN: +10
     hexes = [
-        f"    hex (0 1 3 4 10 11 13 14) ({nx} {ny} 1) simpleGrading (1 {gy:.8g} 1)",
-        f"    hex (1 8 6 3 11 18 16 13) ({nx} {ny} 1) simpleGrading (1 {gy:.8g} 1)",
-        f"    hex (2 0 4 5 12 10 14 15) ({nw} {ny} 1) simpleGrading (0.05 {gy:.8g} 1)",
-        f"    hex (8 9 7 6 18 19 17 16) ({nw} {ny} 1) simpleGrading (20 {gy:.8g} 1)",
+        f"    hex (0 1 3 4 10 11 13 14) ({nx_lo} {ny} 1) {grade_lo}",
+        f"    hex (1 8 6 3 11 18 16 13) ({nx_hi} {ny} 1) {grade_hi}",
+        f"    hex (2 0 4 5 12 10 14 15) ({nw} {ny} 1) {grade_wlo}",
+        f"    hex (8 9 7 6 18 19 17 16) ({nw} {ny} 1) {grade_whi}",
     ]
     edge_lines = ["edges", "("]
     for (a, b), mid in splines.items():
@@ -222,7 +441,11 @@ def _cgrid_block_mesh_dict(*, section: str, re: float) -> str:
     edge_lines.append(");")
     return "\n".join([
         _foam("dictionary", "blockMeshDict"),
-        f"// cgrid firstLayer {ds:.8g} m  y+_req {first_cell_yplus(re):.3f}",
+        (
+            f"// cgrid firstLayer {ds:.8g} m  y+_req {first_cell_yplus(re):.3f}"
+            if abs(float(yplus_target) - 0.8) < 1e-12
+            else f"// cgrid firstLayer {ds:.8g} m  y+_req {float(yplus_target):.3f}"
+        ),
         "scale 1;",
         "vertices",
         "(",
@@ -460,6 +683,15 @@ def write_case(
     re: float = RE,
     tu: float | None = None,
     mesh: str = "snappy",
+    n_tangent: int | None = None,
+    n_normal: int | None = None,
+    n_wake: int | None = None,
+    far_chords: float | None = None,
+    wake_chords: float | None = None,
+    end_cell_frac: float | None = None,
+    max_ratio: float = 1.2,
+    normal_growth: float | None = None,
+    yplus_target: float = 0.8,
 ) -> Path:
     """Write a 2-D simpleFoam case. Does not run blockMesh or the solver."""
     if model not in MODELS:
@@ -486,7 +718,15 @@ def write_case(
 
     if mesh == "cgrid":
         (case / "system" / "blockMeshDict").write_text(
-            _cgrid_block_mesh_dict(section=section, re=re), encoding="utf-8")
+            _cgrid_block_mesh_dict(
+                section=section, re=re,
+                n_tangent=n_tangent, n_normal=n_normal, n_wake=n_wake,
+                far_chords=far_chords, wake_chords=wake_chords,
+                end_cell_frac=end_cell_frac, max_ratio=max_ratio,
+                normal_growth=normal_growth, yplus_target=yplus_target,
+            ),
+            encoding="utf-8",
+        )
     else:
         (case / "system" / "blockMeshDict").write_text(_block_mesh_dict(), encoding="utf-8")
         (case / "system" / "snappyHexMeshDict").write_text(_snappy_dict(re=re), encoding="utf-8")
@@ -844,7 +1084,73 @@ def parse_cli(argv: list[str] | None = None) -> argparse.Namespace:
         "--mesh", choices=("snappy", "cgrid"), default="snappy",
         help="snappy+layers (rung A default) or structured C-grid (A0 mesher fix)",
     )
+    ap.add_argument("--cgrid-tangent", type=int, default=N_CGRID_TANGENT,
+                    help="C-grid cells along each airfoil surface (default 48)")
+    ap.add_argument("--cgrid-normal", type=int, default=N_CGRID_NORMAL,
+                    help="C-grid cells from the wall to the far field (default 60)")
+    ap.add_argument("--cgrid-wake", type=int, default=N_CGRID_WAKE,
+                    help="C-grid cells along the wake (default 32)")
+    ap.add_argument("--cgrid-far", type=float, default=R_OUTER / CHORD,
+                    help="far-field radius in chords (default 8)")
+    ap.add_argument("--cgrid-wake-len", type=float, default=WAKE_LEN / CHORD,
+                    help="wake length downstream of the trailing edge, in chords (default 16)")
+    ap.add_argument("--cgrid-end-cell", type=float, default=None,
+                    help="cluster the LE and TE cells to this fraction of chord")
+    ap.add_argument("--cgrid-max-ratio", type=float, default=1.2,
+                    help="max adjacent tangential cell-size ratio when clustering")
+    ap.add_argument("--cgrid-normal-growth", type=float, default=None,
+                    help="cap on wall-normal growth; the normal count is raised if needed")
+    ap.add_argument("--cgrid-refine", type=int, default=1,
+                    help="after the main angles, solve one angle on a grid refined by this factor")
+    ap.add_argument("--cgrid-refine-alpha", type=float, default=None,
+                    help="angle for the refined grid (default: the last --alphas value)")
     return ap.parse_args(argv)
+
+
+def cgrid_jobs(ns) -> list[dict]:
+    """Solve campaigns. A refine factor adds one finer grid at a single angle."""
+    base = {
+        "alphas": [float(x) for x in ns.alphas],
+        "n_tangent": int(ns.cgrid_tangent),
+        "n_normal": int(ns.cgrid_normal),
+        "n_wake": int(ns.cgrid_wake),
+        "far_chords": float(ns.cgrid_far),
+        "wake_chords": float(ns.cgrid_wake_len),
+        "end_cell_frac": None if ns.cgrid_end_cell is None else float(ns.cgrid_end_cell),
+        "max_ratio": float(ns.cgrid_max_ratio),
+        "normal_growth": (
+            None if ns.cgrid_normal_growth is None else float(ns.cgrid_normal_growth)
+        ),
+        "yplus_target": 0.8,
+        "tag": "base",
+    }
+    jobs = [base]
+    refine = int(ns.cgrid_refine or 1)
+    if refine > 1:
+        fine = dict(base)
+        fine["n_tangent"] *= refine
+        fine["n_normal"] *= refine
+        fine["n_wake"] *= refine
+        if fine["end_cell_frac"] is not None:
+            fine["end_cell_frac"] = float(fine["end_cell_frac"]) / refine
+        fine["yplus_target"] = 0.8 / refine
+        alpha = base["alphas"][-1] if ns.cgrid_refine_alpha is None else ns.cgrid_refine_alpha
+        fine["alphas"] = [float(alpha)]
+        fine["tag"] = f"refine{refine}"
+        jobs.append(fine)
+    return jobs
+
+
+def _cgrid_kwargs(job: dict | None) -> dict:
+    if not job:
+        return {}
+    return {
+        key: job[key]
+        for key in (
+            "n_tangent", "n_normal", "n_wake", "far_chords", "wake_chords",
+            "end_cell_frac", "max_ratio", "normal_growth", "yplus_target",
+        )
+    }
 
 
 def _past_cutoff(now: datetime | None = None) -> bool:
@@ -891,11 +1197,16 @@ def main(argv: list[str] | None = None) -> int:
         if m not in MODELS:
             raise SystemExit(f"model must be one of {MODELS}, got {m!r}")
 
+    n_iters = int(a.iters)
+    campaigns = cgrid_jobs(a) if mesh == "cgrid" else [None]
+
     if a.build_only:
         write_case(
             out / "build_only", alpha_deg=alphas[0] if alphas else 4.0,
             model=models[0] if models else "kOmegaSST",
+            n_iters=n_iters,
             section=section, re=re_n, tu=tu, mesh=mesh,
+            **_cgrid_kwargs(campaigns[0]),
         )
         print(f"wrote {out / 'build_only'} y+={first_cell_yplus(re_n):.3f} section={section}")
         return 0
@@ -924,77 +1235,88 @@ def main(argv: list[str] | None = None) -> int:
         print("OpenFOAM image not available; wrote no solves. Use --build-only.", file=sys.stderr)
         return 2
 
-    n_iters = int(a.iters)
-    points = summary.setdefault("points", {})
-    mesh_dir = out / "_mesh"
-    mesh_src = mesh_dir / "constant" / "polyMesh"
-    if not (mesh_src / "points").is_file():
-        write_case(
-            mesh_dir, alpha_deg=0.0, model="kOmegaSST", n_iters=n_iters,
-            section=section, re=re_n, tu=tu, mesh=mesh,
-        )
-        mesh_run = OpenFOAMRunner(mesh_dir)
-        mesh_run.run("blockMesh")
-        coverage: float | None
-        if mesh == "cgrid":
-            mesh_run.run("checkMesh")
-            coverage = 100.0
-        else:
-            mesh_run.run("surfaceFeatureExtract")
-            mesh_run.run("snappyHexMesh -overwrite")
-            snap_log = (mesh_dir / "logs" / "snappyHexMesh.log")
-            coverage = None
-            if snap_log.is_file():
-                coverage = parse_layer_coverage(
-                    snap_log.read_text(encoding="utf-8", errors="replace"))
-        summary["mesh"] = {
-            "kind": mesh,
-            "layer_coverage_pct": coverage,
-            "surface_cells": parse_surface_cells(mesh_dir),
-            "yplus_requested": first_cell_yplus(re_n),
-        }
-        summ_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    for model in models:
-        points.setdefault(model, {})
-        for alpha in alphas:
-            key = f"{alpha:.1f}"
-            if points[model].get(key, {}).get("cl") is not None:
-                continue
-            if _past_cutoff():
-                _write_progress(out, {"stopped": "cutoff", "next": [model, alpha]})
+    for campaign in campaigns:
+        camp_tag = "base" if campaign is None else campaign["tag"]
+        ckw = _cgrid_kwargs(campaign)
+        run_alphas = alphas if campaign is None else campaign["alphas"]
+        bucket = summary if camp_tag == "base" else summary.setdefault(camp_tag, {"points": {}})
+        points = bucket.setdefault("points", {})
+        yp_req = first_cell_yplus(re_n) if campaign is None else float(campaign["yplus_target"])
+        mesh_dir = out / ("_mesh" if camp_tag == "base" else f"_mesh_{camp_tag}")
+        mesh_src = mesh_dir / "constant" / "polyMesh"
+        if not (mesh_src / "points").is_file():
+            write_case(
+                mesh_dir, alpha_deg=0.0, model="kOmegaSST", n_iters=n_iters,
+                section=section, re=re_n, tu=tu, mesh=mesh, **ckw,
+            )
+            mesh_run = OpenFOAMRunner(mesh_dir)
+            mesh_run.run("blockMesh")
+            coverage: float | None
+            if mesh == "cgrid":
+                mesh_run.run("checkMesh")
+                coverage = 100.0
+            else:
+                mesh_run.run("surfaceFeatureExtract")
+                mesh_run.run("snappyHexMesh -overwrite")
+                snap_log = (mesh_dir / "logs" / "snappyHexMesh.log")
+                coverage = None
+                if snap_log.is_file():
+                    coverage = parse_layer_coverage(
+                        snap_log.read_text(encoding="utf-8", errors="replace"))
+            mesh_info = {
+                "kind": mesh,
+                "layer_coverage_pct": coverage,
+                "surface_cells": parse_surface_cells(mesh_dir),
+                "yplus_requested": yp_req,
+            }
+            if camp_tag == "base":
+                summary["mesh"] = mesh_info
+            else:
+                bucket["mesh"] = mesh_info
+            summ_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+        for model in models:
+            points.setdefault(model, {})
+            for alpha in run_alphas:
+                key = f"{alpha:.1f}"
+                if points[model].get(key, {}).get("cl") is not None:
+                    continue
+                if _past_cutoff():
+                    _write_progress(out, {
+                        "stopped": "cutoff", "next": [model, alpha], "grid": camp_tag,
+                    })
+                    summary["verdict"] = _judge(
+                        summary, section=section, re=re_n, alphas=alphas)
+                    summ_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+                    print("stopped before 15:30 local; remaining units left for another day")
+                    return 0
+                tag = f"{model}_a{key}" if camp_tag == "base" else f"{camp_tag}_{model}_a{key}"
+                case = out / tag
+                _write_progress(out, {"current": tag, "start": time.time()})
+                write_case(
+                    case, alpha_deg=alpha, model=model, n_iters=n_iters,
+                    section=section, re=re_n, tu=tu, mesh=mesh, **ckw,
+                )
+                dest = case / "constant" / "polyMesh"
+                if dest.exists():
+                    shutil.rmtree(dest)
+                shutil.copytree(mesh_src, dest)
+                run = OpenFOAMRunner(case)
+                t0 = time.time()
+                if mesh == "cgrid":
+                    run.run("potentialFoam -writep")
+                run.run("simpleFoam")
+                parsed = parse_cl_cd(case)
+                cl, cd = (None, None) if parsed is None else parsed
+                yp = parse_yplus(case)
+                points[model][key] = {
+                    "cl": cl, "cd": cd, "wall_s": time.time() - t0,
+                    "yplus_first": yp_req,
+                    "yplus": yp,
+                }
                 summary["verdict"] = _judge(
                     summary, section=section, re=re_n, alphas=alphas)
                 summ_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-                print("stopped before 15:30 local; remaining units left for another day")
-                return 0
-            tag = f"{model}_a{key}"
-            case = out / tag
-            _write_progress(out, {"current": tag, "start": time.time()})
-            write_case(
-                case, alpha_deg=alpha, model=model, n_iters=n_iters,
-                section=section, re=re_n, tu=tu, mesh=mesh,
-            )
-            dest = case / "constant" / "polyMesh"
-            if dest.exists():
-                shutil.rmtree(dest)
-            shutil.copytree(mesh_src, dest)
-            run = OpenFOAMRunner(case)
-            t0 = time.time()
-            if mesh == "cgrid":
-                run.run("potentialFoam -writep")
-            run.run("simpleFoam")
-            parsed = parse_cl_cd(case)
-            cl, cd = (None, None) if parsed is None else parsed
-            yp = parse_yplus(case)
-            points[model][key] = {
-                "cl": cl, "cd": cd, "wall_s": time.time() - t0,
-                "yplus_first": first_cell_yplus(re_n),
-                "yplus": yp,
-            }
-            summary["verdict"] = _judge(
-                summary, section=section, re=re_n, alphas=alphas)
-            summ_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-            print(f"{tag} Cl={cl} Cd={cd} y+={yp}")
+                print(f"{tag} Cl={cl} Cd={cd} y+={yp}")
     print(json.dumps(summary.get("verdict")))
     return 0
 
