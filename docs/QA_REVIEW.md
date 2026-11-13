@@ -19,21 +19,18 @@ bug hunts; re-check a fix only when the bug was HIGH.
 - Known recovery gaps from README_RECOVERY.md / RECOVERY_TODO.md are not counted as bugs.
 - Paths like `/workspace/fansim/...` and `qa/...` are on the QA bot's machine (screenshots, scratch scripts); ask if you need one.
 
-## ▶ Next round for the QA bot: round 29 (refreshed by Cursor 2026-11-12). Delivered as `handoff/2026-11-11_to-qa-29/`
+## ▶ Next round for the QA bot: round 29 (Cursor 2026-11-12, four pickups). Delivered as `handoff/2026-11-11_to-qa-29/`
 
-**No new research-lead rounds** until grok has re-checked QA-73 HIGH on this bundle. Further scout work should lean **print-quality and measurement** (glyphs, coupon, T1–T6, fit, weight), not more papers. Four looks a day share this one list: take the next letter that is not already written up in `docs/qa/rounds/r29.md`.
+One bundle, four pickups. Each look continues at the first pickup with no written result in `docs/qa/rounds/r29.md`, writes that result, then starts the next if time remains. A timeout does not lose a finished pickup.
 
-**Round 28 is DONE** (`handoff/2026-11-09_from-qa-28/`, `docs/qa/rounds/r28.md`). The 2026-11-11 bundle (master `98e3f2c`) was never returned; this refresh replaces it. Bundle is `handoff/2026-11-11_to-qa-29/fansim_master.bundle` at the commit that adds this section. No Docker, CFD, OpenFOAM, Assess, Sweep or Optimize run. Re-check a fix only when it was HIGH.
+**Round 28 is DONE** (`handoff/2026-11-09_from-qa-28/`, `docs/qa/rounds/r28.md`). The 2026-11-11 bundle (master `98e3f2c`) was never returned; this queue replaces it. No Docker, OpenFOAM, Assess, Sweep, or Optimize. The A0c solve stays on Kimball's night queue.
 
-| # | task | board |
-|---|---|---|
-| A | **QA-73 HIGH re-check.** Export Stock with a known print-id. From outside +Z the recessed code must read left-to-right, un-mirrored, and equal the README / `*_print_fit.json` code. Cap is 5.0 mm, stroke 0.9 mm, band r 11.5–16.5 (P6, H7MQ8 T3 FAIL). Red: tests fail on pre-fix `eeb0e2d`. Green: `tests/test_print_id.py` + `tests/test_print_id_glyphs.py`. | QA-73, QA-80 |
-| B | **QA-79 (hub face, not bbox).** On a design whose blades stick above the hub (t9002 / E0MWW class): the mark must sit on the hub +Z face, not on `BoundingBox.zmax`. | QA-79 |
-| C | **Hub opening, re-derive.** Protrude 0.35 mm, pad tips on 37.25 mm. Old protrude 0.7 mm was 36.55 mm. Tests in `tests/test_mountable.py`. Do not change `cavity_dia_mm`. Prereg `docs/validation/audits/2026-11-11-hub-opening-prereg.md`. | P4a |
-| D | **QA-51 label only.** Simple mode does not offer NeuralFoil. Expert title contains "experimental". Do not try to make the TUD prop converge. | QA-51 |
-| E | **R2.6 reachability.** Centrifugal-only and wind-turbine flows stay out of the cockpit and the README Quickstart. Mixed and Volute stay. | R2.6 |
-| F | **A0c code read only.** Defaults stay 48/60/32. Gate flags match the 2026-11-06 ruling. Do not start the solve. | R2.2a″ |
-| G | Do not CFD the pocket. Do not re-prove G2 or G3. Do not open a new lead batch. QA-74/75/76 travel with QA-73. | — |
+| pickup | work |
+|---|---|
+| 1 | Accuracy, geometry. QA-73 HIGH glyphs. QA-79 hub face. Hub tips at 37.25 mm, not 36.55. |
+| 2 | GUI. Say/do tests, NeuralFoil Expert-only, scaffolds hidden. Re-check UI-26, UI-27, UI-31, UI-33, QA-40, QA-42 on this master. Do not click Run. |
+| 3 | CPU. Clean clone, `uv sync --extra dev`, full fast suite (`not docker and not slow`). |
+| 4 | Accuracy, code only. A0c flags match the 2026-11-06 ruling. One Simple-mode overclaim, then stop. |
 
 ## Tested build
 - Source: copy of `T:\Projects\Fan Simulator` working tree, 2026-10-08 (no `.git`, so no commit hash). Linux, Python 3.12, no Docker/OpenFOAM/CFD.
