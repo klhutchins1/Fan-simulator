@@ -39,13 +39,21 @@ def build_volute_case(
     back_pressure_pa: float | None = None,
     u_guess: float = 2.0,
     wall_ks_mm: float | None = None,
+    relax: dict | None = None,
 ) -> Path:
     """Write a ready-to-run volute MRF case.
 
     ``impeller_stl_mm`` / ``casing_stl_mm`` are millimeter-scale STLs (scaled to m).
     Inlet patch = +Z face of the hex; outlet patch = +X face. Pressure-driven mode
     when ``back_pressure_pa`` is set (optimizer / evaluate path).
+    ``relax`` overrides the SIMPLE relaxation, ``{"p": .., "U": .., "turb": ..}`` (R2.5a sweep);
+    None keeps the shared defaults (p 0.3, U and k/omega 0.7).
     """
+    if relax is not None:
+        for key in ("p", "U", "turb"):
+            v = float(relax[key])
+            if not 0.0 < v <= 1.0:
+                raise ValueError(f"relax[{key!r}] must be in (0, 1], got {v}")
     case_dir = Path(case_dir)
     mesh = mesh or MeshResolution()
     for sub in ("0", "constant/triSurface", "system"):
@@ -115,6 +123,8 @@ def build_volute_case(
     })
     _write(case_dir / "system/fvSchemes", T.FV_SCHEMES, "dictionary", "fvSchemes", {})
     _write(case_dir / "system/fvSolution", T.FV_SOLUTION, "dictionary", "fvSolution", {})
+    if relax is not None:
+        _set_relaxation(case_dir / "system/fvSolution", relax)
     _write(case_dir / "system/decomposeParDict", T.DECOMPOSE_PAR,
            "dictionary", "decomposeParDict", {"NPROCS": n_subdomains})
 
@@ -187,3 +197,15 @@ def build_volute_case(
     }, indent=2), encoding="utf-8")
 
     return case_dir
+
+
+def _set_relaxation(path: Path, relax: dict) -> None:
+    """Swap the shared template's relaxation lines for the given factors."""
+    text = path.read_text(encoding="utf-8")
+    old_f, old_e = "fields    { p 0.3; }", 'equations { U 0.7; "(k|omega)" 0.7; }'
+    if old_f not in text or old_e not in text:
+        raise ValueError("fvSolution template changed: relaxation lines not found")
+    text = text.replace(old_f, f"fields    {{ p {float(relax['p']):g}; }}")
+    text = text.replace(
+        old_e, f'equations {{ U {float(relax["U"]):g}; "(k|omega)" {float(relax["turb"]):g}; }}')
+    path.write_text(text, encoding="utf-8")
