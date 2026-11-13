@@ -151,8 +151,8 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   - QA-42: the Preview weight line names the material and infill ("11 g PLA+, 20 % infill");
   - QA-45: undersized cup hub gives the plain "hub radius too small" message.
 - R1.4 Stock recipe gap stated (about 5 % low): done 2026-10-25. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
-- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)` (batch: G5 + R1.2 + R1.5 + R1.9).
-  - 2026-11-13 (Claude): night gate `suite-r110-batch-all` was green on 957a483 (2026-11-09). Master had moved (the r110-g3 merge), so the merge conflicted in one docstring of `tests/test_r110_g3_mixed_volute_copy.py` (master's wording kept). It was re-gated with `scripts/gate.py` and then merged.
+- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `done 1c2cf12` (batch: G5 + R1.2 + R1.5 + R1.9; merged 2026-11-13).
+  - 2026-11-13 (Claude): night gate `suite-r110-batch-all` was green on 957a483 (2026-11-09). Master had moved (the r110-g3 merge), so the merge conflicted in one docstring of `tests/test_r110_g3_mixed_volute_copy.py` (master's wording kept). Re-gate on `claude/r110-batch-merge`: the first run was RED on `test_catalog.py::test_classify_puts_small_blade_on_a12x25`, which had been red on master since a6b77c9 (the pad-tip fix raised the A12x25 minimum hub radius to 21.075 mm, and the fixture had 21.0). The fixture now uses Stock's 21.5 mm hub (781310f). Second gate green: 705/655/716 at f716dc0.
   - Groups G1–G5 with exact wording: `docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`. One branch per
     group, each with a grep or UI test.
   - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
