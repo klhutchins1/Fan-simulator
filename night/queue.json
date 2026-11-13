@@ -437,6 +437,20 @@
    "status": "hold",
    "why": "the pre-registered A0c gate",
    "note": "2026-11-12 night: exit 0xC0000005 after 71 s, 'OpenFOAM image not available', no solves. 2026-11-13 (Claude): the 3 base angles run on day CPU into the same absolute --out; this job resumes there, skips the solved angles and runs the 2x-refined 10 deg grid (about 8 h serial). Spec changed, so it runs once more. Docker Desktop must be running at 23:30. 2026-11-13 11:55 (Claude): HOLD. The day run diverged at once: at 0 deg simpleFoam hit a floating-point exception at iteration 48 (forces ~1e13), so no angle solved. Cursor is already on it in worktree fansim-a0c-wake (branch r22a-wake-aspect). Re-queue after that fix."
+  },
+  {
+   "id": "r25a-volute-conv-sweep",
+   "branch": "claude/r25a-volute-conv",
+   "cmd": [
+    "python",
+    "-u",
+    "scripts/volute_convergence_sweep.py",
+    "--out",
+    "T:/Projects/Fan Simulator/runs/volute_conv_r25a"
+   ],
+   "max_hours": 5,
+   "status": "queued",
+   "why": "R2.5a volute convergence sweep, pre-registered in docs/validation/audits/2026-11-13-volute-convergence-sweep-prereg.md (12 solves x 3000 iters, ~3 h on 16 procs). Judged on step-1 convergence only."
   }
  ]
 }
