@@ -124,7 +124,7 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
       - grok r24 B (2026-11-01, `docs/qa/notes/r24-B-qa64-wording.md`): "near free air … within 8 %" fails on lt120 (P/Pmax 0.20; +8.1 %); **use "within 10 %", lt120 "at its lowest measured load (6.85 Pa)"** (all numbers ≤ 9.5 %; frozen 0.5 mm gap). QA-64.
       - grok r24 C (2026-11-01, `docs/qa/notes/r24-C-k1-visibility.md`): K1 is **not** shown for a converged=False score (only in reject text). QA-65 (MED); patch `docs/qa/patches/r24-C-k1-visible.patch`.
       - grok r25 C (2026-11-02, `docs/qa/notes/r25-C-qa64-strings.md`): both audit lines (`2026-10-18-…:89`, `2026-10-30-…:69`) still say "near free air … within 8 %" on 9d0118f; QA-64 open until R1.10.
-- **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `ready`.
+- **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `in progress (Cursor, 2026-11-09)` (R1.10 batch).
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
   - Make sure the UI and README never quote a number above the validated range. Add a test that the P–Q display
     stops at the last converged point.
@@ -144,15 +144,15 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   grok r17 C (2026-10-19, `docs/qa/notes/r17-C-hang-refusals.md`): r14 P0 bounds with R1.7 + R1.8 give 2.0 % refused (Wilson ≤ 4.3 %), so the bounds stand. R1.8 alone gives 7.7 %, R1.7 alone 0.3 %.
 - R1.7 One hub for score and export (QA-44): done `027ebcb`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
 - R1.8 Two-stage hang check (QA-43): done `027ebcb`, acceptance 10/10 `a42544e`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
-- **R1.9 Small QA fixes**. Lane: Cursor. CPU: day. Status: `ready`. One branch, one test each:
+- **R1.9 Small QA fixes**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)` (R1.10 batch). One branch, one test each:
   - QA-39: sort postProcessing time dirs numerically (`_pp_file`, `sanity.py`, `timing.py`, the objectives copy);
   - QA-40: no noise text in Simple mode when there is no Stock reference;
   - QA-41: `watch_parent` must treat a zombie or exited launcher as gone (not `os.kill(pid, 0)` alone on Linux);
   - QA-42: the Preview weight line names the material and infill ("11 g PLA+, 20 % infill");
   - QA-45: undersized cup hub gives the plain "hub radius too small" message.
 - R1.4 Stock recipe gap stated (about 5 % low): done 2026-10-25. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
-- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)` (G5).
-  - 2026-11-13 (Claude): night gate `suite-r110-batch-all` was green on 957a483 (2026-11-09), but the branch is **not merged**. Master moved (the r110-g3 merge), and `tests/test_r110_g3_mixed_volute_copy.py` now conflicts; it is the only conflict. Resolve it, re-gate with `scripts/gate.py r110-batch`, then merge.
+- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)` (batch: G5 + R1.2 + R1.5 + R1.9).
+  - 2026-11-13 (Claude): night gate `suite-r110-batch-all` was green on 957a483 (2026-11-09). Master had moved (the r110-g3 merge), so the merge conflicted in one docstring of `tests/test_r110_g3_mixed_volute_copy.py` (master's wording kept). It was re-gated with `scripts/gate.py` and then merged.
   - Groups G1–G5 with exact wording: `docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`. One branch per
     group, each with a grep or UI test.
   - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
@@ -209,7 +209,7 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   - grok r26 (2026-11-04, `docs/qa/notes/r26-qa66-qa65-recheck.md`): on bd6abdd **QA-66 verified 5/5; r25-A CLI test covered; R1.11 closable.** New **QA-68** (LOW): CLI catalog refusal is an uncaught traceback, not exit 2; `docs/qa/patches/r26-A-qa68-catch-refusal.patch`.
   - QA-68 done (Claude, 2026-11-04, merge of `r26-qa68`): grok's patch. The catalog/Docker refusal exits 2 with the
     message; its test failed first (uncaught RuntimeError). Fast chunks 692+515+702 passed (OCCT teardown exit only).
-- **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)` (R1.10 batch).
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.
     Add a test that the label is present.

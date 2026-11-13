@@ -27,7 +27,7 @@ from fansim.cfd.casing import export_casing_stl
 from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM, remaining_tip_gap_mm, rig_for_impeller
 from fansim.cfd.frame import export_frame_stl, stack_frame_z_start_mm
 from fansim.cfd.orientation import prepare_axial_cfd
-from fansim.cfd.metrics import parse_fan_metrics
+from fansim.cfd.metrics import latest_pp_file, parse_fan_metrics
 from fansim.cfd.openfoam_case import ASSESS_SURF_MAX_FLOOR, MeshResolution, build_case, run_mesh, run_solve
 from fansim.cfd.runner import OpenFOAMRunner
 from fansim.cfd.sanity import FAIL as SANITY_FAIL
@@ -484,10 +484,12 @@ def evaluate_candidate(
                 hist = workdir / FREE_HISTORY_DIR
                 for fo, name in (("outletFlow", "surfaceFieldValue.dat"),
                                  ("forces", "moment.dat")):
-                    src = sorted((workdir / "postProcessing" / fo).glob(f"*/{name}"))
-                    if src:
-                        (hist / fo).mkdir(parents=True, exist_ok=True)
-                        shutil.copyfile(src[-1], hist / fo / name)
+                    try:
+                        src = latest_pp_file(workdir, fo, name)
+                    except FileNotFoundError:
+                        continue
+                    (hist / fo).mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(src, hist / fo / name)
             except Exception:  # noqa: BLE001 - salvage file is best-effort
                 pass
             m_load = solve_at(load_pa, "load")

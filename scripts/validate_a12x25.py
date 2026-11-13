@@ -36,6 +36,7 @@ from fansim.cfd.orientation import prepare_axial_cfd  # noqa: E402
 from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
 from fansim.geometry import build_impeller, export_stl  # noqa: E402
 from fansim.geometry.config import load_blade_params  # noqa: E402
+from fansim.validation.pq_shutoff import pq_rows_for_display  # noqa: E402
 
 # Published NF-A12x25 PWM (docs/a12x25-reference.md).
 PUB_FREE_AIR_CFM = 60.1
@@ -98,14 +99,10 @@ def main() -> int:
               "unresolved tip gap; the validation task is to shrink this toward 1.0.)")
 
     fig, ax = plt.subplots(figsize=(7.5, 5))
-    conv = [r for r in rows if r["converged"]]
-    unconv = [r for r in rows if not r["converged"]]
+    conv = pq_rows_for_display(rows)
     if conv:
         ax.plot([r["cfm"] for r in conv], [r["back_pa"] for r in conv], "o-",
                 color="tab:blue", label="sim (converged)")
-    if unconv:
-        ax.scatter([r["cfm"] for r in unconv], [r["back_pa"] for r in unconv],
-                   facecolors="none", edgecolors="gray", label="sim (unconverged, near stall)")
     ax.scatter([PUB_FREE_AIR_CFM, 0.0], [0.0, PUB_SHUTOFF_PA], color="crimson", s=80,
                marker="*", zorder=5, label="published A12x25")
     ax.set_xlabel("Flow  [CFM]")

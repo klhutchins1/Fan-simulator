@@ -35,7 +35,7 @@ inside the ±5 Pa tolerance, but both near-shut-off points are unconverged. The 
 (extrapolating the converged 5–10 Pa points) gives 28.0 Pa, a formal FAIL by 0.1 Pa over the band.
 **Verdict:** free air validated; the loaded branch is realistic in shape and roughly right near
 shut-off, and the remaining uncertainty is steady-RANS convergence near stall. The Stock parametric
-recipe still over-delivers (+22–29% free air) and is the next fidelity target.
+recipe still over-delivers (superseded: "+22–29%" free air; later Stock-recipe numbers apply) and is the next fidelity target.
 
 ## 2026-09-27 domain fixes (CFD_VERSION 5) — free-air gate results
 

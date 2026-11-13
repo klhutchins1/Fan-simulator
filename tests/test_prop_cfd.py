@@ -326,4 +326,5 @@ def test_refine_rows_carry_prop_cfd_honesty(tmp_path, monkeypatch):
     pareto = [{"params": random_prop_flat(spec, random.Random(1))}]
     rows = refine_pareto_cfd(spec, pareto, tmp_path, n_top=1)
     assert rows[0]["honesty"] == prop_cfd.PROP_CFD_HONESTY
-    assert "Audit #8" in rows[0]["honesty"] and rows[0]["sanity_status"] == "PASS"
+    assert "not a performance predictor" in rows[0]["honesty"]
+    assert rows[0]["sanity_status"] == "PASS"

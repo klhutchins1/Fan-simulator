@@ -44,7 +44,7 @@ from fansim.cfd.wall_roughness import FDM_WALL_KS_MM  # noqa: E402
 from fansim.geometry import build_impeller, export_stl  # noqa: E402
 from fansim.geometry.blade import min_blade_wall_mm  # noqa: E402
 from fansim.geometry.config import load_blade_params  # noqa: E402
-from fansim.validation.pq_shutoff import shutoff_report_from_pq_rows  # noqa: E402
+from fansim.validation.pq_shutoff import pq_rows_for_display, shutoff_report_from_pq_rows  # noqa: E402
 from fansim.validation.reference_stl import (  # noqa: E402
     DEFAULT_REFERENCE_STL,
     rig_for_reference_stl,
@@ -557,8 +557,7 @@ def write_outputs(
 
     fig, ax = plt.subplots(figsize=(7.5, 5))
     if pq_rows:
-        conv = [r for r in pq_rows if r["converged"]]
-        unconv = [r for r in pq_rows if not r["converged"]]
+        conv = pq_rows_for_display(pq_rows)
         if conv:
             ax.plot(
                 [r["cfm"] for r in conv],
@@ -566,14 +565,6 @@ def write_outputs(
                 "o-",
                 color="tab:blue",
                 label="sim (converged)",
-            )
-        if unconv:
-            ax.scatter(
-                [r["cfm"] for r in unconv],
-                [r["back_pa"] for r in unconv],
-                facecolors="none",
-                edgecolors="gray",
-                label="sim (unconverged, near stall)",
             )
     if ladder_rows:
         ax.scatter(

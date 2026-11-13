@@ -1,5 +1,8 @@
 # Adversarial Review — Fan-simulator
 
+> **historical, 2026-09; see docs/VALIDATION.md.** Snapshot from the first screening pass,
+> not current method status.
+>
 > **Purpose.** A deliberately hostile audit of what we're building, what's real vs.
 > aspirational, where the physics/math is wrong or untrustworthy, what's missing, and where
 > we need to lean on published research. This is a **living document** — re-run this review at
