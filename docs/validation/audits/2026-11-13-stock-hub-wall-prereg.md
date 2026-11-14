@@ -41,3 +41,14 @@ so the blade sections stay where they are.
 Fail any one: do not replace Stock. Record the numbers below.
 
 ## Results (filled after the run; do not edit anything above)
+
+Ran `scripts/outline_hub.py`. The 26.0 mm hub passed, so the 25.5 mm retry was not built. Stock YAML was not changed.
+
+| id | rule | result |
+|---|---|---|
+| H1 | mean ≤ 0.41 mm | **0.233** PASS |
+| H2 | outer ≤ 0.26 mm | **0.232** PASS |
+| H3 | r/R 0.4–0.5 ≤ 0.70 mm | **0.312** PASS |
+| H4 | section tolerances | PASS (same station residuals as the outline candidate) |
+
+**Verdict: PASS.** STL: `runs/outline_hub/hub_26.0.stl`, copied to `T:\Projects\Fan Simulator\exports\outline_hub26_20261113.stl`. The blade stations are the outline candidate. Only the hub wall moved, from 21.5 mm to 26.0 mm, with the root embed raised so the sections stayed put.
