@@ -19,18 +19,18 @@ bug hunts; re-check a fix only when the bug was HIGH.
 - Known recovery gaps from README_RECOVERY.md / RECOVERY_TODO.md are not counted as bugs.
 - Paths like `/workspace/fansim/...` and `qa/...` are on the QA bot's machine (screenshots, scratch scripts); ask if you need one.
 
-## ▶ Next round for the QA bot: round 29 (Cursor 2026-11-12, four pickups). Delivered as `handoff/2026-11-11_to-qa-29/`
+## ▶ Next round for the QA bot: 2026-11-14, four sessions. Delivered as `handoff/2026-11-14_to-qa-30/`
 
-One bundle, four pickups. Each look continues at the first pickup with no written result in `docs/qa/rounds/r29.md`, writes that result, then starts the next if time remains. A timeout does not lose a finished pickup.
+Four sessions, one per look, each its own commit. Continue at the first session with no written result in `docs/qa/rounds/r30.md`, write that result, then stop until the next look. After session 4, stop.
 
-**Round 28 is DONE** (`handoff/2026-11-09_from-qa-28/`, `docs/qa/rounds/r28.md`). The 2026-11-11 bundle (master `98e3f2c`) was never returned; this queue replaces it. No Docker, OpenFOAM, Assess, Sweep, or Optimize. The A0c solve stays on Kimball's night queue.
+Round 29 was not returned. Its HIGH glyph and hub-face check is session 1, so it is not dropped. The bundle is branch `stock-outline`, not master. No Docker, OpenFOAM, Assess, Sweep, or Optimize.
 
-| pickup | work |
+| session | work |
 |---|---|
-| 1 | Accuracy, geometry. QA-73 HIGH glyphs. QA-79 hub face. Hub tips at 37.25 mm, not 36.55. |
-| 2 | GUI. Say/do tests, NeuralFoil Expert-only, scaffolds hidden. Re-check UI-26, UI-27, UI-31, UI-33, QA-40, QA-42 on this master. Do not click Run. |
-| 3 | CPU. Clean clone, `uv sync --extra dev`, full fast suite (`not docker and not slow`). |
-| 4 | Accuracy, code only. A0c flags match the 2026-11-06 ruling. One Simple-mode overclaim, then stop. |
+| 1 | QA-73 HIGH glyphs. QA-79 hub face. Hub tips at 37.25 mm, not 36.55. |
+| 2 | GUI. Say/do tests, NeuralFoil Expert-only, scaffolds hidden. Re-check UI-26, UI-27, UI-31, UI-33, QA-40, QA-42. Do not click Run. |
+| 3 | Clean clone, `uv sync --extra dev`, full fast suite (`not docker and not slow`). |
+| 4 | Re-derive the three 2026-11-13 outline audits. Do not refit. Do not edit Stock YAML. |
 
 ## Tested build
 - Source: copy of `T:\Projects\Fan Simulator` working tree, 2026-10-08 (no `.git`, so no commit hash). Linux, Python 3.12, no Docker/OpenFOAM/CFD.
