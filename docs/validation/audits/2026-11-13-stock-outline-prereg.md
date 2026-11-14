@@ -53,3 +53,16 @@ Fail any one: do not replace Stock. Record the numbers below. Do not run another
 under this pre-registration.
 
 ## Results (filled after the run; do not edit anything above)
+
+Ran `scripts/outline_match.py` once, full leading-edge step. `v2_check` passed on that build, so the half step was not used. Stock YAML was not changed.
+
+| id | rule | result |
+|---|---|---|
+| O1 | mean ≤ 0.41 mm | **0.332** PASS |
+| O2 | outer ≤ 0.26 mm | **0.228** PASS |
+| O3 | r/R 0.4–0.5 ≤ 0.70 mm | **1.102** FAIL |
+| O4 | section tolerances | PASS (largest stagger −0.44°, camber 0.0050 at r/R 0.90) |
+
+**Verdict: FAIL.** From r/R 0.5 to the tip the surface is 0.21–0.27 mm from the Noctua. The miss that remains is the hub band, down from 1.33 mm but still over the line. No second candidate under this pre-registration.
+
+STLs: `runs/outline_match/candidate_full.stl` and `planar_v2.stl`. Copied for overlay to `T:\Projects\Fan Simulator\exports\outline_candidate_20261113.stl` and `outline_planar_v2_20261113.stl`.
