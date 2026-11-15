@@ -80,6 +80,12 @@ Run 2026-11-15 on day CPU (Scheduled Task, before 15:30), 3000 iterations, 16 pr
 - `fine_V2_free` was killed at iteration 2458 (exit 137, most likely out of memory while the gate suite ran at the same
   time). Under the rule a failed solve is INCONCLUSIVE. It is not re-run, because V0 and V1 already fail on the fine
   mesh and V2 fails its 50 Pa point (7.2 %), so no result for it could change the choice.
+- **The 50 Pa point is not physical.** Every load50 run reports a reversed flow of 800–1550 CFM, about 30× the free-air
+  flow and in the wrong direction. The tip speed is about 9.4 m/s (3000 rpm, r ≈ 30 mm), so ρu² ≈ 105 Pa. That puts
+  50 Pa near or past shut-off, and the outlet boundary then lets a large backflow in. The load50 oscillation figures
+  are relative to that meaningless mean. This does not change the choice, because the fine mesh already fails at free
+  air, but the transient pre-registration must pick a load point the rotor can actually make (or a speed that makes
+  50 Pa reachable) and check the outlet boundary for backflow first.
 - **Choice: coarse `none`, fine `none`.** Only `coarse_V0_free` passes.
 - More damping makes the swing larger, not smaller (fine 50 Pa: 18 % → 69 % → 7 %; fine free 22 % → 40 %). That points
   to a genuinely unsteady flow rather than an over-aggressive solver.
