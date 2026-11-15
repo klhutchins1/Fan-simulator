@@ -153,6 +153,7 @@ def apply_state_defaults(session) -> None:
     state.intake_note = ""
     state.intake_note_warn = False
     state.e_blade_hub_z_max = 8.0
+    state.e_blade_z = 0.0
     state.e_hub_height_max = 30.0
     state.e_hub_nose_max = 15.0
     state.fan_subtab = "design"
