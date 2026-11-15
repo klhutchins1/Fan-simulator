@@ -449,8 +449,9 @@
     "T:/Projects/Fan Simulator/runs/volute_conv_r25a"
    ],
    "max_hours": 5,
-   "status": "queued",
-   "why": "R2.5a volute convergence sweep, pre-registered in docs/validation/audits/2026-11-13-volute-convergence-sweep-prereg.md (12 solves x 3000 iters, ~3 h on 16 procs). Judged on step-1 convergence only."
+   "status": "done",
+   "why": "R2.5a volute convergence sweep, pre-registered in docs/validation/audits/2026-11-13-volute-convergence-sweep-prereg.md (12 solves x 3000 iters, ~3 h on 16 procs). Judged on step-1 convergence only.",
+   "note": "2026-11-15: run on day CPU instead (all 12 units in runs/volute_conv_r25a); choice none/none, see prereg Results."
   }
  ]
 }

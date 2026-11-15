@@ -59,4 +59,29 @@ mesh. The fine-mesh choice is the one R2.5c uses. The coarse result is recorded 
 
 ## Results
 
-(empty until the run)
+Run 2026-11-15 on day CPU (Scheduled Task, before 15:30), 3000 iterations, 16 procs, script at 93a79cc. Raw data:
+`runs/volute_conv_r25a/summary.json` (main checkout).
+
+| unit | flow (CFM) | oscillation | mass imbalance | gate |
+|---|---|---|---|---|
+| coarse_V0_free | 30.10 | 4.05 % | 0.53 % | PASS |
+| coarse_V0_load50 | -965.77 | 6.01 % | 0.01 % | INCONCLUSIVE |
+| coarse_V1_free | 31.20 | 5.04 % | 0.68 % | INCONCLUSIVE |
+| coarse_V1_load50 | -809.70 | 7.03 % | 0.02 % | INCONCLUSIVE |
+| coarse_V2_free | 29.66 | 6.59 % | 0.52 % | INCONCLUSIVE |
+| coarse_V2_load50 | -862.76 | 20.92 % | 0.02 % | INCONCLUSIVE |
+| fine_V0_free | 26.98 | 22.10 % | 0.32 % | INCONCLUSIVE |
+| fine_V0_load50 | -1552.22 | 17.95 % | 0.04 % | INCONCLUSIVE |
+| fine_V1_free | 27.99 | 39.51 % | 0.71 % | INCONCLUSIVE |
+| fine_V1_load50 | -1505.79 | 69.02 % | 0.11 % | INCONCLUSIVE |
+| fine_V2_free | — | — | — | INCONCLUSIVE |
+| fine_V2_load50 | -848.68 | 7.15 % | 0.03 % | INCONCLUSIVE |
+
+- `fine_V2_free` was killed at iteration 2458 (exit 137, most likely out of memory while the gate suite ran at the same
+  time). Under the rule a failed solve is INCONCLUSIVE. It is not re-run, because V0 and V1 already fail on the fine
+  mesh and V2 fails its 50 Pa point (7.2 %), so no result for it could change the choice.
+- **Choice: coarse `none`, fine `none`.** Only `coarse_V0_free` passes.
+- More damping makes the swing larger, not smaller (fine 50 Pa: 18 % → 69 % → 7 %; fine free 22 % → 40 %). That points
+  to a genuinely unsteady flow rather than an over-aggressive solver.
+- Per the rule: relaxation alone does not fix it. The next lever is transient averaging (pimpleFoam, frozen rotor),
+  under its own pre-registration. No variant is re-tuned and no V3 is added.
