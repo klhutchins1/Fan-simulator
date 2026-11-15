@@ -165,7 +165,9 @@ def _noise(d, s):
     if d.noise_swl_db is None:
         return _row("noise", "na", "No turbulence data in this run.")
     if s is None or s.noise_swl_db is None:
-        return _row("noise", "na", "No Stock comparison for noise.")
+        row = _row("noise", "na", "No Stock comparison for noise.")
+        row.expert_only = True
+        return row
     delta = d.noise_swl_db - s.noise_swl_db
     if not NOISE_JUDGED:
         text = (f"Not judged: on different meshes the same Stock fan's estimate moved by about "

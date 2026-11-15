@@ -355,6 +355,7 @@ def bind(session) -> None:
             ),
             "Sliders = Stock recipe (frame-fitted). Edit then Preview / Assess for CFD ◆."
             + fit_note,
+            STOCK_RECIPE_GAP,
         ]
         state.preview_msg = "Loading stock 3-D preview…"
         state.stale_msg = (

@@ -70,7 +70,7 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
     engraved code equals the code in the README and `*_print_fit.json`.
   - Also put the predicted weight (material, infill) in the export README, as Preview shows it (check T2).
   - README states: "ID engraving removes about 2 % of the hub face; its effect on airflow was not simulated."
-- **P2 Recording tool.** Lane: Claude. Status: `in progress (Claude, 2026-11-09)`: branch `print-session-prep`
+- **P2 Recording tool.** Lane: Claude. Status: `done f60d234` (merged 2026-11-13; night gate green 2026-11-09): branch `print-session-prep`
   (`bd6b12e`), `scripts/analyze_fan_recording.py` + `validation/recording.py`, 12 tests. Gate: night job
   `suite-print-session-prep-all`. Merge if green.
 - **P3 Export the print.** Lane: Cursor. Status: `done` 2026-11-09. H7MQ8 Stock v3
@@ -124,7 +124,7 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
       - grok r24 B (2026-11-01, `docs/qa/notes/r24-B-qa64-wording.md`): "near free air … within 8 %" fails on lt120 (P/Pmax 0.20; +8.1 %); **use "within 10 %", lt120 "at its lowest measured load (6.85 Pa)"** (all numbers ≤ 9.5 %; frozen 0.5 mm gap). QA-64.
       - grok r24 C (2026-11-01, `docs/qa/notes/r24-C-k1-visibility.md`): K1 is **not** shown for a converged=False score (only in reject text). QA-65 (MED); patch `docs/qa/patches/r24-C-k1-visible.patch`.
       - grok r25 C (2026-11-02, `docs/qa/notes/r25-C-qa64-strings.md`): both audit lines (`2026-10-18-…:89`, `2026-10-30-…:69`) still say "near free air … within 8 %" on 9d0118f; QA-64 open until R1.10.
-- **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `ready`.
+- **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `in progress (Cursor, 2026-11-09)` (R1.10 batch).
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
   - Make sure the UI and README never quote a number above the validated range. Add a test that the P–Q display
     stops at the last converged point.
@@ -144,14 +144,15 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   grok r17 C (2026-10-19, `docs/qa/notes/r17-C-hang-refusals.md`): r14 P0 bounds with R1.7 + R1.8 give 2.0 % refused (Wilson ≤ 4.3 %), so the bounds stand. R1.8 alone gives 7.7 %, R1.7 alone 0.3 %.
 - R1.7 One hub for score and export (QA-44): done `027ebcb`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
 - R1.8 Two-stage hang check (QA-43): done `027ebcb`, acceptance 10/10 `a42544e`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
-- **R1.9 Small QA fixes**. Lane: Cursor. CPU: day. Status: `ready`. One branch, one test each:
+- **R1.9 Small QA fixes**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)` (R1.10 batch). One branch, one test each:
   - QA-39: sort postProcessing time dirs numerically (`_pp_file`, `sanity.py`, `timing.py`, the objectives copy);
   - QA-40: no noise text in Simple mode when there is no Stock reference;
   - QA-41: `watch_parent` must treat a zombie or exited launcher as gone (not `os.kill(pid, 0)` alone on Linux);
   - QA-42: the Preview weight line names the material and infill ("11 g PLA+, 20 % infill");
   - QA-45: undersized cup hub gives the plain "hub radius too small" message.
 - R1.4 Stock recipe gap stated (about 5 % low): done 2026-10-25. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
-- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)` (G5).
+- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `done 1c2cf12` (batch: G5 + R1.2 + R1.5 + R1.9; merged 2026-11-13).
+  - 2026-11-13 (Claude): night gate `suite-r110-batch-all` was green on 957a483 (2026-11-09). Master had moved (the r110-g3 merge), so the merge conflicted in one docstring of `tests/test_r110_g3_mixed_volute_copy.py` (master's wording kept). Re-gate on `claude/r110-batch-merge`: the first run was RED on `test_catalog.py::test_classify_puts_small_blade_on_a12x25`, which had been red on master since a6b77c9 (the pad-tip fix raised the A12x25 minimum hub radius to 21.075 mm, and the fixture had 21.0). The fixture now uses Stock's 21.5 mm hub (781310f). Second gate green: 705/655/716 at f716dc0.
   - Groups G1–G5 with exact wording: `docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`. One branch per
     group, each with a grep or UI test.
   - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
@@ -208,7 +209,7 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   - grok r26 (2026-11-04, `docs/qa/notes/r26-qa66-qa65-recheck.md`): on bd6abdd **QA-66 verified 5/5; r25-A CLI test covered; R1.11 closable.** New **QA-68** (LOW): CLI catalog refusal is an uncaught traceback, not exit 2; `docs/qa/patches/r26-A-qa68-catch-refusal.patch`.
   - QA-68 done (Claude, 2026-11-04, merge of `r26-qa68`): grok's patch. The catalog/Docker refusal exits 2 with the
     message; its test failed first (uncaught RuntimeError). Fast chunks 692+515+702 passed (OCCT teardown exit only).
-- **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)` (R1.10 batch).
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.
     Add a test that the label is present.
@@ -251,6 +252,8 @@ Kimball's.
     - Pass: C_l ±5 % at 5° and 10°, C_d ±20 % at 0°.
   - **R2.2a″ rung A0c: last A0 attempt for v0.1.0.** Lane: Cursor. CPU: day (minutes; not 4–9 PM). Status: `in progress (Cursor, 2026-11-12)`.
     - 2026-11-12: C-grid counts, far field, wake length and LE/TE clustering are CLI flags; defaults stay 48/60/32, 8c and the old grading. A build-only gate mesh meets the geometric items. Night job `r22a-a0c-gate` is queued (0012, Re 6e6, SST, Tu 0.001, α 0 5 10, iters 10000, then 2× at 10°). The solve has not been started.
+    - 2026-11-13 (Claude): the night run of 2026-11-12 failed in 71 s ("OpenFOAM image not available": Docker was not up at 23:30; no solves). The 3 base angles are now running on day CPU as the one-shot Scheduled Task `fansim-a0c-day` into `T:/Projects/Fan Simulator/runs/prop_section_a0c` (about 2 h per angle, 10 000 iterations; it stops itself before 15:30). Night job `r22a-a0c-gate` now writes to the same absolute folder: tonight it skips the solved angles and runs only the 2×-refined 10° grid (about 8 h). Docker Desktop must be running at 23:30.
+    - 2026-11-13 11:55 (Claude): the day run **diverged**. At 0° simpleFoam stopped with a floating-point exception at iteration 48 (forces about 1e13, symGaussSeidel in the U solve), so no angle solved. Log: `runs/prop_section_a0c/kOmegaSST_a0.0/logs/simpleFoam.log`. The day task was removed, and night job `r22a-a0c-gate` is set to `hold`. Cursor is already working on it (worktree `fansim-a0c-wake`, branch `r22a-wake-aspect`, uncommitted, not touched). Re-queue the job when that fix lands.
     - **Claude ruling 2026-11-06** (`docs/validation/audits/2026-11-06-ruling-rung-a0-cgrid.md`): the C-grid result is **INVALID as a judge of SST, not a FAIL of it**.
       - 0° and 5° are not converged (C_l(0°) swings −0.19…+0.22 in the tail).
       - The LE is about 2 cells across (48 uniform tangential cells; LE radius 1.6 mm).
@@ -306,7 +309,9 @@ Kimball's.
   - Lane: grok data hunt for a small centrifugal blower curve. Claude decides converge-or-label. Status: hunt `done (grok r15,
     2026-10-17)`, same note; converge-or-label still with Claude.
 - **R2.5 Volute/centrifugal against EPJ WoC 180:02023** (60 mm). Pre-registered: same document.
-  - **R2.5a convergence fix.** Lane: Cursor. CPU: day for short tests, night for full runs. Status: `ready`.
+  - **R2.5a convergence fix.** Lane: Cursor. CPU: day for short tests, night for full runs. Status: `in progress (Claude, 2026-11-13)`.
+    - 2026-11-13 (Claude): pre-registered sweep `docs/validation/audits/2026-11-13-volute-convergence-sweep-prereg.md` covers coarse/fine mesh × relaxation V0/V1/V2 × free/50 Pa, 3000 iterations, judged on step 1 only. Branch `claude/r25a-volute-conv` (93a79cc) adds `build_volute_case(relax=...)` (default unchanged) and `scripts/volute_convergence_sweep.py`; its related tests pass and the gate is not run yet. Night job `r25a-volute-conv-sweep` is queued for tonight, about 3 h. Results: `T:/Projects/Fan Simulator/runs/volute_conv_r25a/summary.json` (`choice` per mesh). Existing data shows that the 17–23 % swing is the fine mesh and the reversed rotor; the coarse designed run was already 3.4 %.
+    - **Resume:** read `summary.json`, record the 12 rows under Results in the prereg, and then either (a) make the chosen fine-mesh relaxation the volute default with a test, gate it and merge, or (b) if `choice.fine` is `none`, write the transient-averaging prereg.
     - Get the existing volute case to ≤ 5 % peak-to-peak ΔP over the last 20 % of iterations (step 1).
     - Judge it **only** on convergence, never against the paper.
   - **R2.5b geometry freeze + case script.** Lane: Cursor. Status: `ready`.

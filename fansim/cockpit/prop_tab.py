@@ -33,6 +33,7 @@ from fansim.cockpit.tab_shell import (
 from fansim.prop_spec import get_prop_spec, prop_spec_names
 from fansim.propeller.airflow_case import first_prop_cfd_workdir, prop_cfd_workdir_from_study
 from fansim.propeller.bemt import analyze as bemt_analyze
+from fansim.propeller.honesty import PROP_BEMT_HONESTY, PROP_CFD_HONESTY
 from fansim.propeller.noise import estimate_prop_noise
 from fansim.propeller.optimize import (
     random_prop_flat,
@@ -784,8 +785,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
             skip = sum(1 for r in rows if r.get("skipped"))
             state.prop_msg = (
                 f"✓ Prop CFD refine {ran} ran / {skip} skipped → {out} (see summary.json). "
-                "Direction/sanity check only: CFD thrust/power read ~35-45 % low on small props "
-                "(Audit #8), so rank and print from the BEMT numbers.")
+                f"CFD is {PROP_CFD_HONESTY}. BEMT: {PROP_BEMT_HONESTY}.")
             state.prop_refine_busy = False
             ticker.cancel()
             workdir = first_prop_cfd_workdir(rows)
@@ -980,10 +980,10 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                     )
                     v3.VAlert(
                         "Propeller tab — fast BEMT estimate (~1 s), not full CFD. "
+                        f"BEMT: {PROP_BEMT_HONESTY}. "
                         "Use Analyze for instant thrust/efficiency; Optimize searches "
                         "many BEMT designs. Optional CFD refine checks finalists spin and push "
-                        "air the right way, but its thrust/power read ~35-45 % low on small "
-                        "props (Audit #8): rank and print from the BEMT numbers. Fan tab is the "
+                        f"air the right way, but is {PROP_CFD_HONESTY}. Fan tab is the "
                         "CFD-checked PC-fan path.",
                         type="info",
                         density="compact",
@@ -1233,8 +1233,8 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                 )
                                 html.Div(
                                     "CFD refine checks top-N BEMT finalists for direction and "
-                                    "sanity (Docker); its thrust/power are not performance "
-                                    "numbers (~35-45 % low at small-prop Re, Audit #8). "
+                                    f"flow pictures (Docker); {PROP_CFD_HONESTY}. "
+                                    f"BEMT: {PROP_BEMT_HONESTY}. "
                                     "BEMT floor skips hopeless CFD. "
                                     "Smoke mesh is fast sanity-check; Refine is denser for ranking. "
                                     "Polar V∞ list feeds Analyze.",

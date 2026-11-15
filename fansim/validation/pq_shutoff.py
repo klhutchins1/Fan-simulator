@@ -7,6 +7,12 @@ from fansim.analyze.fan_curve import shut_off_pa
 PUB_SHUTOFF_PA = 22.9
 
 
+def pq_rows_for_display(pq_rows: list[dict]) -> list[dict]:
+    """P–Q points the UI/plot may quote: converged only, in back-pressure order (R1.2)."""
+    conv = [r for r in pq_rows if r.get("converged")]
+    return sorted(conv, key=lambda r: float(r.get("back_pa", 0.0)))
+
+
 def shutoff_report_from_pq_rows(
     pq_rows: list[dict],
     *,

@@ -84,6 +84,15 @@ def watch_process(
     return None
 
 
+def proc_state_is_zombie(stat: str) -> bool:
+    """True when a Linux ``/proc/<pid>/stat`` body is in zombie state (QA-41)."""
+    close = stat.rfind(")")
+    if close < 0:
+        return False
+    parts = stat[close + 1 :].split()
+    return bool(parts) and parts[0] == "Z"
+
+
 def parent_alive(pid: int) -> bool:
     """True while process ``pid`` runs (no psutil: a Win32 wait on Windows, signal 0 elsewhere)."""
     if sys.platform == "win32":
@@ -104,7 +113,11 @@ def parent_alive(pid: int) -> bool:
         return False
     except PermissionError:
         return True
-    return True
+    try:
+        stat = Path(f"/proc/{int(pid)}/stat").read_text(encoding="utf-8")
+    except OSError:
+        return True
+    return not proc_state_is_zombie(stat)
 
 
 def watch_parent(job: dict, *, interval_s: float = 2.0,
