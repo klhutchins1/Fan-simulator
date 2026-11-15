@@ -44,6 +44,13 @@ def stock_fingerprint(flat: dict, *, preview: bool = True) -> str:
         "root_embed", "spacing_spread", "spacing_seed",
     )
     payload = {k: flat.get(k) for k in keys}
+    # 0 and a missing key hash the same, so today's outline and Stock caches stay valid.
+    try:
+        blade_z = float(flat.get("blade_z", flat.get("blade_z_mm", 0.0)) or 0.0)
+    except (TypeError, ValueError):
+        blade_z = 0.0
+    if blade_z != 0.0:
+        payload["blade_z"] = blade_z
     payload["_preview"] = bool(preview)
     # Dense stock preview (full loft) must not hit a coarse screen-loft cache entry.
     payload["_preview_dense"] = True

@@ -37,7 +37,7 @@ EDITOR_VARS = (
     "e_skew_mid", "e_skew_tip", "e_smooth_span", "e_winglet_span", "e_winglet_sweep",
     "e_winglet_lean", "e_shroud_thick", "e_shroud_height", "e_tip_round", "e_tip_start",
     "e_tip_notched", "e_tip_notch_depth", "e_cylindrical_tip", "e_chord_basis", "e_section_wrap", "e_hub_radius",
-    "e_tip_radius", "e_hub_height", "e_blade_hub_z", "e_hub_profile", "e_hub_nose",
+    "e_tip_radius", "e_hub_height", "e_blade_hub_z", "e_blade_z", "e_hub_profile", "e_hub_nose",
     "e_thick_mode", "e_thick_mm", "e_thick_root", "e_thick_mid", "e_thick_tip",
     "e_le_thick", "e_te_thick", "e_te_face_root", "e_te_face_mid", "e_te_face_tip",
     "e_le_face_root", "e_le_face_mid", "e_le_face_tip",
@@ -134,6 +134,7 @@ def bind(session) -> None:
         state.e_tip_radius = float(p.get("tip_radius", 56.5))
         state.e_hub_height = float(p.get("hub_height", 0.0))
         state.e_blade_hub_z = float(p.get("blade_hub_z", p.get("blade_hub_z_mm", 0.0)) or 0.0)
+        state.e_blade_z = float(p.get("blade_z", p.get("blade_z_mm", 0.0)) or 0.0)
         state.e_hub_profile = str(p.get("hub_profile", "cylinder"))
         state.e_hub_nose = float(p.get("hub_nose", 0.0))
         state.e_thick_root = float(p.get("thickness_root", 0.10))
@@ -259,6 +260,7 @@ def bind(session) -> None:
             tip_radius=state.e_tip_radius,
             hub_height=state.e_hub_height,
             blade_hub_z=float(getattr(state, "e_blade_hub_z", 0.0) or 0.0),
+            blade_z=float(getattr(state, "e_blade_z", 0.0) or 0.0),
             hub_profile=state.e_hub_profile,
             hub_nose=state.e_hub_nose,
             thickness_root=th_r,
@@ -320,6 +322,7 @@ def bind(session) -> None:
             "tip_radius": ("e_tip_radius", float),
             "hub_height": ("e_hub_height", float),
             "blade_hub_z": ("e_blade_hub_z", float),
+            "blade_z": ("e_blade_z", float),
             "hub_profile": ("e_hub_profile", str),
             "hub_nose": ("e_hub_nose", float),
             "thickness_root": ("e_thick_root", float),

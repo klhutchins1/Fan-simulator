@@ -146,6 +146,10 @@ class BladeParams:
     # Clamped so the root section stays inside the hub. Needs hub_height taller than the root
     # span to have any effect (auto hub has no slack).
     blade_hub_z_mm: float = 0.0
+    # Plate blades only. Rigid shift of every blade section along Z (mm). The hub stays put.
+    # 0 is today's mesh. Positive moves the blade up (+Z). This is not sweep, and it is not
+    # blade_hub_z_mm (that slides the hub under the blade and keeps the roots inside it).
+    blade_z_mm: float = 0.0
     hub_profile: str = "cylinder"  # "cylinder" (stubby, default) | "cone" (pointy spinner) | "dome"
     hub_nose_mm: float = 0.0  # nose height on the +Z (intake) end for cone/dome; 0 = flat top
     rpm: float = 2000.0  # metadata; used later by CFD, not by geometry
@@ -379,6 +383,7 @@ def _section_loop(
     wrap: bool = False,
     te_face: float = 1.0,
     le_face: float = 1.0,
+    blade_z_mm: float = 0.0,
 ) -> tuple[np.ndarray, list[cq.Vector]]:
     """Closed section at radius ``r``, plus chord-fraction ``x`` (LE/TE indexing).
 
@@ -438,7 +443,7 @@ def _section_loop(
     # Leading-edge weight: 1 at the LE (x=0), 0 by mid-chord (x>=0.5).
     w_le = np.where(x < 0.5, 0.5 * (1.0 + np.cos(2.0 * np.pi * x)), 0.0)
     t = a * cb - b * sb + skew + le_skew * w_le  # circumferential (tangential) distance, mm
-    axial = a * sb + b * cb + sweep + le_sweep * w_le
+    axial = a * sb + b * cb + sweep + le_sweep * w_le + float(blade_z_mm)
 
     th = np.radians(lean_deg)
     if wrap:
@@ -482,6 +487,7 @@ def _section_points_3d(
     wrap: bool = False,
     te_face: float = 1.0,
     le_face: float = 1.0,
+    blade_z_mm: float = 0.0,
 ) -> list[cq.Vector]:
     """Build the closed 3D loop of one airfoil section in the tangent plane at radius ``r``.
 
@@ -499,6 +505,7 @@ def _section_points_3d(
         tip_notch_count=tip_notch_count, tip_notch_depth_mm=tip_notch_depth_mm,
         le_thick_scale=le_thick_scale, te_thick_scale=te_thick_scale,
         section_family=section_family, wrap=wrap, te_face=te_face, le_face=le_face,
+        blade_z_mm=blade_z_mm,
     )
     return pts
 
@@ -665,6 +672,7 @@ def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False,
             tip_notch_count=params.tip_notch_count,
             tip_notch_depth_mm=params.tip_notch_depth_mm,
             wrap=wrap,
+            blade_z_mm=plate_blade_z_mm(params),
             **kw,
         )
 
@@ -760,6 +768,7 @@ def tip_section_points(params: BladeParams) -> list[Vec]:
         te_face=st.te_face, le_face=st.le_face,
         tip_notch_count=params.tip_notch_count,
         tip_notch_depth_mm=params.tip_notch_depth_mm,
+        blade_z_mm=plate_blade_z_mm(params),
         **_thick_scale_kw(params),
     )
     if bool(getattr(params, "cylindrical_tip", True)):
@@ -971,7 +980,8 @@ def blade_hang_below_hub_mm(params: BladeParams) -> float:
             le_skew=float(it["le_skew"][i]), te_face=float(it["te_face"][i]),
             le_face=float(it["le_face"][i]),
             tip_notch_count=params.tip_notch_count,
-            tip_notch_depth_mm=params.tip_notch_depth_mm, **kw)
+            tip_notch_depth_mm=params.tip_notch_depth_mm,
+            blade_z_mm=plate_blade_z_mm(params), **kw)
         zmin = min(zmin, min(v.z for v in pts))
     return max(0.0, float(z_face - zmin))
 
@@ -1241,6 +1251,7 @@ def tip_le_te_z(params: BladeParams) -> tuple[float, float]:
        te_face=st.te_face, le_face=st.le_face,
        tip_notch_count=params.tip_notch_count,
        tip_notch_depth_mm=params.tip_notch_depth_mm,
+       blade_z_mm=plate_blade_z_mm(params),
        **_thick_scale_kw(params),
    )
    if bool(getattr(params, "cylindrical_tip", True)):
@@ -1261,6 +1272,21 @@ TE_BLUNT_START = 0.92
 
 def _clamp_thick_scale(v: float) -> float:
     return float(min(max(float(v), THICK_SCALE_LO), THICK_SCALE_HI))
+
+
+
+def plate_blade_z_mm(params: BladeParams) -> float:
+    """Rigid Z added to every section of a plate blade. The hub is not moved.
+
+    NACA and the stock recipe ignore this. 0 leaves today's outline mesh where it is.
+    Positive is up (+Z).
+    """
+    if _section_family(params) != SECTION_PLATE:
+        return 0.0
+    try:
+        return float(getattr(params, "blade_z_mm", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def _section_family(params: BladeParams) -> str:

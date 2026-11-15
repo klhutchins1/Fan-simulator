@@ -56,6 +56,7 @@ CONTROL_DESC = {
     "e_tip_radius": "Blade LENGTH / outer radius (mm). Shrink it to make an oversized blade fit the frame (tip diameter) or trim depth.",
     "e_hub_height": "Hub HEIGHT (mm). 0 = auto (just covers the blade roots — shortest). Raise it for a taller hub; it can't go below root coverage. Needs slack above the root span before Blade on hub can shift.",
     "e_blade_hub_z": "Where the blade roots sit on the hub (mm). 0 = centered. Positive = blades higher toward the intake (+Z), with more hub below — matches the real A12x25 which sits toward the top face. Negative = blades lower / toward the outlet. Clamped so roots stay inside the hub.",
+    "e_blade_z": "Moves the plate blade up or down relative to the hub (mm). Positive is up (+Z). Negative is down, toward the hub bottom. 0 leaves the blade where it is. The hub does not move.",
     "e_hub_nose": "Nose height (mm) for the cone/dome hub profile. Adds a spinner on the intake side (increases depth — may go over-spec).",
     "e_camber_pos": "Where max camber sits along the chord (0.2 = near LE, 0.6 = aft). Fraction of chord — not mm.",
     "e_thick_root": "Wall t/c at the hub (fraction of chord). Tapered mode only. Through-blade thickness, not LE→TE width.",

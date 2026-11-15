@@ -883,6 +883,15 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 classes="text-caption mb-2",
                                                 v_show="ui_mode === 'expert'",
                                             )
+                                            _slider(
+                                                "Blade height", "e_blade_z", -8, 8, 0.1, unit="mm",
+                                            )
+                                            html.Div(
+                                                "Blade height moves the blade up or down relative to the hub. "
+                                                "0 keeps today's height.",
+                                                classes="text-caption mb-2",
+                                                v_show="ui_mode === 'expert'",
+                                            )
                                             v3.VSelect(
                                                 label="Hub profile",
                                                 v_model=("e_hub_profile",),

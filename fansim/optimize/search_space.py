@@ -330,6 +330,8 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
         kw["hub_height_mm"] = float(p["hub_height"])
     if "blade_hub_z" in p or "blade_hub_z_mm" in p:
         kw["blade_hub_z_mm"] = float(p.get("blade_hub_z", p.get("blade_hub_z_mm", 0.0)) or 0.0)
+    if "blade_z" in p or "blade_z_mm" in p:
+        kw["blade_z_mm"] = float(p.get("blade_z", p.get("blade_z_mm", 0.0)) or 0.0)
     if p.get("hub_profile"):                            # "cylinder" | "cone" | "dome"
         kw["hub_profile"] = str(p["hub_profile"])
     if float(p.get("hub_nose", 0.0)) > 0.0:             # nose height for cone/dome
@@ -462,6 +464,7 @@ def blade_to_flat(params: BladeParams) -> dict:
         section_wrap=str(getattr(params, "section_wrap", "planar") or "planar"),
         hub_height=float(params.hub_height_mm or 0.0),
         blade_hub_z=float(getattr(params, "blade_hub_z_mm", 0.0) or 0.0),
+        blade_z=float(getattr(params, "blade_z_mm", 0.0) or 0.0),
         hub_profile=str(params.hub_profile or "cylinder"),
         hub_nose=float(params.hub_nose_mm or 0.0),
         shroud_thick_mm=float(params.shroud_thick_mm or 0.0),
