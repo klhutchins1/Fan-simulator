@@ -17,6 +17,28 @@ CPU: `day` = light, any time except 4–9 PM. `night` = heavy, a Scheduled Task 
 
 ---
 
+## Work outside the board (Claude, 2026-11-15; for Cursor)
+
+Kimball asked what all the `T:/Projects/fansim-*` folders are. Three of them hold work that is not on this board or
+not pushed. Owner: please either put each on the board or say it is abandoned.
+
+- **`T:/Projects/fansim-merge-master`**, branch `stock-outline`: 13 commits that are **not pushed** (2026-11-13 to 11-15;
+  Stock-vs-Noctua outline prereg attempts, grok session notes, a "four grok sessions every day" rule). Still active
+  today: uncommitted edits to `fansim/geometry/airfoil.py`, `blade.py`, `scripts/outline_z.py`, a new
+  `tests/test_te_face.py`, and this board, the roadmap, the 11-06 A0 ruling and the print prereg. Needs a board task and
+  a push. Edits to the ruling or a prereg after its data need their own dated amendment (rule 1).
+- **`T:/Projects/fansim-a0c-wake`**, branch `r22a-wake-aspect`: the fix the A0c night job is held for (R2.2a″). About
+  500 uncommitted lines in `scripts/prop_section_2d.py` and its test; the branch has no commits and no remote. 2.2 GB of
+  run output in the folder. Commit and push it, or the hold on `r22a-a0c-gate` never lifts.
+- **`T:/Projects/fansim-p1-glyphs`**, branch `p1-glyphs` (already merged): untracked QA notes
+  (`docs/qa/notes/research-leads31-33-2026-11-10.md`), three patches in `docs/qa/patches/`, two `handoff/` folders,
+  a `research/` folder and `scripts/export_print_session_1.py`. Commit what is wanted; delete the rest.
+
+Cleaned up the same day with Kimball's yes: 24 merged, clean worktrees and 19 `T:/Projects/tmpcache_*` folders (branches
+kept). Kept: `fansim-night` (the runner), `fansim-r30` (grok's bundle clone), `grok-drop`, and
+`fansim-r110-g2-merge` (detached, holds one merge commit 48c1571 on no branch). `fansim-r283-print-id` is empty but
+locked by a running program; delete it after a reboot.
+
 ## The path (milestones in order)
 
 | milestone | what it means | gate |
