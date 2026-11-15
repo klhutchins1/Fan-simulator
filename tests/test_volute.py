@@ -377,3 +377,50 @@ def test_volute_cockpit_declares_dormant_design_knobs():
     assert "volute_tongue_angle" in text
     assert "volute_out_w" in text
     assert "Scroll & tongue" in text
+
+
+def _placeholder_stls(tmp_path):
+    body = ("solid t\n facet normal 0 0 1\n  outer loop\n   vertex 0 0 0\n   vertex 1 0 0\n"
+            "   vertex 0 1 0\n  endloop\n endfacet\nendsolid t\n")
+    imp, cas = tmp_path / "impeller.stl", tmp_path / "casing.stl"
+    imp.write_text(body, encoding="utf-8")
+    cas.write_text(body, encoding="utf-8")
+    return imp, cas
+
+
+def test_build_volute_case_default_relaxation_unchanged(tmp_path):
+    from fansim.volute.case import build_volute_case
+    from fansim.volute.domain import domain_for_volute
+
+    imp, cas = _placeholder_stls(tmp_path)
+    build_volute_case(tmp_path / "case", imp, cas, domain_for_volute(VoluteParams()),
+                      back_pressure_pa=0.0, n_iters=100)
+    fv = (tmp_path / "case/system/fvSolution").read_text(encoding="utf-8")
+    assert "fields    { p 0.3; }" in fv
+    assert 'equations { U 0.7; "(k|omega)" 0.7; }' in fv
+
+
+def test_build_volute_case_relaxation_override(tmp_path):
+    """R2.5a: the convergence sweep sets the SIMPLE relaxation per variant."""
+    from fansim.volute.case import build_volute_case
+    from fansim.volute.domain import domain_for_volute
+
+    imp, cas = _placeholder_stls(tmp_path)
+    build_volute_case(tmp_path / "case", imp, cas, domain_for_volute(VoluteParams()),
+                      back_pressure_pa=0.0, n_iters=100,
+                      relax={"p": 0.15, "U": 0.3, "turb": 0.4})
+    fv = (tmp_path / "case/system/fvSolution").read_text(encoding="utf-8")
+    assert "fields    { p 0.15; }" in fv
+    assert 'equations { U 0.3; "(k|omega)" 0.4; }' in fv
+    assert "p 0.3;" not in fv
+
+
+def test_build_volute_case_relaxation_rejects_bad_values(tmp_path):
+    import pytest
+    from fansim.volute.case import build_volute_case
+    from fansim.volute.domain import domain_for_volute
+
+    imp, cas = _placeholder_stls(tmp_path)
+    with pytest.raises(ValueError):
+        build_volute_case(tmp_path / "case", imp, cas, domain_for_volute(VoluteParams()),
+                          back_pressure_pa=0.0, n_iters=100, relax={"p": 1.5, "U": 0.3, "turb": 0.4})
