@@ -17,27 +17,38 @@ CPU: `day` = light, any time except 4–9 PM. `night` = heavy, a Scheduled Task 
 
 ---
 
-## Work outside the board (Claude, 2026-11-15; for Cursor)
+## Work outside the repo: rescue task (Claude, 2026-11-15; for Cursor and Kimball)
 
-Kimball asked what all the `T:/Projects/fansim-*` folders are. Three of them hold work that is not on this board or
-not pushed. Owner: please either put each on the board or say it is abandoned.
-
-- **`T:/Projects/fansim-merge-master`**, branch `stock-outline`: 13 commits that are **not pushed** (2026-11-13 to 11-15;
-  Stock-vs-Noctua outline prereg attempts, grok session notes, a "four grok sessions every day" rule). Still active
-  today: uncommitted edits to `fansim/geometry/airfoil.py`, `blade.py`, `scripts/outline_z.py`, a new
-  `tests/test_te_face.py`, and this board, the roadmap, the 11-06 A0 ruling and the print prereg. Needs a board task and
-  a push. Edits to the ruling or a prereg after its data need their own dated amendment (rule 1).
-- **`T:/Projects/fansim-a0c-wake`**, branch `r22a-wake-aspect`: the fix the A0c night job is held for (R2.2a″). About
-  500 uncommitted lines in `scripts/prop_section_2d.py` and its test; the branch has no commits and no remote. 2.2 GB of
-  run output in the folder. Commit and push it, or the hold on `r22a-a0c-gate` never lifts.
-- **`T:/Projects/fansim-p1-glyphs`**, branch `p1-glyphs` (already merged): untracked QA notes
-  (`docs/qa/notes/research-leads31-33-2026-11-10.md`), three patches in `docs/qa/patches/`, two `handoff/` folders,
-  a `research/` folder and `scripts/export_print_session_1.py`. Commit what is wanted; delete the rest.
-
-Cleaned up the same day with Kimball's yes: 24 merged, clean worktrees and 19 `T:/Projects/tmpcache_*` folders (branches
-kept). Kept: `fansim-night` (the runner), `fansim-r30` (grok's bundle clone), `grok-drop`, and
-`fansim-r110-g2-merge` (detached, holds one merge commit 48c1571 on no branch). `fansim-r283-print-id` is empty but
-locked by a running program; delete it after a reboot.
+- **W1 Get every stranded piece into the repo.** Lane: Cursor (the work is Cursor's; Claude was not allowed to commit
+  another agent's work, AGENTS.md rule 6). CPU: none. Status: `ready`. Do it before new work.
+  - Rules for this from now on: AGENTS.md "Where work lives". Check: `scripts/stray_work.py` must list nothing.
+  - **`T:/Projects/fansim-merge-master`, branch `stock-outline`:** 17 commits not on GitHub (outline prereg attempts,
+    grok session notes, a "four grok sessions every day" rule), still active on 2026-11-15 (uncommitted
+    `airfoil.py`, `blade.py`, `outline_z.py`, `outline_le_face.py`, new tests). Commit, push, add a board task. Edits
+    to the 11-06 A0 ruling and the print prereg after their data need dated amendments instead (rule 1).
+  - **`T:/Projects/fansim-a0c-wake`, branch `r22a-wake-aspect`:** about 500 uncommitted lines in
+    `scripts/prop_section_2d.py` and its test since 2026-11-13; the branch has no commits and no remote. This is the fix
+    the held A0c night job (`r22a-a0c-gate`) waits for.
+  - **Main checkout `T:/Projects/Fan Simulator`:** on branch `r111-hide-surrogate` instead of master, with about 414
+    untracked files and 325 uncommitted lines in the board and `QA_REVIEW.md`:
+    - grok handoffs `handoff/2026-11-01…11-15_from-qa-*` (about 250 files) and 61 files under `docs/qa/`;
+    - `research/` (leads tracker and prototypes for leads 23–48, 2.6 MB incl. STL/3MF/WAV made from our code; the
+      only licence file is an Apache-2.0 wheel licence) and `qa_research_leads*/PREREG_*.md`;
+    - `HANDOFF_TO_CURSOR.md` (11-09 "DO FIRST" QA list incl. QA-73 HIGH) and about 20 `.bak` copies (now gitignored).
+    - **The leads 23–48 pre-registrations are not valid yet.** Each `PREREG_COMMIT.txt` names a commit in grok's own
+      sandbox (e.g. a114efd); none of them exists in this repo. Commit them, and judge those leads as
+      not-pre-registered unless grok's bundle proves the dates.
+    - Then put the checkout back on clean `master` (AGENTS.md "Where work lives" 2).
+  - **`T:/Projects/fansim-p1-glyphs`:** 23 untracked files (older copies of the research/handoff files above, plus
+    `docs/qa/patches/{export-fit-coupon,layer-dropout,manifold-fuse}.patch` and `scripts/export_print_session_1.py`).
+    Keep what the main-checkout copy lacks, then remove the worktree.
+  - **`T:/Projects/fansim-r110-g2-merge`:** detached, one merge commit 48c1571 on no branch. Push as a branch or drop.
+  - Next grok round: its `CLAUDE_TO_QA.md` must ask for the return as a `from-qa.bundle` (AGENTS.md "Where work
+    lives" 6).
+  - About 44 loose October debug scripts and logs sit in `T:/Projects` itself (`dbg_*.py`, `*.log`). They are outside
+    any repo; Kimball can delete them.
+- Cleaned up 2026-11-15 with Kimball's yes: 24 merged, clean worktrees and 19 `tmpcache_*` folders (branches kept).
+  `fansim-r283-print-id` is empty but locked by a running program; delete it after a reboot.
 
 ## The path (milestones in order)
 

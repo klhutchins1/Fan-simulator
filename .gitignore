@@ -56,3 +56,5 @@ validation/prints/index.jsonl
 
 # Local run output (suite logs, fuse-growth measurements)
 logs/
+# backups: git is the backup (AGENTS.md "Where work lives")
+*.bak

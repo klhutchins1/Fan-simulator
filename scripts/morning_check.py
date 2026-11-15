@@ -26,6 +26,7 @@ import importlib.util
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -103,6 +104,28 @@ def _try_merge(wt: Path, branch: str, tested: dict[str, str]) -> tuple[str | Non
         _git(wt, "merge", "--abort", check=False)
         return None, "merge conflict: an agent must merge it"
     return _git(wt, "rev-parse", "--short", "HEAD").stdout.strip(), "merged"
+
+
+def _stray_mod():
+    spec = importlib.util.spec_from_file_location("stray_work", Path(__file__).with_name("stray_work.py"))
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault("stray_work", mod)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _stray_work(root: Path) -> list:
+    try:
+        return _stray_mod().scan(root)
+    except Exception as exc:  # noqa: BLE001  (the status file must still be written)
+        return [exc]
+
+
+def _stray_lines(found: list) -> list[str]:
+    errs = [f for f in found if isinstance(f, Exception)]
+    if errs:
+        return [f"- the stray-work scan failed: {errs[0]}"]
+    return _stray_mod().lines(found)
 
 
 def main(argv: list[str] | None = None, root: Path | None = None) -> int:
@@ -196,7 +219,12 @@ def main(argv: list[str] | None = None, root: Path | None = None) -> int:
              for i, ok, _ in rows if ok and i in by_id and by_id[i].get("branch")
              and by_id[i]["branch"] not in merges and not by_id[i].get("merge_on_green")
              and by_id[i].get("status") in ("queued", "rerun")]
+    stray = _stray_work(root)
+    if stray:
+        todo.append(f"- {len(stray)} worktree(s) hold work outside the repo: commit and push, or mark abandoned "
+                    "(see \"Work outside the repo\").")
     lines += ["", "## Needs an agent", "", *(todo or ["- nothing."]), ""]
+    lines += ["## Work outside the repo", "", *_stray_lines(stray), ""]
     night.mkdir(parents=True, exist_ok=True)
     (night / "STATUS.md").write_text("\n".join(lines), encoding="utf-8")
     print("\n".join(lines))

@@ -232,3 +232,13 @@ def test_without_apply_nothing_is_pushed(repo):
     _git(repo, "fetch", "-q", "origin")
     assert _git(repo, "rev-parse", "origin/master") == before
     assert (repo / "runs" / "night" / "STATUS.md").exists()
+
+
+def test_status_lists_work_outside_the_repo(repo):
+    day = _night(repo)
+    (repo / "stray_notes.md").write_text("never committed\n")
+    mc.main(["--day", str(day)], root=repo)
+    status = (repo / "runs" / "night" / "STATUS.md").read_text(encoding="utf-8")
+    section = status.split("## Work outside the repo", 1)[1]
+    assert repo.name in section and "untracked" in section
+    assert "hold work outside the repo" in status.split("## Needs an agent", 1)[1]
