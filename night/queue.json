@@ -452,6 +452,26 @@
    "status": "done",
    "why": "R2.5a volute convergence sweep, pre-registered in docs/validation/audits/2026-11-13-volute-convergence-sweep-prereg.md (12 solves x 3000 iters, ~3 h on 16 procs). Judged on step-1 convergence only.",
    "note": "2026-11-15: run on day CPU instead (all 12 units in runs/volute_conv_r25a); choice none/none, see prereg Results."
+  },
+  {
+   "id": "suite-contain-work-all",
+   "branch": "claude/contain-work",
+   "cmd": [
+    "python",
+    "scripts/pytest_chunks.py",
+    "--chunks",
+    "3",
+    "--all",
+    "--",
+    "-m",
+    "not docker and not slow",
+    "-q",
+    "--tb=line"
+   ],
+   "max_hours": 3,
+   "status": "queued",
+   "merge_on_green": true,
+   "why": "merge gate for claude/contain-work (AGENTS.md 'Where work lives', scripts/stray_work.py in STATUS.md, board W1) at 46e2fe6. Day gate 2026-11-15 was red on one load timeout only (test_isolated_build_succeeds, 120 s STL build while 3 chunks ran); the branch touches no geometry code. Queued at night because Claude may not be back in the morning."
   }
  ]
 }
