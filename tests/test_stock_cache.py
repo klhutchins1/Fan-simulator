@@ -29,6 +29,8 @@ def test_fingerprint_stable_and_sensitive():
     assert a != stock_fingerprint({**flat, "camber_root": 0.04}, preview=True)
     assert a != stock_fingerprint({**flat, "thick_mode": "uniform"}, preview=True)
     assert a != stock_fingerprint({**flat, "blade_hub_z": 4.5}, preview=True)
+    assert a != stock_fingerprint({**flat, "te_face_mid": 0.4}, preview=True)
+    assert a != stock_fingerprint({**flat, "le_face_mid": 0.4}, preview=True)
 
 
 def test_cache_hit_requires_matching_meta(tmp_path, monkeypatch):

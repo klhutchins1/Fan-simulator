@@ -763,6 +763,32 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 "TE thick / roundness", "e_te_thick", 0.0, 2.0, 0.05,
                                                 unit="×",
                                             )
+                                            _slider(
+                                                "Front edge, hub", "e_le_face_root", 0.0, 1.0, 0.05,
+                                            )
+                                            _slider(
+                                                "Front edge, middle", "e_le_face_mid", 0.0, 1.0, 0.05,
+                                            )
+                                            _slider(
+                                                "Front edge, tip", "e_le_face_tip", 0.0, 1.0, 0.05,
+                                            )
+                                            _slider(
+                                                "Back edge, hub", "e_te_face_root", 0.0, 1.0, 0.05,
+                                            )
+                                            _slider(
+                                                "Back edge, middle", "e_te_face_mid", 0.0, 1.0, 0.05,
+                                            )
+                                            _slider(
+                                                "Back edge, tip", "e_te_face_tip", 0.0, 1.0, 0.05,
+                                            )
+                                            html.Div(
+                                                "Front edge and back edge are how much of the wall is left at each "
+                                                "end of a rounded plate. 1 = full wall. 0 = that edge comes "
+                                                "to a point. The middle of the blade stays the full wall. "
+                                                "NACA is already sharp, so these do nothing on a NACA blade.",
+                                                classes="text-caption text-medium-emphasis mb-2",
+                                                v_show="ui_mode === 'expert'",
+                                            )
                                             html.Div(
                                                 "NACA: LE/TE scales reshape nose/tail (1 = stock). TE>1 fattens "
                                                 "the aft section. Plate: both sliders are edge roundness "

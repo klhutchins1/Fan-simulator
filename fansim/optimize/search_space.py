@@ -224,7 +224,7 @@ FLAT_STATION_SLOTS = "station_slots"
 FLAT_STATION_SLOT_R = "station_slot_r"
 STATION_PAYLOAD_KEYS = (FLAT_STATIONS, FLAT_STATION_SLOTS, FLAT_STATION_SLOT_R)
 _STATION_FIELDS = ("r_frac", "chord", "stagger_deg", "thickness", "max_camber", "camber_pos",
-                   "sweep", "skew", "lean_deg", "le_sweep", "le_skew")
+                   "sweep", "skew", "lean_deg", "le_sweep", "le_skew", "te_face", "le_face")
 # station field -> flat keys at (root, mid, tip); None = no slot (fixed at the recipe value)
 _SLOT_KEYS = (
     ("chord", ("chord_root", "chord_mid", "chord_tip")),
@@ -236,7 +236,16 @@ _SLOT_KEYS = (
     ("lean_deg", (None, "lean_mid", "lean_tip")),
     ("le_sweep", ("le_sweep_root", "le_sweep_mid", "le_sweep_tip")),
     ("le_skew", ("le_skew_root", "le_skew_mid", "le_skew_tip")),
+    ("te_face", ("te_face_root", "te_face_mid", "te_face_tip")),
+    ("le_face", ("le_face_root", "le_face_mid", "le_face_tip")),
 )
+
+
+def _opt_float(p: dict, key: str, default: float) -> float:
+    """Flat value, keeping a real 0. A missing key or None uses ``default``."""
+    if key not in p or p[key] is None:
+        return float(default)
+    return float(p[key])
 
 
 def _slot_value(p: dict, key: str, original: float) -> float:
@@ -292,19 +301,27 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
         RadialStation(0.0, p["chord_root"], p["stagger_root"], th_r,
                       cam_r, cpos, 0.0, 0.0, 0.0,
                       le_sweep=p.get("le_sweep_root", 0.0),
-                      le_skew=p.get("le_skew_root", 0.0)),
+                      le_skew=p.get("le_skew_root", 0.0),
+                      te_face=_opt_float(p, "te_face_root", 1.0),
+                      le_face=_opt_float(p, "le_face_root", 1.0)),
         RadialStation(0.5, p["chord_mid"], p["stagger_mid"], th_m,
                       cam_m, cpos, p["sweep_mid"], p.get("skew_mid", 0.0),
                       p.get("lean_mid", 0.0), le_sweep=p.get("le_sweep_mid", 0.0),
-                      le_skew=p.get("le_skew_mid", 0.0)),
+                      le_skew=p.get("le_skew_mid", 0.0),
+                      te_face=_opt_float(p, "te_face_mid", 1.0),
+                      le_face=_opt_float(p, "le_face_mid", 1.0)),
         RadialStation(1.0, p["chord_tip"], p["stagger_tip"], th_t,
                       cam_t, cpos, p["sweep_tip"], p.get("skew_tip", 0.0),
                       p.get("lean_tip", 0.0), le_sweep=p.get("le_sweep_tip", 0.0),
-                      le_skew=p.get("le_skew_tip", 0.0)),
+                      le_skew=p.get("le_skew_tip", 0.0),
+                      te_face=_opt_float(p, "te_face_tip", 1.0),
+                      le_face=_opt_float(p, "le_face_tip", 1.0)),
     ]
     if p.get(FLAT_STATIONS):                            # full recipe carried (§23.1)
         stations = _stations_from_payload(p)
     kw: dict[str, object] = {}
+    if "root_embed" in p and p["root_embed"] is not None:
+        kw["root_embed"] = float(p["root_embed"])
     if "hub_radius" in p:
         kw["hub_radius"] = float(p["hub_radius"])
     if "tip_radius" in p:                               # blade LENGTH (outer radius) -- shrink to fit
@@ -433,6 +450,13 @@ def blade_to_flat(params: BladeParams) -> dict:
         le_sweep_mid=float(mid.le_sweep), le_sweep_tip=float(tip.le_sweep),
         le_skew_mid=float(getattr(mid, "le_skew", 0.0) or 0.0),
         le_skew_tip=float(getattr(tip, "le_skew", 0.0) or 0.0),
+        te_face_root=float(getattr(root, "te_face", 1.0)),
+        te_face_mid=float(getattr(mid, "te_face", 1.0)),
+        te_face_tip=float(getattr(tip, "te_face", 1.0)),
+        le_face_root=float(getattr(root, "le_face", 1.0)),
+        le_face_mid=float(getattr(mid, "le_face", 1.0)),
+        le_face_tip=float(getattr(tip, "le_face", 1.0)),
+        root_embed=float(params.root_embed),
         cylindrical_tip=bool(getattr(params, "cylindrical_tip", True)),
         chord_basis=str(getattr(params, "chord_basis", "measured") or "measured"),
         section_wrap=str(getattr(params, "section_wrap", "planar") or "planar"),
@@ -475,6 +499,23 @@ STOCK_GEOMETRY_YAML = {
     "a12x25": "config/problems/a12x25_reference.yaml",
     "a12x25_approx": "config/problems/a12x25_approx.yaml",
 }
+
+
+OUTLINE_GEOMETRY_YAML = "config/problems/a12x25_outline.yaml"
+
+
+def outline_blade_flat() -> dict:
+    """The hub-26 plate whose front and back edges were set against the Noctua scan.
+
+    Not the Stock button. Stock stays ``a12x25_reference.yaml``.
+    """
+    from fansim.geometry.config import load_blade_params
+
+    root = Path(__file__).resolve().parents[2]
+    path = root / OUTLINE_GEOMETRY_YAML
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    return blade_to_flat(load_blade_params(path))
 
 
 def stock_blade_flat(fan_model: str = "a12x25") -> dict:

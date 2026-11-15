@@ -60,6 +60,22 @@ def bind(session) -> None:
             plotter.clear_actors()
         o, p = d.objectives, d.params
         state.selected_trial = int(trial)
+        if d.extra.get("is_outline"):
+            state.info_lines = [
+                "Outline copy — hub 26 mm plate, thinner front and back edges.",
+                "Print this next to the Noctua. Line the two up on the leading edge.",
+                "The Stock button still loads the older blade.",
+            ]
+            session._init_editor(p)
+            session._set_baseline()
+            state.fan_subtab = "design"
+            state.preview_msg = "Outline copy loaded. Press Preview geometry, then Export STL."
+            try:
+                state.flush()
+                ctrl.view_update()
+            except Exception as exc:  # noqa: BLE001
+                log_caught(_log, "view_update (outline select)", exc, level=logging.DEBUG)
+            return
         if d.extra.get("is_reference"):
             state.info_lines = [
                 f"Published free {o['cfm_free']:.1f} CFM   ·   hose-est load {o['cfm_load']:.1f} CFM",

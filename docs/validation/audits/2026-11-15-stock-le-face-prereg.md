@@ -31,3 +31,20 @@ If either line fails, record the faces and the residuals. No second search
 under this file. The STL from these faces is the one to print and measure.
 
 ## Results (filled after the run; do not edit anything above)
+
+Ran `scripts/outline_le_face.py`. `te_face` stayed 0. The leading-edge tip did not move.
+
+| r/R | le_face | extent error | leading-edge tip shift |
+|---|---|---|---|
+| 0.50 | 0.00 | +0.376 mm | 0.000 mm |
+| 0.60 | 0.44 | +0.005 mm | 0.000 mm |
+| 0.70 | 0.38 | −0.005 mm | 0.000 mm |
+| 0.80 | 0.61 | +0.003 mm | 0.000 mm |
+| 0.90 | 0.86 | +0.001 mm | 0.000 mm |
+
+| | |
+|---|---|
+| L1 | **PASS.** Largest extent error is +0.376 mm at r/R 0.50. |
+| L2 | **PASS.** Leading-edge tip shift is 0 at every radius. |
+
+**Verdict: PASS** on the section wire. The r/R 0.50 miss is the chord tips themselves: a sharp edge there is already 13.483 mm long and the Noctua span is 13.107 mm. No wall setting can remove that 0.38 mm. These faces are in `config/problems/a12x25_outline.yaml`. The print STL is the full impeller of that file.
