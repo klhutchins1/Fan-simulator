@@ -31,6 +31,7 @@ from fansim.cockpit.figures import reject_hint
 from fansim.cockpit.placement import frame_gap_note, impeller_z_extent
 from fansim.cockpit.run_settings import RunSettings
 from fansim.cockpit.score_caption import score_caption
+from fansim.cockpit.vs_stock import vs_stock_same_test_line
 from fansim.fan_spec import (
     check_build,
     estimate_weight_g,
@@ -232,6 +233,7 @@ def bind(session) -> None:
             is_pareto=False,
             stl_path=stl if stl.exists() else None,
             extra=extra,
+            reason=result.reason or "",
         )
         try:
             (workdir / "design.json").write_text(
@@ -281,7 +283,7 @@ def bind(session) -> None:
         d.feasible = True
         d.is_pareto = False
         d.stl_path = stl if stl.exists() else None
-        d.reason = ""
+        d.reason = result.reason or ""
         d.extra.update(
             {
                 "source": d.extra.get("source", "user"),
@@ -402,13 +404,11 @@ def bind(session) -> None:
                         f"load {o['cfm_load']:.1f}  eff {o['efficiency']:.1f}%"
                         f"  (added to Results plot){rpm_tag}{tag}"
                     )
-                    ref_cfm = getattr(spec, "ref_cfm", None)
-                    if ref_cfm:
-                        pct = 100.0 * (float(o["cfm_free"]) - float(ref_cfm)) / float(ref_cfm)
-                        state.assess_msg += (
-                            f"\nvs stock free {float(ref_cfm):.0f} CFM: {pct:+.0f}% "
-                            f"({'better' if pct >= 0 else 'lower'} free-air)"
-                        )
+                    vs = vs_stock_same_test_line(
+                        float(o["cfm_free"]), d.extra, list(by_trial.values()),
+                    )
+                    if vs:
+                        state.assess_msg += f"\n{vs}"
                     cap = score_caption(d.extra)
                     if cap:
                         state.assess_msg += f"\n{cap}"
@@ -445,7 +445,13 @@ def bind(session) -> None:
         label, kind, field, mn, mx = opt
         base_flat, base_feat = session.edit_flat(), session._feat_dict()
         rs = run_settings.capture(state, session.active_spec)  # 25.11: one snapshot for every step
-        steps = max(2, int(state.sweep_steps))
+        from fansim.cockpit.input_checks import sweep_steps as _check_steps
+
+        steps, err = _check_steps(state.sweep_steps)  # UI-39: refuse, never clamp or crash
+        if err:
+            state.assess_msg = err
+            state.flush()
+            return
         raw = list(np.linspace(mn, mx, steps))
         values = sorted(set(int(round(v)) for v in raw)) if field == "n_blades" else raw
 

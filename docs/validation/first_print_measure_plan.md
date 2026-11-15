@@ -5,6 +5,11 @@ step-by-step bench routine are already in [`validation/rig.md`](../../validation
 adds what that guide lacks: predictions written **before** measuring, a way to cancel the
 anemometer's own bias, and pass/fail rules.
 
+**Amended 2026-11-09:** the first session uses a tach and a phone only (no anemometer). Its checks and the
+bag method for the B/A ratio are pre-registered in
+[`audits/2026-11-09-first-print-tach-phone-prereg.md`](audits/2026-11-09-first-print-tach-phone-prereg.md). The band
+below is unchanged.
+
 **Print freeze (2026-10-13):** article B is **Stock v3**, wrapped sections, sharp 0.2 edges,
 hub-cut corrected (`config/problems/a12x25_reference.yaml`, merge `ae3f1c4`). Do not print the
 planar v2 recipe. Do not print optimizer candidates (their sliders mean a different blade under

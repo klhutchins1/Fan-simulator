@@ -1,0 +1,5 @@
+159:        "Assess runs radial MRF; Optimize is a geometry proxy (not CFM)."
+163:        "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker).",
+164:        "Optimize: NSGA geometry proxy — ranking only, unvalidated (CFD not yet converged).",
+417:                    f"Domain: radial MRF stage 1 ({res.raw.get('honesty', '')}).",
+590:                            "Optimize is a geometry proxy — ranking only, unvalidated (CFD not yet converged).",

@@ -1,0 +1,19 @@
+.....Fs............................                                      [100%]
+=================================== FAILURES ===================================
+__ test_remaining_growth_is_less_than_whole_peak_and_shroud_adds_blade_faces ___
+
+    def test_remaining_growth_is_less_than_whole_peak_and_shroud_adds_blade_faces():
+        """QA r8/r9 / 27.1: the guard asks for growth after the call, plus extra for a ring."""
+        # 18 084 is the original Windows 9-blade calibration; remaining stays below the whole-peak
+        # diagnostic there. Featured Stock sits above that old whole-peak line (27.1 Windows refit).
+        open_rem = resources.fuse_remaining_estimate_gb(18_084)
+        shroud_rem = resources.fuse_remaining_estimate_gb(
+            18_084, shrouded=True, n_blade_faces=18_080)
+        peak = resources.fuse_peak_estimate_gb(18_084)
+>       assert open_rem < peak
+E       assert 1.9343660736083983 < 1.925224
+
+tests/test_fuse_memory.py:26: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_fuse_memory.py::test_remaining_growth_is_less_than_whole_peak_and_shroud_adds_blade_faces
+1 failed, 33 passed, 1 skipped in 2.32s

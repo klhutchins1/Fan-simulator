@@ -86,3 +86,18 @@ def test_fresh_assess_clears_an_old_scored_case_pointer():
     assert "case_dir" not in extra
     stamp_score_extra(extra, {}, load_pa=8.0, preset="case", case_dir="screen_rank_audit/x/full")
     assert extra["case_dir"] == "screen_rank_audit/x/full"
+
+
+def test_score_caption_flags_unconverged_loaded_point():
+    """QA-65 / K1: an unconverged loaded point is shown on the scored design."""
+    extra = stamp_score_extra({}, {"converged": False}, load_pa=8.0, preset="case", refine_op=False)
+    assert extra["converged"] is False
+    assert "did not settle" in score_caption(extra)
+
+
+def test_score_caption_no_unconverged_flag_when_settled_or_unknown():
+    """Only False warns: converged, None and old designs without the key stay silent."""
+    for raw in ({"converged": True}, {"converged": None}, {}):
+        extra = stamp_score_extra({}, raw, load_pa=8.0, preset="case", refine_op=False)
+        assert "did not settle" not in score_caption(extra)
+    assert "did not settle" not in score_caption({"preset": "case", "load_pa": 8.0})

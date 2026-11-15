@@ -1,0 +1,1 @@
+(empty: grep -n 'glyph|Glyph|recess|print-id|print_id' README.md found no lines. The print-sheet README text lives in fansim/manufacturability/print_export.py:384-386; tests/test_print_id.py:93 asserts 'No glyphs on the part yet' is absent from it.)

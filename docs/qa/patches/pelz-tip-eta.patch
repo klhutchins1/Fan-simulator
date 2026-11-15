@@ -1,0 +1,44 @@
+diff --git a/fansim/fan_bem.py b/fansim/fan_bem.py
+index 7cee660..7e9331b 100644
+--- a/fansim/fan_bem.py
++++ b/fansim/fan_bem.py
+@@ -47,6 +47,13 @@ K_TIP_LEAK = 9.0             # tip-clearance leakage knockdown in the outer span
+ N_ITER_MAX = 50               # cap on the per-element swirl fixed-point iteration
+ DEFAULT_TIP_GAP_MM = 0.5      # blade-to-shroud gap (leakage grows the loss near the tip)
+ 
++# Opt-in Pelz & Karstadt (2010) tip-clearance efficiency scaling (QA lead #24).
++# Paper: ψ_gap ≈ C * s * ψ_ideal^2  →  Δη_gap ≈ C * s * ψ_ideal, with s = tip_gap / Do.
++# C is machine-typical and MUST be calibrated on two tip-gap A/Bs (Stock). Default off.
++# Patents US7326032B2 / US8568095B2 are expired hardware claims, not this formula.
++PELZ_TIP_ETA = False          # set True (or pass tip_eta_model="pelz") to apply
++PELZ_C = 40.0                 # placeholder; fit from Stock tip A/Bs (Ito-anchored ~40)
++
+ # --- Opt-in "axial_force" pressure model (QA-4, roadmap §23.5; proposed and tested by the QA bot,
+ # re-implemented here). Static rise = the blades' AXIAL force per annulus area,
+ # B·½ρW1²c·(cl·cosφ1 − cd·sinφ1), referenced to the INLET relative velocity W1 (cascade practice),
+@@ -128,6 +135,25 @@ def _interp_geometry(params: BladeParams):
+             lambda rf: float(np.interp(rf, rs, cb)))
+ 
+ 
++
++def pelz_tip_eta_knockdown(
++    tip_gap_mm: float,
++    tip_diameter_mm: float,
++    psi_ideal: float,
++    *,
++    C: float = PELZ_C,
++) -> float:
++    """Return η multiplier (≤1) from Pelz tip-gap term: 1 - C * s * ψ_ideal.
++
++    ``psi_ideal`` is the ideal pressure coefficient at the operating point.
++    Returns 1.0 when gap or diameter is non-positive. Clamped to ≥0.
++    """
++    if tip_gap_mm <= 0.0 or tip_diameter_mm <= 0.0:
++        return 1.0
++    s = (tip_gap_mm / 1000.0) / (tip_diameter_mm / 1000.0)
++    return max(0.0, 1.0 - float(C) * s * float(psi_ideal))
++
++
+ def _effective_tip_gap_mm(params: BladeParams, tip_gap_mm: float | None) -> float:
+     """Full tip ring seals the leak path; partial / open tip keeps the screening gap."""
+     from fansim.geometry.blade import shroud_is_full

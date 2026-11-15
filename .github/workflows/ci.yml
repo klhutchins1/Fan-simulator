@@ -9,6 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so changed-files ruff can diff the PR base or the push's before SHA.
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
@@ -17,6 +20,39 @@ jobs:
       - name: Ruff critical
         # Full fansim/tests/scripts still has hundreds of style hits; gate on ship blockers.
         run: uv run --extra dev ruff check fansim tests scripts --select F811,F821
+      - name: Ruff changed files
+        # Default rule set on the diff only. Do not point this at the whole tree.
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="${{ github.event.before }}"
+          fi
+          if [ -z "${base}" ] || [ "${base}" = "0000000000000000000000000000000000000000" ]; then
+            echo "No base SHA (first push). Skipping changed-files ruff."
+            exit 0
+          fi
+          if ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            git fetch --no-tags --depth=1 origin "${base}"
+          fi
+          files=()
+          while IFS= read -r -d '' f; do
+            case "${f}" in
+              *.py)
+                if [ -f "${f}" ]; then
+                  files+=("${f}")
+                fi
+                ;;
+            esac
+          done < <(git diff -z --name-only --diff-filter=ACMR "${base}" HEAD)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No changed Python files."
+            exit 0
+          fi
+          printf '%s\n' "${files[@]}"
+          printf '%s\0' "${files[@]}" | xargs -0 uv run --extra dev ruff check --
       - name: Mypy public surface
         run: uv run --extra dev mypy
       - name: Fast pytest
@@ -26,3 +62,65 @@ jobs:
         run: >
           uv run --extra dev python scripts/pytest_chunks.py --chunks 3 --all --
           -m "not docker and not slow" -q --tb=line
+
+  windows-geometry:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Sync deps
+        run: uv sync --extra dev
+      - name: Fast geometry and export
+        # Release export, one impeller, STL mesh repair, span-loft math.
+        # Not the full suite. A green pytest can still exit 0xC0000374 when OCCT
+        # unloads; judge() from the chunk runner accepts that summary.
+        shell: bash
+        run: |
+          cat > geometry_pytest.py <<'PY'
+          import importlib.util
+          import subprocess
+          import sys
+
+          spec = importlib.util.spec_from_file_location(
+              "pytest_chunks", "scripts/pytest_chunks.py"
+          )
+          mod = importlib.util.module_from_spec(spec)
+          assert spec.loader is not None
+          spec.loader.exec_module(mod)
+          files = [
+              "tests/test_export_release.py",
+              "tests/test_geometry.py",
+              "tests/test_stl_sanitize.py",
+              "tests/test_span_interp.py",
+          ]
+          cmd = [
+              sys.executable,
+              "-m",
+              "pytest",
+              *files,
+              "-m",
+              "not docker and not slow",
+              "-q",
+              "--tb=line",
+          ]
+          proc = subprocess.Popen(
+              cmd,
+              stdout=subprocess.PIPE,
+              stderr=subprocess.STDOUT,
+              text=True,
+              encoding="utf-8",
+              errors="replace",
+          )
+          summary = None
+          assert proc.stdout is not None
+          for line in proc.stdout:
+              sys.stdout.write(line)
+              if mod._parse_summary(line) is not None:
+                  summary = line.strip().strip("=").strip()
+          ok, verdict = mod.judge(int(proc.wait()), summary)
+          print(verdict, flush=True)
+          raise SystemExit(0 if ok else 1)
+          PY
+          uv run --extra dev python geometry_pytest.py

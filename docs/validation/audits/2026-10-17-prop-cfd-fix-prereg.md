@@ -159,4 +159,6 @@ Wake-cut 4-block C-grid (cut in the wake, not an O at the TE). Incompressible si
 
 Mesh report (required): requested first-cell y+ = 0.8; **achieved y+ mean 0.27 / 0.25 / 0.22** (max 0.46 / 0.59 / 0.69) at 0° / 5° / 10°. Structured mesh: 9600 hexes, 96 airfoil faces, layer coverage n/a (100 % walls). checkMesh: non-orthogonality max 70, skewness 1.51 (OK); high aspect ratio ~1.4×10⁵ from the 0.36 μm first cell (expected).
 
-**Verdict: FAIL.** The wall is resolved, so this does judge SST at Re 6e6. C_d(0°) is inside the window; lift is not. Recorded, not re-tuned. Do not change the 3-D prop mesher. Claude to read.
+**Verdict: FAIL.** The wall is resolved, so this does judge SST at Re 6e6. C_d(0°) is inside the window; lift is not. Recorded, not re-tuned. Do not change the 3-D prop mesher.
+
+**Claude ruling 2026-11-06:** this result is **INVALID as a judge of SST**. It is unconverged at 0°/5°, the LE and the TE transition are under-resolved, and the far field is at 8c. Rung A0c is pre-registered as the last A0 attempt for v0.1.0, with a grid-quality gate: `2026-11-06-ruling-rung-a0-cgrid.md`.

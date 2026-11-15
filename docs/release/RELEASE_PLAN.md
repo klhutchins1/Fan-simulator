@@ -29,49 +29,79 @@ CPU: `day` = light, any time except 4–9 PM. `night` = heavy, a Scheduled Task 
 
 M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
 
+## Work order (Claude review 2026-11-09; Kimball approved)
+
+Why: from 2026-10-17 to 2026-11-08 the night queue ran on 7 nights, and 13 of its 16 jobs were test suites, not CFD.
+The tasks that unblock CFD validation sat `ready` behind wording fixes. So accuracy work goes first (AGENTS.md rule 9).
+
+1. **Finish R1.10 as one batch.** G5 plus R1.2, R1.5 and R1.9 on one branch with one gate. No more one-branch-per-group.
+2. **R2.2a″ A0c** (minutes of day CPU). It decides whether propeller CFD rungs C and D run or the tab is labelled.
+3. **R2.5a** volute convergence fix, then **R2.3a** and **R2.5b** geometry freezes. Each one ends by adding a CFD job to
+   `night/queue.json` (R2.3b, R2.5c): that is the point of doing them first.
+4. **R1.3** optimizer bounds under wrap (now `ready`).
+5. **M3 packaging** (R3.1, R3.2, R3.4–R3.9) fills any time the steps above are waiting on a night run.
+   **P1** (engraved print-id, section below) goes ahead of M3: it is the only code blocking Kimball's first print.
+6. grok: after round 27, one re-derivation or bug-hunt round per CFD result, and the full claims audit at the release
+   candidate. No routine re-check rounds.
+
+Merge gates run the same day with `scripts/gate.py <branch>` (lands with branch `process-tools`); nights are for CFD.
+
+---
+
+## Print session 1 (Kimball 2026-11-09; runs beside the release work)
+
+Goal: print Stock v3 once and learn what works: fit, shape, the engraved ID and the test routine. Kimball has a
+laser tach and a phone. No airflow meter. Rules and pass/fail are pre-registered in
+`docs/validation/audits/2026-11-09-first-print-tach-phone-prereg.md` (T1–T6). Only Stock v3 is printed; no
+optimizer candidate. This does not change the v0.1.0 definition of done.
+
+- **P1 Engraved print-id on the hub (roadmap 28.3).** Lane: Cursor. CPU: day (a few geometry builds; not 4–9 PM).
+  Status: `done 2bfde35`. Grok r28 ingested; QA-73 HIGH (mirror), QA-74 depth, QA-75 6=G, QA-76 one-cut, QA-78 skip-copy,
+  QA-79 hub-face. Merge gate 750/521/683. Still open: QA-77 lands. Prints: H7MQ8 Stock T1–T6 (PLA+, 0.6 mm, **27.41 g**,
+  T3 FAIL → P6); E0MWW t9002 extra. Live mark: cap 5.0 mm, stroke 0.9 mm, band r 11.5–16.5.
+  - Follow `docs/qa/notes/print-id-mark-spec-r10.md` (P6 addendum): +Z hub top, strokes engraved 0.5 mm deep, cap height 5.0 mm,
+    stroke width 0.9 mm, band r 11.5–16.5 mm, 5 characters (the 4-character code plus its check digit), read along
+    the arc.
+  - Draw the Crockford characters from line segments defined in code (no system font), fuse them, and make **one**
+    cut on the mounted print solid. Export only: the scored and CFD geometry never carries the mark.
+  - If the flat ring on a design is too narrow, skip the cut and keep the Sharpie line in the README; say so.
+  - Tests: after the cut there is 1 watertight solid; removed volume is within 10 % of stroke area × 0.5 mm; the
+    mount gauge reads the same as before the cut; every one of the 32 characters has a segment definition; the
+    engraved code equals the code in the README and `*_print_fit.json`.
+  - Also put the predicted weight (material, infill) in the export README, as Preview shows it (check T2).
+  - README states: "ID engraving removes about 2 % of the hub face; its effect on airflow was not simulated."
+- **P2 Recording tool.** Lane: Claude. Status: `in progress (Claude, 2026-11-09)`: branch `print-session-prep`
+  (`bd6b12e`), `scripts/analyze_fan_recording.py` + `validation/recording.py`, 12 tests. Gate: night job
+  `suite-print-session-prep-all`. Merge if green.
+- **P3 Export the print.** Lane: Cursor. Status: `done` 2026-11-09. H7MQ8 Stock v3
+  (`exports/H7MQ8_a12x25_stock_reference_20261109-220053.stl`); E0MWW t9002 extra. Material PLA+, 0.6 mm nozzle.
+- **P4 The session.** Lane: Kimball. Status: `in progress (Kimball, 2026-11-11)`. T2 27.41 g record-only; T3 FAIL → P6.
+  T1 FAIL: H7MQ8 pad tips 36.55 mm in the file (caliper 36.21 mm) will not seat. Still open: T4 tach/phone, T5 12 V rpm, T6 bag. Keep WAV/photos in `validation/prints/H7MQ8/`.
+- **P4a Hub opening.** Lane: Cursor. Status: `done 0beb057`. Branch `hub-opening-3725` (not merged).
+  Pad tips back on the 37.25 mm circle (the 2026-08-31 opening and the reference STL). `cavity_dia_mm` stays 37.25. Protrude 0.7 → 0.35, equal to the clearance. Wrap, loft, and Stock YAML untouched. Layout tests passed. Fit coupon, no blades: `exports/hub_fit_37.25mm_20261111-215225.stl` (also copied beside the other prints). 6 mm ring, pad tips 37.25 mm, 1.96 cm³. Kimball 2026-11-12: that ring fits the motor better than H7MQ8 and E0MWW; he will sand those two. Selecting A12x25 uses this pad circle (37.25 mm). The class default no longer sticks the pads in 0.7 mm. T1 stays open until a full impeller with this opening is on the frame.
+- **P5 Write up.** Lane: Claude or Cursor. Status: `blocked (P4)`. Fill the Results table in the pre-registration
+  (nothing above it is edited) and put each failed check on this board as its own task.
+- **P6 Enlarge print-id glyphs (T3 FAIL / QA-80).** Lane: Cursor. CPU: day. Status: `done 2bfde35` (code); T3 coupon **needs Kimball**.
+  H7MQ8 (Stock v3, PLA+, 0.6 mm nozzle, 27.41 g): 3.2 mm cap / 0.6 mm stroke is too small to read at arm's length.
+  Raise cap and stroke a little. Proposal: cap **5.0 mm**, stroke **0.9 mm**, advance **3.6 mm**, band r **11.5–16.5**
+  (`print_id.py` + r10 mark-spec). Depth stays 0.5 mm. Keep ≥1 mm from the bore and rim. Widen the cell with the
+  stroke so QA-77 lands do not get worse.
+  Tests first: glyphs still distinct; 1 watertight solid; K7 cup unchanged. Prove T3 on a **hub-face coupon**, not a
+  full impeller (prereg T3-fail path).
+  Balance: extra recess ~0.02 g at r ~14 mm. Even if the mark were fully one-sided that is ~0.3 g·mm, under ordinary
+  blade print scatter (lead 15: 1.7–2.4 g·mm).
+  - Landed `2bfde35`: constants 5.0 / 0.9 / 3.6; sheet "about 2 %"; coupon script `scripts/export_id_coupon.py`.
+    Glyph tests 25 passed. **needs Kimball:** print `exports/H7MQ8_id_coupon_20261111-190250.stl`, marked face on the bed, no supports, and try T3 again.
+- Later, not blocking: roadmap 28.4 (Record measurement by `print_id`); a vane anemometer (about $25) for session 2.
+
 ---
 
 ## M0: Trustworthy flow card
 
-- **R0.1 Push and plane fix (27.3e)**. Lane: Claude. CPU: day. Status: `done` (merged 2026-10-17; F1/F2 PASS).
-  - The card's fixed planes cut through blade rows, so push tracked swirl rather than airflow. The planes are
-    now blade-relative, `FLOW_REPORT_VERSION` 4, branch `push-planes-27-3e`.
-  - Pre-registered checks F1–F4: `docs/validation/audits/2026-10-17-push-row-planes.md`.
-  - Runner: `scripts/push_planes_checks.py`.
-- **R0.2 Re-derive the card margins on v4 metrics**. Lane: Claude decides, Cursor implements. CPU: day.
-  Status: `done` (2026-10-17: Kimball approved; `BAND_TOL` 0.06, `BAR_TOL` 0.12).
-  - Asked: on v4, Stock's five-mesh 2σ is 5.7 % for the mean push and 12 % for the bars. Raise `BAND_TOL` 0.03 → 0.06
-    and `BAR_TOL` 0.08 → 0.12?
-  - The never-tighten rule and the 0.15 stop line both allow it. Data: the "Results of the fix" section of
-    `2026-10-17-push-row-planes.md`.
-  - The other margins (backflow, swirl, dead, tip) were never sized on mesh repeats. Do that as part of R0.3.
-  - Re-run `scripts/stock_flow_repeats.py --analyze`, `scripts/stock_flow_mesh_repeats.py --analyze` and
-    `scripts/design_flow_mesh_repeats.py --analyze` on v4 (no CFD).
-  - Apply the 27.3b rule: 2σ, never tighten, stop lines 0.15 / 3 dB.
-  - Kimball approves any constant change in `fansim/cfd/flow_verdicts.py`.
-- **R0.3 "Too close to call" state (27.3d)**. Lane: Cursor, from Claude's spec. CPU: day.
-  Status: `done` (merged 2026-10-19; night suite c1/c3 green, c2 had one stale test fixed and re-run green).
-  - Landed: compared rows inside CLOSE (`√2 × 2σ`, never-tighten) show "Too close to call" (–). Synthetics C1/C2
-    PASS. Audit: `docs/validation/audits/2026-10-17-too-close-to-call-prereg.md`.
-  - **C3 FAIL:** 9604 direction and 9610 direction/push/spin still flip across m1–m5. Do we size CLOSE from those
-    paired |Δ| instead, or accept the residual flips?
-  - **Claude review 2026-10-17: approve the code.** The rule matches the prereg, and C3 was recorded honestly.
-    Recommendation: accept the residual flips. Design-minus-Stock pairs scatter more than √2 × Stock's own 2σ (9610 push
-    paired 2σ ≈ 10 %), but sizing CLOSE from them would hide 9610's real backflow, and any line flips for cases that
-    sit on it. Merge once Kimball agrees; Cursor runs the fast suite first.
-- **R0.4 Noise hint review (27.3c)**. Lane: Claude ruled, Cursor implements. CPU: day. Status: `ready` (ruling below).
-  - **Ruling (Claude 2026-10-17):** stop *judging* the hint.
-    - At fixed rpm and tip radius, L = 55 log U_tip + 10 log CFM differs between designs only through CFM. So
-      "louder" just restates "moves more air", which is the standard fan-law result at equal pressure, and it can never
-      show a design that is quieter for the same flow.
-    - There is no validated design-sensitive noise estimate yet (FW-H needs transient CFD, roadmap 1.4).
-    - Change: the noise row is never ✓/⚠/better. Expert shows the hint number with "scales with tip speed and airflow
-      only; not a comparison of how quiet the design is". The README claims no noise comparison for v0.1.0.
-    - Test: a design with more CFM gets no ⚠ on noise.
-  - Cursor's tip-speed + CFM hint (`fansim/acoustics/tip_loading.py`) only varies with CFM, because rpm and tip
-    radius are fixed for a12x25. As written, a fan that moves more air reads "louder".
-  - Decide: keep it as Expert-only information, or replace it with a loading-based estimate. Test the candidates
-    on the 15 runs.
+- R0.1 Push and plane fix: done (merged 2026-10-17; F1/F2 PASS). Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
+- R0.2 Card margins on v4 metrics: done (2026-10-17; `BAND_TOL` 0.06, `BAR_TOL` 0.12). Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
+- R0.3 "Too close to call" state: done (merged 2026-10-19; C3 FAIL recorded, residual flips accepted). Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
+- R0.4 Noise hint never judged: done `8d06672`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
 
 ## M1: Axial validated
 
@@ -93,98 +123,103 @@ M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
       - grok r23 B (2026-10-31, `docs/qa/notes/r23-B-near-knee-warning-spec.md`, proposal only): R23-KNEE (unconverged OR φ ≤ 0.6 OR P ≥ 0.6 × BEM shut-off) gets 6 hits, 1 miss (lt120 13.71, converged) and 0 false flags; **needs more data**. Draft: K1 warning now, φ and P/shutoff report-only.
       - grok r24 B (2026-11-01, `docs/qa/notes/r24-B-qa64-wording.md`): "near free air … within 8 %" fails on lt120 (P/Pmax 0.20; +8.1 %); **use "within 10 %", lt120 "at its lowest measured load (6.85 Pa)"** (all numbers ≤ 9.5 %; frozen 0.5 mm gap). QA-64.
       - grok r24 C (2026-11-01, `docs/qa/notes/r24-C-k1-visibility.md`): K1 is **not** shown for a converged=False score (only in reject text). QA-65 (MED); patch `docs/qa/patches/r24-C-k1-visible.patch`.
+      - grok r25 C (2026-11-02, `docs/qa/notes/r25-C-qa64-strings.md`): both audit lines (`2026-10-18-…:89`, `2026-10-30-…:69`) still say "near free air … within 8 %" on 9d0118f; QA-64 open until R1.10.
 - **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `ready`.
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
   - Make sure the UI and README never quote a number above the validated range. Add a test that the P–Q display
     stops at the last converged point.
+  - **QA-65 (grok r24 C; Claude reviewed 2026-11-01): adopt.** Status: `done c10c06b`. An Assess score whose loaded point did not converge shows no
+    warning. Apply `docs/qa/patches/r24-C-k1-visible.patch` (the caption reads "⚠ loaded point did not settle (CFD unconverged):
+    loaded CFM is uncertain"), with a test that a `converged=False` result shows it and a converged one does not. This is the
+    near-knee rule's K1. The rest of r23 B stays a roadmap proposal.
+    Landed (2026-11-04, `c10c06b`): r24-C caption + reason on Assess; r25-B tests and Optimize trials carry `converged`.
+    `test_score_caption` 11 passed.
+  - grok r25 B (2026-11-02, `docs/qa/notes/r25-B-qa65-adopted-review.md`): 9d0118f is board-only, the patch is **not applied** (`git apply --check` still passes); behaviour OK (only `converged is False` warns). **Holes:** Optimize trials never carry `converged`, no test. Add-on `docs/qa/patches/r25-B-qa65-test-and-trials.patch`.
+  - grok r25b (2026-11-02, `docs/qa/notes/r25b-master-0635a18-recheck.md`): **still not on master 0635a18**: `r24-C-k1-visible.patch` still applies; unpatched master shows no warning for `converged=False`. r25-B add-on still applies (score_caption 11 passed on scratch, 9 on master). QA-65 open (MED).
+  - grok r26 (2026-11-04, `docs/qa/notes/r26-qa66-qa65-recheck.md`): on bd6abdd **QA-65 verified 3/3, closable** (r24-C and r25-B reverse-apply; only `converged is False` warns; trials carry `converged`). Optional test: `docs/qa/patches/r26-B-qa65-trial-test.patch`.
 - **R1.3 Optimizer space under wrap (27.7)**. Lane: grok data (round 14 Task C), Cursor implements, Claude reviews.
-  CPU: day for the bounds, night for any re-find campaign. Status: `blocked (R1.7, R1.8)`. grok r14 C delivered 2026-10-17
+  CPU: day for the bounds, night for any re-find campaign. Status: `ready` (Claude 2026-11-09: R1.7 and R1.8 are both done, and grok r17 C re-measured 2.0 % refused with both, so the block is gone). grok r14 C delivered 2026-10-17
   (`docs/qa/notes/optimizer-space-wrap-r14.md`; proposed bounds give 4.3 % refused). The refused share depends on the hub
   (R1.7) and the hang check (R1.8), so re-measure after both.
   grok r17 C (2026-10-19, `docs/qa/notes/r17-C-hang-refusals.md`): r14 P0 bounds with R1.7 + R1.8 give 2.0 % refused (Wilson ≤ 4.3 %), so the bounds stand. R1.8 alone gives 7.7 %, R1.7 alone 0.3 %.
-- **R1.7 QA-44: the optimizer scores a different hub than Export prints**. Lane: Cursor. CPU: day. Status: `done` (2026-10-20; print hub, growth below the blades).
-  - **Merged 027ebcb (2026-10-21).** CFD_VERSION 5 → 6, so saved scores read 'old solver' (disposable). Stock is unchanged (hub 16.5 mm ≥ 15), so every Stock reference and flow-card margin stands.
-  - Landed: `mount_hub_params` now sets `blade_hub_z_mm += Δh/2` so the intake face stays put. Validate, Assess/optimizer CFD and Export all use that hub. Auto-hub CFD scores are stale (`CFD_VERSION` 6).
-  - grok r16: the optimizer and Assess use the auto hub (often < 15 mm), while a12x25 Export and the cup Preview grow it
-    to 15 mm, moving the clip plane by up to 3.3 mm. 54/141 refused designs would pass, and 171/291 hanging designs print
-    with a different trailing edge from the one scored.
-  - Fix: one hub height for validate, score and export. Apply `min_hub_height` in the search, with the growth below the
-    blades (`blade_hub_z = +Δh/2`, grok's proposal).
-  - Test: for grok's cases in `handoff/2026-10-17_from-qa-16-hang/data/`, the hub used by `validate_blade_params`, the
-    CFD build and `do_export` is identical.
-  - Old saved designs are disposable: mark them stale, don't migrate them.
-  - grok r17 C: with the export hub (growth below), 174/300 r16 hubs grow (Δh ≤ 6.7 mm). Built/designed stays 1.77, and (i + ii) refuses 57/58 built > 2 mm with 0.4 % false refusals.
-- **R1.8 QA-43: the 2 mm hang limit is checked on the designed blade; the built blade hangs about 1.75× more**.
-  - **Next (Cursor, small):** `done` on `r22a-rung-a0` (`a42544e`): 4 feature designs in `tests/data/hub_hang_designs.json`; stage-2 test matches r18 within 0.05 mm and `build_impeller` refuses all four. Acceptance 10/10.
-  - **Merged 027ebcb (2026-10-21).** Stage-2 acceptance 6/10 (feature-free); the 4 feature designs wait on grok r20 A's params, then Cursor adds them to `tests/test_hub_hang.py`. Claude review: approved (`docs/validation/audits/2026-10-20-rulings-r18-r19-rungA.md` §4).
-  - **AMENDED 2026-10-19 (QA-46, `docs/validation/audits/2026-10-19-prereg-amendments-r17.md` §1): two stages.**
-    - Stage 1, 1.75× designed, is a search prefilter (≤ 3 % false refusals).
-    - Stage 2 measures the **built** solid's hang wherever the blade is built (Assess CFD build, Preview, Export) and
-      refuses when it is > 2 mm.
-    - Acceptance for stage 2: it matches grok's built values within 0.05 mm on 10 designs incl. S2_0269 (grok r18 A
-      supplies them).
-    - The single-factor acceptance below is recorded as FAIL (1/123), not re-tuned.
-  Lane: Cursor (the rule is fixed below). CPU: day. Status: `done` (2026-10-20; two-stage hang).
-    - Landed: stage 1 is 1.75× designed hang in `validate_blade_params`; stage 2 measures the built solid in `build_impeller_parts` (OCCT optimal bbox). Feature-free grok r18 A values match within 0.05 mm. Audit: `docs/validation/audits/2026-10-20-r18-hang-two-stage.md`. The single-factor miss (S2_0269 on the auto hub) stays recorded as FAIL.
-    - grok r20 A (2026-10-21, `docs/qa/notes/r20-A-built-hang-recheck.md`): the 4 feature designs' JSON is in `docs/qa/r20/r20-A-feature-designs.json`. On master, all 10 match r18 to 0.0 mm. Stage 1 refuses 5/10, stage 2 refuses 6/10, and `build_impeller_parts` refuses all 6 built > 2 mm. QA-43/44/49 are verified fixed. Acceptance is 10/10 once the JSON is in `tests/test_hub_hang.py`.
-  - Change: `validate_blade_params` refuses when `HANG_BUILT_FACTOR × blade_hang_below_hub_mm(params) > MAX_HANG_BELOW_HUB_MM`,
-    with `HANG_BUILT_FACTOR = 1.75` in `fansim/geometry/blade.py`.
-  - Comment the derivation: the chord fixed point refills the clipped chord, which drops the trailing edge by half the
-    clip again, so 1 + ½ + ¼ = 1.75 after two iterations (grok r16, measured median 1.77, n = 140,
-    `docs/qa/notes/hang-investigation-r16.md`).
-  - The UI refusal text says the *printed* blade would hang X mm (= 1.75 × designed).
-  - Pre-registered acceptance, on grok's r16 measured designs (`handoff/2026-10-17_from-qa-16-hang/data/`):
-    - every design whose built hang is > 2 mm is refused;
-    - at most 3 % of designs with built hang ≤ 2 mm are refused.
-    - Record the result in a short audit note. Failures are recorded, not re-tuned.
-  - Re-prove the geometry audit unit that owns `validate_blade_params`. Update `tests/test_hub_hang.py`.
-  - Note: the 1.6× ratio was known when 2 mm was set (2026-10-13). grok now explains it (chord refill after the clip)
-    and measures 1.75×.
-  - grok r17 C heads-up (QA-46): on the r16 data the 1.75× rule misses S2_0269 (1.997 mm predicted, 2.25 mm built), so the "every built > 2 mm refused" rule is expected to FAIL by 1/123. 1.78× catches it but refuses 4.5 % (> 3 %). Claude to rule before the run.
+- R1.7 One hub for score and export (QA-44): done `027ebcb`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
+- R1.8 Two-stage hang check (QA-43): done `027ebcb`, acceptance 10/10 `a42544e`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
 - **R1.9 Small QA fixes**. Lane: Cursor. CPU: day. Status: `ready`. One branch, one test each:
   - QA-39: sort postProcessing time dirs numerically (`_pp_file`, `sanity.py`, `timing.py`, the objectives copy);
   - QA-40: no noise text in Simple mode when there is no Stock reference;
   - QA-41: `watch_parent` must treat a zombie or exited launcher as gone (not `os.kill(pid, 0)` alone on Linux);
   - QA-42: the Preview weight line names the material and infill ("11 g PLA+, 20 % infill");
   - QA-45: undersized cup hub gives the plain "hub radius too small" message.
-- **R1.4 Stock recipe gap**. Lane: Cursor (decided). CPU: day. Status: `done` (2026-10-25, `r22a-rung-a0`).
-  - Stock v3 is 55.7 CFM against 58.3 for the reference STL (−4.5 %).
-  - **Kimball 2026-10-21: state the gap and ship.** No more recipe fitting for v0.1.0.
-  - Landed: `STOCK_RECIPE_GAP` on the Stock Expert caption (`selected_trial === 100000`) and a README **Known limits** section. Simple mode is unchanged. `docs/VALIDATION.md` still waits on R3.8.
-  - Wording, the same everywhere: "Stock is rebuilt from a parametric recipe and reads about 5 % less airflow than the
-    real A12x25 shape (55.7 vs 58.3 CFM in the same test). Designs are compared with this Stock, so comparisons are
-    like for like."
-  - Where it goes:
-    - the Stock entry's Expert detail in the cockpit (Simple mode shows nothing extra);
-    - the README "Known limits" list;
-    - `docs/VALIDATION.md` (R3.8), with links to `docs/validation/audits/2026-10-12-cylinder-sections.md` and the
-      `wrapped-sections` audit numbers.
-  - Test: the phrase "about 5 % less airflow than the real A12x25" appears in the README and in the Stock Expert text.
-  - grok r21 A/B (2026-10-25): not landed at 5063a65 (README:52 still v2 −5.5 %; `fan_trials.py:354` lacks the phrase). The "`wrapped-sections` audit" link has no file; use `2026-10-12-cylinder-sections.md`. QA-59.
-  - grok r22 A (2026-10-29, `docs/qa/notes/r22-A-ui-bug-pass.md`): landed at b3d5543: the phrase is in README:204 and renders in the Stock Expert caption (headless, :8080); Simple shows nothing extra. Verified.
-- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `ready`.
+- R1.4 Stock recipe gap stated (about 5 % low): done 2026-10-25. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
+- **R1.10 Release claims fixes (grok r21 A; QA-55/56/57/58).** Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)` (G5).
   - Groups G1–G5 with exact wording: `docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`. One branch per
     group, each with a grep or UI test.
   - Release gate: 0 overstated and 0 unsupported claims. grok re-audits the release candidate.
-- **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `done a9ca242`.
-    - Landed: the Surrogate-guided switch is hidden; cockpit Optimize always passes `surrogate_guided=False`, so it cannot rank with `synthetic_label()`. CLI `--surrogate-guided` (stub) stays for its tests. QA-62: `validate_lt120.py` is on `AXIAL_SCRIPTS`. Fast chunks: 679 + 506 + 705 passed.
+  - G1 landed (`bf2ee37`): Assess compares with scored Stock at the same hose/material/refine, or omits the line.
+    Never vs the datasheet. Stock vs itself is +0 %. Fast chunks 692+514+702. QA-56.
+  - G2 landed (`8d06672`): noise row never judged; README "Noise outputs are not validated"; no bare dB(A) on
+    model outputs (design list "SWL est.", print sheet labelled, Optimize caption). Related tests 25 passed.
+    Fast chunks not run (peak window). Carries out R0.4 and R1.6. QA-55. Merge after 21:00 chunks. G3 next.
+  - Claude review of `r110-g2` (8d06672, 2026-11-04): **OK to merge**. The noise row is `na` (never ✓/⚠); the README and
+    Expert text match the ruled wording; dB(A) stays only on published values; the export print sheet says "not dB(A);
+    not validated".
+  - Claude, 2026-11-08: G2 merged to master 3fca917 (night gate: 717/544/653 passed, 0 failed). G3 reviewed OK, wording matches the 10-29 audit; merged onto master as `r110-g3-merge` dd13be7 (board conflict only, 36 related tests pass).
+  - G3 landed (`5945620`): Mixed tab "Experimental: not validated against published data"; Assess "runs MRF CFD
+    (not validated against published data)"; Volute "ranking only, unvalidated (CFD not yet converged)". Related tests
+    38 passed. QA-57 / R2.4. Merge gate 2026-11-08: 668/568/683 passed (OCCT teardown only). Merged to master `41e2dc9`.
+  - G4 landed (`5c79aaa`): drop stale ~2× / ~0.6× / ~3–5 %; Assess "two CFD solves … 20–40 min"; README Known limits list (R1.4 phrase kept). QA-69: LBM ranking is "Noise estimate (min)", not dB(A). Merge gate 2026-11-09: 701/519/706 passed (OCCT teardown only). G5 next.
+- **R1.11 Surrogate-guided Optimize runs no CFD (UI-31, HIGH).** Lane: Cursor. CPU: day. Status: `done 5611332`.
   - Claude confirmed 2026-11-01: the cockpit never passes `--verify-cfd` (`scripts/run_optimization.py:111,159`), so its
     labels and "verify" come from `synthetic_label()` (`fansim/optimize/surrogate_search.py:309`), a test formula.
   - For v0.1.0: hide the Surrogate-guided switch, or wire it to `--verify-cfd` and refuse to run without Docker. It must
     never rank designs with `synthetic_label`. Add a test that the cockpit's argv cannot reach the stub path.
   - The other tooltip findings (UI-32 … UI-38) belong to M3 polish. UI-33 (Optimize ignores the Design sliders) needs one
     sentence in the Optimize help.
+  - Landed: switch hidden; `cockpit_optimization_argv` never passes `--surrogate-guided` even if state is on; CLI refuses
+    `--surrogate-guided` without `--verify-cfd` or `--stub-labels` and stamps stub output "synthetic labels, not CFD";
+    dead `opt_surrogate_guided` tooltip dropped. QA-62: `validate_lt120.py` is on `AXIAL_SCRIPTS`. Fast chunks 679+506+705
+    passed (OCCT teardown exit only).
+  - Claude review of `r111-hide-surrogate` (a9ca242, 2026-11-01): **OK to merge** for the cockpit. Close-out items above
+    are done (`23704f5`).
   - grok r24 A (2026-11-01): still open on 23831da (switch renders; argv has no `--verify-cfd`).
+  - grok r25 A (2026-11-02, `docs/qa/notes/r25-A-r111-branch-check.md`): on unmerged 237a094 UI-31 and QA-62 **fixed on branch (pending merge)**; master 9d0118f still open. CLI behaviour test still guard-only (`docs/qa/patches/r25-A-r111-cli-behaviour-test.patch`); new **QA-66** (MED): `--verify-cfd` still trains on `synthetic_label` DoE, `run_surrogate_search.py` adds `--stub-labels` silently. Merge conflicts in this file only.
+  - grok r25b (2026-11-02, `docs/qa/notes/r25b-master-0635a18-recheck.md`): on master 0635a18 UI-31 and QA-62 **verified**. **Not closable:** CLI behaviour test still guard-only (r25-A patch: 7 passed on scratch, master 5); **QA-66 still open 0/3** (`--verify-cfd` DoE = `synthetic_label`, `surrogate_search.py:458,484`; `run_surrogate_search.py:26-27` adds `--stub-labels`; "stamps stub output" is stdout only, `run_optimization.py:179-180`, nothing on disk).
+  - Claude review 2026-11-02: **QA-66 confirmed** in code. The cockpit fix stands (UI-31 verified), but the CLI
+    still ranks with synthetic labels: `run_surrogate_guided` labels the DoE with `label_fn or synthetic_label` even under
+    `--verify-cfd`, and falls back to `stub_verify` silently when Docker fails. To close R1.11:
+    - under `--verify-cfd`, label the DoE with CFD too (or train only on real catalog rows), and **refuse** instead of
+      falling back to the stub;
+    - `--stub-labels` (and `run_surrogate_search.py`, which adds it silently) writes "synthetic labels, not CFD" into
+      `surrogate_guided.json` itself, not only stdout;
+    - apply grok's `docs/qa/patches/r25-A-r111-cli-behaviour-test.patch` (a behaviour test, not a grep).
+    - If that is too much for v0.1.0, ship the surrogate-guided CLI as "developer only, experimental" in `--help` and
+      the README, with the refusal still in place.
+  - Claude review of `r111-qa66` (6c0b10e, 2026-11-03): **OK to merge**; 17/17 in `test_surrogate_guided.py` +
+    `test_r111_cockpit_surrogate.py`. It closes the three QA-66 holes. Two small follow-ups, not blockers:
+    - `--verify-cfd` with no catalog, or fewer than 8 rows, ends with an empty result ("need ≥2 cfm_free labels") after the
+      Docker check. Refuse up front: "needs a catalog with ≥ 8 CFD rows (--surrogate-db)".
+    - `seed_from_catalog` fills `cfm_load` (0.55 × free, when missing) and `efficiency` (always 0.2 × free) with made-up
+      priors. The ranks use `cfm_free` only, so they are real, but stamp those two predictions "prior, not CFD" in the JSON,
+      or drop them.
+  - Landed (QA-66, 2026-11-04, `5611332`): `--verify-cfd` trains on catalog + CFD verify (no synthetic DoE), refuses
+    missing Docker and a catalog with < 8 rows; `run_surrogate_search.py` refuses an ungated stub; JSON stamps
+    `synthetic labels, not CFD` and catalog load/efficiency `prior, not CFD`. r25-A CLI behaviour tests. Fast chunks
+    679+512+707 (OCCT teardown only). Review follow-ups included.
+  - grok r26 (2026-11-04, `docs/qa/notes/r26-qa66-qa65-recheck.md`): on bd6abdd **QA-66 verified 5/5; r25-A CLI test covered; R1.11 closable.** New **QA-68** (LOW): CLI catalog refusal is an uncaught traceback, not exit 2; `docs/qa/patches/r26-A-qa68-catch-refusal.patch`.
+  - QA-68 done (Claude, 2026-11-04, merge of `r26-qa68`): grok's patch. The catalog/Docker refusal exits 2 with the
+    message; its test failed first (uncaught RuntimeError). Fast chunks 692+515+702 passed (OCCT teardown exit only).
 - **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `ready`.
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.
     Add a test that the label is present.
   - grok r21 A (2026-10-25): not landed at 5063a65 (README:27/62, `fan_tab_ui.py:889/911`, `figures.py:394`). QA-59.
-- **R1.6 Acoustics claims audit**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R1.6 Acoustics claims audit**. Lane: Cursor. CPU: day. Status: `done 8d06672`.
   - Grep the UI, export README and docs for any absolute dB(A) claim. Everything must say relative or ranking only
     (audit-06).
   - Add a test that greps the UI copy for "dB(A)" without the word "relative".
   - grok r21 A (2026-10-25, `docs/qa/notes/r21-A-release-claims-audit.md`): 15 overstated / 5 unsupported claims across README, cockpit, docs; noise ones in QA-55 (incl. `data.py:205` "dBA", flow-card hint row, README:59). Also QA-56: Assess "vs stock free 60 CFM" is vs the datasheet.
+  - Landed (`8d06672`, via R1.10 G2): UI grep requires published/relative/measured/estimate/not validated next to
+    dB(A)/dBA on model outputs; user-measured "Noise dB(A)" and datasheet "published" stay.
 
 ## M2: Every other tab decided
 
@@ -206,7 +241,7 @@ Kimball's.
   - Pre-registered diagnostic ladder: `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`. Read its rules
     before running anything; each rung's result picks the next rung.
   - **R2.2a 2-D section case (rung A).** Lane: Cursor. CPU: day (minutes per run; not 4–9 PM). Status: `done` (2026-10-20; verdict report to Claude).
-  - **R2.2a′ rung A0: verify the 2-D setup on NACA 0012 at Re 6×10⁶ against Ladson.** Lane: Cursor. CPU: day (minutes). Status: `done 3fe5c60` (2026-10-26, `r22a-rung-a0`). Snappy **FAIL** (layers 0 %, y+ ~1100). Wake-cut C-grid **FAIL** with the wall resolved: C_d(0°) −2.4 % (inside ±20 %), C_l(5°) −14 %, C_l(10°) −44 % (need ±5 %). y+ mean 0.27 / 0.25 / 0.22. Table in the ladder prereg. Recorded, not re-tuned. Claude to read. (grok r20 B: C_d(0°) 0.00808, C_l(5°) 0.537, C_l(10°) 1.063; `docs/qa/r20/r20-B-ladson-naca0012-reference.csv`).
+  - **R2.2a′ rung A0: verify the 2-D setup on NACA 0012 at Re 6×10⁶ against Ladson.** Lane: Cursor. CPU: day (minutes). Status: `done 3fe5c60` (2026-10-26, `r22a-rung-a0`). Snappy **FAIL** (layers 0 %, y+ ~1100). Wake-cut C-grid **FAIL** with the wall resolved: C_d(0°) −2.4 % (inside ±20 %), C_l(5°) −14 %, C_l(10°) −44 % (need ±5 %). y+ mean 0.27 / 0.25 / 0.22. Table in the ladder prereg. Recorded, not re-tuned. (grok r20 B: C_d(0°) 0.00808, C_l(5°) 0.537, C_l(10°) 1.063; `docs/qa/r20/r20-B-ladson-naca0012-reference.csv`).
     - Work: `scripts/prop_section_2d.py` hard-codes the section (`naca4(0.04, 0.4, 0.06)`) and `RE`. Add `--section` (NACA 4-digit code), `--re`, `--alphas`, `--models` and `--tu`, keeping the defaults equal to today's rung A.
     - Then run `--section 0012 --re 6e6 --alphas 0 5 10 --models kOmegaSST`. Tripped data means fully turbulent, so use a normal freestream Tu of about 0.1 %, not the Ncrit-9 value.
     - Report the achieved y+ (max and mean on the airfoil), layer coverage % and surface cells. Write the result into `2026-10-17-prop-cfd-fix-prereg.md` and judge it against the rulings doc §1. Don't re-tune.
@@ -214,7 +249,22 @@ Kimball's.
     - Pre-registered in `docs/validation/audits/2026-10-20-rulings-r18-r19-rungA.md` §1. Same script, with only the section, Re and α changed.
     - Report the achieved y+ (max and mean), layer coverage % and surface cell count.
     - Pass: C_l ±5 % at 5° and 10°, C_d ±20 % at 0°.
-  - **QA-51: the NeuralFoil prop backend doesn't converge on the TUD prop.** Lane: Cursor. Status: `ready`. Until fixed, the backend appears only in Expert, labelled "experimental".
+  - **R2.2a″ rung A0c: last A0 attempt for v0.1.0.** Lane: Cursor. CPU: day (minutes; not 4–9 PM). Status: `in progress (Cursor, 2026-11-12)`.
+    - 2026-11-12: C-grid counts, far field, wake length and LE/TE clustering are CLI flags; defaults stay 48/60/32, 8c and the old grading. A build-only gate mesh meets the geometric items. Night job `r22a-a0c-gate` is queued (0012, Re 6e6, SST, Tu 0.001, α 0 5 10, iters 10000, then 2× at 10°). The solve has not been started.
+    - **Claude ruling 2026-11-06** (`docs/validation/audits/2026-11-06-ruling-rung-a0-cgrid.md`): the C-grid result is **INVALID as a judge of SST, not a FAIL of it**.
+      - 0° and 5° are not converged (C_l(0°) swings −0.19…+0.22 in the tail).
+      - The LE is about 2 cells across (48 uniform tangential cells; LE radius 1.6 mm).
+      - There is a 3.7× cell jump foil→wake at the TE, normal growth is about 1.25, and the far field is at 8c.
+    - Work: make the C-grid parameters CLI options (keep today's values as defaults), then run 0012 / Re 6e6 / SST / α 0 5 10 on a grid that meets the ruling's **grid-quality gate**:
+      - ≥ 128 clustered cells per surface, LE and TE cells ≤ 0.1 % c, every adjacent-cell ratio ≤ 1.2;
+      - normal growth ≤ 1.15, y+ max ≤ 1;
+      - far field and wake ≥ 50c;
+      - converged: C_l tail peak-to-peak ≤ 1 % (≤ 0.005 abs at 0°), |C_l(0°)| ≤ 0.01, iters up to 10 000;
+      - one 2×-refined run at 10° that changes C_l ≤ 2 %.
+    - Report the gate table and then the numbers. Pass windows are unchanged.
+    - Outcomes (fixed): gate met + PASS → re-run rung A unchanged on this mesher and judge A1/A2. Anything else → the ladder closes for v0.1.0 (prop CFD stays "direction and bookkeeping only"), and the result is reported to Kimball.
+  - **QA-51: the NeuralFoil prop backend doesn't converge on the TUD prop.** Lane: Cursor. Status: `done b8559f1`. Until fixed, the backend appears only in Expert, labelled "experimental".
+    - Landed (`b8559f1`): Simple mode does not offer NeuralFoil. Expert title is "NeuralFoil (experimental, needs --extra neuralfoil)". Polar math unchanged. Left: the backend still does not converge on the TUD prop.
     - Landed: `scripts/prop_section_2d.py`, fast-suite case build + y+ ≤ 1, 2-D SST vs SST-LM at Re 8×10⁴. At α 4° SST C_l is −19 % vs the grok r17 reference and SST-LM is −24 % (neither A1 nor A2). Table in the ladder prereg. R2.2c stays blocked until Claude rules.
     - New `scripts/prop_section_2d.py`: a 2-D OpenFOAM case of the prop builder's generic section (6 % thick,
       camber 0.04) at Re 8×10⁴, y+ ≤ 1, α 0–8°, with `kOmegaSST` and `kOmegaSSTLM`.
@@ -231,8 +281,8 @@ Kimball's.
     - Add `--j` to `scripts/audit_prop_cfd.py`: freestream U = J·n·D, at J 0.3 / 0.5 / 0.7, 6000 rpm, compared with
       kt1035/1036.
     - Launch as a Scheduled Task after 9 PM (AGENTS.md rule 2).
-  - **R2.2c 3-D transition (rung C)** and **R2.2d domain size (rung D)**: `blocked` on Claude's ruling from A and B.
-    - Claude: read R2.2a and R2.2b's results against the prereg rules, record the ruling there, and unblock C or D.
+  - **R2.2c 3-D transition (rung C)** and **R2.2d domain size (rung D)**: `blocked (R2.2a″ A0c)`.
+    - Claude ruled A, B and A0 (2026-10-20, 2026-11-06). C or D are unblocked only if A0c passes and the re-run of rung A then gives A1 or A2.
 - **R2.3 CROR**: direction proof only.
   - Lane: grok data hunt for small counter-rotating fan or prop P–Q / thrust data. Status: `done (grok r15 hunt, 2026-10-17)`; see `docs/qa/notes/r15-data-hunt-cror-mixed-centrifugal.md`.
 - **R2.3 CROR against Shigemitsu 2018** (CC BY 4.0, 40 mm). Pre-registered:
@@ -246,10 +296,11 @@ Kimball's.
   - **R2.3b runs.** Lane: night. Status: `blocked (R2.3a)`. Add the job to `night/queue.json`.
 - **R2.4 Mixed-flow**: no published comparison.
   - grok r15: no small CC-licensed mixed-flow data. The 85 mm Treder rig is cite-only.
-  - **Kimball 2026-10-17: label it experimental.** Lane: Cursor. CPU: day. Status: `ready`.
+  - **Kimball 2026-10-17: label it experimental.** Lane: Cursor. CPU: day. Status: `done 5945620`.
     - The Mixed tab title and its Assess/Optimize results say "Experimental: not validated against published data".
     - Same in the README feature list, and in exported READMEs for mixed-flow parts.
     - Test: the label appears on the tab and in the export README.
+    - Landed (`5945620`, via R1.10 G3): tab "Mixed · experimental"; export sidecar `.md`; README Known limits.
   - Lane: grok data hunt for mixed-flow fan curves at small diameter. Status: `done (grok r15 hunt, 2026-10-17)`; same note.
 - **R2.5 Volute / centrifugal**: CFD is unconverged (17–23 % oscillation), a ±20 % proxy.
   - Lane: grok data hunt for a small centrifugal blower curve. Claude decides converge-or-label. Status: hunt `done (grok r15,
@@ -264,16 +315,20 @@ Kimball's.
     - Step 0, then `validation/reference/volute_epj2018/geometry.json` and `scripts/validate_volute_epj.py`.
   - **R2.5c runs.** Lane: night. Status: `blocked (R2.5a, R2.5b)`.
 - **R2.6 Centrifugal (no tab) and wind turbine (scaffold)**: excluded from v0.1.0.
-  - Lane: Cursor makes sure neither is reachable from the cockpit or the README quickstart. Status: `ready`.
+  - Lane: Cursor makes sure neither is reachable from the cockpit or the README quickstart. Status: `done 1d5e8b9`.
+  - Landed: no centrifugal-only or wind-turbine control, tab, menu, or README quickstart link. `tests/test_r26_hide_scaffolds.py` locks that. Mixed and Volute stay. The wind_turbine package stays in the repo.
 
 ## M3: Releasable repo (parallel, mostly Cursor)
 
-- **R3.1 Release export hygiene**. Lane: Cursor. CPU: day. Status: `ready`.
-  - grok r20 E: the leak check is waiting for R3.1 to land (not run).
+- **R3.1 Release export hygiene**. Lane: Cursor. CPU: day. Status: `done ac4024f`.
+  - Landed: the public export drops archive, memory, handoff, screenshots, bak files, and chat-recovery dumps, and the product docs still ship with user-home and E: prefixes redacted.
+  - grok r20 E: the leak check is still not run.
   - Extend `RELEASE_EXCLUDE` and `scripts/export_release.py` to drop `archive/`, `memory/`, `handoff/`,
-    `docs/qa/screenshots`, `*.bak`, chat-recovery dumps and any `C:\Users\…` / `E:\…` paths.
+    `docs/qa/screenshots`, `*.bak`, chat-recovery dumps, and any user-home or E: drive prefix (either slash).
   - Test: an export of master contains none of them, and the grep for user paths is empty.
-- **R3.2 Packaging**. Lane: Cursor. CPU: day. Status: `ready`.
+  - Ruling (Cursor, 2026-11-11): named large files stay in git and out of the public export. No Git LFS. CC-BY attribution in `THIRD_PARTY.md` stays. Tracked: `validation/reference/fan01/fan01_rotor.stl` (the only `fan01/*.stl`), `validation/reference/fan01/cad_model.zip`, `validation/reference/a12x25_impeller.stl`.
+- **R3.2 Packaging**. Lane: Cursor. CPU: day. Status: `done 26ccf29`.
+  Landed: MIT metadata, author Kimball with no email, the Gitea repository URL, and `fansim-cockpit` via `fansim/cockpit_entry.py`; the wheel is the installed artifact.
   - `pyproject.toml`: licence, authors, URLs, readme, classifiers, and a `[project.scripts]` entry point
     `fansim-cockpit = …` (wrapping `scripts/cockpit.py`).
   - Test: `uv build` works, and the installed entry point starts the server with `--help`.
@@ -289,29 +344,28 @@ Kimball's.
   - Test: grok round 15 follows it on a clean Linux box. r15: NOT RUN (no guide yet); `docs/qa/notes/r15-install-dry-run.md`.
   - grok r20 D (2026-10-21, `docs/qa/notes/r20-D-install-guide-dry-run.md`): the clean-Linux dry run WORKS (install, cockpit HTTP 200, UI test 6/6; Docker would-run). README fixes are needed (QA-53): port 8080 not 9001, Assess 30–40 min, the clone URL, a Linux Docker link, and a 'Docker not installed' row.
   - grok r22 A (2026-10-29): QA-53 verified at b3d5543 (cockpit prints http://127.0.0.1:8080/ = README:137; README:138 "30–40 min"; README:107 "the GitHub URL", interim). Docker-not-installed row still absent (R3.4).
-- **R3.4 Docker/OpenFOAM readiness badge and first-run check (21.2g)**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R3.4 Docker/OpenFOAM readiness badge and first-run check (21.2g)**. Lane: Cursor. CPU: day. Status: `done 540829e`.
   - The cockpit shows "CFD ready / Docker not running / image missing" with the fix in plain words.
-- **R3.5 GitHub Actions CI**. Lane: Cursor. CPU: none (cloud). Status: `ready`.
+  - Landed: Simple mode shows one of four lines (CFD ready, start Docker Desktop, pull the OpenFOAM image, or install Docker); Kimball still signs off the wording.
+- **R3.5 GitHub Actions CI**. Lane: Cursor. CPU: none (cloud). Status: `done 8c34965`.
   - Port `.github/workflows/ci.yml` for GitHub: ubuntu fast suite in 3 chunks, plus a Windows job for the fast
     geometry and export subset.
   - Widen ruff to the default rule set on changed files only.
-- **R3.5b `pytest_chunks.py --all` stops after a green chunk on Windows**. Lane: Cursor. CPU: day. Status: `ready`.
-  - On 2026-10-17, chunk 1 printed "658 passed" and then pytest exited 127, the known OCCT teardown crash
-    (`docs/validation/suite_baseline_2026-09-14.md`). `--all` returned and chunks 2–3 never ran.
-  - Fix: run every chunk, then print one summary line per chunk.
-  - A chunk whose pytest summary line says "N passed, 0 failed" but whose exit is non-zero is reported as
-    "passed (teardown exit <rc>)", not as a failure. Any real failure still fails the run.
-  - Test with a fake pytest command.
-- **R3.6 CHANGELOG, CONTRIBUTING, issue templates**. Lane: Cursor. CPU: day. Status: `ready`.
+  - Landed: Windows job `windows-geometry` runs `test_export_release.py`, `test_geometry.py`, `test_stl_sanitize.py`, and `test_span_interp.py` with `-m "not docker and not slow"`, judged by `pytest_chunks.judge()` so an OCCT teardown after a green summary counts as a pass; ruff's default rules stay on changed `.py` only, the whole-tree gate stays F811,F821, and the Ubuntu fast suite is unchanged.
+- R3.5b Chunk runner runs every chunk: done `70ab65c`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
+- **R3.6 CHANGELOG, CONTRIBUTING, issue templates**. Lane: Cursor. CPU: day. Status: `done 2311d26`.
   - CONTRIBUTING points to `AGENTS.md`'s rules (pre-registration, tests first).
-- **R3.7 Cockpit UI regression tests (29.2)**. Lane: Cursor writes, grok proposes cases. CPU: day. Status: `ready`.
+  - Landed CONTRIBUTING, an Unreleased CHANGELOG, two issue templates, and one README contributing link; the print-id coupon has not passed.
+- **R3.7 Cockpit UI regression tests (29.2)**. Lane: Cursor writes, grok proposes cases. CPU: day. Status: `done 2b98425`.
   - Headless "we say X, we do Y" tests (`tests/test_ui_says_what_it_does.py`), at least one per tab that ships.
+  - Landed one headless say/do test per shipping tab (Fan, Prop, Mixed, Volute, CROR); handlers are read with inspect.getsource, not run, and no production copy changed.
 - **R3.8 Validation page**. Lane: Cursor drafts, Claude checks the numbers. CPU: day. Status: `blocked (M1, M2)`.
   - **Claude reviewed grok r21 B 2026-10-29: approved as the base.** Apply M1–M9 (M3: name the rig for 58.3 vs 59.8; M5: the link is `2026-10-12-cylinder-sections.md`). See the review doc. grok checks the final page.
   - `docs/VALIDATION.md`: per surface, what it was validated against, the tolerance, the result and the known limits.
     Every number links to its audit.
   - grok r21 B (2026-10-25): draft from the audits in `docs/qa/notes/r21-B-validation-draft.md` (13 surfaces + Known limits, 9 mismatches listed) for Cursor to adapt and Claude to check.
-- **R3.9 Large files**. Lane: Cursor. CPU: day. Status: `ready`.
+- **R3.9 Large files**. Lane: Cursor. CPU: day. Status: `done ac4024f`.
+  - Landed: `fan01_rotor.stl`, `cad_model.zip`, and `a12x25_impeller.stl` stay in git and out of the public export, with no Git LFS, and the CC-BY attribution stays in `THIRD_PARTY.md`.
   - Decide per file between Git LFS, a release asset, or out of the export: `validation/reference/fan01/*.stl`
     (11 MB), `cad_model.zip` and `a12x25_impeller.stl`. Keep the CC-BY attribution in `THIRD_PARTY.md`.
 
@@ -335,6 +389,10 @@ Kimball's.
 - **Night**: R1.1 lt120 campaign, R2.x campaigns, any optimizer re-find (R1.3).
 
 ---
+
+## Unparked by Kimball 2026-11-09: print-part ID (roadmap §28)
+
+- **28.3 Recessed hub glyphs**. Lane: Cursor. CPU: day. Status: `done 2bfde35` (QA-73 un-mirror; P6 5 mm cap). First cut was `11f97d6`.
 
 ## After v0.1.0 (parked; not release work)
 

@@ -92,12 +92,22 @@ def test_suggest_params_samples_at_or_below_the_cap():
 
 
 def _sample(space: str, n: int):
-    study = optuna.create_study()
+    # Random, not TPE: on a constant objective TPE has nothing to learn and can stick near an
+    # unlucky first 10 trials (no n_blades >= 9 through trial 30 in ~1 of 680 unseeded runs).
+    # These tests are about what the bounds can reach, not how TPE behaves.
+    study = optuna.create_study(sampler=optuna.samplers.RandomSampler(seed=0))
     study.optimize(
         lambda t: (suggest_params(t, space=space), 0.0)[1],
         n_trials=n,
     )
     return study.trials
+
+
+def test_sample_helper_is_reproducible():
+    # Reach tests below must not depend on luck: an unseeded study failed the suite on 2026-11-08.
+    a = [t.params for t in _sample("guided", 12)]
+    b = [t.params for t in _sample("guided", 12)]
+    assert a == b
 
 
 def test_guided_reaches_open_camber_and_blade_count():

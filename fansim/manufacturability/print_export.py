@@ -16,6 +16,7 @@ from pathlib import Path
 import cadquery as cq
 import numpy as np
 
+from fansim.fan_spec import estimate_weight_g
 from fansim.geometry import build_impeller, export_stl, watertight_report
 from fansim.geometry.blade import BladeParams
 from fansim.geometry.export import WatertightReport, export_step
@@ -287,11 +288,13 @@ def export_print_ready(
     tolerance: float = 0.02,          # finer than CFD export (0.05) — smooth printed surfaces
     angular_tolerance: float = 0.1,
     also_step: bool = True,
+    print_id: str | None = None,
 ) -> WatertightReport:
     """Build the impeller, carve the motor mount (or a simple bore), export a fine STL, return the
     watertight report (with mount_fits/mount_msg when a MotorMount is given).
 
     When ``also_step`` is True (default), write a sibling ``.step`` B-rep next to the STL (§20.1).
+    ``print_id`` engraves the Crockford code on the +Z hub (roadmap 28.3) when the hub is wide enough.
     """
     out_stl = Path(out_stl)
     mount_fits, mount_msg = None, ""
@@ -301,12 +304,115 @@ def export_print_ready(
         model = build_impeller(params)
         if bore is not None:
             model = bore_hub(model, bore)
+    if print_id:
+        from fansim.geometry.blade import _hub_axial_range
+        from fansim.manufacturability.print_id_mark import engrave_print_id
+
+        bore_r = 0.0
+        if mount is not None:
+            bore_r = float(getattr(mount, "rear_bore_dia_mm", 0.0) or 0.0) / 2.0
+        elif bore is not None:
+            bore_r = float(bore.bore_dia_mm) / 2.0
+        # Hub +Z face, not the impeller bounding-box top: leaned blades (t9002) sit above
+        # the hub, and a cutter there never hits the face.
+        z_top = float(_hub_axial_range(params)[1])
+        model = engrave_print_id(
+            model, print_id, z_top=z_top, hub_radius=float(params.hub_radius),
+            bore_r=bore_r,
+        )
     export_stl(model, out_stl, tolerance=tolerance, angular_tolerance=angular_tolerance)
     if also_step:
         export_step(model, out_stl.with_suffix(".step"))
     rep = watertight_report(out_stl)
     rep.mount_fits, rep.mount_msg = mount_fits, mount_msg
     return rep
+
+
+def export_id_coupon(
+    out_stl: str | Path,
+    code: str,
+    *,
+    hub_radius: float = 21.5,
+    bore_r: float = 10.0,
+    height_mm: float = 8.0,
+    tolerance: float = 0.02,
+    angular_tolerance: float = 0.1,
+    also_step: bool = True,
+) -> WatertightReport:
+    """Short hub washer with the print-id on +Z. Re-print this to check T3, not a full fan.
+
+    Print with the marked face on the bed (no supports on the glyphs).
+    """
+    from fansim.manufacturability.print_id_mark import engrave_print_id
+
+    out_stl = Path(out_stl)
+    disk = cq.Workplane("XY").circle(float(hub_radius)).circle(float(bore_r)).extrude(float(height_mm))
+    model = engrave_print_id(
+        disk, code, z_top=float(height_mm), hub_radius=float(hub_radius), bore_r=float(bore_r),
+    )
+    export_stl(model, out_stl, tolerance=tolerance, angular_tolerance=angular_tolerance)
+    if also_step:
+        export_step(model, out_stl.with_suffix(".step"))
+    return watertight_report(out_stl)
+
+
+def export_hub_fit_coupon(
+    out_stl: str | Path,
+    mount,
+    *,
+    hub_radius: float = 21.5,
+    height_mm: float = 6.0,
+    tolerance: float = 0.05,
+    angular_tolerance: float = 0.2,
+    also_step: bool = False,
+) -> WatertightReport:
+    """Short ring with the motor-cup grip pads. Fit check only — no blades.
+
+    Same pad-tip circle as a full export (``mount_grip_pad_layout``). The cavity is cut
+    through so the part is a few millimetres tall. Either face on the bed, no supports.
+    Press the motor boss into the pad ring.
+    """
+    import math
+
+    from fansim.fan_spec import mount_grip_pad_layout
+
+    layout = mount_grip_pad_layout(mount)
+    if layout is None:
+        raise ValueError("hub fit coupon needs grip pads on the motor mount")
+    cav_r, r_center, grip_r = layout
+    h = float(height_mm)
+    eps = 0.5
+    hub = cq.Solid.makeCylinder(float(hub_radius), h, cq.Vector(0, 0, 0), cq.Vector(0, 0, 1))
+    cutter = cq.Solid.makeCylinder(cav_r, h + 2.0 * eps, cq.Vector(0, 0, -eps), cq.Vector(0, 0, 1))
+    result = hub.cut(cutter)
+    pads = None
+    n_grip = int(getattr(mount, "grip_count", 0) or 0)
+    for k in range(n_grip):
+        a = 2.0 * math.pi * k / n_grip
+        pad = cq.Solid.makeCylinder(
+            grip_r, h,
+            cq.Vector(r_center * math.cos(a), r_center * math.sin(a), 0.0),
+            cq.Vector(0, 0, 1),
+        )
+        pads = pad if pads is None else pads.fuse(pad)
+    if pads is not None:
+        result = result.fuse(pads)
+    bore_d = float(getattr(mount, "rear_bore_dia_mm", 0.0) or 0.0)
+    if bore_d > 0.0:
+        bore = cq.Solid.makeCylinder(
+            bore_d / 2.0, h + 2.0 * eps,
+            cq.Vector(0, 0, -eps), cq.Vector(0, 0, 1),
+        )
+        result = result.cut(bore)
+    try:
+        result = result.clean()
+    except Exception:  # noqa: BLE001
+        pass
+    out_stl = Path(out_stl)
+    export_stl(cq.Workplane(obj=result), out_stl, tolerance=tolerance, angular_tolerance=angular_tolerance)
+    if also_step:
+        export_step(cq.Workplane(obj=result), out_stl.with_suffix(".step"))
+    return watertight_report(out_stl)
 
 
 def export_handedness_pair(
@@ -320,6 +426,7 @@ def export_handedness_pair(
     tolerance: float = 0.02,
     angular_tolerance: float = 0.1,
     as_designed_stl: str | Path | None = None,
+    print_id: str | None = None,
 ) -> dict[str, Path]:
     """Export as-designed + mirrored STLs with paired ``*.handedness.json`` spin metadata (§19.4).
 
@@ -346,6 +453,7 @@ def export_handedness_pair(
             export_print_ready(
                 variant.params, stl, bore=bore, mount=mount,
                 tolerance=tolerance, angular_tolerance=angular_tolerance,
+                print_id=print_id,
             )
         write_handedness_meta(variant, meta)
         paths[f"{variant.label}_stl"] = stl
@@ -363,22 +471,47 @@ def print_readme(name: str, params: BladeParams, material: str, report: Watertig
     title = f"# Print sheet — {print_id}" if print_id else f"# Print sheet — {name}"
     L = [title, ""]
     if print_id:
+        from fansim.manufacturability.print_id import mark_will_cut
+
         L += [
             f"**Sharpie this on the hub (+Z, inlet): `{print_id}`**",
             "",
-            "Same code as the filename and `*_print_fit.json`. No glyphs on the part yet (28.2).",
-            "",
         ]
+        bore_r = float(getattr(bore, "bore_dia_mm", 0.0) or 0.0) / 2.0 if bore is not None else 10.0
+        if mark_will_cut(print_id, float(params.hub_radius), bore_r):
+            L += [
+                "Same code as the filename and `*_print_fit.json`. Recessed on the hub (+Z, inlet); Sharpie it if the recess is hard to read.",
+                "",
+                "ID engraving removes about 2 % of the hub face; its effect on airflow was not simulated.",
+                "",
+            ]
+        else:
+            L += [
+                "Same code as the filename and `*_print_fit.json`. Nothing was cut on this hub "
+                "(too small for the ID ring, or the code is not a valid print-id); Sharpie the code on the hub (+Z, inlet).",
+                "",
+            ]
     if objectives:
-        L.append("**Predicted performance (sim):** "
-                 + ", ".join(f"{k} {v:.1f}" for k, v in objectives.items()))
+        bits = []
+        for k, v in objectives.items():
+            if k == "noise_swl":
+                bits.append(f"noise estimate {v:.1f} (not dB(A); not validated)")
+            else:
+                bits.append(f"{k} {v:.1f}")
+        L.append("**Predicted performance (sim):** " + ", ".join(bits))
         L.append("")
+    infill_pct = float(settings.get("infill_pct", 40))
+    weight_g = estimate_weight_g(
+        report.volume_mm3, material, infill_frac=infill_pct / 100.0,
+    )
     L += [
         "## Geometry",
         f"- Blades: {params.n_blades}   hub radius: {params.hub_radius:.1f} mm",
         f"- Bounding: dia {dia:.1f} mm × depth {depth:.1f} mm",
         f"- Watertight: {'YES' if report.ok else 'NO — DO NOT PRINT (non-manifold)'} "
         f"({report.n_bodies} body, {report.n_faces} faces, {report.volume_mm3/1000:.1f} cm³)",
+        f"- Predicted weight: {weight_g:.1f} g ({settings.get('material', material)}, "
+        f"{infill_pct:.0f}% infill)",
         "",
         "## Motor mount",
     ]

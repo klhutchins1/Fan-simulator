@@ -1,0 +1,127 @@
+--- a/fansim/cfd/frame.py	2026-11-04 10:13:06.253831873 -0700
++++ b/fansim/cfd/frame.py	2026-11-04 10:13:15.549752824 -0700
+@@ -2,6 +2,7 @@
+ 
+ from __future__ import annotations
+ 
++import math
+ from pathlib import Path
+ 
+ import cadquery as cq
+@@ -34,11 +35,19 @@
+     rig: TestRig,
+     *,
+     z_start_mm: float | None = None,
++    strut_skew_deg: float = 0.0,
+ ) -> cq.Solid:
+-    """Four radial struts fused into one solid.
++    """Four struts fused into one solid (radial by default).
+ 
+     ``z_start_mm`` defaults to just downstream of the MRF (replace / frame-only mode).
+     Pass ``stack_frame_z_start_mm(rig)`` for a stator-then-frame stack.
++
++    ``strut_skew_deg`` tilts each strut in the rotor plane about its inner end, measured from
++    the radial line. Positive moves the outer end circumferentially WITH rotor rotation
++    (``rig.spin`` about +Z); negative is counter-rotation skew (Ito, Minorikawa & Fan 2009
++    report higher efficiency for counter-rotation skew). The tilted bar is lengthened so its
++    centreline still reaches the wall inset, then trimmed to the wall cylinder. ``0`` gives the
++    original radial frame unchanged.
+     """
+     z_start = float(default_frame_z_start_mm(rig) if z_start_mm is None else z_start_mm)
+     outer_r = rig.duct_radius / MM_TO_M - STRUT_WALL_INSET_MM
+@@ -49,11 +58,30 @@
+     x_center = (bar_r0 + outer_r) / 2.0
+     z_center = z_start + STRUT_DEPTH_MM / 2.0
+ 
+-    base = (
+-        cq.Workplane("XY")
+-        .box(bar_len, STRUT_THICK_MM, STRUT_DEPTH_MM)
+-        .translate((x_center, 0, z_center))
+-    )
++    skew = float(strut_skew_deg)
++    if abs(skew) >= 75.0:
++        raise ValueError(f"strut_skew_deg={skew} out of range (|skew| < 75)")
++    if skew == 0.0:
++        base = (
++            cq.Workplane("XY")
++            .box(bar_len, STRUT_THICK_MM, STRUT_DEPTH_MM)
++            .translate((x_center, 0, z_center))
++        )
++    else:
++        b = math.radians(skew)
++        # centreline from (bar_r0, 0) at angle b to the radial line; reach |p| = outer_r
++        L = -bar_r0 * math.cos(b) + math.sqrt(outer_r ** 2 - (bar_r0 * math.sin(b)) ** 2)
++        long_bar = (
++            cq.Workplane("XY")
++            .box(L + STRUT_THICK_MM, STRUT_THICK_MM, STRUT_DEPTH_MM)  # overshoot wall, trimmed below
++            .translate((bar_r0 + (L + STRUT_THICK_MM) / 2.0, 0, z_center))
++            .rotate((bar_r0, 0, 0), (bar_r0, 0, 1), int(rig.spin) * skew)
++        )
++        wall = (
++            cq.Workplane("XY").workplane(offset=z_start - 1.0)
++            .circle(outer_r).extrude(STRUT_DEPTH_MM + 2.0)
++        )
++        base = cq.Workplane(obj=long_bar.val().intersect(wall.val()))
+ 
+     # This short annulus ("hub barrel") is the join that ensures a true one-body solid.
+     # It lives in the hub shadow (r < hub_r) and overlaps the inner end of each bar.
+@@ -88,7 +116,8 @@
+     path: str | Path,
+     *,
+     z_start_mm: float | None = None,
++    strut_skew_deg: float = 0.0,
+ ) -> Path:
+     """Build the frame solid and write an STL via the shared geometry exporter."""
+-    solid = build_frame_solid(params, rig, z_start_mm=z_start_mm)
++    solid = build_frame_solid(params, rig, z_start_mm=z_start_mm, strut_skew_deg=strut_skew_deg)
+     return export_stl(cq.Workplane(obj=solid), path)
+--- /dev/null
++++ b/tests/test_frame_skew.py
+@@ -0,0 +1,47 @@
++import math
++
++import pytest
++
++from fansim.cfd.domain import MM_TO_M, rig_for_impeller
++from fansim.cfd.frame import STRUT_WALL_INSET_MM, build_frame_solid
++from fansim.geometry.blade import BladeParams
++
++
++def _rig():
++    p = BladeParams()
++    return p, rig_for_impeller(p, tip_gap_mm=0.5)
++
++
++def test_zero_skew_is_unchanged():
++    p, rig = _rig()
++    a = build_frame_solid(p, rig)
++    b = build_frame_solid(p, rig, strut_skew_deg=0.0)
++    assert abs(a.Volume() - b.Volume()) < 1e-9
++
++
++@pytest.mark.parametrize("skew", [-60.0, -35.0, 35.0, 60.0])
++def test_skewed_frame_one_solid_inside_wall(skew):
++    p, rig = _rig()
++    s = build_frame_solid(p, rig, strut_skew_deg=skew)
++    assert len(s.Solids()) == 1
++    outer_r = rig.duct_radius / MM_TO_M - STRUT_WALL_INSET_MM
++    bb = s.BoundingBox()
++    assert max(abs(bb.xmin), abs(bb.xmax), abs(bb.ymin), abs(bb.ymax)) <= outer_r + 1e-3
++    # longer bars than radial: more volume, by roughly the skew path factor
++    assert s.Volume() > build_frame_solid(p, rig).Volume()
++
++
++def test_skew_sign_follows_rotor_spin():
++    p, rig = _rig()
++    s = build_frame_solid(p, rig, strut_skew_deg=-35.0)  # counter-rotation
++    # strut 0 starts on +X; for spin=-1 (CW seen from +Z) counter-rotation moves its outer end to +Y
++    outer_r = rig.duct_radius / MM_TO_M - STRUT_WALL_INSET_MM
++    vs = [v.toTuple() for v in s.Vertices()]
++    near_wall = [v for v in vs if math.hypot(v[0], v[1]) > outer_r - 0.5 and v[0] > 0 and abs(v[1]) < outer_r * 0.8]
++    assert near_wall and all(v[1] > 0 for v in near_wall) == (rig.spin < 0)
++
++
++def test_skew_out_of_range():
++    p, rig = _rig()
++    with pytest.raises(ValueError):
++        build_frame_solid(p, rig, strut_skew_deg=80.0)

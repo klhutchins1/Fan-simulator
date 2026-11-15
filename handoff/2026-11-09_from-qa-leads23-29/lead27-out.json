@@ -1,0 +1,11 @@
+{
+  "true_rpm": 2000.0,
+  "B": 9,
+  "true_bpf_hz": 300.0,
+  "est_rpm": 2000.0,
+  "est_f_hz": 300.0,
+  "abs_err_rpm": 0.0,
+  "ok_within_2pct": true,
+  "caveat": "Strut tones (lead 1) can confuse a naive peak-pick; prefer band around expected BPF.",
+  "deps": "numpy only for sketch; acoustic-tachometer wants sounddevice (MIT) + numpy (BSD); paper-tab method"
+}

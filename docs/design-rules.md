@@ -7,7 +7,7 @@ From `opt_v3`: **14 feasible trials**, **14 noise-scored** (LBM control-volume d
 - **Free-air airflow (max)** — driven by `max_camber` (-0.79), `stagger_mid` (+0.65), `stagger_mean` (+0.50), `chord_tip` (+0.49)
 - **Airflow under load (max)** — driven by `max_camber` (-0.78), `stagger_mid` (+0.65), `stagger_mean` (+0.50), `chord_tip` (+0.49)
 - **Efficiency (max)** — driven by `max_camber` (-0.78), `n_blades` (-0.61), `chord_tip` (+0.60), `sol_mid` (-0.57)
-- **Noise dB(A) (min)** — driven by `stagger_mid` (-0.79), `sol_tip` (+0.70), `sol_mid` (+0.67), `n_blades` (+0.64)
+- **Noise estimate (min)** — driven by `stagger_mid` (-0.79), `sol_tip` (+0.70), `sol_mid` (+0.67), `n_blades` (+0.64)
 - **Blade-pass tone (min)** — driven by `chord_tip` (-0.50), `chord_mean` (-0.50), `lean_mid` (+0.50), `stagger_mid` (+0.47)
 - **Blade loading |thrust|** — driven by `stagger_tip` (+0.51), `sol_hub` (+0.49), `sol_mid` (+0.46), `stagger_root` (-0.44)
 
@@ -36,8 +36,8 @@ From `opt_v3`: **14 feasible trials**, **14 noise-scored** (LBM control-volume d
 
 ## Read-out
 
-- **Blade count / solidity** trades airflow & pressure against noise & efficiency: more blades (higher solidity) raise loading (|thrust|) and airflow but lift the blade-pass tone and cost efficiency.
-- **Efficiency** favours *fewer, lightly-loaded* blades; **airflow** favours *more chord / more blades*. The quiet+efficient and the high-flow corners are geometrically distinct.
+- **Blade count / solidity** trades loading, tone and efficiency. The table's airflow correlation with blade count is negative (ρ −0.35), so do not assume more blades mean more airflow.
+- **Efficiency** favours *fewer, lightly-loaded* blades; **airflow** favours *more chord*. The quiet+efficient and the high-flow corners are geometrically distinct.
 - **Noise** tracks blade loading (|thrust|) and blade count more than any single angle — so to get quieter at fixed flow, spread the load (more blades at lower stagger) rather than over-loading few blades.
 
-_Caveats: n is small; CFD is screening fidelity (~3–5% discretization); absolute noise is coarse-grid-limited so only the ranking is used; correlations are not causation._
+_Caveats: n is small; screening mesh, GCI ≈ 21 %; ranks designs, ±1 % run to run on Stock; absolute noise is coarse-grid-limited so only the ranking is used; correlations are not causation._

@@ -333,7 +333,7 @@ def scatter_figure(study_designs, user_designs=(), stock_ref: dict | None = None
     if stock_ref and stock_ref.get("cfm_free") is not None and stock_ref.get("cfm_load") is not None:
         label = str(stock_ref.get("name") or "stock")
         noise = stock_ref.get("noise_dba")
-        noise_bit = f"<br>noise {noise:.1f} dB(A)" if noise is not None else ""
+        noise_bit = f"<br>published noise {noise:.1f} dB(A)" if noise is not None else ""
         fig.add_trace(go.Scatter(
             x=[float(stock_ref["cfm_free"])],
             y=[float(stock_ref["cfm_load"])],
@@ -395,7 +395,7 @@ def reject_hint(reason: str) -> str:
         )
     if "stalls at this hose" in r:
         return ("↳ the fan's CFD static-pressure ceiling is below this hose, so the loaded solve "
-                "reverses (CFD also under-predicts static ~2×). Pick a lighter **Application** "
+                "reverses (CFD's static-pressure ceiling is a little below the datasheet's (about 10 %)). Pick a lighter **Application** "
                 "preset (Case 8 → try a lower load), or read the free-air delivery above.")
     if "tip gap" in r or "frame gap" in r:
         return ("↳ too close to the frame: a real fan needs ≥0.5 mm tip clearance, and CFD won't run "

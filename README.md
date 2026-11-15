@@ -2,7 +2,7 @@
 
 An automated design loop for cooling-fan impellers: it generates parametric blade geometries, runs
 **real CFD** (OpenFOAM MRF) to measure airflow / static pressure / efficiency, scores **noise** on the
-GPU (FluidX3D LBM), searches the design space for Pareto improvements, gates every candidate on what's
+GPU (FluidX3D LBM; not validated), searches the design space for Pareto improvements, gates every candidate on what's
 actually **buildable and mountable**, and exports print-ready STLs — all drivable from an interactive
 cockpit. First target: a **Noctua NF-A12x25**-class blade.
 
@@ -12,6 +12,7 @@ not beating a molded LCP fan on absolute numbers with a home print.
 Read [`docs/adversarial-review.md`](docs/adversarial-review.md) — it documents what is validated vs. not.
 Other docs: [`docs/high-accuracy-plan.md`](docs/high-accuracy-plan.md),
 [`docs/design-rules.md`](docs/design-rules.md), [`docs/a12x25-reference.md`](docs/a12x25-reference.md).
+Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Status (honest)
 
@@ -29,8 +30,8 @@ Other docs: [`docs/high-accuracy-plan.md`](docs/high-accuracy-plan.md),
 - Multi-objective **optimizer** (Optuna NSGA-II): airflow (free + loaded) + efficiency, optional noise;
   guided/extended search spaces; a **`--mountable`** constraint that only searches hubs big enough to fit
   the real motor.
-- **GPU noise tier** (FluidX3D LBM): control-volume-force Curle dipole → BPF tone + relative dB(A) ranking;
-  transient shut-off pressure.
+- **GPU noise tier** (FluidX3D LBM): control-volume-force Curle dipole → blade-pass tone (rpm × blades)
+  plus sound-level estimates (not validated); transient shut-off pressure.
 - **Cockpit** (Trame/PyVista): browse the design space, load any design from the unified catalog, edit
   every parameter (with hover min/max images), Preview (spec-check + printability grade + out-of-spec
   highlight + case-envelope overlay), Assess/Sweep with live CFD, randomize geometry/features, and record
@@ -56,15 +57,15 @@ The cockpit **Assess** uses a faster screening mesh (no prism layers, not grid-c
 use it to **rank** designs, not as absolute CFM. Cockpit "Stock" results dated before 2026-10-08 were
 built from a 3-station / uniform-wall approximation of the recipe and should be re-run.
 
-**Honest caveats:** absolute broadband dB(A) is coarse-grid-limited (tone + relative ranking are
-usable). Bio-feature benefit tested **null at achievable fidelity** — only a physical print settles
-it. BEM is **ranking-only**, not absolute CFM.
+**Honest caveats:** Noise outputs are not validated. The blade-pass tone frequency is exact
+(rpm × blades); sound levels are estimates for exploration only. Bio-feature benefit tested
+**null at achievable fidelity** — only a physical print settles it. BEM is **ranking-only**, not
+absolute CFM.
 Blade vibration (flutter) is a **warning**, not a reject, until printed blades confirm the beam model.
 **Scaffolds, not validated:** the wind-turbine archetype (`fansim/wind_turbine`) — tip-speed ratio
 does not drive its geometry and its Cp saturates at ≥ 4 blades; do not use it for design claims.
 
-**The one real gap:** nothing has been physically **printed and measured** yet. That's the next step, and
-it's on the user side — see the workflow below.
+**Known limits** (also listed at the end of this file): nothing printed or measured yet; propeller CFD is not a performance predictor (BEMT is); volute CFD is unconverged; mixed-flow and CROR are not validated against published data; noise levels are not validated; the Stock recipe reads about 5 % less airflow than the real A12x25.
 
 ## The workflow
 
@@ -201,7 +202,15 @@ Case internals (mesh, `processor*`, logs) are regenerable and safe to prune once
 
 ## Known limits
 
-Stock is rebuilt from a parametric recipe and reads about 5 % less airflow than the real A12x25 shape (55.7 vs 58.3 CFM in the same test). Designs are compared with this Stock, so comparisons are like for like.
+- nothing printed or measured yet;
+- propeller CFD is not a performance predictor (BEMT is);
+- volute CFD is unconverged;
+- mixed-flow and CROR are not validated against published data;
+- noise levels are not validated;
+- the Stock recipe reads about 5 % less airflow than the real A12x25 shape (55.7 vs 58.3 CFM in the same test). Designs are compared with this Stock, so comparisons are like for like.
+
+Mixed-flow: Experimental: not validated against published data. Assess runs MRF CFD (not validated against published data).
+Volute: ranking only, unvalidated (CFD not yet converged).
 
 ## Licence and credits
 

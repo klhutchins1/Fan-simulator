@@ -1,11 +1,12 @@
 """Standalone entry for surrogate-guided search (roadmap §20.5).
 
-Thin wrapper around ``run_optimization.py --surrogate-guided``. Without
-``--verify-cfd`` this path adds ``--stub-labels`` (synthetic labels, not CFD).
+Thin wrapper around ``run_optimization.py --surrogate-guided``. Needs
+``--verify-cfd`` or ``--stub-labels`` (synthetic labels, not CFD). Does not
+add ``--stub-labels`` on its own.
 
 Usage (PowerShell)::
 
-    uv run python scripts/run_surrogate_search.py --out runs/surr --doe 24 --top-k 4
+    uv run python scripts/run_surrogate_search.py --out runs/surr --stub-labels --doe 24 --top-k 4
     uv run python scripts/run_surrogate_search.py --out runs/surr --verify-cfd
 """
 
@@ -24,7 +25,11 @@ def main() -> int:
     if "--surrogate-guided" not in argv:
         argv = ["--surrogate-guided", *argv]
     if "--verify-cfd" not in argv and "--stub-labels" not in argv:
-        argv = ["--stub-labels", *argv]
+        print(
+            "ERROR: --surrogate-guided needs --verify-cfd or --stub-labels "
+            "(synthetic labels, not CFD)."
+        )
+        return 2
     sys.argv = [sys.argv[0], *argv]
 
     opt_path = Path(__file__).resolve().parent / "run_optimization.py"

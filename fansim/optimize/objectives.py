@@ -134,7 +134,8 @@ def _operating_point_reason(
 
     * free delivery itself reversed -> almost always a duct/spin sign problem (actionable hint);
     * free delivery is fine but the hose probe reversed -> the fan's CFD static ceiling is below
-      the hose, so it stalls at this load (CFD also under-predicts static ~2x). Suggest a lighter
+      the hose, so it stalls at this load (CFD's static ceiling is a little below the datasheet's,
+      about 10 %; G4 / QA-71). Suggest a lighter
       hose instead of a cryptic reject.
     """
     conv = "" if converged else (
@@ -151,7 +152,8 @@ def _operating_point_reason(
         return (
             f"stalls at this hose — free delivery {free_signed * derate:.1f} CFM, but the "
             f"{p_probe_pa:.1f} Pa probe reverses to {probe_signed:+.1f} CFM (CFD static ceiling "
-            f"is below the hose; CFD under-predicts static ~2×). Try a lighter hose.{conv}"
+            f"is below the hose; CFD's static ceiling is a little below the datasheet's, about 10 %). "
+            f"Try a lighter hose.{conv}"
         )
     return (
         f"system-curve: {exc} (free {p_free_pa:.1f} Pa, probe {p_probe_pa:.1f} Pa)"

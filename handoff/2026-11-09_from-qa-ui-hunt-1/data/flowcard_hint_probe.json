@@ -1,0 +1,25 @@
+{
+ "hint_and_swl": {
+  "row_keys": [
+   "direction",
+   "push",
+   "spin",
+   "dead",
+   "noise"
+  ],
+  "noise_row": [
+   "Hint 30.0 (Stock 28.0). Scales with tip speed and airflow only; this is not a comparison o"
+  ],
+  "msg": ""
+ },
+ "hint_only_no_swl": {
+  "row_keys": [
+   "direction",
+   "push",
+   "spin",
+   "dead"
+  ],
+  "noise_row": [],
+  "msg": "No turbulence data in this run."
+ }
+}

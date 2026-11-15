@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -15,6 +16,7 @@ from fansim.optimize.surrogate_search import (
     nsga_on_surrogate,
     predict_mu_sigma,
     run_surrogate_guided,
+    seed_from_catalog,
     select_top_k,
     space_filling_doe,
     synthetic_label,
@@ -155,3 +157,132 @@ def test_run_surrogate_guided_stub_loop(tmp_path):
     assert (tmp_path / "sg" / "surrogate_guided.json").exists()
     assert len(result.X) >= 16 + 6  # DoE + verified
     assert any("DoE" in n for n in result.notes)
+
+
+def test_verify_cfd_does_not_label_doe_with_synthetic(tmp_path, monkeypatch):
+    """QA-66: --verify-cfd must not train the DoE on synthetic_label."""
+    from fansim.optimize import surrogate_search as ss
+
+    calls = {"n": 0}
+    real = ss.synthetic_label
+
+    def counting(params):
+        calls["n"] += 1
+        return real(params)
+
+    monkeypatch.setattr(ss, "synthetic_label", counting)
+
+    def verify(params, workdir):
+        Path(workdir).mkdir(parents=True, exist_ok=True)
+        return True, real(params), "mock-cfd"
+
+    with pytest.raises(RuntimeError, match="catalog with"):
+        ss.run_surrogate_guided(
+            out_dir=tmp_path / "sg",
+            n_doe=8,
+            n_nsga=8,
+            top_k=1,
+            n_rounds=1,
+            space="guided",
+            seed=3,
+            verify_fn=verify,
+            verify_cfd=True,
+            catalog_db=None,
+        )
+    assert calls["n"] == 0
+
+
+def test_verify_cfd_refuses_empty_catalog(tmp_path, monkeypatch):
+    """Claude review 2026-11-03: refuse up front, do not return an empty result."""
+    monkeypatch.setattr("fansim.cfd.runner.image_available", lambda: True)
+    with pytest.raises(RuntimeError, match=r"catalog with ≥ 8 CFD rows"):
+        run_surrogate_guided(
+            out_dir=tmp_path / "sg",
+            n_doe=4,
+            n_nsga=4,
+            top_k=1,
+            n_rounds=1,
+            verify_cfd=True,
+            verify_fn=lambda p, w: (True, synthetic_label(p), "mock"),
+            catalog_db=None,
+        )
+
+
+def test_verify_cfd_refuses_stub_when_docker_missing(tmp_path, monkeypatch):
+    """QA-66: missing Docker under --verify-cfd is a refuse, not stub_verify."""
+    monkeypatch.setattr("fansim.cfd.runner.image_available", lambda: False)
+    with pytest.raises(RuntimeError, match="OpenFOAM Docker"):
+        run_surrogate_guided(
+            out_dir=tmp_path / "sg",
+            n_doe=4,
+            n_nsga=4,
+            top_k=1,
+            n_rounds=1,
+            verify_cfd=True,
+        )
+
+
+def test_stub_labels_stamped_on_disk(tmp_path):
+    """QA-66: --stub-labels writes 'synthetic labels, not CFD' into the JSON."""
+
+    def verify(params, workdir):
+        Path(workdir).mkdir(parents=True, exist_ok=True)
+        return True, synthetic_label(params), "mock"
+
+    run_surrogate_guided(
+        out_dir=tmp_path / "sg",
+        n_doe=8,
+        n_nsga=8,
+        top_k=1,
+        n_rounds=1,
+        space="guided",
+        seed=2,
+        verify_fn=verify,
+        stub_labels=True,
+    )
+    data = json.loads((tmp_path / "sg" / "surrogate_guided.json").read_text(encoding="utf-8"))
+    assert "synthetic labels, not CFD" in json.dumps(data)
+
+
+def test_catalog_efficiency_prior_stamped_on_disk(tmp_path):
+    """Claude review 2026-11-03: catalog efficiency (and load if filled) is a prior, not CFD."""
+    from fansim.catalog import build_catalog
+
+    runs = tmp_path / "runs"
+    d = runs / "opt_s"
+    d.mkdir(parents=True)
+    rows = []
+    for i in range(8):
+        rows.append({
+            "trial": i + 1,
+            "cfm_free": float(40 + i),
+            "cfm_load": 30.0,
+            "params": {
+                "n_blades": 7,
+                "stagger_root": 40.0, "stagger_mid": 40.0, "stagger_tip": 40.0,
+                "chord_root": 18.0, "chord_mid": 18.0, "chord_tip": 14.0 + i,
+                "sweep_mid": 0.0, "sweep_tip": 0.0, "lean_mid": 0.0, "lean_tip": 0.0,
+                "max_camber": 0.04,
+                "hub_radius": 21.5, "tip_radius": 50.0,
+            },
+        })
+    (d / "pareto.json").write_text(json.dumps(rows), encoding="utf-8")
+    db = tmp_path / "cat.db"
+    build_catalog(runs_dir=runs, store_dir=tmp_path / "none", db=db)
+    _, _, note, priors = seed_from_catalog(db)
+    assert priors["efficiency"] == "prior, not CFD"
+    assert priors["cfm_load"] == "prior, not CFD"
+    assert "prior, not CFD" in note
+    result = run_surrogate_guided(
+        out_dir=tmp_path / "sg",
+        n_doe=8,
+        n_nsga=8,
+        top_k=1,
+        n_rounds=1,
+        stub_labels=True,
+        catalog_db=db,
+        verify_fn=lambda p, w: (True, synthetic_label(p), "mock"),
+    )
+    data = json.loads((tmp_path / "sg" / "surrogate_guided.json").read_text(encoding="utf-8"))
+    assert data["priors"]["efficiency"] == "prior, not CFD"
+    assert data["priors"]["cfm_load"] == "prior, not CFD"

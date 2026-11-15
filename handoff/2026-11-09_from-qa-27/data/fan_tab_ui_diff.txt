@@ -1,0 +1,2 @@
+-                            "Assess runs one CFD solve (~15–30 min); Optimize searches many "
++                            "Assess runs two CFD solves (free air and a loaded point), about 20–40 min; Optimize searches many "

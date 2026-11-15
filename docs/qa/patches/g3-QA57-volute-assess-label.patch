@@ -1,0 +1,46 @@
+diff --git a/fansim/cockpit/volute_tab.py b/fansim/cockpit/volute_tab.py
+index da0a4a5..bc5142e 100644
+--- a/fansim/cockpit/volute_tab.py
++++ b/fansim/cockpit/volute_tab.py
+@@ -156,11 +156,13 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
+     state.volute_has_front = bool(_volute_last) or bool(volute_design_store)
+     state.volute_msg = (
+         "Radial impeller + sealed volute enclosure (smooth Archimedean scroll). "
+-        "Assess runs radial MRF; Optimize is a geometry proxy (not CFM)."
++        "Assess runs radial MRF CFD — ranking only, unvalidated (CFD not yet converged); "
++        "Optimize is a geometry proxy (not CFM)."
+     )
+     state.volute_readout = [
+         "Preview / Export: impeller + sealed casing STLs.",
+-        "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker).",
++        "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker) — ranking only, "
++        "unvalidated (CFD not yet converged).",
+         "Optimize: NSGA geometry proxy — ranking only, unvalidated (CFD not yet converged).",
+     ]
+     if volute_design_store:
+@@ -415,6 +417,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
+                     f"CFM free {res.cfm_free:.1f} · load {res.cfm_load:.1f} · "
+                     f"η {res.efficiency:.1f}% · {rpm:.0f} RPM",
+                     f"Domain: radial MRF stage 1 ({res.raw.get('honesty', '')}).",
++                    "Volute CFD: ranking only, unvalidated (CFD not yet converged).",
+                     f"Workdir: {workdir}",
+                 ]
+                 state.volute_last_assess = str(workdir)
+diff --git a/tests/test_r110_g3_mixed_volute_copy.py b/tests/test_r110_g3_mixed_volute_copy.py
+index ff65c9c..e4f5462 100644
+--- a/tests/test_r110_g3_mixed_volute_copy.py
++++ b/tests/test_r110_g3_mixed_volute_copy.py
+@@ -46,3 +46,13 @@ def test_mixed_export_readme_labels_experimental():
+     helper = src[src.index("def mixed_export_readme") : src.index("def mixed_export_readme") + 800]
+     assert EXPERIMENTAL in helper
+     assert ASSESS_MRF in helper
++
++
++def test_volute_assess_copy_is_labelled_unvalidated():
++    """QA-57 rest (grok g3-recheck): the Volute *Assess* lines and result readout carry the ranking-only label too."""
++    src = VOLUTE.read_text(encoding="utf-8")
++    assess_lines = [ln for ln in src.splitlines() if "Assess runs radial MRF" in ln or "Assess: free+load CFD" in ln]
++    assert assess_lines
++    assert "Volute CFD: ranking only, unvalidated (CFD not yet converged)." in src
++    i = src.index("Assess runs radial MRF")
++    assert VOLUTE_RANK in src[i:i + 200]

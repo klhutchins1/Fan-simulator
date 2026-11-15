@@ -491,7 +491,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         v3.VAlert(
                             "Design 3D-printable replacement blades for a PC cooling fan "
                             "(start: Noctua A12x25). Preview updates the shape in seconds; "
-                            "Assess runs one CFD solve (~15–30 min); Optimize searches many "
+                            "Assess runs two CFD solves (free air and a loaded point), about 20–40 min; Optimize searches many "
                             "designs (hours). Export writes a print-ready STL. "
                             "Fan is CFD-checked — Mixed / Volute / Prop / CROR tabs are "
                             "faster estimates or proxies. Docs: README, docs/design-rules.md, "
@@ -578,6 +578,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             variant="tonal",
                             classes="mb-2",
                             style="white-space: pre-line",
+                        )
+                        html.Div(
+                            "{{ cfd_readiness }}",
+                            classes="text-caption mb-2",
                         )
                         render_action_row(
                             v3,
@@ -758,6 +762,32 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             _slider(
                                                 "TE thick / roundness", "e_te_thick", 0.0, 2.0, 0.05,
                                                 unit="×",
+                                            )
+                                            _slider(
+                                                "Front edge, hub", "e_le_face_root", 0.0, 1.0, 0.05,
+                                            )
+                                            _slider(
+                                                "Front edge, middle", "e_le_face_mid", 0.0, 1.0, 0.05,
+                                            )
+                                            _slider(
+                                                "Front edge, tip", "e_le_face_tip", 0.0, 1.0, 0.05,
+                                            )
+                                            _slider(
+                                                "Back edge, hub", "e_te_face_root", 0.0, 1.0, 0.05,
+                                            )
+                                            _slider(
+                                                "Back edge, middle", "e_te_face_mid", 0.0, 1.0, 0.05,
+                                            )
+                                            _slider(
+                                                "Back edge, tip", "e_te_face_tip", 0.0, 1.0, 0.05,
+                                            )
+                                            html.Div(
+                                                "Front edge and back edge are how much of the wall is left at each "
+                                                "end of a rounded plate. 1 = full wall. 0 = that edge comes "
+                                                "to a point. The middle of the blade stays the full wall. "
+                                                "NACA is already sharp, so these do nothing on a NACA blade.",
+                                                classes="text-caption text-medium-emphasis mb-2",
+                                                v_show="ui_mode === 'expert'",
                                             )
                                             html.Div(
                                                 "NACA: LE/TE scales reshape nose/tail (1 = stock). TE>1 fattens "
@@ -970,9 +1000,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         )
                                     with v3.VCol(cols=3, classes="px-1"):
                                         v3.VTextField(
-                                            label="steps",
+                                            label="steps (2–12)",
                                             v_model=("sweep_steps",),
                                             type="number",
+                                            min=2,
+                                            max=12,
+                                            step=1,
                                             density="compact",
                                             variant="outlined",
                                             hide_details=True,
@@ -1023,9 +1056,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     with v3.Template(v_slot_activator="{ props }"):
                                         v3.VTextField(
                                             v_bind="props",
-                                            label="Trials",
+                                            label="Trials (2–40)",
                                             v_model=("opt_trials",),
                                             type="number",
+                                            min=2,
+                                            max=40,
+                                            step=1,
                                             density="compact",
                                             variant="outlined",
                                             hide_details=True,
@@ -1107,7 +1143,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     classes="text-caption mt-1 mb-1",
                                 )
                                 html.Div(
-                                    "Noise ranking: use scripts/evaluate_noise.py (mic cal needed for absolute dB).",
+                                    "Noise ranking is not validated. The blade-pass tone is rpm × blades; sound levels are estimates for exploration only.",
                                     classes="text-caption mt-2 text-medium-emphasis",
                                     style="white-space: pre-line",
                                 )

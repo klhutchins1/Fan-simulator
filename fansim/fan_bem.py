@@ -12,8 +12,8 @@ power, efficiency. Losses: airfoil profile drag (from the polar) now; TIP-CLEARA
 low-Reynolds airfoil polars are the next upgrades (roadmap §7.2/§7.3).
 
 HONEST SCOPE: RANKING-ONLY screening. Do not quote BEM CFM as absolute or beside CFD as
-equivalent — BEM ignores thickness/lean/wrap/LE-TE scales/plate sections and typically
-under-ranks CFD (~0.6×). Absolute free-air needs CFD + print/measure (P–Q report: CFD Stock
+equivalent — BEM ignores thickness/lean/wrap/LE-TE scales/plate sections; ranking only,
+coarse, can't separate close designs. Absolute free-air needs CFD + print/measure (P–Q report: CFD Stock
 ~−26% vs published 60.1 CFM; the old “+2%” claim is retired).
 
 Audit #4 (docs/validation/audits/2026-09-29-audit-04-fan-bem.md): the loss buckets SLIP / K_FRICTION /

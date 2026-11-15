@@ -1,0 +1,6 @@
+fast suite -m 'not docker and not slow' on 237a094 (MST 2026-11-02, both heads in parallel from 08:23)
+FAILED tests/test_fuse_memory.py::test_remaining_growth_is_less_than_whole_peak_and_shroud_adds_blade_faces
+FAILED tests/test_worker_parent_watch.py::test_worker_exits_soon_after_its_parent_dies
+FAILED tests/test_worker_parent_watch.py::test_watchdog_runs_the_cleanup_hook_before_exiting
+3 failed, 1889 passed, 21 skipped, 23 deselected, 1 xfailed in 3977.96s (1:06:17)
+EXIT 1

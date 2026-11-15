@@ -1,0 +1,66 @@
+{
+ "b_state_wired_lines": [
+  "fan_optimize.py:60: surrogate_guided=False,"
+ ],
+ "b_seam": "cockpit_optimization_argv",
+ "b_argv_with_state_on": [
+  "/workspace/fansim/repo-r25-r111/.venv/bin/python",
+  "/workspace/fansim/repo-r25-r111/scripts/run_optimization.py",
+  "--trials",
+  "8",
+  "--out",
+  "runs/x",
+  "--fan-model",
+  "a12x25",
+  "--space",
+  "guided",
+  "--mountable",
+  "--preset",
+  "case",
+  "--surrogate-prescreen",
+  "40",
+  "--surrogate-boost",
+  "--surrogate-nn",
+  "--material",
+  "PETG"
+ ],
+ "b_argv_has_surrogate_guided": false,
+ "c_guard_fn": "present",
+ "c_guard_table": {
+  "verify=False,stub=False": "ERROR: --surrogate-guided needs --verify-cfd or --stub-labels (synthetic labels, not CFD).",
+  "verify=False,stub=True": null,
+  "verify=True,stub=False": null,
+  "verify=True,stub=True": null
+ },
+ "c_main_lines": [
+  "run_optimization.py:113: ap.add_argument(\"--stub-labels\", action=\"store_true\",",
+  "run_optimization.py:162: # \u00a720.5 surrogate-guided loop: CFD when --verify-cfd; stub only with --stub-labels (R1.11).",
+  "run_optimization.py:164: from fansim.optimize.cli_argv import surrogate_guided_cli_error",
+  "run_optimization.py:166: err = surrogate_guided_cli_error(",
+  "run_optimization.py:167: guided=True, verify_cfd=args.verify_cfd, stub_labels=args.stub_labels)",
+  "run_optimization.py:170: return 2",
+  "run_optimization.py:173: return 2",
+  "run_optimization.py:179: if args.stub_labels and not args.verify_cfd:",
+  "run_optimization.py:180: print(\"synthetic labels, not CFD\")",
+  "run_optimization.py:208: return 2"
+ ],
+ "wrapper_lines": [
+  "run_surrogate_search.py:4: ``--verify-cfd`` this path adds ``--stub-labels`` (synthetic labels, not CFD).",
+  "run_surrogate_search.py:9: uv run python scripts/run_surrogate_search.py --out runs/surr --verify-cfd",
+  "run_surrogate_search.py:26: if \"--verify-cfd\" not in argv and \"--stub-labels\" not in argv:",
+  "run_surrogate_search.py:27: argv = [\"--stub-labels\", *argv]"
+ ],
+ "d_stub_flag_in_parser": true,
+ "d_stub_stamp_in_outputs": [
+  "surrogate_search.py:330: \"\"\"Docker-free verify: write synthetic labels under ``workdir``.\"\"\""
+ ],
+ "e_tests_mentioning_stub_labels_or_guard": [
+  "test_r111_cockpit_surrogate.py"
+ ],
+ "e_tests_calling_run_optimization_main": [
+  "test_boost_ensemble.py",
+  "test_search_rpm.py",
+  "test_stator.py",
+  "test_surrogate_catalog.py"
+ ]
+}

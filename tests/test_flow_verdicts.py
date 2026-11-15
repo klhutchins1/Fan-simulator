@@ -136,15 +136,14 @@ def test_baked_tolerances_are_stock_v3_two_sigma():
     assert HINT_MARGIN_DB == 0.5    # 27.3c tip+CFM 2σ was 0.069 dB
 
 
-def test_noise_hint_is_judged_but_stays_off_the_simple_line():
-    """27.3c: Expert row uses tip-speed + CFM; Simple overall must not mention it."""
+def test_noise_hint_is_never_judged():
+    """R0.4 / G2: the hint restates CFM; never ✓/⚠/better. Expert keeps the number + honesty."""
     stock = _m(noise_hint_db=75.4)
-    same = judge(_m(noise_hint_db=75.4), stock)[4]
-    assert same.status == "ok" and same.expert_only and "About as loud" in same.text
-    quiet = judge(_m(noise_hint_db=74.4), stock)[4]
-    assert quiet.status == "ok" and quiet.better is True and "quieter" in quiet.text
-    loud = judge(_m(noise_hint_db=76.4), stock)[4]
-    assert loud.status == "warn" and loud.better is False and "louder" in loud.text
+    loud = judge(_m(noise_hint_db=76.4), stock)[4]  # more CFM → higher hint
+    assert loud.status == "na" and loud.better is None and loud.expert_only
+    assert "⚠" not in loud.text and loud.status != "warn"
+    assert "Scales with tip speed and airflow only" in loud.text
+    assert "not a comparison of how quiet the design is" in loud.text
     rows = judge(_m(noise_hint_db=76.4, swirl_frac=0.20), stock)
     assert overall_line(rows, compared=True) == "About the same as Stock on every check."
 
@@ -154,3 +153,25 @@ def test_old_metrics_json_without_noise_hint_still_loads():
     d.pop("noise_hint_db", None)
     m = FlowMetrics.from_dict(d)
     assert m.noise_hint_db is None
+
+
+def test_expert_noise_hint_row_kept_without_turbulence_data():
+    """QA-70 (grok ui-hunt-1): the R0.4 hint needs only tip speed + CFM, so it shows in Expert even with no SWL."""
+    import fansim.cockpit.fan_flow_report as F
+
+    d = _m(noise_hint_db=30.0, noise_swl_db=None)
+    s = _m(noise_hint_db=28.0, noise_swl_db=None)
+    orig = (F.load_or_compute_metrics, F._attach_noise_hint, F.test_settings, F.first_mismatch, F._stock_pack, F._pictures_cached)
+    try:
+        F.load_or_compute_metrics = lambda case: d
+        F._attach_noise_hint = lambda m, case: m
+        F.test_settings = lambda case: {}
+        F.first_mismatch = lambda a, b: None
+        F._stock_pack = lambda ref: (s, None, {})
+        F._pictures_cached = lambda *a, **k: {}
+        rows = F.build_report("/tmp/qa70_case", "/tmp/qa70_ref")["flow_rows"]
+    finally:
+        (F.load_or_compute_metrics, F._attach_noise_hint, F.test_settings, F.first_mismatch, F._stock_pack, F._pictures_cached) = orig
+    noise = [r for r in rows if r["key"] == "noise"]
+    assert len(noise) == 1 and noise[0]["expert_only"] and noise[0]["status"] == "na"
+    assert "not a comparison of how quiet" in noise[0]["text"]

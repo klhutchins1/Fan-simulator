@@ -1,0 +1,41 @@
+== K3 README required phrases
+Noise outputs are not validated: 1
+blade-pass tone frequency is exact: 1
+rpm × blades: 2
+estimates for exploration only: 1
+== K3 README forbidden phrases (expect 0)
+tone + relative ranking are usable: 0
+relative dB(A) ranking: 0
+relative dB(A): 0
+== K3 README noise/dB lines
+4:**real CFD** (OpenFOAM MRF) to measure airflow / static pressure / efficiency, scores **noise** on the
+29:- Multi-objective **optimizer** (Optuna NSGA-II): airflow (free + loaded) + efficiency, optional noise;
+32:- **GPU noise tier** (FluidX3D LBM): control-volume-force Curle dipole → blade-pass tone (rpm × blades)
+59:**Honest caveats:** Noise outputs are not validated. The blade-pass tone frequency is exact
+82:5. **Measure** — read airflow / noise, and type it into the cockpit's *Record measurement* panel.
+89:- GPU noise: FluidX3D compiled at `../FluidX3D` (msys2 ucrt64), optional. Elsewhere: set
+171:uv run python scripts/run_optimization.py --space guided --extended --mountable --noise --trials 30 --out runs/opt_mountable
+181:# Validate CFD against the real A12x25, or GPU-score a run's noise.
+183:uv run python scripts/score_feature_noise.py --run runs/feat_study2
+== K5 fan_flow_report dB-ish (expect none)
+none
+== K5 a12x25-reference noise lines
+14:| **Max acoustic noise** | **22.6 dB(A)** | (18.8 dB(A) min) |
+56:## Noise target
+57:22.6 dB(A) max is the published datasheet number. Noise outputs are not validated: the blade-pass
+== K4 fan_tab_ui Optimize noise text
+1110:                                    "Noise ranking is not validated. The blade-pass tone is rpm × blades; sound levels are estimates for exploration only.",
+== K4 cockpit-wide dB(A)/dBA hits (all fansim/cockpit)
+fansim/cockpit/fan_tab_ui.py:406:                                                label="Noise dB(A)",
+fansim/cockpit/fan_trials.py:150:            state.meas_msg = "⚠ Enter at least one measured value (CFM / static Pa / dB(A))."
+fansim/cockpit/fan_trials.py:191:                f"noise {last['noise_dba']['measured']:.1f} dBA "
+fansim/cockpit/figures.py:13:    prop_pareto_store) so a click loads that design. (Noise is a relative ranking score, not dB(A).)
+fansim/cockpit/figures.py:336:        noise_bit = f"<br>published noise {noise:.1f} dB(A)" if noise is not None else ""
+fansim/cockpit/prop_tab.py:469:                f"BPF {nz['bpf_hz']:.0f} Hz  (relative rank, not calibrated dBA)"
+fansim/cockpit/fan_models.py:33:            f" Published {s.ref_cfm:.0f} CFM / {s.ref_static_pa:.0f} Pa / {s.ref_noise_dba:.0f} dBA."
+== K2 where expert_only is consumed
+fansim/cockpit/fan_tab_ui.py:1392:                                     v_show="!row.expert_only || ui_mode === 'expert'",
+fansim/cockpit/fan_flow_report.py:152:            "text": r.text, "expert_only": r.expert_only,
+== info: scripts/ + docs/design-rules.md dB(A)/dBA count
+11
+10:- **Noise dB(A) (min)** — driven by `stagger_mid` (-0.79), `sol_tip` (+0.70), `sol_mid` (+0.67), `n_blades` (+0.64)

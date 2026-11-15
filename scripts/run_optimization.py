@@ -88,7 +88,7 @@ def build_parser() -> argparse.ArgumentParser:
                          "constraint: hub radius >= motor cavity/2 + wall). Needs a model with a motor_mount.")
     ap.add_argument("--bem-prescreen", type=float, default=0.0, metavar="CFM_FLOOR",
                     help="RANKING-ONLY BEM: skip CFD when predicted hose CFM is below CFM_FLOOR "
-                         "(not absolute CFM; ignores thickness/lean/wrap/LE-TE/plate; BEM≈0.6× CFD). "
+                         "(not absolute CFM; ignores thickness/lean/wrap/LE-TE/plate; ranking only, coarse). "
                          "Never quote BEM beside CFD as equivalent. 0 = off.")
     ap.add_argument("--surrogate-prescreen", type=float, default=0.0, metavar="CFM_FLOOR",
                     help="skip CFD when the catalog GP mean+1 std of free-delivery CFM is below "
@@ -105,11 +105,13 @@ def build_parser() -> argparse.ArgumentParser:
                          "catalog GP for std (roadmap 7.4). Needs torch; else falls back to GP-only. "
                          "Wins over --surrogate-boost when both are set. Off by default.")
     ap.add_argument("--surrogate-guided", action="store_true",
-                    help="roadmap §20.5: DoE → fit GP/ensemble → NSGA-II on the surrogate → "
-                         "CFD-verify top-k → refit. Default verify is stub (no Docker); pass "
-                         "--verify-cfd to call evaluate_candidate when the OpenFOAM image exists.")
+                    help="developer / experimental (roadmap §20.5): DoE → fit GP/ensemble → "
+                         "NSGA-II on the surrogate → verify top-k → refit. Needs --verify-cfd "
+                         "(catalog + CFD; no synthetic DoE) or --stub-labels "
+                         "(synthetic labels, not CFD).")
     ap.add_argument("--verify-cfd", action="store_true",
-                    help="with --surrogate-guided: CFD-verify top-k (needs Docker). Off = stub.")
+                    help="with --surrogate-guided: train on catalog rows and CFD-verify top-k "
+                         "(needs Docker). Does not label the DoE with synthetic_label.")
     ap.add_argument("--stub-labels", action="store_true",
                     help="with --surrogate-guided: allow synthetic_label ranks (not CFD). "
                          "Required if --verify-cfd is off.")
@@ -178,25 +180,30 @@ def main() -> int:
         )
         if args.stub_labels and not args.verify_cfd:
             print("synthetic labels, not CFD")
-        result = run_surrogate_guided(
-            out_dir=out,
-            n_doe=args.doe,
-            n_nsga=args.nsga_trials,
-            top_k=args.top_k,
-            n_rounds=args.rounds,
-            space=space,
-            kappa=args.acq_kappa,
-            boost=args.surrogate_boost,
-            nn=args.surrogate_nn,
-            catalog_db=args.surrogate_db,
-            verify_cfd=args.verify_cfd,
-            fan_model=args.fan_model,
-            procs=args.procs,
-            base_cell=args.base_cell,
-            iters=args.iters,
-            load_pa=load_pa,
-            material=args.material,
-        )
+        try:
+            result = run_surrogate_guided(
+                out_dir=out,
+                n_doe=args.doe,
+                n_nsga=args.nsga_trials,
+                top_k=args.top_k,
+                n_rounds=args.rounds,
+                space=space,
+                kappa=args.acq_kappa,
+                boost=args.surrogate_boost,
+                nn=args.surrogate_nn,
+                catalog_db=args.surrogate_db,
+                verify_cfd=args.verify_cfd,
+                stub_labels=args.stub_labels,
+                fan_model=args.fan_model,
+                procs=args.procs,
+                base_cell=args.base_cell,
+                iters=args.iters,
+                load_pa=load_pa,
+                material=args.material,
+            )
+        except RuntimeError as exc:  # QA-68: catalog / Docker refusal -> clean exit 2
+            print(exc)
+            return 2
         for note in result.notes:
             print(f"  {note}")
         print(f"Wrote {out / 'surrogate_guided.json'} "

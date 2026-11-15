@@ -3,6 +3,12 @@ name = "fansim"
 version = "0.1.0"
 description = "Physics-based parametric fan-blade simulator and multi-objective optimizer"
 readme = "README.md"
+license = "MIT"
+authors = [{ name = "Kimball" }]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+]
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "numpy>=1.26",
@@ -25,6 +31,13 @@ dependencies = [
     "uvicorn>=0.29",
     "rtree>=1.4.1",
 ]
+
+[project.urls]
+# SSH host alias from the git remote. No public homepage until R4.4.
+Repository = "ssh://git@gitea/klhutchins/Fan-simulator.git"
+
+[project.scripts]
+fansim-cockpit = "fansim.cockpit_entry:main"
 
 [project.optional-dependencies]
 # Kept so older `uv run --extra viz --extra optim …` commands still resolve.
@@ -52,6 +65,10 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["fansim"]
+
+[tool.hatch.build.targets.wheel.force-include]
+# Installed copies have no repo scripts/ directory. --help still loads cockpit.py.
+"scripts/cockpit.py" = "fansim/_bundled_cockpit.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

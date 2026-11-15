@@ -1,0 +1,15 @@
+{
+  "fluids_version": "1.1.0",
+  "license": "MIT (LICENSE checked 2026-11-09)",
+  "example": {
+    "D_m": 0.05,
+    "orifice_m": 0.025,
+    "DP_Pa": 200.0,
+    "taps": "flange",
+    "m_kg_s": 0.00688,
+    "Q_m3_s": 0.00573,
+    "CFM": 12.15
+  },
+  "api": "fluids.flow_meter.differential_pressure_meter_solver (ISO 5167 orifice, taps=flange)",
+  "blocked_on": "hardware (orifice + \u0394P sensor), same gate as lead 18"
+}

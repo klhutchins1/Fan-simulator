@@ -1,0 +1,17 @@
+{
+  "ax_version": "1.3.1",
+  "ax_license": "MIT (LICENSE checked from facebook/Ax)",
+  "botorch_license": "MIT (LICENSE checked from pytorch/botorch)",
+  "requires_torch": true,
+  "torch_cpu_wheel_MB_examples": [],
+  "distinct_from_lead5": "Lead 5 = Optuna GPSampler (already in tree). Lead 28 = qNEHVI multi-objective hypervolume + optional fully Bayesian GP for tiny CFD budgets.",
+  "current_stack": "Optuna NSGA-II + catalog GP surrogate (surrogate_prescreen); no Ax/BoTorch path.",
+  "verdict_inputs": {
+    "adds_over_lead5": true,
+    "can_be_optional_extra": true,
+    "effort": "M",
+    "pytorch_weight": "heavy (hundreds of MB CPU wheel); must stay optional / not default install",
+    "payoff_when": "CFD finalist selection with tens of trials \u2014 not BEM stub screening"
+  },
+  "no_pytorch_installed": true
+}

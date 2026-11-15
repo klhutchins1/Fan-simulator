@@ -1,0 +1,14 @@
+You do not need Gitea, a GitHub remote, or a network.
+This folder is the whole job.
+If fansim.bundle is in this same folder, start now.
+Do not wait for Cursor.
+
+Run these commands from inside this folder (the folder that contains this file and fansim.bundle):
+
+git clone fansim.bundle fansim-r30
+cd fansim-r30
+
+Then open handoff/2026-11-14_to-qa-30/CLAUDE_TO_QA.md and do session 1.
+Write that session into docs/qa/rounds/r30.md before starting the next session.
+One session per look. Four looks today. After session 4, stop.
+No Docker. No OpenFOAM. No Assess, Sweep, Optimize, or Run.

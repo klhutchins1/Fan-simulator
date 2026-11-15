@@ -1,0 +1,198 @@
+diff --git a/fansim/acoustics/__init__.py b/fansim/acoustics/__init__.py
+index c23b926..f52aee1 100644
+--- a/fansim/acoustics/__init__.py
++++ b/fansim/acoustics/__init__.py
+@@ -31,6 +31,9 @@ from fansim.acoustics.tonal import (
+     peak_tone_reduction_db,
+     tonal_peak_ratio,
+ )
++from fansim.acoustics.strut_gust import (  # lead #30 Amiet/Sears strut-tone ranking
++    strut_tone_level_db,
++)
+ 
+ __all__ = [
+     # RANS proxies (screening tier)
+@@ -49,9 +52,12 @@ __all__ = [
+     "blade_passing_modes",
+     "peak_tone_amplitude",
+     "tonal_peak_ratio",
++    # strut gust tone (lead #30)
++    "strut_tone_level_db",
+     "peak_tone_reduction_db",
+     # calibrated cheap LOADING-noise proxy (better than Proudman for dipole/loading noise)
+     "loading_noise_proxy",
+     "loading_proxy_from_rans",
+     "calibrate_loading_proxy",
+ ]
++
+diff --git a/fansim/acoustics/strut_gust.py b/fansim/acoustics/strut_gust.py
+new file mode 100644
+index 0000000..47aefa1
+--- /dev/null
++++ b/fansim/acoustics/strut_gust.py
+@@ -0,0 +1,123 @@
++"""Relative strut-tone loudness from a Sears / Amiet-style gust response (QA lead #30).
++
++A blade wake hitting a strut is modelled as a sinusoidal gust. Classical Sears
++response gives an unsteady-lift proxy; an exponential wake deficit decays with
++axial gap; strut skew smears the spanwise phase (sinc coherence).
++
++This is a RELATIVE ranking metric for frame gap / chord / skew (lead #22), not an
++absolute dB(A) rating. Absolute levels need a calibrated wake/turbulence input
++that fansim does not yet estimate. For a full surface-pressure / far-field
++implementation see the BSD-3 ``amiet_tools`` reference (fchirono/amiet_tools);
++this module deliberately stays numpy/scipy-only and thin.
++
++References (implement maths; do not copy paywalled figures):
++- Sears, W. R. (1941). Some aspects of non-stationary airfoil theory…
++- Amiet, R. K. (1975). J. Sound Vib. 41(4):407–420.
++- Casagrande Hirono et al., AIAA 2020-2544 (amiet_tools).
++"""
++
++from __future__ import annotations
++
++import math
++
++from scipy.special import j0, j1, y0, y1
++
++__all__ = [
++    "sears",
++    "wake_deficit",
++    "skew_coherence",
++    "strut_tone_level_db",
++]
++
++
++def sears(k: float) -> complex:
++    """Sears function S(k), k = ω b / U = ω c / (2 U). S(0) = 1."""
++    if k < 1e-8:
++        return 1.0 + 0.0j
++    H0 = j0(k) - 1j * y0(k)
++    H1 = j1(k) - 1j * y1(k)
++    return 2.0 / (math.pi * k * (H1 + 1j * H0))
++
++
++def wake_deficit(gap_mm: float, w0_mps: float, wake_width_mm: float) -> float:
++    """Exponential wake deficit [m/s] at axial gap (blade TE → strut LE)."""
++    return float(w0_mps) * math.exp(-max(float(gap_mm), 0.0) / max(float(wake_width_mm), 1e-6))
++
++
++def skew_coherence(skew_deg: float, span_mm: float, gust_kx: float) -> float:
++    """Spanwise phase-smear coherence for a skewed strut (sinc); in (0, 1]."""
++    beta = abs(math.radians(float(skew_deg)))
++    dpath = (float(span_mm) / 1000.0) * math.tan(beta)
++    dphi = float(gust_kx) * dpath
++    if abs(dphi) < 1e-9:
++        return 1.0
++    return abs(math.sin(dphi / 2.0) / (dphi / 2.0))
++
++
++def _lift_proxy(
++    *,
++    gap_mm: float,
++    skew_deg: float,
++    strut_chord_mm: float,
++    span_mm: float,
++    U_mps: float,
++    bpf_hz: float,
++    w0_over_U: float,
++    wake_width_mm: float,
++    rho: float,
++) -> float:
++    c = float(strut_chord_mm) / 1000.0
++    b = 0.5 * c
++    omega = 2.0 * math.pi * float(bpf_hz)
++    U = max(float(U_mps), 1e-6)
++    k = omega * b / U
++    w = wake_deficit(gap_mm, float(w0_over_U) * U, wake_width_mm)
++    coh = skew_coherence(skew_deg, span_mm, omega / U)
++    return float(rho) * U * w * c * abs(sears(k)) * coh
++
++
++def strut_tone_level_db(
++    *,
++    gap_mm: float,
++    skew_deg: float = 0.0,
++    strut_chord_mm: float = 8.0,
++    span_mm: float = 33.0,
++    U_mps: float = 8.8,
++    bpf_hz: float = 300.0,
++    w0_over_U: float = 0.05,
++    wake_width_mm: float = 4.0,
++    rho: float = 1.2,
++    ref_lift: float | None = None,
++) -> float:
++    """Relative strut-tone level in dB re ``ref_lift`` (default: gap=0.5 mm, skew=0).
++
++    Larger (less negative) = louder. Linear in gust amplitude, so ranking of
++    (gap, skew) configs is unchanged under a global gust-scale error.
++    """
++    kw = dict(
++        gap_mm=gap_mm,
++        skew_deg=skew_deg,
++        strut_chord_mm=strut_chord_mm,
++        span_mm=span_mm,
++        U_mps=U_mps,
++        bpf_hz=bpf_hz,
++        w0_over_U=w0_over_U,
++        wake_width_mm=wake_width_mm,
++        rho=rho,
++    )
++    lift = _lift_proxy(**kw)
++    if ref_lift is None:
++        ref_lift = _lift_proxy(
++            gap_mm=0.5,
++            skew_deg=0.0,
++            strut_chord_mm=strut_chord_mm,
++            span_mm=span_mm,
++            U_mps=U_mps,
++            bpf_hz=bpf_hz,
++            w0_over_U=w0_over_U,
++            wake_width_mm=wake_width_mm,
++            rho=rho,
++        )
++    if lift <= 0 or ref_lift <= 0:
++        return float("-inf")
++    return 20.0 * math.log10(lift / ref_lift)
+diff --git a/tests/test_strut_gust.py b/tests/test_strut_gust.py
+new file mode 100644
+index 0000000..72930f1
+--- /dev/null
++++ b/tests/test_strut_gust.py
+@@ -0,0 +1,36 @@
++"""Lead #30: Sears/Amiet strut-tone relative ranking."""
++from __future__ import annotations
++
++from fansim.acoustics.strut_gust import sears, strut_tone_level_db
++
++
++def test_sears_at_zero_is_one():
++    assert abs(sears(0.0) - 1.0) < 1e-9
++
++
++def test_larger_gap_is_quieter():
++    a = strut_tone_level_db(gap_mm=0.5, skew_deg=0.0)
++    b = strut_tone_level_db(gap_mm=4.0, skew_deg=0.0)
++    assert b < a - 1.0
++
++
++def test_skew_reduces_tone():
++    a = strut_tone_level_db(gap_mm=1.0, skew_deg=0.0)
++    b = strut_tone_level_db(gap_mm=1.0, skew_deg=35.0)
++    assert b < a - 0.5
++
++
++def test_ranking_stable_under_gust_scale():
++    configs = [
++        dict(gap_mm=0.5, skew_deg=0.0),
++        dict(gap_mm=2.0, skew_deg=0.0),
++        dict(gap_mm=1.0, skew_deg=35.0),
++        dict(gap_mm=4.0, skew_deg=0.0),
++    ]
++
++    def order(w0):
++        scored = [(strut_tone_level_db(w0_over_U=w0, **c), i) for i, c in enumerate(configs)]
++        scored.sort()  # quietest first
++        return tuple(i for _, i in scored)
++
++    assert order(0.05) == order(0.025) == order(0.10)

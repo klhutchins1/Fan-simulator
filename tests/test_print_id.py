@@ -90,3 +90,41 @@ def test_readme_puts_the_code_first():
     assert md.splitlines()[0].startswith("# Print sheet")
     assert "A1B2C" in md.splitlines()[0] or "A1B2C" in md.splitlines()[1] or "A1B2C" in "\n".join(md.splitlines()[:6])
     assert "Sharpie" in md
+    assert "No glyphs on the part yet" not in md
+    assert "recess" in md.lower()
+    assert "ID engraving removes about 2 % of the hub face" in md
+    assert "not simulated" in md
+    assert "g" in md.lower() and "infill" in md.lower()
+
+
+def _sheet(print_id: str, hub: float = 21.5) -> str:
+    p = BladeParams()
+    p.hub_radius = hub
+    rep = WatertightReport(
+        watertight=True, n_vertices=8, n_faces=12, volume_mm3=1000.0, n_bodies=1,
+        bounds_mm=((-50, -50, 0), (50, 50, 20)),
+    )
+    return print_readme(
+        "x", p, "PETG", rep, {"balanced": True, "even_spacing": True,
+                              "normalized_unbalance": 0.0},
+        recommend_print_settings("PETG"), None, print_id=print_id,
+    )
+
+
+def test_readme_does_not_claim_recess_when_hub_too_small():
+    """QA-78: skip the cut on a narrow hub; the sheet must not still say recessed."""
+    md = _sheet("A1B2C", hub=14.0)
+    assert "A1B2C" in md
+    assert "Sharpie" in md
+    assert "Recessed on the hub" not in md
+    assert "ID engraving removes about 2 %" not in md
+
+
+def test_mark_will_cut_matches_engrave_skip_rules():
+    """QA-78: no cut if the band will not fit, the code is not 5 chars, or it uses I/L/O."""
+    from fansim.manufacturability.print_id import mark_will_cut
+
+    assert mark_will_cut("K7WB2", 21.5)
+    assert not mark_will_cut("K7WB2", 14.0)
+    assert not mark_will_cut("K7WB", 21.5)
+    assert not mark_will_cut("OOOOO", 21.5)

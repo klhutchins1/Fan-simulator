@@ -3,7 +3,7 @@
 Pulls every feasible trial's geometry parameters, adds derived quantities (blade solidity/overlap,
 mean chord/stagger/lean), and joins the LBM noise metrics (runs/<dir>/all_noise.json). Then it
 Spearman-rank-correlates each design variable against each objective (CFM free/load, efficiency,
-relative noise dB(A), blade-pass tone, thrust) and writes docs/design-rules.md + a correlation
+relative noise estimate (not dB(A)), blade-pass tone, thrust) and writes docs/design-rules.md + a correlation
 heatmap. The rules are correlational (n is small, CFD is screening-fidelity, noise is relative) --
 design guidance to test, not physical law -- but they turn a scatter of Pareto points into "what
 makes a fan quiet / efficient / high-flow" that transfers to the next design.
@@ -103,7 +103,7 @@ def main():
           "**design guidance to test, not law**.", "",
           "## Strongest driver of each objective", ""]
     label = {"cfm_free": "Free-air airflow (max)", "cfm_load": "Airflow under load (max)",
-             "efficiency": "Efficiency (max)", "noise_dba_band": "Noise dB(A) (min)",
+             "efficiency": "Efficiency (max)", "noise_dba_band": "Noise estimate (min)",
              "bpf_tone_db": "Blade-pass tone (min)", "thrust_abs": "Blade loading |thrust|"}
     for ob in OBJECTIVES:
         drv = top_drivers(ob)
@@ -136,7 +136,7 @@ def main():
            "", "**Design recipe implied:** high mid-stagger + wide tip chord + low camber + the "
            "*fewest* blades / lowest solidity that still meets the flow-and-pressure target. Add "
            "solidity only to buy pressure you can't otherwise get, knowing it costs noise.", "",
-           "_Caveats: n=14; CFD is screening fidelity (~3–5% discretization); absolute noise is "
+           "_Caveats: n=14; screening mesh, GCI ≈ 21 %; ranks designs, ±1 % run to run on Stock; absolute noise is "
            "coarse-grid-limited so only the ranking is used; cfm_free and cfm_load are near-duplicate "
            "objectives here; correlations are not causation._"]
     (Path("docs") / "design-rules.md").write_text("\n".join(md), encoding="utf-8")

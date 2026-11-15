@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 
 from fansim.catalog import build_catalog
+from fansim.cfd.runner import publish_cfd_readiness
 from fansim.cockpit import (
     fan_assess,
     fan_core,
@@ -39,6 +40,7 @@ def setup_fan_tab(ctx: CockpitCtx) -> None:
     session = FanSession(ctx)
 
     fan_core.apply_state_defaults(session)
+    publish_cfd_readiness(session.state)
 
     # Bind each domain: defines its closures and attaches the shared ones onto ``session``.
     # Cross-domain calls resolve through ``session`` at call time, so bind order is only about

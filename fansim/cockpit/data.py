@@ -151,6 +151,7 @@ def load_designs(out_dir: str | Path, study_name: str | None = None) -> list[Des
                    "runtime_s": t.user_attrs.get("runtime_s"),
                    "cfd_version": t.user_attrs.get("cfd_version"),
                    "surf_max": t.user_attrs.get("surf_max"),
+                   "converged": t.user_attrs.get("converged"),  # QA-65; None on old studies
                    "cfd_stale": bool(_reason := stale_reason(
                        {"cfd_version": t.user_attrs.get("cfd_version"),
                         "surf_max": t.user_attrs.get("surf_max"),
@@ -202,7 +203,7 @@ def design_dropdown_items(rows, *, by_index: bool = False) -> list[dict]:
         obj = r.get("objectives") or {}
         bits = []
         for key, lab in (("cfm_free", "free"), ("cfm_load", "load"), ("efficiency", "η"),
-                         ("fm", "FM"), ("thrust_n", "T"), ("swl_dba", "dBA")):
+                         ("fm", "FM"), ("thrust_n", "T"), ("swl_dba", "SWL est.")):
             v = obj.get(key)
             if isinstance(v, (int, float)):
                 bits.append(f"{lab} {v:.1f}")

@@ -81,6 +81,10 @@ class RadialStation:
     le_skew: float = 0.0  # circumferential (θ) offset of the LEADING-EDGE region only, mm.
     # Same blend as le_sweep. Positive = +t (same sign as skew). Kept last so positional callers
     # of RadialStation(...) are unaffected.
+    te_face: float = 1.0  # plate only: fraction of the wall left at the trailing-edge tip.
+    # 1 = full wall (today's plate). 0 = the back edge meets the chord.
+    le_face: float = 1.0  # plate only: fraction of the wall left at the leading-edge tip.
+    # 1 = full wall. 0 = the front edge meets the chord. Mid-chord stays the full wall.
 
 
 SICKLE_DEFAULT_MM = 8.0
@@ -259,6 +263,8 @@ def open_tip_rmax_mm(params: BladeParams) -> float:
             lean_deg=float(it["lean_deg"][i]), n_chord=params.n_chord,
             features=params.features,
             le_skew=float(it["le_skew"][i]),
+            te_face=float(it["te_face"][i]),
+            le_face=float(it["le_face"][i]),
             tip_notch_count=params.tip_notch_count,
             tip_notch_depth_mm=params.tip_notch_depth_mm,
             **_thick_scale_kw(params),
@@ -333,7 +339,7 @@ def _interp_stations(params: BladeParams, n_span: int) -> dict[str, np.ndarray]:
     rf = np.array([s.r_frac for s in ctrl], dtype=float)
     q = np.linspace(0.0, 1.0, n_span)
     fields = ["chord", "stagger_deg", "thickness", "max_camber", "camber_pos",
-              "sweep", "skew", "le_sweep", "le_skew", "lean_deg"]
+              "sweep", "skew", "le_sweep", "le_skew", "lean_deg", "te_face", "le_face"]
     out = {"r_frac": q}
     mode = str(getattr(params, "span_interp", SPAN_INTERP_LINEAR) or SPAN_INTERP_LINEAR).lower()
     use_pchip = mode == SPAN_INTERP_PCHIP and len(rf) >= 3
@@ -371,6 +377,8 @@ def _section_loop(
     te_thick_scale: float = 1.0,
     section_family: str = SECTION_NACA,
     wrap: bool = False,
+    te_face: float = 1.0,
+    le_face: float = 1.0,
 ) -> tuple[np.ndarray, list[cq.Vector]]:
     """Closed section at radius ``r``, plus chord-fraction ``x`` (LE/TE indexing).
 
@@ -390,7 +398,7 @@ def _section_loop(
     loop, x_param = section_loop_2d(
         fam, max_camber=max_camber, camber_pos=camber_pos, thickness=thickness,
         n_points=n_chord, te_radius_frac=te_radius_frac, le_radius_frac=le_radius_frac,
-        return_chord_param=True,
+        te_face=te_face, le_face=le_face, return_chord_param=True,
     )
     # Drop the explicit closing duplicate; the wire is closed by makePolygon(close=True).
     if np.allclose(loop[0], loop[-1]):
@@ -472,6 +480,8 @@ def _section_points_3d(
     te_thick_scale: float = 1.0,
     section_family: str = SECTION_NACA,
     wrap: bool = False,
+    te_face: float = 1.0,
+    le_face: float = 1.0,
 ) -> list[cq.Vector]:
     """Build the closed 3D loop of one airfoil section in the tangent plane at radius ``r``.
 
@@ -488,7 +498,7 @@ def _section_points_3d(
         lean_deg=lean_deg, n_chord=n_chord, features=features, le_skew=le_skew,
         tip_notch_count=tip_notch_count, tip_notch_depth_mm=tip_notch_depth_mm,
         le_thick_scale=le_thick_scale, te_thick_scale=te_thick_scale,
-        section_family=section_family, wrap=wrap,
+        section_family=section_family, wrap=wrap, te_face=te_face, le_face=le_face,
     )
     return pts
 
@@ -510,11 +520,13 @@ def apply_winglet(params: BladeParams, span_frac: float = 0.85,
 
     shoulder = RadialStation(span_frac, interp("chord"), interp("stagger_deg"), interp("thickness"),
                              interp("max_camber"), interp("camber_pos"), interp("sweep"), interp("skew"),
-                             interp("lean_deg"), le_sweep=interp("le_sweep"), le_skew=interp("le_skew"))
+                             interp("lean_deg"), le_sweep=interp("le_sweep"), le_skew=interp("le_skew"),
+                             te_face=interp("te_face"), le_face=interp("le_face"))
     tip = st[-1]
     tip_wl = RadialStation(tip.r_frac, tip.chord, tip.stagger_deg, tip.thickness, tip.max_camber,
                            tip.camber_pos, tip.sweep + sweep_add, tip.skew, tip.lean_deg + lean_add,
-                           le_sweep=tip.le_sweep, le_skew=tip.le_skew)
+                           le_sweep=tip.le_sweep, le_skew=tip.le_skew,
+                           te_face=tip.te_face, le_face=tip.le_face)
     params.stations = [s for s in st if s.r_frac < span_frac] + [shoulder, tip_wl]
     return params
 
@@ -552,7 +564,8 @@ def apply_tip_shape(params: BladeParams, tip_round: float = 0.0,
             rf, interp("chord", rf) * scale, interp("stagger_deg", rf), interp("thickness", rf),
             interp("max_camber", rf), interp("camber_pos", rf), interp("sweep", rf),
             interp("skew", rf), interp("lean_deg", rf), le_sweep=interp("le_sweep", rf),
-            le_skew=interp("le_skew", rf)))
+            le_skew=interp("le_skew", rf), te_face=interp("te_face", rf),
+            le_face=interp("le_face", rf)))
     params.stations = kept + tip_stations
     return params
 
@@ -647,6 +660,8 @@ def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False,
             n_chord=n_chord,
             features=params.features,
             le_skew=float(interp["le_skew"][i]),
+            te_face=float(interp["te_face"][i]),
+            le_face=float(interp["le_face"][i]),
             tip_notch_count=params.tip_notch_count,
             tip_notch_depth_mm=params.tip_notch_depth_mm,
             wrap=wrap,
@@ -715,7 +730,7 @@ def _root_axial_span(params: BladeParams) -> tuple[float, float]:
         r=r, r_frac=st.r_frac, chord=st.chord, stagger_deg=st.stagger_deg, thickness=st.thickness,
         max_camber=st.max_camber, camber_pos=st.camber_pos, sweep=st.sweep, skew=st.skew,
         le_sweep=st.le_sweep, lean_deg=st.lean_deg, n_chord=params.n_chord, features=Features(),
-        le_skew=st.le_skew,
+        le_skew=st.le_skew, te_face=st.te_face, le_face=st.le_face,
         tip_notch_count=params.tip_notch_count,
         tip_notch_depth_mm=params.tip_notch_depth_mm,
         **_thick_scale_kw(params),
@@ -742,6 +757,7 @@ def tip_section_points(params: BladeParams) -> list[Vec]:
         thickness=st.thickness, max_camber=st.max_camber, camber_pos=st.camber_pos,
         sweep=st.sweep, skew=st.skew, le_sweep=st.le_sweep, lean_deg=st.lean_deg,
         n_chord=params.n_chord, features=Features(), le_skew=st.le_skew,
+        te_face=st.te_face, le_face=st.le_face,
         tip_notch_count=params.tip_notch_count,
         tip_notch_depth_mm=params.tip_notch_depth_mm,
         **_thick_scale_kw(params),
@@ -889,13 +905,19 @@ def validate_blade_params(params: BladeParams) -> None:
         raise ValueError(f"need at least 2 radial stations, got {len(params.stations)}")
     for i, st in enumerate(params.stations):
         for name in ("r_frac", "chord", "stagger_deg", "thickness", "max_camber", "camber_pos",
-                     "sweep", "skew", "lean_deg", "le_sweep", "le_skew"):
+                     "sweep", "skew", "lean_deg", "le_sweep", "le_skew", "te_face", "le_face"):
             if not finite(getattr(st, name)):
                 raise ValueError(f"station {i} {name} is not a finite number: {getattr(st, name)!r}")
         if not 0.0 <= float(st.r_frac) <= 1.0:
             raise ValueError(f"station {i} r_frac {st.r_frac} must be within 0..1")
         if float(st.chord) <= 0.0:
             raise ValueError(f"station {i} chord must be > 0 mm, got {st.chord}")
+        if not 0.0 <= float(st.te_face) <= 1.0:
+            raise ValueError(
+                f"station {i} te_face {st.te_face} must be from 0 (sharp back edge) to 1 (full wall)")
+        if not 0.0 <= float(st.le_face) <= 1.0:
+            raise ValueError(
+                f"station {i} le_face {st.le_face} must be from 0 (sharp front edge) to 1 (full wall)")
         if float(st.thickness) <= 0.0:
             raise ValueError(f"station {i} thickness must be > 0, got {st.thickness}")
         if float(st.max_camber) <= BACKWARDS_CAMBER:
@@ -946,7 +968,9 @@ def blade_hang_below_hub_mm(params: BladeParams) -> float:
             camber_pos=float(it["camber_pos"][i]), sweep=float(it["sweep"][i]),
             skew=float(it["skew"][i]), le_sweep=float(it["le_sweep"][i]),
             lean_deg=float(it["lean_deg"][i]), n_chord=params.n_chord, features=params.features,
-            le_skew=float(it["le_skew"][i]), tip_notch_count=params.tip_notch_count,
+            le_skew=float(it["le_skew"][i]), te_face=float(it["te_face"][i]),
+            le_face=float(it["le_face"][i]),
+            tip_notch_count=params.tip_notch_count,
             tip_notch_depth_mm=params.tip_notch_depth_mm, **kw)
         zmin = min(zmin, min(v.z for v in pts))
     return max(0.0, float(z_face - zmin))
@@ -1214,6 +1238,7 @@ def tip_le_te_z(params: BladeParams) -> tuple[float, float]:
        thickness=st.thickness, max_camber=st.max_camber, camber_pos=st.camber_pos,
        sweep=st.sweep, skew=st.skew, le_sweep=st.le_sweep, lean_deg=st.lean_deg,
        n_chord=params.n_chord, features=Features(), le_skew=st.le_skew,
+       te_face=st.te_face, le_face=st.le_face,
        tip_notch_count=params.tip_notch_count,
        tip_notch_depth_mm=params.tip_notch_depth_mm,
        **_thick_scale_kw(params),

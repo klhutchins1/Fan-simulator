@@ -5,7 +5,7 @@ the two things steady OpenFOAM RANS can't do (shut-off pressure near stall, and 
 FW-H), and the only thing that uses the RTX 4070 Ti.
 
 ## Built & verified (2026-08-27)
-- Repo cloned to `E:\Projects\programming_2\FluidX3D` (sibling of this project).
+- Repo cloned to `<local FluidX3D path>` (sibling of this project).
 - Toolchain: **msys2 ucrt64 g++ 15.2.0**, OpenCL via the NVIDIA driver (`C:\Windows\System32\OpenCL.dll`).
   FluidX3D bundles its own OpenCL headers, so no SDK needed.
 - FluidX3D ships only an MSVC `.lib` + Linux `.so`; **mingw-g++ links the driver DLL directly** instead.
@@ -13,7 +13,7 @@ FW-H), and the only thing that uses the RTX 4070 Ti.
 ### Build command
 ```bash
 export PATH="/c/msys64/ucrt64/bin:$PATH"
-cd E:/Projects/programming_2/FluidX3D && mkdir -p bin
+cd "<local FluidX3D path>" && mkdir -p bin
 g++ src/*.cpp -o bin/FluidX3D.exe -std=c++17 -pthread -O -Wno-comment \
     -I./src/OpenCL/include /c/Windows/System32/OpenCL.dll
 ```

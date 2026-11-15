@@ -1,0 +1,3 @@
+0178e2e42c8a86b8e8ab36fc23eadb809a2d05bb96050ca02c10275ce03e9862  4636384  scratch/geo/sibling.stl
+897e51a3f949ebd37ead4f458ab8796bd6dfb100a0e2016bb12d63a47651b7a9  4671584  scratch/geo/marked.stl
+0df16511b46f60bba49d4096030f30fe63f727a32bcbedca3c92ae2951b752e4  4665184  scratch/geo_patched/marked.stl

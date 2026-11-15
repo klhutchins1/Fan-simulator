@@ -67,7 +67,14 @@ CONTROL_DESC = {
         "Plate: LE roundness 0–1 (1 = full bullnose bead — fights uniform wall; ~0.2 = sharp). "
         "If left at 1 with plate, LE follows TE roundness. Click Preview after changing.",
     "e_te_thick": "TRAILING-EDGE control. NACA: thickness scale (1 = stock; <1 thins aft; >1 fattens). "
-        "Plate: TE roundness 0–1 (1 = full bullnose, ~0.2 = sharp printable TE).",
+        "Plate: TE roundness 0–1 (1 = full bullnose, ~0.2 = sharp printable TE). "
+        "Roundness does not close the wall. Use Back edge for that.",
+    "e_le_face_root": "How thick the front edge stays at the hub, on a rounded plate. 1 = full wall. 0 = sharp. The middle of the blade stays the full wall.",
+    "e_le_face_mid": "How thick the front edge stays at mid-span, on a rounded plate. 1 = full wall. 0 = sharp.",
+    "e_le_face_tip": "How thick the front edge stays at the tip, on a rounded plate. 1 = full wall. 0 = sharp.",
+    "e_te_face_root": "How thick the back edge stays at the hub, on a rounded plate. 1 = full wall. 0 = sharp.",
+    "e_te_face_mid": "How thick the back edge stays at mid-span, on a rounded plate. 1 = full wall. 0 = sharp.",
+    "e_te_face_tip": "How thick the back edge stays at the tip, on a rounded plate. 1 = full wall. 0 = sharp.",
     "e_section_family": "NACA = cambered airfoil with sharp LE/TE. Rounded plate = constant wall, tunable LE/TE roundness + camber (bows the blade face — the slight tip→hub curve). Wrap/lean still set the spanwise vortex planform.",
     "e_tip_notched": "Three boxy / skewed-rectangle bites cut into the outer trailing edge (close-ref A12x25 tip TE steps). Not spanwise owl serrations and not LE tubercles. Slows Preview — wait for it to finish after changing Sickle/Wrap.",
     "e_tip_notch_depth": "How deep each tip TE notch cuts toward mid-chord (mm). Stock ≈ 1.5 mm. Deeper = more staircase on the TE.",
@@ -126,7 +133,7 @@ OPT_SEARCH_HELP = {
     ),
     "opt_bem": (
         "RANKING-ONLY blade-element screen: skip CFD if predicted hose CFM is below ~32. "
-        "Not absolute CFM — ignores thickness/lean/wrap/LE-TE/plate; typically under-ranks CFD (~0.6×). "
+        "Ranking only; coarse; can't separate close designs. "
         "When to use: large campaigns to burn fewer CFD hours. Never quote BEM beside CFD as equal."
     ),
     "opt_gp": (

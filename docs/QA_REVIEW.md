@@ -6,6 +6,12 @@ take it; do not keep a second TODO list here.
 
 Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edits this file; it never edits code.
 
+**From round 28 (Kimball, 2026-11-09): the QA bot no longer edits this file or the board.** It writes its round as one new
+file, `docs/qa/rounds/r<NN>.md` (results, plus any new or changed tracker rows written out in full), with notes and
+patches under `docs/qa/` as before. The lead copies the rows into the tracker. Reason: the bot works on a delivered
+copy, so its edits to shared files had to be hand-merged every round. Rounds are for independent re-derivations and
+bug hunts; re-check a fix only when the bug was HIGH.
+
 ## How to use this file (for Claude / whoever fixes things)
 - Each item has an ID (`QA-n` for code/math, `UI-n` for cockpit UI). Keep IDs stable; never renumber.
 - When you fix something, change its **Status** to `fixed (pending QA)` and add the commit hash. The QA bot re-tests and marks it `verified` or `reopened`.
@@ -13,20 +19,18 @@ Running QA list maintained by Fan Sim QA (Kimball's QA bot). The QA bot only edi
 - Known recovery gaps from README_RECOVERY.md / RECOVERY_TODO.md are not counted as bugs.
 - Paths like `/workspace/fansim/...` and `qa/...` are on the QA bot's machine (screenshots, scratch scripts); ask if you need one.
 
-## ▶ Next round for the QA bot: round 24 (queued by Cursor 2026-11-01). Delivered as `handoff/2026-11-01_to-qa-24/`
+## ▶ Next round for the QA bot: 2026-11-14, four sessions. Delivered as `handoff/2026-11-14_to-qa-30/`
 
-Round 23 is **DONE**; thank you. 13.71 Pa / 60 CFM is at the knee. The near-knee warning draft needs more data.
-Research leads stay parked. Build: master at the commit that added this folder. No Docker, CFD, OpenFOAM, Assess,
-Sweep or Optimize run. Pre-register B before data.
+Four sessions, one per look, each its own commit. Session 1 is written in `docs/qa/rounds/r30.md` (brought in from the 2026-11-14 clone). Continue at the first session with no written result, write that result, then stop until the next look. After session 4, stop.
 
-| # | task | board |
-|---|---|---|
-| A | **Remaining UI and bugs on this master.** Re-check: UI-26, UI-27, UI-29, QA-40, QA-42, QA-61, QA-62, QA-63, and tooltip items UI-32 … UI-38. UI-31 (Surrogate-guided ranks with `synthetic_label`) is still on this master; Cursor is hiding it on `r111-hide-surrogate` — report **still open / verified / not re-tested** on the bundle you were given, not that branch. Note new bugs. | UI, QA-61…64 |
-| B | **QA-64 wording check (no CFD).** Independently compare "Fan CFD: validated near free air on three published fans (within 8 %)" with the A12x25, FAN-01 and lt120 audit numbers. Verdict: **supported as worded / overstated / needs grok's proposed wording** ("within 10 %", and for lt120 "at its lowest measured load (6.85 Pa)"). Quote the three numbers and the files they come from. | QA-64, R1.10 |
-| C | **Does Assess already show K1?** r23 B: only "loaded probe did not converge" caught the known bad points. In the cockpit results / flow card / Assess copy, is that failure already visible to the user? Quote the path. Proposal only; no source edits. | roadmap knee |
-| D | (still waiting) R3.1 export leak check, when R3.1 lands. Re-run the r21 A claims audit once R1.10 lands | R3.1, R1.10 |
+Round 29 was not returned. Its HIGH glyph and hub-face check was session 1, and that session passed. The bundle is branch `stock-outline`, not master. No Docker, OpenFOAM, Assess, Sweep, or Optimize.
 
-Notes to `docs/qa/notes/r24-*.md`, plus a "Round 24" section below.
+| session | work |
+|---|---|
+| 1 | **Done.** QA-73, QA-80, QA-79, and the 37.25 mm pads all passed. See `docs/qa/rounds/r30.md`. |
+| 2 | GUI. Say/do tests, NeuralFoil Expert-only, scaffolds hidden. Re-check UI-26, UI-27, UI-31, UI-33, QA-40, QA-42. Do not click Run. |
+| 3 | Clean clone, `uv sync --extra dev`, full fast suite (`not docker and not slow`). |
+| 4 | Re-derive the three 2026-11-13 outline audits. Do not refit. Do not edit Stock YAML. |
 
 ## Tested build
 - Source: copy of `T:\Projects\Fan Simulator` working tree, 2026-10-08 (no `.git`, so no commit hash). Linux, Python 3.12, no Docker/OpenFOAM/CFD.
@@ -83,19 +87,35 @@ Notes to `docs/qa/notes/r24-*.md`, plus a "Round 24" section below.
 | QA-17 | LOW | Export | `also_mirror` builds the as-designed solid twice; gauge cavity Ø is vertex-noisy | fixed (pending QA, r5) `1453c4f`: mirror pair copies the as-designed STL/STEP. Earlier: new (r4): `<stem>.stl` and `<stem>_as_designed.stl` are identical (Hausdorff 5e-11), a third full build (Stock export 205 s). The gauge `cavity_dia_mm` reads 38.06 / 37.79 for an identical 37.94 mm cup; `mount_msg` rounds to '37 mm'. Open |
 | UI-24 | HIGH | Fan | Motor-cup and fit switches ('Export options') sit at the bottom of the left column, ~2 screens below **Export STL**, so a user can't see what Export will do | fixed (pending QA, r5) `1453c4f`: Print / export card directly under the 3-D view (Export STL + switches + download + memory tier). Earlier: new (browser r4 B11, newcomer pass). `docs/qa/screenshots/2026-10-09-r4/B11_1366x768_export_options_far_below.png`. Open |
 | UI-25 | MED | Fan | After a cup-on Preview, turning the cup off leaves the carved mesh in the viewer, even across reloads, with no stale marker | fixed (pending QA, r5) `1453c4f`: per-cockpit preview files; carved mesh no longer survives across cockpits. Earlier: new (browser r4). Likely related to the box-global `/tmp/fansim_cockpit_preview.stl` (UI-30). Open |
-| UI-26 | MED | Fan | Jargon next to the action buttons: 'case hose · PETG — change under Assess & print below', 'camber 0.037/0.083/0.097', 'Difficulty 42/100 — FDM + supports', 'Gold = parametric Stock; published CFM is the ✕' | new (browser r4 B11/B12). Open r22 (b3d5543): **still open**: hose line now Expert-only and camber/Difficulty off the first view, but 'Gold = parametric Stock…' renders on first view in both modes and camber/Difficulty after Preview (`docs/qa/notes/r22-A-ui-bug-pass.md`). r24 (23831da): **still open**: 'Gold = parametric Stock…' still on first view, both modes (`docs/qa/notes/r24-A-ui-bug-pass.md`). |
-| UI-27 | MED | Fan | At 1366×768 the 3-D viewer is cut off below the fold; a long intro banner pushes the picker and Actions down | new (browser r4 B11). `docs/qa/screenshots/2026-10-09-r4/B11_1366x768_first_view.png`. Open r22 (b3d5543): **still open**: picker and Preview now above the fold, but the viewer bottom is at 957 px of 768 (also 1172 of 1080 at 1920×1080). r24 (23831da): **still open**: viewer bottom 957 px of 768. |
+| UI-26 | MED | Fan | Jargon next to the action buttons: 'case hose · PETG — change under Assess & print below', 'camber 0.037/0.083/0.097', 'Difficulty 42/100 — FDM + supports', 'Gold = parametric Stock; published CFM is the ✕' | new (browser r4 B11/B12). Open r22 (b3d5543): **still open**: hose line now Expert-only and camber/Difficulty off the first view, but 'Gold = parametric Stock…' renders on first view in both modes and camber/Difficulty after Preview (`docs/qa/notes/r22-A-ui-bug-pass.md`). r24 (23831da): **still open**: 'Gold = parametric Stock…' still on first view, both modes (`docs/qa/notes/r24-A-ui-bug-pass.md`). r25: still open on master 9d0118f and on branch 237a094 (jargon in 3/4 viewports this run; 1366 Simple miss on both heads = render timing, no code change). r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch); 1366 Simple miss again (render timing). |
+| UI-27 | MED | Fan | At 1366×768 the 3-D viewer is cut off below the fold; a long intro banner pushes the picker and Actions down | new (browser r4 B11). `docs/qa/screenshots/2026-10-09-r4/B11_1366x768_first_view.png`. Open r22 (b3d5543): **still open**: picker and Preview now above the fold, but the viewer bottom is at 957 px of 768 (also 1172 of 1080 at 1920×1080). r24 (23831da): **still open**: viewer bottom 957 px of 768. r25: still open on master and branch (viewer bottom 957 px of 768). r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch). |
 | UI-28 | LOW | All | Disabled Cancel buttons (pale pink) and Randomize (pale teal) are hard to read | new (browser r4, by eye; contrast not measured). Open |
-| UI-29 | LOW | Fan | At 1920×1080: narrow controls column, tiny text, lots of empty space; 'Start here' is a tiny grey line | new (browser r4 B12). `docs/qa/screenshots/2026-10-09-r4/B12_1920x1080_first_view.png`. Open r22 (b3d5543): **still open**: column 41 % and body 16 px pass; 'Start here' still a 12 px grey caption. r24 (23831da): **still open**: 'Start here' still 12 px grey caption. |
+| UI-29 | LOW | Fan | At 1920×1080: narrow controls column, tiny text, lots of empty space; 'Start here' is a tiny grey line | new (browser r4 B12). `docs/qa/screenshots/2026-10-09-r4/B12_1920x1080_first_view.png`. Open r22 (b3d5543): **still open**: column 41 % and body 16 px pass; 'Start here' still a 12 px grey caption. r24 (23831da): **still open**: 'Start here' still 12 px grey caption. r25: still open on master and branch (probe identical to r24). r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch). |
 | UI-30 | MED | Cockpit | All cockpits on one box share `tempfile.gettempdir()/fansim_cockpit_preview.stl` (+ `.progress.json`, `.meta.json`; Volute: `fansim_volute_preview.stl`), so concurrent cockpits overwrite each other's preview/progress, and a stale progress file seeds the next Preview's caption and bar (UI-4) | fixed (pending QA, r5) `1453c4f`: `<temp>/fansim_<pid>/` for Fan/Mixed/Prop/Volute/CROR. Earlier: new (r4 code reading, `fan_session.py:75`, `volute_tab.py:121`). Contradicts README's 'start a second cockpit on another `--port`'. Open |
-| UI-31 | HIGH | Fan/Optimize | Surrogate-guided Optimize from the cockpit never runs CFD. Training labels and 'verify' come from `synthetic_label()`, a test formula (`surrogate_search.py:309-326,458,477`), because the cockpit never passes `--verify-cfd` (no toggle exists). The path also silently ignores Trials, all Geometry stamps, Search RPM, Refine op and roughness (`run_optimization.py:160-192`). | new (tooltip audit 2026-10-31, code reading; not run). `docs/qa/notes/tooltip-audit-2026-10-31.md` §3/§5. Open r24 (23831da, this bundle, not `r111-hide-surrogate`): **still open**: switch renders in Expert; argv has no `--verify-cfd`; stub/`synthetic_label` defaults unchanged. |
-| UI-32 | MED | Fan/Optimize | No image tooltips for Optimize (16 controls) or the Assess honesty switches. `fan_copy.py:14` loads only `docs/control_images/e_*.png`, so `opt_*`/`assess_*` images could not show even if present. | new (tooltip audit 2026-10-31). 16 proposed PNGs in `handoff/2026-10-31_from-qa-tooltips/img/`. Open r24 (23831da): **still open**: loader returns 54 `e_*` keys, 0 `opt_*`/`assess_*`; Optimize hovers show 0 images. |
-| UI-33 | MED | Fan/Optimize | The UI doesn't say Optimize ignores the current Design sliders. It searches the guided space for the fan model from scratch (`study.py:176`, no seed/enqueue); only fan model, stamps and Assess settings carry over. | new (tooltip audit 2026-10-31; Kimball's question). Open r24 (23831da): **still open**: rendered Optimize panel text does not say the Design sliders are unused. |
-| UI-34 | MED | Fan/Optimize | 'Boost + GP mean' / 'NN + GP mean' do nothing unless Catalog GP skip or Surrogate-guided is on (`cli_argv.py:164-173`). Not disabled; the tooltip names only GP skip. | new (tooltip audit 2026-10-31). Open r24 (23831da): **still open**: Boost/NN enabled with both gates off; argv emits nothing for them. |
-| UI-35 | MED | Fan/Geometry | 13 tooltip images label min/max values that differ from the slider range (`generate_control_images.py` CONTROLS drift), e.g. Skew ±6 shown for a ±20/±25 slider; camber 0.12 vs 0.15; hub radius 30 vs 35. | new (tooltip audit 2026-10-31). `range_check.json`; re-renders in `handoff/2026-10-31_from-qa-tooltips/img/range_fix/`. Open r24 (23831da): **still open, 13/13** (range_check: 20 mismatches incl. all 13). |
-| UI-36 | MED | Fan | 49 Fan-tab settings have no tooltip, including ones that change results: Fan model, Hub profile (no text or image), Application preset, Print material, Sweep, Intake overbuild, Seed-from-duty, Export fit switches, action row. | new (tooltip audit 2026-10-31, headless hover confirmed). Open r24 (23831da): **still open, 0/8** hovered controls show a tooltip; inventory unchanged (49). |
-| UI-37 | LOW | Prop/Mixed/Volute/CROR | 108 of 109 proxy-tab controls have no tooltip: shared `slider()` looks up `CONTROL_DESC` by prefixed model names (`p_`, `mf_`, `cror_f_`…), which never match; `BLADE_DESC` is used only for Cylindrical tip. | new (tooltip audit 2026-10-31). Open r24 (23831da): **still open**: proxy-tab inventory 1/100 with tooltip. |
-| UI-38 | LOW | Fan/Assess+Optimize | Application/Print material don't say they also drive Optimize; picking a design silently resets preset/refine/roughness to its saved values (`fan_trials.py:103-105`). | new (tooltip audit 2026-10-31). Open r24 (23831da): **still open**: design pick still silently resets preset/refine/roughness. Correction: the Expert Print-material caption already says 'Used by Assess and Optimize' (`fan_tab_ui.py:926`, present at 3b92eea), so the first clause was overstated; Application's caption does not mention Optimize. |
+| UI-31 | HIGH | Fan/Optimize | Surrogate-guided Optimize from the cockpit never runs CFD. Training labels and 'verify' come from `synthetic_label()`, a test formula (`surrogate_search.py:309-326,458,477`), because the cockpit never passes `--verify-cfd` (no toggle exists). The path also silently ignores Trials, all Geometry stamps, Search RPM, Refine op and roughness (`run_optimization.py:160-192`). | new (tooltip audit 2026-10-31, code reading; not run). `docs/qa/notes/tooltip-audit-2026-10-31.md` §3/§5. Open r24 (23831da, this bundle, not `r111-hide-surrogate`): **still open**: switch renders in Expert; argv has no `--verify-cfd`; stub/`synthetic_label` defaults unchanged. r25: **fixed on branch (pending merge)** (verified on unmerged branch r111-hide-surrogate @237a094, not on master): 0 Surrogate-guided labels rendered, `cockpit_optimization_argv` omits `--surrogate-guided` with state forced on, CLI refuses without `--verify-cfd`/`--stub-labels`. **Master 9d0118f: still open** (switch renders; `fan_optimize.py:141` wires state). Not closable yet: CLI test guard-only; QA-66. `docs/qa/notes/r25-A-r111-branch-check.md`. r25b: **verified on master 0635a18**: 0 Surrogate-guided labels rendered, argv has no `--surrogate-guided` with state forced on, CLI guard refuses (`run_optimization.py:164-170`). R1.11 not closable (QA-66; CLI test guard-only). `docs/qa/notes/r25b-master-0635a18-recheck.md`. |
+| UI-32 | MED | Fan/Optimize | No image tooltips for Optimize (16 controls) or the Assess honesty switches. `fan_copy.py:14` loads only `docs/control_images/e_*.png`, so `opt_*`/`assess_*` images could not show even if present. | new (tooltip audit 2026-10-31). 16 proposed PNGs in `handoff/2026-10-31_from-qa-tooltips/img/`. Open r24 (23831da): **still open**: loader returns 54 `e_*` keys, 0 `opt_*`/`assess_*`; Optimize hovers show 0 images. r25: still open on master and branch (54 `e_*` / 0 `opt_*`,`assess_*`). r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch). |
+| UI-33 | MED | Fan/Optimize | The UI doesn't say Optimize ignores the current Design sliders. It searches the guided space for the fan model from scratch (`study.py:176`, no seed/enqueue); only fan model, stamps and Assess settings carry over. | new (tooltip audit 2026-10-31; Kimball's question). Open r24 (23831da): **still open**: rendered Optimize panel text does not say the Design sliders are unused. r25: still open on master and branch. r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch). |
+| UI-34 | MED | Fan/Optimize | 'Boost + GP mean' / 'NN + GP mean' do nothing unless Catalog GP skip or Surrogate-guided is on (`cli_argv.py:164-173`). Not disabled; the tooltip names only GP skip. | new (tooltip audit 2026-10-31). Open r24 (23831da): **still open**: Boost/NN enabled with both gates off; argv emits nothing for them. r25: still open on master and branch (Boost/NN enabled with GP skip off; on the branch GP skip is now their only gate). r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch); Boost/NN tooltips now name only GP skip, switches still enabled with GP skip off. |
+| UI-35 | MED | Fan/Geometry | 13 tooltip images label min/max values that differ from the slider range (`generate_control_images.py` CONTROLS drift), e.g. Skew ±6 shown for a ±20/±25 slider; camber 0.12 vs 0.15; hub radius 30 vs 35. | new (tooltip audit 2026-10-31). `range_check.json`; re-renders in `handoff/2026-10-31_from-qa-tooltips/img/range_fix/`. Open r24 (23831da): **still open, 13/13** (range_check: 20 mismatches incl. all 13). r25: still open on master and branch (range_check identical to r24). r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch) (range_check 58 rows, 20 mismatches). |
+| UI-36 | MED | Fan | 49 Fan-tab settings have no tooltip, including ones that change results: Fan model, Hub profile (no text or image), Application preset, Print material, Sweep, Intake overbuild, Seed-from-duty, Export fit switches, action row. | new (tooltip audit 2026-10-31, headless hover confirmed). Open r24 (23831da): **still open, 0/8** hovered controls show a tooltip; inventory unchanged (49). r25: still open on master and branch (0/8 hovers; inventory 293 / 292 = Surrogate row removed). r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch) (0/8 hovers; inventory 292 rows, byte-identical to branch). |
+| UI-37 | LOW | Prop/Mixed/Volute/CROR | 108 of 109 proxy-tab controls have no tooltip: shared `slider()` looks up `CONTROL_DESC` by prefixed model names (`p_`, `mf_`, `cror_f_`…), which never match; `BLADE_DESC` is used only for Cylindrical tip. | new (tooltip audit 2026-10-31). Open r24 (23831da): **still open**: proxy-tab inventory 1/100 with tooltip. r25: still open on master and branch. r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch). |
+| UI-38 | LOW | Fan/Assess+Optimize | Application/Print material don't say they also drive Optimize; picking a design silently resets preset/refine/roughness to its saved values (`fan_trials.py:103-105`). | new (tooltip audit 2026-10-31). Open r24 (23831da): **still open**: design pick still silently resets preset/refine/roughness. Correction: the Expert Print-material caption already says 'Used by Assess and Optimize' (`fan_tab_ui.py:926`, present at 3b92eea), so the first clause was overstated; Application's caption does not mention Optimize. r25: still open on master and branch. r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch). |
+| UI-39 | MED | Fan/Sweep | Sweep "steps" accepts anything and has no cap; empty/"1e9" make Run fail silently; a large count queues that many CFD Assess runs (`fan_assess.py:448`) | **fixed (pending QA)** `107989b`. Patch `docs/qa/patches/r27-UI39-UI40-refuse-run-counts.patch`. |
+| UI-40 | MED | Fan/Optimize | Optimize "Trials" accepts −5/100/1e9 then silently clamps to 2–40 (`fan_optimize.py:130-133`); label doesn't say so | **fixed (pending QA)** `107989b`. Same refuse patch as UI-39. |
+| UI-41 | LOW | Fan | Seed CFM, ΔP, RPM and arrow Scale show no validation state; they store typed text | new (ui-hunt-1, 2026-11-09). Open. |
+| UI-42 | LOW | Fan | Slider readouts print raw 4-decimal values with cryptic units (`fan_widgets.py:35`) | new (ui-hunt-1, 2026-11-09). Open. |
+| QA-69 | LOW | Docs | `docs/design-rules.md:10` says "Noise dB(A) (min)" for the LBM model output (`scripts/extract_design_rules.py:106`) | **verified (r27, 9869116).** Doc and generator say "Noise estimate (min)". |
+| QA-70 | LOW | Fan/flow card | Expert G2 noise-hint row is dropped when a run has no turbulence SWL, though the hint only needs tip speed + CFM (`fan_flow_report.py:146`) | **fixed (pending QA)** `107989b`. Patch `docs/qa/patches/ui-hunt-1-QA70-noise-hint-row.patch`. |
+| QA-71 | MED | Fan/Assess | Assess "rejected — stalls at this hose" text still says "CFD under-predicts static ~2×" (`fansim/optimize/objectives.py:154`, docstring :137), against G4's "about 10 %" | **fixed (pending QA)** `107989b`. Patch `docs/qa/patches/r27-QA71-QA72-g4-leftovers.patch`. |
+| QA-72 | LOW | Docs/CLI | Stale G4 numbers outside G4's list: `extract_design_rules.py:139` still writes "~3–5% discretization" (regenerating `design-rules.md` undoes G4); `run_optimization.py --help` says "BEM≈0.6× CFD"; docstrings `fan_bem.py:16`, `extract_design_rules.py:6` | **fixed (pending QA)** `107989b`. Same patch as QA-71. |
+| QA-73 | HIGH | Export/print-id glyphs | The recessed print-id is a mirror image seen from outside the +Z face: glyph u axis and character advance both run counter-clockwise (`print_id.py` `theta = theta0 + (i - 2) * dtheta`, `th = theta + (u - 0.5) * w / r_mid`). Cut K7WB2 reads right-to-left with each glyph flipped. | **verified** round 30 session 1 (`docs/qa/rounds/r30.md`). Stock `K7WB2` reads left to right, unmirrored, stroke 0.865 mm, band r 11.6–16.4. The same glyph tests fail on `eeb0e2d`. Fix commits `2bfde35` / `b05426b`. |
+| QA-74 | LOW | Export/print-id glyphs | Recess floor is 0.65 mm deep, not `MARK_DEPTH_MM` 0.5 (`print_id_mark.py` used `z_top - MARK_DEPTH_MM - 0.15`). | **fixed (pending QA)** `2bfde35` (same grok patch as QA-73). |
+| QA-75 | MED | Export/print-id glyphs | Crockford "6" and "G" cut identically (G's half bar fused with the left stroke). Raster IoU 1.000. | **fixed (pending QA)** `2bfde35`: G = A F E D C. |
+| QA-76 | MED | Export/performance | Print-id export 356 s vs 41.7 s unmarked because each stroke was a separate boolean. | **fixed (pending QA)** `2bfde35`: fuse then one cut (~71 s in grok's patch run). |
+| QA-77 | LOW | Export/print-id glyphs | Some lands under one 0.4 mm nozzle line: B's lower counter 0.39 mm; W–W / M–W / W–Y gaps at r_inner 0.32–0.37 mm. May fill in on FDM. | new (r28). No patch. Open. Print session: E0MWW ID also wrecked by supports on the hub; slice ID on the bed. |
+| QA-78 | LOW | Export copy | "Recessed on the hub (+Z)" is printed even when `engrave_print_id` silently skips (hub r < 15.7 mm, or code not 5 chars). Sheet still says recessed. "OOOOO" cuts 00000 without `verify_print_id`. | **fixed (pending QA)** `2bfde35`: sheet and cockpit say recessed only when `mark_will_cut`; I/L/O in the raw code is not cut. |
+| QA-79 | MED | Export/print-id | `export_print_ready` engraved at impeller `BoundingBox.zmax`, not the hub +Z face. On t9002 the blades sit ~4.6 mm above the hub, so E0MWW's first STL had an empty mark band. | **verified** round 30 session 1 (`docs/qa/rounds/r30.md`). On t9002 the code is on the hub face and absent 4.6 mm higher, at the blade top. Fix commit `2bfde35`. |
+| QA-80 | MED | Export/print-id glyphs | H7MQ8 Stock v3, PLA+, 0.6 mm nozzle: recessed ID is too small to read at arm's length (T3 FAIL). Spec was 3.2 mm cap / 0.6 mm stroke / 2.4 mm advance in r 11.5–14.7 mm (`print_id.py`). | **verified on the mesh** round 30 session 1 (`docs/qa/rounds/r30.md`): stroke 0.865 mm, band r 11.6–16.4. The printed T3 coupon is still unprinted. Fix commit `2bfde35`. |
 | QA-18 | MED | Geometry/cup Preview | Motor cup goes straight through a hub shorter than 13 mm (no cup floor) | new (r6 Task A, K7 3/29: S2_0000, S8 edge stagger_root min, S8 edge chord_root min; auto hubs 12.72 / 12.62 / 10.92 mm). `build_stl_isolated(motor_mount=…)` (the cockpit cup Preview path) doesn't enforce `MotorMount.min_hub_height_mm` (15) or refuse; only Export's `prepare_export_flat(fit_hub=True)` grows the hub. Grips/Ø are correct. Repro `stress/repro/A-F2_cup_through_short_hub.json`; `handoff/2026-10-09_from-qa-5/stress/summary.md`. Was open → **verified fixed `5980677`** (r7 stress: S2_0000, S8_0002, S8_0008 hubs grown to 15.0 mm, floor 12.985 mm, 20 grips; K7 0/14 FAIL over the 65-design run). |
 | QA-19 | MED | Audit/direction | `prove_direction` falsely refuses builder designs with max_camber < 0.02 and lean_tip ≥ 20° | r6 Task A, K5: 7/119 CONCLUSIVE-wrong (9605, 9606, 9620, 9630 plus new S3_0002 guided_lc, S4_0005, S4_0012; 8–11 blades) and 24 INCONCLUSIVE. All 7 are in that cell (7 FAIL + 10 INCONCLUSIVE of 22). Not all 11-blade: S4_0005 has 8 blades and S4_0012 has 9; the shared factor is low camber with high tip lean. The mirror check K6 passes on all of them, so the checker misreads lean curvature as camber. Repro `stress/repro/A-F3_direction_false_refusal.json`. Input to Task B. Was open → **mostly fixed `5980677`**: all 7 r6 false refusals now pass the new K5 rule (K5_old FAIL 8 → K5 FAIL 1 over 65 designs). **Residual:** S3_0014 (9 blades, max_camber 0.0242, lean_tip 42°) is CONCLUSIVE omega −1/pump +1, mirror passes K6, and the new rule refuses it because its camber is just above the 0.02 cut-off. Same lean-as-camber misread, one camber bin higher. See `docs/qa/stress/RESULTS_R7.md`. Still open for camber 0.02–0.04 × lean ≥ 30°.. **r8 Task B (fresh sample, 2-blade rebuilds):** the cylinder proof is still CONCLUSIVE-wrong on 6/72 (5 flat-leaned plus S3_0014 again). The radial-plane cut had 0 wrong on 72 parts + mirrors and read 54/54 cambered parts. The combined (both-agree) rule had 0 wrong but read only 43/54 (R5 FAIL). The builder rule R6 FAILS as registered. `docs/qa/notes/direction-radial-confirmation.md` |
 | QA-20 | LOW | Resources/docs | Memory tiers give equal solids but **not byte-identical STLs** | r6 Task A, K8: volume within 1e-6 and the same vertex count 11/11, but the sha256 differs between 16gb/8gb/6gb in **11/11**. The `fansim/resources.py` docstring's 'byte-identical solid' claim is false at the file level. Repro `stress/repro/A-F4_tiers_not_byte_identical.json`. Open |
@@ -118,9 +138,9 @@ Notes to `docs/qa/notes/r24-*.md`, plus a "Round 24" section below.
 | QA-37 | LOW | Export/28.2 | Killing the cockpit process mid-Export does not stop the isolated export worker (it keeps fusing, ~6 GB); if it dies after writing the STL, `{id}_….stl` is left with no README/sidecars and an id absent from index.jsonl | r12 Task C harness accident (Q8B8G): orphaned worker overlapped the next export and was OOM-killed (dmesg, 6.2 GB anon). **fixed (pending QA)** `5be865e` (workers exit within ~2 s of their launcher; Export staged in `.partial-*`, published when complete, print-id recorded after). **VERIFIED r14 A3** (worker gone 0.75 s, `.partial-*` only, index unchanged) when the launcher is reaped; zombie case → QA-41. |
 | QA-38 | LOW | UI/24.2 | At 1366×768 Simple Results, the scatter's plot body is below the fold (top at y=652, only the title visible) | r13 Task A S4 (report-only). |
 | QA-39 | LOW | CFD post/maths | `_pp_file` (and the same pattern in `sanity.py`, `timing.py`, the objectives copy) picks the "latest" postProcessing time dir by string sort, so `"1000" < "999"`. Latent today (runs write one time dir) | r14 B1(d). Sort by `float(name)`. `docs/qa/notes/maths-check-r14.md` |
-| QA-40 | LOW | UI/27.3b | Simple-mode flow card shows "No Stock comparison for noise." when the run has SWL but no Stock reference (case s3); noise was meant to be Expert-only | r14 A4. `docs/qa/notes/reverify-r14.md` r22 (b3d5543): **still open** (r14 harness, s3 still shows the line in Simple). r24 (23831da): **still open** (s3 still shows the noise row in Simple). |
+| QA-40 | LOW | UI/27.3b | Simple-mode flow card shows "No Stock comparison for noise." when the run has SWL but no Stock reference (case s3); noise was meant to be Expert-only | r14 A4. `docs/qa/notes/reverify-r14.md` r22 (b3d5543): **still open** (r14 harness, s3 still shows the line in Simple). r24 (23831da): **still open** (s3 still shows the noise row in Simple). r25: still open on master and branch. r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch). |
 | QA-41 | LOW | Export/QA-37 | `watch_parent` uses `os.kill(pid, 0)`, which succeeds on a zombie: if the killed cockpit isn't reaped, the export worker keeps running (≥ 30 s seen). Files stay safe (`.partial-*`) | r14 A3 run 1 + `from-qa-14/data/a3_zombie_probe.txt`. Also exit on `os.getppid()` change or `/proc/<pid>/stat` state Z. r22 (b3d5543): re-observed by the repo's own `tests/test_worker_parent_watch.py` (2 tests fail on Linux: zombie parent reads alive). Not a formal re-test. |
-| QA-42 | LOW | UI/material | Preview line "✓ fits … (… 11 g)" doesn't say which material (or infill) it weighed; PLA+ 10.87 g and PETG 11.13 g both show "11 g", so the user can't see the picker took effect | r14 A2b1/b2. Name the material (and "20 % infill") in the line. r22 (b3d5543): **still open**: rendered Preview reads '… 11 g' for both PLA+ and PETG, no material. r24 (23831da): **still open** ('… 11 g' for PLA+ and PETG, no material). |
+| QA-42 | LOW | UI/material | Preview line "✓ fits … (… 11 g)" doesn't say which material (or infill) it weighed; PLA+ 10.87 g and PETG 11.13 g both show "11 g", so the user can't see the picker took effect | r14 A2b1/b2. Name the material (and "20 % infill") in the line. r22 (b3d5543): **still open**: rendered Preview reads '… 11 g' for both PLA+ and PETG, no material. r24 (23831da): **still open** ('… 11 g' for PLA+ and PETG, no material). r25: still open on master and branch ('… 11 g'). r25b: still open on master 0635a18 (code identical to 237a094; harness output identical to r25 branch). |
 ## Details
 (Numbered bugs below map to QA-n.)
 
@@ -256,7 +276,7 @@ Notes to `docs/qa/notes/r24-*.md`, plus a "Round 24" section below.
 
 ## Platform / setup issues (not counted as app bugs)
 1. **Test-suite memory:** A single pytest process grows to about 4-6 GB. The full fast suite was **OOM-killed twice** on this 16 GB box (`dmesg`: anon-rss 5.4 GB and 6.3 GB, the second while a chunk was running `tests/test_a12x25_validation_cli.py` … `tests/test_cror.py`). I worked around it by running the suite in 6 sequential chunks and re-running the killed chunk one file per process. This looks like accumulated OCCT/VTK memory, not a single failing test.
-2. **Windows-only hardcoded paths:** `scripts/evaluate_noise.py:23-25` and `scripts/evaluate_shutoff.py:27-29` hardcode `E:/Projects/programming_2/FluidX3D`, `FluidX3D.exe` and `C:\msys64\ucrt64\bin`; the README says `../FluidX3D`. `scripts/import_prop_stls.py` uses `C:/Users/Kimball/Downloads/...` as a usage example. These were not run (GPU/LBM is out of scope).
+2. **Windows-only hardcoded paths:** `scripts/evaluate_noise.py:23-25` and `scripts/evaluate_shutoff.py:27-29` hardcode `<local FluidX3D path>`, `FluidX3D.exe` and `C:\msys64\ucrt64\bin`; the README says `../FluidX3D`. `scripts/import_prop_stls.py` uses `<user-home>/Downloads/...` as a usage example. These were not run (GPU/LBM is out of scope).
 3. **No embree on Linux:** `trimesh.ray.has_embree=False`, so ray tests use the pure-Python intersector. That is slower and possibly numerically different from his PC; it may affect #5.
 4. **No git metadata** in the copy, so the uncommitted edits could not be isolated. ruff F checks on `fansim/cfd` and `fansim/centrifugal` are clean.
 5. **Docker/OpenFOAM** were not installed or run, per scope. 22 `docker`/`slow` tests were deselected, and the cockpit Assess/Sweep/CFD-refine buttons were not exercised.
@@ -970,3 +990,295 @@ Asked by Kimball 12:58 MDT. Note: `docs/qa/notes/tooltip-audit-2026-10-31.md`. H
   - Pure-call repro: `score_caption(stamp_score_extra({}, {"converged": False}, load_pa=8, preset="case"))` gives the same string as for True.
   - This is the K1 case from r23 B: 6/6 of the known bad points were unconverged.
   - Proposal: `docs/qa/patches/r24-C-k1-visible.patch`.
+
+## Round 25 (2026-11-02): master 9d0118f plus unmerged `r111-hide-surrogate` @237a094, run clones `/workspace/fansim/repo-r25` (master) and `/workspace/fansim/repo-r25-r111` (branch)
+
+**Brief:** Cursor's **uncommitted draft** `CLAUDE_TO_QA_r25_DRAFT.md`. It was left untracked and is not in any commit; a copy is in `handoff/2026-11-02_from-qa-25/` for the record. Its `fansim.bundle` does not exist; I used `master_9d0118f_plus_r111.bundle`, verified as master 9d0118f and branch 237a094 (7 commits ahead of b0228fe).
+
+**Prereg:** `prereg/round25` b7e7574e (`qa_r25/PREREG_R25.md`), committed 2026-11-02 08:22 MST before any data.
+
+No CFD, Docker, OpenFOAM, Assess, Sweep or Optimize was run, and no source was edited.
+
+- **A (UI-31 / QA-62 + remaining UI): run on the branch.** Every branch result is *verified on unmerged branch r111-hide-surrogate @237a094, not on master*. Note: `docs/qa/notes/r25-A-r111-branch-check.md`.
+  - **UI-31: fixed on branch (pending merge).**
+    - 0 Surrogate-guided labels render in Expert; master renders 1.
+    - `cockpit_optimization_argv` gives no `--surrogate-guided` even with the state forced on. On master, `fan_optimize.py:141` wires the state.
+    - The CLI refuses `--surrogate-guided` unless `--verify-cfd` or `--stub-labels` is given (`run_optimization.py:164-170`).
+    - **Master: still open.**
+  - **R1.11 closing items (9e36cea), on the branch:**
+    - done: the cockpit behaviour test, the CLI stub flag, and the dead-tooltip removal;
+    - partial: the CLI behaviour test only unit-tests the guard function (patch `docs/qa/patches/r25-A-r111-cli-behaviour-test.patch`: 7/7 pass on a 237a094 scratch copy);
+    - partial: the "synthetic labels, not CFD" stamp goes to stdout only.
+    - **Not closable yet** (QA-66).
+  - **QA-62: fixed on branch (pending merge).** `validate_lt120.py` is in `AXIAL_SCRIPTS` and `test_axial_scripts_oriented` passes. **Master: still open** (the test fails).
+  - **Everything else is still open on both heads:**
+    - UI-26, 27, 29, 32–38;
+    - QA-40, 42, 61, 63.
+    - The harness output is identical to r24, except:
+      - the removed Surrogate-guided row (inventory 292 vs 293);
+      - UI-26's 1366 Simple "Gold" miss, which happened on both heads and is treated as render timing, since there is no code change.
+  - The branch merges cleanly in code, but **conflicts in `docs/release/RELEASE_PLAN.md`**.
+- **QA-66 (MED, new) The R1.11 CLI gate still lets synthetic labels through.** Found on the branch, by code reading only.
+  1. `--verify-cfd` still labels the DoE (24 by default) with `synthetic_label` (`surrogate_search.py:458,484`; no `label_fn` from the CLI), and prints no notice.
+  2. `scripts/run_surrogate_search.py:26-27` adds `--stub-labels` silently.
+  3. The stub output on disk is not stamped "synthetic labels, not CFD"; only stdout says it.
+  - The cockpit is not exposed on the branch. Status: open.
+- **B (the QA-65 patch as adopted on master): holes.** Note: `docs/qa/notes/r25-B-qa65-adopted-review.md`.
+  - 9d0118f is **board-only**, and the patch is **not applied**: `git apply --check` still passes, and unpatched master shows no warning.
+  - On a scratch copy of master + patch:
+    - `converged=False` shows "⚠ loaded point did not settle…";
+    - True, None, missing, a string "False" and a re-assess to True all stay silent;
+    - the reject text is identical to r24.
+  - **Holes:**
+    - Optimize-trial designs never carry `converged` (`study.py`/`data.py`);
+    - there is no test.
+  - Add-on patch `docs/qa/patches/r25-B-qa65-test-and-trials.patch`:
+    - `git apply --check` OK on 9d0118f;
+    - 142 passed in the 15 related files (master alone gives 131 without the 2 new tests).
+  - **QA-65 stays open (MED) on master.**
+- **C (QA-64 strings): still live.** Note: `docs/qa/notes/r25-C-qa64-strings.md`.
+  - `2026-10-18-lt120-validation-prereg.md:89` "Fan CFD: validated near free air on three published fans (within 8 %)."
+  - `2026-10-30-lt120-tip-gap-prereg.md:69` "… , within 8 %."
+  - There are no hits in `fansim/` or the README; the other 17 hits are QA records or board quotes.
+  - R1.10 is still `ready`. **QA-64 stays open (LOW).**
+- **D: waiting.** The R3.1 export leak check is waiting for R3.1; the r21 A claims audit is waiting for R1.10.
+- **Fast suite** (`-m "not docker and not slow"`):
+  - **master 9d0118f:** 4 failed, 1883 passed, 21 skipped, 23 deselected, 1 xfailed, 42 min 48 s (run in parallel with the branch run). The failures:
+    - QA-62 `test_no_unlisted_script_calls_build_case`;
+    - QA-63 `test_remaining_growth_is_less_than_whole_peak_and_shroud_adds_blade_faces`;
+    - QA-41 ×2 `test_worker_parent_watch`.
+  - **branch 237a094:** 3 failed, 1889 passed, 21 skipped, 23 deselected, 1 xfailed, 66 min 18 s. The failures are QA-63 and QA-41 ×2; QA-62 now passes, and the +6 passes are QA-62 plus the 5 R1.11 tests. Verified on unmerged branch r111-hide-surrogate @237a094, not on master.
+- **QA-67 (LOW, new) A fast-suite smoke test runs on unseeded random geometry and can take ~25 min.**
+  - `tests/test_fan_tab_setup_smoke.py::test_readonly_handlers_run` calls `fan_randomize_geometry()` (global `random`, `fan_editor.py:518`) and then `fan_on_fit_envelope()`.
+  - In the branch run, py-spy at 09:12 MST showed it in `makeSolid` ← `_capped_loft` ← `build_blade_solid` ← `impeller_z_extent`. The output had sat at 37 % since about 08:48, and the test then passed.
+  - Master's run (same test file) finished in 42 min overall, so the slowness is non-deterministic, not branch code.
+  - Fix: seed the RNG in the test (or the fixture), or monkeypatch `random`. Status: open.
+
+## Round 25b (grok, 2026-11-02): light re-check of master 0635a18
+
+**Build:** master `0635a18` (2026-11-02 12:29 MST): merge `94f71d9` (`r111-onto-master`), fix `23704f5`, and board `0635a18` (R1.11 `done 23704f5`). Its `fansim/`, `scripts/` and `tests/` are byte-identical to `237a094`, the r25 branch.
+
+**Prereg:** `prereg/round25b` d207af8 (`qa_r25b/PREREG_R25B.md`), committed 2026-11-02 16:22 MST, before any data.
+
+No CFD, Docker, OpenFOAM, Assess, Sweep or Optimize was run, and no full fast suite. Only targeted pytest files ran, and `test_fan_tab_setup_smoke.py` (QA-67) was skipped. No source was edited.
+
+Note: `docs/qa/notes/r25b-master-0635a18-recheck.md`.
+
+- **UI-31: verified on master 0635a18.**
+  - 0 Surrogate-guided labels render in Expert (9d0118f rendered 1).
+  - `cockpit_optimization_argv` with the state forced on gives no `--surrogate-guided`.
+  - The CLI guard refuses with neither `--verify-cfd` nor `--stub-labels` (`run_optimization.py:164-170`).
+- **QA-62: verified on master 0635a18.** `test_axial_scripts_oriented` passes, and `validate_lt120.py` is listed.
+- **R1.11 CLI behaviour test: patch still needed.** Master's test only unit-tests `surrogate_guided_cli_error`. `docs/qa/patches/r25-A-r111-cli-behaviour-test.patch` applies, and gives 7 passed on a 0635a18 scratch copy (master alone: 5).
+- **QA-66 (MED): still open on master, 0/3 rules.**
+  1. `--verify-cfd` still trains the DoE on `synthetic_label` (`surrogate_search.py:458,484`), with no notice.
+  2. `run_surrogate_search.py:26-27` adds `--stub-labels` silently.
+  3. No "synthetic / not CFD" stamp on disk: `stub_result.json` has none; `surrogate_guided.json` has only `notes` "verify=stub" and `reason` "stub-verify".
+  - The board's "stamps stub output" is **stdout only** (`run_optimization.py:179-180`).
+- **R1.11: not closable.** The CLI test is not covered, and QA-66 is open. UI-31 and QA-62 are verified.
+- **QA-65 (MED): still open on master.** The code is **not** on 0635a18: `r24-C-k1-visible.patch` still applies, and unpatched master shows no warning for `converged=False`.
+  - The committed brief and the Next-round header say "QA-65 landed in 9d0118f"; that is incorrect.
+  - On scratch 0635a18 with r24-C and r25-B, the behaviour is the same as r25: only `converged is False` warns.
+  - `r25-B-qa65-test-and-trials.patch` still applies. `test_score_caption.py` gives 11 passed on scratch and 9 on master.
+- **"Drop dead tooltip" (23704f5): no UI-3x status change.**
+  - It removes only `opt_surrogate_guided` from `OPT_SEARCH_HELP`.
+  - a_tooltips, scan (4221 leaves), inventory (292 rows), range_check (58 rows, 20 mismatches), a_probe and a_flowcard are all identical to the r25 branch data.
+  - a_ui differs in 1 timing field only.
+- **Carried, still open on 0635a18:**
+  - UI-26 (1366 Simple miss again, render timing), UI-27, UI-29, UI-32 … UI-38;
+  - QA-40, QA-42, QA-61 (8 hits, identical);
+  - QA-63 (`test_fuse_memory`: 1 failed, `1.934 < 1.925` false).
+  - QA-64 and QA-67 are unchanged and were not re-tested.
+- **Targeted tests:**
+  - 4 files: 1 failed (QA-63), 33 passed, 1 skipped;
+  - `test_score_caption` + R1.11 + argv: 30 passed.
+- **ID changes:** UI-31 and QA-62 → **verified**. There are no new IDs.
+
+## Round 26 (grok, 2026-11-04): re-check of QA-66 / R1.11 and QA-65 on master bd6abdd
+
+**Build:** master `bd6abdd` (2026-11-04 12:23 MST), which includes `5611332` (QA-66) and `c10c06b` (QA-65). Run clone: `/workspace/fansim/repo-r26`.
+
+**Prereg:** `prereg/round26` 00ed802 (`qa_r26/PREREG_R26.md`), committed 2026-11-04 12:25 MST, before any data.
+
+No CFD, Docker, OpenFOAM, Assess, Sweep or Optimize was run, and no full fast suite. The probes are library and CLI calls with Docker monkeypatched and CFD verify faked. No source was edited.
+
+Note: `docs/qa/notes/r26-qa66-qa65-recheck.md`.
+
+- **Targeted tests:** surrogate_guided, r111, score_caption and argv give **46 passed**.
+- **QA-66 (MED): verified, 5/5.**
+  1. `--verify-cfd` makes 0 `synthetic_label` calls; labels are "catalog + CFD verify".
+  2. `run_surrogate_search.py` refuses with neither flag.
+  3. "synthetic labels, not CFD" is written to `surrogate_guided.json` and 2/2 `stub_result.json`.
+  4. With fewer than 8 catalog rows or no catalog, the run refuses before any search (0 synthetic calls, no JSON).
+  5. `priors` are stamped "prior, not CFD".
+  - The r25-A CLI behaviour test is **covered** (both tests are on master verbatim).
+- **R1.11: closable.**
+- **QA-68 (LOW, new): the CLI catalog refusal is an uncaught traceback.**
+  - `run_optimization.py` main does not catch the `RuntimeError` from `run_surrogate_guided`, so a user with Docker and no catalog gets a traceback (exit 1), not a clean exit 2. The out dir is created first.
+  - Patch: `docs/qa/patches/r26-A-qa68-catch-refusal.patch`, with a test that fails on master and passes when patched; 36 passed on scratch.
+  - Not a blocker.
+- **QA-65 (MED): verified, 3/3. Closable.**
+  - `r24-C-k1-visible.patch` and `r25-B-qa65-test-and-trials.patch` both reverse-apply cleanly, so their content is present (r25-B is now redundant).
+  - Only `converged is False` warns; this was checked for 7 cases.
+  - Optimize trials carry `converged` through `load_designs` to the caption (probe).
+  - `test_score_caption`: 11 passed.
+  - Optional: `docs/qa/patches/r26-B-qa65-trial-test.patch` adds a repo test for the trial path.
+- **UI-26: still open.** "Gold = parametric Stock" is on the first view in 3/4 views (1366 Expert, 1920 Simple, 1920 Expert). The 1366 Simple miss is render timing (the Stock cache was still building), the same as r25/r25b.
+- **Not re-tested; carried still open:** UI-27, UI-29, UI-32…38, QA-40, QA-42, QA-61, QA-63, QA-64, QA-67.
+- **Still waiting:** R3.1 (export leak check) and R1.10 (claims audit, QA-64 strings).
+- **ID changes:** QA-66 and QA-65 → **verified**. New: **QA-68** (LOW).
+
+
+
+## Round 26 follow-up (grok, 2026-11-08): QA-68 re-check on master 419df2e
+
+**Build:** master `419df2e`, from bundle sha256 `24bcef9c…2e25c` (verified). Clone: `/workspace/fansim/repo-r26-qa68`. **Prereg:** `prereg/round26-qa68-recheck` 491f0d2, committed 2026-11-08 13:30 MST, before data. No Docker, CFD, OpenFOAM, Assess, Sweep or Optimize compute: Docker presence is mocked and CFD verify is guarded. No source edits. Note: `docs/qa/notes/r26-qa68-recheck.md`.
+
+- **QA-68 (LOW): verified, closable.**
+  - **Behavioural:** `run_optimization.py --surrogate-guided --verify-cfd` returns 2 with the refusal message and no exception in all 4 refusal cases (no catalog; 7-row catalog; Docker absent at the CLI guard; Docker absent at the library refusal). A real subprocess exits 2 with empty stderr. There were 0 CFD verify calls and no JSON written. An 8-row control reaches the guarded verify, which shows the mock is live.
+  - **Tests:** r111 (9), surrogate_guided (11) and argv (16) give 36 passed. With the fix reverted in a scratch clone, the QA-68 test fails (1 failed, 8 passed).
+  - **Static:** d08e48c (merged d365bea) is our script hunk exactly, and nothing later touches it.
+  - **Info only, no ID:** the `except RuntimeError` covers the whole run, so a later runtime error would also exit 2 without a traceback.
+- **Not re-tested:** R1.10 G2 (queued, not merged), R3.1 (not landed), R3.3 and the r26 carried items.
+- **ID changes:** QA-68 → **verified**.
+
+
+
+## Round 26 follow-up (grok, 2026-11-08): R1.10 G2 / QA-55 noise claims on master 83681c2
+
+**Build:** master `83681c2`, from bundle sha256 `fdea337f…8736` (verified). Clone: `/workspace/fansim/repo-r26-g2`. G2 = `8d06672` (merged `3fca917`). **Prereg:** `prereg/round26-g2-noise-claims` 414177a, committed 2026-11-08 13:38 MST, before data. No Docker, CFD, Assess, Sweep or Optimize; no browser. No source edits. Note: `docs/qa/notes/r26-g2-noise-claims-recheck.md`.
+
+- **G2 / QA-55 noise claims (A01, A04, A10, C10, C14, C16, C17, D03, E01): verified, closable.**
+  - **Behavioural:**
+    - The noise row is `na`, never better, in 7/7 cases (hint ±5/±30 dB, equal, no Stock, SWL ±10 dB), with no noise in the overall line.
+    - The Expert hint text is exact and carries the `expert_only` flag.
+    - The design list shows "SWL est. 44.2".
+    - The print sheet shows "noise estimate 44.2 (not dB(A); not validated)".
+  - **Tests:** g2_noise_copy (4), flow_verdicts (16) and design_dropdown (4) give 24 passed. Red checks on a scratch clone: a "dBA" label gives 2 failed; the pre-G2 `flow_verdicts` gives 1 failed.
+  - **Static only:** README wording (ruled sentence present; old phrases appear 0 times); the Optimize text at `fan_tab_ui.py:1110`; `fan_flow_report` and `a12x25-reference` wording; 7 cockpit dB(A) hits, all published, measured or qualified.
+  - **Visual not done:** the noise row's Expert/Simple visibility (`v_show` at `fan_tab_ui.py:1392`).
+- **QA-69 (LOW, new): `docs/design-rules.md:10` (from `scripts/extract_design_rules.py:106`) says "Noise dB(A) (min)" for the LBM model output.** Suggest relabelling it in G4, which owns `design-rules.md`. Not a G2 blocker.
+- **R1.10 stays open** (G3 not merged, G4/G5 pending, release re-audit). R3.1 is not landed; R3.5b is queued, not passed. Night-gate counts were not re-checked.
+- **ID changes:** QA-55 (noise claims) → **verified**. New: **QA-69** (LOW).
+
+
+
+## ui-hunt-1 (grok, 2026-11-09): exploratory UI bug hunt on master 83681c2
+
+**Build:** master `83681c2`, clone `/workspace/fansim/repo-r26-g2`. **Prereg:** `prereg/ui-hunt-1` cf2c813, committed 2026-11-09 08:46 MST, before data. Headless cockpit, empty run. Assess, Sweep, Optimize, Export and Randomize were never clicked. No CFD, Docker or OpenFOAM. No source edits. Note: `docs/qa/notes/ui-hunt-1-2026-11-09.md`.
+
+- **UI-39 (MED, new): Sweep "steps" has no validation and no cap.**
+  - Empty or "1e9" make Run fail silently (`int()` ValueError, `fan_assess.py:448`).
+  - Any large count queues that many full CFD Assess runs.
+  - Patch: `docs/qa/patches/ui-hunt-1-UI39-UI40-steps-trials.patch` (2–12 with a visible refusal).
+- **UI-40 (MED, new): Optimize "Trials" accepts −5, 100 or 1e9 silently, then runs 2–40 (`fan_optimize.py:130-133`).** Same patch: the label reads "Trials (2–40)", with min/max on the field.
+- **UI-41 (LOW, new): Fan number boxes (Seed CFM, ΔP and RPM; arrow Scale) show no validation state and store typed text.** Errors surface only on click (Seed) or as a silent clamp (Scale 0.2–20).
+- **UI-42 (LOW, new): slider readouts are unrounded with cryptic units** ("18.7018 mm", "0 0–1", "0 c", "0 t"; `fan_widgets.py:35`).
+- **QA-70 (LOW, new): the G2 Expert noise-hint row is dropped when a run has no turbulence SWL** (`fan_flow_report.py:146`), though the hint needs only tip speed + CFM. Patch: `docs/qa/patches/ui-hunt-1-QA70-noise-hint-row.patch`, with a test that fails without the fix (21 passed on scratch).
+- **G2 noise row visual: verified** (template render with injected rows: shown in Expert, hidden in Simple).
+- **No bug found in:**
+  - page errors (0);
+  - HTTP errors (UI-15's 405 only);
+  - overflow or clipping at 1366/1920 (0);
+  - tooltip images (3/3 load);
+  - links;
+  - state across a tab switch or reload;
+  - Simple/Expert toggling;
+  - the Expert-only-tab → Simple fallback.
+- **Re-checked, still open:**
+  - UI-26: shown 2.2 s after load on a warm cache. After an edit, the caption stays "Stock reference loaded" until Preview.
+  - UI-27: 957/768 and 1172/1080.
+  - UI-29: 12 px.
+  - UI-32, UI-33, UI-34, UI-36 (0/8).
+  - UI-35 (20/58, unchanged).
+  - UI-37: inventory identical to r25b.
+  - UI-38: picking a design still silently resets settings.
+- **ID changes:** new UI-39, UI-40 (MED), UI-41, UI-42 and QA-70 (LOW).
+
+
+## Research leads #23–29 (2026-11-09) — Fan Sim QA
+
+Prereg `1bfb38c` on `prereg/research-leads23-29` before prototypes. Clone master `83681c2`. No CFD/Assess/Sweep/Optimize; no PyTorch; patches not applied.
+
+| Lead | Status | Note |
+|---|---|---|
+| #23 UIUC flat-plate Cl@40k | worth-it/proposed | Cl/Cm check table + test patch; no Cd online; flat≠Stock cambered |
+| #24 Pelz tip η (C·s·ψ) | worth-it/proposed | `pelz-tip-eta.patch`; calibrate C; patents expired |
+| #25 Kim 2021 OGV rules | worth-it/proposed | `stator-linear-exit-frac.patch`; CC BY 4.0; avoid US8333559B2 tip lean |
+| #26 fluids ISO 5167 | blocked (hardware) | MIT maths OK; same gate as #18 |
+| #27 BPF / acoustic tach | worth-it/proposed | MIT; BPF sketch recovers 2000 rpm synthetic |
+| #28 Ax/BoTorch qNEHVI | worth-it/proposed (optional) | MIT; ~800 MB torch; park until CFD-finalist path |
+| #29 PartForge UX pattern | worth-it/proposed | 51 controls → Preset/Primary/Advanced/Hidden; tie ui-hunt-1 |
+
+Zip: `research_leads23-29_out.zip` (placement needs Kimball approval).
+
+
+
+## G3 re-check (grok, 2026-11-09): R1.10 G3 / QA-57 on master 41e2dc9
+
+**Build:** master `41e2dc9`, from bundle sha256 `f999d7de…5939` (verified). Clone: `/workspace/fansim/repo-r26-g3`. **Prereg:** `prereg/g3-41e2dc9` 7e3e214, committed 2026-11-09 09:33 MST, before data (from a separate worktree). No CFD, Docker or OpenFOAM, and no Assess, Sweep, Optimize, Export or Randomize. No source edits. Note: `docs/qa/notes/g3-recheck-2026-11-09.md`.
+
+- **G3 claims C22, C24 and C25: verified.**
+  - **Rendered (headless, empty run):** the Expert tab reads "MIXED · EXPERIMENTAL", with tooltip "Experimental: not validated against published data". Mixed Design and Results show "Assess runs MRF CFD (not validated against published data)". The Volute tooltip and Optimize lines say "ranking only, unvalidated (CFD not yet converged)". There are 0 "honest" lines in Mixed or Volute.
+  - **Probe:** the mixed export sidecar text carries both sentences.
+  - **Tests:** G3 copy (4) + simple-mode copy (28) give 32 passed. A red check fails 2 tests.
+- **QA-57 (MED): partly fixed.**
+  - The Mixed side is done.
+  - The **Volute Assess** copy and result readout still have no unvalidated/unconverged label (`volute_tab.py:159,163,410-419`); the label sits only on the Optimize lines.
+  - Patch: `docs/qa/patches/g3-QA57-volute-assess-label.patch`, with a test that fails without the fix (33 passed on scratch).
+- **Info only:** the Mixed Optimize done-message has no label (the readout keeps it), and the Export message doesn't mention the sidecar `.md`.
+- **ui-hunt-1 regression:** UI-39, UI-40, UI-41, UI-42 and QA-70 are **still open** on 41e2dc9. The cited files are unchanged since 83681c2, both patches still apply, and the probes repeat.
+- **R1.10 stays open** (G4/G5, release re-audit). R3.1 is not landed; R3.5b is still "rerun". The night-gate counts 668/568/683 were not re-checked.
+- **ID changes:** none new. QA-57 → **partly fixed**.
+
+
+## Research lead #30 (2026-11-09) — Fan Sim QA
+
+Prereg `067eb89` on `prereg/research-lead30` before prototypes. Clone master `83681c2`. No CFD/Assess/Sweep/Optimize. Patch not applied.
+
+| Lead | Status | Note |
+|---|---|---|
+| #30 Amiet/Sears via amiet_tools (BSD-3) | worth-it/proposed | Thin `strut_gust.py` relative strut-tone vs gap/skew; ranking stable under ±2× gust; absolute levels need wake model. Patch: amiet-strut-tone.patch (4 tests). LE broadband parked (needs turbulence input; pairs with BPM #3). |
+
+Zip: `research_lead30_out.zip` (placement needs Kimball approval). Does not modify the #23–29 zip.
+
+## Research leads #31–33 (2026-11-10) — Fan Sim QA
+
+Prereg `e08154f` on `prereg/research-leads31-33` (~09:42 MST, before any prototype). Clone master `eeb0e2d`. No CFD/Assess/Sweep/Optimize/Export/Randomize. Patches not applied.
+
+| Lead | Status | Note |
+|---|---|---|
+| #31 manifold3d booleans (Apache-2.0) | worth-it/proposed | Real Stock: OCCT fuse 27.07 s vs manifold union 0.209 s (~129×); vol 42959.48 vs 42941.94 mm³ (0.041 %); both watertight; sampled max 0.026 mm / p95 0.007 mm. Print-id A12X5: OCCT 311.38 s vs manifold 0.220 s (QA-76); cut mesh has 4 non-manifold edges. Wheel Apache-2.0; statically linked oneTBB (Apache-2.0); Clipper2 (Boost) likely bundled without a separate wheel notice. Patch: manifold-fuse.patch (`fuse_engine` / `print_id_engine`, default OCCT). |
+| #32 motor-fit test coupon | worth-it/proposed | 5×8 mm rings, protrusions 0.50–0.90 (squeeze 0.15–0.55 bracketing 0.35). Reuses MotorMount + carve_motor_mount; default layout matches full cup (cav_r 18.975, r_center 19.475, grip_r 1.2). Plate watertight, 21135 mm³. US 2009/0246043 A1 abandoned 2012-04-05 (failure to respond). Grgić CC BY 4.0. Patch: export-fit-coupon.patch (added export). |
+| #33 Kiri:Moto / shapely dropout | worth-it/proposed (Kiri itself not-worth-it to vendor) | grid-apps MIT but Node ≥ 22, ~91 MB direct npm unpacked, `@salusoft89/planegcs` LGPL-2.0-or-later. trimesh+shapely layer-shrink flags a 0.25 mm TE wedge (50/50 layers, extra_eaten 1.10 mm) and a 0.2 mm sliver (15/15), not an 8 mm block (0/25). Patch: layer-dropout.patch (helper only, not wired in). |
+
+Zip: `research_leads31-33_out.zip` (placement needs Kimball approval). Does not modify the #23–29 or #30 zips. Packet: `handoff/2026-11-10_from-qa-leads31-33/`. **Not applied** (same rule as leads 23–30).
+
+## Round 27 (grok, 2026-11-09): current-master re-check on 9869116
+
+Build `master` @ `9869116` (bundle sha256 `0f8e06e0…1d92` verified; fresh clone, no edits). No Docker/CFD/OpenFOAM; no Assess, Sweep,
+Optimize, Export or Randomize click. Prereg `ef58906` (branch `prereg/r27`). Note: `docs/qa/notes/r27-recheck.md`. Evidence:
+`handoff/2026-11-09_from-qa-27/`. No source diffs since 41e2dc9 in `volute_tab.py`, `fan_assess.py`, `fan_optimize.py`, `fan_flow_report.py`,
+`fan_widgets.py`; the three earlier patches still apply (not landed).
+
+- **A QA-57: still open (partly fixed).** Volute Assess copy (`volute_tab.py:159`, :163) and readout (:417) still lack "ranking only, unvalidated (CFD not yet converged)"; rendered Volute Design/Results show it only on the 2 Optimize lines. Patch `g3-QA57-volute-assess-label.patch` still applies.
+- **B UI-39 / UI-40: still open.** Code unchanged; probe identical to ui-hunt-1 (steps ""/"1e9" → silent ValueError, "100" → 100 runs; Trials −5/100/1e9 → silent clamp). Rendered labels "steps" / "Trials", no range, no error state. The ui-hunt-1 patch only labels; the new **`docs/qa/patches/r27-UI39-UI40-refuse-run-counts.patch` supersedes it** and refuses out-of-range/non-integer values with a visible message before anything starts (23 new tests; red 1 failed).
+- **C QA-70: still open.** Probe: hint-only run → no `noise` row. Patch still applies. G2 not re-tested.
+- **D G4: verified for its listed files** (figures ~10 %, Assess "two CFD solves … 20–40 min" rendered in Simple, BEM ranking-only, GCI ≈ 21 %, blade claim gone, a12x25 close-ref + open list, README Known limits with R1.4's "about 5 % less airflow"). `test_r110_g4_stale_numbers.py` 8/8; red check with 41e2dc9 files 8 failed. **QA-58: verified for G4's list. QA-69: verified** ("Noise estimate (min)" in doc and generator).
+- **UI-41 / UI-42: still open** (static; code unchanged).
+- **New: QA-71 (MED)** Assess stall-reject text still says "~2×"; **QA-72 (LOW)** generator caveat "~3–5%", CLI help "BEM≈0.6×", two docstrings. Patch `r27-QA71-QA72-g4-leftovers.patch` (3 tests; red 3 failed).
+- Targeted tests on master: 64 passed. All four open patches together on scratch: 113 passed.
+- **ID changes:** QA-69 → verified; QA-58 → verified (G4 list); new QA-71 (MED), QA-72 (LOW). UI-39/40/41/42, QA-70, QA-57 unchanged (open).
+
+
+## Round 28 (grok, 2026-11-09): 28.3 glyphs on master eeb0e2d — ingested 2026-11-10
+
+Packet copied onto this tree: `handoff/2026-11-09_from-qa-28/`, `docs/qa/rounds/r28.md`, `docs/qa/notes/r28-E-print-id-glyphs.md`, patch `docs/qa/patches/r28-QA73-76-print-id-glyphs.patch`. Grok's own tracker rows are in that round file; the live statuses above are Cursor's.
+
+- **Brief PASS / tightened FAIL.** Mark is 1 solid, watertight, shallow recess, cup unchanged. From +Z it reads as a **mirror** (QA-73 HIGH). Floor 0.65 mm (QA-74). 6=G (QA-75). Per-stroke booleans 8.5× slower (QA-76).
+- **Landed on master** `2bfde35` (glyphs) and `107989b` (r27 leftovers). Grok's r28 glyph patch, hub-face `z_top`, skip-copy, P6 5 mm cap. Merge gate: 750 / 521 / 683 passed (OCCT teardown only).
+- **Still open:** QA-77 (lands; no patch). UI-41/42 (LOW). No new research-lead rounds until QA-73 is re-checked.
+- **Print session 1 (not in grok's packet):** H7MQ8 = Stock v3 T1–T6; E0MWW = t9002 extra. First E0MWW STL missed the ID (QA-79). Supports on the hub wreck 0.5 mm glyphs — slice ID on the bed.
+- **ID changes:** new QA-73 HIGH, QA-75/76 MED, QA-74/77/78 LOW. Cursor added QA-79 MED. Round 29 re-checks QA-73 and QA-79 after merge.
+
+

@@ -1,0 +1,143 @@
+{
+ "console_errors": [
+  "Failed to load resource: the server responded with a status of 405 (Method Not Allowed)"
+ ],
+ "pageerrors": [],
+ "simple_assess_intro": [
+  "Design 3D-printable replacement blades for a PC cooling fan (start: Noctua A12x25). Preview updates the shape in seconds; Assess runs two CFD solves (free air and a loaded point), about 20–40 min; Optimize searches many "
+ ],
+ "simple_stale": {
+  "~2×": false,
+  "0.6×": false,
+  "3–5": false,
+  "one CFD solve": false,
+  "dB(A)": false
+ },
+ "expert_assess_intro": [],
+ "expert_stale": {
+  "~2×": false,
+  "0.6×": false,
+  "3–5": false,
+  "one CFD solve": false,
+  "dB(A)": false
+ },
+ "expert_fan_labels_steps_trials": [
+  "steps",
+  "Trials"
+ ],
+ "expert_fan_stale": {
+  "~2×": false,
+  "0.6×": false,
+  "3–5": false,
+  "one CFD solve": false,
+  "dB(A)": false
+ },
+ "B_sweep_steps": [
+  {
+   "typed": "1e9",
+   "state": "1e9",
+   "field_error": false,
+   "attrs": [
+    "",
+    "",
+    ""
+   ]
+  },
+  {
+   "typed": "100",
+   "state": "100",
+   "field_error": false,
+   "attrs": [
+    "",
+    "",
+    ""
+   ]
+  },
+  {
+   "typed": "-5",
+   "state": "-5",
+   "field_error": false,
+   "attrs": [
+    "",
+    "",
+    ""
+   ]
+  },
+  {
+   "typed": "",
+   "state": "",
+   "field_error": false,
+   "attrs": [
+    "",
+    "",
+    ""
+   ]
+  }
+ ],
+ "B_opt_trials": [
+  {
+   "typed": "1e9",
+   "state": "1e9",
+   "field_error": false,
+   "attrs": [
+    "",
+    "",
+    ""
+   ]
+  },
+  {
+   "typed": "100",
+   "state": "100",
+   "field_error": false,
+   "attrs": [
+    "",
+    "",
+    ""
+   ]
+  },
+  {
+   "typed": "-5",
+   "state": "-5",
+   "field_error": false,
+   "attrs": [
+    "",
+    "",
+    ""
+   ]
+  },
+  {
+   "typed": "",
+   "state": "",
+   "field_error": false,
+   "attrs": [
+    "",
+    "",
+    ""
+   ]
+  }
+ ],
+ "A_volute_design": {
+  "assess_lines": [
+   "Radial impeller + sealed volute (radial MRF Assess)",
+   "90° discharge collector — not an A12x25 drop-in. Assess uses sealed-enclosure radial MRF (+Z inlet / +X outlet). Optimize is a geometry proxy — ranking only, unvalidated (CFD not yet converged).",
+   "Radial impeller + sealed volute enclosure (smooth Archimedean scroll). Assess runs radial MRF; Optimize is a geometry proxy (not CFM).",
+   "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker)."
+  ],
+  "rank_label_lines": [
+   "90° discharge collector — not an A12x25 drop-in. Assess uses sealed-enclosure radial MRF (+Z inlet / +X outlet). Optimize is a geometry proxy — ranking only, unvalidated (CFD not yet converged).",
+   "Optimize: NSGA geometry proxy — ranking only, unvalidated (CFD not yet converged)."
+  ]
+ },
+ "A_volute_results": {
+  "assess_lines": [
+   "Radial impeller + sealed volute (radial MRF Assess)",
+   "90° discharge collector — not an A12x25 drop-in. Assess uses sealed-enclosure radial MRF (+Z inlet / +X outlet). Optimize is a geometry proxy — ranking only, unvalidated (CFD not yet converged).",
+   "Radial impeller + sealed volute enclosure (smooth Archimedean scroll). Assess runs radial MRF; Optimize is a geometry proxy (not CFM).",
+   "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker)."
+  ],
+  "rank_label_lines": [
+   "90° discharge collector — not an A12x25 drop-in. Assess uses sealed-enclosure radial MRF (+Z inlet / +X outlet). Optimize is a geometry proxy — ranking only, unvalidated (CFD not yet converged).",
+   "Optimize: NSGA geometry proxy — ranking only, unvalidated (CFD not yet converged)."
+  ]
+ }
+}

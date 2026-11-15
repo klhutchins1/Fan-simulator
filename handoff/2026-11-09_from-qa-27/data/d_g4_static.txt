@@ -1,0 +1,48 @@
+== D1 figures
+398:                "reverses (CFD's static-pressure ceiling is a little below the datasheet's (about 10 %)). Pick a lighter **Application** "
+== D2 fan_tab_ui
+494:                            "Assess runs two CFD solves (free air and a loaded point), about 20–40 min; Optimize searches many "
+== D3 fan_copy
+== D4
+fansim/optimize/objectives.py:81:# Do not quote screening CFM with a 3–5% bar. Shared by axial / mixed / CROR / volute evaluate.
+scripts/extract_design_rules.py:139:           "_Caveats: n=14; CFD is screening fidelity (~3–5% discretization); absolute noise is "
+docs/design-rules.md:43:_Caveats: n is small; screening mesh, GCI ≈ 21 %; ranks designs, ±1 % run to run on Stock; absolute noise is coarse-grid-limited so only the ranking is used; correlations are not causation._
+docs/adversarial-review.md:156:| **Grid-convergence / y+ control / prism layers** | CRITICAL | snappy addLayers, GCI study module (`gridindep.py`) — do on ONE design first |
+docs/adversarial-review.md:237:**screening mesh, GCI ≈ 21 %; ranks designs, ±1 % run to run on Stock**. A finer ~2mm mesh would likely land ~60–61 CFM but
+== D5
+== D6
+
+Two **separate** gates apply before absolute-performance claims; they must not be merged into one pass/fail:
+
+1. **Geometry fidelity** — blade count, tip/hub radii, axial depth, LE sickle character, and **0.5 mm** tip clearance vs the **110 mm** frame ID (vs trusted STL when available, else the parametric envelope).
+2. **CFD fidelity** — vs this table at 2000 RPM: interim **±10%** on free-air (**60.1 CFM**) and **±5 Pa** on shut-off (**22.9 Pa**), until further validation on more fans tightens them (the CFD v5 setup — sealed ring + four-bar frame + prism layers — is validated on a close-reference STL of the A12x25: 59.8 vs 60.1 CFM; `docs/validation/a12x25_pq_report.md`).
+
+Full criteria, numeric bands (e.g. tip radius **54.0–54.5 mm**, hub **20–23 mm**, **9** blades), and the rule that geometry pass **does not** imply CFD pass (and vice versa): [validation/a12x25_geometry_acceptance.md](validation/a12x25_geometry_acceptance.md).
+
+## Historical: the reality check that drove the validation work (2026-09)
+
+*Kept for context. Still open: near-stall points (steady RANS does not settle) and the Stock
+recipe gap (parametric Stock reads about 5 % low vs the real shape). See
+`docs/validation/a12x25_pq_report.md` and `docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md`.*
+
+Our parametric Stock / approximate recipes historically under-resolved tip leakage and frame losses;
+== D7
+67: **Known limits** (also listed at the end of this file): nothing printed or measured yet; propeller CFD is not a performance predictor (BEMT is); volute CFD is unconverged; mixed-flow and CROR are not validated against published data; noise levels are not validated; the Stock recipe reads about 5 % less airflow than the real A12x25.
+68: 
+69: ## The workflow
+70: 
+71: ```
+72: optimize  ─►  browse/tweak in the cockpit  ─►  export print files  ─►  print + mount  ─►  measure  ─►  catalog
+73:  (CFD)          (pick a design, edit, Assess)     (STL + print sheet)     (your printer)   (record it)   (compare)
+74: ```
+75: 
+76: 1. **Optimize** — search for good, buildable designs (see commands below).
+77: 2. **Cockpit** — browse the Pareto front, load any catalogued design, edit and re-Assess, compare.
+78: 3. **Export** — `export_finalists.py` writes a print-ready STL + print sheet per finalist, with the
+79:    motor-mount cavity carved and a "mountable / print-difficulty" verdict.
+== D8 QA-69
+docs/design-rules.md:10:- **Noise estimate (min)** — driven by `stagger_mid` (-0.79), `sol_tip` (+0.70), `sol_mid` (+0.67), `n_blades` (+0.64)
+scripts/extract_design_rules.py:6:relative noise dB(A), blade-pass tone, thrust) and writes docs/design-rules.md + a correlation
+scripts/extract_design_rules.py:106:             "efficiency": "Efficiency (max)", "noise_dba_band": "Noise estimate (min)",
+-             "efficiency": "Efficiency (max)", "noise_dba_band": "Noise dB(A) (min)",
++             "efficiency": "Efficiency (max)", "noise_dba_band": "Noise estimate (min)",

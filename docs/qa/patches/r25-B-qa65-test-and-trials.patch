@@ -1,0 +1,45 @@
+diff --git a/fansim/cockpit/data.py b/fansim/cockpit/data.py
+--- a/fansim/cockpit/data.py
++++ b/fansim/cockpit/data.py
+@@ -151,6 +151,7 @@
+                    "runtime_s": t.user_attrs.get("runtime_s"),
+                    "cfd_version": t.user_attrs.get("cfd_version"),
+                    "surf_max": t.user_attrs.get("surf_max"),
++                   "converged": t.user_attrs.get("converged"),  # QA-65; None on old studies
+                    "cfd_stale": bool(_reason := stale_reason(
+                        {"cfd_version": t.user_attrs.get("cfd_version"),
+                         "surf_max": t.user_attrs.get("surf_max"),
+diff --git a/fansim/optimize/study.py b/fansim/optimize/study.py
+--- a/fansim/optimize/study.py
++++ b/fansim/optimize/study.py
+@@ -227,6 +227,8 @@
+                 pass
+         trial.set_user_attr("feasible", result.feasible)
+         trial.set_user_attr("reason", result.reason)
++        if result.raw.get("converged") is not None:  # QA-65: loaded point settled? (caption K1)
++            trial.set_user_attr("converged", bool(result.raw["converged"]))
+         trial.set_user_attr("n_blades", params.n_blades)
+         trial.set_user_attr("runtime_s", result.runtime_s)
+         trial.set_user_attr("cfd_version", CFD_VERSION)  # so stale (pre-fix) scores are detectable
+diff --git a/tests/test_score_caption.py b/tests/test_score_caption.py
+--- a/tests/test_score_caption.py
++++ b/tests/test_score_caption.py
+@@ -86,3 +86,18 @@
+     assert "case_dir" not in extra
+     stamp_score_extra(extra, {}, load_pa=8.0, preset="case", case_dir="screen_rank_audit/x/full")
+     assert extra["case_dir"] == "screen_rank_audit/x/full"
++
++
++def test_score_caption_flags_unconverged_loaded_point():
++    """QA-65 / K1: an unconverged loaded point is shown on the scored design."""
++    extra = stamp_score_extra({}, {"converged": False}, load_pa=8.0, preset="case", refine_op=False)
++    assert extra["converged"] is False
++    assert "did not settle" in score_caption(extra)
++
++
++def test_score_caption_no_unconverged_flag_when_settled_or_unknown():
++    """Only False warns: converged, None and old designs without the key stay silent."""
++    for raw in ({"converged": True}, {"converged": None}, {}):
++        extra = stamp_score_extra({}, raw, load_pa=8.0, preset="case", refine_op=False)
++        assert "did not settle" not in score_caption(extra)
++    assert "did not settle" not in score_caption({"preset": "case", "load_pa": 8.0})
