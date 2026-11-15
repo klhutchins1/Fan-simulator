@@ -38,3 +38,20 @@ under this file. The STL written from these faces is for measuring the
 difference. It is not another attempt to pass.
 
 ## Results (filled after the run; do not edit anything above)
+
+Ran `scripts/outline_te_face.py`. Every station's closest face was 0 (sharp back edge). The leading edge did not move. The section is still too long.
+
+| r/R | te_face | extent error | leading-edge shift |
+|---|---|---|---|
+| 0.50 | 0 | +1.303 mm | 0.000 mm |
+| 0.60 | 0 | +0.619 mm | 0.000 mm |
+| 0.70 | 0 | +0.706 mm | 0.000 mm |
+| 0.80 | 0 | +0.465 mm | 0.000 mm |
+| 0.90 | 0 | +0.169 mm | 0.000 mm |
+
+| | |
+|---|---|
+| F1 | **FAIL.** Four radii are outside 0.40 mm. r/R 0.90 is inside (+0.169 mm). |
+| F2 | **PASS.** Leading-edge shift is 0 at every radius. |
+
+**Verdict: FAIL.** Closed. No second search under this file. The leftover length is the full wall at the leading edge. The sharp back edge cannot remove it. Recipe written to `config/problems/a12x25_outline.yaml` with these faces. The print STL is not this mesh; a following pre-registration may thin the leading edge without changing these `te_face` values.
