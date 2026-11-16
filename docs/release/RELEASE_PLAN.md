@@ -49,9 +49,37 @@ locked by a running program; delete it after a reboot.
 | **M3 Releasable repo** | anyone can install it from GitHub and run it; the repo is clean, licensed and CI-tested | R3.1–R3.9 done |
 | **M4 Release candidate** | a clean-clone install and test pass on Linux (grok) and Windows (Kimball), plus release notes and the tag | R4.1–R4.4 done |
 
+### Decision (Kimball, 2026-11-15): ship v0.1.0 with four surfaces labelled, not validated
+
+**Propeller CFD, volute, mixed-flow and CROR ship as "Experimental: not validated against published data".** Their
+validation moves to v0.1.1. This is the "hidden or labelled" branch of the definition of done above; it needs no new
+pre-registration, and no result in any of the four is re-judged. What is validated stays as it is: the axial Fan tab
+(M0, M1) and the propeller **BEMT** fast estimate (R2.1, UIUC C_T PASS).
+
+Why: since 2026-10-17 the night queue ran CFD on 3 of about 30 nights, and each validation try on these four ended
+FAIL or not-converged (prop CFD −44 %, A0c diverged, volute relaxation sweep none/none). The pre-registered rules
+already allowed stopping; this makes it the plan.
+
+**Frozen for v0.1.0 (no more work, no night jobs):** R2.2a″ A0c and R2.2c/d, R2.3a/b (CROR vs Shigemitsu), R2.4,
+R2.5a transient, R2.5b/c (volute vs EPJ). Their data, preregs and branches stay as they are for v0.1.1. Uncommitted
+work for them (`fansim-a0c-wake`) is still committed and pushed under W1, so it is not lost, but it no longer blocks
+anything.
+
+**Release path from here (this is the whole list; add to it only with a reason):**
+1. **R1.3** optimizer bounds under wrap. Last open M1 task.
+2. **R2.7** label pass (below). Closes M2.
+3. **R3.8** validation page: what is validated, against what, with which tolerance; the four labelled surfaces listed
+   as not validated.
+4. **R4.1** clean-clone install and test on Linux (grok), plus Kimball's Windows install.
+5. **R4.3** release notes v0.1.0.
+6. **R4.4** tag and publish.
+
+Night CPU is now for gate suites and any R1.3 re-find campaign only.
+
+
 M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
 
-## Work order (Claude review 2026-11-09; Kimball approved)
+## Work order (Claude review 2026-11-09; Kimball approved). SUPERSEDED 2026-11-15 by the decision above: steps 2 and 3 are frozen
 
 Why: from 2026-10-17 to 2026-11-08 the night queue ran on 7 nights, and 13 of its 16 jobs were test suites, not CFD.
 The tasks that unblock CFD validation sat `ready` behind wording fixes. So accuracy work goes first (AGENTS.md rule 9).
@@ -146,7 +174,7 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
       - grok r24 B (2026-11-01, `docs/qa/notes/r24-B-qa64-wording.md`): "near free air … within 8 %" fails on lt120 (P/Pmax 0.20; +8.1 %); **use "within 10 %", lt120 "at its lowest measured load (6.85 Pa)"** (all numbers ≤ 9.5 %; frozen 0.5 mm gap). QA-64.
       - grok r24 C (2026-11-01, `docs/qa/notes/r24-C-k1-visibility.md`): K1 is **not** shown for a converged=False score (only in reject text). QA-65 (MED); patch `docs/qa/patches/r24-C-k1-visible.patch`.
       - grok r25 C (2026-11-02, `docs/qa/notes/r25-C-qa64-strings.md`): both audit lines (`2026-10-18-…:89`, `2026-10-30-…:69`) still say "near free air … within 8 %" on 9d0118f; QA-64 open until R1.10.
-- **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `in progress (Cursor, 2026-11-09)` (R1.10 batch).
+- **R1.2 Loaded branch and shut-off honesty (19.6 / 1.5)**. Lane: Cursor (docs and UI). CPU: day. Status: `done 1c2cf12` (shipped in the R1.10 batch, merged 2026-11-13).
   - Shut-off is 20–21 Pa against 22.9 published, and steady RANS does not converge at 15–20 Pa.
   - Make sure the UI and README never quote a number above the validated range. Add a test that the P–Q display
     stops at the last converged point.
@@ -166,7 +194,7 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   grok r17 C (2026-10-19, `docs/qa/notes/r17-C-hang-refusals.md`): r14 P0 bounds with R1.7 + R1.8 give 2.0 % refused (Wilson ≤ 4.3 %), so the bounds stand. R1.8 alone gives 7.7 %, R1.7 alone 0.3 %.
 - R1.7 One hub for score and export (QA-44): done `027ebcb`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
 - R1.8 Two-stage hang check (QA-43): done `027ebcb`, acceptance 10/10 `a42544e`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
-- **R1.9 Small QA fixes**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)` (R1.10 batch). One branch, one test each:
+- **R1.9 Small QA fixes**. Lane: Cursor. CPU: day. Status: `done 1c2cf12` (shipped in the R1.10 batch, merged 2026-11-13). One branch, one test each:
   - QA-39: sort postProcessing time dirs numerically (`_pp_file`, `sanity.py`, `timing.py`, the objectives copy);
   - QA-40: no noise text in Simple mode when there is no Stock reference;
   - QA-41: `watch_parent` must treat a zombie or exited launcher as gone (not `os.kill(pid, 0)` alone on Linux);
@@ -231,7 +259,7 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   - grok r26 (2026-11-04, `docs/qa/notes/r26-qa66-qa65-recheck.md`): on bd6abdd **QA-66 verified 5/5; r25-A CLI test covered; R1.11 closable.** New **QA-68** (LOW): CLI catalog refusal is an uncaught traceback, not exit 2; `docs/qa/patches/r26-A-qa68-catch-refusal.patch`.
   - QA-68 done (Claude, 2026-11-04, merge of `r26-qa68`): grok's patch. The catalog/Docker refusal exits 2 with the
     message; its test failed first (uncaught RuntimeError). Fast chunks 692+515+702 passed (OCCT teardown exit only).
-- **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `in progress (Cursor, 2026-11-09)` (R1.10 batch).
+- **R1.5 Structural and flutter labels**. Lane: Cursor. CPU: day. Status: `done 1c2cf12` (shipped in the R1.10 batch, merged 2026-11-13).
   - The beam models are unvalidated on real blades (audit-05).
   - Label the structural and flutter outputs "estimate, not validated" in Simple and Expert, plus the README.
     Add a test that the label is present.
@@ -260,7 +288,7 @@ Kimball's.
     sections" until grok r19 B shows the known-section number.
   - Lane: Cursor labels the C_P limit; Claude confirms the claims list. Status: `ready`.
   - **Claude confirmed 2026-10-29** (`docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`): grok r21 A stands. The fixes are grouped G1–G5 there; G1 (the Assess message compares with the datasheet) goes first.
-- **R2.2 Propeller CFD: fix it** (Kimball 2026-10-17). FAIL, −44 % C_T against UIUC (audit-08).
+- **R2.2 Propeller CFD: fix it** (Kimball 2026-10-17). **Frozen for v0.1.0 (Kimball 2026-11-15): ships labelled; see the decision at the top.** FAIL, −44 % C_T against UIUC (audit-08).
   - Pre-registered diagnostic ladder: `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`. Read its rules
     before running anything; each rung's result picks the next rung.
   - **R2.2a 2-D section case (rung A).** Lane: Cursor. CPU: day (minutes per run; not 4–9 PM). Status: `done` (2026-10-20; verdict report to Claude).
@@ -306,19 +334,19 @@ Kimball's.
     - Add `--j` to `scripts/audit_prop_cfd.py`: freestream U = J·n·D, at J 0.3 / 0.5 / 0.7, 6000 rpm, compared with
       kt1035/1036.
     - Launch as a Scheduled Task after 9 PM (AGENTS.md rule 2).
-  - **R2.2c 3-D transition (rung C)** and **R2.2d domain size (rung D)**: `blocked (R2.2a″ A0c)`.
+  - **R2.2c 3-D transition (rung C)** and **R2.2d domain size (rung D)**: `frozen for v0.1.0` (Kimball 2026-11-15).
     - Claude ruled A, B and A0 (2026-10-20, 2026-11-06). C or D are unblocked only if A0c passes and the re-run of rung A then gives A1 or A2.
 - **R2.3 CROR**: direction proof only.
   - Lane: grok data hunt for small counter-rotating fan or prop P–Q / thrust data. Status: `done (grok r15 hunt, 2026-10-17)`; see `docs/qa/notes/r15-data-hunt-cror-mixed-centrifugal.md`.
-- **R2.3 CROR against Shigemitsu 2018** (CC BY 4.0, 40 mm). Pre-registered:
+- **R2.3 CROR against Shigemitsu 2018** (CC BY 4.0, 40 mm). **Frozen for v0.1.0 (Kimball 2026-11-15): ships labelled.** Pre-registered:
   `docs/validation/audits/2026-10-18-cror-centrifugal-validation-prereg.md`.
-  - **R2.3a geometry freeze + case script.** Lane: Cursor. CPU: day for the build. Status: `ready`.
+  - **R2.3a geometry freeze + case script.** Lane: Cursor. CPU: day for the build. Status: `frozen for v0.1.0`.
     - **Amended 2026-10-19 (§2):** S1 withdrawn (it was CFD vs CFD), replaced by S1′. Table 1 stagger is **from the rotation plane**. Camber NACA 4 % at 40 %; axial gap 4.9 mm. Now `ready` (grok r17 B delivered the data).
     - grok r17 B delivered 2026-10-19: `docs/qa/r17/r17-B-shigemitsu2018-digitised.csv` + `docs/qa/notes/r17-B-digitised-cror-centrifugal.md` (CC BY 4.0 confirmed). Only total P–Q is measured; the per-rotor data and η are CFD (QA-47). Stagger convention and camber are missing, so Claude rules before the freeze.
     - Follow step 0 exactly; fill missing values only by the stated rules.
     - Commit `validation/reference/cror_shigemitsu2018/geometry.json` + STL (that commit is the freeze), then
       `scripts/validate_cror_shigemitsu.py`.
-  - **R2.3b runs.** Lane: night. Status: `blocked (R2.3a)`. Add the job to `night/queue.json`.
+  - **R2.3b runs.** Lane: night. Status: `frozen for v0.1.0`. Add the job to `night/queue.json`.
 - **R2.4 Mixed-flow**: no published comparison.
   - grok r15: no small CC-licensed mixed-flow data. The 85 mm Treder rig is cite-only.
   - **Kimball 2026-10-17: label it experimental.** Lane: Cursor. CPU: day. Status: `done 5945620`.
@@ -330,17 +358,28 @@ Kimball's.
 - **R2.5 Volute / centrifugal**: CFD is unconverged (17–23 % oscillation), a ±20 % proxy.
   - Lane: grok data hunt for a small centrifugal blower curve. Claude decides converge-or-label. Status: hunt `done (grok r15,
     2026-10-17)`, same note; converge-or-label still with Claude.
-- **R2.5 Volute/centrifugal against EPJ WoC 180:02023** (60 mm). Pre-registered: same document.
-  - **R2.5a convergence fix.** Lane: Cursor. CPU: day for short tests, night for full runs. Status: `needs a transient prereg` (Claude, 2026-11-15).
+- **R2.5 Volute/centrifugal against EPJ WoC 180:02023** (60 mm). **Frozen for v0.1.0 (Kimball 2026-11-15): ships labelled; the transient prereg is v0.1.1 work.** Pre-registered: same document.
+  - **R2.5a convergence fix.** Lane: Cursor. CPU: day for short tests, night for full runs. Status: `frozen for v0.1.0` (Kimball 2026-11-15; relaxation sweep none/none, transient is v0.1.1 work).
     - 2026-11-15 (Claude): sweep run and merged (`7efee56`, gate green 707/652/726). **No relaxation variant passes on either mesh** (fine V0 22 %/18 %, V1 40 %/69 %, V2 killed/7.2 %); more damping makes it worse. Results in the prereg. Next: a pre-registration for transient averaging (pimpleFoam, frozen rotor). Until then the volute stays a labelled ±20 % proxy. **Trap:** every 50 Pa run shows a reversed 800–1550 CFM flow (≈ shut-off at 3000 rpm, outlet backflow), so the transient prereg needs a reachable load point and a backflow check first.
     - 2026-11-13 (Claude): pre-registered sweep `docs/validation/audits/2026-11-13-volute-convergence-sweep-prereg.md` covers coarse/fine mesh × relaxation V0/V1/V2 × free/50 Pa, 3000 iterations, judged on step 1 only. Branch `claude/r25a-volute-conv` (93a79cc) adds `build_volute_case(relax=...)` (default unchanged) and `scripts/volute_convergence_sweep.py`; its related tests pass and the gate is not run yet. Night job `r25a-volute-conv-sweep` is queued for tonight, about 3 h. Results: `T:/Projects/Fan Simulator/runs/volute_conv_r25a/summary.json` (`choice` per mesh). Existing data shows that the 17–23 % swing is the fine mesh and the reversed rotor; the coarse designed run was already 3.4 %.
     - Get the existing volute case to ≤ 5 % peak-to-peak ΔP over the last 20 % of iterations (step 1).
     - Judge it **only** on convergence, never against the paper.
-  - **R2.5b geometry freeze + case script.** Lane: Cursor. Status: `ready`.
+  - **R2.5b geometry freeze + case script.** Lane: Cursor. Status: `frozen for v0.1.0`.
     - **Amended 2026-10-19 (§3):** A1 at 0.4 / 0.7 / 1.0 × Q_max,meas; outlet-tube static pressure; log-spiral volute; gap t 0.5 mm. Now `ready` (grok r17 B delivered the data).
     - grok r17 B delivered 2026-10-19: `docs/qa/r17/r17-B-epj2018-02023-digitised.csv` (CC BY 4.0 confirmed; plastic wheel at 6000/9000/11000). No curve reaches free delivery (QA-48), so A1 needs restating. b2 = 3.86 mm, d1/d2 ≈ 0.5, no blade angles, no scaled volute drawing.
     - Step 0, then `validation/reference/volute_epj2018/geometry.json` and `scripts/validate_volute_epj.py`.
-  - **R2.5c runs.** Lane: night. Status: `blocked (R2.5a, R2.5b)`.
+  - **R2.5c runs.** Lane: night. Status: `frozen for v0.1.0`.
+- **R2.7 Label pass for the four unvalidated surfaces (Kimball decision 2026-11-15).** Lane: Cursor. CPU: day.
+  Status: `ready`. One branch, one gate.
+  - The same words everywhere: **"Experimental: not validated against published data."** In Simple and Expert, on the
+    tab (tooltip or name, as Mixed already does), next to every Assess/Optimize number, and in the export README/sidecar.
+  - Where it stands (Claude, 2026-11-15): Mixed is done (`5945620`). Volute says "ranking only, unvalidated" (change it
+    to the standard words). Propeller CFD has only a note in the Assess text (`prop_tab.py:1393`); the BEMT fast estimate
+    is validated and must **not** get the label. **CROR has no label in the UI at all.**
+  - README "Known limits": one line per surface with the standard words; also drop "nothing printed or measured yet"
+    (print session 1 happened; nothing is *validated* by it).
+  - Test first: one test that each of the four tabs shows the exact string in Simple and Expert, and that the Fan tab
+    and the prop BEMT result do not.
 - **R2.6 Centrifugal (no tab) and wind turbine (scaffold)**: excluded from v0.1.0.
   - Lane: Cursor makes sure neither is reachable from the cockpit or the README quickstart. Status: `done 1d5e8b9`.
   - Landed: no centrifugal-only or wind-turbine control, tab, menu, or README quickstart link. `tests/test_r26_hide_scaffolds.py` locks that. Mixed and Volute stay. The wind_turbine package stays in the repo.
@@ -386,7 +425,7 @@ Kimball's.
 - **R3.7 Cockpit UI regression tests (29.2)**. Lane: Cursor writes, grok proposes cases. CPU: day. Status: `done 2b98425`.
   - Headless "we say X, we do Y" tests (`tests/test_ui_says_what_it_does.py`), at least one per tab that ships.
   - Landed one headless say/do test per shipping tab (Fan, Prop, Mixed, Volute, CROR); handlers are read with inspect.getsource, not run, and no production copy changed.
-- **R3.8 Validation page**. Lane: Cursor drafts, Claude checks the numbers. CPU: day. Status: `blocked (M1, M2)`.
+- **R3.8 Validation page**. Lane: Cursor drafts, Claude checks the numbers. CPU: day. Status: `blocked (R1.3, R2.7)`.
   - **Claude reviewed grok r21 B 2026-10-29: approved as the base.** Apply M1–M9 (M3: name the rig for 58.3 vs 59.8; M5: the link is `2026-10-12-cylinder-sections.md`). See the review doc. grok checks the final page.
   - `docs/VALIDATION.md`: per surface, what it was validated against, the tolerance, the result and the known limits.
     Every number links to its audit.
