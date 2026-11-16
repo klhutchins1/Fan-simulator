@@ -99,3 +99,44 @@ def test_self_update_falls_back_to_local_master_when_fetch_fails(tmp_path):
     _, work = _clone(tmp_path)
     _g(work, "remote", "set-url", "origin", str(tmp_path / "gone.git"))
     assert nq.update_target(work) == "master"
+
+
+# --- the runner says what it did: which master it followed and why, and what the morning check printed ---
+
+def test_choose_target_says_why_for_each_outcome(tmp_path):
+    origin, work = _clone(tmp_path)
+    target, why = nq.choose_update_target(work)
+    assert target == "master" and "up to date" in why
+    other = tmp_path / "other"
+    _g(tmp_path, "clone", "-q", str(origin), str(other))
+    _g(other, "config", "user.email", "t@example.com")
+    _g(other, "config", "user.name", "t")
+    (other / "b.txt").write_text("2")
+    _g(other, "add", "-A")
+    _g(other, "commit", "-q", "-m", "pushed")
+    _g(other, "push", "-q", "origin", "HEAD:master")
+    target, why = nq.choose_update_target(work)
+    assert target == "origin/master" and "ahead" in why
+    (work / "c.txt").write_text("3")
+    _g(work, "add", "-A")
+    _g(work, "commit", "-q", "-m", "local only")
+    target, why = nq.choose_update_target(work)
+    assert target == "master" and "unpushed" in why
+
+
+def test_a_failed_fetch_is_named_not_silent(tmp_path):
+    _, work = _clone(tmp_path)
+    _g(work, "remote", "set-url", "origin", str(tmp_path / "gone.git"))
+    target, why = nq.choose_update_target(work)
+    assert target == "master"
+    assert why.startswith("FETCH FAILED")
+    assert nq.update_target(work) == "master"          # old name still works
+
+
+def test_runner_log_is_written_even_when_no_job_runs(tmp_path):
+    day = tmp_path / "2026-11-16"
+    nq.log_runner(day, "update target master (FETCH FAILED: ssh: no key)", now=dt.datetime(2026, 11, 16, 23, 30))
+    nq.log_runner(day, "0 jobs ran", now=dt.datetime(2026, 11, 16, 23, 31))
+    lines = (day / "runner.log").read_text(encoding="utf-8").splitlines()
+    assert lines[0].startswith("2026-11-16 23:30") and "FETCH FAILED" in lines[0]
+    assert lines[1].startswith("2026-11-16 23:31") and "0 jobs ran" in lines[1]

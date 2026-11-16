@@ -20,6 +20,8 @@ Jobs live in ``night/queue.json`` (tracked, so any agent can add one):
 - Jobs get ``PYTHONPATH=<their checkout>``, because the venv's editable install points at the main checkout.
 - Results always go to the **main** checkout (``<main>/runs/night``), not the night worktree:
   ``runs/night/<date>/<id>.log`` and ``runs/night/<date>/results.json``.
+- Every run appends to ``runs/night/<date>/runner.log`` (which master it followed and why, which jobs, the morning
+  check's exit); that file exists even on a night with no jobs. Read it first if a queued job did not run.
 - After the last job the runner calls ``scripts/morning_check.py --apply``: it marks jobs done/failed on master,
   merges a green branch whose job has ``"merge_on_green": true`` (only when that is safe; see that file), and
   writes ``runs/night/STATUS.md``.
@@ -30,10 +32,10 @@ Jobs live in ``night/queue.json`` (tracked, so any agent can add one):
 from __future__ import annotations
 
 import argparse
-import hashlib
-import os
 import datetime as dt
+import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -91,17 +93,40 @@ def resolve_cmd(cmd: list[str]) -> list[str]:
     return [sys.executable if (i == 0 and c == "python") else c for i, c in enumerate(cmd)]
 
 
-def update_target(root: Path = ROOT) -> str:
-    """``origin/master`` if a fetch works and it contains local master; else local ``master``."""
+def choose_update_target(root: Path = ROOT) -> tuple[str, str]:
+    """(ref to run from, why). ``origin/master`` only if a fetch works and it contains local master.
+
+    A failed fetch falls back to local ``master`` and says so: a runner that quietly runs a week-old master
+    never sees the jobs pushed since (2026-11-15).
+    """
     try:
-        if subprocess.run(["git", "fetch", "-q", "origin", "master"], cwd=root, capture_output=True,
-                          timeout=120).returncode != 0:
-            return "master"
+        fetch = subprocess.run(["git", "fetch", "-q", "origin", "master"], cwd=root, capture_output=True,
+                               text=True, timeout=120, check=False)
+        if fetch.returncode != 0:
+            return "master", f"FETCH FAILED: {(fetch.stderr or fetch.stdout).strip()[:200] or fetch.returncode}"
+        sha = {ref: subprocess.run(["git", "rev-parse", ref], cwd=root, capture_output=True, text=True,
+                                   check=False).stdout.strip() for ref in ("master", "origin/master")}
+        if sha["master"] == sha["origin/master"]:
+            return "master", "local master is up to date with origin/master"
         ahead = subprocess.run(["git", "merge-base", "--is-ancestor", "master", "origin/master"], cwd=root,
-                               capture_output=True, timeout=60).returncode == 0
-    except (OSError, subprocess.TimeoutExpired):
-        return "master"
-    return "origin/master" if ahead else "master"
+                               capture_output=True, timeout=60, check=False).returncode == 0
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return "master", f"FETCH FAILED: {type(exc).__name__}: {exc}"[:240]
+    if ahead:
+        return "origin/master", "origin/master is ahead of local master"
+    return "master", "local master has unpushed commits (it is not behind origin/master)"
+
+
+def update_target(root: Path = ROOT) -> str:
+    return choose_update_target(root)[0]
+
+
+def log_runner(day: Path, msg: str, now: dt.datetime | None = None) -> None:
+    """Append a line to ``<day>/runner.log``: what the runner did, even on a night with no jobs."""
+    now = now or dt.datetime.now()  # noqa: DTZ005
+    day.mkdir(parents=True, exist_ok=True)
+    with (day / "runner.log").open("a", encoding="utf-8") as fh:
+        fh.write(f"{now:%Y-%m-%d %H:%M} {msg}\n")
 
 
 def _worktree(branch: str, job_id: str) -> Path:
@@ -166,17 +191,29 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--self-update", action="store_true",
                     help="move this worktree to the latest local master, then re-run without this flag")
     args = ap.parse_args(argv)
+    day = OUT / dt.datetime.now().strftime("%Y-%m-%d")  # noqa: DTZ005
     if args.self_update:
-        subprocess.run(["git", "checkout", "-q", "--detach", update_target()], cwd=ROOT, check=True)
+        target, why = choose_update_target()
+        if not args.dry_run:
+            log_runner(day, f"update to {target}: {why}")
+        subprocess.run(["git", "checkout", "-q", "--detach", target], cwd=ROOT, check=True)
         rest = ["--dry-run"] if args.dry_run else []
         return subprocess.run([sys.executable, str(Path(__file__).resolve()), *rest], cwd=ROOT).returncode
     results = run(dry_run=args.dry_run)
     for r in results:
         print(json.dumps(r), flush=True)
+    if not args.dry_run:
+        head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True,
+                              check=False).stdout.strip()
+        ids = ", ".join(r["id"] for r in results) or "none queued"
+        log_runner(day, f"running from {head}; {len(results)} job(s): {ids}")
     if results and not args.dry_run:
         # Close the jobs and merge what is safely green; a failure here must never fail the night run.
-        subprocess.run([sys.executable, str(Path(__file__).with_name("morning_check.py")), "--apply"],
-                       cwd=ROOT, check=False)
+        mc = subprocess.run([sys.executable, str(Path(__file__).with_name("morning_check.py")), "--apply"],
+                            cwd=ROOT, capture_output=True, text=True, check=False)
+        (day / "morning_check.log").write_text((mc.stdout or "") + (mc.stderr or ""), encoding="utf-8")
+        tail = f": {mc.stderr.strip()[-200:]}" if mc.returncode else ""
+        log_runner(day, f"morning_check exit {mc.returncode}{tail}")
     return 0
 
 
