@@ -83,11 +83,23 @@ This is a desktop tool for designing 3-D-printable fans and propellers. It has a
 |---|---|---|
 | **Claude** | occasional reviewer when available (since 2026-10-29 **Cursor is the lead** and holds judgment, rulings and pre-registrations too; see `handoff/2026-10-29_claude-to-cursor/CLAUDE_TO_CURSOR.md`) | scarce and unreliable week to week, so never block on it |
 | **Cursor** | implementation from a written brief, refactors, packaging, docs, CI, UI tests | plentiful |
-| **grok (QA bot)** | independent re-derivations, data hunts, clean-clone install tests on Linux, long test rounds; writes only new files: `docs/qa/rounds/r<NN>.md` (its round report, with any new or changed ledger rows), `docs/qa/**` notes and patches, and its `handoff/*from-qa*` folder. It never edits `docs/QA_REVIEW.md` or the board; the lead copies the rows in. Best use: independent re-derivations and bug hunts. Re-check a fix only when the bug was HIGH; one full claims audit at the release candidate | plentiful. **It works on a delivered copy, not this folder:** a round reaches it only as `handoff/<date>_to-qa-<n>/` (`CLAUDE_TO_QA.md` + a fresh `git bundle create … master`), which Kimball sends. Also put the same tasks in the "▶ Next round" section of `docs/QA_REVIEW.md` |
+| **grok (QA bot)** | independent re-derivations, data hunts, clean-clone install tests on Linux, long test rounds; writes only new files: `docs/qa/rounds/r<NN>.md` (its round report, with any new or changed ledger rows), `docs/qa/**` notes and patches, and its `handoff/*from-qa*` folder. It never edits `docs/QA_REVIEW.md` or the board; the lead copies the rows in. Best use: independent re-derivations and bug hunts. Re-check a fix only when the bug was HIGH; one full claims audit at the release candidate | plentiful. Four sessions every day. See **Grok's four sessions** below. **It works on a delivered copy, not this folder:** a round reaches it only as `handoff/<date>_to-qa-<n>/` (`CLAUDE_TO_QA.md` + a fresh `git bundle create … master`). Also put the same tasks in the "▶ Next round" section of `docs/QA_REVIEW.md` |
 | **night** | CFD campaigns and heavy builds as Scheduled Tasks (rule 2) | free between 9 PM and 4 PM |
 
 Cursor takes Claude-lane tasks. A ruling not covered by an existing pre-registration is written as its own dated audit
 file **before** the data it governs, marked "ruling by Cursor" (see the 2026-10-29 handoff).
+
+## Grok's four sessions
+
+Grok looks for work four times a day and cannot read Gitea. A repeated bundle is not a new session.
+Each session is its own commit. A day with fewer than four new session commits is a missed day.
+
+Every calendar day, before the first look:
+
+1. Commit `docs/qa/daily/<YYYY-MM-DD>/session-1.md` through `session-4.md`, one commit per session.
+2. Write `handoff/<date>_to-qa-<n>/CLAUDE_TO_QA.md` and `START_HERE.txt`. Point the "▶ Next round" section of `docs/QA_REVIEW.md` at them.
+3. `git bundle create` the branch that contains those commits. Copy `START_HERE.txt`, the brief, and the bundle to `T:/Projects/grok-drop/<date>/`. Kimball still has to put that folder on grok's machine. Do not claim it was sent.
+4. One session per look. Grok writes that session up before starting the next. No Docker, OpenFOAM, Assess, Sweep, or Optimize.
 
 ## Where things are
 

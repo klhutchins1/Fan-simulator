@@ -33,7 +33,10 @@ def stock_fingerprint(flat: dict, *, preview: bool = True) -> str:
         "le_skew_mid", "le_skew_tip", "sickle_mm",
         "max_camber", "camber_root", "camber_mid", "camber_tip", "camber_pos",
         "thickness_root", "thickness_mid", "thickness_tip", "thick_mode", "thick_mm",
-        "le_thick_scale", "te_thick_scale", "section_family", "span_interp",
+        "le_thick_scale", "te_thick_scale",
+        "te_face_root", "te_face_mid", "te_face_tip",
+        "le_face_root", "le_face_mid", "le_face_tip",
+        "section_family", "span_interp",
         "n_span", "n_chord",
         "shroud_thick_mm", "shroud_height_frac",
         "tip_round", "tip_round_start", "cylindrical_tip", "chord_basis", "section_wrap",
@@ -41,6 +44,13 @@ def stock_fingerprint(flat: dict, *, preview: bool = True) -> str:
         "root_embed", "spacing_spread", "spacing_seed",
     )
     payload = {k: flat.get(k) for k in keys}
+    # 0 and a missing key hash the same, so today's outline and Stock caches stay valid.
+    try:
+        blade_z = float(flat.get("blade_z", flat.get("blade_z_mm", 0.0)) or 0.0)
+    except (TypeError, ValueError):
+        blade_z = 0.0
+    if blade_z != 0.0:
+        payload["blade_z"] = blade_z
     payload["_preview"] = bool(preview)
     # Dense stock preview (full loft) must not hit a coarse screen-loft cache entry.
     payload["_preview_dense"] = True

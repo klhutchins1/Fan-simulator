@@ -123,9 +123,16 @@ def rounded_plate(
     camber_pos: float = 0.4,
     te_radius_frac: float = 1.0,
     le_radius_frac: float = 1.0,
+    te_face: float = 1.0,
+    le_face: float = 1.0,
     return_chord_param: bool = False,
 ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """Constant-thickness plate: tunable LE/TE roundness, optional camber (slight face curve).
+
+    ``te_face`` / ``le_face`` are the fraction of the wall still left at the
+    trailing-edge tip and the leading-edge tip (1 = full wall, 0 = that edge
+    meets the chord). Each taper runs from that edge to mid-chord. Roundness
+    still only shapes the chordwise nose; it does not close the wall.
 
     ``{le,te}_radius_frac`` scales the *chordwise* semi-axis of an ellipse that always
     meets the flat faces at ±``t/2`` (1 = circular bullnose, ~0 = sharp knife). A circle
@@ -186,6 +193,19 @@ def rounded_plate(
 
     # Chord parameter before camber (surface X ≈ chord param on the flat plate).
     x_param = np.asarray(loop[:, 0], dtype=float)
+    te = float(np.clip(te_face, 0.0, 1.0))
+    le = float(np.clip(le_face, 0.0, 1.0))
+    if te < 1.0 - 1e-12 or le < 1.0 - 1e-12:
+        # Full wall at mid-chord. Each end closes in a straight line to its face fraction.
+        scale = np.ones_like(x_param)
+        if te < 1.0 - 1e-12:
+            aft = x_param >= 0.5
+            scale[aft] = te + (1.0 - te) * ((1.0 - x_param[aft]) / 0.5)
+        if le < 1.0 - 1e-12:
+            fore = x_param <= 0.5
+            scale[fore] = le + (1.0 - le) * (x_param[fore] / 0.5)
+        loop = loop.copy()
+        loop[:, 1] = loop[:, 1] * scale
 
     m = float(max_camber)
     if m > 1e-9:
@@ -210,6 +230,8 @@ def section_loop_2d(
     n_points: int = 60,
     te_radius_frac: float = 1.0,
     le_radius_frac: float = 1.0,
+    te_face: float = 1.0,
+    le_face: float = 1.0,
     return_chord_param: bool = False,
 ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """Dispatch to NACA or rounded-plate generator."""
@@ -222,6 +244,8 @@ def section_loop_2d(
             camber_pos=camber_pos,
             te_radius_frac=te_radius_frac,
             le_radius_frac=le_radius_frac,
+            te_face=te_face,
+            le_face=le_face,
             return_chord_param=return_chord_param,
         )
     return naca4(

@@ -37,9 +37,11 @@ EDITOR_VARS = (
     "e_skew_mid", "e_skew_tip", "e_smooth_span", "e_winglet_span", "e_winglet_sweep",
     "e_winglet_lean", "e_shroud_thick", "e_shroud_height", "e_tip_round", "e_tip_start",
     "e_tip_notched", "e_tip_notch_depth", "e_cylindrical_tip", "e_chord_basis", "e_section_wrap", "e_hub_radius",
-    "e_tip_radius", "e_hub_height", "e_blade_hub_z", "e_hub_profile", "e_hub_nose",
+    "e_tip_radius", "e_hub_height", "e_blade_hub_z", "e_blade_z", "e_hub_profile", "e_hub_nose",
     "e_thick_mode", "e_thick_mm", "e_thick_root", "e_thick_mid", "e_thick_tip",
-    "e_le_thick", "e_te_thick", "e_section_family", "e_spacing",
+    "e_le_thick", "e_te_thick", "e_te_face_root", "e_te_face_mid", "e_te_face_tip",
+    "e_le_face_root", "e_le_face_mid", "e_le_face_tip",
+    "e_root_embed", "e_section_family", "e_spacing",
     "e_tub_amp", "e_tub_waves", "e_ser_amp", "e_ser_waves", "e_dim_amp",
     "e_dim_rows", "e_dim_cols",
 )
@@ -132,6 +134,7 @@ def bind(session) -> None:
         state.e_tip_radius = float(p.get("tip_radius", 56.5))
         state.e_hub_height = float(p.get("hub_height", 0.0))
         state.e_blade_hub_z = float(p.get("blade_hub_z", p.get("blade_hub_z_mm", 0.0)) or 0.0)
+        state.e_blade_z = float(p.get("blade_z", p.get("blade_z_mm", 0.0)) or 0.0)
         state.e_hub_profile = str(p.get("hub_profile", "cylinder"))
         state.e_hub_nose = float(p.get("hub_nose", 0.0))
         state.e_thick_root = float(p.get("thickness_root", 0.10))
@@ -178,6 +181,13 @@ def bind(session) -> None:
             )
         state.e_le_thick = float(p.get("le_thick_scale", 1.0))
         state.e_te_thick = float(p.get("te_thick_scale", 1.0))
+        state.e_te_face_root = float(p.get("te_face_root", 1.0) if p.get("te_face_root") is not None else 1.0)
+        state.e_te_face_mid = float(p.get("te_face_mid", 1.0) if p.get("te_face_mid") is not None else 1.0)
+        state.e_te_face_tip = float(p.get("te_face_tip", 1.0) if p.get("te_face_tip") is not None else 1.0)
+        state.e_le_face_root = float(p.get("le_face_root", 1.0) if p.get("le_face_root") is not None else 1.0)
+        state.e_le_face_mid = float(p.get("le_face_mid", 1.0) if p.get("le_face_mid") is not None else 1.0)
+        state.e_le_face_tip = float(p.get("le_face_tip", 1.0) if p.get("le_face_tip") is not None else 1.0)
+        state.e_root_embed = float(p.get("root_embed", 2.0) if p.get("root_embed") is not None else 2.0)
         _sf = str(p.get("section_family", "naca") or "naca").lower().strip()
         state.e_section_family = _sf if _sf in ("naca", "plate") else "naca"
         state.e_camber_pos = float(p.get("camber_pos", 0.4))
@@ -250,6 +260,7 @@ def bind(session) -> None:
             tip_radius=state.e_tip_radius,
             hub_height=state.e_hub_height,
             blade_hub_z=float(getattr(state, "e_blade_hub_z", 0.0) or 0.0),
+            blade_z=float(getattr(state, "e_blade_z", 0.0) or 0.0),
             hub_profile=state.e_hub_profile,
             hub_nose=state.e_hub_nose,
             thickness_root=th_r,
@@ -259,6 +270,13 @@ def bind(session) -> None:
             thick_mm=float(getattr(state, "e_thick_mm", 2.0) or 2.0),
             le_thick_scale=float(state.e_le_thick),
             te_thick_scale=float(state.e_te_thick),
+            te_face_root=float(getattr(state, "e_te_face_root", 1.0)),
+            te_face_mid=float(getattr(state, "e_te_face_mid", 1.0)),
+            te_face_tip=float(getattr(state, "e_te_face_tip", 1.0)),
+            le_face_root=float(getattr(state, "e_le_face_root", 1.0)),
+            le_face_mid=float(getattr(state, "e_le_face_mid", 1.0)),
+            le_face_tip=float(getattr(state, "e_le_face_tip", 1.0)),
+            root_embed=float(getattr(state, "e_root_embed", 2.0)),
             section_family=str(state.e_section_family or "naca"),
             spacing_spread=state.e_spacing,
             spacing_seed=0,
@@ -304,6 +322,7 @@ def bind(session) -> None:
             "tip_radius": ("e_tip_radius", float),
             "hub_height": ("e_hub_height", float),
             "blade_hub_z": ("e_blade_hub_z", float),
+            "blade_z": ("e_blade_z", float),
             "hub_profile": ("e_hub_profile", str),
             "hub_nose": ("e_hub_nose", float),
             "thickness_root": ("e_thick_root", float),
@@ -312,6 +331,13 @@ def bind(session) -> None:
             "thick_mm": ("e_thick_mm", float),
             "le_thick_scale": ("e_le_thick", float),
             "te_thick_scale": ("e_te_thick", float),
+            "te_face_root": ("e_te_face_root", float),
+            "te_face_mid": ("e_te_face_mid", float),
+            "te_face_tip": ("e_te_face_tip", float),
+            "le_face_root": ("e_le_face_root", float),
+            "le_face_mid": ("e_le_face_mid", float),
+            "le_face_tip": ("e_le_face_tip", float),
+            "root_embed": ("e_root_embed", float),
             "section_family": ("e_section_family", str),
             "spacing_spread": ("e_spacing", float),
         }
@@ -572,6 +598,12 @@ def bind(session) -> None:
         state.e_section_family = _r.choice(["naca", "naca", "plate"])
         state.e_le_thick = round(_r.uniform(0.6, 1.6), 2)
         state.e_te_thick = round(_r.uniform(0.6, 1.6), 2)
+        state.e_te_face_root = round(_r.uniform(0.3, 1.0), 2)
+        state.e_te_face_mid = round(_r.uniform(0.3, 1.0), 2)
+        state.e_te_face_tip = round(_r.uniform(0.3, 1.0), 2)
+        state.e_le_face_root = round(_r.uniform(0.3, 1.0), 2)
+        state.e_le_face_mid = round(_r.uniform(0.3, 1.0), 2)
+        state.e_le_face_tip = round(_r.uniform(0.3, 1.0), 2)
         state.e_smooth_span = _r.random() < 0.5
         state.e_cylindrical_tip = _r.random() < 0.65
         # Tip TE notches (on/off feature + its depth; depth stays at the 1.5 mm default when off).

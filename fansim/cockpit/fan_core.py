@@ -38,6 +38,8 @@ _log = logging.getLogger(__name__)
 # Reserved trial id for the synthetic published-reference entry in the runs dropdown
 # (well above user-assessed ids, which start at 9000). Selectable, but never scored/saved.
 A12X25_REF_TRIAL = 100000
+# Hub-26 outline copy. Selectable from the same dropdown. Not the Stock button.
+A12X25_OUTLINE_TRIAL = 100001
 
 # Mixed / Volute / CROR are proxy tabs (roadmap 24.3). Simple mode stays on Fan or Prop.
 PROXY_TABS = frozenset({"mixed", "volute", "cror"})
@@ -151,6 +153,7 @@ def apply_state_defaults(session) -> None:
     state.intake_note = ""
     state.intake_note_warn = False
     state.e_blade_hub_z_max = 8.0
+    state.e_blade_z = 0.0
     state.e_hub_height_max = 30.0
     state.e_hub_nose_max = 15.0
     state.fan_subtab = "design"
@@ -387,6 +390,30 @@ def bind(session) -> None:
         )
         return {"title": "◆ Reference · Noctua A12x25 (published)", "value": A12X25_REF_TRIAL}
 
+    def _register_outline_design():
+        """Dropdown entry for the hub-26 copy. Does not replace Stock."""
+        if str(state.fan_model) != "a12x25":
+            by_trial.pop(A12X25_OUTLINE_TRIAL, None)
+            return None
+        try:
+            from fansim.optimize.search_space import outline_blade_flat
+
+            flat = outline_blade_flat()
+        except Exception as exc:  # noqa: BLE001 - outline entry is best-effort
+            log_caught(_log, "outline dropdown entry", exc, level=logging.DEBUG)
+            return None
+        by_trial[A12X25_OUTLINE_TRIAL] = Design(
+            trial=A12X25_OUTLINE_TRIAL,
+            params=dict(flat),
+            objectives={"cfm_free": 0.0, "cfm_load": 0.0, "efficiency": 0.0},
+            feasible=True,
+            is_pareto=False,
+            stl_path=None,
+            extra={"n_blades": flat.get("n_blades"), "fan_model": "a12x25",
+                   "source": "outline", "is_outline": True},
+        )
+        return {"title": "◆ Outline copy · compare with the Noctua", "value": A12X25_OUTLINE_TRIAL}
+
     def refresh_items():
         hub_all = _hub_designs()
         scored = [d for d in hub_all if not d.extra.get("cfd_stale")]
@@ -400,6 +427,9 @@ def bind(session) -> None:
                           "disabled": True})
             items += [_label(d) for d in stale]
         ref_item = _register_reference_design()
+        outline_item = _register_outline_design()
+        if outline_item is not None:
+            items.insert(0, outline_item)
         if ref_item is not None:
             items.insert(0, ref_item)
         state.trial_items = items

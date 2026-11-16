@@ -78,8 +78,18 @@ def bound_ctx(tmp_path, monkeypatch):
         fan_runtime, "asynchronous", SimpleNamespace(create_task=_create_task), raising=False
     )
     ctx = _make_ctx(tmp_path)
+    sessions: list = []
+    real_session = fan_tab.FanSession
+
+    def _capture_session(inner):
+        session = real_session(inner)
+        sessions.append(session)
+        return session
+
+    monkeypatch.setattr(fan_tab, "FanSession", _capture_session)
     fan_tab.setup_fan_tab(ctx)  # binds + runs initial population (refresh_*, readouts)
     ctx._tasks = tasks  # type: ignore[attr-defined]
+    ctx._fan_session = sessions[0]  # type: ignore[attr-defined]
     return ctx
 
 
@@ -140,6 +150,24 @@ def test_randomize_and_fit_are_noops_while_preview_busy(bound_ctx):
     for coro in bound_ctx._tasks:
         coro.close()
     bound_ctx._tasks.clear()
+
+
+def test_editor_keeps_back_edge_and_root_embed(bound_ctx):
+    """The Design tab must hand the back-edge thickness and the hub embed back out."""
+    from fansim.geometry.blade import BladeParams
+    from fansim.optimize.search_space import blade_from_flat, blade_to_flat
+
+    params = BladeParams(section_family="plate", hub_radius=26.0, root_embed=6.5)
+    for station, back_face, front_face in zip(params.stations, (0.0, 0.55, 0.8), (0.2, 0.0, 1.0)):
+        station.te_face = back_face
+        station.le_face = front_face
+    bound_ctx._fan_session._init_editor(blade_to_flat(params))
+    back = blade_from_flat(bound_ctx._fan_session.edit_flat())
+    assert back.root_embed == pytest.approx(6.5)
+    assert back.hub_radius == pytest.approx(26.0)
+    ordered = sorted(back.stations, key=lambda s: s.r_frac)
+    assert [s.te_face for s in ordered] == pytest.approx([0.0, 0.55, 0.8])
+    assert [s.le_face for s in ordered] == pytest.approx([0.2, 0.0, 1.0])
 
 
 def test_randomize_geometry_touches_every_intended_dof(bound_ctx):

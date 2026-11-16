@@ -40,7 +40,7 @@ def blade_overhang_below_hub_mm(params) -> float:
 
 
 def _blade_z_bounds(params) -> tuple[float, float]:
-    from fansim.geometry.blade import _interp_stations, _section_points_3d
+    from fansim.geometry.blade import _interp_stations, _section_points_3d, plate_blade_z_mm
 
     it = _interp_stations(params, params.n_span)
     r0 = params.hub_radius - params.root_embed
@@ -68,6 +68,7 @@ def _blade_z_bounds(params) -> tuple[float, float]:
             le_thick_scale=float(getattr(params, "le_thick_scale", 1.0) or 1.0),
             te_thick_scale=float(getattr(params, "te_thick_scale", 1.0) or 1.0),
             section_family=str(getattr(params, "section_family", "naca") or "naca"),
+            blade_z_mm=plate_blade_z_mm(params),
         )
         zs += [v.z for v in pts]
     lo = min(zs)
