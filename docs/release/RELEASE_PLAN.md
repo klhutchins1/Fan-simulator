@@ -138,8 +138,12 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   (`exports/H7MQ8_a12x25_stock_reference_20261109-220053.stl`); E0MWW t9002 extra. Material PLA+, 0.6 mm nozzle.
 - **P4 The session.** Lane: Kimball. Status: `in progress (Kimball, 2026-11-11)`. T2 27.41 g record-only; T3 FAIL → P6.
   T1 FAIL: H7MQ8 pad tips 36.55 mm in the file (caliper 36.21 mm) will not seat. Still open: T4 tach/phone, T5 12 V rpm, T6 bag. Keep WAV/photos in `validation/prints/H7MQ8/`.
-- **P4a Hub opening.** Lane: Cursor. Status: `done 0beb057`. Branch `hub-opening-3725` (not merged).
+- **P4a Hub opening.** Lane: Cursor. Status: `done 0beb057`. Branch `hub-opening-3725` (0beb057 is on master; checked 2026-11-16).
   Pad tips back on the 37.25 mm circle (the 2026-08-31 opening and the reference STL). `cavity_dia_mm` stays 37.25. Protrude 0.7 → 0.35, equal to the clearance. Wrap, loft, and Stock YAML untouched. Layout tests passed. Fit coupon, no blades: `exports/hub_fit_37.25mm_20261111-215225.stl` (also copied beside the other prints). 6 mm ring, pad tips 37.25 mm, 1.96 cm³. Kimball 2026-11-12: that ring fits the motor better than H7MQ8 and E0MWW; he will sand those two. Selecting A12x25 uses this pad circle (37.25 mm). The class default no longer sticks the pads in 0.7 mm. T1 stays open until a full impeller with this opening is on the frame.
+- **N1 Night runner visibility (Claude, 2026-11-16): `done` (merge of `night-visibility`, gate 707/654/729).** On 11-15 a queued job
+  did not run: the runner fell back to a week-old local master without saying so. Now `runs/night/<date>/runner.log` records the
+  master it followed and why ("FETCH FAILED" if the fetch failed), and `morning_check` reports "APPLY FAILED/SKIPPED" in
+  STATUS.md. Read `runner.log` first if a queued job did not run. Cause of the failed fetch is still unconfirmed.
 - **P5 Write up.** Lane: Claude or Cursor. Status: `blocked (P4)`. Fill the Results table in the pre-registration
   (nothing above it is edited) and put each failed check on this board as its own task.
 - **P6 Enlarge print-id glyphs (T3 FAIL / QA-80).** Lane: Cursor. CPU: day. Status: `done 2bfde35` (code); T3 coupon **needs Kimball**.
