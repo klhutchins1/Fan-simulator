@@ -242,3 +242,25 @@ def test_status_lists_work_outside_the_repo(repo):
     section = status.split("## Work outside the repo", 1)[1]
     assert repo.name in section and "untracked" in section
     assert "hold work outside the repo" in status.split("## Needs an agent", 1)[1]
+
+
+# ---------------------------------------------------------------- morning_check.py: it must say when it could not apply
+
+def test_apply_that_cannot_read_the_queue_says_so_in_status(repo):
+    day = _night(repo)
+    _git(repo, "remote", "set-url", "origin", str(repo.parent / "gone.git"))
+    _git(repo, "update-ref", "-d", "refs/remotes/origin/master")
+    mc.main(["--apply", "--day", str(day)], root=repo)
+    text = (repo / "runs" / "night" / "STATUS.md").read_text()
+    assert "APPLY SKIPPED" in text and "origin/master" in text
+
+
+def test_apply_that_crashes_still_writes_status_and_names_the_error(repo):
+    day = _night(repo)
+    blocker = repo / "runs" / "night" / "wt-morning"
+    blocker.mkdir(parents=True)
+    (blocker / "x.txt").write_text("in the way")
+    mc.main(["--apply", "--day", str(day)], root=repo)
+    text = (repo / "runs" / "night" / "STATUS.md").read_text()
+    assert "APPLY FAILED" in text
+    assert "suite-feat" in text                      # the verdict table is still there
