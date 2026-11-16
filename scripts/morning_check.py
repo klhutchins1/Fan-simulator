@@ -140,12 +140,15 @@ def main(argv: list[str] | None = None, root: Path | None = None) -> int:
     queue_text = _git(root, "show", "origin/master:night/queue.json", check=False).stdout
     jobs = json.loads(queue_text).get("jobs", []) if queue_text else []
 
+    if args.apply and not jobs:
+        pushed = ("APPLY SKIPPED: could not read night/queue.json from origin/master (fetch or ssh problem?). "
+                  "The jobs were not closed and nothing was merged")
     if args.apply and jobs:
         wt = night / "wt-morning"
         if wt.exists():
             _git(root, "worktree", "remove", "--force", str(wt), check=False)
-        _git(root, "worktree", "add", "-q", "--detach", str(wt), "origin/master")
         try:
+            _git(root, "worktree", "add", "-q", "--detach", str(wt), "origin/master")
             for branch in branches_to_merge(jobs, green):
                 tested = {j["id"]: shas.get(j["id"], "") for j in jobs
                           if j.get("branch") == branch and green.get(j["id"]) is True}
@@ -178,6 +181,9 @@ def main(argv: list[str] | None = None, root: Path | None = None) -> int:
                     "PUSH FAILED (master moved?): an agent must close the jobs. " + push.stderr.strip()[:200])
             else:
                 pushed = "nothing to push"
+        except Exception as exc:  # noqa: BLE001  the status file must still be written
+            detail = getattr(exc, "stderr", "") or str(exc)
+            pushed = f"APPLY FAILED: {type(exc).__name__}: {str(detail).strip()[:240]}. The jobs were not closed"
         finally:
             _git(root, "worktree", "remove", "--force", str(wt), check=False)
 
@@ -196,6 +202,8 @@ def main(argv: list[str] | None = None, root: Path | None = None) -> int:
              for i, ok, _ in rows if ok and i in by_id and by_id[i].get("branch")
              and by_id[i]["branch"] not in merges and not by_id[i].get("merge_on_green")
              and by_id[i].get("status") in ("queued", "rerun")]
+    if pushed.startswith("APPLY"):
+        todo.insert(0, f"- {pushed}. Close the jobs in night/queue.json by hand and merge any green branch.")
     lines += ["", "## Needs an agent", "", *(todo or ["- nothing."]), ""]
     night.mkdir(parents=True, exist_ok=True)
     (night / "STATUS.md").write_text("\n".join(lines), encoding="utf-8")

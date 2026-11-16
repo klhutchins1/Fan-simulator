@@ -232,3 +232,25 @@ def test_without_apply_nothing_is_pushed(repo):
     _git(repo, "fetch", "-q", "origin")
     assert _git(repo, "rev-parse", "origin/master") == before
     assert (repo / "runs" / "night" / "STATUS.md").exists()
+
+
+# ---------------------------------------------------------------- morning_check.py: it must say when it could not apply
+
+def test_apply_that_cannot_read_the_queue_says_so_in_status(repo):
+    day = _night(repo)
+    _git(repo, "remote", "set-url", "origin", str(repo.parent / "gone.git"))
+    _git(repo, "update-ref", "-d", "refs/remotes/origin/master")
+    mc.main(["--apply", "--day", str(day)], root=repo)
+    text = (repo / "runs" / "night" / "STATUS.md").read_text()
+    assert "APPLY SKIPPED" in text and "origin/master" in text
+
+
+def test_apply_that_crashes_still_writes_status_and_names_the_error(repo):
+    day = _night(repo)
+    blocker = repo / "runs" / "night" / "wt-morning"
+    blocker.mkdir(parents=True)
+    (blocker / "x.txt").write_text("in the way")
+    mc.main(["--apply", "--day", str(day)], root=repo)
+    text = (repo / "runs" / "night" / "STATUS.md").read_text()
+    assert "APPLY FAILED" in text
+    assert "suite-feat" in text                      # the verdict table is still there
