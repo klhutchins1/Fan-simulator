@@ -132,6 +132,12 @@ N_CGRID_NORMAL = 60
 N_CGRID_WAKE = 32
 R_OUTER = 8.0 * CHORD
 WAKE_LEN = 16.0 * CHORD
+# Longest streamwise wake cell, in wall-normal first-cells. One hex keeps the
+# y+ grading for the whole wake, so 64 cells over 50 chords grew the outlet
+# cell to ~0.66 m (aspect 1.8e6) and simpleFoam died at step 48 on 2026-11-13.
+# 2e4 is a few times the span aspect that already sits on the airfoil (~5.6e3
+# at this Re) and keeps the wake near 1e5 cells instead of 1e6.
+WAKE_STREAM_ASPECT = 20000.0
 
 
 def _grading_last_over_first(first: float, length: float, n: int) -> float:
@@ -347,6 +353,232 @@ def _wake_expansion(length: float, n_req: int, te_cell: float, ratio_max: float)
     )
 
 
+def _reverse_sections(sections: list[tuple[float, float, float]]) -> list[tuple[float, float, float]]:
+    """Same blocks, walked the other way. Expansion becomes first/last."""
+    rev = []
+    for length_frac, cell_frac, expansion in reversed(sections):
+        if abs(expansion) < 1e-30:
+            inv = 1.0
+        else:
+            inv = 1.0 / float(expansion)
+        rev.append((float(length_frac), float(cell_frac), inv))
+    return rev
+
+
+def _sections_from_sizes(sizes: list[float]) -> list[tuple[float, float, float]]:
+    """Group a cell-size list into simpleGrading sections (last/first per block)."""
+    total_l = float(sum(sizes))
+    total_n = len(sizes)
+    if total_n == 0 or total_l <= 0.0:
+        raise ValueError("wake has no cells")
+    groups: list[list[float]] = [[float(sizes[0])]]
+    for nxt in sizes[1:]:
+        nxt = float(nxt)
+        group = groups[-1]
+        if len(group) == 1:
+            group.append(nxt)
+            continue
+        step0 = group[1] / group[0]
+        expected = group[0] * step0 ** len(group)
+        tol = 1e-6 * max(abs(expected), abs(nxt), 1e-30)
+        if abs(nxt - expected) <= tol:
+            group.append(nxt)
+        else:
+            groups.append([nxt])
+    sections = []
+    for group in groups:
+        expansion = 1.0 if len(group) == 1 else group[-1] / group[0]
+        sections.append((sum(group) / total_l, len(group) / total_n, expansion))
+    return sections
+
+
+def _wake_cell_sizes(
+    length: float, n_req: int, te_cell: float, ratio_max: float, max_cell: float,
+) -> list[float]:
+    """TE → outlet cell lengths. First cell matches the foil TE. None exceeds max_cell.
+
+    Grows at ratio_max, then holds that size. n_req is a minimum: the cap adds
+    cells rather than stretching the outlet cell.
+    """
+    length = float(length)
+    te = float(te_cell)
+    cap = max(float(max_cell), te)
+    # Stay a hair under the cap so reconstructed simpleGrading does not
+    # land one ulp over ratio_max (the gate test is <=).
+    ratio = float(ratio_max) * (1.0 - 1e-8)
+    n_req = max(int(n_req), 2)
+    if not (length > 0.0 and te > 0.0 and ratio > 1.0):
+        raise ValueError(
+            f"wake grading needs a positive length, TE cell and ratio > 1 "
+            f"(length {length}, te {te}, ratio {ratio})"
+        )
+    if te >= length:
+        return [length]
+
+    ramp: list[float] = []
+    size = te
+    while len(ramp) <= 100000:
+        used = sum(ramp)
+        if used + size > length * (1.0 + 1e-12):
+            break
+        if size > cap * (1.0 + 1e-9):
+            break
+        ramp.append(size)
+        nxt = size * ratio
+        if nxt > cap * (1.0 + 1e-9):
+            break
+        size = nxt
+    else:
+        raise ValueError("wake ramp did not reach the cell cap")
+
+    remain = length - sum(ramp)
+    folds = 0
+    while remain > length * 1e-12:
+        folds += 1
+        if folds > 100000:
+            raise ValueError("wake plateau did not converge")
+        last = ramp[-1] if ramp else te
+        lo = last / ratio
+        hi = min(cap, last * ratio)
+        if hi < lo * (1.0 - 1e-9):
+            if not ramp:
+                break
+            remain += ramp.pop()
+            continue
+        n_min = max(1, math.ceil(remain / hi - 1e-9))
+        n_max_raw = math.floor(remain / lo + 1e-9)
+        if n_min > n_max_raw:
+            if not ramp:
+                break
+            remain += ramp.pop()
+            continue
+        need = max(0, n_req - len(ramp))
+        n_plat = n_min if need <= n_min else min(n_max_raw, need)
+        cell = remain / n_plat
+        if cell > hi * (1.0 + 1e-6) or cell < lo / (1.0 + 1e-6):
+            if not ramp:
+                break
+            remain += ramp.pop()
+            continue
+        ramp.extend([cell] * n_plat)
+        remain = 0.0
+    if remain > length * 1e-12 or not ramp:
+        raise ValueError(
+            f"cannot fill wake {length:.6g} m from TE cell {te:.6g} m "
+            f"with cells <= {cap:.6g} m and ratio <= {ratio}"
+        )
+    if len(ramp) < n_req:
+        tighter = cap / ratio
+        if tighter > te / ratio and tighter < cap * (1.0 - 1e-12):
+            return _wake_cell_sizes(length, n_req, te, ratio, tighter)
+        raise ValueError(
+            f"wake needs >= {n_req} cells but the TE match and ratio {ratio} "
+            f"only allow {len(ramp)} over {length:.6g} m"
+        )
+    step = _max_step_ratio(ramp)
+    if step > ratio * (1.0 + 1e-4):
+        raise ValueError(f"wake adjacent ratio {step:.6g} exceeds {ratio}")
+    if max(ramp) > cap * (1.0 + 1e-4):
+        raise ValueError(f"wake cell {max(ramp):.6g} m exceeds cap {cap:.6g} m")
+    return ramp
+
+
+def _wake_sections(
+    length: float, n_req: int, te_cell: float, ratio_max: float, max_cell: float,
+) -> tuple[int, list[tuple[float, float, float]]]:
+    """Cells and TE→outlet grading. The other wake edge uses `_reverse_sections`."""
+    sizes = _wake_cell_sizes(length, n_req, te_cell, ratio_max, max_cell)
+    return len(sizes), _sections_from_sizes(sizes)
+
+
+def _block_length(dx0: float, growth: float, n: int) -> float:
+    if n <= 1 or growth <= 1.0 + 1e-12:
+        return float(dx0) * max(int(n), 1)
+    ratio = float(growth) ** (1.0 / (n - 1))
+    if abs(ratio - 1.0) <= 1e-12:
+        return float(dx0) * n
+    return float(dx0) * (ratio ** n - 1.0) / (ratio - 1.0)
+
+
+def _plan_wake_blocks(
+    length: float, dx0: float, h0: float, y_len: float, ny: int, ratio_max: float,
+) -> list[dict]:
+    """Wake blocks from the trailing edge to the outlet.
+
+    One hex cannot thicken the slit spacing as it goes downstream, and holding
+    the y+ cell for 50 chords is the aspect ratio that overflowed simpleFoam.
+    Each block grows that spacing, and the next block starts on the same face.
+    """
+    length = float(length)
+    dx = float(dx0)
+    h = float(h0)
+    ratio = float(ratio_max)
+    if not (length > 0.0 and dx > 0.0 and h > 0.0 and ratio > 1.0):
+        raise ValueError("wake block plan needs a positive length, cells and ratio > 1")
+    n_nom = 12
+    h_cap = float(y_len) / max(int(ny), 1)
+    blocks: list[dict] = []
+    x = 0.0
+    for _ in range(40):
+        if x >= length * (1.0 - 1e-8):
+            break
+        remain = length - x
+        g_max = min(1.0 + (ratio - 1.0) * n_nom, ratio ** (n_nom - 1))
+        if h * g_max > h_cap:
+            g_max = max(1.0, h_cap / h)
+        g_max = max(g_max, 1.0)
+        natural = _block_length(dx, g_max, n_nom)
+        if natural <= remain * (1.0 + 1e-7):
+            growth, n_use, blen = g_max, n_nom, natural
+        elif _block_length(dx, 1.0, n_nom) <= remain:
+            lo, hi = 1.0, g_max
+            for _step in range(60):
+                mid = 0.5 * (lo + hi)
+                if _block_length(dx, mid, n_nom) > remain:
+                    hi = mid
+                else:
+                    lo = mid
+            growth, n_use, blen = lo, n_nom, remain
+        else:
+            n_lo = max(1, math.ceil(remain / (dx * ratio) - 1e-9))
+            n_hi = math.floor(remain / (dx / ratio) + 1e-9)
+            if n_hi >= n_lo:
+                growth, n_use, blen = 1.0, n_lo, remain
+            elif remain / dx <= ratio * (1.0 + 1e-6):
+                growth, n_use, blen = 1.0, 1, remain
+            else:
+                raise ValueError(
+                    f"wake remainder {remain:.6g} m cannot follow cell {dx:.6g} m at ratio {ratio}"
+                )
+        if growth <= 1.0 + 1e-9 or n_use == 1:
+            dx1 = blen / n_use
+            h1 = h
+            step = max(dx1, dx) / min(dx1, dx)
+        else:
+            dx1 = dx * growth
+            h1 = min(h * growth, h_cap)
+            step = growth ** (1.0 / (n_use - 1))
+        if step > ratio * (1.0 + 1e-4):
+            raise ValueError(f"wake block step {step:.4g} exceeds {ratio}")
+        blocks.append({
+            "x0": x,
+            "length": float(blen),
+            "n": int(n_use),
+            "dx0": dx,
+            "dx1": dx1,
+            "h0": h,
+            "h1": h1,
+        })
+        x += blen
+        dx = dx1
+        h = h1
+    else:
+        raise ValueError("wake block plan did not reach the outlet")
+    if abs(x - length) / length > 1e-5:
+        raise ValueError(f"wake blocks cover {x:.6g} m of {length:.6g} m")
+    return blocks
+
+
 def _normal_grading(re: float, r_outer: float, n_normal: int, yplus_target: float, growth_cap: float | None):
     """Return (n_normal, last/first, first-cell metres). Growth cap adds cells, not y+."""
     ds = wall_spacing_m(re, yplus_target=yplus_target)
@@ -397,6 +629,7 @@ def _cgrid_block_mesh_dict(
     n_wake = N_CGRID_WAKE if n_wake is None else int(n_wake)
     corners, splines = _cgrid_geometry(section, r_outer, wake_len)
     ny, gy, ds = _normal_grading(re, r_outer, n_normal_req, yplus_target, normal_growth)
+    wake_blocks = None
     if end_cell_frac is None:
         nx_lo = nx_hi = n_tangent
         nw = n_wake
@@ -414,22 +647,121 @@ def _cgrid_block_mesh_dict(
         te_lo = _sizes_from_sections(len_lo, nx_lo, sec_lo)[0]
         te_hi = _sizes_from_sections(len_hi, nx_hi, sec_hi)[-1]
         te_cell = max(te_lo, te_hi)
-        nw, wake_exp = _wake_expansion(wake_len, n_wake, te_cell, ratio_max)
+        # One rectangular wake block. Thickening the slit in later blocks made
+        # 89-degree faces and simpleFoam died at step 8. A 5 cm outlet cell
+        # (aspect ~1.4e5) still grew a transverse mode. Cap at the span so no
+        # wake cell is worse than the airfoil's own span aspect (~5.6e3).
+        wake_cap = min(SPAN, 8000.0 * ds)
+        nw, wake_sec = _wake_sections(wake_len, n_wake, te_cell, ratio_max, wake_cap)
         grade_lo = _fmt_tangential(sec_lo, gy)
         grade_hi = _fmt_tangential(sec_hi, gy)
-        grade_wlo = _fmt_tangential(1.0 / wake_exp, gy)
-        grade_whi = _fmt_tangential(wake_exp, gy)
+        grade_wlo = _fmt_tangential(_reverse_sections(wake_sec), gy)
+        grade_whi = _fmt_tangential(wake_sec, gy)
+        wake_blocks = None
     verts: list[str] = []
     for z in (0.0, SPAN):
         for p in corners:
             verts.append(f"    {_pt(p, z)}")
     # z=0: 0..9 as in _cgrid_geometry; z=SPAN: +10
-    hexes = [
+    def _ids(seq) -> str:
+        return "(" + " ".join(str(int(i)) for i in seq) + ")"
+
+    foil_hexes = [
         f"    hex (0 1 3 4 10 11 13 14) ({nx_lo} {ny} 1) {grade_lo}",
         f"    hex (1 8 6 3 11 18 16 13) ({nx_hi} {ny} 1) {grade_hi}",
-        f"    hex (2 0 4 5 12 10 14 15) ({nw} {ny} 1) {grade_wlo}",
-        f"    hex (8 9 7 6 18 19 17 16) ({nw} {ny} 1) {grade_whi}",
     ]
+    if wake_blocks is None:
+        hexes = [
+            *foil_hexes,
+            f"    hex (2 0 4 5 12 10 14 15) ({nw} {ny} 1) {grade_wlo}",
+            f"    hex (8 9 7 6 18 19 17 16) ({nw} {ny} 1) {grade_whi}",
+        ]
+        far_faces = ["(4 5 15 14)", "(6 16 17 7)"]
+        slit_lo = ["(2 0 10 12)"]
+        slit_hi = ["(8 9 19 18)"]
+        front_faces = ["(10 11 13 14)", "(11 18 16 13)", "(12 10 14 15)", "(18 19 17 16)"]
+        back_faces = ["(0 4 3 1)", "(1 3 6 8)", "(2 5 4 0)", "(8 6 7 9)"]
+    else:
+        te_x = float(corners[0][0])
+        y_lo = float(corners[4][1])
+        y_hi = float(corners[6][1])
+        y_edge = abs(y_lo)
+        xs = [te_x]
+        for block in wake_blocks:
+            xs.append(xs[-1] + float(block["length"]))
+        heights = [float(wake_blocks[0]["h0"])]
+        for block in wake_blocks:
+            heights.append(float(block["h1"]))
+        stations: list[dict] = []
+        next_id = 20
+        for k in range(len(xs)):
+            if k == 0:
+                stations.append({
+                    "slo": 0, "flo": 4, "shi": 8, "fhi": 6,
+                    "zslo": 10, "zflo": 14, "zshi": 18, "zfhi": 16,
+                })
+                continue
+            if k == len(xs) - 1:
+                stations.append({
+                    "slo": 2, "flo": 5, "shi": 9, "fhi": 7,
+                    "zslo": 12, "zflo": 15, "zshi": 19, "zfhi": 17,
+                })
+                continue
+            x = xs[k]
+            ids: dict[str, int] = {}
+            for key, y in (("slo", 0.0), ("flo", y_lo), ("shi", 0.0), ("fhi", y_hi)):
+                ids[key] = next_id
+                verts.append(f"    {_pt(np.array([x, y]), 0.0)}")
+                next_id += 1
+            for key, y in (("slo", 0.0), ("flo", y_lo), ("shi", 0.0), ("fhi", y_hi)):
+                ids["z" + key] = next_id
+                verts.append(f"    {_pt(np.array([x, y]), SPAN)}")
+                next_id += 1
+            stations.append(ids)
+        # Station 0 is the foil's trailing-edge edge, so it must use the foil's
+        # expansion or blockMesh cannot merge the points.
+        grades = [gy]
+        grades.extend(
+            _grading_last_over_first(heights[k], y_edge, ny) for k in range(1, len(xs))
+        )
+        hexes = list(foil_hexes)
+        far_faces = []
+        slit_lo = []
+        slit_hi = []
+        front_faces = ["(10 11 13 14)", "(11 18 16 13)"]
+        back_faces = ["(0 4 3 1)", "(1 3 6 8)"]
+        for i, block in enumerate(wake_blocks):
+            te_s, out_s = stations[i], stations[i + 1]
+            n_x = int(block["n"])
+            fwd = 1.0 if n_x == 1 else float(block["dx1"]) / float(block["dx0"])
+            back = 1.0 if fwd == 0.0 else 1.0 / fwd
+            y_te, y_out = grades[i], grades[i + 1]
+
+            def _edges(xexp: float, y0: float, y1: float, lower: bool) -> str:
+                # OpenFOAM edge order for the four wall-normal edges is
+                # 0-3, 1-2, 5-6, 4-7 (the spanwise pair is swapped).
+                ys = (y1, y0, y0, y1) if lower else (y0, y1, y1, y0)
+                nums = (xexp, xexp, xexp, xexp, *ys, 1.0, 1.0, 1.0, 1.0)
+                return "edgeGrading (" + " ".join(f"{v:.16g}" for v in nums) + ")"
+
+            lo = (
+                out_s["slo"], te_s["slo"], te_s["flo"], out_s["flo"],
+                out_s["zslo"], te_s["zslo"], te_s["zflo"], out_s["zflo"],
+            )
+            hi = (
+                te_s["shi"], out_s["shi"], out_s["fhi"], te_s["fhi"],
+                te_s["zshi"], out_s["zshi"], out_s["zfhi"], te_s["zfhi"],
+            )
+            hexes.append(f"    hex {_ids(lo)} ({n_x} {ny} 1) {_edges(back, y_te, y_out, True)}")
+            hexes.append(f"    hex {_ids(hi)} ({n_x} {ny} 1) {_edges(fwd, y_te, y_out, False)}")
+            far_faces.append(_ids((te_s["flo"], out_s["flo"], out_s["zflo"], te_s["zflo"])))
+            far_faces.append(_ids((te_s["fhi"], te_s["zfhi"], out_s["zfhi"], out_s["fhi"])))
+            slit_lo.append(_ids((out_s["slo"], te_s["slo"], te_s["zslo"], out_s["zslo"])))
+            slit_hi.append(_ids((te_s["shi"], out_s["shi"], out_s["zshi"], te_s["zshi"])))
+            front_faces.append(_ids((out_s["zslo"], te_s["zslo"], te_s["zflo"], out_s["zflo"])))
+            front_faces.append(_ids((te_s["zshi"], out_s["zshi"], out_s["zfhi"], te_s["zfhi"])))
+            back_faces.append(_ids((out_s["slo"], out_s["flo"], te_s["flo"], te_s["slo"])))
+            back_faces.append(_ids((te_s["shi"], te_s["fhi"], out_s["fhi"], out_s["shi"])))
     edge_lines = ["edges", "("]
     for (a, b), mid in splines.items():
         if len(mid) == 0:
@@ -472,29 +804,24 @@ def _cgrid_block_mesh_dict(
         "        type patch;",
         "        faces",
         "        (",
-            "            (4 14 13 3)",
-            "            (3 13 16 6)",
-            "            (4 5 15 14)",
-            "            (6 16 17 7)",
-            "        );",
-            "    }",
-            "    outlet",
-            "    {",
-            "        type patch;",
-            "        faces",
-            "        (",
-            "            (5 2 12 15)",
-            "            (9 7 17 19)",
-            "        );",
-            "    }",
-        "    wakeLower { type patch; faces ((2 0 10 12)); }",
-        "    wakeUpper { type patch; faces ((8 9 19 18)); }",
-        "    front { type empty; faces ("
-        "(10 11 13 14) (11 18 16 13) (12 10 14 15) (18 19 17 16)"
-        "); }",
-        "    back  { type empty; faces ("
-        "(0 4 3 1) (1 3 6 8) (2 5 4 0) (8 6 7 9)"
-        "); }",
+        "            (4 14 13 3)",
+        "            (3 13 16 6)",
+        *[f"            {face}" for face in far_faces],
+        "        );",
+        "    }",
+        "    outlet",
+        "    {",
+        "        type patch;",
+        "        faces",
+        "        (",
+        "            (5 2 12 15)",
+        "            (9 7 17 19)",
+        "        );",
+        "    }",
+        "    wakeLower { type patch; faces (" + " ".join(slit_lo) + "); }",
+        "    wakeUpper { type patch; faces (" + " ".join(slit_hi) + "); }",
+        "    front { type empty; faces (" + " ".join(front_faces) + "); }",
+        "    back  { type empty; faces (" + " ".join(back_faces) + "); }",
         ");",
         "mergePatchPairs",
         "(",
@@ -758,7 +1085,11 @@ def write_case(
     (case / "system" / "fvSchemes").write_text("\n".join([
         _foam("dictionary", "fvSchemes"),
         "ddtSchemes { default steadyState; }",
-        "gradSchemes { default Gauss linear; }",
+        (
+            "gradSchemes { default cellLimited Gauss linear 1; }"
+            if has_outlet else
+            "gradSchemes { default Gauss linear; }"
+        ),
         "divSchemes",
         "{",
         "    default none;",
@@ -776,12 +1107,26 @@ def write_case(
         "",
     ]), encoding="utf-8")
 
+    # The 50-chord y+ mesh diverges under plain SIMPLE (Cl left the physical
+    # range by step 18). A limited gradient, DIC smoother and SIMPLEC reach a
+    # physical state, but U relaxation 0.5 lets a transverse mode run away
+    # after step 100. Relaxation 0.15 finishes 200 steps: Cl about 0.10, Cd
+    # about 0.046, y+ max 0.13. Lift still oscillates, so this is not a
+    # converged 0 degree point.
     (case / "system" / "fvSolution").write_text("\n".join([
         _foam("dictionary", "fvSolution"),
         "solvers",
         "{",
-        "    p { solver GAMG; smoother GaussSeidel; tolerance 1e-7; relTol 0.01; }",
-        "    Phi { solver PCG; preconditioner DIC; tolerance 1e-7; relTol 0.05; }",
+        (
+            "    p { solver GAMG; smoother DICGaussSeidel; tolerance 1e-8; relTol 0.001; maxIter 300; }"
+            if has_outlet else
+            "    p { solver GAMG; smoother GaussSeidel; tolerance 1e-7; relTol 0.01; }"
+        ),
+        (
+            "    Phi { solver GAMG; smoother DICGaussSeidel; tolerance 1e-8; relTol 0.01; maxIter 300; }"
+            if has_outlet else
+            "    Phi { solver PCG; preconditioner DIC; tolerance 1e-7; relTol 0.05; }"
+        ),
         (
             "    \"(U|k|omega)\" { solver smoothSolver; smoother symGaussSeidel; "
             "tolerance 1e-8; relTol 0.1; }"
@@ -792,6 +1137,7 @@ def write_case(
         "SIMPLE",
         "{",
         f"    nNonOrthogonalCorrectors {2 if has_outlet else 1};",
+        "    consistent      yes;" if has_outlet else "    consistent      no;",
         (
             "    residualControl {};"
             if has_outlet else
@@ -801,8 +1147,12 @@ def write_case(
         "}",
         "relaxationFactors",
         "{",
-        "    fields { p 0.3; }",
-        "    equations { U 0.7; k 0.7; omega 0.7; " + extra_relax + "}",
+        "    fields { p 0.1; }" if has_outlet else "    fields { p 0.3; }",
+        (
+            "    equations { U 0.15; k 0.15; omega 0.15; " + extra_relax + "}"
+            if has_outlet else
+            "    equations { U 0.7; k 0.7; omega 0.7; " + extra_relax + "}"
+        ),
         "}",
         "",
     ]), encoding="utf-8")
@@ -1089,7 +1439,8 @@ def parse_cli(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--cgrid-normal", type=int, default=N_CGRID_NORMAL,
                     help="C-grid cells from the wall to the far field (default 60)")
     ap.add_argument("--cgrid-wake", type=int, default=N_CGRID_WAKE,
-                    help="C-grid cells along the wake (default 32)")
+                    help="minimum C-grid cells along the wake (default 32); "
+                         "raised when clustering would make the outlet cell longer than the span")
     ap.add_argument("--cgrid-far", type=float, default=R_OUTER / CHORD,
                     help="far-field radius in chords (default 8)")
     ap.add_argument("--cgrid-wake-len", type=float, default=WAKE_LEN / CHORD,
