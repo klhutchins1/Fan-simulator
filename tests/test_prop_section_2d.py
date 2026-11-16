@@ -211,6 +211,25 @@ def test_cgrid_is_wake_cut_not_trailing_edge_o(tmp_path):
     assert "outlet" in block
 
 
+def test_cgrid_schemes_stay_finite_on_a_50_chord_mesh(tmp_path):
+    """Unlimited gradients blow up the 50-chord gate mesh around step 18.
+
+    A limited gradient keeps the same mesh finite, and the pressure smoother
+    has to be DICGaussSeidel or the stiff system never actually converges.
+    """
+    case = ps.write_case(
+        tmp_path / "cgrid_scheme", alpha_deg=0.0, model="kOmegaSST",
+        section="0012", re=6.0e6, mesh="cgrid")
+    schemes = (case / "system" / "fvSchemes").read_text(encoding="utf-8")
+    sol = (case / "system" / "fvSolution").read_text(encoding="utf-8")
+    assert "cellLimited Gauss linear 1" in schemes
+    assert "smoother DICGaussSeidel" in sol
+    assert "smoother GaussSeidel;" not in sol
+    assert "consistent      yes;" in sol
+    assert "fields { p 0.1; }" in sol
+    assert "equations { U 0.15; k 0.15; omega 0.15;" in sol
+
+
 def test_cgrid_keeps_re_without_supersonic_u(tmp_path):
     """Incompressible similarity: Re 6e6 at U=1 m/s, not physical U≈900 m/s."""
     case = ps.write_case(
@@ -395,7 +414,7 @@ def measure_cgrid(block_mesh_text: str, chord: float) -> dict:
     for raw in re.findall(r"\(([^()]*)\)", vsec):
         parts = raw.split()
         verts.append((float(parts[0]), float(parts[1]), float(parts[2])))
-    xy = [(x, y) for x, y, _z in verts[:10]]
+    xy = [(x, y) for x, y, _z in verts]
 
     splines: dict[tuple[int, int], list[tuple[float, float]]] = {}
     for line in block_mesh_text.splitlines():
@@ -431,20 +450,35 @@ def measure_cgrid(block_mesh_text: str, chord: float) -> dict:
         close_v = _matching_paren(block_mesh_text, open_v)
         open_n = block_mesh_text.find("(", close_v)
         close_n = _matching_paren(block_mesh_text, open_n)
-        g_at = block_mesh_text.find("simpleGrading", close_n)
-        open_g = block_mesh_text.find("(", g_at)
-        close_g = _matching_paren(block_mesh_text, open_g)
+        line_end = block_mesh_text.find("\n", close_n)
+        chunk = block_mesh_text[close_n: line_end if line_end > 0 else len(block_mesh_text)]
+        if "edgeGrading" in chunk:
+            g_at = chunk.find("edgeGrading")
+            open_g = block_mesh_text.find("(", close_n + g_at)
+            close_g = _matching_paren(block_mesh_text, open_g)
+            body = block_mesh_text[open_g + 1:close_g]
+            grading = []
+            gi = 0
+            while len(grading) < 12:
+                item, gi = _parse_grading_expr(body, gi)
+                if item is None:
+                    break
+                grading.append(item)
+            if len(grading) != 12:
+                raise ValueError(f"edgeGrading needs 12 edges, got {len(grading)}")
+        else:
+            g_at = block_mesh_text.find("simpleGrading", close_n)
+            open_g = block_mesh_text.find("(", g_at)
+            close_g = _matching_paren(block_mesh_text, open_g)
+            grading = _grading_directions(block_mesh_text[open_g + 1:close_g])
         ids = [int(tok) for tok in block_mesh_text[open_v + 1:close_v].split()]
         counts = [int(tok) for tok in block_mesh_text[open_n + 1:close_n].split()]
-        grading = _grading_directions(block_mesh_text[open_g + 1:close_g])
         hexes.append({"ids": ids, "counts": counts, "grading": grading})
         cursor = close_g
 
     by_edge = {(h["ids"][0], h["ids"][1]): h for h in hexes}
     lower = by_edge[(0, 1)]
     upper = by_edge[(1, 8)]
-    wake_lo = by_edge[(2, 0)]
-    wake_hi = by_edge[(8, 9)]
 
     def tangential(hex_rec) -> list[float]:
         a, b = hex_rec["ids"][0], hex_rec["ids"][1]
@@ -452,13 +486,65 @@ def measure_cgrid(block_mesh_text: str, chord: float) -> dict:
 
     lo = tangential(lower)
     up = tangential(upper)
-    wlo = tangential(wake_lo)
-    whi = tangential(wake_hi)
+    span = abs(verts[10][2] - verts[0][2]) if len(verts) > 10 else 0.0
+    foil_keys = {(0, 1), (1, 8)}
+    wakes = [h for h in hexes if (h["ids"][0], h["ids"][1]) not in foil_keys]
+    lower_wakes = sorted(
+        (h for h in wakes if xy[h["ids"][0]][0] > xy[h["ids"][1]][0]),
+        key=lambda h: xy[h["ids"][1]][0],
+    )
+    upper_wakes = sorted(
+        (h for h in wakes if xy[h["ids"][0]][0] < xy[h["ids"][1]][0]),
+        key=lambda h: xy[h["ids"][0]][0],
+    )
+
+    def _end_heights(hex_rec) -> tuple[float, float]:
+        """First-cell height on the local-0 side and the local-1 side."""
+        grading = hex_rec["grading"]
+        n_y = hex_rec["counts"][1]
+        if len(grading) == 3:
+            height = _direction_cell_sizes(
+                edge_length(hex_rec["ids"][0], hex_rec["ids"][3]), n_y, grading[1],
+            )[0]
+            return height, height
+        h0 = _direction_cell_sizes(
+            edge_length(hex_rec["ids"][0], hex_rec["ids"][3]), n_y, grading[4],
+        )[0]
+        h1 = _direction_cell_sizes(
+            edge_length(hex_rec["ids"][1], hex_rec["ids"][2]), n_y, grading[5],
+        )[0]
+        return h0, h1
+
+    def _chain(blocks: list[dict], lower_block: bool) -> tuple[list[float], list[float]]:
+        sizes: list[float] = []
+        aspects: list[float] = []
+        for hex_rec in blocks:
+            raw = tangential(hex_rec)
+            h_local0, h_local1 = _end_heights(hex_rec)
+            if lower_block:
+                seq = list(reversed(raw))
+                h_te, h_out = h_local1, h_local0
+            else:
+                seq = list(raw)
+                h_te, h_out = h_local0, h_local1
+            n_cells = len(seq)
+            for j, dx in enumerate(seq):
+                xi = 0.5 if n_cells <= 1 else j / (n_cells - 1)
+                height = (1.0 - xi) * h_te + xi * h_out
+                edges = (abs(dx), abs(height), span)
+                short = min(edges)
+                aspects.append(float("inf") if short <= 0.0 else max(edges) / short)
+            sizes.extend(seq)
+        return sizes, aspects
+
+    wlo, asp_lo = _chain(lower_wakes, True)
+    whi, asp_hi = _chain(upper_wakes, False)
+    wake_slit_aspect = max(asp_lo + asp_hi)
     # Lower wall runs TE → LE. Upper wall runs LE → TE.
-    # Lower wake runs outlet → TE. Upper wake runs TE → outlet.
+    # Wake chains are TE → outlet on both sides.
     le_cell = max(lo[-1], up[0])
     te_cell = max(lo[0], up[-1])
-    foil_wake = max(_size_ratio(lo[0], wlo[-1]), _size_ratio(up[-1], whi[0]))
+    foil_wake = max(_size_ratio(lo[0], wlo[0]), _size_ratio(up[-1], whi[0]))
     adjacent = max(
         _max_step_ratio(lo),
         _max_step_ratio(up),
@@ -466,7 +552,7 @@ def measure_cgrid(block_mesh_text: str, chord: float) -> dict:
         _max_step_ratio(whi),
         foil_wake,
         _size_ratio(lo[-1], up[0]),
-        _size_ratio(wlo[-1], whi[0]),
+        _size_ratio(wlo[0], whi[0]),
     )
     ny = lower["counts"][1]
     gy = float(lower["grading"][1])
@@ -474,10 +560,13 @@ def measure_cgrid(block_mesh_text: str, chord: float) -> dict:
     centre = (0.25 * chord, 0.0)
     r_outer = float(np.hypot(xy[3][0] - centre[0], xy[3][1] - centre[1]))
     wake_len = float(xy[2][0] - xy[0][0])
+    wake_cell_max = max(max(wlo), max(whi))
     return {
         "n_tangent": lower["counts"][0],
         "n_normal": ny,
-        "n_wake": wake_lo["counts"][0],
+        "n_wake": sum(h["counts"][0] for h in lower_wakes),
+        "wake_cell_max": wake_cell_max,
+        "wake_slit_aspect": wake_slit_aspect,
         "n_tangent_upper": upper["counts"][0],
         "r_outer": r_outer,
         "wake_len": wake_len,
@@ -489,8 +578,8 @@ def measure_cgrid(block_mesh_text: str, chord: float) -> dict:
         "foil_wake_ratio": foil_wake,
         "normal_growth": normal_growth,
         "foil_expansion": lower["grading"][0],
-        "wake_lower_expansion": wake_lo["grading"][0],
-        "wake_upper_expansion": wake_hi["grading"][0],
+        "wake_lower_expansion": lower_wakes[0]["grading"][0],
+        "wake_upper_expansion": upper_wakes[0]["grading"][0],
     }
 
 
@@ -559,6 +648,12 @@ def test_a0c_cgrid_flags_meet_geometric_gate_and_defaults_stay(tmp_path):
     assert gate["normal_growth"] <= 1.15, gate
     assert gate["r_outer"] >= 50 * chord - 1e-9, gate
     assert gate["wake_len"] >= 50 * chord - 1e-9, gate
+    assert gate["n_wake"] >= 64, gate
+    # 64 cells over 50 chords grew a 0.66 m outlet cell (aspect 1.8e6) and
+    # simpleFoam died. The outlet cell is capped at the span, so the wake
+    # aspect stays in the airfoil's own band (~5.6e3 here).
+    assert gate["wake_slit_aspect"] <= 8000.0, gate
+    assert gate["n_wake"] <= 4000, gate
     ctrl = (case / "system" / "controlDict").read_text(encoding="utf-8")
     assert re.search(r"endTime\s+10000\s*;", ctrl)
 
