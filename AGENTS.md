@@ -41,6 +41,34 @@ This is a desktop tool for designing 3-D-printable fans and propellers. It has a
    that unblock a CFD validation run ahead of wording and packaging. If tonight's queue has no CFD job, the next
    task is whichever one produces one.
 
+## Where work lives (every tool: Claude, Cursor, grok, scripts)
+
+The repo on GitHub is the only shared record. Work that is not committed **and pushed** is invisible to the other
+agents, the gate, the night runner and Kimball. On 2026-11-15 about 400 files and three branches were found that
+existed on this machine only. These rules stop that.
+
+1. **One task, one worktree, one branch.** Start with
+   `git worktree add T:/Projects/fansim-<task> -b <branch> origin/master` and work only there.
+2. **The main checkout `T:/Projects/Fan Simulator` stays on `master` and clean.** Nobody edits, commits or unpacks
+   files in it. Its only job is `git pull` and holding the gitignored `runs/` results.
+3. **Push at the end of every session**, finished or not. Unfinished work gets a `wip:` commit, the push, and a
+   `paused` status with a Resume note on the board (see "Running out of tokens"). A branch not on GitHub is lost work.
+4. **The board, `docs/QA_REVIEW.md`, pre-registrations and rulings are edited on a branch and merged to master**, never
+   left edited in a checkout. No `.bak` copies; git is the backup.
+5. **A pre-registration counts only once it is committed in this repo and pushed**, before the data. A commit in
+   another clone or sandbox (for example grok's `/workspace/...`) proves nothing here.
+6. **grok returns work as git, not loose files.** Each round's `handoff/<date>_from-qa-<n>/` holds `from-qa.bundle`,
+   a git bundle of every branch grok committed since the master it was given (its round report, notes, patches,
+   pre-registrations). The lead fetches it onto `qa/<round>` and merges it with `--no-ff`. Files copied loose into a
+   checkout are not a delivery. `CLAUDE_TO_QA.md` for each round must say this.
+7. **Scratch files, logs and test output go in the worktree's gitignored `runs/` or the tool's temp folder**, never
+   loose in `T:/Projects` or committed.
+8. **Remove a worktree once its branch is merged** (`git worktree remove <path>`). Delete the branch only if it is on
+   GitHub.
+9. **Check before you stop:** `.venv\Scripts\python.exe scripts\stray_work.py` lists every worktree with uncommitted,
+   unpushed or branchless work. It should list nothing that is yours. `runs/night/STATUS.md` repeats the list every
+   morning under "Work outside the repo".
+
 ## Night jobs (how heavy work gets run)
 
 - **Nights are for CFD and other long jobs.** Test suites run the same day with `scripts/gate.py` (rule 4).
