@@ -71,19 +71,23 @@ def test_blade_z_does_not_move_the_hub_or_naca():
     assert _section_z(naca) == pytest.approx(z_naca)
 
 
-def test_blade_z_round_trips_and_outline_default_is_zero():
+def test_blade_z_round_trips_and_outline_root_drops_onto_the_hub():
     p = BladeParams(section_family="plate", hub_height_mm=16.5, blade_z_mm=-1.5)
     flat = blade_to_flat(p)
     assert flat["blade_z"] == pytest.approx(-1.5)
     assert blade_from_flat(flat).blade_z_mm == pytest.approx(-1.5)
     assert blade_from_flat({**flat, "blade_z": 0.0}).blade_z_mm == pytest.approx(0.0)
 
-    outline = load_blade_params(ROOT / "config" / "problems" / "a12x25_outline.yaml")
+    outline_path = ROOT / "config" / "problems" / "a12x25_outline.yaml"
+    outline = load_blade_params(outline_path)
     assert outline.section_family == "plate"
-    assert outline.blade_z_mm == pytest.approx(0.0)
-    assert "blade_z_mm" not in (ROOT / "config" / "problems" / "a12x25_outline.yaml").read_text(
-        encoding="utf-8"
-    )
+    # Gap on outline_copy_20261115.stl: root bottom -9.85 mm, hub bottom -12.22 mm.
+    assert outline.blade_z_mm == pytest.approx(-2.37)
+    assert "blade_z_mm: -2.37" in outline_path.read_text(encoding="utf-8")
+
+    parked = dataclasses.replace(outline, blade_z_mm=0.0)
+    assert min(_section_z(outline)) == pytest.approx(min(_section_z(parked)) - 2.37)
+    assert _hub_axial_range(outline) == pytest.approx(_hub_axial_range(parked))
 
 
 def test_design_tab_exposes_blade_height_slider():

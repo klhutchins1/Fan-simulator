@@ -7,6 +7,7 @@ reference_build: false
 hub_axial_margin: 1.5
 hub_height_mm: 16.5
 blade_hub_z_mm: 0.0
+blade_z_mm: -2.37
 hub_profile: cylinder
 hub_nose_mm: 0.0
 rpm: 2000.0
