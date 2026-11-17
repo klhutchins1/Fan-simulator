@@ -469,9 +469,10 @@
     "--tb=line"
    ],
    "max_hours": 3,
-   "status": "queued",
+   "status": "done",
    "merge_on_green": true,
-   "why": "merge gate for claude/contain-work (AGENTS.md 'Where work lives', scripts/stray_work.py in STATUS.md, board W1) at 46e2fe6. Day gate 2026-11-15 was red on one load timeout only (test_isolated_build_succeeds, 120 s STL build while 3 chunks ran); the branch touches no geometry code. Queued at night because Claude may not be back in the morning."
+   "why": "merge gate for claude/contain-work (AGENTS.md 'Where work lives', scripts/stray_work.py in STATUS.md, board W1) at 46e2fe6. Day gate 2026-11-15 was red on one load timeout only (test_isolated_build_succeeds, 120 s STL build while 3 chunks ran); the branch touches no geometry code. Queued at night because Claude may not be back in the morning.",
+   "note": "2026-11-16: chunk 0: passed (teardown exit 3221226356): 721 passed, 5 skipped, 4 deselected in 1768.76s (0:29:28); chunk 1: passed (teardown exit 3221225477): 634 passed, 13 skipped, 7 deselected in 3754.45s (1:02:34); chunk 2: passed (teardown exit 3221225477): 737 passed, 3 skipped, 12 deselected, 1 xfailed i Not merged: master changed code since this branch forked: merge master into the branch and gate again."
   }
  ]
 }
