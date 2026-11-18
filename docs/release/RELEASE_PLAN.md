@@ -386,7 +386,7 @@ Kimball's.
   - **R2.5c runs.** Lane: night. Status: `frozen for v0.1.0`.
 - **R2.7 Label pass for the four unvalidated surfaces (Kimball decision 2026-11-15).** Lane: Cursor. CPU: day.
   Status: `in progress (Claude, 2026-11-17)`. One branch, one gate. Branch `claude/r27-labels`.
-  - 2026-11-17 (Claude): landed on the branch (`83d7b4d`), not merged yet. The label is on every tab tooltip (Prop
+  - 2026-11-17 (Claude): landed on the branch (`ee6bd0e`), not merged yet. Also labels the CROR and Volute point inspectors (as Mixed's) and keeps the CROR README sidecar out of the export list. The label is on every tab tooltip (Prop
     tooltip says the optional CFD check is experimental), next to every Assess / Optimize / CFD-refine result, and in
     new CROR and Volute export README sidecars. Volute's "ranking only, unvalidated" is now the standard words. Labelled
     completion messages lose their ✓ (existing rule in `test_ui_says_what_it_does`). README Known limits has one
