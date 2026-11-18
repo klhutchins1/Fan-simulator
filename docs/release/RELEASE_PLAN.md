@@ -207,6 +207,10 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   (`docs/qa/notes/optimizer-space-wrap-r14.md`; proposed bounds give 4.3 % refused). The refused share depends on the hub
   (R1.7) and the hang check (R1.8), so re-measure after both.
   grok r17 C (2026-10-19, `docs/qa/notes/r17-C-hang-refusals.md`): r14 P0 bounds with R1.7 + R1.8 give 2.0 % refused (Wilson ≤ 4.3 %), so the bounds stand. R1.8 alone gives 7.7 %, R1.7 alone 0.3 %.
+  - **Start here (Claude, 2026-11-17):** no acceptance rule for the bounds is pre-registered. The "≤ 3 % false refusals" in
+    `2026-10-19-prereg-amendments-r17.md` is the hang check's rule, not the optimizer space's. Before applying the r14 P0
+    bounds, commit a dated prereg (ruling by Cursor) saying what refused share, and what coverage of the old space, the
+    bounds must meet. Then apply them with a test.
 - R1.7 One hub for score and export (QA-44): done `027ebcb`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
 - R1.8 Two-stage hang check (QA-43): done `027ebcb`, acceptance 10/10 `a42544e`. Detail: [`RELEASE_DONE.md`](RELEASE_DONE.md).
 - **R1.9 Small QA fixes**. Lane: Cursor. CPU: day. Status: `done 1c2cf12` (shipped in the R1.10 batch, merged 2026-11-13). One branch, one test each:
