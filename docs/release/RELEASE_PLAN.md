@@ -385,7 +385,7 @@ Kimball's.
     - Step 0, then `validation/reference/volute_epj2018/geometry.json` and `scripts/validate_volute_epj.py`.
   - **R2.5c runs.** Lane: night. Status: `frozen for v0.1.0`.
 - **R2.7 Label pass for the four unvalidated surfaces (Kimball decision 2026-11-15).** Lane: Cursor. CPU: day.
-  Status: `ready`. One branch, one gate.
+  Status: `in progress (Claude, 2026-11-17)`. One branch, one gate. Branch `claude/r27-labels`.
   - The same words everywhere: **"Experimental: not validated against published data."** In Simple and Expert, on the
     tab (tooltip or name, as Mixed already does), next to every Assess/Optimize number, and in the export README/sidecar.
   - Where it stands (Claude, 2026-11-15): Mixed is done (`5945620`). Volute says "ranking only, unvalidated" (change it
