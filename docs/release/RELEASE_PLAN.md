@@ -386,6 +386,14 @@ Kimball's.
   - **R2.5c runs.** Lane: night. Status: `frozen for v0.1.0`.
 - **R2.7 Label pass for the four unvalidated surfaces (Kimball decision 2026-11-15).** Lane: Cursor. CPU: day.
   Status: `in progress (Claude, 2026-11-17)`. One branch, one gate. Branch `claude/r27-labels`.
+  - 2026-11-17 (Claude): landed on the branch (`83d7b4d`), not merged yet. The label is on every tab tooltip (Prop
+    tooltip says the optional CFD check is experimental), next to every Assess / Optimize / CFD-refine result, and in
+    new CROR and Volute export README sidecars. Volute's "ranking only, unvalidated" is now the standard words. Labelled
+    completion messages lose their ✓ (existing rule in `test_ui_says_what_it_does`). README Known limits has one
+    labelled line per surface. Tab names unchanged (`· estimate`), the label is in the tooltip. `tests/test_r27_labels.py`
+    + 4 older copy tests moved to the new wording: 80 passed.
+  - **Resume:** night job `suite-r27-labels-all` (merge on green) runs 2026-11-17. If STATUS.md says merged, set this to
+    `done <merge commit>` and R3.8 to `blocked (R1.3)`. If red, read the log; if master moved, merge master in and re-gate.
   - The same words everywhere: **"Experimental: not validated against published data."** In Simple and Expert, on the
     tab (tooltip or name, as Mixed already does), next to every Assess/Optimize number, and in the export README/sidecar.
   - Where it stands (Claude, 2026-11-15): Mixed is done (`5945620`). Volute says "ranking only, unvalidated" (change it
