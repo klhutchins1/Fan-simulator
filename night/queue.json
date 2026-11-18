@@ -490,9 +490,10 @@
     "--tb=line"
    ],
    "max_hours": 3,
-   "status": "queued",
+   "status": "failed",
    "merge_on_green": true,
-   "why": "merge gate for R2.7 label pass (claude/r27-labels at 111b559). Work done during 4-9 PM, so no same-day gate; Claude may not be back in the morning."
+   "why": "merge gate for R2.7 label pass (claude/r27-labels at 111b559). Work done during 4-9 PM, so no same-day gate; Claude may not be back in the morning.",
+   "note": "2026-11-17: chunk 0: FAILED (1 failed, 753 passed, 4 skipped, 12 deselected in 1504.09s (0:25:04)); chunk 1: passed (teardown exit 3221225477): 618 passed, 7 skipped, 8 deselected in 1471.59s (0:24:31); chunk 2: passed (teardown exit 3221226356): 772 passed, 10 skipped, 3 deselected, 1 xfailed in 4325.44s (1:12"
   }
  ]
 }
