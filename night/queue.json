@@ -492,7 +492,7 @@
    "max_hours": 3,
    "status": "queued",
    "merge_on_green": true,
-   "why": "merge gate for R2.7 label pass (claude/r27-labels at ee6bd0e). Work done during 4-9 PM, so no same-day gate; Claude may not be back in the morning."
+   "why": "merge gate for R2.7 label pass (claude/r27-labels at 111b559). Work done during 4-9 PM, so no same-day gate; Claude may not be back in the morning."
   }
  ]
 }
