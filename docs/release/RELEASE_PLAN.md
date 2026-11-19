@@ -389,15 +389,18 @@ Kimball's.
     - Step 0, then `validation/reference/volute_epj2018/geometry.json` and `scripts/validate_volute_epj.py`.
   - **R2.5c runs.** Lane: night. Status: `frozen for v0.1.0`.
 - **R2.7 Label pass for the four unvalidated surfaces (Kimball decision 2026-11-15).** Lane: Cursor. CPU: day.
-  Status: `in progress (Claude, 2026-11-17)`. One branch, one gate. Branch `claude/r27-labels`.
+  Status: `in progress (Cursor, 2026-11-19)`. One branch, one gate. Branch `r27-labels-fix` (from `claude/r27-labels`).
   - 2026-11-17 (Claude): landed on the branch (`111b559`), not merged yet. Also labels the CROR and Volute point inspectors (as Mixed's) and keeps the CROR README sidecar out of the export list. The label is on every tab tooltip (Prop
     tooltip says the optional CFD check is experimental), next to every Assess / Optimize / CFD-refine result, and in
     new CROR and Volute export README sidecars. Volute's "ranking only, unvalidated" is now the standard words. Labelled
     completion messages lose their ✓ (existing rule in `test_ui_says_what_it_does`). README Known limits has one
     labelled line per surface. Tabs renamed "Volute · experimental" and "CROR · experimental" (Kimball 2026-11-17), as Mixed. `tests/test_r27_labels.py`
     + 4 older copy tests moved to the new wording: 80 passed.
-  - **Resume:** night job `suite-r27-labels-all` (merge on green) runs 2026-11-17. If STATUS.md says merged, set this to
-    `done <merge commit>` and R3.8 to `blocked (R1.3)`. If red, read the log; if master moved, merge master in and re-gate.
+  - 2026-11-17 night gate RED: `test_export_hint_uses_the_fit_hub_setting_from_the_click` hit OSError 22 on a print-id
+    whose check digit was `*` (`5YEE*…`), illegal in a Windows path. Not an R2.7 label bug. Cursor 2026-11-19:
+    `issue_print_id` skips filename-unsafe check digits; master merged into the branch; focused tests 36 passed.
+  - **Resume:** re-queue `suite-r27-labels-all` on `r27-labels-fix` (merge on green). If STATUS.md says merged, set
+    this to `done <merge commit>` and R3.8 to `blocked (R1.3)`.
   - The same words everywhere: **"Experimental: not validated against published data."** In Simple and Expert, on the
     tab (tooltip or name, as Mixed already does), next to every Assess/Optimize number, and in the export README/sidecar.
   - Where it stands (Claude, 2026-11-15): Mixed is done (`5945620`). Volute says "ranking only, unvalidated" (change it

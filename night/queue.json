@@ -476,7 +476,7 @@
   },
   {
    "id": "suite-r27-labels-all",
-   "branch": "claude/r27-labels",
+   "branch": "r27-labels-fix",
    "cmd": [
     "python",
     "scripts/pytest_chunks.py",
@@ -490,10 +490,10 @@
     "--tb=line"
    ],
    "max_hours": 3,
-   "status": "failed",
+   "status": "queued",
    "merge_on_green": true,
-   "why": "merge gate for R2.7 label pass (claude/r27-labels at 111b559). Work done during 4-9 PM, so no same-day gate; Claude may not be back in the morning.",
-   "note": "2026-11-17: chunk 0: FAILED (1 failed, 753 passed, 4 skipped, 12 deselected in 1504.09s (0:25:04)); chunk 1: passed (teardown exit 3221225477): 618 passed, 7 skipped, 8 deselected in 1471.59s (0:24:31); chunk 2: passed (teardown exit 3221226356): 772 passed, 10 skipped, 3 deselected, 1 xfailed in 4325.44s (1:12"
+   "why": "re-gate R2.7 after Cursor fixed print-id star check digits that broke Windows paths (night 2026-11-17 RED on test_export_hint_uses_the_fit_hub_setting_from_the_click).",
+   "note": "2026-11-17: chunk 0 FAILED on OSError 22 for print-id 5YEE*; chunks 1–2 passed. 2026-11-19: branch r27-labels-fix = claude/r27-labels + origin/master + issue_print_id skips * in filenames."
   }
  ]
 }
