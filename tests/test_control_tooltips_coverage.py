@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from fansim.cockpit.fan_copy import CONTROL_DESC, _CTRL_IMG_DIR, _IMG_URI
+from fansim.cockpit.fan_copy import _CTRL_IMG_DIR, _IMG_URI, CONTROL_DESC
 
 
 def test_leeway_sliders_have_tooltips():
