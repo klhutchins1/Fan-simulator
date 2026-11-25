@@ -160,6 +160,17 @@ def _operating_point_reason(
     )
 
 
+
+def printed_weight_g(stl: Path, material: str) -> tuple[float | None, str | None]:
+    """Printed mass [g] from STL volume, or (None, error) if trimesh cannot read volume (O6 / #52)."""
+    try:
+        import trimesh
+        vol = abs(float(trimesh.load(str(stl)).volume))
+        return estimate_weight_g(vol, material), None
+    except Exception as exc:  # noqa: BLE001 — volume optional; caller stamps weight_error
+        return None, f"{type(exc).__name__}: {exc}"
+
+
 def evaluate_candidate(
     params: BladeParams,
     workdir: str | Path,
@@ -355,11 +366,9 @@ def evaluate_candidate(
     dia = 2.0 * max(abs(xmin), abs(xmax), abs(ymin), abs(ymax))
     depth = zmax - zmin
     hub_dia = 2.0 * params.hub_radius
-    try:
-        import trimesh
-        weight_g = estimate_weight_g(abs(float(trimesh.load(str(stl)).volume)), material)
-    except Exception:  # noqa: BLE001 - weight optional; skip the weight gate if volume unavailable
-        weight_g = None
+    weight_g, weight_err = printed_weight_g(stl, material)
+    if weight_err is not None:
+        gap_raw["weight_error"] = weight_err  # O6 / #52: never silent when the weight gate is skipped
     ok, reason = check_build(spec, dia, hub_dia, depth, weight_g)
     if not ok:
         return _infeasible(reason, t0, raw=gap_raw)
