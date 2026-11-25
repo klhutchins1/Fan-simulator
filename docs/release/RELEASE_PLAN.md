@@ -132,8 +132,12 @@ the validation page is built on a green CI and a clean ledger.
     "re-registered" to 0.020 on 2026-09-30, which turned a FAIL into a PASS. The scoreboard judges it on 0.015
     (FAIL, 0.0175). Should the ledger's `propeller.bemt` claim drop its "C_T(J) RMS (tol 0.020) PASS" wording?
     It does not touch the release claim, which is static C_T (PASS).
-  - **Question for Kimball 2:** FAN-01 (+2.5 / +3.1 %) had no pre-registered tolerance, so it is NOT JUDGED. The
-    definition of done needs one. Ship it as "reported, not judged", or pre-register a FAN-01 re-run?
+    Plain version: the pass line was moved after the test so a failing result would pass. Claude recommends
+    dropping the 0.020 wording (the ledger then says the sweep check failed the original line); Kimball undecided.
+  - **Question 2 answered (Kimball, 2026-11-24): pre-register.** `docs/validation/audits/2026-11-24-fan01-rerun-prereg.md`
+    (`203c534`, before any data): fresh run of the same 6 points; 7 and 64 Pa judged at ±10 % (the A12x25 / lt120
+    mark); near-stall points recorded only. **Next:** Kimball picks where it runs (Windows night queue, about
+    3.5 h, or the laptop, about 7 h), then the verdict goes in the prereg and the FAN-01 rows switch to its JSON.
   - **Left (Windows PC):** commit the result files behind the 4 markdown-only rows (A12x25 close-ref v5 P–Q,
     lt120 `runs/lt120/summary.json`), then switch those rows to `kind: data`.
 - **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `ready`.
