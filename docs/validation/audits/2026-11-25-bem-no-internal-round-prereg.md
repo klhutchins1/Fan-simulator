@@ -18,3 +18,11 @@ Screening maths return full-precision floats. Display/export may round; the solv
 | P5 | `record_pass` for every unit `audit_status` marks CHANGED; dependants return PROVEN. |
 
 INCONCLUSIVE is not a pass. Do not re-tune rounding back into the solvers to make a lock pass — widen test abs/rel instead.
+
+## Result (after change)
+
+P1–P5 **PASS**. `round()` removed from `operating_point` / `pq_curve` and `bemt.analyze`.
+Physics snapshot rewritten. Units re-proven: `fan.bem_prescreen`, `propeller.bemt`,
+`cfd.cfm_from_outlet_flow`, `cfd.duct_area` (latter two CHANGED only because
+`tests/test_math_consistency.py` is a shared check and lost the `round(expected, 2)` lock).
+Ledger: 33 PROVEN.

@@ -133,9 +133,9 @@
       "verdict": "PASS"
     },
     "propeller.bemt": {
-      "date": "2026-10-09",
-      "fingerprint": "60e1af266cfacab1",
-      "report": "docs/validation/audits/2026-10-09-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "a148162f1dbd523d",
+      "report": "docs/validation/audits/2026-11-25-bem-no-internal-round-prereg.md",
       "verdict": "PASS"
     },
     "propeller.cfd_setup": {

@@ -243,8 +243,8 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
     flow_cfm = flow_m3s * CFM_PER_M3S
     air_power = flow_m3s * max(dp_static, 0.0)
     eff = air_power / power if power > 1e-6 else 0.0
-    return FanPoint(round(flow_cfm, 1), flow_m3s, round(dp_static, 2), round(dp_total, 2),
-                    round(eff, 3), round(power, 2), converged)
+    # Full precision here (#50); cockpit/export format for display.
+    return FanPoint(flow_cfm, flow_m3s, dp_static, dp_total, eff, power, converged)
 
 
 def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 20,
@@ -275,7 +275,7 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
         for a, b in zip(pts, pts[1:]):
             if a.dp_static_pa > 0.0 >= b.dp_static_pa:
                 t = a.dp_static_pa / (a.dp_static_pa - b.dp_static_pa)
-                free_cfm = round(a.flow_cfm + t * (b.flow_cfm - a.flow_cfm), 1)
+                free_cfm = a.flow_cfm + t * (b.flow_cfm - a.flow_cfm)
                 free_status = "crossed"
                 break
     # Shut-off: Q→0 linear intercept from the lowest-flow points (§10.7), not max(ΔP)
@@ -288,7 +288,7 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
     shutoff = float(shut_proxy) if shut_proxy is not None else max(
         p.dp_static_pa for p in pts)
     peak = max(pts, key=lambda p: p.efficiency)
-    return FanCurve(points=pts, free_delivery_cfm=free_cfm, shutoff_dp_pa=round(shutoff, 2),
+    return FanCurve(points=pts, free_delivery_cfm=free_cfm, shutoff_dp_pa=shutoff,
                     peak_efficiency=peak.efficiency, peak_eff_cfm=peak.flow_cfm,
                     converged=all(p.converged for p in pts if p.flow_cfm <= free_cfm + 1e-9
                                   or p.dp_static_pa > 0.0),
