@@ -13,9 +13,9 @@
       "verdict": "PASS"
     },
     "acoustics.loading": {
-      "date": "2026-09-30",
-      "fingerprint": "15c9dc447f55b81c",
-      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "date": "2026-11-25",
+      "fingerprint": "19793fa9ef08a909",
+      "report": "docs/validation/audits/2026-11-25-o7-loading-noise-derate-prereg.md",
       "verdict": "PASS"
     },
     "acoustics.noise_hint": {

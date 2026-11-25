@@ -389,9 +389,10 @@ units:
     targets:
       - "fansim.acoustics.loading:loading_noise_proxy"
       - "fansim.acoustics.loading:loading_proxy_from_rans"
-    claim: "Fan loading-noise ranking proxy increases with blade count and thrust/blade (RANKING-ONLY)"
-    source: {kind: derivation, ref: "Curle loading scaling; cockpit relative band"}
-    checks: [tests/test_loading.py]
+      - "fansim.acoustics.loading:loading_proxy_operating"
+    claim: "Fan loading-noise ranking proxy increases with blade count and thrust/blade; operating RPM scales thrust by λ² (RANKING-ONLY)"
+    source: {kind: derivation, ref: "Curle loading scaling; affinity thrust∝RPM²; cockpit relative band"}
+    checks: [tests/test_loading.py, tests/test_o7_loading_noise_derate.py]
     depends_on: [physics.air_properties]
 
   - id: centrifugal.bem

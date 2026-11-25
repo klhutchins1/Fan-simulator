@@ -11,6 +11,14 @@ from fansim.acoustics.farfield import (
     blade_pass_frequency,
     noise_from_cv_force,
 )
+from fansim.acoustics.loading import (
+    calibrate as calibrate_loading_proxy,
+)
+from fansim.acoustics.loading import (
+    loading_noise_proxy,
+    loading_proxy_from_rans,
+    loading_proxy_operating,
+)
 from fansim.acoustics.proxies import (
     curle_dpdt_estimate,
     curle_surface_swl,
@@ -20,12 +28,6 @@ from fansim.acoustics.proxies import (
     sound_power_level,
     turbulent_mach,
 )
-from fansim.acoustics.loading import (
-    calibrate as calibrate_loading_proxy,
-    loading_noise_proxy,
-    loading_proxy_from_rans,
-    loading_proxy_operating,
-)
 from fansim.acoustics.tonal import (
     blade_passing_modes,
     peak_tone_amplitude,
@@ -34,26 +36,26 @@ from fansim.acoustics.tonal import (
 )
 
 __all__ = [
-    # RANS proxies (screening tier)
-    "epsilon_from_komega",
-    "turbulent_mach",
-    "proudman_power_density",
-    "proudman_swl",
-    "curle_surface_swl",
-    "curle_dpdt_estimate",
-    "sound_power_level",
-    # LBM far-field reduction (finalist tier)
-    "noise_from_cv_force",
     "a_weighting_db",
     "blade_pass_frequency",
     # tonal analysis from spacing pattern (compute-free)
     "blade_passing_modes",
-    "peak_tone_amplitude",
-    "tonal_peak_ratio",
-    "peak_tone_reduction_db",
+    "calibrate_loading_proxy",
+    "curle_dpdt_estimate",
+    "curle_surface_swl",
+    # RANS proxies (screening tier)
+    "epsilon_from_komega",
     # calibrated cheap LOADING-noise proxy (better than Proudman for dipole/loading noise)
     "loading_noise_proxy",
     "loading_proxy_from_rans",
     "loading_proxy_operating",
-    "calibrate_loading_proxy",
+    # LBM far-field reduction (finalist tier)
+    "noise_from_cv_force",
+    "peak_tone_amplitude",
+    "peak_tone_reduction_db",
+    "proudman_power_density",
+    "proudman_swl",
+    "sound_power_level",
+    "tonal_peak_ratio",
+    "turbulent_mach",
 ]
