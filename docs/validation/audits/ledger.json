@@ -176,25 +176,25 @@
     },
     "structural.balance": {
       "date": "2026-11-25",
-      "fingerprint": "779aa5954a2d0bfb",
+      "fingerprint": "e956cac4fe07d360",
       "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
       "verdict": "PASS"
     },
     "structural.centrifugal": {
       "date": "2026-11-25",
-      "fingerprint": "c5e70fa9711d196f",
+      "fingerprint": "da780a94309af654",
       "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
       "verdict": "PASS"
     },
     "structural.deflection": {
       "date": "2026-11-25",
-      "fingerprint": "b5d6f7aeaab37ae8",
+      "fingerprint": "18ff48f8bfded8f3",
       "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
       "verdict": "PASS"
     },
     "structural.flutter": {
       "date": "2026-11-25",
-      "fingerprint": "39101848d6fd4777",
+      "fingerprint": "b9a2ecb785e1f17b",
       "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
       "verdict": "PASS"
     }
