@@ -252,7 +252,7 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   - grok r25b (2026-11-02, `docs/qa/notes/r25b-master-0635a18-recheck.md`): **still not on master 0635a18**: `r24-C-k1-visible.patch` still applies; unpatched master shows no warning for `converged=False`. r25-B add-on still applies (score_caption 11 passed on scratch, 9 on master). QA-65 open (MED).
   - grok r26 (2026-11-04, `docs/qa/notes/r26-qa66-qa65-recheck.md`): on bd6abdd **QA-65 verified 3/3, closable** (r24-C and r25-B reverse-apply; only `converged is False` warns; trials carry `converged`). Optional test: `docs/qa/patches/r26-B-qa65-trial-test.patch`.
 - **R1.3 Optimizer space under wrap (27.7)**. Lane: grok data (round 14 Task C), Cursor implements, Claude reviews.
-  CPU: day for the bounds, night for any re-find campaign. Status: `ready` (Claude 2026-11-09: R1.7 and R1.8 are both done, and grok r17 C re-measured 2.0 % refused with both, so the block is gone). grok r14 C delivered 2026-10-17
+  CPU: day for the bounds, night for any re-find campaign. Status: `in progress (Cursor, 2026-11-25)`. Worktree `runs/worktrees/r13-wrap-bounds`, branch `cursor/r13-wrap-bounds`. grok r14 C delivered 2026-10-17
   (`docs/qa/notes/optimizer-space-wrap-r14.md`; proposed bounds give 4.3 % refused). The refused share depends on the hub
   (R1.7) and the hang check (R1.8), so re-measure after both.
   grok r17 C (2026-10-19, `docs/qa/notes/r17-C-hang-refusals.md`): r14 P0 bounds with R1.7 + R1.8 give 2.0 % refused (Wilson ≤ 4.3 %), so the bounds stand. R1.8 alone gives 7.7 %, R1.7 alone 0.3 %.
