@@ -67,4 +67,12 @@ every commit after it.
 
 ## Amendments
 
-(none)
+**A1 (2026-11-24, before the first write).** The library rounds some outputs before the snapshot sees them:
+`fan_bem.operating_point` returns flow to 0.1 CFM, Δp to 0.01 Pa, η to 0.001 and power to 0.01 W
+(`fansim/fan_bem.py:246`); `pq_curve` rounds free CFM to 0.1 and shut-off to 0.01 Pa; `bemt.analyze` rounds T to
+0.001 N, Q to 1e-4 N·m, P to 0.1 W and FM to 0.001 (`fansim/propeller/bemt.py:202`). For those values the
+snapshot's real resolution is the rounding step, not 1e-6. A change smaller than one step is not seen, and a
+change near a step boundary shows as one full step. `flow_m3s` is not rounded and keeps full resolution.
+Tolerances and cases are unchanged. Moving the rounding out of the physics, into display, is a behaviour change
+to audited units, so it goes to RV-3 as a finding and is not done here. When it is done, the snapshot is
+rewritten with that audit file as its reason.
