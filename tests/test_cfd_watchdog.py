@@ -30,7 +30,7 @@ def test_log_name_names_the_app_not_mpirun(cmd, name):
 def test_runner_streams_stdout_to_log_and_appends_stderr(tmp_path, monkeypatch):
     seen = {}
 
-    def fake_run(args, stdout, stderr, text):
+    def fake_run(args, stdout, stderr, text, check=False):
         stdout.write("Time = 1\nTime = 2\n")
         stdout.flush()
         # The log is already on disk while the command is still "running".
@@ -48,7 +48,7 @@ def test_runner_streams_stdout_to_log_and_appends_stderr(tmp_path, monkeypatch):
 
 
 def test_runner_raises_with_tail_on_failure(tmp_path, monkeypatch):
-    def fake_run(args, stdout, stderr, text):
+    def fake_run(args, stdout, stderr, text, check=False):
         stdout.write("FOAM FATAL ERROR\n")
         return type("P", (), {"returncode": 1})()
 
@@ -217,19 +217,20 @@ def test_clean_before_solve_keeps_zero_and_non_time_dirs(tmp_path):
     assert left == ["0", "0.orig", "2", "constant", "system"]
 
 
-def test_unscoped_container_kill_spares_other_sessions(monkeypatch):
+def test_container_kill_spares_other_sessions(monkeypatch):
+    """Cleanup is always scoped (2026-11-25): never containers of another or of no session."""
     calls = []
+    mine = runner_mod.cfd_session()
 
-    def fake_run(args, capture_output, text, timeout):
+    def fake_run(args, capture_output, text, timeout, check=False):
         calls.append(args)
-        out = "aaa \nbbb overnight-audit\nccc \n" if args[1] == "ps" else ""
+        out = f"aaa \nbbb overnight-audit\nccc {mine}\n" if args[1] == "ps" else ""
         return type("P", (), {"stdout": out, "returncode": 0})()
 
     monkeypatch.setattr(runner_mod.subprocess, "run", fake_run)
-    monkeypatch.delenv("FANSIM_CFD_SESSION", raising=False)
-    assert runner_mod.kill_cfd_containers() == 2
-    assert calls[-1] == ["docker", "kill", "aaa", "ccc"]
-    # a scoped kill takes every container of its own session
+    assert runner_mod.kill_cfd_containers() == 1
+    assert calls[-1] == ["docker", "kill", "ccc"]
+    # an explicit session takes every container of that session
     calls.clear()
     monkeypatch.setattr(runner_mod.subprocess, "run", lambda args, **k: (
         calls.append(args), type("P", (), {"stdout": "bbb overnight-audit\n" if args[1] == "ps"
