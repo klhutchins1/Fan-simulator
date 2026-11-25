@@ -114,8 +114,11 @@ the validation page is built on a green CI and a clean ledger.
     under test, so a branch made before this merge (e.g. Cursor's UX branch) must merge master first or its gate is
     red on `audit`.
 - **RV-1 Maths snapshot.** Lane: Claude drafts the tolerance pre-registration; Cursor builds. CPU: day. Status:
-  `in progress (Claude, 2026-11-24)`. A committed `tests/data/physics_snapshot.json`, compared at a tight tolerance, so CI fails when a
+  `in progress (Claude, 2026-11-24)`: built (`ed1d470`), gate and merge after RV-0. A committed `tests/data/physics_snapshot.json`, compared at a tight tolerance, so CI fails when a
   number moves. A commit that changes it names its audit file.
+  - Landed on `claude/rv1-physics-snapshot`: prereg `2026-11-24-physics-snapshot-prereg.md` (+ A1, rounding) committed
+    before the first write. 16 cases, about 7 s, bit-identical across processes. Mutation check: `K_TIP_LEAK` +1 % gives
+    234 differences (the old 50–80 CFM band would pass). Left: gate, merge, and RV-3 findings 8–10 in the plan.
 - **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `blocked (RV-1)`.
   Published-data comparisons recomputed from frozen results into `docs/validation/scoreboard.md`. R3.8 quotes it.
 - **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `ready`.
