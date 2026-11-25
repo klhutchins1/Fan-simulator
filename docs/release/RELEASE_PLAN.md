@@ -89,7 +89,7 @@ Night CPU is now for gate suites and any R1.3 re-find campaign only.
 
 - **UX-1 Simple/Expert cockpit polish (GitHub #1–#20).** Lane: Cursor. CPU: day (UI copy + unit tests; not 4–9 PM heavy). Status: `in progress (Cursor, 2026-11-24)`.
   - Opened from a live Linux cockpit walk + three review agents (2026-11-24). Issues: https://github.com/klhutchins1/Fan-simulator/issues?q=is%3Aissue+label%3Aux
-  - Branch `cursor/ux-simple-mode-2026-11-24`: High #1–#6 plus material label, start-here, Stock button, Fan tab wording, Expert start strip, Prop Export unlock hint, Trame footer clear. Remaining on the same branch or follow-ups: #12–#13, #15, #17–#20.
+  - Branch `cursor/ux-simple-mode-2026-11-24`: issues #1–#20 addressed in code (tests for High + related copy). Gate when ready: `scripts/gate.py cursor/ux-simple-mode-2026-11-24` (not during 4–9 PM).
 
 M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
 

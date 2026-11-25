@@ -124,6 +124,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             label="Fits this fan only",
                         )
                         html.Div(
+                            "Only show designs that fit this fan's hub and frame.",
+                            classes="text-caption text-medium-emphasis ml-2 mb-1",
+                            v_show="ui_mode === 'simple'",
+                        )
+                        html.Div(
                             "Hide scatter points whose built tip / depth / hub "
                             "do not fit the Fan model above. Turn off to show the "
                             "full opened-run set (including oversize blades).",
@@ -139,6 +144,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             classes="ml-2 mb-1",
                             label="Declutter (hide near-duplicates)",
                         )
+                        html.Div(
+                            "Hide near-duplicate scatter points so the plot is easier to read.",
+                            classes="text-caption text-medium-emphasis ml-2 mb-1",
+                            v_show="ui_mode === 'simple'",
+                        )
                         v3.VSwitch(
                             v_model=("show_stock",),
                             density="compact",
@@ -147,6 +157,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             color="primary",
                             classes="ml-2 mb-1",
                             label="Show stock (published)",
+                        )
+                        html.Div(
+                            "Gold ✕ = published Noctua CFM on the plot (datasheet, not your CFD).",
+                            classes="text-caption text-medium-emphasis ml-2 mb-1",
+                            v_show="ui_mode === 'simple'",
                         )
                         html.Div(
                             "Gold ✕ = datasheet free-air CFM with load CFM estimated "
@@ -561,7 +576,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         )
                         html.Div(
                             "{{ assess_preset }} hose · {{ assess_material }} — "
-                            "change under Assess & print below.",
+                            "change under Assess settings below.",
                             classes="text-caption text-medium-emphasis mb-1",
                             v_show="ui_mode === 'expert'",
                         )
@@ -930,6 +945,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     with v3.VExpansionPanel(title="Spacing — tonal noise"):
                                         with v3.VExpansionPanelText():
                                             _slider("Uneven spacing", "e_spacing", 0.0, 0.6, 0.05, unit="0–1")
+                                            html.Div(
+                                                "Noise ranking is not validated. The blade-pass tone is "
+                                                "rpm × blades; sound levels are estimates for exploration only.",
+                                                classes="text-caption text-medium-emphasis mt-1",
+                                            )
                                     with v3.VExpansionPanel(
                                         title="Features (bio-inspired)",
                                         v_show="ui_mode === 'expert'",
@@ -953,12 +973,13 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             _slider("Dimple rows", "e_dim_rows", 0, 6, 1)
                                             _slider("Dimple cols", "e_dim_cols", 0, 6, 1)
 
-                        with v3.VExpansionPanel(title="Assess & print"):
+                        with v3.VExpansionPanel(title="Assess settings"):
                             with v3.VExpansionPanelText():
                                 html.Div(
                                     "Assess checks printability / stress (blade vibration is an estimate, not validated (resonance check, not flutter)), then runs "
                                     "CFD (~15–30 min) and reports free/load CFM. Rejected designs show "
-                                    "what to change (usually fewer blades or thicker mid-blade).",
+                                    "what to change (usually fewer blades or thicker mid-blade). "
+                                    "Export STL is under the 3-D view.",
                                     classes="text-caption text-medium-emphasis mb-2",
                                     v_show="ui_mode === 'expert'",
                                 )
@@ -1404,8 +1425,9 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             with v3.VCol(cols=8):
                                 html.Div("Print / export", classes="text-subtitle-2")
                                 html.Div(
-                                    "Export STL writes a print-ready file: motor cup + grip pads carved "
-                                    "into the hub, plus a mount/frame checklist.",
+                                    "Export STL writes a print-ready file to project exports/ "
+                                    "(motor cup + grip pads carved into the hub, plus a .md print "
+                                    "checklist). Use Download STL when the link appears.",
                                     classes="text-caption text-medium-emphasis",
                                     v_show="ui_mode === 'expert'",
                                 )

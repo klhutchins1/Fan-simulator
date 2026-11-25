@@ -94,7 +94,7 @@ def test_start_here_does_not_repeat_button_timings():
 
 
 def test_actions_hose_chip_is_expert_only():
-    assert _gate_offset("change under Assess & print below") < 2000
+    assert _gate_offset("change under Assess settings below") < 2000
 
 
 def test_print_export_blurb_is_expert_only():
