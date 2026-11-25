@@ -1285,15 +1285,15 @@
     "PETG.centrifugal_sigma_mpa": 0.06985837589816395,
     "PETG.first_bending_hz": 399.9086395246875,
     "PETG.tip_deflection_mm_10pa": 0.0008021953729829449,
-    "PLA.bending_sf": 5606.241574268219,
+    "PLA.bending_sf": 6727.489889121863,
     "PLA.bending_sigma_mpa": 0.005351178610942375,
     "PLA.centrifugal_ok": true,
-    "PLA.centrifugal_sf": 439.8299567743093,
+    "PLA.centrifugal_sf": 527.7959481291712,
     "PLA.centrifugal_sigma_mpa": 0.06820817804230181,
     "PLA.first_bending_hz": 522.4878302300366,
     "PLA.tip_deflection_mm_10pa": 0.0004813172237897669
    }
   }
  },
- "reason": "docs/validation/audits/2026-11-24-physics-snapshot-prereg.md"
+ "reason": "docs/validation/audits/2026-11-25-pla-yield-tds.md"
 }

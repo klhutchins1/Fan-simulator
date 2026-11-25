@@ -18,3 +18,9 @@ No model-vs-data threshold change beyond the catalogue number.
 
 ## Result
 P1–P3 PASS. PLA yield 50→60 MPa (NatureWorks); PETG stays 50. Four structural units re-proven.
+
+## Snapshot follow-through (2026-11-25, Cursor)
+
+`#64` landed the 60 MPa PLA yield but did not rewrite `tests/data/physics_snapshot.json`.
+Structural PLA safety factors move with yield (bending_sf / centrifugal_sf). Refreshing the
+snapshot against this audit so RV-1 CI matches the shipped materials table.
