@@ -87,6 +87,23 @@ CONTROL_DESC = {
     "e_dim_amp": "Dimple depth — golf-ball-style surface texture.",
     "e_dim_rows": "Dimples along the chord.",
     "e_dim_cols": "Dimples along the span.",
+    # Library → Leeway (Expert): how much the design may miss the motor / frame / weight / voltage.
+    "lee_depth": (
+        "Extra axial depth allowed past the frame (mm). 0 = must fit the frame depth. "
+        "Raise only if your case has spare room behind the fan."
+    ),
+    "lee_overvolt": (
+        "How many volts above nameplate the stress check may assume. 0 = nameplate only. "
+        "Use a small value if the fan sometimes runs on a higher rail."
+    ),
+    "lee_tip": (
+        "Extra tip radius allowed past the frame bore (mm). 0 = tip must clear the cover. "
+        "Raise only for a known larger opening."
+    ),
+    "lee_weight": (
+        "Extra mass allowed above the material limit (g). 0 = stay under the print-weight gate. "
+        "Raise only if you accept a heavier part."
+    ),
 }
 
 # Plain-language help for Fan Optimize Advanced search (and Assess flags Optimize reuses).
