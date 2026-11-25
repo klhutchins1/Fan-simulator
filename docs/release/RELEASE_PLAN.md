@@ -87,18 +87,26 @@ anything.
 
 Night CPU is now for gate suites and any R1.3 re-find campaign only.
 
-- **UX-1 Simple/Expert cockpit polish (GitHub #1–#20).** Lane: Cursor. CPU: day (UI copy + unit tests; not 4–9 PM heavy). Status: `in progress (Cursor, 2026-11-24)`.
+- **UX-1 Simple/Expert cockpit polish (GitHub #1–#20).** Lane: Cursor. CPU: day (UI copy + unit tests; not 4–9 PM heavy). Status: `done 9f8e894` (PR #21; round 2 PR #43 `6286f74`; merged by Claude 2026-11-25 after the gate below).
   - Opened from a live Linux cockpit walk + three review agents (2026-11-24). Issues: https://github.com/klhutchins1/Fan-simulator/issues?q=is%3Aissue+label%3Aux
   - Branch `cursor/ux-simple-mode-2026-11-24`: issues #1–#20 addressed in code (tests for High + related copy). Gate when ready: `scripts/gate.py cursor/ux-simple-mode-2026-11-24` (not during 4–9 PM).
 
 ## Review and maths tracking (Claude, 2026-11-24; Kimball asked for it)
+
+**Merged 2026-11-25 (`d816438`, fast-forward of `claude/merge-train-2026-11-24`):** RV-0, RV-1, PR #21, PR #43 (with
+its review fixes), PR #42. Gate on Linux: 739 / 642 / 787 passed; the one failure (`test_assess_alert_says_two_solves`,
+stale after #21 and #43) was fixed in `d816438` and the 613 cockpit tests re-run green. The Linux-only fuse-memory
+test was fixed in `2d64a01`.
+- **For Cursor:** `4ba172b` on `cursor/ux-round2-2026-11-24` repeats those two test fixes after #43 merged. Master
+  already has them; drop that commit, do not merge it (it conflicts on the same lines).
+- PR #42's screenshots predate #21/#43 (Assess ~15–30 min, "Fan · CFD", Kitware footer). Retake them.
 
 Plan: [`docs/review/2026-11-24-review-plan.md`](../review/2026-11-24-review-plan.md). Why the ledger drifted and CI is
 red: [`docs/validation/audits/2026-11-24-audit-drift-forensics.md`](../validation/audits/2026-11-24-audit-drift-forensics.md)
 (no hidden maths regression: Stock BEM output is identical to the last proven commit). RV-0 goes before R3.8 so that
 the validation page is built on a green CI and a clean ledger.
 
-- **RV-0 Make the safety nets real.** Lane: Claude or Cursor. CPU: day. Status: `paused (Claude)`.
+- **RV-0 Make the safety nets real.** Lane: Claude or Cursor. CPU: day. Status: `done d837929` (merged 2026-11-25).
   1. Fix mypy at `fansim/optimize/search_space.py:495` (from `20aed3e`; no behaviour change).
   2. `scripts/gate.py` runs what CI runs: mypy, ruff `F811,F821`, `audit_status.py`.
   3. Re-prove the 5 CHANGED units in one dated audit file that cites the forensics commits. Give QA-39 its own check
@@ -118,7 +126,7 @@ the validation page is built on a green CI and a clean ledger.
     under test, so a branch made before this merge (e.g. Cursor's UX branch) must merge master first or its gate is
     red on `audit`.
 - **RV-1 Maths snapshot.** Lane: Claude drafts the tolerance pre-registration; Cursor builds. CPU: day. Status:
-  `in progress (Claude, 2026-11-24)`: built (`ed1d470`), gate and merge after RV-0. A committed `tests/data/physics_snapshot.json`, compared at a tight tolerance, so CI fails when a
+  `done 83ca5bf` (merged 2026-11-25). A committed `tests/data/physics_snapshot.json`, compared at a tight tolerance, so CI fails when a
   number moves. A commit that changes it names its audit file.
   - Landed on `claude/rv1-physics-snapshot`: prereg `2026-11-24-physics-snapshot-prereg.md` (+ A1, rounding) committed
     before the first write. 16 cases, about 7 s, bit-identical across processes. Mutation check: `K_TIP_LEAK` +1 % gives
@@ -136,8 +144,8 @@ the validation page is built on a green CI and a clean ledger.
     dropping the 0.020 wording (the ledger then says the sweep check failed the original line); Kimball undecided.
   - **Question 2 answered (Kimball, 2026-11-24): pre-register.** `docs/validation/audits/2026-11-24-fan01-rerun-prereg.md`
     (`203c534`, before any data): fresh run of the same 6 points; 7 and 64 Pa judged at ±10 % (the A12x25 / lt120
-    mark); near-stall points recorded only. **Next:** Kimball picks where it runs (Windows night queue, about
-    3.5 h, or the laptop, about 7 h), then the verdict goes in the prereg and the FAN-01 rows switch to its JSON.
+    mark); near-stall points recorded only. **Next:** running on the laptop (Kimball, 2026-11-25), master `d816438`, 8 procs, in
+    `runs/worktrees/fan01-rv2`; then the verdict goes in the prereg and the FAN-01 rows switch to its JSON.
   - **Left (Windows PC):** commit the result files behind the 4 markdown-only rows (A12x25 close-ref v5 P–Q,
     lt120 `runs/lt120/summary.json`), then switch those rows to `kind: data`.
 - **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `ready`.

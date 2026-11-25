@@ -59,4 +59,9 @@ roughly twice that on the 8-core laptop. Kimball chooses.
 
 ## Result
 
-(not run yet)
+**Attempt 1 (2026-11-25, laptop, master `d816438`, 8 procs): no data.** `snappyHexMesh` was killed with exit 137
+(SIGKILL) at about 2.0 M cells, during refinement, before any point was solved. A full test suite (3 pytest
+processes) was running on the laptop at the same time, and zram swap showed use, so this is most likely memory;
+the kernel log was not readable to confirm it. This is a failed run, not a result: nothing is judged from it.
+
+**Attempt 2:** the same command, unchanged, started when no other test suite is running.
