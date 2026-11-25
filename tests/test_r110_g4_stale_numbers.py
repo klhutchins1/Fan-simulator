@@ -15,8 +15,12 @@ def test_figures_static_ceiling_is_about_10_percent():
 
 def test_assess_alert_says_two_solves():
     src = (ROOT / "fansim" / "cockpit" / "fan_tab_ui.py").read_text(encoding="utf-8")
-    assert "Assess runs two CFD solves (free air and a loaded point), about 20–40 min" in src
+    # G4: Assess is two solves, never "one". Time is 30–40 min (QA-61 / #41); the banner says
+    # "airflow" for CFD (plain language, #21).
+    assert "Assess runs two airflow solves (free air and a loaded point), " in src
+    assert "about 30–40 min" in src
     assert "Assess runs one CFD solve" not in src
+    assert "20–40 min" not in src and "15–30 min" not in src
 
 
 def test_bem_copy_is_ranking_only_not_0_6x():
