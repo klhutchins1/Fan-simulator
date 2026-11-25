@@ -126,3 +126,6 @@ The text is unchanged. Newest moves are at the bottom.
   - Prop BEMT stays the validated fast estimate (not stamped). `tests/test_r27_labels.py` + copy tests updated.
   - Earlier Claude branch notes (2026-11-17) and print-id OSError gate red were historical; recreate + merge on Linux
     remote completed 2026-11-25.
+
+- **RV-4 Script triage.** Lane: Cursor. Status: `done 7c23df1` (PR #77).
+  - 38 scripts archived; `scripts/audit_forensics.py` + tests; promote maths follow-ups #74–#76.
