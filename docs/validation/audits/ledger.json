@@ -1,15 +1,15 @@
 {
   "units": {
     "acoustics.curle_dipole": {
-      "date": "2026-09-29",
-      "fingerprint": "dda9aa374bf254aa",
-      "report": "docs/validation/audits/2026-09-29-audit-06-acoustics.md",
+      "date": "2026-11-25",
+      "fingerprint": "4d3b02d796dc5a24",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "acoustics.fwh": {
-      "date": "2026-09-29",
-      "fingerprint": "16cadecd09a6b13c",
-      "report": "docs/validation/audits/2026-09-29-audit-06-acoustics.md",
+      "date": "2026-11-25",
+      "fingerprint": "1f0b3b336bf3ac8a",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "acoustics.loading": {
@@ -25,15 +25,15 @@
       "verdict": "PASS"
     },
     "acoustics.proudman": {
-      "date": "2026-09-29",
-      "fingerprint": "3d2562a18673225e",
-      "report": "docs/validation/audits/2026-09-29-audit-06-acoustics.md",
+      "date": "2026-11-25",
+      "fingerprint": "0d6a31506a634839",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "acoustics.tonal_bpf": {
-      "date": "2026-09-29",
-      "fingerprint": "98bfba61db1a70ef",
-      "report": "docs/validation/audits/2026-09-29-audit-06-acoustics.md",
+      "date": "2026-11-25",
+      "fingerprint": "18ca83a4e8d4f3b5",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "audit.direction_geometry": {
@@ -73,9 +73,9 @@
       "verdict": "PASS"
     },
     "cfd.flow_report": {
-      "date": "2026-11-24",
+      "date": "2026-11-25",
       "fingerprint": "0e52f96ae917e2e4",
-      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "cfd.sanity_checks": {
@@ -91,9 +91,9 @@
       "verdict": "PASS"
     },
     "cror.noise": {
-      "date": "2026-09-30",
+      "date": "2026-11-25",
       "fingerprint": "5845b629ef396705",
-      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "fan.bem_prescreen": {
@@ -151,9 +151,9 @@
       "verdict": "PASS"
     },
     "propeller.noise": {
-      "date": "2026-09-30",
-      "fingerprint": "064c70702bc0a505",
-      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "date": "2026-11-25",
+      "fingerprint": "d9f7cbd3534f5560",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "propeller.polar_coefficients": {
