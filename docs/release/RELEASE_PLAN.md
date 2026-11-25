@@ -123,7 +123,7 @@ the validation page is built on a green CI and a clean ledger.
   - Landed on `claude/rv1-physics-snapshot`: prereg `2026-11-24-physics-snapshot-prereg.md` (+ A1, rounding) committed
     before the first write. 16 cases, about 7 s, bit-identical across processes. Mutation check: `K_TIP_LEAK` +1 % gives
     234 differences (the old 50–80 CFM band would pass). Left: gate, merge, and RV-3 findings 8–10 in the plan.
-- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `blocked (RV-1)`.
+- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `in progress (Claude, 2026-11-24)`.
   Published-data comparisons recomputed from frozen results into `docs/validation/scoreboard.md`. R3.8 quotes it.
 - **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `ready`.
   Order and checklist are in the plan. Findings become GitHub issues labelled `math` or `review`. The first 7
