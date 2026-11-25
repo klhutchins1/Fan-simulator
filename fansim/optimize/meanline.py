@@ -14,10 +14,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
+from fansim.cfd.metrics import CFM_PER_M3S  # CadQuery-free; single source (§10.9 / #49)
 from fansim.physics.air import RHO_AMCA
-
-# Same factor as fansim.cfd.metrics.CFM_PER_M3S — kept local so this module stays CadQuery-free.
-CFM_PER_M3S = 2118.882
 
 # Classic cascade limits (Lieblein 1959; de Haller 1953). Ranking gates only.
 DF_LIMIT = 0.60
