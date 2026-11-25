@@ -24,17 +24,17 @@ K_TIP_LEAK are EMPIRICAL, tuned to the a12x25 Stock recipe, not derived. No Pran
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
+from itertools import pairwise
 
 import numpy as np
 
 from fansim.cfd.metrics import CFM_PER_M3S
 from fansim.geometry.blade import BladeParams
-from fansim.propeller.bemt import _cl_cd   # thin cambered-airfoil polar (shared with the prop BEMT)
-
-from fansim.physics.air import RHO_AMCA as RHO_AIR
 from fansim.physics.air import NU_AIR
+from fansim.physics.air import RHO_AMCA as RHO_AIR
+from fansim.propeller.bemt import _cl_cd  # thin cambered-airfoil polar (shared with the prop BEMT)
 
 # --- first-order aggregate loss calibration (roadmap §7.3; refine with Kröger-Venter + low-Re polars) ---
 # Inviscid blade-element+Euler over-predicts ~1.6-2x: the real fan loses work to flow DEVIATION/slip
@@ -272,7 +272,7 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
         free_cfm, free_status = 0.0, "no_rise"
     else:
         free_cfm, free_status = pts[-1].flow_cfm, "beyond_sweep"
-        for a, b in zip(pts, pts[1:]):
+        for a, b in pairwise(pts):
             if a.dp_static_pa > 0.0 >= b.dp_static_pa:
                 t = a.dp_static_pa / (a.dp_static_pa - b.dp_static_pa)
                 free_cfm = a.flow_cfm + t * (b.flow_cfm - a.flow_cfm)

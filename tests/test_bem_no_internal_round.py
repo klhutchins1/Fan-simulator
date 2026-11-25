@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import math
 
-import pytest
-
 from fansim.fan_bem import operating_point
 from fansim.geometry.config import load_blade_params
 from fansim.prop_spec import get_prop_spec

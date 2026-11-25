@@ -26,10 +26,10 @@ from dataclasses import dataclass
 import numpy as np
 
 from fansim.geometry.blade import BladeParams
+from fansim.physics.air import NU_AIR
+from fansim.physics.air import RHO_ISA as RHO_AIR
 from fansim.prop_spec import C_AIR
 
-from fansim.physics.air import RHO_ISA as RHO_AIR
-from fansim.physics.air import NU_AIR
 G = 9.80665
 
 # Polar backend for `_section_aero`: "table" (default UIUC CSVs → analytic) or "neuralfoil"
