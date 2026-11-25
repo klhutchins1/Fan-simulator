@@ -63,3 +63,13 @@ def test_default_ruff_runs_on_changed_files_only():
     names = [step.get("name") for job in jobs.values() for step in job["steps"]]
     assert "Ruff changed files" in names
     assert "pytest_chunks.py --chunks 3 --all" in _runs(jobs["fast"])
+
+
+def test_ci_fails_on_physics_audit_drift_before_pytest():
+    """RV-0: the ledger drifted for five weeks because nothing failed on it."""
+    steps = _doc()["jobs"]["fast"]["steps"]
+    runs = [str(step.get("run", "")) for step in steps]
+    audit = [i for i, r in enumerate(runs) if "scripts/audit_status.py --strict" in r]
+    pytest_step = [i for i, r in enumerate(runs) if "pytest_chunks.py" in r]
+    assert len(audit) == 1 and pytest_step
+    assert audit[0] < pytest_step[0]
