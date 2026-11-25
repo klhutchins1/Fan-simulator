@@ -87,6 +87,36 @@ anything.
 
 Night CPU is now for gate suites and any R1.3 re-find campaign only.
 
+## Review and maths tracking (Claude, 2026-11-24; Kimball asked for it)
+
+Plan: [`docs/review/2026-11-24-review-plan.md`](../review/2026-11-24-review-plan.md). Why the ledger drifted and CI is
+red: [`docs/validation/audits/2026-11-24-audit-drift-forensics.md`](../validation/audits/2026-11-24-audit-drift-forensics.md)
+(no hidden maths regression: Stock BEM output is identical to the last proven commit). RV-0 goes before R3.8 so that
+the validation page is built on a green CI and a clean ledger.
+
+- **RV-0 Make the safety nets real.** Lane: Claude or Cursor. CPU: day. Status: `ready`.
+  1. Fix mypy at `fansim/optimize/search_space.py:495` (from `20aed3e`; no behaviour change).
+  2. `scripts/gate.py` runs what CI runs: mypy, ruff `F811,F821`, `audit_status.py`.
+  3. Re-prove the 5 CHANGED units in one dated audit file that cites the forensics commits. Give QA-39 its own check
+     (time folders `20` and `100`). Register `cfd.metrics:latest_pp_file`.
+  4. CI fails on any CHANGED, AFFECTED, MISSING or UNREGISTERED unit.
+  Done when CI is green on master and `audit_status.py` reads all PROVEN.
+- **RV-1 Maths snapshot.** Lane: Claude drafts the tolerance pre-registration; Cursor builds. CPU: day. Status:
+  `blocked (RV-0)`. A committed `tests/data/physics_snapshot.json`, compared at a tight tolerance, so CI fails when a
+  number moves. A commit that changes it names its audit file.
+- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `blocked (RV-1)`.
+  Published-data comparisons recomputed from frozen results into `docs/validation/scoreboard.md`. R3.8 quotes it.
+- **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `ready`.
+  Order and checklist are in the plan. Findings become GitHub issues labelled `math` or `review`. The first 7
+  findings are listed there.
+- **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `ready`. Sort all 128 scripts into promote, keep or
+  archive. No code that produces a verdict lives only in `scripts/`.
+- **RV-5 Speed and code health.** Lane: Cursor. CPU: day (profile outside 4–9 PM). Status: `blocked (RV-1)`. Profile
+  the 45-minute suite, split `evaluate_candidate`, and widen mypy one module at a time.
+- **W1 (Windows PC)** still applies: `scripts\stray_work.py` must list nothing. GitHub has none of `stock-outline`,
+  `r22a-wake-aspect` or `r110-g2-merge`, and this clone has no grok handoffs after 11-09, no `research/`, and no
+  leads 23–48 pre-registrations.
+
 
 M3 does not depend on M1 or M2, so Cursor can run it in parallel from day one.
 
