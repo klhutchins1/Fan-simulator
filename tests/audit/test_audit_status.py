@@ -80,27 +80,58 @@ def test_cli_missing_path():
     )
 
     # Patch the imported functions in the audit_status module
-    with mock.patch.object(audit_status, "load_registry", return_value=test_registry):
-        with mock.patch.object(audit_status, "load_ledger", return_value={"units": {}}):
-            with mock.patch.object(audit_status, "find_unregistered", return_value=[]):
-                # Test main([])
-                output = StringIO()
-                with mock.patch("sys.stdout", output):
-                    ret = audit_status.main([])
-                stdout = output.getvalue()
-                assert ret == 1, f"Expected return code 1, got {ret}"
-                assert "MISSING" in stdout, f"Expected 'MISSING' in stdout: {stdout}"
-                assert "missing" in stdout, f"Expected unit id 'missing' in stdout: {stdout}"
-                assert "NEW=1" in stdout, f"Expected 'NEW=1' in stdout: {stdout}"
-                assert "MISSING=1" in stdout, f"Expected 'MISSING=1' in stdout: {stdout}"
+    with mock.patch.object(audit_status, "load_registry", return_value=test_registry), \
+            mock.patch.object(audit_status, "load_ledger", return_value={"units": {}}), \
+            mock.patch.object(audit_status, "find_unregistered", return_value=[]):
+        # Test main([])
+        output = StringIO()
+        with mock.patch("sys.stdout", output):
+            ret = audit_status.main([])
+        stdout = output.getvalue()
+        assert ret == 1, f"Expected return code 1, got {ret}"
+        assert "MISSING" in stdout, f"Expected 'MISSING' in stdout: {stdout}"
+        assert "missing" in stdout, f"Expected unit id 'missing' in stdout: {stdout}"
+        assert "NEW=1" in stdout, f"Expected 'NEW=1' in stdout: {stdout}"
+        assert "MISSING=1" in stdout, f"Expected 'MISSING=1' in stdout: {stdout}"
 
-                # Test main(["--json"])
-                output = StringIO()
-                with mock.patch("sys.stdout", output):
-                    ret = audit_status.main(["--json"])
-                stdout = output.getvalue()
-                assert ret == 1, f"Expected return code 1 for --json, got {ret}"
-                data = json.loads(stdout)
-                assert "missing" in data, f"Expected 'missing' key in JSON: {data}"
-                assert "missing" in data["missing"], f"Expected 'missing' unit id in 'missing' dict: {data}"
-                assert "missing" not in data["units"], f"'missing' unit should not be in 'units': {data}"
+        # Test main(["--json"])
+        output = StringIO()
+        with mock.patch("sys.stdout", output):
+            ret = audit_status.main(["--json"])
+        stdout = output.getvalue()
+        assert ret == 1, f"Expected return code 1 for --json, got {ret}"
+        data = json.loads(stdout)
+        assert "missing" in data, f"Expected 'missing' key in JSON: {data}"
+        assert "missing" in data["missing"], f"Expected 'missing' unit id in 'missing' dict: {data}"
+        assert "missing" not in data["units"], f"'missing' unit should not be in 'units': {data}"
+
+
+def _load_cli():
+    script_path = Path(__file__).resolve().parents[2] / "scripts" / "audit_status.py"
+    spec = importlib.util.spec_from_file_location("audit_status_strict", script_path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _run_strict(states_fp, ledger, unregistered, argv):
+    """Run audit_status.main(argv) against one real-module unit 'u' with a faked ledger."""
+    cli = _load_cli()
+    reg = Registry(units={"u": _u("u", targets=("fansim.audit.status",))}, exempt=())
+    with mock.patch.object(cli, "load_registry", return_value=reg), \
+            mock.patch.object(cli, "load_ledger", return_value=ledger), \
+            mock.patch.object(cli, "find_unregistered", return_value=unregistered), \
+            mock.patch.object(cli, "fingerprint_unit", return_value=states_fp), \
+            mock.patch("sys.stdout", StringIO()):
+        return cli.main(argv)
+
+
+def test_cli_strict_passes_only_when_every_unit_is_proven_and_nothing_is_unregistered():
+    """RV-0: --strict is the CI / gate check. Plain mode keeps exiting 0 on drift (report only)."""
+    proven = {"units": {"u": {"fingerprint": "fp", "verdict": "PASS"}}}
+    changed = {"units": {"u": {"fingerprint": "old", "verdict": "PASS"}}}
+    assert _run_strict("fp", proven, [], ["--strict"]) == 0
+    assert _run_strict("fp", changed, [], ["--strict"]) == 1          # CHANGED
+    assert _run_strict("fp", {"units": {}}, [], ["--strict"]) == 1    # NEW
+    assert _run_strict("fp", proven, ["fansim.x:loose"], ["--strict"]) == 1  # UNREGISTERED
+    assert _run_strict("fp", changed, [], []) == 0                    # report mode unchanged

@@ -73,6 +73,7 @@ def test_gate_refuses_when_it_could_reach_the_peak_window(monkeypatch):
 
 
 def test_gate_green_writes_a_result_and_exits_0(repo, monkeypatch, capsys):
+    _fake_static(monkeypatch, 0)
     monkeypatch.setattr(gate, "ROOT", repo)
     monkeypatch.setattr(gate, "OUT", repo / "runs" / "gate")
     rc = gate.main(["feat"], now_fn=lambda: dt.datetime(2026, 11, 9, 9, 0))
@@ -91,10 +92,53 @@ def test_gate_red_exits_1(repo, monkeypatch):
         FAKE_CHUNKS.format(verdict="FAILED (1 failed, 2 passed in 0.1s)", rc=1))
     _git(repo, "commit", "-qam", "break")
     _git(repo, "checkout", "-q", "master")
+    _fake_static(monkeypatch, 0)
     monkeypatch.setattr(gate, "ROOT", repo)
     monkeypatch.setattr(gate, "OUT", repo / "runs" / "gate")
     assert gate.main(["feat"], now_fn=lambda: dt.datetime(2026, 11, 9, 9, 0)) == 1
     assert json.loads((repo / "runs" / "gate" / "feat.json").read_text())["ok"] is False
+
+
+def test_gate_runs_the_same_static_checks_as_ci():
+    """RV-0: the gate must fail on what CI fails on (mypy since 20aed3e went unseen for six weeks)."""
+    names = [name for name, _ in gate.STATIC]
+    assert names == ["ruff", "mypy", "audit"]
+    cmds = {name: " ".join(cmd) for name, cmd in gate.STATIC}
+    assert "F811,F821" in cmds["ruff"]
+    assert "mypy" in cmds["mypy"]
+    assert "audit_status.py --strict" in cmds["audit"]
+
+
+def _fake_static(monkeypatch, rc):
+    import sys as _sys
+    monkeypatch.setattr(gate, "STATIC", [("fake", [_sys.executable, "-c", f"raise SystemExit({rc})"])])
+
+
+def test_gate_static_red_stops_before_the_suite(repo, monkeypatch, capsys):
+    _git(repo, "checkout", "-q", "feat")
+    (repo / "scripts" / "pytest_chunks.py").write_text("raise AssertionError('suite must not run')\n")
+    _git(repo, "commit", "-qam", "suite would crash")
+    _git(repo, "checkout", "-q", "master")
+    monkeypatch.setattr(gate, "ROOT", repo)
+    monkeypatch.setattr(gate, "OUT", repo / "runs" / "gate")
+    _fake_static(monkeypatch, 1)
+    assert gate.main(["feat"], now_fn=lambda: dt.datetime(2026, 11, 9, 9, 0)) == 1
+    res = json.loads((repo / "runs" / "gate" / "feat.json").read_text())
+    assert res["ok"] is False and res["static"] == {"fake": False}
+    assert "static check failed: fake" in capsys.readouterr().out
+    assert not (repo / "runs" / "gate" / "wt-feat").exists()
+
+
+def test_gate_static_only_runs_in_the_peak_window_and_skips_the_suite(repo, monkeypatch, capsys):
+    _git(repo, "checkout", "-q", "feat")
+    (repo / "scripts" / "pytest_chunks.py").write_text("raise AssertionError('suite must not run')\n")
+    _git(repo, "commit", "-qam", "suite would crash")
+    _git(repo, "checkout", "-q", "master")
+    monkeypatch.setattr(gate, "ROOT", repo)
+    monkeypatch.setattr(gate, "OUT", repo / "runs" / "gate")
+    _fake_static(monkeypatch, 0)
+    assert gate.main(["feat", "--static-only"], now_fn=lambda: dt.datetime(2026, 11, 9, 17, 0)) == 0
+    assert "static checks green" in capsys.readouterr().out
 
 
 # ---------------------------------------------------------------- morning_check.py: verdicts
