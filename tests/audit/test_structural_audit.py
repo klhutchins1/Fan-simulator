@@ -31,8 +31,12 @@ from fansim.structural.deflection import (
     tip_deflection_mm,
     tip_deflection_point_load_mm,
 )
-from fansim.structural.flutter import CANTILEVER_LAMBDA, first_bending_hz, flutter_report
-from fansim.structural.flutter import max_blades_for_margin
+from fansim.structural.flutter import (
+    CANTILEVER_LAMBDA,
+    first_bending_hz,
+    flutter_report,
+    max_blades_for_margin,
+)
 from fansim.structural.stress import FDM_E_K, centrifugal_root_stress
 
 DEFL_TOL = 0.02
@@ -275,11 +279,11 @@ def test_balanced_uneven_with_masses_and_counterweight_nulls():
 # 1040-1060, HDT 90-105); NinjaFlex / TPU 85A-95A TDS (E ~0.01-0.1 GPa, 1120-1220 kg/m3).
 # Printed FDM parts sit 10-40% below moulded values (Ahn 2002; Tymrak 2014).
 MATERIAL_RANGES = {
-    "PLA": dict(E=(2.7, 4.0), Y=(35, 70), rho=(1200, 1290), hdt=(50, 65)),
-    "PLA+": dict(E=(2.2, 3.6), Y=(35, 65), rho=(1200, 1290), hdt=(50, 70)),
-    "PETG": dict(E=(1.8, 2.4), Y=(35, 55), rho=(1250, 1300), hdt=(65, 80)),
-    "ABS": dict(E=(1.6, 2.6), Y=(30, 45), rho=(1030, 1070), hdt=(85, 105)),
-    "TPU": dict(E=(0.005, 0.10), Y=(10, 55), rho=(1100, 1230), hdt=(40, 90)),
+    "PLA": {"E": (2.7, 4.0), "Y": (35, 70), "rho": (1200, 1290), "hdt": (50, 65)},
+    "PLA+": {"E": (2.2, 3.6), "Y": (35, 65), "rho": (1200, 1290), "hdt": (50, 70)},
+    "PETG": {"E": (1.8, 2.4), "Y": (35, 55), "rho": (1250, 1300), "hdt": (65, 80)},
+    "ABS": {"E": (1.6, 2.6), "Y": (30, 45), "rho": (1030, 1070), "hdt": (85, 105)},
+    "TPU": {"E": (0.005, 0.10), "Y": (10, 55), "rho": (1100, 1230), "hdt": (40, 90)},
 }
 
 
@@ -296,7 +300,7 @@ def test_material_properties_within_datasheet_ranges(name):
 def test_print_penalty_fsi_factor_bounds_and_monotone():
     prev = 1.0
     for frac in (0.0, 0.1, 0.5, 1.0, 5.0):
-        cf, cl, eta, s = apply_print_penalty(60.0, 40.0, 0.3, tip_deflection_mm=frac, tip_gap_mm=1.0)
+        cf, _cl, _eta, s = apply_print_penalty(60.0, 40.0, 0.3, tip_deflection_mm=frac, tip_gap_mm=1.0)
         k = s["print_k_fsi"]
         assert 0.90 <= k <= 1.0 and k <= prev
         assert cf == pytest.approx(60.0 * 0.95 * k)
