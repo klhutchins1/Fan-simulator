@@ -128,7 +128,7 @@ the validation page is built on a green CI and a clean ledger.
 - **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `ready`.
   Order and checklist are in the plan. Findings become GitHub issues labelled `math` or `review`. The first 7
   findings are listed there.
-- **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `in progress (Cursor, 2026-11-25)`. Worktree `runs/worktrees/rv4-script-triage`, branch `cursor/rv4-script-triage`. Sort all 128 scripts into promote, keep or
+- **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `in progress (Cursor, 2026-11-25)`. Worktree `runs/worktrees/rv4-script-triage`, branch `cursor/rv4-script-triage`. Inventory + 17 orphans moved to `archive/scripts/`. Left: review-list, promote maths, `audit_forensics.py`. Sort all 128 scripts into promote, keep or
   archive. No code that produces a verdict lives only in `scripts/`.
 - **RV-5 Speed and code health.** Lane: Cursor. CPU: day (profile outside 4–9 PM). Status: `blocked (RV-1)`. Profile
   the 45-minute suite, split `evaluate_candidate`, and widen mypy one module at a time.

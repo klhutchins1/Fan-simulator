@@ -159,9 +159,12 @@ Total scripts: **129**.
 | `stock_surface_distance.py` | 38 | 0 code refs; docs=True |
 | `ws_stall_probe.py` | 145 | 0 code refs; docs=True |
 
+## Done so far
+
+- Moved the 17 `archive` rows to `archive/scripts/` (see README there). `archive/` is already in `RELEASE_EXCLUDE`.
+
 ## Next
 
-1. Human-confirm `archive?` and `review`.
-2. Move confirmed archive to `archive/scripts/` with a one-line reason each.
-3. For each promote: move maths into `fansim/` + test + ledger unit.
-4. Add `scripts/audit_forensics.py` + test (plan item).
+1. Human-confirm the `review` list (43) — keep as ops tools or archive more.
+2. For each promote: move maths into `fansim/` + test + ledger unit (`prop_section_2d`, `fan_noise_curle`, `fan_noise_cv`).
+3. Add `scripts/audit_forensics.py` + test (plan item).
