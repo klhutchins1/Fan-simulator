@@ -423,7 +423,7 @@ def tabs(tmp_path_factory):
 def test_simple_mode_shows_fan_and_prop_only():
     """Simple mode says Fan and Prop. Mixed, Volute and CROR stay on Expert, and the code bounces back."""
     product = {value: (label, show) for label, value, show in _product_tabs(_COCKPIT / "app.py")}
-    assert product["fan"] == ("Fan · CFD", None)
+    assert product["fan"] == ("Fan · blades", None)
     assert product["propeller"] == ("Prop · fast estimate", None)
     assert product["mixed"][0] == "Mixed · experimental"
     assert product["volute"][0] == "Volute · estimate"
@@ -445,7 +445,7 @@ def test_simple_mode_shows_fan_and_prop_only():
     assert "Experimental: not validated against published data" in blob
     assert "ranking only, unvalidated" in blob
     assert "not full CFD" in blob
-    assert "Fan: printable PC-fan blades (CFD). Prop: propeller (fast estimate)." in blob
+    assert "Fan: printable PC-fan blades (airflow check). Prop: propeller (fast estimate)." in blob
 
 
 def test_each_archetype_ships_design_results_library():

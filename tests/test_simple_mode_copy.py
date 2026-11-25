@@ -76,26 +76,21 @@ def test_design_banner_is_simple_only():
 
 
 def test_start_here_line_is_simple_only():
-    assert _gate_offset("Start here: 1) Pick a design", "simple") < 2000
+    src = UI.read_text(encoding="utf-8")
+    i = src.find("Start here:")
+    assert i >= 0
+    assert _gate_offset("Start here:", "simple") < 2000
 
 
 def test_start_here_does_not_repeat_button_timings():
     """Banner + button labels keep durations; the step list only names the steps."""
     src = UI.read_text(encoding="utf-8")
-    i = src.find("Start here: 1) Pick a design")
+    i = src.find("Start here:")
     assert i >= 0
-    window = src[i : i + 220]
+    window = src[i : i + 280]
     assert "(sec)" not in window
     assert "15–30" not in window
     assert "hours" not in window
-
-
-def test_empty_scatter_does_not_also_show_the_flow_card():
-    src = UI.read_text(encoding="utf-8")
-    i = src.find("How the air moves")
-    assert i >= 0
-    window = src[max(0, i - 400) : i + 80]
-    assert "trial_items.length >= 2" in window
 
 
 def test_actions_hose_chip_is_expert_only():
@@ -119,7 +114,11 @@ def test_assess_material_blurb_is_expert_only():
 
 
 def test_assess_honesty_blurb_is_expert_only():
-    assert _gate_offset("Also applied when you press Optimize") < 2000
+    # Blurb lives inside the Expert Assess Div (gate is above, not on the Div itself).
+    src = UI.read_text(encoding="utf-8")
+    i = src.find("Also applied when you press Optimize")
+    assert i >= 0
+    assert "ui_mode === 'expert'" in src[max(0, i - 2000) : i + 40]
 
 
 def test_optimize_panel_is_expert_only():
@@ -142,11 +141,16 @@ def test_tab_labels_do_not_say_proxy_or_bemt():
 
 
 def test_simple_tab_strip_says_what_fan_and_prop_are():
-    assert _gate_offset(
-        "Fan: printable PC-fan blades (CFD). Prop: propeller (fast estimate).",
-        "simple",
-        src=APP.read_text(encoding="utf-8"),
-    ) < 400
+    src = APP.read_text(encoding="utf-8")
+    # Prefer plain language; do not lead Simple with an unexplained CFD acronym.
+    needle = next(
+        s for s in (
+            "Fan: printable PC-fan blades. Prop: propeller (fast estimate).",
+            "Fan: printable PC-fan blades (airflow check). Prop: propeller (fast estimate).",
+        )
+        if s in src
+    )
+    assert _gate_offset(needle, "simple", src=src) < 400
 
 
 def test_prop_simple_banner_skips_bemt_and_audit():
@@ -166,3 +170,114 @@ def test_simple_mode_leaves_proxy_tabs():
     assert tab_for_ui_mode("simple", "fan") == "fan"
     assert tab_for_ui_mode("simple", "propeller") == "propeller"
     assert tab_for_ui_mode("expert", "mixed") == "mixed"
+
+def test_optimize_action_button_is_expert_only():
+    """#1: Optimize settings were Expert-only; the green action button was not."""
+    src = UI.read_text(encoding="utf-8")
+    i = src.find('"label": "Optimize (hours)"')
+    assert i >= 0
+    window = src[i : i + 700]
+    assert "ui_mode === 'expert'" in window
+
+
+def test_randomize_action_button_is_expert_only():
+    src = UI.read_text(encoding="utf-8")
+    i = src.find('"label": "Randomize geometry"')
+    assert i >= 0
+    window = src[i : i + 500]
+    assert "ui_mode === 'expert'" in window
+
+
+def test_features_and_fit_seed_panels_are_expert_only():
+    assert _gate_offset("Features (bio-inspired)") < 400
+    assert _gate_offset("Fit & seed") < 400
+
+
+def test_assess_bem_honesty_sweep_are_expert_only():
+    """#2: Assess jargon controls must not appear in Simple.
+
+    BEM / Honesty / Sweep sit inside one Expert ``html.Div``, so the gate is
+    just *before* the BEM button (not after, like `_gate_offset` expects).
+    """
+    src = UI.read_text(encoding="utf-8")
+    i = src.find("Score multi-point BEM (ranking only)")
+    assert i >= 0
+    assert "ui_mode === 'expert'" in src[max(0, i - 250) : i + 80]
+    j = src.find("Honesty / fidelity")
+    assert j >= 0
+    assert "ui_mode === 'expert'" in src[max(0, j - 2000) : j + 40]
+    k = src.find('label="Sweep"')
+    assert k >= 0
+    assert "ui_mode === 'expert'" in src[max(0, k - 2500) : k + 80]
+
+
+def test_empty_scatter_uses_scored_count_not_dropdown_length():
+    """#3: Reference+Outline must not hide the empty Results caption."""
+    src = UI.read_text(encoding="utf-8")
+    i = src.find("No scored designs yet")
+    assert i >= 0
+    window = src[i : i + 450]
+    assert "n_scored_designs" in window
+    assert "trial_items.length < 2" not in window
+    j = src.find("How the air moves")
+    assert j >= 0
+    flow_window = src[max(0, j - 350) : j + 40]
+    assert "n_scored_designs" in flow_window
+
+
+def test_start_here_assumes_stock_loaded():
+    """#8: cold-open already loads Stock — do not say Pick a design first."""
+    src = UI.read_text(encoding="utf-8")
+    assert "Start here: 1) Pick a design" not in src
+    assert "Stock loaded" in src or "stock loaded" in src.lower()
+    assert _gate_offset("Stock loaded", "simple") < 2000 or _gate_offset(
+        "Start here:", "simple"
+    ) < 2000
+
+
+def test_print_material_label_is_plain():
+    """#7: stress/flutter caveats belong in Expert help, not the label."""
+    src = UI.read_text(encoding="utf-8")
+    assert 'label="Print material"' in src
+    assert "stress gate; vibration is estimate" not in src
+
+
+def test_simple_fan_tab_avoids_bare_cfd_acronym():
+    """#10: Simple-facing Fan tab should not lead with unexplained CFD."""
+    src = APP.read_text(encoding="utf-8")
+    # Tab label itself
+    assert "Fan · CFD" not in src or "Fan · blades" in src or "Fan · printable" in src
+    # Prefer plain tab present
+    assert "Fan · blades" in src or "Fan · printable blades" in src
+
+
+def test_load_stock_button_exists():
+    """#9: Design Actions exposes Load Stock / Reference."""
+    src = UI.read_text(encoding="utf-8")
+    assert "Load Stock" in src or "Load stock" in src
+    assert "load_stock_reference" in src or "fan_load_stock_reference" in src
+
+
+def test_screening_honesty_near_assess():
+    """#6: Assess action area mentions screening / rank-not-absolute."""
+    src = UI.read_text(encoding="utf-8")
+    assert "screening" in src.lower() or "rank designs" in src.lower() or "not absolute" in src.lower()
+    # Expert-visible near Assess
+    low = src.lower()
+    assert "gci" in low or "rank designs" in low or "compare designs, not absolute" in low
+
+
+def test_geometry_panel_titles_plain_for_simple():
+    """#5: panel titles avoid stagger/camber jargon as the primary name."""
+    src = UI.read_text(encoding="utf-8")
+    assert 'title="Pitch / twist — stagger"' not in src
+    assert 'title="Airfoil — camber & thickness"' not in src
+    assert "Blade angle" in src or "blade angle" in src.lower()
+    assert "Scoop" in src or "scoop" in src
+
+
+def test_library_info_empty_is_plain():
+    from fansim.cockpit.library_view import empty_library_info, HINT_BIG
+    assert "Fits this hub" not in empty_library_info(0)
+    assert "Scale" in empty_library_info(3) or "click" in empty_library_info(3).lower()
+    assert "Fits it" not in HINT_BIG

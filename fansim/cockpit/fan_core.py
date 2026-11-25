@@ -72,6 +72,7 @@ def apply_state_defaults(session) -> None:
 
     state.selected_trial = None
     state.ui_mode = "simple"  # Simple / Expert switch (roadmap §24)
+    state.n_scored_designs = 0  # real CFD/Optimize designs (excludes Reference/Outline)
     state.flow_rows = []
     state.flow_overall = ""
     # First load shows the reference, which has no flow simulation (§24).
@@ -416,6 +417,9 @@ def bind(session) -> None:
 
     def refresh_items():
         hub_all = _hub_designs()
+        # Synthetic Reference/Outline live only in the dropdown — not in hub_all — so this
+        # count is real scored CFD / Optimize designs (#3 empty Results gate).
+        state.n_scored_designs = len(hub_all)
         scored = [d for d in hub_all if not d.extra.get("cfd_stale")]
         stale = [d for d in hub_all if d.extra.get("cfd_stale")]
         scored = sorted(scored, key=lambda d: -(d.objectives.get("cfm_load") or -1e9))
@@ -435,13 +439,13 @@ def bind(session) -> None:
         state.trial_items = items
 
     def refresh_library():
+        from fansim.cockpit.library_view import empty_library_info
+
         spec = active_spec()
         items = library_list_items(load_catalog(), spec)
         state.library_items = items
         n = sum(1 for it in items if it.get("role") == "row")
-        state.library_info = (
-            f"{n} recipe(s) — click Fits this hub and draws it. " "Scale shrinks a huge recipe first."
-        )
+        state.library_info = empty_library_info(n)
 
     def _thin(designs, cell: float = 2.5):
         best = {}

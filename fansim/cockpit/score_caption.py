@@ -41,6 +41,11 @@ def score_caption(extra: dict) -> str:
             parts.append(f"WARN beam aspect {float(aspect):.2f} (plate-like §19.18)")
         else:
             parts.append("WARN beam regime (plate-like §19.18)")
+    # Cockpit Assess uses the screening mesh (README / GCI ≈ 21 %): rank, not absolute CFM.
+    if extra.get("grid_converged") is False:
+        parts.append(
+            "screening mesh: compare designs, not absolute airflow (GCI ≈ 21 %)"
+        )
     return " · ".join(parts)
 
 
@@ -78,7 +83,8 @@ def stamp_score_extra(
         if raw.get(key) is not None:
             extra[key] = raw[key]
     for key in ("beam_regime_ok", "beam_aspect", "beam_regime_warn", "f1_bpf_margin",
-                "near_stall", "near_stall_reason", "near_stall_rule", "converged"):
+                "near_stall", "near_stall_reason", "near_stall_rule", "converged",
+                "grid_converged", "grid_note"):
         if raw.get(key) is not None:
             extra[key] = raw[key]
     if refine_op:

@@ -1081,6 +1081,11 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                             },
                         )
                         html.Div(
+                            "Export STL unlocks after Analyze finishes the 3-D build.",
+                            classes="text-caption text-medium-emphasis mt-1",
+                            v_show="!prop_geo_ready",
+                        )
+                        html.Div(
                             "{{ prop_msg }}",
                             classes="text-caption mt-2",
                             style="white-space: pre-line",
