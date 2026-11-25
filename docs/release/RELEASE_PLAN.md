@@ -87,9 +87,7 @@ anything.
 
 Night CPU is now for gate suites and any R1.3 re-find campaign only.
 
-- **UX-1 Simple/Expert cockpit polish (GitHub #1–#20).** Lane: Cursor. CPU: day (UI copy + unit tests; not 4–9 PM heavy). Status: `in progress (Cursor, 2026-11-24)`.
-  - Opened from a live Linux cockpit walk + three review agents (2026-11-24). Issues: https://github.com/klhutchins1/Fan-simulator/issues?q=is%3Aissue+label%3Aux
-  - Branch `cursor/ux-simple-mode-2026-11-24`: issues #1–#20 addressed in code (tests for High + related copy). Gate when ready: `scripts/gate.py cursor/ux-simple-mode-2026-11-24` (not during 4–9 PM).
+- **UX-1 Simple/Expert cockpit polish (GitHub #1–#41).** Lane: Cursor. CPU: day (UI copy + unit tests). Status: `done` (merged PR #21 / #42 / #43, 2026-11-25). Leftover #27 (Library “rebuild the catalog”) on `cursor/ux-library-empty-27`.
 
 ## Review and maths tracking (Claude, 2026-11-24; Kimball asked for it)
 
@@ -98,39 +96,16 @@ red: [`docs/validation/audits/2026-11-24-audit-drift-forensics.md`](../validatio
 (no hidden maths regression: Stock BEM output is identical to the last proven commit). RV-0 goes before R3.8 so that
 the validation page is built on a green CI and a clean ledger.
 
-- **RV-0 Make the safety nets real.** Lane: Claude or Cursor. CPU: day. Status: `paused (Claude)`.
-  1. Fix mypy at `fansim/optimize/search_space.py:495` (from `20aed3e`; no behaviour change).
-  2. `scripts/gate.py` runs what CI runs: mypy, ruff `F811,F821`, `audit_status.py`.
-  3. Re-prove the 5 CHANGED units in one dated audit file that cites the forensics commits. Give QA-39 its own check
-     (time folders `20` and `100`). Register `cfd.metrics:latest_pp_file`.
-  4. CI fails on any CHANGED, AFFECTED, MISSING or UNREGISTERED unit.
-  Done when CI is green on master and `audit_status.py` reads all PROVEN.
-  - **Resume** (Claude, 2026-11-24 19:30): branch `claude/rv0-safety-nets`, pushed; not merged.
-    Done: items 1, 2 and the `--strict` flag for 4 (`gate.py` runs ruff F811/F821 + mypy + `audit_status.py --strict`;
-    `--static-only` for a quick check any time). `gate.py <branch> --static-only` gives ruff ok, mypy ok, audit FAILED
-    (the drift itself).
-    Next: item 3, re-prove the 5 units outside 4–9 PM. Run each unit's `checks`, write
-    `docs/validation/audits/<date>-rv0-reprove.md` citing the forensics commits, `record_pass` each unit, add the
-    QA-39 test, register `latest_pp_file`. Then add `audit_status.py --strict` to `.github/workflows/ci.yml`, run the
-    full gate, and merge.
-    Traps: this change also changes the `search_space` fingerprint (imports re-sorted, `Any` annotation), so re-prove
-    after it. Merge only after the re-prove: once merged, `gate.py` runs `audit_status.py --strict` from the branch
-    under test, so a branch made before this merge (e.g. Cursor's UX branch) must merge master first or its gate is
-    red on `audit`.
-- **RV-1 Maths snapshot.** Lane: Claude drafts the tolerance pre-registration; Cursor builds. CPU: day. Status:
-  `in progress (Claude, 2026-11-24)`: built (`ed1d470`), gate and merge after RV-0. A committed `tests/data/physics_snapshot.json`, compared at a tight tolerance, so CI fails when a
-  number moves. A commit that changes it names its audit file.
-  - Landed on `claude/rv1-physics-snapshot`: prereg `2026-11-24-physics-snapshot-prereg.md` (+ A1, rounding) committed
-    before the first write. 16 cases, about 7 s, bit-identical across processes. Mutation check: `K_TIP_LEAK` +1 % gives
-    234 differences (the old 50–80 CFM band would pass). Left: gate, merge, and RV-3 findings 8–10 in the plan.
-- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `blocked (RV-1)`.
+- **RV-0 Make the safety nets real.** Lane: Claude or Cursor. CPU: day. Status: `done` (merged `claude/rv0-safety-nets` → `d837929`, 2026-11-25). Gate runs CI static checks; `audit_status --strict`; 8 units re-proven.
+- **RV-1 Maths snapshot.** Lane: Claude drafts the tolerance pre-registration; Cursor builds. CPU: day. Status: `done` (merged `claude/rv1-physics-snapshot` → `83ca5bf`, 2026-11-25). 16 pinned cases in `tests/data/physics_snapshot.json`.
+- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `ready` (unblocked by RV-1).
   Published-data comparisons recomputed from frozen results into `docs/validation/scoreboard.md`. R3.8 quotes it.
 - **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `ready`.
   Order and checklist are in the plan. Findings become GitHub issues labelled `math` or `review`. The first 7
   findings are listed there.
-- **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `ready`. Sort all 128 scripts into promote, keep or
-  archive. No code that produces a verdict lives only in `scripts/`.
-- **RV-5 Speed and code health.** Lane: Cursor. CPU: day (profile outside 4–9 PM). Status: `blocked (RV-1)`. Profile
+- **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `done 7c23df1`. 38 scripts in `archive/scripts/`; `scripts/audit_forensics.py` + tests; promote follow-ups #74–#76 (`prop_section_2d`, `fan_noise_curle`, `fan_noise_cv`). Detail: `docs/review/2026-11-25-rv4-script-triage.md`.
+
+- **RV-5 Speed and code health.** Lane: Cursor. CPU: day (profile outside 4–9 PM). Status: `ready` (unblocked by RV-1). Profile
   the 45-minute suite, split `evaluate_candidate`, and widen mypy one module at a time.
 - **W1 (Windows PC)** still applies: `scripts\stray_work.py` must list nothing. GitHub has none of `stock-outline`,
   `r22a-wake-aspect` or `r110-g2-merge`, and this clone has no grok handoffs after 11-09, no `research/`, and no
@@ -252,7 +227,7 @@ optimizer candidate. This does not change the v0.1.0 definition of done.
   - grok r25b (2026-11-02, `docs/qa/notes/r25b-master-0635a18-recheck.md`): **still not on master 0635a18**: `r24-C-k1-visible.patch` still applies; unpatched master shows no warning for `converged=False`. r25-B add-on still applies (score_caption 11 passed on scratch, 9 on master). QA-65 open (MED).
   - grok r26 (2026-11-04, `docs/qa/notes/r26-qa66-qa65-recheck.md`): on bd6abdd **QA-65 verified 3/3, closable** (r24-C and r25-B reverse-apply; only `converged is False` warns; trials carry `converged`). Optional test: `docs/qa/patches/r26-B-qa65-trial-test.patch`.
 - **R1.3 Optimizer space under wrap (27.7)**. Lane: grok data (round 14 Task C), Cursor implements, Claude reviews.
-  CPU: day for the bounds, night for any re-find campaign. Status: `ready` (Claude 2026-11-09: R1.7 and R1.8 are both done, and grok r17 C re-measured 2.0 % refused with both, so the block is gone). grok r14 C delivered 2026-10-17
+  CPU: day for the bounds, night for any re-find campaign. Status: `done 3b0a021` (PR #45). P0 GUIDED wrap bounds; Stock inside; gate green 2026-11-25. grok r14 C delivered 2026-10-17
   (`docs/qa/notes/optimizer-space-wrap-r14.md`; proposed bounds give 4.3 % refused). The refused share depends on the hub
   (R1.7) and the hang check (R1.8), so re-measure after both.
   grok r17 C (2026-10-19, `docs/qa/notes/r17-C-hang-refusals.md`): r14 P0 bounds with R1.7 + R1.8 give 2.0 % refused (Wilson ≤ 4.3 %), so the bounds stand. R1.8 alone gives 7.7 %, R1.7 alone 0.3 %.
@@ -437,28 +412,7 @@ Kimball's.
     - grok r17 B delivered 2026-10-19: `docs/qa/r17/r17-B-epj2018-02023-digitised.csv` (CC BY 4.0 confirmed; plastic wheel at 6000/9000/11000). No curve reaches free delivery (QA-48), so A1 needs restating. b2 = 3.86 mm, d1/d2 ≈ 0.5, no blade angles, no scaled volute drawing.
     - Step 0, then `validation/reference/volute_epj2018/geometry.json` and `scripts/validate_volute_epj.py`.
   - **R2.5c runs.** Lane: night. Status: `frozen for v0.1.0`.
-- **R2.7 Label pass for the four unvalidated surfaces (Kimball decision 2026-11-15).** Lane: Cursor. CPU: day.
-  Status: `in progress (Cursor, 2026-11-19)`. One branch, one gate. Branch `r27-labels-fix` (from `claude/r27-labels`).
-  - 2026-11-17 (Claude): landed on the branch (`111b559`), not merged yet. Also labels the CROR and Volute point inspectors (as Mixed's) and keeps the CROR README sidecar out of the export list. The label is on every tab tooltip (Prop
-    tooltip says the optional CFD check is experimental), next to every Assess / Optimize / CFD-refine result, and in
-    new CROR and Volute export README sidecars. Volute's "ranking only, unvalidated" is now the standard words. Labelled
-    completion messages lose their ✓ (existing rule in `test_ui_says_what_it_does`). README Known limits has one
-    labelled line per surface. Tabs renamed "Volute · experimental" and "CROR · experimental" (Kimball 2026-11-17), as Mixed. `tests/test_r27_labels.py`
-    + 4 older copy tests moved to the new wording: 80 passed.
-  - 2026-11-17 night gate RED: `test_export_hint_uses_the_fit_hub_setting_from_the_click` hit OSError 22 on a print-id
-    whose check digit was `*` (`5YEE*…`), illegal in a Windows path. Not an R2.7 label bug. Cursor 2026-11-19:
-    `issue_print_id` skips filename-unsafe check digits; master merged into the branch; focused tests 36 passed.
-  - **Resume:** re-queue `suite-r27-labels-all` on `r27-labels-fix` (merge on green). If STATUS.md says merged, set
-    this to `done <merge commit>` and R3.8 to `blocked (R1.3)`.
-  - The same words everywhere: **"Experimental: not validated against published data."** In Simple and Expert, on the
-    tab (tooltip or name, as Mixed already does), next to every Assess/Optimize number, and in the export README/sidecar.
-  - Where it stands (Claude, 2026-11-15): Mixed is done (`5945620`). Volute says "ranking only, unvalidated" (change it
-    to the standard words). Propeller CFD has only a note in the Assess text (`prop_tab.py:1393`); the BEMT fast estimate
-    is validated and must **not** get the label. **CROR has no label in the UI at all.**
-  - README "Known limits": one line per surface with the standard words; also drop "nothing printed or measured yet"
-    (print session 1 happened; nothing is *validated* by it).
-  - Test first: one test that each of the four tabs shows the exact string in Simple and Expert, and that the Fan tab
-    and the prop BEMT result do not.
+- **R2.7 Label pass for the four unvalidated surfaces.** Status: `done 616aa33` (PR #71; closes #59). Detail in `RELEASE_DONE.md`.
 - **R2.6 Centrifugal (no tab) and wind turbine (scaffold)**: excluded from v0.1.0.
   - Lane: Cursor makes sure neither is reachable from the cockpit or the README quickstart. Status: `done 1d5e8b9`.
   - Landed: no centrifugal-only or wind-turbine control, tab, menu, or README quickstart link. `tests/test_r26_hide_scaffolds.py` locks that. Mixed and Volute stay. The wind_turbine package stays in the repo.
@@ -504,7 +458,7 @@ Kimball's.
 - **R3.7 Cockpit UI regression tests (29.2)**. Lane: Cursor writes, grok proposes cases. CPU: day. Status: `done 2b98425`.
   - Headless "we say X, we do Y" tests (`tests/test_ui_says_what_it_does.py`), at least one per tab that ships.
   - Landed one headless say/do test per shipping tab (Fan, Prop, Mixed, Volute, CROR); handlers are read with inspect.getsource, not run, and no production copy changed.
-- **R3.8 Validation page**. Lane: Cursor drafts, Claude checks the numbers. CPU: day. Status: `blocked (R1.3, R2.7)`.
+- **R3.8 Validation page**. Lane: Cursor drafts, Claude checks the numbers. CPU: day. Status: `blocked (RV-2)`.
   - **Claude reviewed grok r21 B 2026-10-29: approved as the base.** Apply M1–M9 (M3: name the rig for 58.3 vs 59.8; M5: the link is `2026-10-12-cylinder-sections.md`). See the review doc. grok checks the final page.
   - `docs/VALIDATION.md`: per surface, what it was validated against, the tolerance, the result and the known limits.
     Every number links to its audit.

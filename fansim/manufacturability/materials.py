@@ -25,7 +25,7 @@ class Material:
 
 
 MATERIALS: dict[str, Material] = {
-    "PLA": Material("PLA", 3.5, 50.0, 1240.0, 55.0, True,
+    "PLA": Material("PLA", 3.5, 60.0, 1240.0, 55.0, True,
                     "stiffest/cheapest but creeps ~55C near warm exhaust"),
     "PLA+": Material("PLA+", 3.0, 45.0, 1240.0, 60.0, True, "tougher PLA, still heat-limited"),
     "PETG": Material("PETG", 2.1, 50.0, 1270.0, 70.0, True, "default: stiffness + heat resistance"),

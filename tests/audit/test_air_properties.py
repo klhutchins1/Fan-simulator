@@ -73,7 +73,8 @@ def test_viscosity_matches_sutherland_and_nu_is_mu_over_rho():
     t = air.T_ROOM_K
     mu = 1.458e-6 * t**1.5 / (t + 110.4)
     assert air.MU_AIR == pytest.approx(mu, rel=0.02)
-    assert air.NU_AIR == pytest.approx(air.MU_AIR / air.RHO_AMCA, rel=0.03)
+    assert air.NU_AIR == pytest.approx(air.MU_AIR / air.RHO_AMCA, rel=0, abs=0.0)
+    assert air.NU_AIR == air.MU_AIR / air.RHO_AMCA
 
 
 def test_not_water_not_mars():

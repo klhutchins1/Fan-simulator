@@ -17,5 +17,5 @@ GAMMA_AIR = 1.4       # ratio of specific heats
 RHO_AMCA = 1.2        # kg/m³ — AMCA 210 standard air (fans, ducted CFD)
 RHO_ISA = 1.225       # kg/m³ — ISA sea level (props, turbines, UIUC comparisons)
 MU_AIR = 1.81e-5      # dynamic viscosity at 20 °C, Pa·s (Sutherland)
-NU_AIR = 1.5e-5       # kinematic viscosity, m²/s (MU_AIR / RHO_AMCA ≈ 1.51e-5)
+NU_AIR = MU_AIR / RHO_AMCA  # kinematic viscosity, m²/s (#48: one definition)
 C0_AIR = 343.0        # speed of sound at 20 °C, m/s

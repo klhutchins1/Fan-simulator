@@ -26,10 +26,10 @@ from dataclasses import dataclass
 import numpy as np
 
 from fansim.geometry.blade import BladeParams
+from fansim.physics.air import NU_AIR
+from fansim.physics.air import RHO_ISA as RHO_AIR
 from fansim.prop_spec import C_AIR
 
-from fansim.physics.air import RHO_ISA as RHO_AIR
-from fansim.physics.air import NU_AIR
 G = 9.80665
 
 # Polar backend for `_section_aero`: "table" (default UIUC CSVs → analytic) or "neuralfoil"
@@ -199,11 +199,15 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
     A = math.pi * R * R
     fm = (T ** 1.5 / math.sqrt(2.0 * rho * A)) / P if (P > 0 and T > 0) else 0.0
     prop_eff = (T * v_forward / P) if (v_forward > 0 and P > 0) else None
-    return PropPerf(thrust_n=round(T, 3), torque_nm=round(Q, 4), power_w=round(P, 1), rpm=rpm,
-                    v_forward=v_forward, thrust_g=round(T / G * 1000.0, 0),
-                    efficiency_g_per_w=round(T / G * 1000.0 / P, 2) if P > 0 else 0.0,
-                    figure_of_merit=round(min(fm, 1.0), 3), prop_efficiency=prop_eff,
-                    figure_of_merit_raw=round(fm, 4), converged=converged)
+    # Full precision here (#50); cockpit/export format for display.
+    thrust_g = T / G * 1000.0
+    return PropPerf(
+        thrust_n=T, torque_nm=Q, power_w=P, rpm=rpm, v_forward=v_forward,
+        thrust_g=thrust_g,
+        efficiency_g_per_w=(thrust_g / P) if P > 0 else 0.0,
+        figure_of_merit=min(fm, 1.0), prop_efficiency=prop_eff,
+        figure_of_merit_raw=fm, converged=converged,
+    )
 
 
 # --- spliced from transcript edit-history (recovery 2026-09-12) ---

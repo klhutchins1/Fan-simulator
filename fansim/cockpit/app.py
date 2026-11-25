@@ -12,6 +12,7 @@ from pathlib import Path
 from fansim.cockpit.busy_ui import make_busy_bar, make_busy_expr, make_spawn_busy_ticker
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.data import Design, feasible_designs, load_designs
+from fansim.cockpit.experimental import EXPERIMENTAL_LABEL
 from fansim.cockpit.trame_vtk_compat import patch_trame_vtk_protocol_defer
 
 _RUNNING_TESTS = "pytest" in sys.modules
@@ -137,12 +138,12 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
     )
 
     # Tab setup (lazy imports: keep tests/light imports happy).
+    from fansim.cockpit.cror_tab import render_cror_tab, setup_cror_tab
     from fansim.cockpit.fan_core import tab_for_ui_mode
     from fansim.cockpit.fan_tab import render_fan_tab, setup_fan_tab
     from fansim.cockpit.mixed_tab import render_mixed_tab, setup_mixed_tab
-    from fansim.cockpit.volute_tab import render_volute_tab, setup_volute_tab
     from fansim.cockpit.prop_tab import render_prop_tab, setup_prop_tab
-    from fansim.cockpit.cror_tab import render_cror_tab, setup_cror_tab
+    from fansim.cockpit.volute_tab import render_volute_tab, setup_volute_tab
 
     state.active_tab = "fan"
     setup_fan_tab(ctx)
@@ -188,7 +189,7 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                     with v3.VTooltip(
                         location="bottom",  # beside the tab it covered the next tab name (§23.27)
                         open_delay=400,
-                        text="Experimental: not validated against published data",
+                        text=EXPERIMENTAL_LABEL,
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
                             v3.VTab(
@@ -200,11 +201,11 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                     with v3.VTooltip(
                         location="bottom",  # beside the tab it covered the next tab name (§23.27)
                         open_delay=400,
-                        text="Volute — ranking only, unvalidated (CFD not yet converged)",
+                        text=EXPERIMENTAL_LABEL,
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
                             v3.VTab(
-                                "Volute · estimate",
+                                "Volute · experimental",
                                 value="volute",
                                 v_bind="props",
                                 v_show="ui_mode === 'expert'",
@@ -212,18 +213,19 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                     with v3.VTooltip(
                         location="bottom",  # beside the tab it covered the next tab name (§23.27)
                         open_delay=400,
-                        text="Propeller — fast estimate (~1 s). Optional CFD check.",
+                        text=f"Propeller — BEMT fast estimate (~1 s). Optional CFD check is "
+                        f"{EXPERIMENTAL_LABEL[0].lower() + EXPERIMENTAL_LABEL[1:]}",
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
                             v3.VTab("Prop · fast estimate", value="propeller", v_bind="props")
                     with v3.VTooltip(
                         location="bottom",  # beside the tab it covered the next tab name (§23.27)
                         open_delay=400,
-                        text="CROR — stacked rotors (fast estimate, not full CFD)",
+                        text=EXPERIMENTAL_LABEL,
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
                             v3.VTab(
-                                "CROR · estimate",
+                                "CROR · experimental",
                                 value="cror",
                                 v_bind="props",
                                 v_show="ui_mode === 'expert'",
