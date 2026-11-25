@@ -110,7 +110,9 @@ the validation page is built on a green CI and a clean ledger.
     QA-39 test, register `latest_pp_file`. Then add `audit_status.py --strict` to `.github/workflows/ci.yml`, run the
     full gate, and merge.
     Traps: this change also changes the `search_space` fingerprint (imports re-sorted, `Any` annotation), so re-prove
-    after it. Every other branch's gate is red on `audit` until this merges.
+    after it. Merge only after the re-prove: once merged, `gate.py` runs `audit_status.py --strict` from the branch
+    under test, so a branch made before this merge (e.g. Cursor's UX branch) must merge master first or its gate is
+    red on `audit`.
 - **RV-1 Maths snapshot.** Lane: Claude drafts the tolerance pre-registration; Cursor builds. CPU: day. Status:
   `blocked (RV-0)`. A committed `tests/data/physics_snapshot.json`, compared at a tight tolerance, so CI fails when a
   number moves. A commit that changes it names its audit file.
