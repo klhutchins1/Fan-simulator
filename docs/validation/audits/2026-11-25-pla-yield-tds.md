@@ -15,3 +15,6 @@ PETG Y∈[35,55], but both catalogue entries were 50 MPa — identical root-bend
 | P3 | `structural.deflection` (+ dependants centrifugal/flutter if CHANGED) checks green; `record_pass` |
 
 No model-vs-data threshold change beyond the catalogue number.
+
+## Result
+P1–P3 PASS. PLA yield 50→60 MPa (NatureWorks); PETG stays 50. Four structural units re-proven.

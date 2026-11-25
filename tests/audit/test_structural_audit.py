@@ -327,3 +327,8 @@ def test_stock_wide_plate_stamps_beam_regime_warn():
     f = flutter_report(stock, material="PETG")
     assert f.ok and not f.beam_regime_ok
     assert f.margin >= 1.2
+
+
+def test_pla_and_petg_have_distinct_yield():
+    """#51: root-bending SF must differ when the user picks PLA vs PETG."""
+    assert MATERIALS["PLA"].yield_strength_mpa != MATERIALS["PETG"].yield_strength_mpa
