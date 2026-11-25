@@ -25,16 +25,18 @@ from fansim.optimize.search_space import blade_from_flat
 
 pv.OFF_SCREEN = True
 OUT = Path("docs/control_images")
-DEFAULT = dict(n_blades=7, stagger_root=26, stagger_mid=26, stagger_tip=22,
-               chord_root=34, chord_mid=44, chord_tip=38, max_camber=0.05,
-               camber_root=0.05, camber_mid=0.05, camber_tip=0.05,
-               sweep_mid=3, sweep_tip=5, lean_mid=14, lean_tip=26,
-               hub_radius=21.5, tip_radius=56.5, hub_height=18.0,
-               thickness_root=0.10, thickness_mid=0.08, thickness_tip=0.06,
-               camber_pos=0.4, spacing_spread=0.0, spacing_seed=0,
-               section_family="naca", span_interp="linear",
-               cylindrical_tip=True, le_thick_scale=1.0, te_thick_scale=1.0,
-               blade_hub_z=0.0)
+DEFAULT = {
+    "n_blades": 7, "stagger_root": 26, "stagger_mid": 26, "stagger_tip": 22,
+    "chord_root": 34, "chord_mid": 44, "chord_tip": 38, "max_camber": 0.05,
+    "camber_root": 0.05, "camber_mid": 0.05, "camber_tip": 0.05,
+    "sweep_mid": 3, "sweep_tip": 5, "lean_mid": 14, "lean_tip": 26,
+    "hub_radius": 21.5, "tip_radius": 56.5, "hub_height": 18.0,
+    "thickness_root": 0.10, "thickness_mid": 0.08, "thickness_tip": 0.06,
+    "camber_pos": 0.4, "spacing_spread": 0.0, "spacing_seed": 0,
+    "section_family": "naca", "span_interp": "linear",
+    "cylindrical_tip": True, "le_thick_scale": 1.0, "te_thick_scale": 1.0,
+    "blade_hub_z": 0.0,
+}
 
 # (model, label, key, min, max, mode[, base_overrides]).
 # mode 'fan' = whole impeller, 'blade' = one zoomed blade.

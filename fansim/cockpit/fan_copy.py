@@ -14,8 +14,8 @@ def _load_control_images() -> dict:
         for p in _CTRL_IMG_DIR.glob("e_*.png"):
             try:
                 uris[p.stem] = "data:image/png;base64," + base64.b64encode(p.read_bytes()).decode()
-            except Exception:  # noqa: BLE001
-                pass
+            except OSError:
+                continue
     return uris
 
 
