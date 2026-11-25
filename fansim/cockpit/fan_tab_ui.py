@@ -558,7 +558,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     classes="text-body-2 mb-2",
                                 )
                                 html.Div(
-                                    "Validated: axial Fan CFD method vs published fans (see README). "
+                                    "Checked against published data: Fan CFD matches three published "
+                                    "fans near free air. On one of them (lt120) loaded airflow reads "
+                                    "about 25 % high at mid load, so loaded airflow ranks designs; "
+                                    "treat its absolute value as uncertain (see README). "
                                     "Not validated: noise levels, Prop CFD / Mixed / Volute / CROR "
                                     "(labelled experimental), blade vibration. Docs: README, "
                                     "docs/design-rules.md, docs/a12x25-reference.md, "
@@ -1466,9 +1469,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             with v3.VCol(cols=8):
                                 html.Div("Print / export", classes="text-subtitle-2")
                                 html.Div(
-                                    "Fit hub / tip = shrink the blade to the motor and frame. "
-                                    "Mirror = also export the opposite spin direction. "
-                                    "Motor cup in Preview is slower.",
+                                    "Fit hub / tip = shrink the blade to the motor and frame.",
                                     classes="text-caption text-medium-emphasis",
                                     v_show="ui_mode === 'simple'",
                                 )
@@ -1517,7 +1518,8 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         html.Div(
                             "{{ memory_tier_note }}",
                             classes="text-caption text-medium-emphasis mt-1",
-                            v_show="ui_mode === 'expert'",
+                            # Simple too when the cup can't be built: it is the only warning (#43 review).
+                            v_show="ui_mode === 'expert' || !cup_build_ok",
                         )
                         html.Div("{{ export_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
                         html.A(

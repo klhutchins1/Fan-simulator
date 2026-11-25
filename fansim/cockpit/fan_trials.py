@@ -125,12 +125,15 @@ def bind(session) -> None:
         state.assess_refine_op = bool(d.extra.get("refine_op"))
         state.assess_wall_ks = float(d.extra.get("wall_ks_mm") or 0) > 0
         # Selecting a trial rewrites Assess controls from its saved run — say so (UI-38 / #40).
-        state.info_lines.append(
-            "Assess settings restored from this design "
-            f"(hose={state.assess_preset}, "
-            f"refine={'on' if state.assess_refine_op else 'off'}, "
-            f"wall-ks={'on' if state.assess_wall_ks else 'off'})."
-        )
+        if str(state.ui_mode or "simple") == "expert":
+            state.info_lines.append(
+                "Assess settings restored from this design "
+                f"(hose={state.assess_preset}, "
+                f"refine={'on' if state.assess_refine_op else 'off'}, "
+                f"wall-ks={'on' if state.assess_wall_ks else 'off'})."
+            )
+        else:
+            state.info_lines.append("Assess settings restored from this design's saved run.")
         session._init_editor(p)
         session._set_baseline()
         if d.extra.get("cfd_stale"):

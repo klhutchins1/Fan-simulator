@@ -485,7 +485,8 @@ def bind(session) -> None:
                             else "  (even blade count — odd counts spread the tone more)"
                         )
                         tone_line = (
-                            f"\n🔉 Uneven spacing: predicted peak tone −{drop:.1f} dB, free of any flow cost{odd}"
+                            f"\n🔉 Uneven spacing: estimated peak-tone drop −{drop:.1f} dB "
+                            f"(estimate, not validated){odd}"
                         )
                     except Exception:  # noqa: BLE001
                         tone_line = ""
