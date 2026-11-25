@@ -123,8 +123,19 @@ the validation page is built on a green CI and a clean ledger.
   - Landed on `claude/rv1-physics-snapshot`: prereg `2026-11-24-physics-snapshot-prereg.md` (+ A1, rounding) committed
     before the first write. 16 cases, about 7 s, bit-identical across processes. Mutation check: `K_TIP_LEAK` +1 % gives
     234 differences (the old 50–80 CFM band would pass). Left: gate, merge, and RV-3 findings 8–10 in the plan.
-- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `in progress (Claude, 2026-11-24)`.
+- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `needs Kimball` (built `63d3f98`, branch `claude/rv2-scoreboard`).
   Published-data comparisons recomputed from frozen results into `docs/validation/scoreboard.md`. R3.8 quotes it.
+  - Landed: `scoreboard_claims.yaml` (12 claims), `fansim/validation/scoreboard.py`, `scripts/scoreboard.py`,
+    `tests/test_scoreboard.py`. BEMT vs UIUC recomputed live; FAN-01 from its JSON; verdicts re-judged on the
+    pre-registered tolerance only. Result: 6 PASS, 4 FAIL, 2 NOT JUDGED. README FAN-01 corrected +2.6 → +2.5 %.
+  - **Question for Kimball 1:** APC SF C_T(J) RMS was pre-registered at ≤ 0.015 (Audit #3). After the data it was
+    "re-registered" to 0.020 on 2026-09-30, which turned a FAIL into a PASS. The scoreboard judges it on 0.015
+    (FAIL, 0.0175). Should the ledger's `propeller.bemt` claim drop its "C_T(J) RMS (tol 0.020) PASS" wording?
+    It does not touch the release claim, which is static C_T (PASS).
+  - **Question for Kimball 2:** FAN-01 (+2.5 / +3.1 %) had no pre-registered tolerance, so it is NOT JUDGED. The
+    definition of done needs one. Ship it as "reported, not judged", or pre-register a FAN-01 re-run?
+  - **Left (Windows PC):** commit the result files behind the 4 markdown-only rows (A12x25 close-ref v5 P–Q,
+    lt120 `runs/lt120/summary.json`), then switch those rows to `kind: data`.
 - **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `ready`.
   Order and checklist are in the plan. Findings become GitHub issues labelled `math` or `review`. The first 7
   findings are listed there.
