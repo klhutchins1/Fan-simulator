@@ -97,6 +97,10 @@ Night CPU is now for gate suites and any R1.3 re-find campaign only.
 its review fixes), PR #42. Gate on Linux: 739 / 642 / 787 passed; the one failure (`test_assess_alert_says_two_solves`,
 stale after #21 and #43) was fixed in `d816438` and the 613 cockpit tests re-run green. The Linux-only fuse-memory
 test was fixed in `2d64a01`.
+- **For Cursor (2026-11-25, important):** a test-suite run killed two FAN-01 CFD runs on the laptop. Old code's
+  container cleanup (`kill_cfd_containers`, reached for real by `test_run_watched_kills_on_hard_cap`) kills every
+  OpenFOAM container without a session label. Fix: `claude/cfd-session-scope`. Once it is on master, merge master
+  into every branch before running `gate.py` on it.
 - **For Cursor:** `4ba172b` on `cursor/ux-round2-2026-11-24` repeats those two test fixes after #43 merged. Master
   already has them; drop that commit, do not merge it (it conflicts on the same lines).
 - PR #42's screenshots predate #21/#43 (Assess ~15–30 min, "Fan · CFD", Kitware footer). Retake them.

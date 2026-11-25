@@ -64,4 +64,14 @@ roughly twice that on the 8-core laptop. Kimball chooses.
 processes) was running on the laptop at the same time, and zram swap showed use, so this is most likely memory;
 the kernel log was not readable to confirm it. This is a failed run, not a result: nothing is judged from it.
 
-**Attempt 2:** the same command, unchanged, started when no other test suite is running.
+**Attempt 2 (2026-11-25 12:01, same command, master `d816438`): no data.** Killed (exit 137) at 12:57:01 in
+`simpleFoam`, iteration 232 of the first point, before any point finished.
+
+**Cause of both (found 2026-11-25, `claude/cfd-session-scope` `74fe176`): not memory.** A process with no
+`FANSIM_CFD_SESSION` did an unscoped container cleanup that `docker kill`ed every `fansim_cfd=1` container
+without a session label. `tests/test_cfd_watchdog.py::test_run_watched_kills_on_hard_cap` reaches that cleanup for
+real, and Cursor's test-suite gates on the same laptop ran it at about 11:00 and 12:57. The runs died from
+outside; nothing about FAN-01 caused it, and nothing is judged from either attempt.
+
+**Attempt 3:** the same command, from `master` once that fix is merged (its containers carry a session label, so
+even an old-code cleanup skips them).
