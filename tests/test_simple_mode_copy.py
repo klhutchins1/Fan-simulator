@@ -277,7 +277,10 @@ def test_geometry_panel_titles_plain_for_simple():
 
 
 def test_library_info_empty_is_plain():
-    from fansim.cockpit.library_view import empty_library_info, HINT_BIG
+    from fansim.cockpit.library_view import HINT_BIG, empty_library_info
     assert "Fits this hub" not in empty_library_info(0)
     assert "Scale" in empty_library_info(3) or "click" in empty_library_info(3).lower()
     assert "Fits it" not in HINT_BIG
+    # #27: no Rebuild control in the cockpit — do not point at "rebuild the catalog".
+    assert "rebuild the catalog" not in empty_library_info(0).lower()
+    assert "Assess" in empty_library_info(0)

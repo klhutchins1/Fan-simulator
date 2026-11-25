@@ -19,7 +19,7 @@ def empty_library_info(n: int) -> str:
     """Library header copy. ``n`` is the number of clickable recipe rows."""
     if n <= 0:
         return (
-            "No saved designs yet — Assess a blade or run Optimize, then rebuild the catalog."
+            "No saved designs yet — Assess a blade or run Optimize; scored runs show up here."
         )
     return (
         f"{n} saved design(s) — click a row to load it. "
