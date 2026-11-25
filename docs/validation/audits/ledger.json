@@ -98,7 +98,7 @@
     },
     "fan.bem_prescreen": {
       "date": "2026-11-25",
-"fingerprint": "c62f535707b8ad8d",
+      "fingerprint": "abf9e1c434a7b7d2",
       "report": "docs/validation/audits/2026-11-25-nu-air-derive.md",
       "verdict": "PASS"
     },
@@ -128,7 +128,7 @@
     },
     "physics.regime": {
       "date": "2026-11-25",
-      "fingerprint": "c6d29ffefacba8d7",
+      "fingerprint": "8e080dc0a475da4e",
       "report": "docs/validation/audits/2026-11-25-nu-air-derive.md",
       "verdict": "PASS"
     },
