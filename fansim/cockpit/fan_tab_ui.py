@@ -513,8 +513,9 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         v3.VAlert(
                             "Design 3D-printable replacement blades for a PC cooling fan "
                             "(start: Noctua A12x25). Preview updates the shape in seconds; "
-                            "Assess runs an airflow check (~30–40 min). Export writes a "
-                            "print-ready STL. Switch to Expert for Optimize and advanced tabs.",
+                            "Assess runs two airflow solves (free air and a loaded point), "
+                            "about 30–40 min. Export writes a print-ready STL. "
+                            "Switch to Expert for Optimize and advanced tabs.",
                             type="info",
                             density="compact",
                             variant="tonal",
