@@ -17,6 +17,7 @@ before any CFD is spent on them.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import shutil
 import time
@@ -214,6 +215,10 @@ def evaluate_candidate(
     if spec.motor_mount is not None:
         from fansim.manufacturability.print_export import mount_hub_params
         params, _grow_note = mount_hub_params(params, spec.motor_mount)
+    # Every gate below (centrifugal stress ∝ rpm², resonance vs blade-pass ∝ rpm) and the CFD must
+    # judge the speed the design will run at: the fan model's rpm or an Optuna --search-rpm sample.
+    # A copy, so the caller's params are not changed (RV-3: gates used to see the stale params.rpm).
+    params = dataclasses.replace(params, rpm=target_rpm)
 
     # --- Cheap gates first (no CFD) ---
     if require_mountable:
@@ -378,7 +383,6 @@ def evaluate_candidate(
     # under-predict flow ~15% + hurt convergence (2.0/4.0 diameters converge cleanly to ~77/81
     # for trial 2; the earlier 1.0/1.5 gave ~65/71 unconverged — see adversarial-review §3.4).
     # Reusing one meshed dir across back-pressures was verified to NOT contaminate results.
-    params.rpm = target_rpm  # model RPM or an Optuna --search-rpm sample
     gap_raw["stator"] = (
         "stack" if stator_stack else ("stator" if stator else "frame"))
     gap_raw["inlet"] = "stepped" if stepped_inlet else "plain"
