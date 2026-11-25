@@ -6,6 +6,18 @@ GPU (FluidX3D LBM; not validated), searches the design space for Pareto improvem
 actually **buildable and mountable**, and exports print-ready STLs — all drivable from an interactive
 cockpit. First target: a **Noctua NF-A12x25**-class blade.
 
+<p align="center">
+  <img src="docs/screenshots/cockpit-fan-design.png" alt="Fan Simulator cockpit — Fan Design with Stock impeller and airflow cues" width="900">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/cockpit-fan-results.png" alt="Fan Results — design-space scatter and 3-D view" width="440">
+  &nbsp;
+  <img src="docs/screenshots/cockpit-prop.png" alt="Prop tab — fast BEMT estimate with 3-D propeller" width="440">
+</p>
+
+<p align="center"><em>Cockpit: Fan Design (Stock a12x25) · Fan Results · Prop fast estimate</em></p>
+
 The honest north star is **validated relative gains + a real "fan showdown"** against a printed baseline,
 not beating a molded LCP fan on absolute numbers with a home print.
 
