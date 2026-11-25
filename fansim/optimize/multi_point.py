@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from itertools import pairwise
 
 from fansim.acoustics.farfield import blade_pass_frequency
 from fansim.acoustics.loading import loading_proxy_from_rans
+from fansim.cfd.metrics import CFM_PER_M3S
 from fansim.fan_bem import operating_point, pq_curve
 from fansim.geometry.blade import BladeParams
 from fansim.optimize.presets import resolve_load
@@ -129,7 +131,7 @@ def score_multi_point(
             free, load = float(curve.free_delivery_cfm), 0.0
         thrust = _thrust_n_from_bem(params, rpm, tip_gap_mm)
         # Shaft power from free-delivery BEM point near peak flow.
-        op = operating_point(params, rpm, flow_m3s=max(free, 1.0) / 2118.882,
+        op = operating_point(params, rpm, flow_m3s=max(free, 1.0) / CFM_PER_M3S,
                              tip_gap_mm=tip_gap_mm)
         rel, tip_mach, bpf = relative_fan_noise(
             params, rpm, thrust_n=thrust, shaft_power_w=op.power_w,
@@ -188,7 +190,7 @@ def cfm_at_matched_noise(
             "noise_lo": rows[0][0],
             "noise_hi": rows[-1][0],
         }
-    for (n0, c0, d0, r0), (n1, c1, d1, r1) in zip(rows, rows[1:]):
+    for (n0, c0, d0, r0), (n1, c1, d1, r1) in pairwise(rows):
         if n0 <= target <= n1:
             t = 0.0 if n1 <= n0 else (target - n0) / (n1 - n0)
             return {
@@ -205,8 +207,10 @@ def cfm_at_matched_noise(
 def format_multi_point(score: MultiPointScore) -> list[str]:
     """Cockpit readout lines for a multi-point BEM score."""
     lines = [
-        f"Multi-point BEM (§20.6): weighted load {score.weighted_cfm_load:.0f} CFM · "
-        f"free {score.weighted_cfm_free:.0f} CFM · rel noise {score.weighted_rel_noise_db:.0f}",
+        (
+            f"Multi-point BEM (§20.6): weighted load {score.weighted_cfm_load:.0f} CFM · "
+            f"free {score.weighted_cfm_free:.0f} CFM · rel noise {score.weighted_rel_noise_db:.0f}"
+        ),
         score.note,
     ]
     for p in score.points:
