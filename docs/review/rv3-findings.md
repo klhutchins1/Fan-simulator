@@ -22,10 +22,35 @@ Checked and fine: derate (flow ∝ λ, power ∝ λ³, probe pressure ∝ λ²);
 probe reads as a stall); system-curve failure reasons; the surrogate pre-screen already refuses rather than falling
 through to CFD (§9.6).
 
+## 2. `fansim/fan_bem.py`, reviewed 2026-11-25
+
+No new defects. Checked line by line:
+- Euler ΔP₀ = ρ·U·ΔV_θ, mass-weighted.
+- Tangential blade force ½ρW²cB(c_l sinφ + c_d cosφ), with φ from the rotation plane (the geometry's stagger
+  convention).
+- Angular momentum V_θ = F_θ/(ρV_x·2πr).
+- Shaft power dm·U·V_θ uses the full swirl, so SLIP counts as lost work and η ≤ 1 by construction.
+- Static rise = total − exit swirl head − friction; with a stator the swirl is recovered.
+- The axial-force model's units (N/m·m ÷ area → Pa) and its energy cap.
+Open, already filed: rounding inside the maths (#50), `NU_AIR` literal (#48). The loss constants
+(SLIP, K_FRICTION, K_TIP_LEAK) are empirical fits to Stock, documented by Audit #4.
+
+## 3a. `fansim/cfd/metrics.py`, reviewed 2026-11-25
+
+No new defects. Checked:
+- force.dat/moment.dat column layout after paren-stripping (`[t, total xyz, pressure xyz, viscous xyz]`, so
+  index 3 = total z);
+- signed outlet φ sum;
+- static rise = (p_out − p_in)·ρ for kinematic pressure;
+- static η = Q·ΔP/(|M_z|ω);
+- tail mean and convergence use the same 25 % tail;
+- QA-39 time-folder order (pinned by the new contract test).
+Note: torque is `abs(M_z)`, so a windmilling rotor shows positive power; `cfd.sanity` `power_sign` flags it, and
+it is not silent.
+
 ## Next modules
 
-2. `fansim/fan_bem.py`
-3. `fansim/cfd/metrics.py`, `flow_report.py`, `flow_verdicts.py`
+3b. `fansim/cfd/flow_report.py`, `flow_verdicts.py`
 4. `fansim/geometry/blade.py`, `airfoil.py`
 5. `fansim/propeller/bemt.py`, `polars.py`
 6. `fansim/optimize/search_space.py`
