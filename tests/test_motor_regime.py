@@ -41,8 +41,9 @@ def test_torque_limit_flags():
 # ---- physics regime ----
 
 def test_axial_fan_regime_is_incompressible_turbulent():
+    from fansim.physics.air import NU_AIR
     r = fan_regime(tip_speed_ms=11.6, diameter_m=0.11)
-    assert r.reynolds == pytest.approx(11.6 * 0.11 / 1.5e-5, rel=1e-6)  # ~85000
+    assert r.reynolds == pytest.approx(11.6 * 0.11 / NU_AIR, rel=1e-6)  # ~84600
     assert r.mach < 0.05
     assert not r.compressible
     assert r.turbulence_model == "k-omega SST"
