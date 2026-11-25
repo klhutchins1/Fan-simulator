@@ -19,7 +19,7 @@ PROP_BEMT = (
 )
 PRINT_LOSS = "an assumed 5 % print loss, not yet measured"
 SCREEN_MESH = "screening mesh: compare designs, not absolute airflow; Stock reads about 5 % low"
-VOLUTE_RANK = "ranking only, unvalidated (CFD not yet converged)"
+VOLUTE_RANK = "Experimental: not validated against published data."
 HUB_TOO_SMALL = "hub radius too small"
 
 
@@ -166,6 +166,9 @@ def test_qa57_volute_assess_is_labelled_unvalidated():
         if "Assess runs radial MRF" in ln or "Assess: free+load CFD" in ln
     ]
     assert assess_lines
-    assert "Volute CFD: ranking only, unvalidated (CFD not yet converged)." in src
+    assert "Volute CFD:" in src and "EXPERIMENTAL_LABEL" in src
     i = src.index("Assess runs radial MRF")
-    assert VOLUTE_RANK in src[i:i + 220]
+    assert "EXPERIMENTAL_LABEL" in src[i:i + 220]
+    assert VOLUTE_RANK in (ROOT / "fansim" / "cockpit" / "experimental.py").read_text(
+        encoding="utf-8"
+    )

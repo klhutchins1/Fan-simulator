@@ -127,7 +127,7 @@ def test_optimize_panel_is_expert_only():
 
 def test_proxy_tabs_are_expert_only():
     src = APP.read_text(encoding="utf-8")
-    for needle in ('"Mixed · experimental"', '"Volute · estimate"', '"CROR · estimate"'):
+    for needle in ('"Mixed · experimental"', '"Volute · experimental"', '"CROR · experimental"'):
         assert _gate_offset(needle, src=src) < 400
 
 
