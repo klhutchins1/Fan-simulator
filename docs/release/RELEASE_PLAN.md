@@ -125,7 +125,7 @@ the validation page is built on a green CI and a clean ledger.
     234 differences (the old 50–80 CFM band would pass). Left: gate, merge, and RV-3 findings 8–10 in the plan.
 - **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `blocked (RV-1)`.
   Published-data comparisons recomputed from frozen results into `docs/validation/scoreboard.md`. R3.8 quotes it.
-- **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `ready`.
+- **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `in progress (Claude, 2026-11-24)`.
   Order and checklist are in the plan. Findings become GitHub issues labelled `math` or `review`. The first 7
   findings are listed there.
 - **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `ready`. Sort all 128 scripts into promote, keep or
