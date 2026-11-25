@@ -94,7 +94,7 @@ red: [`docs/validation/audits/2026-11-24-audit-drift-forensics.md`](../validatio
 (no hidden maths regression: Stock BEM output is identical to the last proven commit). RV-0 goes before R3.8 so that
 the validation page is built on a green CI and a clean ledger.
 
-- **RV-0 Make the safety nets real.** Lane: Claude or Cursor. CPU: day. Status: `ready`.
+- **RV-0 Make the safety nets real.** Lane: Claude or Cursor. CPU: day. Status: `in progress (Claude, 2026-11-24)`.
   1. Fix mypy at `fansim/optimize/search_space.py:495` (from `20aed3e`; no behaviour change).
   2. `scripts/gate.py` runs what CI runs: mypy, ruff `F811,F821`, `audit_status.py`.
   3. Re-prove the 5 CHANGED units in one dated audit file that cites the forensics commits. Give QA-39 its own check
