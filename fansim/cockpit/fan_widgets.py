@@ -58,10 +58,12 @@ def slider(label: str, model: str, mn: float, mx: float | str, step: float, disa
     if not desc and not simple and not uri:
         _body()
         return
-    with v3.VTooltip(location="end", open_delay=150, max_width=380):  # noqa: SIM117
-        with v3.Template(v_slot_activator="{ props }"):  # noqa: SIM117 — trame activator nest
-            with html.Div(v_bind="props"):
-                _body()
+    with v3.VTooltip(location="end", open_delay=150, max_width=380):
+        with (
+            v3.Template(v_slot_activator="{ props }"),
+            html.Div(v_bind="props"),
+        ):
+            _body()
         if uri:
             html.Img(
                 src=uri,
