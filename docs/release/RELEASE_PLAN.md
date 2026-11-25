@@ -128,6 +128,10 @@ the validation page is built on a green CI and a clean ledger.
 - **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `in progress (Claude, 2026-11-24)`.
   Order and checklist are in the plan. Findings become GitHub issues labelled `math` or `review`. The first 7
   findings are listed there.
+  - Progress log: `docs/review/rv3-findings.md` (branch `claude/rv3-review`). Module 1 (`objectives.py`) done:
+    **O1 high fixed** (`e349624`): the stress and resonance gates judged the stale `params.rpm` (2000), not the
+    rpm the design runs at; for the 3900 rpm Delta model, resonant designs passed. O2–O5 silent failures fixed
+    (`d6097c4`). O6, O7 open (low). Next: `fan_bem.py`.
 - **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `ready`. Sort all 128 scripts into promote, keep or
   archive. No code that produces a verdict lives only in `scripts/`.
 - **RV-5 Speed and code health.** Lane: Cursor. CPU: day (profile outside 4–9 PM). Status: `blocked (RV-1)`. Profile
