@@ -84,7 +84,7 @@ def apply_state_defaults(session) -> None:
     state.info_lines = ["Select a design (click a point or use the dropdown)."]
     state.preview_msg = (
         "Stock / reference loaded — press Preview to refresh 3-D, or Assess to run CFD "
-        "(~15–30 min)."
+        "(~30–40 min)."
     )
     state.export_msg = ""
     state.export_download = ""
@@ -159,6 +159,7 @@ def apply_state_defaults(session) -> None:
     state.e_hub_nose_max = 15.0
     state.fan_subtab = "design"
     state.fan_ux_banner = True  # dismissible product story (§21.2a)
+    state.fan_about_dialog = False  # About button (#22)
     state.fan_design_panels = [0]  # Geometry open; other workflow panels closed (§21.1a)
     state.airflow_img_uri = ""
     state.airflow_caption = "Select a scored design to load duct airflow (midplane)."

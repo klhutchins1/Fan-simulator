@@ -124,6 +124,13 @@ def bind(session) -> None:
             state.assess_preset = d.extra["preset"]
         state.assess_refine_op = bool(d.extra.get("refine_op"))
         state.assess_wall_ks = float(d.extra.get("wall_ks_mm") or 0) > 0
+        # Selecting a trial rewrites Assess controls from its saved run — say so (UI-38 / #40).
+        state.info_lines.append(
+            "Assess settings restored from this design "
+            f"(hose={state.assess_preset}, "
+            f"refine={'on' if state.assess_refine_op else 'off'}, "
+            f"wall-ks={'on' if state.assess_wall_ks else 'off'})."
+        )
         session._init_editor(p)
         session._set_baseline()
         if d.extra.get("cfd_stale"):
@@ -315,11 +322,19 @@ def bind(session) -> None:
                 session._rebuild_glyph_arrows()
                 session._apply_render(reset=False)
                 cached = stock_cache_hit(key, flat_s, preview=True) is not None
-                state.preview_msg = (
+                base = (
                     f"✓ Stock reference loaded ({spec.name})"
                     + (" — cached mesh." if cached else " — cached for next click.")
-                    + " Gold = parametric Stock; published CFM is the ✕, not this mesh's CFD."
                 )
+                if str(state.ui_mode or "simple") == "expert":
+                    state.preview_msg = (
+                        base
+                        + " Gold = parametric Stock; published CFM is the ✕, not this mesh's CFD."
+                    )
+                else:
+                    state.preview_msg = (
+                        base + " Preview the shape, then Assess for an airflow check."
+                    )
             except Exception as exc:  # noqa: BLE001
                 state.preview_msg = f"⚠ Stock preview failed: {exc}"
             finally:

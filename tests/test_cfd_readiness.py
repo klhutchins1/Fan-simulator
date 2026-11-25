@@ -28,7 +28,7 @@ def test_cfd_ready_when_docker_is_up_and_the_image_is_present():
 
     got = cfd_readiness(run=run)
     assert got.state == "ready"
-    assert got.line.startswith("CFD ready")
+    assert got.line.startswith("Airflow check ready")
     assert "\n" not in got.line
     low = got.line.lower()
     assert "not running" not in low
@@ -123,7 +123,7 @@ def test_fan_tab_shows_the_line_where_assess_is():
     assert i >= 0
     widget = ui[max(0, i - 180) : i + 320]
     assert "ui_mode === 'expert'" not in widget
-    assess = ui.find('"Assess (~15–30 min)"')
+    assess = ui.find('"Assess (~30–40 min)"')
     assert 0 < assess - i < 2500
     assert "publish_cfd_readiness" in tab
 

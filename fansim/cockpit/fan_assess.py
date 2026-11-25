@@ -490,7 +490,7 @@ def bind(session) -> None:
                     params = blade_from_flat(flat, Features(**feat))
                     state.assess_msg = (
                         f"Sweep {label} {i+1}/{n} = {val:g}: running CFD… "
-                        f"(~15–30 min/step; {done} added so far)"
+                        f"(~30–40 min/step; {done} added so far)"
                     )
                     state.sweep_progress = int(100 * i / n)
                     state.flush()

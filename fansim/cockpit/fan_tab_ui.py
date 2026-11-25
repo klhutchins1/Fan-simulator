@@ -80,7 +80,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
     active_spec = getattr(ctx, "fan_active_spec")
 
     def show_fan_about(**_):
-        state.fan_ux_banner = True
+        # Real About for both modes (#22). Simple banner alone is Expert-invisible.
+        state.fan_about_dialog = True
+        if str(state.ui_mode or "simple") == "simple":
+            state.fan_ux_banner = True
 
     _action_busy = (
         "preview_busy || assess_busy || export_busy || opt_running || e_tip_radius == null"
@@ -266,7 +269,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     ):
                                         v3.VListItemTitle("{{ it.title }}")
                                         v3.VListItemSubtitle("{{ it.subtitle }}")
-                        with v3.VExpansionPanels(classes="mb-2", v_show="fan_subtab === 'library'"):
+                        with v3.VExpansionPanels(
+                            classes="mb-2",
+                            v_show="fan_subtab === 'library' && ui_mode === 'expert'",
+                        ):
                             with v3.VExpansionPanel(title="Leeway (allow exceeding nominal → over-spec)"):
                                 with v3.VExpansionPanelText():
                                     _slider("Tip past frame", "lee_tip", 0, 10, 0.5, unit="mm")
@@ -507,7 +513,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         v3.VAlert(
                             "Design 3D-printable replacement blades for a PC cooling fan "
                             "(start: Noctua A12x25). Preview updates the shape in seconds; "
-                            "Assess runs an airflow check (~15–30 min). Export writes a "
+                            "Assess runs an airflow check (~30–40 min). Export writes a "
                             "print-ready STL. Switch to Expert for Optimize and advanced tabs.",
                             type="info",
                             density="compact",
@@ -538,6 +544,32 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     size="x-small",
                                     variant="tonal",
                                     click=(show_fan_about,),
+                                )
+                        with v3.VDialog(v_model=("fan_about_dialog",), max_width="640"):
+                            with v3.VCard(classes="pa-4"):
+                                html.Div("About Fan Simulator", classes="text-h6 mb-2")
+                                html.Div(
+                                    "Design printable PC-fan blades (Fan tab) against a real hub "
+                                    "like the Noctua A12x25. Preview updates the shape in seconds. "
+                                    "Assess runs an airflow check in Docker (~30–40 min) and ranks "
+                                    "designs — screening mesh, not absolute CFM. Optimize searches "
+                                    "many designs (hours; Expert). Export writes a print-ready STL "
+                                    "with a motor-mount cup.",
+                                    classes="text-body-2 mb-2",
+                                )
+                                html.Div(
+                                    "Validated: axial Fan CFD method vs published fans (see README). "
+                                    "Not validated: noise levels, Prop CFD / Mixed / Volute / CROR "
+                                    "(labelled experimental), blade vibration. Docs: README, "
+                                    "docs/design-rules.md, docs/a12x25-reference.md, "
+                                    "docs/adversarial-review.md.",
+                                    classes="text-caption text-medium-emphasis mb-3",
+                                )
+                                v3.VBtn(
+                                    "Close",
+                                    color="primary",
+                                    variant="tonal",
+                                    click="fan_about_dialog = false",
                                 )
                         with v3.VSelect(
                             # After Randomize / slider edits the geometry is no longer the selected
@@ -615,7 +647,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "disabled": (_action_busy,),
                                 },
                                 "score": {
-                                    "label": "Assess (~15–30 min)",
+                                    "label": "Assess (~30–40 min)",
                                     "color": "success",
                                     "size": "small",
                                     "click": (on_assess,),
@@ -977,7 +1009,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             with v3.VExpansionPanelText():
                                 html.Div(
                                     "Assess checks printability / stress (blade vibration is an estimate, not validated (resonance check, not flutter)), then runs "
-                                    "CFD (~15–30 min) and reports free/load CFM. Rejected designs show "
+                                    "CFD (~30–40 min) and reports free/load CFM. Rejected designs show "
                                     "what to change (usually fewer blades or thicker mid-blade). "
                                     "Export STL is under the 3-D view.",
                                     classes="text-caption text-medium-emphasis mb-2",
@@ -1104,7 +1136,9 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 html.Div(
                                     "Multi-objective CFD search. Reuses Application hose + Honesty "
                                     "above. Defaults: 8 trials. ◆ diamonds merge onto the Results "
-                                    "plot. Hover switches for when-to-use / cost / risk.",
+                                    "plot. Hover switches for when-to-use / cost / risk.\n"
+                                    "Does not start from your current Design sliders — it searches "
+                                    "the guided space from scratch (UI-33).",
                                     classes="text-caption mb-2",
                                     style="white-space: pre-line",
                                 )
@@ -1154,10 +1188,17 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 _help_switch(
                                     "opt_gp_boost",
                                     "Boost + GP mean",
+                                    disabled=("!opt_gp",),
                                 )
                                 _help_switch(
                                     "opt_gp_nn",
                                     "NN + GP mean",
+                                    disabled=("!opt_gp",),
+                                )
+                                html.Div(
+                                    "Boost / NN mean need Catalog GP skip on — otherwise the CLI ignores them.",
+                                    classes="text-caption text-medium-emphasis mb-1",
+                                    v_show="!opt_gp",
                                 )
                                 _opt_section(
                                     "Operating point",
@@ -1425,6 +1466,13 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             with v3.VCol(cols=8):
                                 html.Div("Print / export", classes="text-subtitle-2")
                                 html.Div(
+                                    "Fit hub / tip = shrink the blade to the motor and frame. "
+                                    "Mirror = also export the opposite spin direction. "
+                                    "Motor cup in Preview is slower.",
+                                    classes="text-caption text-medium-emphasis",
+                                    v_show="ui_mode === 'simple'",
+                                )
+                                html.Div(
                                     "Export STL writes a print-ready file to project exports/ "
                                     "(motor cup + grip pads carved into the hub, plus a .md print "
                                     "checklist). Use Download STL when the link appears.",
@@ -1457,14 +1505,20 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     v_model=("export_also_mirror",),
                                     density="compact", hide_details=True, color="primary", inset=True,
                                     label="Also export the mirror-image fan (CW + CCW)",
+                                    v_show="ui_mode === 'expert'",
                                 )
                                 v3.VSwitch(
                                     v_model=("preview_motor_cup",),
                                     density="compact", hide_details=True, color="primary", inset=True,
                                     label="Show the motor cup in Preview (slower)",
                                     disabled=("!cup_build_ok",),
+                                    v_show="ui_mode === 'expert'",
                                 )
-                        html.Div("{{ memory_tier_note }}", classes="text-caption text-medium-emphasis mt-1")
+                        html.Div(
+                            "{{ memory_tier_note }}",
+                            classes="text-caption text-medium-emphasis mt-1",
+                            v_show="ui_mode === 'expert'",
+                        )
                         html.Div("{{ export_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
                         html.A(
                             "⬇ Download STL",
@@ -1493,14 +1547,24 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 html.Div("{{ row.text }}", classes="text-body-2")
                             with v3.VCol(cols=6, md=4):
                                 html.Div("This design", classes="text-caption")
-                                html.Img(src=("row.img",), v_show="row.img",
-                                         style="width:100%;cursor:zoom-in;border-radius:4px;",
-                                         click="flow_zoom_src = row.img; flow_zoom = true")
+                                html.Img(
+                                    src=("row.img",),
+                                    v_show="row.img",
+                                    alt=("row.title + ' — this design'",),
+                                    aria_label=("row.title + ' — this design, click to enlarge'",),
+                                    style="width:100%;cursor:zoom-in;border-radius:4px;",
+                                    click="flow_zoom_src = row.img; flow_zoom = true",
+                                )
                             with v3.VCol(cols=6, md=4):
                                 html.Div("Stock", classes="text-caption")
-                                html.Img(src=("row.stock_img",), v_show="row.stock_img",
-                                         style="width:100%;cursor:zoom-in;border-radius:4px;",
-                                         click="flow_zoom_src = row.stock_img; flow_zoom = true")
+                                html.Img(
+                                    src=("row.stock_img",),
+                                    v_show="row.stock_img",
+                                    alt=("row.title + ' — stock comparison'",),
+                                    aria_label=("row.title + ' — stock, click to enlarge'",),
+                                    style="width:100%;cursor:zoom-in;border-radius:4px;",
+                                    click="flow_zoom_src = row.stock_img; flow_zoom = true",
+                                )
                         with html.Div(v_show="ui_mode === 'expert' && flow_numbers.length"):
                             html.Div("Technical detail, not reviewed for plain language",
                                      classes="text-caption text-disabled mt-2")
@@ -1511,7 +1575,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     html.Td("{{ n.stock }}")
                         with v3.VDialog(v_model=("flow_zoom",), max_width="1100"):
                             with v3.VCard(classes="pa-2", click="flow_zoom = false"):
-                                html.Img(src=("flow_zoom_src",), style="width:100%;")
+                                html.Img(
+                                    src=("flow_zoom_src",),
+                                    alt="Enlarged airflow comparison",
+                                    aria_label="Enlarged airflow comparison — click to close",
+                                    style="width:100%;",
+                                )
                     with v3.VCard(classes="mb-2 pa-2",
                                   v_show="fan_subtab === 'results' && ui_mode === 'expert'"):
                         html.Div("Duct airflow — slices, streamlines & spanwise", classes="text-subtitle-2 mb-1")
@@ -1575,6 +1644,8 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         html.Img(
                             src=("airflow_img_uri",),
                             v_show="airflow_img_uri",
+                            alt=("airflow_caption || 'Duct airflow field'",),
+                            aria_label=("airflow_caption || 'Duct airflow field'",),
                             style="width:100%;max-height:520px;object-fit:contain;"
                             "display:block;background:#fafafa;border-radius:4px;",
                         )

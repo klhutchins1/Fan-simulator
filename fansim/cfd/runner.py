@@ -123,7 +123,7 @@ def image_available(image: str = DEFAULT_IMAGE) -> bool:
 
 
 # One sentence each. Simple mode: a hobbyist can act without knowing OpenFOAM.
-_LINE_READY = "CFD ready. You can press Assess."
+_LINE_READY = "Airflow check ready. You can press Assess."
 _LINE_NOT_RUNNING = (
     "Docker not running. Start Docker Desktop, wait until it is running, then press Assess."
 )
