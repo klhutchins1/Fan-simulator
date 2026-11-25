@@ -467,7 +467,7 @@ def test_fan_design_buttons_do_what_they_say(tabs):
     """Fan Design: Preview builds geometry, Assess runs Assess, Run uses the 2–12 step check."""
     actions = _actions(_COCKPIT / "fan_tab_ui.py")
     _require(actions, "Preview (sec)", "fan_do_preview")
-    _require(actions, "Assess (~15–30 min)", "fan_on_assess")
+    _require(actions, "Assess (~30–40 min)", "fan_on_assess")
     _require(actions, "Run", "fan_on_sweep")
     _require(actions, "Score multi-point BEM (ranking only)", "fan_score_multi_point_bem")
     _require(actions, "⏹ Cancel Assess", "fan_cancel_assess")

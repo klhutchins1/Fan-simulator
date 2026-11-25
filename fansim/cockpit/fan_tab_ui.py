@@ -79,7 +79,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
     active_spec = getattr(ctx, "fan_active_spec")
 
     def show_fan_about(**_):
-        state.fan_ux_banner = True
+        # Real About for both modes (#22). Simple banner alone is Expert-invisible.
+        state.fan_about_dialog = True
+        if str(state.ui_mode or "simple") == "simple":
+            state.fan_ux_banner = True
 
     _action_busy = (
         "preview_busy || assess_busy || export_busy || opt_running || e_tip_radius == null"
@@ -250,7 +253,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     ):
                                         v3.VListItemTitle("{{ it.title }}")
                                         v3.VListItemSubtitle("{{ it.subtitle }}")
-                        with v3.VExpansionPanels(classes="mb-2", v_show="fan_subtab === 'library'"):
+                        with v3.VExpansionPanels(
+                            classes="mb-2",
+                            v_show="fan_subtab === 'library' && ui_mode === 'expert'",
+                        ):
                             with v3.VExpansionPanel(title="Leeway (allow exceeding nominal → over-spec)"):
                                 with v3.VExpansionPanelText():
                                     _slider("Tip past frame", "lee_tip", 0, 10, 0.5, unit="mm")
@@ -491,7 +497,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         v3.VAlert(
                             "Design 3D-printable replacement blades for a PC cooling fan "
                             "(start: Noctua A12x25). Preview updates the shape in seconds; "
-                            "Assess runs two CFD solves (free air and a loaded point), about 20–40 min; Optimize searches many "
+                            "Assess runs two CFD solves (free air and a loaded point), about 30–40 min; Optimize searches many "
                             "designs (hours). Export writes a print-ready STL. "
                             "Fan is CFD-checked — Mixed / Volute / Prop / CROR tabs are "
                             "faster estimates or proxies. Docs: README, docs/design-rules.md, "
@@ -518,6 +524,32 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     size="x-small",
                                     variant="tonal",
                                     click=(show_fan_about,),
+                                )
+                        with v3.VDialog(v_model=("fan_about_dialog",), max_width="640"):
+                            with v3.VCard(classes="pa-4"):
+                                html.Div("About Fan Simulator", classes="text-h6 mb-2")
+                                html.Div(
+                                    "Design printable PC-fan blades (Fan tab) against a real hub "
+                                    "like the Noctua A12x25. Preview updates the shape in seconds. "
+                                    "Assess runs an airflow check in Docker (~30–40 min) and ranks "
+                                    "designs — screening mesh, not absolute CFM. Optimize searches "
+                                    "many designs (hours; Expert). Export writes a print-ready STL "
+                                    "with a motor-mount cup.",
+                                    classes="text-body-2 mb-2",
+                                )
+                                html.Div(
+                                    "Validated: axial Fan CFD method vs published fans (see README). "
+                                    "Not validated: noise levels, Prop CFD / Mixed / Volute / CROR "
+                                    "(labelled experimental), blade vibration. Docs: README, "
+                                    "docs/design-rules.md, docs/a12x25-reference.md, "
+                                    "docs/adversarial-review.md.",
+                                    classes="text-caption text-medium-emphasis mb-3",
+                                )
+                                v3.VBtn(
+                                    "Close",
+                                    color="primary",
+                                    variant="tonal",
+                                    click="fan_about_dialog = false",
                                 )
                         with v3.VSelect(
                             # After Randomize / slider edits the geometry is no longer the selected
@@ -595,7 +627,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "disabled": (_action_busy,),
                                 },
                                 "score": {
-                                    "label": "Assess (~15–30 min)",
+                                    "label": "Assess (~30–40 min)",
                                     "color": "success",
                                     "size": "small",
                                     "click": (on_assess,),
@@ -932,7 +964,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             with v3.VExpansionPanelText():
                                 html.Div(
                                     "Assess checks printability / stress (blade vibration is an estimate, not validated (resonance check, not flutter)), then runs "
-                                    "CFD (~15–30 min) and reports free/load CFM. Rejected designs show "
+                                    "CFD (~30–40 min) and reports free/load CFM. Rejected designs show "
                                     "what to change (usually fewer blades or thicker mid-blade).",
                                     classes="text-caption text-medium-emphasis mb-2",
                                     v_show="ui_mode === 'expert'",
@@ -1057,7 +1089,9 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 html.Div(
                                     "Multi-objective CFD search. Reuses Application hose + Honesty "
                                     "above. Defaults: 8 trials. ◆ diamonds merge onto the Results "
-                                    "plot. Hover switches for when-to-use / cost / risk.",
+                                    "plot. Hover switches for when-to-use / cost / risk.\n"
+                                    "Does not start from your current Design sliders — it searches "
+                                    "the guided space from scratch (UI-33).",
                                     classes="text-caption mb-2",
                                     style="white-space: pre-line",
                                 )
@@ -1107,10 +1141,17 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 _help_switch(
                                     "opt_gp_boost",
                                     "Boost + GP mean",
+                                    disabled=("!opt_gp",),
                                 )
                                 _help_switch(
                                     "opt_gp_nn",
                                     "NN + GP mean",
+                                    disabled=("!opt_gp",),
+                                )
+                                html.Div(
+                                    "Boost / NN mean need Catalog GP skip on — otherwise the CLI ignores them.",
+                                    classes="text-caption text-medium-emphasis mb-1",
+                                    v_show="!opt_gp",
                                 )
                                 _opt_section(
                                     "Operating point",
@@ -1375,8 +1416,16 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             with v3.VCol(cols=8):
                                 html.Div("Print / export", classes="text-subtitle-2")
                                 html.Div(
-                                    "Export STL writes a print-ready file: motor cup + grip pads carved "
-                                    "into the hub, plus a mount/frame checklist.",
+                                    "Fit hub / tip = shrink the blade to the motor and frame. "
+                                    "Mirror = also export the opposite spin direction. "
+                                    "Motor cup in Preview is slower.",
+                                    classes="text-caption text-medium-emphasis",
+                                    v_show="ui_mode === 'simple'",
+                                )
+                                html.Div(
+                                    "Export STL writes a print-ready file to project exports/ "
+                                    "(motor cup + grip pads, plus a .md checklist). "
+                                    "Use Download STL when the link appears.",
                                     classes="text-caption text-medium-emphasis",
                                     v_show="ui_mode === 'expert'",
                                 )
@@ -1406,14 +1455,20 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     v_model=("export_also_mirror",),
                                     density="compact", hide_details=True, color="primary", inset=True,
                                     label="Also export the mirror-image fan (CW + CCW)",
+                                    v_show="ui_mode === 'expert'",
                                 )
                                 v3.VSwitch(
                                     v_model=("preview_motor_cup",),
                                     density="compact", hide_details=True, color="primary", inset=True,
                                     label="Show the motor cup in Preview (slower)",
                                     disabled=("!cup_build_ok",),
+                                    v_show="ui_mode === 'expert'",
                                 )
-                        html.Div("{{ memory_tier_note }}", classes="text-caption text-medium-emphasis mt-1")
+                        html.Div(
+                            "{{ memory_tier_note }}",
+                            classes="text-caption text-medium-emphasis mt-1",
+                            v_show="ui_mode === 'expert'",
+                        )
                         html.Div("{{ export_msg }}", classes="text-caption mt-1", style="white-space: pre-line")
                         html.A(
                             "⬇ Download STL",

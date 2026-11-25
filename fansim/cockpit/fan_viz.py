@@ -489,11 +489,21 @@ def bind(session) -> None:
                         )
                     except Exception:  # noqa: BLE001
                         tone_line = ""
-                state.preview_msg = (
-                    f"Preview (orange): {params.n_blades} blades, "
-                    f"camber {preview_built_camber(params)}, {feats}.\n{status}{print_line}"
-                    f"{tone_line}{print_warn}"
-                )
+                if str(state.ui_mode or "simple") == "expert":
+                    state.preview_msg = (
+                        f"Preview (orange): {params.n_blades} blades, "
+                        f"camber {preview_built_camber(params)}, {feats}.\n{status}{print_line}"
+                        f"{tone_line}{print_warn}"
+                    )
+                else:
+                    # Simple: blade count + plain fit line; hide camber / Difficulty N/100 (#26).
+                    fit = (status or "").split("\n", 1)[0].strip()
+                    state.preview_msg = (
+                        f"Preview: {params.n_blades} blades"
+                        + (f". {fit}" if fit else ".")
+                        + (tone_line or "")
+                        + (print_warn or "")
+                    )
                 try:
                     ctrl.view_update()
                 except Exception as exc:  # noqa: BLE001

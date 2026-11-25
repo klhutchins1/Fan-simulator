@@ -309,11 +309,19 @@ def bind(session) -> None:
                 session._rebuild_glyph_arrows()
                 session._apply_render(reset=False)
                 cached = stock_cache_hit(key, flat_s, preview=True) is not None
-                state.preview_msg = (
+                base = (
                     f"✓ Stock reference loaded ({spec.name})"
                     + (" — cached mesh." if cached else " — cached for next click.")
-                    + " Gold = parametric Stock; published CFM is the ✕, not this mesh's CFD."
                 )
+                if str(state.ui_mode or "simple") == "expert":
+                    state.preview_msg = (
+                        base
+                        + " Gold = parametric Stock; published CFM is the ✕, not this mesh's CFD."
+                    )
+                else:
+                    state.preview_msg = (
+                        base + " Preview the shape, then Assess for an airflow check."
+                    )
             except Exception as exc:  # noqa: BLE001
                 state.preview_msg = f"⚠ Stock preview failed: {exc}"
             finally:

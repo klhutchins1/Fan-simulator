@@ -127,10 +127,10 @@ def render_shape_panels(
                 slider("t/c root", f"{p}thickness_root", 0.03, 0.14, 0.005)
                 slider("t/c mid", f"{p}thickness_mid", 0.02, 0.12, 0.005)
                 slider("t/c tip", f"{p}thickness_tip", 0.02, 0.10, 0.005)
-                slider("Camber root", f"{p}camber_root", 0.0, 0.06, 0.005)
-                slider("Camber mid", f"{p}camber_mid", 0.0, 0.06, 0.005)
-                slider("Camber tip", f"{p}camber_tip", 0.0, 0.06, 0.005)
-                slider("Camber pos", f"{p}camber_pos", 0.25, 0.55, 0.01)
+                slider("Scoop root", f"{p}camber_root", 0.0, 0.06, 0.005)
+                slider("Scoop mid", f"{p}camber_mid", 0.0, 0.06, 0.005)
+                slider("Scoop tip", f"{p}camber_tip", 0.0, 0.06, 0.005)
+                slider("Scoop pos", f"{p}camber_pos", 0.25, 0.55, 0.01)
         with v3.VExpansionPanel(title=title_3d):
             with v3.VExpansionPanelText():
                 slider("Sweep mid", f"{p}sweep_mid", -4, 10, 0.5, unit="mm")

@@ -816,7 +816,8 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
 
     def _refresh_prop_export_items():
         rows: list[dict] = []
-        for folder, kind in ((exports_dir(), "STL"), (exports_dir() / "pythrust", "PyThrust")):
+        root = exports_dir()
+        for folder, kind in ((root, "STL"), (root / "pythrust", "PyThrust")):
             if not folder.is_dir():
                 continue
             for path in sorted(folder.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True):
@@ -826,7 +827,15 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                     continue
                 if kind == "PyThrust" and path.suffix.lower() not in (".csv", ".json"):
                     continue
-                rows.append({"title": f"{kind} · {path.name}", "value": str(path.resolve())})
+                try:
+                    rel = path.resolve().relative_to(root.resolve()).as_posix()
+                except ValueError:
+                    rel = path.name
+                rows.append({
+                    "title": f"{kind} · {path.name}",
+                    "value": str(path.resolve()),
+                    "href": f"fansim_exports/{rel}",
+                })
                 if len(rows) >= 24:
                     break
             if len(rows) >= 24:
@@ -994,9 +1003,15 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                         v_show="ui_mode === 'expert'",
                     )
                     html.Div(
+                        "Start here: pick size → tune blade → Analyze (~1 s) → Export STL.",
+                        classes="text-caption text-medium-emphasis mb-2",
+                        v_show="ui_mode === 'simple'",
+                    )
+                    html.Div(
                         "Start here: pick size → tune blade → Analyze (~1 s) → "
                         "Optimize (optional) → Export STL. CFD refine = direction check only.",
                         classes="text-caption text-medium-emphasis mb-2",
+                        v_show="ui_mode === 'expert'",
                     )
                     with v3.VCard(classes="mb-2 pa-3"):
                         v3.VSelect(
@@ -1017,6 +1032,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                         html.Div(
                             "{{ prop_mission }} mission — change under Optimize below.",
                             classes="text-caption text-medium-emphasis mb-1",
+                            v_show="ui_mode === 'expert'",
                         )
                         render_action_row(
                             v3,
@@ -1051,6 +1067,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                         "disabled": (
                                             "prop_busy || prop_refine_busy || prop_export_busy",
                                         ),
+                                        "v_show": "ui_mode === 'expert'",
                                     },
                                 ],
                                 "optimize": {
@@ -1060,6 +1077,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                     "click": (getattr(ctx, "optimize_prop"),),
                                     "loading": ("prop_busy",),
                                     "disabled": ("prop_busy || prop_refine_busy",),
+                                    "v_show": "ui_mode === 'expert'",
                                 },
                                 "stop": {
                                     "label": "Stop",
@@ -1070,6 +1088,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                     "size": "small",
                                     "click": (getattr(ctx, "stop_prop_optimize"),),
                                     "disabled": ("!prop_opt_running",),
+                                    "v_show": "ui_mode === 'expert'",
                                 },
                                 "randomize": {
                                     "label": "Randomize",
@@ -1077,8 +1096,14 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                     "variant": "tonal",
                                     "click": (getattr(ctx, "randomize_prop"),),
                                     "disabled": ("prop_busy || prop_refine_busy",),
+                                    "v_show": "ui_mode === 'expert'",
                                 },
                             },
+                        )
+                        html.Div(
+                            "Export STL unlocks after Analyze finishes the 3-D build.",
+                            classes="text-caption text-medium-emphasis mt-1",
+                            v_show="!prop_geo_ready",
                         )
                         html.Div(
                             "{{ prop_msg }}",
@@ -1134,8 +1159,12 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                     help_switch=_help_switch,
                                     v3=v3,
                                     html=html,
+                                    title_thick="Wall & scoop",
                                 )
-                        with v3.VExpansionPanel(title="Optimize & CFD refine"):
+                        with v3.VExpansionPanel(
+                            title="Optimize & CFD refine",
+                            v_show="ui_mode === 'expert'",
+                        ):
                             with v3.VExpansionPanelText():
                                 html.Div(
                                     "Multi-objective BEMT search (~1 s/trial). "
@@ -1312,6 +1341,12 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                             hide_details=True,
                             update_modelValue=(getattr(ctx, "load_prop_row"), "[$event]"),
                         )
+                        html.Div(
+                            "No scored props yet — Analyze one on Design (or Optimize in Expert) "
+                            "to fill this plot.",
+                            classes="text-caption text-medium-emphasis mt-2",
+                            v_show="!prop_pareto || !prop_pareto.length",
+                        )
                     with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
                         prop_fig_widget = plotly_widgets.Figure(
                             figure=prop_scatter_figure(prop_pareto_store, prop_user_store),
@@ -1362,9 +1397,15 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                         )
                         with v3.VList(density="compact", lines="one"):
                             with v3.VListItem(v_for="it in prop_export_items", key="it.value"):
-                                v3.VListItemTitle("{{ it.title }}")
+                                with v3.VListItemTitle():
+                                    html.A(
+                                        "{{ it.title }}",
+                                        href=("it.href",),
+                                        download=True,
+                                        classes="text-decoration-none",
+                                    )
                         html.Div(
-                            "No exports yet — use Export STL or Export CT/CP on Design.",
+                            "No exports yet — use Export STL on Design (CT/CP export is Expert).",
                             classes="text-caption text-medium-emphasis",
                             v_if="!prop_export_items.length",
                         )
