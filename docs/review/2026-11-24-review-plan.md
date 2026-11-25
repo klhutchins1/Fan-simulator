@@ -80,6 +80,16 @@ Already found (2026-11-24; to file as issues):
 - 252 `except Exception` blocks in `fansim/`: 25 in `fan_viz.py`, 18 in `midplane.py`, 14 in `objectives.py`.
 - mypy covers 3 files (`pyproject.toml` `[tool.mypy] files`).
 
+Found while building RV-1 (2026-11-24):
+
+- The physics rounds its own outputs: `fan_bem.py:246` (flow 0.1 CFM, Δp 0.01 Pa, η 0.001) and `bemt.py:202`
+  (T 0.001 N, P 0.1 W, FM 0.001). Rounding belongs in display; inside the maths it hides small changes, and it
+  limits RV-1's resolution (prereg A1). A behaviour change to audited units: re-prove and rewrite the snapshot.
+- `fansim/physics/air.py`: `NU_AIR = 1.5e-5` is a separate literal, not `MU_AIR / RHO_AMCA` (1.508e-5, 0.5 % off).
+  Nothing that RV-1 computes uses `MU_AIR` (a mutation of it moved only the constant).
+- `manufacturability/materials.py`: PETG and PLA both have yield 50 MPa, so their root-bending safety factors are
+  identical. Check against the TDS ranges in `tests/audit/test_structural_audit.py`.
+
 ## RV-4 Script triage (128 scripts)
 
 - 19 are referenced nowhere: `compare_sections`, `dedup_designs`, `design_uneven_spacing`, `_fit_a12x25_slices`,
