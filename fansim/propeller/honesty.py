@@ -1,6 +1,7 @@
 """User-facing BEMT / prop-CFD honesty lines (R1.10 G5). Keep this module import-light."""
 
 PROP_CFD_HONESTY = (
+    "Experimental: not validated against published data — "
     "not a performance predictor: thrust reads 40–60 % low in validation; "
     "use it for direction and flow pictures only"
 )

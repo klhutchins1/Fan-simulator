@@ -8,25 +8,40 @@ from __future__ import annotations
 
 import os
 import subprocess
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
 DEFAULT_IMAGE = "opencfd/openfoam-default:2406"
+ENV_SESSION = "FANSIM_CFD_SESSION"
+
+
+def cfd_session() -> str:
+    """This process tree's CFD session id; created (and exported to children) if missing.
+
+    Every container is labelled with it and cleanup only kills its own session (2026-11-25: an
+    unscoped cleanup in a test run killed a FAN-01 validation run's mesher on the same machine).
+    """
+    sess = os.environ.get(ENV_SESSION)
+    if not sess:
+        sess = f"pid{os.getpid()}-{uuid.uuid4().hex[:8]}"
+        os.environ[ENV_SESSION] = sess
+    return sess
+
+
+# Set at import, so every subprocess started after this (Assess / Optimize workers) inherits the
+# session and a cockpit's Cancel still reaches its workers' containers.
+cfd_session()
 
 
 def _label_args() -> list[str]:
     """Docker --label flags so CFD containers can be found + reaped later.
 
-    Always tags ``fansim_cfd=1`` (a generic 'this is one of ours' marker), and, when the launcher
-    set ``FANSIM_CFD_SESSION`` in the environment (the cockpit --reload supervisor does), also tags
-    ``fansim_cfd_session=<id>``. The env var is inherited by every subprocess, so a container started
-    deep inside an isolated eval worker still carries the session's label — which lets the supervisor
-    ``docker kill`` exactly its own children's containers on restart instead of orphaning them."""
-    args = ["--label", "fansim_cfd=1"]
-    sess = os.environ.get("FANSIM_CFD_SESSION")
-    if sess:
-        args += ["--label", f"fansim_cfd_session={sess}"]
-    return args
+    Tags ``fansim_cfd=1`` (a generic 'this is one of ours' marker) and ``fansim_cfd_session=<id>``
+    (see :func:`cfd_session`). The env var is inherited by every subprocess, so a container started
+    deep inside an isolated eval worker still carries its launcher's session, which lets the launcher
+    ``docker kill`` exactly its own children's containers and nobody else's."""
+    return ["--label", "fansim_cfd=1", "--label", f"fansim_cfd_session={cfd_session()}"]
 
 
 def log_name(foam_command: str) -> str:
@@ -93,7 +108,7 @@ class OpenFOAMRunner:
             proc = subprocess.run(
                 ["docker", "run", "--rm", *_label_args(), "-v", mount, "-w", "/case", self.image,
                  "bash", "-lc", full],
-                stdout=out, stderr=err, text=True,
+                stdout=out, stderr=err, text=True, check=False,
             )
         stderr = err_path.read_text(encoding="utf-8", errors="replace")
         err_path.unlink(missing_ok=True)
@@ -117,8 +132,7 @@ def _docker_image_query(image: str) -> list[str]:
 
 def image_available(image: str = DEFAULT_IMAGE) -> bool:
     proc = subprocess.run(
-        _docker_image_query(image), capture_output=True, text=True
-    )
+        _docker_image_query(image), capture_output=True, text=True, check=False)
     return proc.returncode == 0 and bool(proc.stdout.strip())
 
 
@@ -189,29 +203,28 @@ def publish_cfd_readiness(state) -> str:
 
 
 def kill_cfd_containers(*, session: str | None = None, timeout: float = 30.0) -> int:
-    """``docker kill`` OpenFOAM containers tagged by ``_label_args`` (best-effort).
+    """``docker kill`` this session's OpenFOAM containers (best-effort).
 
-    When ``session`` is set (or ``FANSIM_CFD_SESSION`` is in the environment), only that
-    session's containers are killed; otherwise every ``fansim_cfd=1`` container that does NOT
-    belong to some session is reaped (background jobs set their own session to stay safe).
+    Always scoped: ``session`` if given, else this process tree's :func:`cfd_session`. There is no
+    unscoped mode any more: it killed every un-sessioned fansim container on the machine, including
+    another program's validation run (2026-11-25, FAN-01). Orphans from a crashed session can be
+    removed by hand (``docker ps --filter label=fansim_cfd=1``).
     Returns how many container IDs were passed to ``docker kill``.
     """
-    sess = session if session is not None else os.environ.get("FANSIM_CFD_SESSION")
-    filt = f"label=fansim_cfd_session={sess}" if sess else "label=fansim_cfd=1"
+    sess = session if session is not None else cfd_session()
+    filt = f"label=fansim_cfd_session={sess}"
     try:
         out = subprocess.run(
             ["docker", "ps", "--filter", filt, "--format",
              '{{.ID}} {{.Label "fansim_cfd_session"}}'],
-            capture_output=True, text=True, timeout=min(20.0, timeout),
+            capture_output=True, text=True, timeout=min(20.0, timeout), check=False,
         )
         rows = [ln.split() for ln in out.stdout.splitlines() if ln.strip()]
-        # Unscoped cleanup (a cockpit with no session) must not kill containers another
-        # session owns, e.g. an overnight audit (2026-10-07: a cockpit restart killed one).
-        ids = [r[0] for r in rows if sess or len(r) == 1]
+        ids = [r[0] for r in rows if len(r) > 1 and r[1] == sess]
         if not ids:
             return 0
         subprocess.run(
-            ["docker", "kill", *ids], capture_output=True, text=True, timeout=timeout,
+            ["docker", "kill", *ids], capture_output=True, text=True, timeout=timeout, check=False,
         )
         return len(ids)
     except Exception:  # noqa: BLE001 — cancel/timeout cleanup must not raise

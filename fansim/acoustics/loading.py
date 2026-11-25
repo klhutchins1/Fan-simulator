@@ -39,6 +39,22 @@ def loading_proxy_from_rans(n_blades: int, thrust_n: float, coeffs=DEFAULT_COEFF
     return loading_noise_proxy(n_blades, thrust_n / max(n_blades, 1), coeffs)
 
 
+def loading_proxy_operating(
+    n_blades: int,
+    thrust_n_at_rated: float,
+    derate: float,
+    coeffs=DEFAULT_COEFFS,
+) -> float:
+    """Loading proxy at the RPM the motor actually holds (O7 / #53).
+
+    RANS free-air thrust is at rated/target RPM. Fan affinity: thrust ∝ λ² with
+    λ = actual_rpm / rated_rpm (``derate`` ≤ 1). Scale thrust before the proxy so
+    motor-limited designs are not ranked on rated-RPM thrust.
+    """
+    lam2 = float(derate) * float(derate)
+    return loading_proxy_from_rans(n_blades, float(thrust_n_at_rated) * lam2, coeffs)
+
+
 def calibrate(n_blades, thrust_per_blade, lbm_band) -> tuple[float, float, float]:
     """Refit the (c0, c1, c2) coefficients to new (n_blades, thrust_per_blade) -> LBM_band data.
 

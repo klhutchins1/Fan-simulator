@@ -1,21 +1,21 @@
 {
   "units": {
     "acoustics.curle_dipole": {
-      "date": "2026-09-29",
-      "fingerprint": "dda9aa374bf254aa",
-      "report": "docs/validation/audits/2026-09-29-audit-06-acoustics.md",
+      "date": "2026-11-25",
+      "fingerprint": "4d3b02d796dc5a24",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "acoustics.fwh": {
-      "date": "2026-09-29",
-      "fingerprint": "16cadecd09a6b13c",
-      "report": "docs/validation/audits/2026-09-29-audit-06-acoustics.md",
+      "date": "2026-11-25",
+      "fingerprint": "1f0b3b336bf3ac8a",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "acoustics.loading": {
-      "date": "2026-09-30",
-      "fingerprint": "15c9dc447f55b81c",
-      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "date": "2026-11-25",
+      "fingerprint": "19793fa9ef08a909",
+      "report": "docs/validation/audits/2026-11-25-o7-loading-noise-derate-prereg.md",
       "verdict": "PASS"
     },
     "acoustics.noise_hint": {
@@ -25,15 +25,15 @@
       "verdict": "PASS"
     },
     "acoustics.proudman": {
-      "date": "2026-09-29",
-      "fingerprint": "3d2562a18673225e",
-      "report": "docs/validation/audits/2026-09-29-audit-06-acoustics.md",
+      "date": "2026-11-25",
+      "fingerprint": "0d6a31506a634839",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "acoustics.tonal_bpf": {
-      "date": "2026-09-29",
-      "fingerprint": "98bfba61db1a70ef",
-      "report": "docs/validation/audits/2026-09-29-audit-06-acoustics.md",
+      "date": "2026-11-25",
+      "fingerprint": "18ca83a4e8d4f3b5",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "audit.direction_geometry": {
@@ -55,15 +55,15 @@
       "verdict": "PASS"
     },
     "cfd.cfm_from_outlet_flow": {
-      "date": "2026-11-24",
-      "fingerprint": "ba43e7f4a311aca7",
-      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
+      "date": "2026-11-25",
+      "fingerprint": "cba0687d7bcb77ad",
+      "report": "docs/validation/audits/2026-11-25-bem-no-internal-round-prereg.md",
       "verdict": "PASS"
     },
     "cfd.duct_area": {
-      "date": "2026-09-30",
-      "fingerprint": "170411fbc5f6c34b",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "2a160276ee40fe61",
+      "report": "docs/validation/audits/2026-11-25-bem-no-internal-round-prereg.md",
       "verdict": "PASS"
     },
     "cfd.flow_direction_convention": {
@@ -73,9 +73,9 @@
       "verdict": "PASS"
     },
     "cfd.flow_report": {
-      "date": "2026-11-24",
+      "date": "2026-11-25",
       "fingerprint": "0e52f96ae917e2e4",
-      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "cfd.sanity_checks": {
@@ -91,15 +91,15 @@
       "verdict": "PASS"
     },
     "cror.noise": {
-      "date": "2026-09-30",
+      "date": "2026-11-25",
       "fingerprint": "5845b629ef396705",
-      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "fan.bem_prescreen": {
-      "date": "2026-10-15",
-      "fingerprint": "3953d5d38adcedc9",
-      "report": "docs/validation/audits/2026-10-15-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "a4d420b6a0c11c72",
+      "report": "docs/validation/audits/2026-11-25-bem-no-internal-round-prereg.md",
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
@@ -115,27 +115,27 @@
       "verdict": "PASS"
     },
     "optimize.search_space_handedness": {
-      "date": "2026-11-24",
-      "fingerprint": "07ee02af0f382bdc",
-      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
+      "date": "2026-11-25",
+      "fingerprint": "4ee383c17382b2e7",
+      "report": "docs/validation/audits/2026-11-25-r13-guided-wrap-bounds.md",
       "verdict": "PASS"
     },
     "physics.air_properties": {
-      "date": "2026-09-29",
-      "fingerprint": "a2634e2310b3e1c3",
-      "report": "docs/validation/audits/2026-09-29-air-consolidation.md",
+      "date": "2026-11-25",
+      "fingerprint": "58429c36fb2d5bab",
+      "report": "docs/validation/audits/2026-11-25-nu-air-derive.md",
       "verdict": "PASS"
     },
     "physics.regime": {
-      "date": "2026-09-30",
-      "fingerprint": "894b1a69d1148f59",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "8e080dc0a475da4e",
+      "report": "docs/validation/audits/2026-11-25-nu-air-derive.md",
       "verdict": "PASS"
     },
     "propeller.bemt": {
-      "date": "2026-10-09",
-      "fingerprint": "60e1af266cfacab1",
-      "report": "docs/validation/audits/2026-10-09-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "a148162f1dbd523d",
+      "report": "docs/validation/audits/2026-11-25-bem-no-internal-round-prereg.md",
       "verdict": "PASS"
     },
     "propeller.cfd_setup": {
@@ -151,9 +151,9 @@
       "verdict": "PASS"
     },
     "propeller.noise": {
-      "date": "2026-09-30",
-      "fingerprint": "064c70702bc0a505",
-      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "date": "2026-11-25",
+      "fingerprint": "d9f7cbd3534f5560",
+      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
     "propeller.polar_coefficients": {
@@ -175,27 +175,27 @@
       "verdict": "PASS"
     },
     "structural.balance": {
-      "date": "2026-09-30",
-      "fingerprint": "8bb0b5abac1b1e63",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "e956cac4fe07d360",
+      "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
       "verdict": "PASS"
     },
     "structural.centrifugal": {
-      "date": "2026-09-30",
-      "fingerprint": "cd8cbc4e69800155",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "da780a94309af654",
+      "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
       "verdict": "PASS"
     },
     "structural.deflection": {
-      "date": "2026-09-30",
-      "fingerprint": "34329203ac0444f2",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "18ff48f8bfded8f3",
+      "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
       "verdict": "PASS"
     },
     "structural.flutter": {
-      "date": "2026-09-30",
-      "fingerprint": "5e2cff59561aa445",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "b9a2ecb785e1f17b",
+      "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
       "verdict": "PASS"
     }
   }

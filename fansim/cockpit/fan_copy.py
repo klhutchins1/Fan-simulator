@@ -9,13 +9,16 @@ _CTRL_IMG_DIR = Path(__file__).resolve().parents[2] / "docs" / "control_images"
 
 
 def _load_control_images() -> dict:
+    """Load hover PNGs. Stems match state models: e_* (design), opt_*, assess_*."""
     uris = {}
-    if _CTRL_IMG_DIR.exists():
-        for p in _CTRL_IMG_DIR.glob("e_*.png"):
+    if not _CTRL_IMG_DIR.exists():
+        return uris
+    for pattern in ("e_*.png", "opt_*.png", "assess_*.png"):
+        for p in _CTRL_IMG_DIR.glob(pattern):
             try:
                 uris[p.stem] = "data:image/png;base64," + base64.b64encode(p.read_bytes()).decode()
-            except Exception:  # noqa: BLE001
-                pass
+            except OSError:
+                continue
     return uris
 
 
@@ -87,6 +90,59 @@ CONTROL_DESC = {
     "e_dim_amp": "Dimple depth — golf-ball-style surface texture.",
     "e_dim_rows": "Dimples along the chord.",
     "e_dim_cols": "Dimples along the span.",
+    # Library → Leeway (Expert): how much the design may miss the motor / frame / weight / voltage.
+    "lee_depth": (
+        "Extra axial depth allowed past the frame (mm). 0 = must fit the frame depth. "
+        "Raise only if your case has spare room behind the fan."
+    ),
+    "lee_overvolt": (
+        "How many volts above nameplate the stress check may assume. 0 = nameplate only. "
+        "Use a small value if the fan sometimes runs on a higher rail."
+    ),
+    "lee_tip": (
+        "Extra tip radius allowed past the frame bore (mm). 0 = tip must clear the cover. "
+        "Raise only for a known larger opening."
+    ),
+    "lee_weight": (
+        "Extra mass allowed above the material limit (g). 0 = stay under the print-weight gate. "
+        "Raise only if you accept a heavier part."
+    ),
+}
+
+# Simple-mode hover text (#65). Keys that Simple shows on Design; Expert keeps CONTROL_DESC.
+# Avoid: camber, stagger, NACA, t/c, PCHIP, chord (as jargon), LE/TE as bare acronyms.
+CONTROL_DESC_SIMPLE = {
+    "e_n_blades": "How many blades. More blades usually move more air, but can be louder.",
+    "e_camber_root": "How scooped the blade face is near the hub. Zero is a flat paddle. Press Preview after changing.",
+    "e_camber_mid": "How scooped the blade face is in the middle. Raise with tip scoop to match the white reference.",
+    "e_camber_tip": "How scooped the blade face is at the tip — often the biggest match to the reference curve.",
+    "e_camber_pos": "Where the deepest part of the scoop sits along the blade (near the front edge vs farther back).",
+    "e_stagger_root": "Blade angle at the hub. Higher = more open for airflow; lower = blades overlap more for pressure.",
+    "e_stagger_mid": "Blade angle in the middle of the span.",
+    "e_stagger_tip": "Blade angle at the tip.",
+    "e_chord_root": "How wide the blade is at the hub (front edge to back edge). Not how thick the plastic wall is.",
+    "e_chord_mid": "How wide the blade is in the middle. Not wall thickness.",
+    "e_chord_tip": "How wide the blade is at the tip. Raise this if the tip looks too skinny vs the reference.",
+    "e_section_family": "Rounded plate = even wall, good for printed PC-fan blades. The other option is a knife-edge airfoil for Expert use.",
+    "e_thick_mode": "Same wall thickness everywhere, or taper it from hub to tip.",
+    "e_thick_mm": "How thick the plastic wall is through the blade (the thin dimension). Typical printed fans are about 2 mm.",
+    "e_thick_root": "Wall thickness at the hub as a fraction of blade width.",
+    "e_thick_mid": "Wall thickness at mid-span as a fraction of blade width.",
+    "e_thick_tip": "Wall thickness at the tip as a fraction of blade width.",
+    "e_le_thick": "How round or sharp the front edge is. Press Preview after changing.",
+    "e_te_thick": "How round or sharp the back edge is. Press Preview after changing.",
+    "e_le_face_root": "Front-edge thickness at the hub on a rounded plate. 1 = full wall, 0 = sharp.",
+    "e_le_face_mid": "Front-edge thickness at mid-span. 1 = full wall, 0 = sharp.",
+    "e_le_face_tip": "Front-edge thickness at the tip. 1 = full wall, 0 = sharp.",
+    "e_te_face_root": "Back-edge thickness at the hub. 1 = full wall, 0 = sharp.",
+    "e_te_face_mid": "Back-edge thickness at mid-span. 1 = full wall, 0 = sharp.",
+    "e_te_face_tip": "Back-edge thickness at the tip. 1 = full wall, 0 = sharp.",
+    "e_hub_radius": "Hub size. Smaller hub leaves more room for airflow; must still fit your fan model.",
+    "e_tip_radius": "How far the blades reach (outer radius). Shrink to fit a smaller frame.",
+    "e_hub_height": "Hub height. 0 = just tall enough to cover the blade roots.",
+    "e_blade_hub_z": "Where the blades sit on the hub — up toward the intake or down toward the outlet.",
+    "e_blade_z": "Moves a plate blade up or down on the hub. Positive is up. The hub stays put.",
+    "e_hub_nose": "Adds a nose cone on the intake side (makes the fan taller).",
 }
 
 # Plain-language help for Fan Optimize Advanced search (and Assess flags Optimize reuses).

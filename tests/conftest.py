@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
+import os
+import uuid
+
 import pytest
+
+# The suite gets its own CFD session before anything imports fansim.cfd.runner, so a test that
+# reaches real container cleanup can only touch the suite's own containers, never a validation
+# run on the same machine (2026-11-25: a test run killed FAN-01's snappyHexMesh).
+os.environ["FANSIM_CFD_SESSION"] = f"pytest-{uuid.uuid4().hex[:8]}"
 
 
 @pytest.fixture(autouse=True)

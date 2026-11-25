@@ -118,3 +118,14 @@ The text is unchanged. Newest moves are at the bottom.
     is its merge gate. Merge `--no-ff` and mark done if it exits 0 with 3 verdict lines.
   - Claude, 2026-11-08: first real run (night 11-07) exit 1, correctly. All 3 chunks ran, teardown exits read as passed, and chunk 0 had one real failure: `test_guided_reaches_open_camber_and_blade_count`, a 1-in-680 flake from an unseeded TPE study (measured, not a product bug), fixed ffd8155. Gate rerun tonight on `r35b-chunks` d2a87cd.
   - Landed (70ab65c, 2026-11-09): rerun exit 0 with 3 verdict lines (717/555/653 passed). Nothing left. A job that uses `--all` or `--chunk` now exits 0 on a green suite, so `results.json` can be trusted without reading the log.
+
+- **R2.7 Label pass for the four unvalidated surfaces (Kimball decision 2026-11-15).** Lane: Cursor. CPU: day.
+  Status: `done 616aa33` (PR #71, closes #59).
+  - Shared `fansim/cockpit/experimental.py` — **"Experimental: not validated against published data."** on Mixed /
+    Volute / Prop CFD / CROR (tabs · experimental, tooltips, Assess/Optimize copy, export sidecars, README Known limits).
+  - Prop BEMT stays the validated fast estimate (not stamped). `tests/test_r27_labels.py` + copy tests updated.
+  - Earlier Claude branch notes (2026-11-17) and print-id OSError gate red were historical; recreate + merge on Linux
+    remote completed 2026-11-25.
+
+- **RV-4 Script triage.** Lane: Cursor. Status: `done 7c23df1` (PR #77).
+  - 38 scripts archived; `scripts/audit_forensics.py` + tests; promote maths follow-ups #74–#76.

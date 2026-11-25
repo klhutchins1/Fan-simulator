@@ -40,6 +40,9 @@ jobs:
           files=()
           while IFS= read -r -d '' f; do
             case "${f}" in
+              archive/*)
+                # RV-4: archived scripts are frozen; skip default-rule ruff on moves into archive/.
+                ;;
               *.py)
                 if [ -f "${f}" ]; then
                   files+=("${f}")

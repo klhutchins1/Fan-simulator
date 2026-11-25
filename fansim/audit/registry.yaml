@@ -101,7 +101,7 @@ exempt:
 units:
   - id: physics.air_properties
     targets: ["fansim.physics.air"]
-    claim: "Room-temperature sea-level air: rho 1.2 (AMCA) / 1.225 (ISA), nu 1.5e-5, mu 1.81e-5, c0 343"
+    claim: "Room-temperature sea-level air: rho 1.2 (AMCA) / 1.225 (ISA), nu = mu/rho_AMCA, mu 1.81e-5, c0 343"
     source: {kind: standard, ref: "AMCA 210 standard air; ISA sea level; ideal gas + Sutherland"}
     regime: {fluid: air, T_K: [288, 298], p_Pa: 101325}
     checks: [tests/audit/test_air_properties.py]
@@ -389,9 +389,10 @@ units:
     targets:
       - "fansim.acoustics.loading:loading_noise_proxy"
       - "fansim.acoustics.loading:loading_proxy_from_rans"
-    claim: "Fan loading-noise ranking proxy increases with blade count and thrust/blade (RANKING-ONLY)"
-    source: {kind: derivation, ref: "Curle loading scaling; cockpit relative band"}
-    checks: [tests/test_loading.py]
+      - "fansim.acoustics.loading:loading_proxy_operating"
+    claim: "Fan loading-noise ranking proxy increases with blade count and thrust/blade; operating RPM scales thrust by λ² (RANKING-ONLY)"
+    source: {kind: derivation, ref: "Curle loading scaling; affinity thrust∝RPM²; cockpit relative band"}
+    checks: [tests/test_loading.py, tests/test_o7_loading_noise_derate.py]
     depends_on: [physics.air_properties]
 
   - id: centrifugal.bem
