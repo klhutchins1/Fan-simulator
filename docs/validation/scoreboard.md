@@ -16,11 +16,11 @@ recomputed verdict differs from the audit's.
 | Fan CFD (axial) | flow at 64 Pa, FAN-01 exact CAD | 1.804 m³/s | 1.859 m³/s | +3.1 % | none pre-registered | **NOT JUDGED** | `docs/validation/fan01/fan01_cfd.json` |
 | Fan CFD (axial) | flow at 6.85 Pa, lt120 frozen reference (mean of two meshes, 89.6 / 92.0) | 84.0 CFM | 90.8 CFM | +8.1 % | ±10 % (`docs/validation/audits/2026-10-18-lt120-validation-prereg.md`) | **PASS** | **markdown only** (`docs/validation/audits/2026-10-18-lt120-validation-prereg.md#L69`), no result file committed |
 | Fan CFD (axial) | flow at 13.71 Pa, lt120 frozen reference (mean of two meshes, 74.7 / 76.2) | 60.0 CFM | 75.5 CFM | +25.8 % | ±10 % (`docs/validation/audits/2026-10-18-lt120-validation-prereg.md`) | **FAIL** | **markdown only** (`docs/validation/audits/2026-10-18-lt120-validation-prereg.md#L70`), no result file committed |
-| Prop BEMT | static C_T, APC E 9x6, UIUC geometry, near 6000 rpm | 0.1160 | 0.1152 | -0.7 % | ±15 % (`docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md`) | **PASS** | recomputed on every test run |
-| Prop BEMT | static C_P, APC E 9x6 | 0.0513 | 0.0467 | -8.9 % | ±20 % (`docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md`) | **PASS** | recomputed on every test run |
-| Prop BEMT | worst C_T(J) RMS over the UIUC sweeps, APC E 9x6 | – | 0.0038 | 0.0038 | ≤ 0.015 (`docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md`) | **PASS** | recomputed on every test run |
-| Prop BEMT | static C_T, APC SF 9x4.7, UIUC geometry, near 6000 rpm | 0.1192 | 0.1039 | -12.8 % | ±15 % (`docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md`) | **PASS** | recomputed on every test run |
-| Prop BEMT | static C_P, APC SF 9x4.7 (table polars; known fail, not claimed) | 0.0484 | 0.0381 | -21.3 % | ±20 % (`docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md`) | **FAIL** | recomputed on every test run |
+| Prop BEMT | static C_T, APC E 9x6, UIUC geometry, near 6000 rpm | 0.1160 | 0.1149 | -1.0 % | ±15 % (`docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md`) | **PASS** | recomputed on every test run |
+| Prop BEMT | static C_P, APC E 9x6 | 0.0513 | 0.0466 | -9.3 % | ±20 % (`docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md`) | **PASS** | recomputed on every test run |
+| Prop BEMT | worst C_T(J) RMS over the UIUC sweeps, APC E 9x6 | – | 0.0037 | 0.0037 | ≤ 0.015 (`docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md`) | **PASS** | recomputed on every test run |
+| Prop BEMT | static C_T, APC SF 9x4.7, UIUC geometry, near 6000 rpm | 0.1192 | 0.1039 | -12.9 % | ±15 % (`docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md`) | **PASS** | recomputed on every test run |
+| Prop BEMT | static C_P, APC SF 9x4.7 (table polars; known fail, not claimed) | 0.0484 | 0.0381 | -21.4 % | ±20 % (`docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md`) | **FAIL** | recomputed on every test run |
 | Prop BEMT | worst C_T(J) RMS over the UIUC sweeps, APC SF 9x4.7 (the 0.020 gate was set after the data and is not used) | – | 0.0175 | 0.0175 | ≤ 0.015 (`docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md`) | **FAIL** | recomputed on every test run |
 
 12 claims: 6 PASS, 4 FAIL, 2 NOT JUDGED. 4 rest on a markdown number with no committed result file.
