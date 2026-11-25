@@ -24,6 +24,7 @@ from fansim.acoustics.loading import (
     calibrate as calibrate_loading_proxy,
     loading_noise_proxy,
     loading_proxy_from_rans,
+    loading_proxy_operating,
 )
 from fansim.acoustics.tonal import (
     blade_passing_modes,
@@ -53,5 +54,6 @@ __all__ = [
     # calibrated cheap LOADING-noise proxy (better than Proudman for dipole/loading noise)
     "loading_noise_proxy",
     "loading_proxy_from_rans",
+    "loading_proxy_operating",
     "calibrate_loading_proxy",
 ]

@@ -23,4 +23,7 @@ INCONCLUSIVE is not a pass. Do not re-fit `DEFAULT_COEFFS` to make a lock pass.
 
 ## Result (after change)
 
-_(fill after the run)_
+P1–P5 **PASS**. Added `loading_proxy_operating`; `evaluate_candidate` applies it after
+`derate`. `tests/test_o7_loading_noise_derate.py` + `tests/test_loading.py`: 10 passed,
+1 skipped (opt_noise data absent). No coeff re-fit. Snapshot untouched (rated λ=1 path
+identical).

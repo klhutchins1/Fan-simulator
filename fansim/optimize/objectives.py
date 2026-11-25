@@ -502,10 +502,7 @@ def evaluate_candidate(
             except Exception:  # noqa: BLE001 - salvage file is best-effort
                 pass
             m_load = solve_at(load_pa, "load")
-            if with_noise:  # default: cheap calibrated LOADING proxy (no reconstruct; tracks LBM
-                # dipole better than Proudman -- blade count + per-blade thrust). See acoustics/loading.
-                from fansim.acoustics.loading import loading_proxy_from_rans
-                noise_swl = float(loading_proxy_from_rans(params.n_blades, m_free.thrust_n))
+            # Loading-noise proxy deferred until after motor derate (O7 / #53): thrust ∝ λ².
     except Exception as exc:
         return _infeasible(f"solve failed: {type(exc).__name__}", t0, raw=gap_raw)
 
@@ -543,6 +540,13 @@ def evaluate_candidate(
     cfm_free = m_free.cfm * derate                       # flow ∝ RPM
     cfm_load = max(m_load.cfm, 0.0) * derate
     over = over_spec_flags(spec, dia, depth, weight_g)   # geometry over-spec; power now derates RPM
+    if with_noise and noise_model != "proudman":
+        # Default: cheap calibrated LOADING proxy (no reconstruct; tracks LBM dipole better
+        # than Proudman — blade count + per-blade thrust). Affinity: thrust ∝ λ² so scale
+        # rated RANS thrust by derate² before the proxy (O7 / #53).
+        from fansim.acoustics.loading import loading_proxy_operating
+        noise_swl = float(loading_proxy_operating(
+            params.n_blades, m_free.thrust_n, derate))
 
     cfm_probe = cfm_load
     # Affinity: probe CFD was at rated RPM with back-pressure ``load_pa``. After CFM∝RPM
