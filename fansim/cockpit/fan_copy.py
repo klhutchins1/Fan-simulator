@@ -9,13 +9,16 @@ _CTRL_IMG_DIR = Path(__file__).resolve().parents[2] / "docs" / "control_images"
 
 
 def _load_control_images() -> dict:
+    """Load hover PNGs. Stems match state models: e_* (design), opt_*, assess_*."""
     uris = {}
-    if _CTRL_IMG_DIR.exists():
-        for p in _CTRL_IMG_DIR.glob("e_*.png"):
+    if not _CTRL_IMG_DIR.exists():
+        return uris
+    for pattern in ("e_*.png", "opt_*.png", "assess_*.png"):
+        for p in _CTRL_IMG_DIR.glob(pattern):
             try:
                 uris[p.stem] = "data:image/png;base64," + base64.b64encode(p.read_bytes()).decode()
-            except Exception:  # noqa: BLE001
-                pass
+            except OSError:
+                continue
     return uris
 
 
