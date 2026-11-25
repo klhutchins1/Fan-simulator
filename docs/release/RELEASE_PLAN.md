@@ -106,7 +106,7 @@ the validation page is built on a green CI and a clean ledger.
   - Progress log: `docs/review/rv3-findings.md` (branch `claude/rv3-review`). Module 1 (`objectives.py`) done:
     **O1 high fixed** (`e349624`): the stress and resonance gates judged the stale `params.rpm` (2000), not the
     rpm the design runs at; for the 3900 rpm Delta model, resonant designs passed. O2–O5 silent failures fixed
-    (`d6097c4`). O6, O7 open (low). Next: `fan_bem.py`.
+    (`d6097c4`). O6 fixed by Cursor (#80); O7 open (#53). Modules 2 (`fan_bem.py`) and 3a (`cfd/metrics.py`): no new defects.
 - **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `done 7c23df1`. 38 scripts in `archive/scripts/`; `scripts/audit_forensics.py` + tests; promote follow-ups #74–#76 (`prop_section_2d`, `fan_noise_curle`, `fan_noise_cv`). Detail: `docs/review/2026-11-25-rv4-script-triage.md`.
 
 - **RV-5 Speed and code health.** Lane: Cursor. CPU: day (profile outside 4–9 PM). Status: `ready` (unblocked by RV-1). Profile

@@ -14,8 +14,8 @@ numeric tests, is it in the audit ledger, is anything over-long. "Fixed" means t
 | O3 | medium | A sanity-check crash became `[]`, and the status read `SKIP`, the same as "never ran". | fixed `d6097c4` (status `ERROR`, `raw.sanity_error`) |
 | O4 | low | "solve failed" dropped the exception message. | fixed `d6097c4` |
 | O5 | low | The free-air salvage failure was `pass`ed. | fixed `d6097c4` (`raw.free_salvage_error`) |
-| O6 | low | If trimesh cannot read the STL volume, the weight gate is skipped with no stamp (`weight_g = None`). | open |
-| O7 | low | The loading-noise proxy uses free-air thrust at **rated** rpm; it is not derated with the motor (thrust ∝ λ²). It is ranking-only, so the order holds within one derate, but a motor-limited design reads louder than it runs. | open |
+| O6 | low | If trimesh cannot read the STL volume, the weight gate is skipped with no stamp (`weight_g = None`). | fixed by Cursor, PR #80 (`raw.weight_error`, #52) |
+| O7 | low | The loading-noise proxy uses free-air thrust at **rated** rpm; it is not derated with the motor (thrust ∝ λ²). It is ranking-only, so the order holds within one derate, but a motor-limited design reads louder than it runs. | open, issue #53 |
 | O8 | code health | `evaluate_candidate` is ~490 lines: gates, pre-screens, geometry, CFD, scoring. | RV-5 (split into stages) |
 
 Checked and fine: derate (flow ∝ λ, power ∝ λ³, probe pressure ∝ λ²); signed CFM is never `abs()`-ed (a reversed
