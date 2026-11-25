@@ -333,10 +333,14 @@ def format_meanline_seed(seed: MeanlineSeed) -> list[str]:
     """Human-readable cockpit lines."""
     d = seed.duty
     lines = [
-        f"§20.4 seed @ {d.cfm:.0f} CFM / {d.dp_pa:.0f} Pa / {d.rpm:.0f} RPM "
-        f"({seed.vortex}-vortex)",
-        f"σ={seed.sigma:.3f}  δ={seed.delta:.3f}  δ_opt≈{seed.delta_opt:.3f}  "
-        f"D_sug≈{1000.0 * seed.tip_d_suggest_m:.1f} mm  Cz={seed.cz_mps:.2f} m/s",
+        (
+            f"§20.4 seed @ {d.cfm:.0f} CFM / {d.dp_pa:.0f} Pa / {d.rpm:.0f} RPM "
+            f"({seed.vortex}-vortex)"
+        ),
+        (
+            f"σ={seed.sigma:.3f}  δ={seed.delta:.3f}  δ_opt≈{seed.delta_opt:.3f}  "
+            f"D_sug≈{1000.0 * seed.tip_d_suggest_m:.1f} mm  Cz={seed.cz_mps:.2f} m/s"
+        ),
     ]
     for st in seed.stations:
         tag = {0.0: "root", 0.5: "mid", 1.0: "tip"}.get(st.r_frac, f"r{st.r_frac}")
