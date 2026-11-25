@@ -1,0 +1,114 @@
+# Validation scoreboard (RV-2): every published-data comparison the release can claim.
+#
+# One row per quantity. `ours.kind`:
+#   live      recomputed by fansim/validation/scoreboard.py on every test run (cheap: BEMT vs UIUC)
+#   data      read from a committed result file and recomputed from it
+#   recorded  only a number in a markdown report; no committed result file. `where` is file#Lline
+#             and `where_text` must appear on that line.
+# `tolerance` is the rule decided BEFORE the data, with the file that fixed it. null = none was
+# pre-registered, so the row is reported but NOT JUDGED.
+# `recorded_verdict` is what the audit concluded. For live/data rows the test fails if the
+# recomputed verdict differs from it, so a code or data change that flips a claim fails CI.
+#
+# Do not edit numbers to make a row pass. A changed verdict needs its own audit file.
+
+claims:
+  - id: a12x25.free_air
+    surface: Fan CFD (axial)
+    quantity: free-air flow, close-reference A12x25 STL, CFD v5 (ring + frame + layers)
+    published: {value: 60.1, unit: CFM, source: "Noctua NF-A12x25 datasheet"}
+    ours: {kind: recorded, value: 59.8, where: "docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md#L56", where_text: "59.8"}
+    tolerance: {rel: 0.10, source: "docs/roadmap.md (section 10 interim band, set 2026-09-14, before audit-02)"}
+    recorded_verdict: PASS
+
+  - id: a12x25.shutoff
+    surface: Fan CFD (axial)
+    quantity: shut-off pressure (formal linear proxy), close-reference STL
+    published: {value: 22.9, unit: Pa, source: "Noctua NF-A12x25 datasheet"}
+    ours: {kind: recorded, value: 28.0, where: "docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md#L66", where_text: "28.0 Pa"}
+    tolerance: {abs: 5.0, source: "docs/roadmap.md (section 10 interim band, set 2026-09-14, before audit-02)"}
+    recorded_verdict: FAIL
+
+  - id: fan01.q_7pa
+    surface: Fan CFD (axial)
+    quantity: flow at 7 Pa, FAN-01 exact CAD (Zenodo 10787093)
+    published: {kind: data, file: docs/validation/fan01/fan01_cfd.json, path: "[0].measured_q_m3s", unit: "m³/s", source: "FAN-01 measured characteristic (CC-BY-4.0)"}
+    ours: {kind: data, file: docs/validation/fan01/fan01_cfd.json, path: "[0].q_m3s"}
+    tolerance: null
+    recorded_verdict: NOT JUDGED
+
+  - id: fan01.q_64pa
+    surface: Fan CFD (axial)
+    quantity: flow at 64 Pa, FAN-01 exact CAD
+    published: {kind: data, file: docs/validation/fan01/fan01_cfd.json, path: "[1].measured_q_m3s", unit: "m³/s", source: "FAN-01 measured characteristic (CC-BY-4.0)"}
+    ours: {kind: data, file: docs/validation/fan01/fan01_cfd.json, path: "[1].q_m3s"}
+    tolerance: null
+    recorded_verdict: NOT JUDGED
+
+  - id: lt120.q_6.85pa
+    surface: Fan CFD (axial)
+    quantity: flow at 6.85 Pa, lt120 frozen reference (mean of two meshes, 89.6 / 92.0)
+    published: {value: 84.0, unit: CFM, source: "Lin & Tsai lt120 measured curve"}
+    ours: {kind: recorded, value: 90.8, where: "docs/validation/audits/2026-10-18-lt120-validation-prereg.md#L69", where_text: "+8.1 %"}
+    tolerance: {rel: 0.10, source: "docs/validation/audits/2026-10-18-lt120-validation-prereg.md"}
+    recorded_verdict: PASS
+
+  - id: lt120.q_13.71pa
+    surface: Fan CFD (axial)
+    quantity: flow at 13.71 Pa, lt120 frozen reference (mean of two meshes, 74.7 / 76.2)
+    published: {value: 60.0, unit: CFM, source: "Lin & Tsai lt120 measured curve"}
+    ours: {kind: recorded, value: 75.45, where: "docs/validation/audits/2026-10-18-lt120-validation-prereg.md#L70", where_text: "+25.8 %"}
+    tolerance: {rel: 0.10, source: "docs/validation/audits/2026-10-18-lt120-validation-prereg.md"}
+    recorded_verdict: FAIL
+
+  - id: bemt.apce_9x6.static_ct
+    surface: Prop BEMT
+    quantity: static C_T, APC E 9x6, UIUC geometry, near 6000 rpm
+    published: {kind: live, unit: "-", source: "UIUC Propeller Database (validation/reference/uiuc_propdb)"}
+    ours: {kind: live, func: uiuc_static, prefix: apce_9x6, coeff: ct}
+    tolerance: {rel: 0.15, source: "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md"}
+    recorded_verdict: PASS
+
+  - id: bemt.apce_9x6.static_cp
+    surface: Prop BEMT
+    quantity: static C_P, APC E 9x6
+    published: {kind: live, unit: "-", source: "UIUC Propeller Database"}
+    ours: {kind: live, func: uiuc_static, prefix: apce_9x6, coeff: cp}
+    tolerance: {rel: 0.20, source: "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md"}
+    recorded_verdict: PASS
+
+  - id: bemt.apce_9x6.ct_j_rms
+    surface: Prop BEMT
+    quantity: worst C_T(J) RMS over the UIUC sweeps, APC E 9x6
+    published: {kind: live, unit: "-", source: "UIUC Propeller Database"}
+    ours: {kind: live, func: uiuc_ct_rms, prefix: apce_9x6}
+    tolerance: {max: 0.015, source: "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md"}
+    recorded_verdict: PASS
+
+  - id: bemt.apcsf_9x4.7.static_ct
+    surface: Prop BEMT
+    quantity: static C_T, APC SF 9x4.7, UIUC geometry, near 6000 rpm
+    published: {kind: live, unit: "-", source: "UIUC Propeller Database"}
+    ours: {kind: live, func: uiuc_static, prefix: apcsf_9x4.7, coeff: ct}
+    tolerance: {rel: 0.15, source: "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md"}
+    recorded_verdict: PASS
+
+  - id: bemt.apcsf_9x4.7.static_cp
+    surface: Prop BEMT
+    quantity: static C_P, APC SF 9x4.7 (table polars; known fail, not claimed)
+    published: {kind: live, unit: "-", source: "UIUC Propeller Database"}
+    ours: {kind: live, func: uiuc_static, prefix: apcsf_9x4.7, coeff: cp}
+    tolerance: {rel: 0.20, source: "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md"}
+    recorded_verdict: FAIL
+
+  - id: bemt.apcsf_9x4.7.ct_j_rms
+    surface: Prop BEMT
+    # Audit #3 pre-registered RMS <= 0.015. SF read 0.021-0.024, then 0.0175 after the (genuine)
+    # thickness fix. On 2026-09-30, after that data, the SF gate was "re-registered" to 0.020, which
+    # passes it. A tolerance widened after the data does not count (AGENTS.md rule 1), so this row is
+    # judged on 0.015. Needs a ruling (RV-2 finding); the ledger's propeller.bemt claim cites 0.020.
+    quantity: "worst C_T(J) RMS over the UIUC sweeps, APC SF 9x4.7 (the 0.020 gate was set after the data and is not used)"
+    published: {kind: live, unit: "-", source: "UIUC Propeller Database"}
+    ours: {kind: live, func: uiuc_ct_rms, prefix: apcsf_9x4.7}
+    tolerance: {max: 0.015, source: "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md"}
+    recorded_verdict: FAIL
