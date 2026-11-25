@@ -14,8 +14,10 @@ import tempfile
 import time
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from fansim.optimize.objectives import ObjectiveResult
+if TYPE_CHECKING:  # the real import is lazy: it pulls in the whole CFD/CadQuery stack (~6 s)
+    from fansim.optimize.objectives import ObjectiveResult
 
 # A CFD worker is killed when its case directory shows no new output for this long. Streamed
 # OpenFOAM logs grow every iteration and snappy prints throughout meshing, so 15 min of silence
@@ -143,7 +145,7 @@ def watch_parent(job: dict, *, interval_s: float = 2.0,
                 if on_parent_exit is not None:
                     try:
                         on_parent_exit()
-                    except Exception:  # noqa: BLE001 - cleanup must not keep an orphan alive
+                    except Exception:  # noqa: BLE001, S110 - cleanup must not keep an orphan alive
                         pass
                 os._exit(4)
 
@@ -184,7 +186,7 @@ def run_worker_module(
             try:
                 proc = subprocess.run(
                     [sys.executable, "-m", module, jobfile],
-                    capture_output=True, text=True, timeout=timeout,
+                    capture_output=True, text=True, timeout=timeout, check=False,
                 )
             except subprocess.TimeoutExpired as exc:
                 raise TimeoutError(f"{label} exceeded {timeout:.0f}s") from exc
@@ -205,7 +207,7 @@ def terminate_worker(proc: subprocess.Popen) -> None:
     if sys.platform == "win32":
         subprocess.run(
             ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-            capture_output=True, text=True,
+            capture_output=True, text=True, check=False,
         )
     else:
         proc.kill()
@@ -248,7 +250,7 @@ def run_watched(
                 try:
                     from fansim.cfd.runner import kill_cfd_containers
                     kill_cfd_containers()
-                except Exception:  # noqa: BLE001 — cleanup must not mask the timeout
+                except Exception:  # noqa: BLE001, S110 — cleanup must not mask the timeout
                     pass
                 if why == "stall":
                     raise TimeoutError(
@@ -258,11 +260,13 @@ def run_watched(
         finally:
             if proc_holder is not None and proc_holder and proc_holder[0] is proc:
                 proc_holder[0] = None
-    read = lambda p: p.read_text(encoding="utf-8", errors="replace")  # noqa: E731
+    read = lambda p: p.read_text(encoding="utf-8", errors="replace")
     return proc.returncode, read(out_path), read(err_path)
 
 
 def load_objective_result(path: Path | str) -> ObjectiveResult:
     """Load an ``ObjectiveResult`` written by an eval worker."""
+    from fansim.optimize.objectives import ObjectiveResult
+
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     return ObjectiveResult(**data)
