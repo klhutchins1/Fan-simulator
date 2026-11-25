@@ -98,8 +98,8 @@
     },
     "fan.bem_prescreen": {
       "date": "2026-11-25",
-      "fingerprint": "72553d4dcbd895e4",
-      "report": "docs/validation/audits/2026-11-25-cfm-single-source.md",
+      "fingerprint": "abf9e1c434a7b7d2",
+      "report": "docs/validation/audits/2026-11-25-nu-air-derive.md",
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
@@ -121,15 +121,15 @@
       "verdict": "PASS"
     },
     "physics.air_properties": {
-      "date": "2026-09-29",
-      "fingerprint": "a2634e2310b3e1c3",
-      "report": "docs/validation/audits/2026-09-29-air-consolidation.md",
+      "date": "2026-11-25",
+      "fingerprint": "58429c36fb2d5bab",
+      "report": "docs/validation/audits/2026-11-25-nu-air-derive.md",
       "verdict": "PASS"
     },
     "physics.regime": {
-      "date": "2026-09-30",
-      "fingerprint": "894b1a69d1148f59",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "8e080dc0a475da4e",
+      "report": "docs/validation/audits/2026-11-25-nu-air-derive.md",
       "verdict": "PASS"
     },
     "propeller.bemt": {

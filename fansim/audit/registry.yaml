@@ -101,7 +101,7 @@ exempt:
 units:
   - id: physics.air_properties
     targets: ["fansim.physics.air"]
-    claim: "Room-temperature sea-level air: rho 1.2 (AMCA) / 1.225 (ISA), nu 1.5e-5, mu 1.81e-5, c0 343"
+    claim: "Room-temperature sea-level air: rho 1.2 (AMCA) / 1.225 (ISA), nu = mu/rho_AMCA, mu 1.81e-5, c0 343"
     source: {kind: standard, ref: "AMCA 210 standard air; ISA sea level; ideal gas + Sutherland"}
     regime: {fluid: air, T_K: [288, 298], p_Pa: 101325}
     checks: [tests/audit/test_air_properties.py]
