@@ -51,8 +51,10 @@ def suggest_features(trial) -> Features:
 # blade_from_flat / design-rule tooling are unchanged.
 GUIDED = {
     "n_blades": (5, 11),         # was 5–8 (free-air); hose CFM needs OPEN's 5–11
-    "stagger_root": (24.0, 48.0),
-    "stagger_mid": (32.0, 48.0),  # HIGH mid-stagger — the win-win-win lever
+    # R1.3 P0 (prereg 2026-11-25-r13-guided-wrap-bounds): floors low enough for Stock v3
+    # under wrap (r14 C / r17 C). Stagger tip unchanged.
+    "stagger_root": (19.5, 48.0),
+    "stagger_mid": (27.2, 48.0),  # HIGH mid-stagger — the win-win-win lever
     "stagger_tip": (18.0, 38.0),
     "chord_root": (14.0, 34.0),
     "chord_mid": (14.0, 32.0),    # cap mid chord -> lower mid-solidity (noise driver)
@@ -61,7 +63,7 @@ GUIDED = {
     "sweep_tip": (0.0, 12.0),
     "lean_mid": (0.0, 12.0),      # low mid-lean -> lower blade-pass tone
     "lean_tip": (0.0, 45.0),
-    "max_camber": (0.0, 0.06),    # was 0–0.02 (free-air); hose scoring uses OPEN's 0–0.06
+    "max_camber": (0.015, 0.06),  # was 0–0.06; P0 floor keeps Stock (0.0478) inside
 }
 OPEN = {
     "n_blades": (5, 11), "stagger_root": (20.0, 48.0), "stagger_mid": (18.0, 42.0),
