@@ -98,8 +98,8 @@
     },
     "fan.bem_prescreen": {
       "date": "2026-11-25",
-      "fingerprint": "72553d4dcbd895e4",
-      "report": "docs/validation/audits/2026-11-25-cfm-single-source.md",
+"fingerprint": "c62f535707b8ad8d",
+      "report": "docs/validation/audits/2026-11-25-nu-air-derive.md",
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
