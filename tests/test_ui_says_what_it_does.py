@@ -426,8 +426,8 @@ def test_simple_mode_shows_fan_and_prop_only():
     assert product["fan"] == ("Fan · blades", None)
     assert product["propeller"] == ("Prop · fast estimate", None)
     assert product["mixed"][0] == "Mixed · experimental"
-    assert product["volute"][0] == "Volute · estimate"
-    assert product["cror"][0] == "CROR · estimate"
+    assert product["volute"][0] == "Volute · experimental"
+    assert product["cror"][0] == "CROR · experimental"
     for proxy in ("mixed", "volute", "cror"):
         assert product[proxy][1] == "ui_mode === 'expert'"
 
@@ -442,9 +442,12 @@ def test_simple_mode_shows_fan_and_prop_only():
     app = _static_strings(_COCKPIT / "app.py")
     _assert_unmarked(app)
     blob = "\n".join(app)
-    assert "Experimental: not validated against published data" in blob
-    assert "ranking only, unvalidated" in blob
-    assert "not full CFD" in blob
+    app_src = (_COCKPIT / "app.py").read_text(encoding="utf-8")
+    exp_src = (_COCKPIT / "experimental.py").read_text(encoding="utf-8")
+    assert "EXPERIMENTAL_LABEL" in app_src
+    assert "Experimental: not validated against published data." in exp_src
+    # Prop BEMT still says "not full CFD" in its own tab; CROR/Mixed/Volute use the standard label.
+    assert "not full CFD" in (_COCKPIT / "prop_tab.py").read_text(encoding="utf-8")
     assert "Fan: printable PC-fan blades (airflow check). Prop: propeller (fast estimate)." in blob
 
 
@@ -596,7 +599,7 @@ def test_mixed_tab_assess_and_export_match_the_experimental_label(tabs):
 
 
 def test_volute_tab_assess_matches_the_unvalidated_label(tabs):
-    """Volute says ranking-only / unvalidated. Assess runs the volute CFD, and that label has no pass mark."""
+    """Volute says experimental / not validated. Assess runs the volute CFD, and that label has no pass mark."""
     actions = _actions(_COCKPIT / "volute_tab.py")
     _require(actions, "Preview", "volute_preview")
     _require(actions, "Assess", "volute_assess")
@@ -612,10 +615,10 @@ def test_volute_tab_assess_matches_the_unvalidated_label(tabs):
     assert "volute_assess_busy = True" in assess
     assert 'action="Assess"' in assess
     assert "evaluate_volute_isolated" in assess
-    assert "unvalidated" in assess
+    assert "EXPERIMENTAL_LABEL" in assess or "not validated" in assess
 
     idle = "\n".join([tabs.st.volute_msg, *tabs.st.volute_readout])
-    assert "unvalidated" in idle
+    assert "not validated" in idle
     _assert_unmarked(_static_strings(_COCKPIT / "volute_tab.py"))
     _assert_unmarked([idle, *_source_texts(tabs.ctx.volute_assess)])
     assert "volute_n_blades" in _body(tabs.ctx, "load_volute_trial")

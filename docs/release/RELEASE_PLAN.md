@@ -423,13 +423,12 @@ Kimball's.
   - 2026-11-17 night gate RED: `test_export_hint_uses_the_fit_hub_setting_from_the_click` hit OSError 22 on a print-id
     whose check digit was `*` (`5YEE*…`), illegal in a Windows path. Not an R2.7 label bug. Cursor 2026-11-19:
     `issue_print_id` skips filename-unsafe check digits; master merged into the branch; focused tests 36 passed.
-  - **Resume:** re-queue `suite-r27-labels-all` on `r27-labels-fix` (merge on green). If STATUS.md says merged, set
-    this to `done <merge commit>` and R3.8 to `blocked (R1.3)`.
+  - **Resume (Cursor, 2026-11-25):** standard label landed on branch `cursor/r27-labels-fix` — shared
+    `fansim/cockpit/experimental.py`, Volute/CROR/Mixed/Prop-CFD + README Known limits + export sidecars;
+    tabs "· experimental"; Prop BEMT not labelled. Focused copy tests 91 passed. Open/merge PR (closes #59), then
+    set `done <merge commit>` and unblock R3.8 from R2.7.
   - The same words everywhere: **"Experimental: not validated against published data."** In Simple and Expert, on the
     tab (tooltip or name, as Mixed already does), next to every Assess/Optimize number, and in the export README/sidecar.
-  - Where it stands (Claude, 2026-11-15): Mixed is done (`5945620`). Volute says "ranking only, unvalidated" (change it
-    to the standard words). Propeller CFD has only a note in the Assess text (`prop_tab.py:1393`); the BEMT fast estimate
-    is validated and must **not** get the label. **CROR has no label in the UI at all.**
   - README "Known limits": one line per surface with the standard words; also drop "nothing printed or measured yet"
     (print session 1 happened; nothing is *validated* by it).
   - Test first: one test that each of the four tabs shows the exact string in Simple and Expert, and that the Fan tab

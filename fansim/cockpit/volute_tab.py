@@ -11,12 +11,13 @@ import time
 from pathlib import Path
 
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
-from fansim.cockpit.paths import exports_dir, session_tmp
 from fansim.cockpit.busy import cfd_stage_hint
 from fansim.cockpit.context import CockpitCtx
-from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.data import design_dropdown_items
+from fansim.cockpit.experimental import EXPERIMENTAL_LABEL
+from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.figures import volute_scatter_figure
+from fansim.cockpit.paths import exports_dir, session_tmp
 from fansim.cockpit.plotters import ensure_plotter
 from fansim.cockpit.tab_shell import (
     SCATTER_HEIGHT_PX,
@@ -156,14 +157,14 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
     state.volute_has_front = bool(_volute_last) or bool(volute_design_store)
     state.volute_msg = (
         "Radial impeller + sealed volute enclosure (smooth Archimedean scroll). "
-        "Assess runs radial MRF CFD — ranking only, unvalidated (CFD not yet converged); "
+        f"Assess runs radial MRF CFD — {EXPERIMENTAL_LABEL} "
         "Optimize is a geometry proxy (not CFM)."
     )
     state.volute_readout = [
         "Preview / Export: impeller + sealed casing STLs.",
-        "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker) — ranking only, "
-        "unvalidated (CFD not yet converged).",
-        "Optimize: NSGA geometry proxy — ranking only, unvalidated (CFD not yet converged).",
+        "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker). "
+        f"{EXPERIMENTAL_LABEL}",
+        f"Optimize: NSGA geometry proxy — {EXPERIMENTAL_LABEL}",
     ]
     if volute_design_store:
         state.volute_msg = (
@@ -358,7 +359,14 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
                 None,
                 lambda: build_volute_stls_isolated(flat, out_dir, timeout=300.0),
             )
-            state.volute_msg = f"✓ Saved {imp.resolve()}\n✓ Saved {cas.resolve()}"
+            (out_dir / "README.md").write_text(
+                f"# Volute export\n\n{EXPERIMENTAL_LABEL}\n",
+                encoding="utf-8",
+            )
+            state.volute_msg = (
+                f"Saved {imp.resolve()}\nSaved {cas.resolve()}\n"
+                f"(README.md: {EXPERIMENTAL_LABEL})"
+            )
             _refresh_volute_export_items()
         except Exception as exc:  # noqa: BLE001
             state.volute_msg = f"⚠ Export failed: {type(exc).__name__}: {exc}"
@@ -417,7 +425,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
                     f"CFM free {res.cfm_free:.1f} · load {res.cfm_load:.1f} · "
                     f"η {res.efficiency:.1f}% · {rpm:.0f} RPM",
                     f"Domain: radial MRF stage 1 ({res.raw.get('honesty', '')}).",
-                    "Volute CFD: ranking only, unvalidated (CFD not yet converged).",
+                    f"Volute CFD: {EXPERIMENTAL_LABEL}",
                     f"Workdir: {workdir}",
                 ]
                 state.volute_last_assess = str(workdir)
@@ -590,7 +598,7 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                         html.Div(
                             "90° discharge collector — not an A12x25 drop-in. "
                             "Assess uses sealed-enclosure radial MRF (+Z inlet / +X outlet). "
-                            "Optimize is a geometry proxy — ranking only, unvalidated (CFD not yet converged).",
+                            f"Optimize is a geometry proxy — {EXPERIMENTAL_LABEL}",
                             classes="text-caption mb-2",
                             style="white-space: pre-line",
                         )
@@ -691,7 +699,8 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                             classes="text-subtitle-2 mb-1",
                         )
                         html.Div(
-                            "NSGA ranks impeller + scroll geometry. Ranking only, unvalidated (CFD not yet converged). "
+                            "NSGA ranks impeller + scroll geometry. "
+                            f"{EXPERIMENTAL_LABEL} "
                             "Resume continues the last cockpit_volute_opt_* study.",
                             classes="text-caption mb-2",
                             style="white-space: pre-line",

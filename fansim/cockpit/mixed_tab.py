@@ -13,11 +13,28 @@ from pathlib import Path
 
 _log = logging.getLogger(__name__)
 
-from fansim.cockpit.context import CockpitCtx
-from fansim.cockpit.fan_widgets import slider as _shared_slider
+from fansim.centrifugal.optimize import (
+    refine_pareto_cfd as refine_mixed_pareto_cfd,
+)
+from fansim.centrifugal.optimize import (
+    run_mixed_study,
+)
+from fansim.centrifugal.persist import (
+    latest_mixed_opt_dir,
+    load_all_mixed_designs,
+    load_mixed_pareto,
+    mixed_opt_out_path,
+    next_mixed_trial,
+    save_mixed_design_json,
+)
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
+from fansim.cockpit.busy import cfd_stage_hint
+from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.data import design_dropdown_items
+from fansim.cockpit.experimental import EXPERIMENTAL_LABEL
+from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.figures import mf_scatter_figure
+from fansim.cockpit.paths import exports_dir, session_tmp
 from fansim.cockpit.plotters import ensure_plotter
 from fansim.cockpit.tab_shell import (
     SCATTER_HEIGHT_PX,
@@ -30,28 +47,13 @@ from fansim.isolated_job import stall_timeout
 from fansim.optimize.isolated_eval import cfd_eval_timeout
 from fansim.optimize.presets import assess_load
 
-from fansim.centrifugal.optimize import (
-    refine_pareto_cfd as refine_mixed_pareto_cfd,
-    run_mixed_study,
-)
-from fansim.centrifugal.persist import (
-    latest_mixed_opt_dir,
-    load_all_mixed_designs,
-    load_mixed_pareto,
-    mixed_opt_out_path,
-    next_mixed_trial,
-    save_mixed_design_json,
-)
-from fansim.cockpit.busy import cfd_stage_hint
-from fansim.cockpit.paths import exports_dir, session_tmp
-
 _RUNNING_TESTS = "pytest" in sys.modules
 
 def mixed_export_readme() -> str:
     """Sidecar markdown for an exported mixed-flow STL (R2.4 / G3)."""
     return (
-        "# Mixed-flow export\n\n"
-        "Experimental: not validated against published data.\n\n"
+        f"# Mixed-flow export\n\n"
+        f"{EXPERIMENTAL_LABEL}\n\n"
         "Assess runs MRF CFD (not validated against published data).\n"
     )
 
@@ -138,7 +140,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
     )
     state.mf_msg = "Tune the cone and tip, then Preview → Assess → Export → Optimize (BEM)."
     state.mf_readout = [
-        "Experimental: not validated against published data.",
+        EXPERIMENTAL_LABEL,
         "Assess runs MRF CFD (not validated against published data).",
         "Optimize is a BEM screen (axial adapter) — not CFD.",
     ]
@@ -637,7 +639,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
         state.mf_readout = [
             f"#{tid}  cfm_free {o.get('cfm_free', 0):.1f}  ·  cfm_load {o.get('cfm_load', 0):.1f}  ·  "
             f"efficiency {o.get('efficiency', 0):.1f}%",
-            "Experimental: not validated against published data.",
+            EXPERIMENTAL_LABEL,
             f"Loaded from {row.get('extra', {}).get('source_run', row.get('workdir', ''))}",
         ]
         stl = row.get("stl_path")
@@ -888,7 +890,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                 with v3.VCard(classes="mb-2 pa-2", v_show="mf_subtab === 'results'"):
                     html.Div("Duct airflow — slices & streamlines", classes="text-subtitle-2 mb-1")
                     html.Div(
-                        "From the last Assess. Experimental: not validated against published data. "
+                        f"From the last Assess. {EXPERIMENTAL_LABEL} "
                         "|U|/pressure midplane; axial Uz (blue = delivery, red = reverse); "
                         "streamlines colored by |U|.",
                         classes="text-caption text-medium-emphasis mb-2",
