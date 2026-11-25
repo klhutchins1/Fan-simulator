@@ -175,27 +175,27 @@
       "verdict": "PASS"
     },
     "structural.balance": {
-      "date": "2026-09-30",
-      "fingerprint": "8bb0b5abac1b1e63",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "e956cac4fe07d360",
+      "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
       "verdict": "PASS"
     },
     "structural.centrifugal": {
-      "date": "2026-09-30",
-      "fingerprint": "cd8cbc4e69800155",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "da780a94309af654",
+      "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
       "verdict": "PASS"
     },
     "structural.deflection": {
-      "date": "2026-09-30",
-      "fingerprint": "34329203ac0444f2",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "18ff48f8bfded8f3",
+      "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
       "verdict": "PASS"
     },
     "structural.flutter": {
-      "date": "2026-09-30",
-      "fingerprint": "5e2cff59561aa445",
-      "report": "docs/validation/audits/2026-09-30-ledger-refresh.md",
+      "date": "2026-11-25",
+      "fingerprint": "b9a2ecb785e1f17b",
+      "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
       "verdict": "PASS"
     }
   }
