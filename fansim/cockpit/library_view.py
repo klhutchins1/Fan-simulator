@@ -10,9 +10,21 @@ from fansim.cockpit.placement import fit_envelope, measure_flat, nominal_fits_sp
 from fansim.fan_spec import FanSpec
 
 HINT_FITS = "fits this hub"
-HINT_BIG = "too big — click Fits it"
+HINT_BIG = "too big — use Scale to this hub"
 HINT_NONE = "no geometry yet"
 NO_PARAMS_MSG = "This recipe has no blade numbers to Fit."
+
+
+def empty_library_info(n: int) -> str:
+    """Library header copy. ``n`` is the number of clickable recipe rows."""
+    if n <= 0:
+        return (
+            "No saved designs yet — Assess a blade or run Optimize, then rebuild the catalog."
+        )
+    return (
+        f"{n} saved design(s) — click a row to load it. "
+        "Scale to this hub shrinks a design that is too big."
+    )
 
 
 @dataclass(frozen=True)

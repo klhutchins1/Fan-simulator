@@ -74,6 +74,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
     seed_from_duty = getattr(ctx, "fan_seed_from_duty")
     randomize_geometry = getattr(ctx, "fan_randomize_geometry")
     randomize_features = getattr(ctx, "fan_randomize_features")
+    load_stock_reference = getattr(ctx, "fan_load_stock_reference")
 
     hub_designs = getattr(ctx, "fan_hub_designs")
     active_spec = getattr(ctx, "fan_active_spec")
@@ -123,6 +124,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             label="Fits this fan only",
                         )
                         html.Div(
+                            "Only show designs that fit this fan's hub and frame.",
+                            classes="text-caption text-medium-emphasis ml-2 mb-1",
+                            v_show="ui_mode === 'simple'",
+                        )
+                        html.Div(
                             "Hide scatter points whose built tip / depth / hub "
                             "do not fit the Fan model above. Turn off to show the "
                             "full opened-run set (including oversize blades).",
@@ -138,6 +144,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             classes="ml-2 mb-1",
                             label="Declutter (hide near-duplicates)",
                         )
+                        html.Div(
+                            "Hide near-duplicate scatter points so the plot is easier to read.",
+                            classes="text-caption text-medium-emphasis ml-2 mb-1",
+                            v_show="ui_mode === 'simple'",
+                        )
                         v3.VSwitch(
                             v_model=("show_stock",),
                             density="compact",
@@ -146,6 +157,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             color="primary",
                             classes="ml-2 mb-1",
                             label="Show stock (published)",
+                        )
+                        html.Div(
+                            "Gold ✕ = published Noctua CFM on the plot (datasheet, not your CFD).",
+                            classes="text-caption text-medium-emphasis ml-2 mb-1",
+                            v_show="ui_mode === 'simple'",
                         )
                         html.Div(
                             "Gold ✕ = datasheet free-air CFM with load CFM estimated "
@@ -202,7 +218,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 "No scored designs yet — Assess one blade or open an Optimize "
                                 "run to fill this plot. Gold ✕ (stock) still shows when enabled.",
                                 classes="text-caption text-medium-emphasis px-2 py-4 text-center",
-                                v_show="!trial_items || trial_items.length < 2",
+                                v_show="n_scored_designs < 1",
                             )
                             fig_widget = plotly_widgets.Figure(
                                 figure=scatter_figure(
@@ -491,11 +507,8 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         v3.VAlert(
                             "Design 3D-printable replacement blades for a PC cooling fan "
                             "(start: Noctua A12x25). Preview updates the shape in seconds; "
-                            "Assess runs two CFD solves (free air and a loaded point), about 20–40 min; Optimize searches many "
-                            "designs (hours). Export writes a print-ready STL. "
-                            "Fan is CFD-checked — Mixed / Volute / Prop / CROR tabs are "
-                            "faster estimates or proxies. Docs: README, docs/design-rules.md, "
-                            "docs/a12x25-reference.md.",
+                            "Assess runs an airflow check (~15–30 min). Export writes a "
+                            "print-ready STL. Switch to Expert for Optimize and advanced tabs.",
                             type="info",
                             density="compact",
                             variant="tonal",
@@ -507,10 +520,17 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         with v3.VRow(no_gutters=True, classes="align-center mb-2"):
                             with v3.VCol(cols=10):
                                 html.Div(
-                                    "Start here: 1) Pick a design ↓  2) Preview  "
-                                    "3) Assess  4) Optimize (optional)  5) Export STL when happy.",
+                                    "Start here: Stock loaded — 1) Preview  2) Assess  "
+                                    "3) Export STL when happy.",
                                     classes="text-caption text-medium-emphasis",
                                     v_show="ui_mode === 'simple'",
+                                )
+                                html.Div(
+                                    "Expert path: Stock / Reference → edit → Preview → "
+                                    "Assess (screening mesh — rank designs, not absolute CFM; "
+                                    "GCI ≈ 21 %) → Export. Optimize is optional.",
+                                    classes="text-caption text-medium-emphasis",
+                                    v_show="ui_mode === 'expert'",
                                 )
                             with v3.VCol(cols=2, classes="text-right"):
                                 v3.VBtn(
@@ -556,7 +576,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         )
                         html.Div(
                             "{{ assess_preset }} hose · {{ assess_material }} — "
-                            "change under Assess & print below.",
+                            "change under Assess settings below.",
                             classes="text-caption text-medium-emphasis mb-1",
                             v_show="ui_mode === 'expert'",
                         )
@@ -611,6 +631,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "disabled": (
                                         "preview_busy || assess_busy || export_busy || opt_running",
                                     ),
+                                    "v_show": "ui_mode === 'expert'",
                                 },
                                 "stop": [
                                     {
@@ -620,6 +641,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         "variant": "tonal",
                                         "click": (cancel_optimize,),
                                         "disabled": ("!opt_running",),
+                                        "v_show": "ui_mode === 'expert'",
                                     },
                                     {
                                         "label": "⏹ Cancel Assess",
@@ -637,8 +659,23 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "color": "secondary",
                                     "click": (randomize_geometry,),
                                     "disabled": (_action_busy,),
+                                    "v_show": "ui_mode === 'expert'",
                                 },
                             },
+                        )
+                        html.Div(
+                            "Assess uses a screening mesh — rank designs, not absolute CFM "
+                            "(GCI ≈ 21 %).",
+                            classes="text-caption text-medium-emphasis mt-1",
+                            v_show="ui_mode === 'expert'",
+                        )
+                        v3.VBtn(
+                            "Load Stock / Reference",
+                            size="small",
+                            variant="tonal",
+                            click=(load_stock_reference,),
+                            disabled=(_action_busy,),
+                            classes="mt-1 mb-1 mr-2",
                         )
                         v3.VBtn(
                             "Reset",
@@ -676,23 +713,23 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     classes="text-caption mb-1",
                                 )
                                 with v3.VExpansionPanels(variant="accordion", multiple=True):
-                                    with v3.VExpansionPanel(title="Planform — blades & chord"):
+                                    with v3.VExpansionPanel(title="Planform — blades & width"):
                                         with v3.VExpansionPanelText():
                                             _slider("Blades", "e_n_blades", 5, 11, 1)
-                                            _slider("Chord root", "e_chord_root", 14, 50, 0.5, unit="mm")
-                                            _slider("Chord mid", "e_chord_mid", 14, 60, 0.5, unit="mm")
-                                            _slider("Chord tip", "e_chord_tip", 14, 70, 0.5, unit="mm")
+                                            _slider("Blade width root", "e_chord_root", 14, 50, 0.5, unit="mm")
+                                            _slider("Blade width mid", "e_chord_mid", 14, 60, 0.5, unit="mm")
+                                            _slider("Blade width tip", "e_chord_tip", 14, 70, 0.5, unit="mm")
                                             html.Div(
                                                 "Chord = LE→TE blade width (planform). Not wall thickness.",
                                                 classes="text-caption mb-2",
                                                 v_show="ui_mode === 'expert'",
                                             )
-                                    with v3.VExpansionPanel(title="Pitch / twist — stagger"):
+                                    with v3.VExpansionPanel(title="Blade angle (pitch)"):
                                         with v3.VExpansionPanelText():
-                                            _slider("Stagger root", "e_stagger_root", 15, 55, 1, unit="deg")
-                                            _slider("Stagger mid", "e_stagger_mid", 15, 55, 1, unit="deg")
-                                            _slider("Stagger tip", "e_stagger_tip", 15, 55, 1, unit="deg")
-                                    with v3.VExpansionPanel(title="Airfoil — camber & thickness"):
+                                            _slider("Blade angle root", "e_stagger_root", 15, 55, 1, unit="deg")
+                                            _slider("Blade angle mid", "e_stagger_mid", 15, 55, 1, unit="deg")
+                                            _slider("Blade angle tip", "e_stagger_tip", 15, 55, 1, unit="deg")
+                                    with v3.VExpansionPanel(title="Scoop & thickness"):
                                         with v3.VExpansionPanelText():
                                             _help_select(
                                                 "e_section_family",
@@ -707,9 +744,9 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 classes="text-caption mb-2",
                                                 v_show="ui_mode === 'expert'",
                                             )
-                                            _slider("Camber root", "e_camber_root", 0.0, 0.15, 0.005, unit="c/c")
-                                            _slider("Camber mid", "e_camber_mid", 0.0, 0.15, 0.005, unit="c/c")
-                                            _slider("Camber tip", "e_camber_tip", 0.0, 0.15, 0.005, unit="c/c")
+                                            _slider("Scoop root", "e_camber_root", 0.0, 0.15, 0.005, unit="c/c")
+                                            _slider("Scoop mid", "e_camber_mid", 0.0, 0.15, 0.005, unit="c/c")
+                                            _slider("Scoop tip", "e_camber_tip", 0.0, 0.15, 0.005, unit="c/c")
                                             html.Div(
                                                 "Camber = the scoop in the blade face (LE→TE curve). "
                                                 "Raise tip/mid until the tip-on view matches the white reference. "
@@ -717,7 +754,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 classes="text-caption mb-2",
                                                 v_show="ui_mode === 'expert'",
                                             )
-                                            _slider("Camber position", "e_camber_pos", 0.2, 0.6, 0.05, unit="x/c")
+                                            _slider("Scoop position", "e_camber_pos", 0.2, 0.6, 0.05, unit="x/c")
                                             _help_select(
                                                 "e_thick_mode",
                                                 "Thickness span",
@@ -908,7 +945,15 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     with v3.VExpansionPanel(title="Spacing — tonal noise"):
                                         with v3.VExpansionPanelText():
                                             _slider("Uneven spacing", "e_spacing", 0.0, 0.6, 0.05, unit="0–1")
-                                    with v3.VExpansionPanel(title="Features (bio-inspired)"):
+                                            html.Div(
+                                                "Noise ranking is not validated. The blade-pass tone is "
+                                                "rpm × blades; sound levels are estimates for exploration only.",
+                                                classes="text-caption text-medium-emphasis mt-1",
+                                            )
+                                    with v3.VExpansionPanel(
+                                        title="Features (bio-inspired)",
+                                        v_show="ui_mode === 'expert'",
+                                    ):
                                         with v3.VExpansionPanelText():
                                             v3.VBtn(
                                                 "🎲 Randomize features",
@@ -928,12 +973,13 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             _slider("Dimple rows", "e_dim_rows", 0, 6, 1)
                                             _slider("Dimple cols", "e_dim_cols", 0, 6, 1)
 
-                        with v3.VExpansionPanel(title="Assess & print"):
+                        with v3.VExpansionPanel(title="Assess settings"):
                             with v3.VExpansionPanelText():
                                 html.Div(
                                     "Assess checks printability / stress (blade vibration is an estimate, not validated (resonance check, not flutter)), then runs "
                                     "CFD (~15–30 min) and reports free/load CFM. Rejected designs show "
-                                    "what to change (usually fewer blades or thicker mid-blade).",
+                                    "what to change (usually fewer blades or thicker mid-blade). "
+                                    "Export STL is under the 3-D view.",
                                     classes="text-caption text-medium-emphasis mb-2",
                                     v_show="ui_mode === 'expert'",
                                 )
@@ -953,7 +999,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     v_show="ui_mode === 'expert'",
                                 )
                                 v3.VSelect(
-                                    label="Print material (stress gate; vibration is estimate, not validated (resonance check, not flutter))",
+                                    label="Print material",
                                     v_model=("assess_material",),
                                     items=("assess_material_items",),
                                     density="compact",
@@ -963,91 +1009,92 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 )
                                 html.Div(
                                     "Used by Assess and Optimize. Pick PLA+ here before Optimize "
-                                    "if that is what you print.",
+                                    "if that is what you print. Stress gate; blade vibration is an "
+                                    "estimate, not validated (resonance check, not flutter).",
                                     classes="text-caption text-medium-emphasis mb-2",
                                     v_show="ui_mode === 'expert'",
                                 )
-                                v3.VBtn(
-                                    "Score multi-point BEM (ranking only)",
-                                    size="small",
-                                    variant="tonal",
-                                    color="secondary",
-                                    classes="mb-1",
-                                    click=(score_multi_point_bem,),
-                                    block=True,
-                                )
-                                html.Div(
-                                    "{{ multi_point_msg }}",
-                                    classes="text-caption mb-2",
-                                    style="white-space: pre-line",
-                                )
-                                _opt_section("Honesty / fidelity")
-                                html.Div(
-                                    "Also applied when you press Optimize (same hose + roughness).",
-                                    classes="text-caption text-medium-emphasis mb-1",
-                                    v_show="ui_mode === 'expert'",
-                                )
-                                _help_switch(
-                                    "assess_refine_op",
-                                    "Third CFD at operating point (~50% longer)",
-                                    classes="mb-2",
-                                )
-                                _help_switch(
-                                    "assess_wall_ks",
-                                    "FDM wall roughness (ks≈0.1 mm)",
-                                    classes="mb-2",
-                                )
-                                with v3.VRow(no_gutters=True, classes="mt-2 align-center"):
-                                    with v3.VCol(cols=6, classes="pr-1"):
-                                        v3.VSelect(
-                                            label="Sweep",
-                                            v_model=("sweep_param",),
-                                            items=("sweep_items",),
-                                            density="compact",
-                                            variant="outlined",
-                                            hide_details=True,
-                                        )
-                                    with v3.VCol(cols=3, classes="px-1"):
-                                        v3.VTextField(
-                                            label="steps (2–12)",
-                                            v_model=("sweep_steps",),
-                                            type="number",
-                                            min=2,
-                                            max=12,
-                                            step=1,
-                                            density="compact",
-                                            variant="outlined",
-                                            hide_details=True,
-                                        )
-                                    with v3.VCol(cols=3, classes="pl-1"):
-                                        v3.VBtn(
-                                            "Run",
-                                            size="small",
-                                            color="success",
-                                            variant="tonal",
-                                            click=(on_sweep,),
-                                            disabled=("assess_busy",),
-                                        )
-                                with v3.VRow(
-                                    v_if="sweep_active", no_gutters=True, classes="mt-2 align-center"
-                                ):
-                                    with v3.VCol(cols=9, classes="pr-2"):
-                                        v3.VProgressLinear(
-                                            model_value=("sweep_progress",),
-                                            height=8,
-                                            color="success",
-                                            rounded=True,
-                                        )
-                                    with v3.VCol(cols=3):
-                                        v3.VBtn(
-                                            "⏹ Cancel",
-                                            size="x-small",
-                                            color="error",
-                                            variant="tonal",
-                                            block=True,
-                                            click=(cancel_sweep,),
-                                            disabled=("sweep_cancel",),
-                                        )
+                                with html.Div(v_show="ui_mode === 'expert'"):
+                                    v3.VBtn(
+                                        "Score multi-point BEM (ranking only)",
+                                        size="small",
+                                        variant="tonal",
+                                        color="secondary",
+                                        classes="mb-1",
+                                        click=(score_multi_point_bem,),
+                                        block=True,
+                                    )
+                                    html.Div(
+                                        "{{ multi_point_msg }}",
+                                        classes="text-caption mb-2",
+                                        style="white-space: pre-line",
+                                    )
+                                    _opt_section("Honesty / fidelity")
+                                    html.Div(
+                                        "Also applied when you press Optimize (same hose + roughness).",
+                                        classes="text-caption text-medium-emphasis mb-1",
+                                    )
+                                    _help_switch(
+                                        "assess_refine_op",
+                                        "Third CFD at operating point (~50% longer)",
+                                        classes="mb-2",
+                                    )
+                                    _help_switch(
+                                        "assess_wall_ks",
+                                        "FDM wall roughness (ks≈0.1 mm)",
+                                        classes="mb-2",
+                                    )
+                                    with v3.VRow(no_gutters=True, classes="mt-2 align-center"):
+                                        with v3.VCol(cols=6, classes="pr-1"):
+                                            v3.VSelect(
+                                                label="Sweep",
+                                                v_model=("sweep_param",),
+                                                items=("sweep_items",),
+                                                density="compact",
+                                                variant="outlined",
+                                                hide_details=True,
+                                            )
+                                        with v3.VCol(cols=3, classes="px-1"):
+                                            v3.VTextField(
+                                                label="steps (2–12)",
+                                                v_model=("sweep_steps",),
+                                                type="number",
+                                                min=2,
+                                                max=12,
+                                                step=1,
+                                                density="compact",
+                                                variant="outlined",
+                                                hide_details=True,
+                                            )
+                                        with v3.VCol(cols=3, classes="pl-1"):
+                                            v3.VBtn(
+                                                "Run",
+                                                size="small",
+                                                color="success",
+                                                variant="tonal",
+                                                click=(on_sweep,),
+                                                disabled=("assess_busy",),
+                                            )
+                                    with v3.VRow(
+                                        v_if="sweep_active", no_gutters=True, classes="mt-2 align-center"
+                                    ):
+                                        with v3.VCol(cols=9, classes="pr-2"):
+                                            v3.VProgressLinear(
+                                                model_value=("sweep_progress",),
+                                                height=8,
+                                                color="success",
+                                                rounded=True,
+                                            )
+                                        with v3.VCol(cols=3):
+                                            v3.VBtn(
+                                                "⏹ Cancel",
+                                                size="x-small",
+                                                color="error",
+                                                variant="tonal",
+                                                block=True,
+                                                click=(cancel_sweep,),
+                                                disabled=("sweep_cancel",),
+                                            )
 
                         with v3.VExpansionPanel(
                             title="Optimize (hours · many CFD trials)",
@@ -1157,7 +1204,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     style="white-space: pre-line",
                                 )
 
-                        with v3.VExpansionPanel(title="Fit & seed"):
+                        with v3.VExpansionPanel(
+                            title="Fit & seed",
+                            v_show="ui_mode === 'expert'",
+                        ):
                             with v3.VExpansionPanelText():
                                 v3.VSwitch(
                                     v_model=("intake_overbuild",),
@@ -1375,8 +1425,9 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             with v3.VCol(cols=8):
                                 html.Div("Print / export", classes="text-subtitle-2")
                                 html.Div(
-                                    "Export STL writes a print-ready file: motor cup + grip pads carved "
-                                    "into the hub, plus a mount/frame checklist.",
+                                    "Export STL writes a print-ready file to project exports/ "
+                                    "(motor cup + grip pads carved into the hub, plus a .md print "
+                                    "checklist). Use Download STL when the link appears.",
                                     classes="text-caption text-medium-emphasis",
                                     v_show="ui_mode === 'expert'",
                                 )
@@ -1424,7 +1475,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         )
                     with v3.VCard(
                         classes="mb-2 pa-3",
-                        v_show="fan_subtab === 'results' && trial_items && trial_items.length >= 2",
+                        v_show="fan_subtab === 'results' && n_scored_designs >= 1",
                     ):
                         html.Div("How the air moves", classes="text-subtitle-1 mb-1")
                         html.Div("{{ flow_overall }}", classes="text-body-2 font-weight-medium mb-2",

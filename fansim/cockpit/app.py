@@ -156,6 +156,10 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
 
     with SinglePageLayout(server) as layout:
         layout.title.set_text("Fan Simulator — printable blade designer")
+        try:
+            layout.footer.clear()  # drop default "Powered by trame" / Kitware footer
+        except Exception:  # noqa: BLE001 — older trame layouts may omit footer
+            pass
         with layout.toolbar:
             from trame.widgets import client as _client
 
@@ -180,7 +184,7 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                         text="Fan — CFD-checked axial PC-fan blades (printable STL)",
                     ):
                         with v3.Template(v_slot_activator="{ props }"):
-                            v3.VTab("Fan · CFD", value="fan", v_bind="props")
+                            v3.VTab("Fan · blades", value="fan", v_bind="props")
                     with v3.VTooltip(
                         location="bottom",  # beside the tab it covered the next tab name (§23.27)
                         open_delay=400,
@@ -226,7 +230,7 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                             )
 
                 html.Div(
-                    "Fan: printable PC-fan blades (CFD). Prop: propeller (fast estimate).",
+                    "Fan: printable PC-fan blades (airflow check). Prop: propeller (fast estimate).",
                     classes="text-caption text-medium-emphasis mb-2",
                     v_show="ui_mode === 'simple'",
                 )

@@ -58,13 +58,17 @@ def bind(session) -> None:
             session._draw_impeller(d.stl_path, "lightsteelblue")
         else:
             plotter.clear_actors()
+            if not d.extra.get("is_reference") and not d.extra.get("is_outline"):
+                state.preview_msg = (
+                    "No impeller.stl for this design — press Preview to rebuild, or Assess to re-score."
+                )
         o, p = d.objectives, d.params
         state.selected_trial = int(trial)
         if d.extra.get("is_outline"):
             state.info_lines = [
                 "Outline copy — hub 26 mm plate, thinner front and back edges.",
                 "Print this next to the Noctua. Line the two up on the leading edge.",
-                "The Stock button still loads the older blade.",
+                "Use Load Stock / Reference for the older Stock blade.",
             ]
             session._init_editor(p)
             session._set_baseline()
@@ -79,6 +83,7 @@ def bind(session) -> None:
         if d.extra.get("is_reference"):
             state.info_lines = [
                 f"Published free {o['cfm_free']:.1f} CFM   ·   hose-est load {o['cfm_load']:.1f} CFM",
+                STOCK_RECIPE_GAP,
             ]
             session._init_editor(p)
             session._set_baseline()
@@ -135,8 +140,9 @@ def bind(session) -> None:
                 state.preview_msg = (
                     "This design was scored by an older CFD solver (pre-2026-09-18 tail-mean + "
                     "adaptive-mesh fix). Its numbers are unreliable — press Assess to re-score.")
-        else:
+        elif d.has_model:
             state.preview_msg = "Edit the sliders below, then press Preview geometry."
+        # else: missing-STL preview_msg already set above
         session._schedule_airflow(d)
         session._schedule_flow_report(d)
         session._schedule_viz_overlay(d)

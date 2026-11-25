@@ -33,6 +33,20 @@ def test_score_caption_empty_does_not_claim_circular():
     assert text == ""
 
 
+def test_score_caption_adds_screening_when_not_grid_converged():
+    """#6: Assess CFM must carry screening / rank-not-absolute honesty."""
+    text = score_caption({"grid_converged": False, "preset": "case", "load_pa": 8.0})
+    assert "hose: case 8 Pa @ 50 CFM" in text
+    low = text.lower()
+    assert "screening" in low or "not absolute" in low or "compare designs" in low
+    assert "gci" in low or "rank" in low
+
+
+def test_score_caption_skips_screening_when_grid_converged():
+    text = score_caption({"grid_converged": True, "preset": "case", "load_pa": 8.0})
+    assert "screening" not in text.lower()
+
+
 def test_stamp_score_extra_copies_raw_and_hose():
     extra: dict = {}
     stamp_score_extra(

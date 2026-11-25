@@ -54,7 +54,8 @@ def test_oversized_is_not_titled_as_fits_a12x25():
     )
     hint = fit_hint(e, spec)
     assert hint != "fits this hub"
-    assert hint in ("too big — click Fits it", "no geometry yet")
+    assert "Fits it" not in hint
+    assert hint == "no geometry yet" or ("too big" in hint and "Scale" in hint)
 
 
 def _base(**kw):

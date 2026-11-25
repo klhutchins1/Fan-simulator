@@ -1081,6 +1081,11 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                             },
                         )
                         html.Div(
+                            "Export STL unlocks after Analyze finishes the 3-D build.",
+                            classes="text-caption text-medium-emphasis mt-1",
+                            v_show="!prop_geo_ready",
+                        )
+                        html.Div(
                             "{{ prop_msg }}",
                             classes="text-caption mt-2",
                             style="white-space: pre-line",
@@ -1135,7 +1140,10 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                     v3=v3,
                                     html=html,
                                 )
-                        with v3.VExpansionPanel(title="Optimize & CFD refine"):
+                        with v3.VExpansionPanel(
+                            title="Optimize & CFD refine",
+                            v_show="ui_mode === 'expert'",
+                        ):
                             with v3.VExpansionPanelText():
                                 html.Div(
                                     "Multi-objective BEMT search (~1 s/trial). "
