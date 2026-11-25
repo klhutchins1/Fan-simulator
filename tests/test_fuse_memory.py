@@ -19,11 +19,14 @@ def test_remaining_growth_is_less_than_whole_peak_and_shroud_adds_blade_faces():
     """QA r8/r9 / 27.1: the guard asks for growth after the call, plus extra for a ring."""
     # 18 084 is the original Windows 9-blade calibration; remaining stays below the whole-peak
     # diagnostic there. Featured Stock sits above that old whole-peak line (27.1 Windows refit).
+    # Linux open-fan remaining was refit higher (QA-35 / 0.515 + 82.3 KiB/face), so remaining can
+    # sit slightly above the old Windows whole-peak line — only assert open_rem < peak on win32.
     open_rem = resources.fuse_remaining_estimate_gb(18_084)
     shroud_rem = resources.fuse_remaining_estimate_gb(
         18_084, shrouded=True, n_blade_faces=18_080)
     peak = resources.fuse_peak_estimate_gb(18_084)
-    assert open_rem < peak
+    if sys.platform == "win32":
+        assert open_rem < peak
     assert shroud_rem > open_rem
     # The ring is 4 faces; charging those at the open rate would not cover QA r9's +0.5–1.3 GB.
     tiny_ring = resources.fuse_remaining_estimate_gb(18_084) - resources.fuse_remaining_estimate_gb(18_080)

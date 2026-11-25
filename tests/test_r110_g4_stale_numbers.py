@@ -15,7 +15,7 @@ def test_figures_static_ceiling_is_about_10_percent():
 
 def test_assess_alert_says_two_solves():
     src = (ROOT / "fansim" / "cockpit" / "fan_tab_ui.py").read_text(encoding="utf-8")
-    assert "Assess runs two CFD solves (free air and a loaded point), about 20–40 min" in src
+    assert "Assess runs two CFD solves (free air and a loaded point), about 30–40 min" in src
     assert "Assess runs one CFD solve" not in src
 
 
