@@ -1453,6 +1453,8 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                     html.Img(
                         src=("prop_airflow_img_uri",),
                         v_show="prop_airflow_img_uri",
+                        alt=("prop_airflow_caption || 'Prop duct airflow field'",),
+                        aria_label=("prop_airflow_caption || 'Prop duct airflow field'",),
                         style=(
                             "width:100%;max-height:520px;object-fit:contain;"
                             "display:block;background:#fafafa;border-radius:4px;"

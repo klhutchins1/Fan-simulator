@@ -1497,14 +1497,24 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 html.Div("{{ row.text }}", classes="text-body-2")
                             with v3.VCol(cols=6, md=4):
                                 html.Div("This design", classes="text-caption")
-                                html.Img(src=("row.img",), v_show="row.img",
-                                         style="width:100%;cursor:zoom-in;border-radius:4px;",
-                                         click="flow_zoom_src = row.img; flow_zoom = true")
+                                html.Img(
+                                    src=("row.img",),
+                                    v_show="row.img",
+                                    alt=("row.title + ' — this design'",),
+                                    aria_label=("row.title + ' — this design, click to enlarge'",),
+                                    style="width:100%;cursor:zoom-in;border-radius:4px;",
+                                    click="flow_zoom_src = row.img; flow_zoom = true",
+                                )
                             with v3.VCol(cols=6, md=4):
                                 html.Div("Stock", classes="text-caption")
-                                html.Img(src=("row.stock_img",), v_show="row.stock_img",
-                                         style="width:100%;cursor:zoom-in;border-radius:4px;",
-                                         click="flow_zoom_src = row.stock_img; flow_zoom = true")
+                                html.Img(
+                                    src=("row.stock_img",),
+                                    v_show="row.stock_img",
+                                    alt=("row.title + ' — stock comparison'",),
+                                    aria_label=("row.title + ' — stock, click to enlarge'",),
+                                    style="width:100%;cursor:zoom-in;border-radius:4px;",
+                                    click="flow_zoom_src = row.stock_img; flow_zoom = true",
+                                )
                         with html.Div(v_show="ui_mode === 'expert' && flow_numbers.length"):
                             html.Div("Technical detail, not reviewed for plain language",
                                      classes="text-caption text-disabled mt-2")
@@ -1515,7 +1525,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     html.Td("{{ n.stock }}")
                         with v3.VDialog(v_model=("flow_zoom",), max_width="1100"):
                             with v3.VCard(classes="pa-2", click="flow_zoom = false"):
-                                html.Img(src=("flow_zoom_src",), style="width:100%;")
+                                html.Img(
+                                    src=("flow_zoom_src",),
+                                    alt="Enlarged airflow comparison",
+                                    aria_label="Enlarged airflow comparison — click to close",
+                                    style="width:100%;",
+                                )
                     with v3.VCard(classes="mb-2 pa-2",
                                   v_show="fan_subtab === 'results' && ui_mode === 'expert'"):
                         html.Div("Duct airflow — slices, streamlines & spanwise", classes="text-subtitle-2 mb-1")
@@ -1579,6 +1594,8 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                         html.Img(
                             src=("airflow_img_uri",),
                             v_show="airflow_img_uri",
+                            alt=("airflow_caption || 'Duct airflow field'",),
+                            aria_label=("airflow_caption || 'Duct airflow field'",),
                             style="width:100%;max-height:520px;object-fit:contain;"
                             "display:block;background:#fafafa;border-radius:4px;",
                         )

@@ -119,3 +119,22 @@ def test_boost_nn_disabled_without_catalog_gp():
         assert i >= 0, model
         assert 'disabled=("!opt_gp",)' in src[i : i + 220]
     assert "Boost / NN mean need Catalog GP skip on" in src
+
+
+def test_flow_images_have_alt():
+    src = FAN_UI.read_text(encoding="utf-8")
+    assert "row.title + ' — this design'" in src
+    assert "row.title + ' — stock comparison'" in src
+    assert 'alt="Enlarged airflow comparison"' in src
+    assert "airflow_caption || 'Duct airflow field'" in src
+
+
+def test_select_announces_assess_settings_restore():
+    src = TRIALS.read_text(encoding="utf-8")
+    assert "Assess settings restored from this design" in src
+
+
+def test_vtk_viewer_max_height_fits_short_laptops():
+    shell = (ROOT / "fansim" / "cockpit" / "tab_shell.py").read_text(encoding="utf-8")
+    assert "max-height:min(48vh, 420px)" in shell
+    assert "75vh" not in shell
