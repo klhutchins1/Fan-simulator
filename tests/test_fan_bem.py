@@ -64,7 +64,8 @@ def test_default_pressure_model_is_euler_and_unchanged():
     a, b = pq_curve(p, 2000.0), pq_curve(p, 2000.0, pressure_model="euler")
     assert a == b
     assert a.free_delivery_cfm == pytest.approx(58.2, abs=0.05)
-    assert a.shutoff_dp_pa == pytest.approx(38.88, abs=0.01)  # was 38.87 at NU=1.5e-5 (#48)
+# Unrounded Q→0 intercept; NU_AIR derive (#48) + no internal round (#50).
+    assert a.shutoff_dp_pa == pytest.approx(38.80, abs=0.15)
 
 
 def test_unknown_pressure_model_rejected():
@@ -114,5 +115,5 @@ def test_axial_force_efficiency_never_exceeds_one():
             "sweep_mid": 0, "sweep_tip": 0, "lean_mid": 0, "lean_tip": 0}
     c = pq_curve(blade_from_flat(flat), 2000.0, pressure_model=AX)
     assert all(0.0 <= p.efficiency <= 1.0 + 1e-9 for p in c.points)
-    # Was >=0.99 at NU=1.5e-5; derived NU shifts Re slightly (peak ~0.968). Still near the cap.
+# Energy bound near-cap; NU_AIR (#48) can nudge peak slightly (#50).
     assert c.peak_efficiency >= 0.95
