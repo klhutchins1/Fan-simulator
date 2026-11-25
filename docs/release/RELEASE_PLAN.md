@@ -412,27 +412,7 @@ Kimball's.
     - grok r17 B delivered 2026-10-19: `docs/qa/r17/r17-B-epj2018-02023-digitised.csv` (CC BY 4.0 confirmed; plastic wheel at 6000/9000/11000). No curve reaches free delivery (QA-48), so A1 needs restating. b2 = 3.86 mm, d1/d2 ≈ 0.5, no blade angles, no scaled volute drawing.
     - Step 0, then `validation/reference/volute_epj2018/geometry.json` and `scripts/validate_volute_epj.py`.
   - **R2.5c runs.** Lane: night. Status: `frozen for v0.1.0`.
-- **R2.7 Label pass for the four unvalidated surfaces (Kimball decision 2026-11-15).** Lane: Cursor. CPU: day.
-  Status: `in progress (Cursor, 2026-11-25)`. One branch, one gate. Branch `cursor/r27-labels-fix` (recreated on master; prior `r27-labels-fix` was not on this remote).
-  - 2026-11-17 (Claude): landed on the branch (`111b559`), not merged yet. Also labels the CROR and Volute point inspectors (as Mixed's) and keeps the CROR README sidecar out of the export list. The label is on every tab tooltip (Prop
-    tooltip says the optional CFD check is experimental), next to every Assess / Optimize / CFD-refine result, and in
-    new CROR and Volute export README sidecars. Volute's "ranking only, unvalidated" is now the standard words. Labelled
-    completion messages lose their ✓ (existing rule in `test_ui_says_what_it_does`). README Known limits has one
-    labelled line per surface. Tabs renamed "Volute · experimental" and "CROR · experimental" (Kimball 2026-11-17), as Mixed. `tests/test_r27_labels.py`
-    + 4 older copy tests moved to the new wording: 80 passed.
-  - 2026-11-17 night gate RED: `test_export_hint_uses_the_fit_hub_setting_from_the_click` hit OSError 22 on a print-id
-    whose check digit was `*` (`5YEE*…`), illegal in a Windows path. Not an R2.7 label bug. Cursor 2026-11-19:
-    `issue_print_id` skips filename-unsafe check digits; master merged into the branch; focused tests 36 passed.
-  - **Resume (Cursor, 2026-11-25):** standard label landed on branch `cursor/r27-labels-fix` — shared
-    `fansim/cockpit/experimental.py`, Volute/CROR/Mixed/Prop-CFD + README Known limits + export sidecars;
-    tabs "· experimental"; Prop BEMT not labelled. Focused copy tests 91 passed. Open/merge PR (closes #59), then
-    set `done <merge commit>` and unblock R3.8 from R2.7.
-  - The same words everywhere: **"Experimental: not validated against published data."** In Simple and Expert, on the
-    tab (tooltip or name, as Mixed already does), next to every Assess/Optimize number, and in the export README/sidecar.
-  - README "Known limits": one line per surface with the standard words; also drop "nothing printed or measured yet"
-    (print session 1 happened; nothing is *validated* by it).
-  - Test first: one test that each of the four tabs shows the exact string in Simple and Expert, and that the Fan tab
-    and the prop BEMT result do not.
+- **R2.7 Label pass for the four unvalidated surfaces.** Status: `done 616aa33` (PR #71; closes #59). Detail in `RELEASE_DONE.md`.
 - **R2.6 Centrifugal (no tab) and wind turbine (scaffold)**: excluded from v0.1.0.
   - Lane: Cursor makes sure neither is reachable from the cockpit or the README quickstart. Status: `done 1d5e8b9`.
   - Landed: no centrifugal-only or wind-turbine control, tab, menu, or README quickstart link. `tests/test_r26_hide_scaffolds.py` locks that. Mixed and Volute stay. The wind_turbine package stays in the repo.
@@ -478,7 +458,7 @@ Kimball's.
 - **R3.7 Cockpit UI regression tests (29.2)**. Lane: Cursor writes, grok proposes cases. CPU: day. Status: `done 2b98425`.
   - Headless "we say X, we do Y" tests (`tests/test_ui_says_what_it_does.py`), at least one per tab that ships.
   - Landed one headless say/do test per shipping tab (Fan, Prop, Mixed, Volute, CROR); handlers are read with inspect.getsource, not run, and no production copy changed.
-- **R3.8 Validation page**. Lane: Cursor drafts, Claude checks the numbers. CPU: day. Status: `blocked (R1.3, R2.7)`.
+- **R3.8 Validation page**. Lane: Cursor drafts, Claude checks the numbers. CPU: day. Status: `blocked (RV-2)`.
   - **Claude reviewed grok r21 B 2026-10-29: approved as the base.** Apply M1–M9 (M3: name the rig for 58.3 vs 59.8; M5: the link is `2026-10-12-cylinder-sections.md`). See the review doc. grok checks the final page.
   - `docs/VALIDATION.md`: per surface, what it was validated against, the tolerance, the result and the known limits.
     Every number links to its audit.
