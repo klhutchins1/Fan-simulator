@@ -333,29 +333,30 @@ def _load(path):
     return mod
 
 
-def test_script_a_weighting_copies_agree_with_module():
+def test_script_a_weighting_uses_farfield_module():
+    """#75/#76: curle/cv CLIs import farfield; evaluate_noise may still keep a local alias."""
     f = np.array([50.0, 100.0, 1000.0, 4000.0, 9000.0])
-    for name, attr in (("fan_noise_curle.py", "a_weight_db"), ("fan_noise_cv.py", "a_weight_db"),
-                       ("evaluate_noise.py", "_a_weight_db")):
+    for name in ("fan_noise_curle.py", "fan_noise_cv.py"):
         mod = _load(ROOT / "scripts" / name)
-        assert np.allclose(getattr(mod, attr)(f), ff.a_weighting_db(f), atol=1e-12), name
+        assert mod.a_weighting_db is ff.a_weighting_db, name
+        assert np.allclose(mod.a_weighting_db(f), ff.a_weighting_db(f), atol=1e-12), name
         assert mod.C0 == air.C0_AIR
+    mod = _load(ROOT / "scripts" / "evaluate_noise.py")
+    assert np.allclose(mod._a_weight_db(f), ff.a_weighting_db(f), atol=1e-12)
+    assert mod.C0 == air.C0_AIR
 
 
-def test_curle_script_latent_r_obs_squared_bug():
-    """LATENT: scripts/fan_noise_curle.observer_pressure divides by r^2 while r_hat is a UNIT vector, so
-    it equals the true far-field 1/r amplitude only at R_OBS = 1 m (the value hard-coded)."""
+def test_curle_script_uses_one_over_r_dipole():
+    """#75: observer_pressure delegates to dipole_pressure (1/r), including r_obs ≠ 1 m."""
     mod = _load(ROOT / "scripts" / "fan_noise_curle.py")
     t, dt = _t(dur=0.05)
     F = np.zeros((len(t), 3))
     F[:, 2] = F0 * np.cos(W * t)
-    p1, _ = mod.observer_pressure(t, F, (0, 0, 1))
-    ref1 = ff.dipole_pressure(F, dt, r_obs=1.0)
-    assert np.max(np.abs(p1 - ref1)) <= 1e-9 * np.max(np.abs(ref1))
-    mod.R_OBS = 2.0
-    p2, _ = mod.observer_pressure(t, F, (0, 0, 1))
-    true2 = ff.dipole_pressure(F, dt, r_obs=2.0)
-    assert np.max(np.abs(p2)) / np.max(np.abs(true2)) == pytest.approx(0.5, rel=1e-6)   # too small by R_OBS
+    p1, _ = mod.observer_pressure(t, F, (0, 0, 1), r_obs=1.0)
+    p2, _ = mod.observer_pressure(t, F, (0, 0, 1), r_obs=2.0)
+    assert np.max(np.abs(p1 - ff.dipole_pressure(F, dt, r_obs=1.0))) <= 1e-9 * np.max(np.abs(p1))
+    assert np.max(np.abs(p2 - ff.dipole_pressure(F, dt, r_obs=2.0))) <= 1e-9 * np.max(np.abs(p2))
+    assert np.max(np.abs(p1)) / np.max(np.abs(p2)) == pytest.approx(2.0, rel=1e-6)
 
 
 # ---------------------------------------------------------------- claims (propeller proxies)

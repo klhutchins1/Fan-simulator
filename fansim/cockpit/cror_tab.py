@@ -12,24 +12,27 @@ from pathlib import Path
 
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
 from fansim.cockpit.context import CockpitCtx
-from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.data import design_dropdown_items
+from fansim.cockpit.experimental import EXPERIMENTAL_LABEL
+from fansim.cockpit.fan_widgets import slider as _shared_slider
+from fansim.cockpit.figures import cror_scatter_figure
+from fansim.cockpit.paths import exports_dir, session_tmp
+from fansim.cockpit.plotters import ensure_plotter
 from fansim.cockpit.tab_shell import (
     SCATTER_HEIGHT_PX,
     VTK_VIEW_STYLE,
     render_action_row,
     render_left_shell,
 )
-from fansim.cockpit.figures import cror_scatter_figure
-from fansim.cockpit.plotters import ensure_plotter
 from fansim.cror.geometry import CrorParams, export_cror_stl
 from fansim.cror.noise import estimate_cror_noise
-from fansim.cockpit.paths import exports_dir, session_tmp
 from fansim.cror.optimize import (
     cror_stack_depth_mm,
-    refine_pareto_cfd as refine_cror_pareto_cfd,
     run_cror_study,
     thin_cror_for_frame,
+)
+from fansim.cror.optimize import (
+    refine_pareto_cfd as refine_cror_pareto_cfd,
 )
 from fansim.cror.persist import (
     cror_opt_out_path,
@@ -94,7 +97,8 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
     state.cror_msg = ""
     state.cror_readout = [
         "CROR: edit front/rear blades, Preview the stack, Thin to ≤25 mm, Optimize (BEMT proxy), "
-        "CFD refine top-N. Relative noise only."
+        "CFD refine top-N. Relative noise only. "
+        f"{EXPERIMENTAL_LABEL}",
     ]
     # Design defaults (§14.5)
     _c0 = CrorParams()
@@ -468,7 +472,8 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
                 return
             ok = sum(1 for r in rows if r.get("feasible"))
             state.cror_msg = (
-                f"✓ CROR CFD refine {ok}/{len(rows)} feasible → {out} "
+                f"CROR CFD refine {ok}/{len(rows)} feasible → {out} "
+                f"({EXPERIMENTAL_LABEL}) "
                 f"(summary.json; proxy ● points unchanged)"
             )
             state.cror_refine_busy = False
@@ -539,7 +544,13 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
                 params = await loop.run_in_executor(None, _cror_params_from_editor)
                 await loop.run_in_executor(None, lambda: export_cror_stl(params, out))
                 depth = cror_stack_depth_mm(params)
-                state.cror_msg = f"✓ Saved {out.resolve()} (depth {depth:.1f} mm)"
+                (out.with_suffix(".md")).write_text(
+                    f"# CROR export\n\n{EXPERIMENTAL_LABEL}\n",
+                    encoding="utf-8",
+                )
+                state.cror_msg = (
+                    f"Saved {out.resolve()} (depth {depth:.1f} mm). {EXPERIMENTAL_LABEL}"
+                )
                 _refresh_cror_export_items()
             except Exception as exc:  # noqa: BLE001
                 state.cror_msg = f"⚠ CROR export failed: {type(exc).__name__}: {exc}"
@@ -590,7 +601,8 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                         )
                         html.Div(
                             "Edit front/rear planform, then Preview / Export / Optimize. "
-                            "Optimize is BEMT-proxy NSGA (not dual-MRF). Relative noise only.",
+                            "Optimize is BEMT-proxy NSGA (not dual-MRF). Relative noise only. "
+                            f"{EXPERIMENTAL_LABEL}",
                             classes="text-caption mb-2",
                             style="white-space: pre-line",
                         )
@@ -705,7 +717,8 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                         )
                         html.Div(
                             "Screen counter-rotating stacks for thrust, efficiency, and relative "
-                            "noise. Optional CFD refine scores top-N finalists (dual-MRF).",
+                            "noise. Optional CFD refine scores top-N finalists (dual-MRF). "
+                            f"{EXPERIMENTAL_LABEL}",
                             classes="text-caption mb-2",
                             style="white-space: pre-line",
                         )

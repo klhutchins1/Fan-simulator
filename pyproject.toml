@@ -97,6 +97,8 @@ omit = ["fansim/cockpit/*"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+# Archived one-offs are frozen history (RV-4); do not block CI on their style debt.
+extend-exclude = ["archive"]
 
 [tool.ruff.lint.per-file-ignores]
 # Tests build naive local wall-clock times on purpose (the 4-9 PM rule is local time).

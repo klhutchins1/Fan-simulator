@@ -13,7 +13,7 @@ from fansim.isolated_job import run_worker_module
 def test_run_worker_module_success(tmp_path, monkeypatch):
     marker = tmp_path / "out.txt"
 
-    def fake_run(argv, capture_output, text, timeout):
+    def fake_run(argv, capture_output, text, timeout, check=False):
         job = Path(argv[-1])
         data = json.loads(job.read_text(encoding="utf-8"))
         Path(data["out"]).write_text("ok", encoding="utf-8")

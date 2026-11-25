@@ -14,11 +14,14 @@ from fansim.geometry.blade import BladeParams
 
 
 def test_cfm_factor_is_single_source():
-    """§10.9 — CFM conversion must not drift across modules."""
+    """§10.9 — CFM conversion must not drift across modules (#49)."""
     assert CFM_PER_M3S == pytest.approx(2118.882)
-    # Acoustics / BEM import the CFD constant (or match it).
     from fansim import fan_bem
+    from fansim.optimize import meanline, multi_point
+
     assert fan_bem.CFM_PER_M3S == CFM_PER_M3S
+    assert meanline.CFM_PER_M3S is CFM_PER_M3S
+    assert multi_point.CFM_PER_M3S is CFM_PER_M3S
 
 
 def test_cfd_rho_matches_amca_default():
@@ -32,7 +35,8 @@ def test_bem_shutoff_is_q0_intercept_not_just_max_dp():
     pts = [{"cfm": p.flow_cfm, "static_pa": p.dp_static_pa} for p in c.points]
     expected = shut_off_pa(pts, q_near_zero=max(5.0, 0.15 * c.free_delivery_cfm))
     assert expected is not None
-    assert c.shutoff_dp_pa == pytest.approx(round(expected, 2), rel=1e-6)
+    # #50: BEM no longer rounds shut-off; must match the intercept exactly.
+    assert c.shutoff_dp_pa == pytest.approx(expected, rel=1e-12, abs=0.0)
 
 
 def test_ducted_bem_source_drops_prandtl_tip_loss():

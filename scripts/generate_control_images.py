@@ -25,16 +25,18 @@ from fansim.optimize.search_space import blade_from_flat
 
 pv.OFF_SCREEN = True
 OUT = Path("docs/control_images")
-DEFAULT = dict(n_blades=7, stagger_root=26, stagger_mid=26, stagger_tip=22,
-               chord_root=34, chord_mid=44, chord_tip=38, max_camber=0.05,
-               camber_root=0.05, camber_mid=0.05, camber_tip=0.05,
-               sweep_mid=3, sweep_tip=5, lean_mid=14, lean_tip=26,
-               hub_radius=21.5, tip_radius=56.5, hub_height=18.0,
-               thickness_root=0.10, thickness_mid=0.08, thickness_tip=0.06,
-               camber_pos=0.4, spacing_spread=0.0, spacing_seed=0,
-               section_family="naca", span_interp="linear",
-               cylindrical_tip=True, le_thick_scale=1.0, te_thick_scale=1.0,
-               blade_hub_z=0.0)
+DEFAULT = {
+    "n_blades": 7, "stagger_root": 26, "stagger_mid": 26, "stagger_tip": 22,
+    "chord_root": 34, "chord_mid": 44, "chord_tip": 38, "max_camber": 0.05,
+    "camber_root": 0.05, "camber_mid": 0.05, "camber_tip": 0.05,
+    "sweep_mid": 3, "sweep_tip": 5, "lean_mid": 14, "lean_tip": 26,
+    "hub_radius": 21.5, "tip_radius": 56.5, "hub_height": 18.0,
+    "thickness_root": 0.10, "thickness_mid": 0.08, "thickness_tip": 0.06,
+    "camber_pos": 0.4, "spacing_spread": 0.0, "spacing_seed": 0,
+    "section_family": "naca", "span_interp": "linear",
+    "cylindrical_tip": True, "le_thick_scale": 1.0, "te_thick_scale": 1.0,
+    "blade_hub_z": 0.0,
+}
 
 # (model, label, key, min, max, mode[, base_overrides]).
 # mode 'fan' = whole impeller, 'blade' = one zoomed blade.
@@ -83,6 +85,20 @@ CONTROLS = [
     ("e_hub_height", "Hub height", "hub_height", 6, 30, "fan"),
     ("e_blade_hub_z", "Blade on hub", "blade_hub_z", -5, 5, "fan",
      {"hub_height": 24.0}),
+    ("e_blade_z", "Blade Z (plate)", "blade_z", -4, 4, "fan",
+     {"section_family": "plate", "hub_height": 24.0, "thick_mm": 2.0}),
+    ("e_le_face_root", "Front edge — root", "le_face_root", 0.0, 1.0, "blade",
+     {"section_family": "plate", "thick_mm": 2.0, "te_face_root": 1.0}),
+    ("e_le_face_mid", "Front edge — mid", "le_face_mid", 0.0, 1.0, "blade",
+     {"section_family": "plate", "thick_mm": 2.0, "te_face_mid": 1.0}),
+    ("e_le_face_tip", "Front edge — tip", "le_face_tip", 0.0, 1.0, "blade",
+     {"section_family": "plate", "thick_mm": 2.0, "te_face_tip": 1.0}),
+    ("e_te_face_root", "Back edge — root", "te_face_root", 0.0, 1.0, "blade",
+     {"section_family": "plate", "thick_mm": 2.0, "le_face_root": 1.0}),
+    ("e_te_face_mid", "Back edge — mid", "te_face_mid", 0.0, 1.0, "blade",
+     {"section_family": "plate", "thick_mm": 2.0, "le_face_mid": 1.0}),
+    ("e_te_face_tip", "Back edge — tip", "te_face_tip", 0.0, 1.0, "blade",
+     {"section_family": "plate", "thick_mm": 2.0, "le_face_tip": 1.0}),
     ("e_hub_nose", "Hub nose", "hub_nose", 0.0, 15.0, "fan",
      {"hub_profile": "cone", "hub_height": 18.0}),
     ("e_camber_pos", "Camber position", "camber_pos", 0.2, 0.6, "blade"),

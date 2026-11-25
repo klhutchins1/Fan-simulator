@@ -14,7 +14,7 @@ def test_parent_alive_tells_live_from_finished_processes():
     import os
 
     assert parent_alive(os.getpid())
-    done = subprocess.run([sys.executable, "-c", "pass"])
+    done = subprocess.run([sys.executable, "-c", "pass"], check=False)
     assert done.returncode == 0
     p = subprocess.Popen([sys.executable, "-c", "pass"])
     p.wait()
@@ -40,7 +40,8 @@ def test_worker_exits_soon_after_its_parent_dies(tmp_path):
         "print(p.pid, flush=True)\n")
     root = Path(__file__).resolve().parents[1]
     out = subprocess.run([sys.executable, str(parent)], capture_output=True, text=True,
-                         cwd=root, env={**__import__("os").environ, "PYTHONPATH": str(root)})
+                         cwd=root, env={**__import__("os").environ, "PYTHONPATH": str(root)},
+                         check=False)
     child = int(out.stdout.strip())
     t0 = time.monotonic()
     while parent_alive(child) and time.monotonic() - t0 < 15:
@@ -125,7 +126,7 @@ def test_watchdog_runs_the_cleanup_hook_before_exiting(tmp_path):
     import os
 
     out = subprocess.run([sys.executable, str(parent)], capture_output=True, text=True, cwd=root,
-                         env={**os.environ, "PYTHONPATH": str(root)})
+                         env={**os.environ, "PYTHONPATH": str(root)}, check=False)
     child = int(out.stdout.strip())
     t0 = time.monotonic()
     while parent_alive(child) and time.monotonic() - t0 < 15:
@@ -156,3 +157,17 @@ def test_assess_cfd_job_carries_the_launcher_pid(tmp_path, monkeypatch):
     except RuntimeError:
         pass
     assert seen.get("parent_pid") == os.getpid()
+
+
+def test_isolated_job_imports_light_so_the_watchdog_arms_fast():
+    """The parent-exit watchdog starts only after ``import fansim.isolated_job``. That import pulled
+    in fansim.optimize.objectives and the whole CFD/CadQuery stack (~6 s), so a worker whose cockpit
+    died kept running for that long, and the cleanup-hook test above was flaky under load."""
+    import os
+
+    code = ("import sys, fansim.isolated_job; "
+            "print('fansim.optimize.objectives' in sys.modules, 'cadquery' in sys.modules)")
+    root = Path(__file__).resolve().parents[1]
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=root,
+                         env={**os.environ, "PYTHONPATH": str(root)}, check=True)
+    assert out.stdout.split() == ["False", "False"]
