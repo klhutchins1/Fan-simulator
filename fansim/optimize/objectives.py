@@ -26,15 +26,21 @@ from pathlib import Path
 from fansim.cfd.casing import export_casing_stl
 from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM, remaining_tip_gap_mm, rig_for_impeller
 from fansim.cfd.frame import export_frame_stl, stack_frame_z_start_mm
-from fansim.cfd.orientation import prepare_axial_cfd
 from fansim.cfd.metrics import latest_pp_file, parse_fan_metrics
-from fansim.cfd.openfoam_case import ASSESS_SURF_MAX_FLOOR, MeshResolution, build_case, run_mesh, run_solve
+from fansim.cfd.openfoam_case import (
+    ASSESS_SURF_MAX_FLOOR,
+    MeshResolution,
+    build_case,
+    run_mesh,
+    run_solve,
+)
+from fansim.cfd.orientation import prepare_axial_cfd
 from fansim.cfd.runner import OpenFOAMRunner
 from fansim.cfd.sanity import FAIL as SANITY_FAIL
 from fansim.cfd.sanity import overall as sanity_overall
-from fansim.cfd.sanity import run_sanity, summarize as summarize_sanity
+from fansim.cfd.sanity import run_sanity
+from fansim.cfd.sanity import summarize as summarize_sanity
 from fansim.cfd.stator import export_stator_stl
-from fansim.geometry import build_impeller, export_stl, watertight_report
 from fansim.fan_spec import (
     A12X25,
     FanSpec,
@@ -43,6 +49,7 @@ from fansim.fan_spec import (
     mount_min_hub_radius,
     over_spec_flags,
 )
+from fansim.geometry import build_impeller, export_stl, watertight_report
 from fansim.geometry.blade import (
     BladeParams,
     blade_solidity,
@@ -52,6 +59,7 @@ from fansim.geometry.blade import (
 )
 from fansim.manufacturability.fdm_rules import check_printability
 from fansim.optimize.near_stall import near_stall_report
+from fansim.optimize.print_penalty import apply_print_penalty, tip_section_thickness
 from fansim.optimize.system_curve import (
     REF_CFM,
     SystemCurveError,
@@ -61,7 +69,6 @@ from fansim.optimize.system_curve import (
     refine_operating_metrics,
     score_operating_point,
 )
-from fansim.optimize.print_penalty import apply_print_penalty, tip_section_thickness
 from fansim.structural.deflection import (
     deflection_report,
     root_bending_stress,
@@ -324,7 +331,7 @@ def evaluate_candidate(
                     f"floor (free {bem_free:.0f}; skipped CFD)",
                     t0, raw=gap_raw,
                 )
-        except Exception:  # noqa: BLE001 - the screen must never break the eval
+        except Exception:  # noqa: BLE001,S110 - the screen must never break the eval
             pass
 
     # --- Catalog GP pre-screen (roadmap §7.4): skip CFD when the GP is confident the
@@ -356,7 +363,7 @@ def evaluate_candidate(
     # --- Geometry ---
     try:
         stl = export_stl(build_impeller(params), workdir / "impeller.stl")
-    except Exception as exc:  # geometry/loft/boolean failure
+    except Exception as exc:  # noqa: BLE001 - geometry/loft/boolean failure
         return _infeasible(f"geometry failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
     rep = watertight_report(stl)
     if not rep.ok:
@@ -416,7 +423,7 @@ def evaluate_candidate(
             frame_path = workdir / "frame.stl"
             z_start = stack_frame_z_start_mm(rig0) if stator_stack else None
             export_frame_stl(params, rig0, frame_path, z_start_mm=z_start)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - stator/frame export must not crash the eval
         which = "stator" if (stator or stator_stack) and frame_path is None else "frame"
         return _infeasible(f"{which} failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
@@ -425,7 +432,7 @@ def evaluate_candidate(
         casing_path = workdir / "casing.stl"
         try:
             export_casing_stl(rig0, casing_path, stepped=True)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - casing export must not crash the eval
             return _infeasible(f"casing failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
     runner = OpenFOAMRunner(workdir)
@@ -446,7 +453,7 @@ def evaluate_candidate(
                    stator_stl_mm=stator_path, wall_ks_mm=wall_ks_mm)
         # parallel_mesh: snappyHexMesh on ``procs`` ranks (see openfoam_case.mesh_pipeline).
         run_mesh(runner, n_procs=procs if parallel_mesh else 1)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - mesh failure is an infeasible design, not a crash
         return _infeasible(f"mesh failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
     # Sanity checks (fansim.cfd.sanity) are report-only: they flag, they never make a design
@@ -499,14 +506,11 @@ def evaluate_candidate(
                         continue
                     (hist / fo).mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(src, hist / fo / name)
-            except Exception:  # noqa: BLE001 - salvage file is best-effort
+            except Exception:  # noqa: BLE001,S110 - salvage file is best-effort
                 pass
             m_load = solve_at(load_pa, "load")
-            if with_noise:  # default: cheap calibrated LOADING proxy (no reconstruct; tracks LBM
-                # dipole better than Proudman -- blade count + per-blade thrust). See acoustics/loading.
-                from fansim.acoustics.loading import loading_proxy_from_rans
-                noise_swl = float(loading_proxy_from_rans(params.n_blades, m_free.thrust_n))
-    except Exception as exc:
+            # Loading-noise proxy deferred until after motor derate (O7 / #53): thrust ∝ λ².
+    except Exception as exc:  # noqa: BLE001 - solve failure is an infeasible design, not a crash
         return _infeasible(f"solve failed: {type(exc).__name__}", t0, raw=gap_raw)
 
     # Sanity: flag-only. A FAIL is stamped into raw/reason for visibility but never rejects
@@ -543,6 +547,13 @@ def evaluate_candidate(
     cfm_free = m_free.cfm * derate                       # flow ∝ RPM
     cfm_load = max(m_load.cfm, 0.0) * derate
     over = over_spec_flags(spec, dia, depth, weight_g)   # geometry over-spec; power now derates RPM
+    if with_noise and noise_model != "proudman":
+        # Default: cheap calibrated LOADING proxy (no reconstruct; tracks LBM dipole better
+        # than Proudman — blade count + per-blade thrust). Affinity: thrust ∝ λ² so scale
+        # rated RANS thrust by derate² before the proxy (O7 / #53).
+        from fansim.acoustics.loading import loading_proxy_operating
+        noise_swl = float(loading_proxy_operating(
+            params.n_blades, m_free.thrust_n, derate))
 
     cfm_probe = cfm_load
     # Affinity: probe CFD was at rated RPM with back-pressure ``load_pa``. After CFM∝RPM
