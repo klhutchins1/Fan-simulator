@@ -1,12 +1,10 @@
 """Tests for the motor envelope gate and physics-regime classifier."""
 
-import math
 
 import pytest
 
 from fansim.motor import A12X25_MOTOR, MotorEnvelope, check_envelope
 from fansim.physics import classify_regime, fan_regime
-
 
 # ---- motor envelope ----
 

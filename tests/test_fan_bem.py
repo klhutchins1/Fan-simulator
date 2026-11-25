@@ -38,11 +38,11 @@ def test_operating_point_types():
 
 
 # --- opt-in axial-force pressure model (QA-4) --------------------------------------------------
-import copy  # noqa: E402
+import copy
 
-import pytest  # noqa: E402
+import pytest
 
-from fansim.geometry.config import load_blade_params  # noqa: E402
+from fansim.geometry.config import load_blade_params
 
 AX = "axial_force"
 
@@ -102,10 +102,8 @@ def test_axial_force_zero_blades_and_efficiency_bounds():
 
 def test_axial_force_efficiency_never_exceeds_one():
     """QA r4 E_rand1396 (11 blades, chords 48/58/50 mm): peak η 111 % before the energy bound."""
-    from fansim.optimize.search_space import blade_from_flat
-
     from fansim.geometry.config import load_blade_params
-    from fansim.optimize.search_space import blade_to_flat
+    from fansim.optimize.search_space import blade_from_flat, blade_to_flat
 
     # E_rand1396 was defined on the v2 (planar) Stock flat; its other fields come from there.
     v2 = blade_to_flat(load_blade_params("config/problems/a12x25_reference_planar.yaml"))
