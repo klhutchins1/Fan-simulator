@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 
-from fansim.cockpit.fan_copy import CONTROL_DESC, OPT_SEARCH_HELP, _IMG_URI
+from fansim.cockpit.fan_copy import _IMG_URI, CONTROL_DESC, CONTROL_DESC_SIMPLE, OPT_SEARCH_HELP
 
 _RUNNING_TESTS = "pytest" in sys.modules
 
@@ -21,7 +21,9 @@ def slider(label: str, model: str, mn: float, mx: float | str, step: float, disa
 
     ``mx`` may be a float or a state variable name (str) for a reactive max.
     """
-    desc, uri = CONTROL_DESC.get(model, ""), _IMG_URI.get(model)
+    desc = CONTROL_DESC.get(model, "")
+    simple = CONTROL_DESC_SIMPLE.get(model, desc)
+    uri = _IMG_URI.get(model)
     extra = {}
     if disabled is not None:
         extra["disabled"] = disabled
@@ -35,7 +37,7 @@ def slider(label: str, model: str, mn: float, mx: float | str, step: float, disa
                 f"{{{{ {model} }}}}{unit_s}",
                 classes="font-weight-medium text-no-wrap ml-2",
             )
-        with v3.VSlider(
+        with v3.VSlider(  # noqa: SIM117 — trame nested contexts
             v_model=(model,),
             min=mn,
             max=max_kw,
@@ -53,11 +55,11 @@ def slider(label: str, model: str, mn: float, mx: float | str, step: float, disa
             with v3.Template(v_slot_thumb_label=True):
                 html.Span(f"{{{{ {model} }}}}")
 
-    if not desc and not uri:
+    if not desc and not simple and not uri:
         _body()
         return
-    with v3.VTooltip(location="end", open_delay=150, max_width=380):
-        with v3.Template(v_slot_activator="{ props }"):
+    with v3.VTooltip(location="end", open_delay=150, max_width=380):  # noqa: SIM117
+        with v3.Template(v_slot_activator="{ props }"):  # noqa: SIM117 — trame activator nest
             with html.Div(v_bind="props"):
                 _body()
         if uri:
@@ -66,7 +68,10 @@ def slider(label: str, model: str, mn: float, mx: float | str, step: float, disa
                 style="width:360px;max-width:100%;display:block;"
                 "margin-bottom:4px;border-radius:4px;",
             )
-        html.Div(desc, classes="text-caption")
+        if simple:
+            html.Div(simple, classes="text-caption", v_show="ui_mode === 'simple'")
+        if desc:
+            html.Div(desc, classes="text-caption", v_show="ui_mode === 'expert'")
 
 
 def opt_section(title: str, blurb: str = ""):
@@ -128,20 +133,22 @@ def help_select(
     classes: str = "mb-2",
 ):
     """Outlined VSelect with the same hover image+text tooltip as design sliders."""
-    desc = (help_map or CONTROL_DESC).get(model, "")
+    base = help_map or CONTROL_DESC
+    desc = base.get(model, "")
+    simple = CONTROL_DESC_SIMPLE.get(model, desc) if base is CONTROL_DESC else desc
     uri = _IMG_URI.get(model)
-    kwargs = dict(
-        label=label,
-        v_model=(model,),
-        items=(items,),
-        item_title=item_title,
-        item_value=item_value,
-        density="compact",
-        variant="outlined",
-        hide_details=True,
-        classes=classes,
-    )
-    if not desc and not uri:
+    kwargs = {
+        "label": label,
+        "v_model": (model,),
+        "items": (items,),
+        "item_title": item_title,
+        "item_value": item_value,
+        "density": "compact",
+        "variant": "outlined",
+        "hide_details": True,
+        "classes": classes,
+    }
+    if not desc and not simple and not uri:
         v3.VSelect(**kwargs)
         return
     with v3.VTooltip(location="end", open_delay=150, max_width=420):
@@ -153,8 +160,10 @@ def help_select(
                 style="width:360px;max-width:100%;display:block;"
                 "margin-bottom:4px;border-radius:4px;",
             )
+        if simple:
+            html.Div(simple, classes="text-caption", v_show="ui_mode === 'simple'")
         if desc:
-            html.Div(desc, classes="text-caption")
+            html.Div(desc, classes="text-caption", v_show="ui_mode === 'expert'")
 
 
 # Back-compat aliases used by render_fan_tab
