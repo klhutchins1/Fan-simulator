@@ -6,7 +6,6 @@ from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
-
 import trimesh
 
 from fansim.cfd.metrics import FanMetrics
@@ -128,3 +127,75 @@ def test_evaluate_candidate_print_penalty_off(tmp_path, monkeypatch):
     assert res.feasible is True, res.reason
     assert res.cfm_free == pytest.approx(80.0)
     assert "print_k_cfm" not in res.raw
+
+
+def _stub_cfd(monkeypatch, *, run_sanity=None):
+    """Same stubs as the feasible test: geometry, mesh and solve faked; free then load metrics."""
+
+    class _Rep:
+        ok = True
+        n_bodies = 1
+        bounds_mm = ((-50.0, -50.0, -5.0), (50.0, 50.0, 20.0))
+
+    monkeypatch.setattr(obj_mod, "build_impeller", lambda _p: object())
+    monkeypatch.setattr(obj_mod, "export_stl", _fake_export_stl)
+    monkeypatch.setattr(obj_mod, "watertight_report", lambda _stl: _Rep())
+    monkeypatch.setattr(obj_mod, "export_frame_stl", lambda *_a, **_k: None)
+    monkeypatch.setattr(obj_mod, "build_case", lambda *_a, **_k: None)
+    monkeypatch.setattr(obj_mod, "run_mesh", lambda *_a, **_k: None)
+    monkeypatch.setattr(obj_mod, "run_solve", lambda *_a, **_k: None)
+    monkeypatch.setattr(obj_mod, "OpenFOAMRunner", lambda *_a, **_k: SimpleNamespace())
+    calls = {"n": 0}
+
+    def fake_parse(_workdir, omega_rad_s=0.0):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return _metrics(cfm=80.0, dp_pa=2.0, shaft_w=0.5)
+        return _metrics(cfm=55.0, dp_pa=8.0, shaft_w=0.5)
+
+    monkeypatch.setattr(obj_mod, "parse_fan_metrics", fake_parse)
+    if run_sanity is not None:
+        monkeypatch.setattr(obj_mod, "run_sanity", run_sanity)
+
+
+def test_a_crashed_bem_prescreen_is_stamped_not_silent(tmp_path, monkeypatch):
+    """RV-3: the BEM pre-screen swallowed its exception, so the design went to CFD with no trace."""
+    _stub_cfd(monkeypatch)
+
+    def boom(*_a, **_k):
+        raise RuntimeError("polar table missing")
+
+    monkeypatch.setattr(obj_mod, "bem_screen_cfm", boom)
+    params = replace(_printable_params(), tip_radius=50.0)
+    res = evaluate_candidate(params, tmp_path / "eval", procs=1, iters=1, load_pa=5.0,
+                             bem_prescreen_cfm=30.0)
+    assert res.feasible is True
+    assert res.raw["bem_prescreen_error"] == "RuntimeError: polar table missing"
+
+
+def test_a_crashed_sanity_check_reads_error_not_skip(tmp_path, monkeypatch):
+    """RV-3: a sanity crash became [] and the status read SKIP, like 'never ran' or 'clean'."""
+    def boom(*_a, **_k):
+        raise ValueError("bad postProcessing")
+
+    _stub_cfd(monkeypatch, run_sanity=boom)
+    params = replace(_printable_params(), tip_radius=50.0)
+    res = evaluate_candidate(params, tmp_path / "eval", procs=1, iters=1, load_pa=5.0)
+    assert res.feasible is True
+    assert res.raw["sanity_status"] == "ERROR"
+    assert res.raw["sanity_error"] == {"free": "ValueError: bad postProcessing",
+                                       "load": "ValueError: bad postProcessing"}
+
+
+def test_a_solve_failure_keeps_its_message(tmp_path, monkeypatch):
+    """RV-3: 'solve failed: RuntimeError' dropped the message that says what broke."""
+    _stub_cfd(monkeypatch)
+
+    def boom(*_a, **_k):
+        raise RuntimeError("simpleFoam exited 139")
+
+    monkeypatch.setattr(obj_mod, "run_solve", boom)
+    params = replace(_printable_params(), tip_radius=50.0)
+    res = evaluate_candidate(params, tmp_path / "eval", procs=1, iters=1, load_pa=5.0)
+    assert not res.feasible
+    assert res.reason == "solve failed: RuntimeError: simpleFoam exited 139"
