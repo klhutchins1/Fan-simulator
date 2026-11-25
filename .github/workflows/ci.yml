@@ -55,6 +55,10 @@ jobs:
           printf '%s\0' "${files[@]}" | xargs -0 uv run --extra dev ruff check --
       - name: Mypy public surface
         run: uv run --extra dev mypy
+      - name: Physics audit ledger
+        # RV-0: every audited unit must be PROVEN and no physics code unregistered.
+        # A logic change to an audited unit needs a re-prove (scripts/audit_status.py, AGENTS.md rule 5).
+        run: uv run --extra dev python scripts/audit_status.py --strict
       - name: Fast pytest
         # 23.9: three fresh processes so Linux glibc arenas cannot grow one pytest to 4–6 GB.
         # Windows OCCT teardown 0xC0000374 after a green summary is documented in

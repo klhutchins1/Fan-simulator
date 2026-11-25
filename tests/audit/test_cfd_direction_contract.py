@@ -84,6 +84,24 @@ def test_metrics_keep_flow_and_moment_signed(tmp_path):
     assert m.torque_nm == pytest.approx(0.003)    # torque is |Mz|
 
 
+def test_metrics_read_the_numerically_newest_time_folder(tmp_path):
+    """QA-39 (957a483): a restarted case has time folders 20 and 100. CFM must come from 100.
+
+    Sorting folder names as text puts "100" before "20", so the old code read the stale run.
+    """
+    _write_pp(tmp_path, flow=0.01, mz=0.002)
+    pp = tmp_path / "postProcessing"
+    for fo in ("forces", "outletFlow", "inletP", "outletP"):
+        (pp / fo / "0").rename(pp / fo / "20")
+    d = pp / "outletFlow" / "100"
+    d.mkdir()
+    (d / "surfaceFieldValue.dat").write_text("\n".join("101 0.03" for _ in range(10)) + "\n",
+                                             encoding="utf-8")
+    m = parse_fan_metrics(tmp_path, omega_rad_s=209.4)
+    assert m.flow_m3s == pytest.approx(0.03)
+    assert m.cfm == pytest.approx(0.03 * 2118.882)
+
+
 def test_axial_convention_is_flipped_at_spin_minus_one():
     from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION
     assert AXIAL_CFD_ORIENTATION == "flipped"

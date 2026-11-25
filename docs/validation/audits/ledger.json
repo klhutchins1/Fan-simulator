@@ -49,15 +49,15 @@
       "verdict": "PASS"
     },
     "cfd.archetype_direction": {
-      "date": "2026-10-15",
+      "date": "2026-11-24",
       "fingerprint": "83eccb52033d734c",
-      "report": "docs/validation/audits/2026-10-15-ledger-refresh.md",
+      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
       "verdict": "PASS"
     },
     "cfd.cfm_from_outlet_flow": {
-      "date": "2026-10-21",
-      "fingerprint": "23792f03d450c3c0",
-      "report": "checks re-run 2026-10-21 after R1.7 (CFD_VERSION 6) / R1.8 (two-stage hang) merge 027ebcb: 88 passed",
+      "date": "2026-11-24",
+      "fingerprint": "ba43e7f4a311aca7",
+      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
       "verdict": "PASS"
     },
     "cfd.duct_area": {
@@ -67,15 +67,15 @@
       "verdict": "PASS"
     },
     "cfd.flow_direction_convention": {
-      "date": "2026-10-15",
-      "fingerprint": "82d94335ee4de045",
-      "report": "docs/validation/audits/2026-10-15-ledger-refresh.md",
+      "date": "2026-11-24",
+      "fingerprint": "16756a62e5d3a37a",
+      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
       "verdict": "PASS"
     },
     "cfd.flow_report": {
-      "date": "2026-10-19",
-      "fingerprint": "53a338d28e6de078",
-      "report": "docs/validation/audits/2026-10-17-too-close-to-call-prereg.md (R0.3) + 2026-10-17-push-row-planes.md",
+      "date": "2026-11-24",
+      "fingerprint": "0e52f96ae917e2e4",
+      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
       "verdict": "PASS"
     },
     "cfd.sanity_checks": {
@@ -103,9 +103,9 @@
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
-      "date": "2026-10-21",
-      "fingerprint": "27a36ab9d18c308e",
-      "report": "checks re-run 2026-10-21 after R1.7 (CFD_VERSION 6) / R1.8 (two-stage hang) merge 027ebcb: 88 passed",
+      "date": "2026-11-24",
+      "fingerprint": "1ff026bff4bc5ee2",
+      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
       "verdict": "PASS"
     },
     "optimize.reject_dead_designs": {
@@ -115,9 +115,9 @@
       "verdict": "PASS"
     },
     "optimize.search_space_handedness": {
-      "date": "2026-10-15",
-      "fingerprint": "99a83a1a4eb8b5f1",
-      "report": "docs/validation/audits/2026-10-15-ledger-refresh.md",
+      "date": "2026-11-24",
+      "fingerprint": "07ee02af0f382bdc",
+      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
       "verdict": "PASS"
     },
     "physics.air_properties": {
@@ -139,9 +139,9 @@
       "verdict": "PASS"
     },
     "propeller.cfd_setup": {
-      "date": "2026-10-15",
-      "fingerprint": "8960b2b634cf0516",
-      "report": "docs/validation/audits/2026-10-15-ledger-refresh.md",
+      "date": "2026-11-24",
+      "fingerprint": "b48b6cc25c6054d4",
+      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
       "verdict": "PASS"
     },
     "propeller.neuralfoil_polars": {
@@ -169,9 +169,9 @@
       "verdict": "PASS"
     },
     "propeller.thrust_sign": {
-      "date": "2026-10-15",
+      "date": "2026-11-24",
       "fingerprint": "1345e8fc31ac8e68",
-      "report": "docs/validation/audits/2026-10-15-ledger-refresh.md",
+      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
       "verdict": "PASS"
     },
     "structural.balance": {

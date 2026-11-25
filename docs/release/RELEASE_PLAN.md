@@ -94,13 +94,25 @@ red: [`docs/validation/audits/2026-11-24-audit-drift-forensics.md`](../validatio
 (no hidden maths regression: Stock BEM output is identical to the last proven commit). RV-0 goes before R3.8 so that
 the validation page is built on a green CI and a clean ledger.
 
-- **RV-0 Make the safety nets real.** Lane: Claude or Cursor. CPU: day. Status: `ready`.
+- **RV-0 Make the safety nets real.** Lane: Claude or Cursor. CPU: day. Status: `paused (Claude)`.
   1. Fix mypy at `fansim/optimize/search_space.py:495` (from `20aed3e`; no behaviour change).
   2. `scripts/gate.py` runs what CI runs: mypy, ruff `F811,F821`, `audit_status.py`.
   3. Re-prove the 5 CHANGED units in one dated audit file that cites the forensics commits. Give QA-39 its own check
      (time folders `20` and `100`). Register `cfd.metrics:latest_pp_file`.
   4. CI fails on any CHANGED, AFFECTED, MISSING or UNREGISTERED unit.
   Done when CI is green on master and `audit_status.py` reads all PROVEN.
+  - **Resume** (Claude, 2026-11-24 19:30): branch `claude/rv0-safety-nets`, pushed; not merged.
+    Done: items 1, 2 and the `--strict` flag for 4 (`gate.py` runs ruff F811/F821 + mypy + `audit_status.py --strict`;
+    `--static-only` for a quick check any time). `gate.py <branch> --static-only` gives ruff ok, mypy ok, audit FAILED
+    (the drift itself).
+    Next: item 3, re-prove the 5 units outside 4–9 PM. Run each unit's `checks`, write
+    `docs/validation/audits/<date>-rv0-reprove.md` citing the forensics commits, `record_pass` each unit, add the
+    QA-39 test, register `latest_pp_file`. Then add `audit_status.py --strict` to `.github/workflows/ci.yml`, run the
+    full gate, and merge.
+    Traps: this change also changes the `search_space` fingerprint (imports re-sorted, `Any` annotation), so re-prove
+    after it. Merge only after the re-prove: once merged, `gate.py` runs `audit_status.py --strict` from the branch
+    under test, so a branch made before this merge (e.g. Cursor's UX branch) must merge master first or its gate is
+    red on `audit`.
 - **RV-1 Maths snapshot.** Lane: Claude drafts the tolerance pre-registration; Cursor builds. CPU: day. Status:
   `blocked (RV-0)`. A committed `tests/data/physics_snapshot.json`, compared at a tight tolerance, so CI fails when a
   number moves. A commit that changes it names its audit file.

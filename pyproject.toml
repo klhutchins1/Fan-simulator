@@ -98,6 +98,10 @@ omit = ["fansim/cockpit/*"]
 line-length = 100
 target-version = "py312"
 
+[tool.ruff.lint.per-file-ignores]
+# Tests build naive local wall-clock times on purpose (the 4-9 PM rule is local time).
+"tests/**" = ["DTZ001"]
+
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true

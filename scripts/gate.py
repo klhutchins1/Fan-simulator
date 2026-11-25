@@ -3,6 +3,8 @@
     python scripts/gate.py <branch>
 
 - Refuses (exit 3) if the run could reach the 4-9 PM peak window: the same rule as the night queue.
+- First runs the same static checks as CI (ruff F811/F821, mypy, ``audit_status.py --strict``). Any red one stops
+  the gate before the suite. ``--static-only`` runs just those (light, allowed in the peak window).
 - Runs ``scripts/pytest_chunks.py --chunks 3 --all`` from a fresh worktree of the branch, so the checkout you are
   working in is never switched.
 - Writes ``runs/gate/<branch>.json`` (sha, ok, one verdict line per chunk) and ``runs/gate/<branch>-<sha>.log`` in
@@ -31,6 +33,30 @@ _spec.loader.exec_module(nq)
 
 OUT = nq.results_root().parent / "gate"
 FAST = ["-m", "not docker and not slow", "-q", "--tb=line"]
+# Same checks as .github/workflows/ci.yml, plus the physics ledger (RV-0). Run in the branch's worktree.
+STATIC = [
+    ("ruff", [sys.executable, "-m", "ruff", "check", "fansim", "tests", "scripts", "--select", "F811,F821"]),
+    ("mypy", [sys.executable, "-m", "mypy"]),
+    ("audit", [sys.executable, "scripts/audit_status.py", "--strict"]),
+]
+
+
+def run_static(wt: Path, env: dict, fh) -> dict[str, bool]:
+    """Run every STATIC check in ``wt``; log output to ``fh``; return {name: passed}."""
+    out: dict[str, bool] = {}
+    for name, cmd in STATIC:
+        proc = subprocess.run(cmd, cwd=wt, env=env, capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", check=False)
+        fh.write(f"--- static {name}: {' '.join(cmd)}\n{proc.stdout}{proc.stderr}")
+        out[name] = proc.returncode == 0
+        print(f"static {name}: {'ok' if out[name] else 'FAILED'}", flush=True)
+        if not out[name]:
+            sys.stdout.write((proc.stdout + proc.stderr)[-2000:])
+    return out
+
+
+class _StaticRed(Exception):
+    """A static check failed; skip the suite."""
 
 
 def main(argv: list[str] | None = None, now_fn=dt.datetime.now) -> int:
@@ -38,9 +64,10 @@ def main(argv: list[str] | None = None, now_fn=dt.datetime.now) -> int:
     ap.add_argument("branch")
     ap.add_argument("--chunks", type=int, default=3)
     ap.add_argument("--max-hours", type=float, default=1.5, help="worst-case run time, for the peak-window check")
+    ap.add_argument("--static-only", action="store_true", help="run only the static checks (any time of day)")
     args = ap.parse_args(argv)
 
-    if not nq.may_start(now_fn(), args.max_hours):
+    if not args.static_only and not nq.may_start(now_fn(), args.max_hours):
         print(f"gate refused: a {args.max_hours:g} h run could reach the 4-9 PM peak window. "
               "Run it after 9 PM or tomorrow before 2:30 PM.")
         return 3
@@ -58,8 +85,21 @@ def main(argv: list[str] | None = None, now_fn=dt.datetime.now) -> int:
     cmd = [sys.executable, "scripts/pytest_chunks.py", "--chunks", str(args.chunks), "--all", "--", *FAST]
     env = {**os.environ, "PYTHONPATH": str(wt), "PYTHONUNBUFFERED": "1"}
     verdicts: list[str] = []
+    static: dict[str, bool] = {}
+    rc = 1
     try:
         with log.open("w", encoding="utf-8") as fh:
+            static = run_static(wt, env, fh)
+            bad = [name for name, ok in static.items() if not ok]
+            if args.static_only:
+                if bad:
+                    print(f"\nstatic check failed: {', '.join(bad)} ({args.branch} {sha[:7]}). Log: {log}")
+                    return 1
+                print(f"\nstatic checks green: {args.branch} {sha[:7]}. Run the full gate before merging.")
+                return 0
+            if bad:
+                print(f"\nstatic check failed: {', '.join(bad)}. The suite was not run.")
+                raise _StaticRed
             proc = subprocess.Popen(cmd, cwd=wt, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                     text=True, encoding="utf-8", errors="replace", bufsize=1)
             assert proc.stdout is not None
@@ -69,11 +109,13 @@ def main(argv: list[str] | None = None, now_fn=dt.datetime.now) -> int:
                 if re.match(r"chunk \d+: ", line):
                     verdicts.append(line.strip())
             rc = proc.wait()
+    except _StaticRed:
+        rc = 1
     finally:
         subprocess.run(["git", "worktree", "remove", "--force", str(wt)], cwd=ROOT, check=False)
 
     ok = rc == 0
-    result = {"branch": args.branch, "sha": sha, "ok": ok, "exit": rc, "verdicts": verdicts,
+    result = {"branch": args.branch, "sha": sha, "ok": ok, "exit": rc, "verdicts": verdicts, "static": static,
               "date": now_fn().isoformat(timespec="minutes"), "log": str(log)}
     (OUT / f"{safe}.json").write_text(json.dumps(result, indent=1), encoding="utf-8")
     counts = "/".join(m.group(1) for v in verdicts if (m := re.search(r"(\d+) passed", v)))

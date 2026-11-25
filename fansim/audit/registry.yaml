@@ -145,7 +145,7 @@ units:
     libs: [openfoam]
 
   - id: cfd.cfm_from_outlet_flow
-    targets: ["fansim.cfd.metrics:parse_fan_metrics", "fansim.cfd.metrics:CFM_PER_M3S", "fansim.cfd.templates:CONTROL_DICT", "fansim.cfd.metrics:convergence", "fansim.cfd.metrics:oscillation_pct"]
+    targets: ["fansim.cfd.metrics:parse_fan_metrics", "fansim.cfd.metrics:latest_pp_file", "fansim.cfd.metrics:CFM_PER_M3S", "fansim.cfd.templates:CONTROL_DICT", "fansim.cfd.metrics:convergence", "fansim.cfd.metrics:oscillation_pct"]
     claim: "CFM = sum(phi) over the +Z outlet patch * 2118.882; positive = delivery toward +Z; never abs()"
     source: {kind: standard, ref: "unit conversion; AMCA 210 flow sign"}
     checks: [tests/audit/test_cfd_direction_contract.py, tests/test_math_consistency.py, tests/test_convergence_rule.py]

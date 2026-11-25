@@ -8,11 +8,18 @@ parameters (tubercles, serrations, dimples) are added here once the feature libr
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
-from fansim.geometry.blade import (BladeParams, RadialStation, shroud_is_full,
-    open_tip_rmax_mm, SHROUD_DEFAULT_MM, normalize_shroud_thick_mm)
+from fansim.geometry.blade import (
+    SHROUD_DEFAULT_MM,
+    BladeParams,
+    RadialStation,
+    normalize_shroud_thick_mm,
+    open_tip_rmax_mm,
+    shroud_is_full,
+)
 from fansim.geometry.features import Features
 
 # Fixed printable thickness profile (fraction of chord), root -> tip. Chosen with the chord
@@ -376,12 +383,13 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
         apply_sickle(bp, float(p["sickle_mm"]))
     if (not shroud_is_full(bp)) and (
             float(p.get("winglet_sweep", 0.0)) or float(p.get("winglet_lean", 0.0))):
-        from fansim.geometry.blade import apply_winglet   # §7.5: no winglet under a full ring
+        from fansim.geometry.blade import apply_winglet  # §7.5: no winglet under a full ring
         apply_winglet(bp, span_frac=float(p.get("winglet_span", 0.85)),
                       sweep_add=float(p.get("winglet_sweep", 0.0)),
                       lean_add=float(p.get("winglet_lean", 0.0)))
     if float(p.get("tip_round", 0.0)) > 0.0:        # round the tip (taper chord over the outer span)
-        from fansim.geometry.blade import apply_tip_shape   # AFTER winglet: rounded tip keeps its curl
+        # AFTER winglet: rounded tip keeps its curl
+        from fansim.geometry.blade import apply_tip_shape
         apply_tip_shape(bp, tip_round=float(p["tip_round"]),
                         start_frac=float(p.get("tip_round_start", 0.80)))
     if "spacing_spread" in p:                       # regenerate the same balanced pattern
@@ -431,7 +439,7 @@ def blade_to_flat(params: BladeParams) -> dict:
         else "tapered"
     )
     thick_mm = round((ar + am + at) / 3.0, 2)
-    flat = dict(
+    flat: dict[str, Any] = dict(  # noqa: C408 - keyword form keeps the field list readable
         n_blades=int(params.n_blades),
         hub_radius=float(params.hub_radius),
         tip_radius=float(params.tip_radius),
