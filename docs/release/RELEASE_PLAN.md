@@ -110,17 +110,14 @@ the validation page is built on a green CI and a clean ledger.
 
 - **RV-0 Make the safety nets real.** Lane: Claude or Cursor. CPU: day. Status: `done` (merged `claude/rv0-safety-nets` → `d837929`, 2026-11-25). Gate runs CI static checks; `audit_status --strict`; 8 units re-proven.
 - **RV-1 Maths snapshot.** Lane: Claude drafts the tolerance pre-registration; Cursor builds. CPU: day. Status: `done` (merged `claude/rv1-physics-snapshot` → `83ca5bf`, 2026-11-25). 16 pinned cases in `tests/data/physics_snapshot.json`.
-- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `needs Kimball` (built `63d3f98`, branch `claude/rv2-scoreboard`).
+- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `in progress (Claude)`: PR #85; both questions answered; FAN-01 re-run running.
   Published-data comparisons recomputed from frozen results into `docs/validation/scoreboard.md`. R3.8 quotes it.
   - Landed: `scoreboard_claims.yaml` (12 claims), `fansim/validation/scoreboard.py`, `scripts/scoreboard.py`,
     `tests/test_scoreboard.py`. BEMT vs UIUC recomputed live; FAN-01 from its JSON; verdicts re-judged on the
     pre-registered tolerance only. Result: 6 PASS, 4 FAIL, 2 NOT JUDGED. README FAN-01 corrected +2.6 → +2.5 %.
-  - **Question for Kimball 1:** APC SF C_T(J) RMS was pre-registered at ≤ 0.015 (Audit #3). After the data it was
-    "re-registered" to 0.020 on 2026-09-30, which turned a FAIL into a PASS. The scoreboard judges it on 0.015
-    (FAIL, 0.0175). Should the ledger's `propeller.bemt` claim drop its "C_T(J) RMS (tol 0.020) PASS" wording?
-    It does not touch the release claim, which is static C_T (PASS).
-    Plain version: the pass line was moved after the test so a failing result would pass. Claude recommends
-    dropping the 0.020 wording (the ledger then says the sweep check failed the original line); Kimball undecided.
+  - **Question 1 answered (Kimball, 2026-11-25): FAIL against 0.015.** `docs/validation/audits/2026-11-25-apcsf-ct-j-rms-ruling.md`.
+    The ledger's `propeller.bemt` claim no longer says "C_T(J) RMS (tol 0.020) PASS"; a strict xfail records the
+    FAIL; the 0.020 tests are regression guards only; unit re-proven. The release claim (static C_T) is unchanged.
   - **Question 2 answered (Kimball, 2026-11-24): pre-register.** `docs/validation/audits/2026-11-24-fan01-rerun-prereg.md`
     (`203c534`, before any data): fresh run of the same 6 points; 7 and 64 Pa judged at ±10 % (the A12x25 / lt120
     mark); near-stall points recorded only. **Next:** running on the laptop (Kimball, 2026-11-25), master `d816438`, 8 procs, in
