@@ -17,8 +17,9 @@ import numpy as np
 
 # physical constants / model constants
 # Use the same default air density as the CFD/AMCA metrics (screening-level consistency).
-from fansim.physics.air import RHO_AMCA as RHO_AIR
 from fansim.physics.air import C0_AIR
+from fansim.physics.air import RHO_AMCA as RHO_AIR
+
 CMU = 0.09             # k-omega/k-epsilon Cmu
 ALPHA_PROUDMAN = 0.1   # rescaled Proudman constant (Sarkar & Hussaini 1993)
 W_REF = 1e-12          # reference acoustic power, W (=> dB re 1 pW)
@@ -29,9 +30,10 @@ ArrayLike = "float | np.ndarray"
 def epsilon_from_komega(k, omega, cmu: float = CMU):
     """Turbulent dissipation rate epsilon [m^2/s^3] from k and specific rate omega (k-omega SST).
 
-    epsilon = Cmu * k * omega. Use this to feed Proudman when the solver stored omega, not epsilon.
+    epsilon = Cmu * max(k, 0) * max(omega, 0). Clamps numerical undershoot so acoustic
+    power density stays non-negative (matching :func:`turbulent_mach`).
     """
-    return cmu * np.asarray(k, float) * np.asarray(omega, float)
+    return cmu * np.maximum(np.asarray(k, float), 0.0) * np.maximum(np.asarray(omega, float), 0.0)
 
 
 def turbulent_mach(k, c0: float = C0_AIR):
