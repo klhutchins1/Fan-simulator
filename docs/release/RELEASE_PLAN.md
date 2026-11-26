@@ -476,7 +476,8 @@ Kimball's.
   - From the release export: follow README install, run the fast suite and one headless cockpit start.
 - **R4.2 Windows install and one Assess**. Lane: Kimball, with Claude or Cursor on standby. CPU: night for the Assess.
   Status: `ready` (M3 done).
-- **R4.3 Release notes v0.1.0**. Lane: Cursor drafts, Claude checks the claims. Status: `ready` (R3.8 done).
+- **R4.3 Release notes v0.1.0**. Lane: Cursor drafts, Claude checks the claims. Status: `done` (draft landed on `cursor/r43-release-notes`, 2026-11-26; ready for final claims review / R4.4).
+  - Drafted `docs/release/RELEASE_NOTES_v0.1.0.md` synced to `docs/VALIDATION.md` and `docs/validation/scoreboard.md`; contract test `tests/test_r43_release_notes.py` verifies all links, scoreboard numbers, zero overstated phrases, experimental labels, and `RELEASE_EXCLUDE` export inclusion. `CHANGELOG.md` stays `## Unreleased` until R4.4 tags `v0.1.0`.
 - **R4.4 Tag, publish and create the GitHub repo from the export**. Lane: Kimball. Status: `blocked (R4.1–R4.3)`.
 
 ---
