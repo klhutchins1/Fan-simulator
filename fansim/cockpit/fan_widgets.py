@@ -122,7 +122,7 @@ def slider(
                     f"{{{{ {model} }}}}{unit_s}",
                     classes="font-weight-medium text-no-wrap ml-2",
                 )
-        with v3.VSlider(  # noqa: SIM117 — trame nested contexts
+        with v3.VSlider(
             v_model=(model,),
             min=mn,
             max=max_kw,

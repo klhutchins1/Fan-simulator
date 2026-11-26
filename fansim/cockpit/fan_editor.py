@@ -349,7 +349,7 @@ def bind(session) -> None:
                 continue
             try:
                 setattr(state, sv, cast(v))
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S112
                 continue
         if "thick_mode" in flat:
             mode = str(flat.get("thick_mode") or "").strip().lower()
@@ -459,8 +459,10 @@ def bind(session) -> None:
                 DutyPoint,
                 format_meanline_seed,
                 preserve_sign,
-                seed_from_duty as _seed,
                 station_magnitudes,
+            )
+            from fansim.optimize.meanline import (
+                seed_from_duty as _seed,
             )
 
             duty = DutyPoint(
@@ -635,15 +637,15 @@ def bind(session) -> None:
 
     def _feat_dict() -> dict:
         f = edit_features()
-        return dict(
-            tubercle_amp=f.tubercle_amp,
-            tubercle_waves=f.tubercle_waves,
-            serration_amp=f.serration_amp,
-            serration_waves=f.serration_waves,
-            dimple_amp=f.dimple_amp,
-            dimple_rows=f.dimple_rows,
-            dimple_cols=f.dimple_cols,
-        )
+        return {
+            "tubercle_amp": f.tubercle_amp,
+            "tubercle_waves": f.tubercle_waves,
+            "serration_amp": f.serration_amp,
+            "serration_waves": f.serration_waves,
+            "dimple_amp": f.dimple_amp,
+            "dimple_rows": f.dimple_rows,
+            "dimple_cols": f.dimple_cols,
+        }
 
     def _editor_sig() -> dict:
         """Normalized signature of the current editor state (geometry + features)."""

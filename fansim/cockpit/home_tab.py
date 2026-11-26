@@ -198,7 +198,7 @@ def render_home_tab(ctx: CockpitCtx) -> None:
     if html is None or v3 is None:
         return
 
-    home_choose = getattr(ctx, "home_choose")
+    home_choose = ctx.home_choose
 
     with html.Div(
         v_show=f"active_tab === '{HOME_TAB}'",

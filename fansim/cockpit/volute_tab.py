@@ -162,8 +162,10 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
     )
     state.volute_readout = [
         "Preview / Export: impeller + sealed casing STLs.",
-        "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker). "
-        f"{EXPERIMENTAL_LABEL}",
+        (
+            "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker). "
+            f"{EXPERIMENTAL_LABEL}"
+        ),
         f"Optimize: NSGA geometry proxy — {EXPERIMENTAL_LABEL}",
     ]
     if volute_design_store:
@@ -238,7 +240,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
                 try:
                     state.flush()
                     ctrl.volute_view_update()
-                except Exception:  # noqa: BLE001
+                except Exception:  # noqa: BLE001, S110
                     pass
 
         asynchronous.create_task(task())
@@ -248,7 +250,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
         _apply_volute_airflow_field()
         try:
             state.flush()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def _volute_flat_from_state() -> dict:
@@ -422,8 +424,10 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
                     f"η={res.efficiency:.1f}%  ({res.runtime_s:.0f}s)"
                 )
                 state.volute_readout = [
-                    f"CFM free {res.cfm_free:.1f} · load {res.cfm_load:.1f} · "
-                    f"η {res.efficiency:.1f}% · {rpm:.0f} RPM",
+                    (
+                        f"CFM free {res.cfm_free:.1f} · load {res.cfm_load:.1f} · "
+                        f"η {res.efficiency:.1f}% · {rpm:.0f} RPM"
+                    ),
                     f"Domain: radial MRF stage 1 ({res.raw.get('honesty', '')}).",
                     f"Volute CFD: {EXPERIMENTAL_LABEL}",
                     f"Workdir: {workdir}",
@@ -551,8 +555,10 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
             state.volute_out_h = float(p["outlet_height_mm"])
         o = row.get("objectives") or {}
         state.volute_readout = [
-            f"#{tid}  capacity {o.get('capacity_proxy', 0):.1f}  ·  "
-            f"head {o.get('head_proxy', 0):.2f}  (proxy — not CFM)",
+            (
+                f"#{tid}  capacity {o.get('capacity_proxy', 0):.1f}  ·  "
+                f"head {o.get('head_proxy', 0):.2f}  (proxy — not CFM)"
+            ),
             f"Loaded from {row.get('extra', {}).get('source_run', '')}",
         ]
         state.volute_geo_ready = False
@@ -572,7 +578,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
 
 def render_volute_tab(ctx: CockpitCtx) -> None:
     """Build Volute UI (call inside layout content)."""
-    state, ctrl = ctx.state, ctx.ctrl
+    ctrl = ctx.ctrl
     volute_plotter = ensure_plotter(ctx, "volute_plotter")
     volute_design_store = getattr(ctx, "volute_design_store", [])
 
@@ -688,7 +694,7 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                                     "label": "Preview",
                                     "color": "primary",
                                     "size": "small",
-                                    "click": (getattr(ctx, "volute_preview"),),
+                                    "click": (ctx.volute_preview,),
                                     "loading": ("volute_preview_busy",),
                                     "disabled": (_volute_busy_expr,),
                                 },
@@ -696,7 +702,7 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                                     "label": "Assess",
                                     "color": "success",
                                     "size": "small",
-                                    "click": (getattr(ctx, "volute_assess"),),
+                                    "click": (ctx.volute_assess,),
                                     "loading": ("volute_assess_busy",),
                                     "disabled": (f"{_volute_busy_expr} || !volute_geo_ready",),
                                 },
@@ -705,7 +711,7 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                                     "size": "small",
                                     "variant": "tonal",
                                     "color": "primary",
-                                    "click": (getattr(ctx, "volute_export"),),
+                                    "click": (ctx.volute_export,),
                                     "loading": ("volute_export_busy",),
                                     "disabled": (f"{_volute_busy_expr} || !volute_geo_ready",),
                                 },
@@ -713,7 +719,7 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                                     "label": "Optimize",
                                     "color": "success",
                                     "size": "small",
-                                    "click": (getattr(ctx, "optimize_volute"),),
+                                    "click": (ctx.optimize_volute,),
                                     "loading": ("volute_opt_busy",),
                                     "disabled": (_volute_busy_expr,),
                                 },
@@ -775,13 +781,13 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_volute_trial"), "[$event]"),
+                            update_modelValue=(ctx.load_volute_trial, "[$event]"),
                         )
                     with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
                         volute_fig_widget = plotly_widgets.Figure(
                             figure=volute_scatter_figure(volute_design_store),
                             click=(
-                                getattr(ctx, "load_volute_trial"),
+                                ctx.load_volute_trial,
                                 "[$event?.points?.[0]?.customdata]",
                             ),
                             style="width:100%;",
@@ -797,7 +803,7 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_volute_trial"), "[$event]"),
+                            update_modelValue=(ctx.load_volute_trial, "[$event]"),
                         )
                     with v3.VCard(classes="pa-2"):
                         html.Div(

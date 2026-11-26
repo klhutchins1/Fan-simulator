@@ -6,16 +6,15 @@ this module only builds widgets and binds ctrl.view_update / figure_update.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import sys
+from pathlib import Path
 
 from fansim.cockpit.context import CockpitCtx
 from fansim.cockpit.fan_copy import CONTROL_DESC, OPT_SEARCH_HELP
 from fansim.cockpit.fan_trials import STOCK_RECIPE_GAP
-from fansim.cockpit.tab_shell import VTK_VIEW_STYLE, render_action_row
 from fansim.cockpit.fan_widgets import help_select, help_switch, opt_section, slider
 from fansim.cockpit.figures import filter_fitting_designs, scatter_figure
+from fansim.cockpit.tab_shell import VTK_VIEW_STYLE, render_action_row
 from fansim.fan_spec import published_scatter_point
 from fansim.optimize.presets import assess_load
 
@@ -28,7 +27,6 @@ if _RUNNING_TESTS:
     plotly_widgets = None  # type: ignore[assignment]
     v3 = None  # type: ignore[assignment]
 else:
-    import pyvista as pv
     from pyvista.trame.ui import plotter_ui
     from trame.widgets import html
     from trame.widgets import plotly as plotly_widgets
@@ -50,34 +48,34 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
     study_designs = ctx.study_designs or []  # type: ignore[attr-defined]
     user_designs = ctx.user_designs or []  # type: ignore[attr-defined]
 
-    select = getattr(ctx, "fan_select")
-    on_plotly_click = getattr(ctx, "fan_on_plotly_click")
-    on_library_scale_to_hub = getattr(ctx, "fan_on_library_scale_to_hub")
-    select_library_design = getattr(ctx, "fan_select_library_design")
-    load_model_into_form = getattr(ctx, "fan_load_model_into_form")
-    save_model = getattr(ctx, "fan_save_model")
-    delete_model = getattr(ctx, "fan_delete_model")
-    save_measurement = getattr(ctx, "fan_save_measurement")
-    show_store_calibration = getattr(ctx, "fan_show_store_calibration")
-    do_preview = getattr(ctx, "fan_do_preview")
-    on_assess = getattr(ctx, "fan_on_assess")
-    score_multi_point_bem = getattr(ctx, "fan_score_multi_point_bem")
-    export_stl_current = getattr(ctx, "fan_export_stl_current")
-    on_optimize_fan = getattr(ctx, "fan_on_optimize")
-    cancel_optimize = getattr(ctx, "fan_cancel_optimize")
-    cancel_assess = getattr(ctx, "fan_cancel_assess")
-    on_sweep = getattr(ctx, "fan_on_sweep")
-    cancel_sweep = getattr(ctx, "fan_cancel_sweep")
-    cancel_airflow = getattr(ctx, "fan_cancel_airflow")
-    on_fit_envelope = getattr(ctx, "fan_on_fit_envelope")
-    on_scale_to_hub = getattr(ctx, "fan_on_scale_to_hub")
-    seed_from_duty = getattr(ctx, "fan_seed_from_duty")
-    randomize_geometry = getattr(ctx, "fan_randomize_geometry")
-    randomize_features = getattr(ctx, "fan_randomize_features")
-    load_stock_reference = getattr(ctx, "fan_load_stock_reference")
+    select = ctx.fan_select
+    on_plotly_click = ctx.fan_on_plotly_click
+    on_library_scale_to_hub = ctx.fan_on_library_scale_to_hub
+    select_library_design = ctx.fan_select_library_design
+    load_model_into_form = ctx.fan_load_model_into_form
+    save_model = ctx.fan_save_model
+    delete_model = ctx.fan_delete_model
+    save_measurement = ctx.fan_save_measurement
+    show_store_calibration = ctx.fan_show_store_calibration
+    do_preview = ctx.fan_do_preview
+    on_assess = ctx.fan_on_assess
+    score_multi_point_bem = ctx.fan_score_multi_point_bem
+    export_stl_current = ctx.fan_export_stl_current
+    on_optimize_fan = ctx.fan_on_optimize
+    cancel_optimize = ctx.fan_cancel_optimize
+    cancel_assess = ctx.fan_cancel_assess
+    on_sweep = ctx.fan_on_sweep
+    cancel_sweep = ctx.fan_cancel_sweep
+    cancel_airflow = ctx.fan_cancel_airflow
+    on_fit_envelope = ctx.fan_on_fit_envelope
+    on_scale_to_hub = ctx.fan_on_scale_to_hub
+    seed_from_duty = ctx.fan_seed_from_duty
+    randomize_geometry = ctx.fan_randomize_geometry
+    randomize_features = ctx.fan_randomize_features
+    load_stock_reference = ctx.fan_load_stock_reference
 
-    hub_designs = getattr(ctx, "fan_hub_designs")
-    active_spec = getattr(ctx, "fan_active_spec")
+    hub_designs = ctx.fan_hub_designs
+    active_spec = ctx.fan_active_spec
 
     def show_fan_about(**_):
         # Real About for both modes (#22). Simple banner alone is Expert-invisible.
@@ -593,9 +591,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             # After Randomize / slider edits the geometry is no longer the selected
                             # design; say so on the dropdown itself (QA UI-20, §23.47). The label alone
                             # was too small: the shown VALUE must say it too (QA re-test).
-                            label=("edited_stale ? '✎ Edited copy (not saved) — based on:' "
-                                   ": (e_tip_radius == null ? 'Design (pick one to unlock Preview / Assess)' "
-                                   ": 'Starting design')",),
+                            label=((
+                                "edited_stale ? '✎ Edited copy (not saved) — based on:' "
+                                ": (e_tip_radius == null ? 'Design (pick one to unlock Preview / Assess)' "
+                                ": 'Starting design')"
+                            ),),
                             base_color=("edited_stale ? 'warning' : undefined",),
                             color=("edited_stale ? 'warning' : 'primary'",),
                             v_model=("selected_trial",),
@@ -1448,9 +1448,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     color="primary",
                                     inset=True,
                                     label=(
-                                        "ui_mode === 'simple' "
-                                        "? 'Rotation & airflow direction cues' "
-                                        ": 'Rotation (CCW) + airflow (−Z) cues'",
+                                        (
+                                            "ui_mode === 'simple' "
+                                            "? 'Rotation & airflow direction cues' "
+                                            ": 'Rotation (CCW) + airflow (−Z) cues'"
+                                        ),
                                     ),
                                 )
                         with v3.VRow(no_gutters=True, classes="align-center mt-1"):

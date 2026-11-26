@@ -225,7 +225,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                 try:
                     state.flush()
                     ctrl.mf_view_update()
-                except Exception:  # noqa: BLE001
+                except Exception:  # noqa: BLE001, S110
                     pass
 
         asynchronous.create_task(task())
@@ -235,7 +235,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
         _apply_mf_airflow_field()
         try:
             state.flush()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def _mf_flat_from_state() -> dict:
@@ -452,8 +452,10 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                     f"η {result.efficiency:.1f}%  ({workdir.name}) — saved to scatter"
                 )
                 state.mf_readout = [
-                    f"cfm_free {result.cfm_free:.1f}  ·  cfm_load {result.cfm_load:.1f}  ·  "
-                    f"efficiency {result.efficiency:.1f}%",
+                    (
+                        f"cfm_free {result.cfm_free:.1f}  ·  cfm_load {result.cfm_load:.1f}  ·  "
+                        f"efficiency {result.efficiency:.1f}%"
+                    ),
                     "Assess runs MRF CFD (not validated against published data).",
                     f"workdir {workdir}",
                 ]
@@ -637,8 +639,10 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             state.mf_camber_pos = float(p["camber_pos"])
         o = row.get("objectives") or {}
         state.mf_readout = [
-            f"#{tid}  cfm_free {o.get('cfm_free', 0):.1f}  ·  cfm_load {o.get('cfm_load', 0):.1f}  ·  "
-            f"efficiency {o.get('efficiency', 0):.1f}%",
+            (
+                f"#{tid}  cfm_free {o.get('cfm_free', 0):.1f}  ·  cfm_load {o.get('cfm_load', 0):.1f}  ·  "
+                f"efficiency {o.get('efficiency', 0):.1f}%"
+            ),
             EXPERIMENTAL_LABEL,
             f"Loaded from {row.get('extra', {}).get('source_run', row.get('workdir', ''))}",
         ]
@@ -646,7 +650,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
         if stl and Path(stl).exists():
             try:
                 _show_mf_stl(Path(stl))
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
         state.mf_msg = f"Loaded Assess #{tid} into the editor."
         _render_mf_airflow(row.get("workdir"))  # duct-airflow viz from the loaded case (if kept)
@@ -663,9 +667,9 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
 
 def render_mixed_tab(ctx: CockpitCtx) -> None:
     """Build Mixed UI (call inside layout content)."""
-    state, ctrl = ctx.state, ctx.ctrl
+    ctrl = ctx.ctrl
     mf_plotter = ensure_plotter(ctx, "mf_plotter")
-    mf_design_store = getattr(ctx, "mf_design_store")  # set by setup_mixed_tab
+    mf_design_store = ctx.mf_design_store  # set by setup_mixed_tab
 
     def _slider(
         label: str,
@@ -747,7 +751,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                                     "label": "Preview",
                                     "color": "primary",
                                     "size": "small",
-                                    "click": (getattr(ctx, "mf_preview"),),
+                                    "click": (ctx.mf_preview,),
                                     "loading": ("mf_preview_busy",),
                                     "disabled": (_mf_busy_expr,),
                                 },
@@ -755,7 +759,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                                     "label": "Assess",
                                     "color": "success",
                                     "size": "small",
-                                    "click": (getattr(ctx, "mf_assess"),),
+                                    "click": (ctx.mf_assess,),
                                     "loading": ("mf_assess_busy",),
                                     "disabled": (f"{_mf_busy_expr} || !mf_geo_ready",),
                                 },
@@ -764,7 +768,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                                     "size": "small",
                                     "variant": "tonal",
                                     "color": "primary",
-                                    "click": (getattr(ctx, "mf_export"),),
+                                    "click": (ctx.mf_export,),
                                     "loading": ("mf_export_busy",),
                                     "disabled": (f"{_mf_busy_expr} || !mf_geo_ready",),
                                 },
@@ -772,7 +776,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                                     "label": "Optimize",
                                     "color": "success",
                                     "size": "small",
-                                    "click": (getattr(ctx, "optimize_mixed"),),
+                                    "click": (ctx.optimize_mixed,),
                                     "loading": ("mf_opt_busy",),
                                     "disabled": (_mf_busy_expr,),
                                 },
@@ -845,7 +849,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                                     variant="tonal",  # solid orange looked enabled at top N = 0 (UI-21)
                                     size="small",
                                     block=True,
-                                    click=(getattr(ctx, "refine_mixed_cfd"),),
+                                    click=(ctx.refine_mixed_cfd,),
                                     loading=("mf_refine_busy",),
                                     disabled=(
                                         f"{_mf_busy_expr} || !mf_has_front || !(mf_cfd_top > 0)",
@@ -861,13 +865,13 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_mf_trial"), "[$event]"),
+                            update_modelValue=(ctx.load_mf_trial, "[$event]"),
                         )
                     with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
                         mf_fig_widget = plotly_widgets.Figure(
                             figure=mf_scatter_figure(mf_design_store),
                             click=(
-                                getattr(ctx, "load_mf_trial"),
+                                ctx.load_mf_trial,
                                 "[$event?.points?.[0]?.customdata]",
                             ),
                             style="width:100%;",
@@ -883,7 +887,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_mf_trial"), "[$event]"),
+                            update_modelValue=(ctx.load_mf_trial, "[$event]"),
                         )
                     with v3.VCard(classes="pa-2"):
                         html.Div(

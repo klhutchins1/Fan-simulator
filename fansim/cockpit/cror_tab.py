@@ -96,9 +96,11 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
     state.cror_trial_items = design_dropdown_items(cror_pareto_store, by_index=True)
     state.cror_msg = ""
     state.cror_readout = [
-        "CROR: edit front/rear blades, Preview the stack, Thin to ≤25 mm, Optimize (BEMT proxy), "
-        "CFD refine top-N. Relative noise only. "
-        f"{EXPERIMENTAL_LABEL}",
+        (
+            "CROR: edit front/rear blades, Preview the stack, Thin to ≤25 mm, Optimize (BEMT proxy), "
+            "CFD refine top-N. Relative noise only. "
+            f"{EXPERIMENTAL_LABEL}"
+        ),
     ]
     # Design defaults (§14.5)
     _c0 = CrorParams()
@@ -194,7 +196,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
                 try:
                     state.flush()
                     ctrl.cror_view_update()
-                except Exception:  # noqa: BLE001
+                except Exception:  # noqa: BLE001, S110
                     pass
 
         asynchronous.create_task(task())
@@ -204,7 +206,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
         _apply_cror_airflow_field()
         try:
             state.flush()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def _cror_busy():
@@ -224,11 +226,11 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
         try:
             cror_plotter.add_mesh(pv.read(str(path)), color="cadetblue", smooth_shading=True)
             cror_plotter.reset_camera()
-        except Exception:  # noqa: BLE001 - nothing to show
+        except Exception:  # noqa: BLE001, S110 - nothing to show
             pass
         try:
             ctrl.cror_view_update()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def preview_cror(**_):
@@ -257,10 +259,14 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
                 nz = estimate_cror_noise(params, float(state.cror_rpm))
                 state.cror_geo_ready = True
                 state.cror_readout = [
-                    f"Stack depth {depth:.1f} mm · gap {params.axial_gap_mm:.1f} mm · "
-                    f"{params.front.n_blades}+{params.rear.n_blades} blades",
-                    f"Proxy noise {nz['rel_dba']:.0f} (rel) · front BPF {nz['front_bpf_hz']:.0f} Hz · "
-                    f"rear {nz['rear_bpf_hz']:.0f} Hz",
+                    (
+                        f"Stack depth {depth:.1f} mm · gap {params.axial_gap_mm:.1f} mm · "
+                        f"{params.front.n_blades}+{params.rear.n_blades} blades"
+                    ),
+                    (
+                        f"Proxy noise {nz['rel_dba']:.0f} (rel) · front BPF {nz['front_bpf_hz']:.0f} Hz · "
+                        f"rear {nz['rear_bpf_hz']:.0f} Hz"
+                    ),
                 ]
                 state.cror_msg = "✓ Preview ready (thinned to depth cap)."
             except Exception as exc:  # noqa: BLE001
@@ -331,10 +337,14 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
                 d1 = cror_stack_depth_mm(thin)
                 nz = estimate_cror_noise(thin, float(state.cror_rpm))
                 state.cror_readout = [
-                    f"Default depth {d0:.1f} mm → thinned {d1:.1f} mm "
-                    f"(cap {float(state.cror_max_depth):.0f} mm, gap {thin.axial_gap_mm:.1f} mm)",
-                    f"Proxy noise {nz['rel_dba']:.0f} (rel) · front BPF {nz['front_bpf_hz']:.0f} Hz · "
-                    f"rear {nz['rear_bpf_hz']:.0f} Hz",
+                    (
+                        f"Default depth {d0:.1f} mm → thinned {d1:.1f} mm "
+                        f"(cap {float(state.cror_max_depth):.0f} mm, gap {thin.axial_gap_mm:.1f} mm)"
+                    ),
+                    (
+                        f"Proxy noise {nz['rel_dba']:.0f} (rel) · front BPF {nz['front_bpf_hz']:.0f} Hz · "
+                        f"rear {nz['rear_bpf_hz']:.0f} Hz"
+                    ),
                 ]
                 state.cror_msg = f"✓ Thinned stack depth {d1:.1f} mm"
             except Exception as exc:  # noqa: BLE001
@@ -514,10 +524,12 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
         apply_shape_flat_to_state(
             state, "cror_r_", {k[2:]: v for k, v in flat.items() if k.startswith("r_")})
         state.cror_readout = [
-            f"#{idx}  thrust {row.get('thrust_g', 0):.0f} g  ·  "
-            f"{row.get('eff_g_per_w', 0):.2f} g/W  ·  "
-            f"depth {row.get('depth_mm', 0):.1f} mm  ·  "
-            f"noise {row.get('rel_dba', 0):.0f} (rel)",
+            (
+                f"#{idx}  thrust {row.get('thrust_g', 0):.0f} g  ·  "
+                f"{row.get('eff_g_per_w', 0):.2f} g/W  ·  "
+                f"depth {row.get('depth_mm', 0):.1f} mm  ·  "
+                f"noise {row.get('rel_dba', 0):.0f} (rel)"
+            ),
             f"Loaded front/rear Design from {row.get('source_run', 'front')}",
         ]
         state.cror_msg = f"Loaded CROR front row #{idx} into the editor."
@@ -575,8 +587,8 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
     if html is None or v3 is None or plotly_widgets is None or plotter_ui is None:
         return
 
-    state, ctrl = ctx.state, ctx.ctrl
-    cror_pareto_store = getattr(ctx, "cror_pareto_store")  # set by setup_cror_tab
+    ctrl = ctx.ctrl
+    cror_pareto_store = ctx.cror_pareto_store  # set by setup_cror_tab
     cror_plotter = ensure_plotter(ctx, "cror_plotter")
 
     def _slider(
@@ -690,7 +702,7 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                                     size="small",
                                     variant="tonal",
                                     color="primary",
-                                    click=(getattr(ctx, "thin_cror_now"),),
+                                    click=(ctx.thin_cror_now,),
                                     classes="mb-2",
                                     loading=("cror_thin_busy",),
                                     disabled=(_cror_busy_expr,),
@@ -703,7 +715,7 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                                     "size": "small",
                                     "variant": "tonal",
                                     "color": "primary",
-                                    "click": (getattr(ctx, "preview_cror"),),
+                                    "click": (ctx.preview_cror,),
                                     "loading": ("cror_preview_busy",),
                                     "disabled": (_cror_busy_expr,),
                                 },
@@ -712,7 +724,7 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                                     "size": "small",
                                     "variant": "tonal",
                                     "color": "primary",
-                                    "click": (getattr(ctx, "export_cror_now"),),
+                                    "click": (ctx.export_cror_now,),
                                     "loading": ("cror_export_busy",),
                                     "disabled": (_cror_busy_expr,),
                                 },
@@ -720,7 +732,7 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                                     "label": "Optimize",
                                     "color": "success",
                                     "size": "small",
-                                    "click": (getattr(ctx, "optimize_cror"),),
+                                    "click": (ctx.optimize_cror,),
                                     "loading": ("cror_opt_busy",),
                                     "disabled": (_cror_busy_expr,),
                                 },
@@ -796,7 +808,7 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                                     variant="tonal",  # solid orange looked enabled while disabled (§23.26)
                                     size="small",
                                     block=True,
-                                    click=(getattr(ctx, "refine_cror_cfd"),),
+                                    click=(ctx.refine_cror_cfd,),
                                     loading=("cror_refine_busy",),
                                     disabled=(
                                         f"{_cror_busy_expr} || !cror_has_front || !(cror_cfd_top > 0)",
@@ -812,13 +824,13 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_cror_row"), "[$event]"),
+                            update_modelValue=(ctx.load_cror_row, "[$event]"),
                         )
                     with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
                         cror_fig_widget = plotly_widgets.Figure(
                             figure=cror_scatter_figure(cror_pareto_store),
                             click=(
-                                getattr(ctx, "load_cror_row"),
+                                ctx.load_cror_row,
                                 "[$event?.points?.[0]?.customdata]",
                             ),
                             style="width:100%;",
@@ -834,7 +846,7 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_cror_row"), "[$event]"),
+                            update_modelValue=(ctx.load_cror_row, "[$event]"),
                         )
                     with v3.VCard(classes="pa-2"):
                         html.Div(

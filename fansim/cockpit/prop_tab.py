@@ -17,11 +17,11 @@ from pathlib import Path
 _log = logging.getLogger(__name__)
 
 from fansim.cockpit.airflow_panel import pick_airflow_uri, render_airflow_pack
-from fansim.cockpit.paths import exports_dir, session_tmp
 from fansim.cockpit.context import CockpitCtx
-from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.data import design_dropdown_items
+from fansim.cockpit.fan_widgets import slider as _shared_slider
 from fansim.cockpit.figures import prop_mission_figure, prop_scatter_figure
+from fansim.cockpit.paths import exports_dir, session_tmp
 from fansim.cockpit.plotters import ensure_plotter
 from fansim.cockpit.tab_shell import (
     SCATTER_HEIGHT_PX,
@@ -29,7 +29,6 @@ from fansim.cockpit.tab_shell import (
     render_action_row,
     render_left_shell,
 )
-
 from fansim.prop_spec import get_prop_spec, prop_spec_names
 from fansim.propeller.airflow_case import first_prop_cfd_workdir, prop_cfd_workdir_from_study
 from fansim.propeller.bemt import analyze as bemt_analyze
@@ -37,8 +36,10 @@ from fansim.propeller.honesty import PROP_BEMT_HONESTY, PROP_CFD_HONESTY
 from fansim.propeller.noise import estimate_prop_noise
 from fansim.propeller.optimize import (
     random_prop_flat,
-    refine_pareto_cfd as refine_prop_pareto_cfd,
     run_prop_study,
+)
+from fansim.propeller.optimize import (
+    refine_pareto_cfd as refine_prop_pareto_cfd,
 )
 from fansim.propeller.persist import (
     PROP_ASSESS_DIRNAME,
@@ -386,7 +387,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
                 try:
                     state.flush()
                     ctrl.prop_view_update()
-                except Exception:  # noqa: BLE001
+                except Exception:  # noqa: BLE001, S110
                     pass
 
         asynchronous.create_task(task())
@@ -396,7 +397,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         _apply_prop_airflow_field()
         try:
             state.flush()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     _init_prop_editor(get_prop_spec(state.prop_model))
@@ -463,11 +464,11 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         try:
             prop_plotter.add_mesh(pv.read(str(path)), color="cadetblue", smooth_shading=True)
             prop_plotter.reset_camera()
-        except Exception:  # noqa: BLE001 - nothing to show
+        except Exception:  # noqa: BLE001, S110 - nothing to show
             pass
         try:
             ctrl.prop_view_update()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def _prop_perf_lines(spec, params):
@@ -808,7 +809,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         if store[int(idx)].get("prop_model"):
             try:
                 state.prop_model = str(store[int(idx)]["prop_model"])
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
         _init_prop_editor(get_prop_spec(state.prop_model), flat=p)
         state.flush()
@@ -965,10 +966,10 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
 
 def render_prop_tab(ctx: CockpitCtx) -> None:
     """Build Prop UI (call inside layout content)."""
-    state, ctrl = ctx.state, ctx.ctrl
+    ctrl = ctx.ctrl
     prop_plotter = ensure_plotter(ctx, "prop_plotter")
-    prop_pareto_store = getattr(ctx, "prop_pareto_store")  # set by setup_prop_tab
-    prop_user_store = getattr(ctx, "prop_user_store")  # set by setup_prop_tab
+    prop_pareto_store = ctx.prop_pareto_store  # set by setup_prop_tab
+    prop_user_store = ctx.prop_user_store  # set by setup_prop_tab
 
     def _slider(
         label: str,
@@ -1068,7 +1069,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                     "label": "Analyze (~1 s)",
                                     "color": "primary",
                                     "size": "small",
-                                    "click": (getattr(ctx, "analyze_prop"),),
+                                    "click": (ctx.analyze_prop,),
                                     "loading": ("prop_busy",),
                                     "disabled": ("prop_busy || prop_refine_busy",),
                                 },
@@ -1078,7 +1079,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                         "size": "small",
                                         "variant": "tonal",
                                         "color": "primary",
-                                        "click": (getattr(ctx, "export_prop_stl"),),
+                                        "click": (ctx.export_prop_stl,),
                                         "loading": ("prop_export_busy",),
                                         "disabled": (
                                             "prop_busy || prop_refine_busy || prop_export_busy || !prop_geo_ready",
@@ -1089,7 +1090,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                         "size": "small",
                                         "variant": "tonal",
                                         "color": "primary",
-                                        "click": (getattr(ctx, "export_prop_pythrust_csv"),),
+                                        "click": (ctx.export_prop_pythrust_csv,),
                                         "loading": ("prop_export_busy",),
                                         "disabled": (
                                             "prop_busy || prop_refine_busy || prop_export_busy",
@@ -1101,7 +1102,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                     "label": "Optimize (BEMT)",
                                     "color": "success",
                                     "size": "small",
-                                    "click": (getattr(ctx, "optimize_prop"),),
+                                    "click": (ctx.optimize_prop,),
                                     "loading": ("prop_busy",),
                                     "disabled": ("prop_busy || prop_refine_busy",),
                                     "v_show": "ui_mode === 'expert'",
@@ -1113,7 +1114,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                     "color": ("prop_opt_running ? 'error' : undefined",),
                                     "variant": "tonal",
                                     "size": "small",
-                                    "click": (getattr(ctx, "stop_prop_optimize"),),
+                                    "click": (ctx.stop_prop_optimize,),
                                     "disabled": ("!prop_opt_running",),
                                     "v_show": "ui_mode === 'expert'",
                                 },
@@ -1121,7 +1122,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                     "label": "Randomize",
                                     "size": "small",
                                     "variant": "tonal",
-                                    "click": (getattr(ctx, "randomize_prop"),),
+                                    "click": (ctx.randomize_prop,),
                                     "disabled": ("prop_busy || prop_refine_busy",),
                                     "v_show": "ui_mode === 'expert'",
                                 },
@@ -1329,7 +1330,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                             variant="tonal",  # same as Mixed/CROR: solid looked enabled (UI-21)
                                             size="small",
                                             block=True,
-                                            click=(getattr(ctx, "refine_prop_cfd"),),
+                                            click=(ctx.refine_prop_cfd,),
                                             loading=("prop_refine_busy",),
                                             disabled=(
                                                 "prop_busy || prop_refine_busy || !prop_has_front || !(prop_cfd_top > 0)",
@@ -1363,7 +1364,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_prop_row"), "[$event]"),
+                            update_modelValue=(ctx.load_prop_row, "[$event]"),
                         )
                         html.Div(
                             "No scored props yet — Analyze one on Design (or Optimize in Expert) "
@@ -1375,7 +1376,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                         prop_fig_widget = plotly_widgets.Figure(
                             figure=prop_scatter_figure(prop_pareto_store, prop_user_store),
                             click=(
-                                getattr(ctx, "load_prop_row"),
+                                ctx.load_prop_row,
                                 "[$event?.points?.[0]?.customdata]",
                             ),
                             style="width:100%;",
@@ -1391,7 +1392,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                             with v3.VListItem(
                                 v_for="row in prop_pareto",
                                 key="row.idx",
-                                click=(getattr(ctx, "load_prop_row"), "[row.idx]"),
+                                click=(ctx.load_prop_row, "[row.idx]"),
                             ):
                                 v3.VListItemTitle(
                                     "{{ row.thrust }} g  ·  {{ row.eff }} g/W  "
@@ -1412,7 +1413,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_prop_row"), "[$event]"),
+                            update_modelValue=(ctx.load_prop_row, "[$event]"),
                         )
                     with v3.VCard(classes="pa-2"):
                         html.Div(

@@ -97,13 +97,19 @@ def bind(session) -> None:
             return
         state.info_lines = [
             f"Trial {d.trial}   {d.extra.get('n_blades')} blades" + ("   ★ Pareto" if d.is_pareto else ""),
-            f"CFM free {o['cfm_free']:.1f}   CFM load {o['cfm_load']:.1f}"
-            f"   efficiency {o['efficiency']:.1f}%",
-            f"stagger r/m/t {p.get('stagger_root',0):.0f}/{p.get('stagger_mid',0):.0f}"
-            f"/{p.get('stagger_tip',0):.0f}   camber {p.get('max_camber',0):.3f}",
-            f"chord r/m/t {p.get('chord_root',0):.1f}/{p.get('chord_mid',0):.1f}"
-            f"/{p.get('chord_tip',0):.1f}   sweep m/t {p.get('sweep_mid',0):.1f}"
-            f"/{p.get('sweep_tip',0):.1f}",
+            (
+                f"CFM free {o['cfm_free']:.1f}   CFM load {o['cfm_load']:.1f}"
+                f"   efficiency {o['efficiency']:.1f}%"
+            ),
+            (
+                f"stagger r/m/t {p.get('stagger_root',0):.0f}/{p.get('stagger_mid',0):.0f}"
+                f"/{p.get('stagger_tip',0):.0f}   camber {p.get('max_camber',0):.3f}"
+            ),
+            (
+                f"chord r/m/t {p.get('chord_root',0):.1f}/{p.get('chord_mid',0):.1f}"
+                f"/{p.get('chord_tip',0):.1f}   sweep m/t {p.get('sweep_mid',0):.1f}"
+                f"/{p.get('sweep_tip',0):.1f}"
+            ),
         ]
         rpm = d.extra.get("actual_rpm", 0)
         spec = get_fan_spec(d.extra.get("fan_model", "a12x25"))

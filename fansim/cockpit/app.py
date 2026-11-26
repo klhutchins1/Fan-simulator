@@ -163,7 +163,7 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
         layout.title.set_text("Fan Simulator — printable blade designer")
         try:
             layout.footer.clear()  # drop default "Powered by trame" / Kitware footer
-        except Exception:  # noqa: BLE001 — older trame layouts may omit footer
+        except Exception:  # noqa: BLE001, S110 — older trame layouts may omit footer
             pass
         with layout.toolbar:
             from trame.widgets import client as _client
@@ -279,7 +279,7 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                         if hasattr(ctrl, "view_update"):
                             try:
                                 ctrl.view_update()
-                            except Exception:  # noqa: BLE001
+                            except Exception:  # noqa: BLE001, S110
                                 pass
                         return
                     lazy = {

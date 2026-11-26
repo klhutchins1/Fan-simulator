@@ -9,7 +9,6 @@ import base64
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-import pytest
 from trame.app import get_server
 
 from fansim.cockpit.context import CockpitCtx
@@ -148,8 +147,7 @@ def test_tooltips_resolved_for_all_tabs():
 
 
 def test_friendly_model_items_and_plain_simple_readouts(tmp_path):
-    import fansim.cockpit.fan_runtime as fan_runtime
-    import fansim.cockpit.fan_tab as fan_tab
+    from fansim.cockpit import fan_runtime, fan_tab
     from fansim.cockpit.prop_tab import setup_prop_tab
 
     ctx = _make_ctx(tmp_path, "models")
@@ -190,8 +188,7 @@ def test_friendly_model_items_and_plain_simple_readouts(tmp_path):
 
 def test_library_missing_design_has_no_rebuild_dead_end(tmp_path):
     """Leftover #27: missing catalog design must not tell user to 'rebuild' with no UI button."""
-    import fansim.cockpit.fan_runtime as fan_runtime
-    import fansim.cockpit.fan_tab as fan_tab
+    from fansim.cockpit import fan_runtime, fan_tab
 
     ctx = _make_ctx(tmp_path, "lib27")
     tasks: list = []
