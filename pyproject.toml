@@ -119,4 +119,6 @@ files = [
     "fansim/fan_bem.py",
     "fansim/optimize/search_space.py",
     "fansim/cfd/metrics.py",
+    "fansim/propeller/bemt.py",
+    "fansim/propeller/polars.py",
 ]

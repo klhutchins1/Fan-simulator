@@ -133,9 +133,9 @@
       "verdict": "PASS"
     },
     "propeller.bemt": {
-      "date": "2026-11-25",
-      "fingerprint": "76902ae3816a6525",
-      "report": "docs/validation/audits/2026-11-25-apcsf-ct-j-rms-ruling.md (checks: 35 passed, 2 xfailed)",
+      "date": "2026-11-26",
+      "fingerprint": "b974161d4dd58e77",
+      "report": "docs/review/2026-11-26-rv3-propeller.md",
       "verdict": "PASS"
     },
     "propeller.cfd_setup": {
@@ -163,9 +163,9 @@
       "verdict": "PASS"
     },
     "propeller.polars": {
-      "date": "2026-09-30",
-      "fingerprint": "d4e817dfc166d441",
-      "report": "docs/validation/audits/2026-09-30-audit-19-5-close.md",
+      "date": "2026-11-26",
+      "fingerprint": "5a6b3bc71b6e28cb",
+      "report": "docs/review/2026-11-26-rv3-propeller.md",
       "verdict": "PASS"
     },
     "propeller.thrust_sign": {

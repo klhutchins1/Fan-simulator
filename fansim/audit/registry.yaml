@@ -71,7 +71,6 @@ exempt:
   - "fansim.propeller.bemt:PropPerf"
   - "fansim.propeller.bemt:get_polar_backend"
   - "fansim.propeller.bemt:set_polar_backend"
-  - "fansim.propeller.polars:PolarPoint"
   - "fansim.propeller.polars:clear_polar_cache"
   - "fansim.propeller.polars:load_polar_family"
   - "fansim.propeller.neuralfoil_polars:neuralfoil_available"
@@ -234,8 +233,8 @@ units:
       regression guard only). Table SF static C_P remains a known FAIL (~-21%, not claimed). NeuralFoil opt-in clears
       SF static C_T and C_P within the same tols (regression test; not the process default).
     source: {kind: datasheet, ref: "UIUC PropDB APC SF 9x4.7 / E 9x6; Audit #3 + §20.2 C_P split"}
-    checks: [tests/audit/test_prop_bemt_audit.py, tests/test_bemt.py, tests/test_bemt_catalog.py, tests/test_prop_uiuc_gws.py]
-    depends_on: [physics.air_properties]
+    checks: [tests/audit/test_prop_bemt_audit.py, tests/test_bemt.py, tests/test_bemt_catalog.py, tests/test_prop_uiuc_gws.py, tests/test_rv3_propeller.py]
+    depends_on: [physics.air_properties, propeller.polars, propeller.neuralfoil_polars, propeller.polar_coefficients]
 
   - id: propeller.polar_coefficients
     targets:
@@ -367,7 +366,7 @@ units:
       - "fansim.propeller.polars:family_for_camber"
     claim: "UIUC/Selig table polars: Re log-interp, stall flags, cl_cap at polar peak; miss returns None below tabulated Re"
     source: {kind: datasheet, ref: "UIUC airfoil polar database; §1.6 / §20.2 table default"}
-    checks: [tests/test_uiuc_polars.py, tests/test_polar_cache.py]
+    checks: [tests/test_uiuc_polars.py, tests/test_polar_cache.py, tests/test_rv3_propeller.py]
     depends_on: [physics.air_properties]
 
   - id: propeller.neuralfoil_polars
