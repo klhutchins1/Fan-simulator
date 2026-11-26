@@ -9,6 +9,7 @@ the run (docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md): static C
 
 from __future__ import annotations
 
+import itertools
 import math
 import sys
 
@@ -59,7 +60,7 @@ def test_static_never_beats_momentum_theory(blade, rpm):
 def test_ct_reaches_zero_at_finite_J_and_falls_monotonically(blade):
     js = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     cts = [_coeffs(blade, 6026.0, j)[1] for j in js]
-    assert all(b <= a + 1e-9 for a, b in zip(cts, cts[1:]))
+    assert all(b <= a + 1e-9 for a, b in itertools.pairwise(cts))
     assert cts[0] > 0.05
     # Zero-thrust crossing below J=0.9; beyond that CT may go negative (windmill, §20.2).
     assert any(ct <= 1e-6 for ct in cts)
@@ -107,13 +108,14 @@ def test_uiuc_static_point_within_preregistered_tolerance():
 
 
 # ---- Addendum 2026-09-29: UIUC measured geometry + J sweeps (vol-1 files, see uiuc_propdb/README.md) ----
-# E 9x6 keeps the original 0.015 gate. SF 9x4.7 registered gate is 0.020 (2026-09-30).
-# Aspirational SF full-curve 0.015 abandoned 2026-09-30: attached bias dominates (~0.018 RMS);
-# clearing 0.015 needs unknown-section camber ≈0.06 (forbidden datasheet fit; 0.07 blows up).
-CT_RMS_TOL = 0.015          # APC E 9x6 only
-CT_RMS_TOL_SF = 0.020       # APC SF 9x4.7 registered gate (§20.2)
+# Ruling 2026-11-25 (docs/validation/audits/2026-11-25-apcsf-ct-j-rms-ruling.md): the pre-registered
+# 0.015 gate stands for both props; APC SF 9x4.7 is a FAIL (~0.0175 RMS, attached bias dominates;
+# clearing 0.015 needs unknown-section camber ≈0.06, forbidden datasheet fit). The 2026-09-30 0.020
+# threshold was set after the data and is kept as a regression guard only, not a validation gate.
+CT_RMS_TOL = 0.015          # pre-registered validation gate (both props; SF fails it)
+CT_RMS_TOL_SF = 0.020       # APC SF regression guard only, NOT a validation gate (ruling 2026-11-25)
 
-from fansim.propeller.bemt_catalog import (  # noqa: E402
+from fansim.propeller.bemt_catalog import (
     UIUC_DIR,
     load_uiuc_geometry_blade,
     load_uiuc_performance,
@@ -203,14 +205,26 @@ def test_uiuc_apcsf_static_neuralfoil_within_tolerance():
     assert abs(e_cp) <= CP_STATIC_TOL, e_cp
 
 
-def test_uiuc_apcsf_ct_j_rms_within_reregistered_tolerance():
-    """§20.2: SF registered gate is 0.020 (aspirational 0.015 abandoned — see audit addendum)."""
+@pytest.mark.xfail(
+    strict=True,
+    reason="Ruling 2026-11-25 (docs/validation/audits/2026-11-25-apcsf-ct-j-rms-ruling.md): APC SF "
+    "C_T(J) RMS is a FAIL against the pre-registered 0.015 (~0.0175). The 0.020 gate was set after "
+    "the data and is not a pass. Strict: flags if the model ever clears 0.015.",
+)
+def test_uiuc_apcsf_ct_j_rms_within_preregistered_tolerance():
+    """Audit #3 pre-registered C_T(J) RMS <= 0.015 for every prop; APC SF fails it."""
+    worst = max(_ct_rms("apcsf_9x4.7", f) for f in _sweep_files("apcsf_9x4.7"))
+    assert worst <= CT_RMS_TOL, worst
+
+
+def test_uiuc_apcsf_ct_j_rms_regression_guard():
+    """Regression guard only (not a validation pass, ruling 2026-11-25): SF RMS must not grow past 0.020."""
     worst = max(_ct_rms("apcsf_9x4.7", f) for f in _sweep_files("apcsf_9x4.7"))
     assert worst <= CT_RMS_TOL_SF, worst
 
 
-def test_uiuc_apcsf_ct_j_attached_rms_within_reregistered_tolerance():
-    """Attached-window RMS is the driver; still gated at SF 0.020 (not 0.015)."""
+def test_uiuc_apcsf_ct_j_attached_rms_regression_guard():
+    """Attached-window RMS is the driver. Regression guard at 0.020 only (ruling 2026-11-25)."""
     worst = max(
         _ct_rms("apcsf_9x4.7", f, attached_only=True) for f in _sweep_files("apcsf_9x4.7")
     )
@@ -256,7 +270,7 @@ def test_analyze_passes_station_thickness_into_polars(blade, monkeypatch):
         return real(alpha, camber, re=re, thickness=thickness)
 
     monkeypatch.setattr(B, "_section_aero", spy)
-    from fansim.propeller.bemt_catalog import load_uiuc_geometry_blade, UIUC_DIR
+    from fansim.propeller.bemt_catalog import UIUC_DIR, load_uiuc_geometry_blade
 
     geom = load_uiuc_geometry_blade(UIUC_DIR / "apcsf_9x4.7_geom.txt", 9.0)
     analyze(geom, 6000.0)

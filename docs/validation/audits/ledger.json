@@ -134,8 +134,8 @@
     },
     "propeller.bemt": {
       "date": "2026-11-25",
-      "fingerprint": "a148162f1dbd523d",
-      "report": "docs/validation/audits/2026-11-25-bem-no-internal-round-prereg.md",
+      "fingerprint": "76902ae3816a6525",
+      "report": "docs/validation/audits/2026-11-25-apcsf-ct-j-rms-ruling.md (checks: 35 passed, 2 xfailed)",
       "verdict": "PASS"
     },
     "propeller.cfd_setup": {
