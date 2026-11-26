@@ -73,8 +73,8 @@
       "verdict": "PASS"
     },
     "cfd.flow_report": {
-      "date": "2026-11-25",
-      "fingerprint": "03340652e46ed1a9",
+      "date": "2026-11-26",
+      "fingerprint": "b37ff856b0ffc2cb",
       "report": "docs/review/2026-11-25-rv3-cfd-metrics.md",
       "verdict": "PASS"
     },
