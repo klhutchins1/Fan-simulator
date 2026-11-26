@@ -20,6 +20,7 @@ gate on aspect alone (§19.18). Absolute trust still needs shell FEA / tap test.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from fansim.geometry.blade import BladeParams
@@ -56,17 +57,39 @@ class RootBendingReport:
 
 
 def _tip_station(params: BladeParams):
+    if not params.stations:
+        raise ValueError("BladeParams.stations must not be empty")
     return max(params.stations, key=lambda s: float(s.r_frac))
+
+
+def _validate_radii(params: BladeParams) -> tuple[float, float]:
+    hub = float(params.hub_radius)
+    tip = float(params.tip_radius)
+    if not (math.isfinite(hub) and math.isfinite(tip)):
+        raise ValueError(
+            f"hub_radius and tip_radius must be finite, got {params.hub_radius!r}, {params.tip_radius!r}"
+        )
+    if hub < 0.0 or tip < hub:
+        raise ValueError(f"require 0 <= hub_radius <= tip_radius, got hub={hub}, tip={tip}")
+    return hub, tip
 
 
 def beam_aspect_ratio(params: BladeParams, *, station: str = "tip") -> float:
     """Span / chord at tip or mid station. Values ≲ :data:`BEAM_ASPECT_MIN` are plate-like."""
-    span_mm = max(float(params.tip_radius) - float(params.hub_radius), 1.0)
+    if station not in ("tip", "mid"):
+        raise ValueError(f"station must be 'tip' or 'mid', got {station!r}")
+    if not params.stations:
+        raise ValueError("BladeParams.stations must not be empty")
+    hub, tip = _validate_radii(params)
+    span_mm = max(tip - hub, 1.0)
     if station == "mid":
         st = min(params.stations, key=lambda s: abs(float(s.r_frac) - 0.5))
     else:
         st = _tip_station(params)
-    chord = max(float(st.chord), 1e-3)
+    chord_raw = float(st.chord)
+    if not math.isfinite(chord_raw):
+        raise ValueError(f"station chord must be finite, got {st.chord!r}")
+    chord = max(chord_raw, 1e-3)
     return span_mm / chord
 
 
@@ -89,10 +112,17 @@ def _fdm_e_factor(material: str) -> float:
 def _beam_section(params: BladeParams, material: str) -> tuple[float, float, float, float]:
     """Return (span_m, chord_m, thick_m, E_Pa) for the tip-station rectangular cantilever."""
     mat = MATERIALS[material]
-    span_m = max(params.tip_radius - params.hub_radius, 1.0) * MM_TO_M
+    hub, tip = _validate_radii(params)
+    span_m = max(tip - hub, 1.0) * MM_TO_M
     st = _tip_station(params)
-    chord_m = max(float(st.chord), 1e-3) * MM_TO_M
-    thick_m = max(float(st.thickness), 1e-4) * chord_m
+    chord_raw = float(st.chord)
+    thick_raw = float(st.thickness)
+    if not (math.isfinite(chord_raw) and math.isfinite(thick_raw)):
+        raise ValueError(
+            f"station chord and thickness must be finite, got chord={st.chord!r}, thickness={st.thickness!r}"
+        )
+    chord_m = max(chord_raw, 1e-3) * MM_TO_M
+    thick_m = max(thick_raw, 1e-4) * chord_m
     e = mat.youngs_modulus_gpa * 1e9 * _fdm_e_factor(material)
     return span_m, chord_m, thick_m, e
 
@@ -103,9 +133,12 @@ def tip_deflection_mm(
     load_pa: float = 1.0,
 ) -> float:
     """Cantilever tip deflection (mm) under uniform pressure ``load_pa``."""
+    load = float(load_pa)
+    if not math.isfinite(load):
+        raise ValueError(f"load_pa must be finite, got {load_pa!r}")
     span_m, chord_m, thick_m, e = _beam_section(params, material)
     inertia = chord_m * thick_m ** 3 / 12.0
-    q = max(float(load_pa), 0.0) * chord_m  # N/m along span
+    q = max(load, 0.0) * chord_m  # N/m along span
     if e <= 0.0 or inertia <= 0.0:
         return float("inf")
     delta_m = q * span_m ** 4 / (8.0 * e * inertia)
@@ -118,11 +151,14 @@ def tip_deflection_point_load_mm(
     material: str = "PETG",
 ) -> float:
     """Cantilever tip deflection (mm) under a tip point load ``force_n`` (N): δ = P L³ / (3 E I)."""
+    force = float(force_n)
+    if not math.isfinite(force):
+        raise ValueError(f"force_n must be finite, got {force_n!r}")
     span_m, chord_m, thick_m, e = _beam_section(params, material)
     inertia = chord_m * thick_m ** 3 / 12.0
     if e <= 0.0 or inertia <= 0.0:
         return float("inf")
-    delta_m = abs(float(force_n)) * span_m ** 3 / (3.0 * e * inertia)
+    delta_m = abs(force) * span_m ** 3 / (3.0 * e * inertia)
     return float(delta_m / MM_TO_M)
 
 
@@ -139,28 +175,36 @@ def root_bending_stress(
     times layer-adhesion knockdown (same as centrifugal).
     """
     mat = MATERIALS[material]
+    load = float(load_pa)
+    if not math.isfinite(load):
+        raise ValueError(f"load_pa must be finite, got {load_pa!r}")
     k = LAYER_ADHESION_K if adhesion_k is None else float(adhesion_k)
+    if not (math.isfinite(k) and k > 0.0):
+        raise ValueError(f"adhesion_k must be finite and > 0, got {k!r}")
+    min_sf = float(min_safety_factor)
+    if not (math.isfinite(min_sf) and min_sf > 0.0):
+        raise ValueError(f"min_safety_factor must be finite and > 0, got {min_safety_factor!r}")
     span_m, chord_m, thick_m, _e = _beam_section(params, material)
     inertia = chord_m * thick_m ** 3 / 12.0
-    q = max(float(load_pa), 0.0) * chord_m
+    q = max(load, 0.0) * chord_m
     moment = q * span_m ** 2 / 2.0
     sigma_pa = (moment * (thick_m / 2.0) / inertia) if inertia > 0.0 else float("inf")
-    sigma_mpa = sigma_pa / 1e6
+    sigma_mpa = float(sigma_pa / 1e6)
     in_plane = float(mat.yield_strength_mpa)
-    allow = in_plane * k
-    sf = allow / sigma_mpa if sigma_mpa > 1e-9 else float("inf")
-    ok = sf >= min_safety_factor
+    allow = float(in_plane * k)
+    sf = float(allow / sigma_mpa) if sigma_mpa > 1e-9 else float("inf")
+    ok = sf >= min_sf
     reason = ""
     if not ok:
         reason = (
             f"root bending SF {sf:.1f} < {min_safety_factor} ({material}, "
-            f"{float(load_pa):g} Pa hose"
+            f"{load:g} Pa hose"
         )
         if k < 1.0:
             reason += ", layer-adhesion"
         reason += ")"
     return RootBendingReport(
-        ok, float(sigma_mpa), allow, float(sf), material, float(load_pa), reason, k,
+        ok, sigma_mpa, allow, sf, material, load, reason, k,
     )
 
 
@@ -172,8 +216,11 @@ def deflection_report(
     load_pa: float = 1.0,
 ) -> DeflectionReport:
     """Gate: tip deflection must stay strictly below leftover tip gap."""
+    gap_raw = float(tip_gap_mm)
+    if not (math.isfinite(gap_raw) and gap_raw >= 0.0):
+        raise ValueError(f"tip_gap_mm must be finite and >= 0, got {tip_gap_mm!r}")
     delta = tip_deflection_mm(params, material=material, load_pa=load_pa)
-    gap = max(float(tip_gap_mm), 0.0)
+    gap = max(gap_raw, 0.0)
     frac = delta / gap if gap > 1e-9 else float("inf")
     ok = delta < gap
     e_k = _fdm_e_factor(material)
