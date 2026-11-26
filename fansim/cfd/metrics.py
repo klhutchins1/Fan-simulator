@@ -7,11 +7,13 @@ power, and aerodynamic efficiency.
 
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-CFM_PER_M3S = 2118.882  # ft^3/min per m^3/s
 from fansim.physics.air import RHO_AMCA as RHO_AIR
+
+CFM_PER_M3S = 2118.882  # ft^3/min per m^3/s
 
 # Solver/metrics generation stamped on every scored trial (optimize/study.py + cockpit Assess),
 # so the catalog can tell which results are trustworthy. Bump when a change makes previously stored
@@ -50,11 +52,6 @@ def _all_data_rows(path: Path) -> list[list[float]]:
     if not rows:
         raise ValueError(f"no data rows in {path}")
     return rows
-
-
-def _last_data_row(path: Path) -> list[float]:
-    """Return the numeric fields of the last non-comment row of an OpenFOAM .dat file."""
-    return _all_data_rows(path)[-1]
 
 
 def _tail_mean_row(path: Path, tail_frac: float = TAIL_FRAC) -> list[float]:
@@ -139,9 +136,11 @@ def _flow_trajectory(case_dir: Path) -> list[tuple[float, float]]:
         if not line or line.startswith("#"):
             continue
         parts = line.replace("(", " ").replace(")", " ").split()
+        if len(parts) < 2:
+            continue
         try:
             traj.append((float(parts[0]), float(parts[-1])))
-        except (ValueError, IndexError):
+        except ValueError:
             continue
     return traj
 
@@ -184,6 +183,10 @@ def oscillation_pct(case_dir: str | Path, tail_frac: float = TAIL_FRAC) -> float
 def parse_fan_metrics(
     case_dir: str | Path, omega_rad_s: float, rho: float = RHO_AIR
 ) -> FanMetrics:
+    if not math.isfinite(omega_rad_s) or omega_rad_s < 0.0:
+        raise ValueError(f"omega_rad_s must be finite and non-negative, got {omega_rad_s!r}")
+    if not math.isfinite(rho) or rho <= 0.0:
+        raise ValueError(f"rho must be finite and positive, got {rho!r}")
     case_dir = Path(case_dir)
 
     # Report the converged-tail MEAN of every metric, not the final-iteration sample:

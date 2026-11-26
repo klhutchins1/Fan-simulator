@@ -116,6 +116,7 @@ follow_imports = "skip"
 # follow_imports=skip avoids CadQuery→casadi stubs that crash mypy (duplicate INOUT).
 files = [
     "fansim/fan_spec.py",
+    "fansim/fan_bem.py",
     "fansim/optimize/search_space.py",
     "fansim/cfd/metrics.py",
 ]

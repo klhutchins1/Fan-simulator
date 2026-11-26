@@ -61,7 +61,7 @@ Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 - Noctua NF-A12x25 close-reference STL: free-air **59.8 CFM vs published 60.1 (−0.5%)**; last
   converged loaded points 5 / 10 Pa (52.5 / 41.0 CFM). Near-stall points are not shown (steady-RANS
   does not converge there). Published shut-off is 22.9 Pa.
-- External benchmark FAN-01 (exact published CAD): within **+2.6% / +3.1%**.
+- External benchmark FAN-01 (exact published CAD): within **+2.5% / +3.1%** (no tolerance was pre-registered; see `docs/validation/scoreboard.md`).
 - Parametric Stock recipe v2: 56.5 / 49.8 / 40.2 CFM at 0 / 5 / 10 Pa (−5.5% vs the close-ref STL at
   free air).
 

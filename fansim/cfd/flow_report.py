@@ -156,8 +156,12 @@ def compute_metrics(s: FlowSamples, *, hub_r: float, tip_r: float, z_fan: float,
     if denom <= 0:
         missing["swirl_frac"] = "no air moves through the exit plane"
 
-    dead_lim = DEAD_FRAC_OF_MEAN * abs(mean_uz)
-    dead = _wmean((np.abs(uz_e) < dead_lim).astype(float), we)
+    if mean_uz == 0:
+        dead = float("nan")
+        missing["dead_frac"] = "no net forward flow to set the dead-air speed threshold"
+    else:
+        dead_lim = DEAD_FRAC_OF_MEAN * abs(mean_uz)
+        dead = _wmean((np.abs(uz_e) < dead_lim).astype(float), we)
 
     frac_e = (r_e - hub_r) / max(tip_r - hub_r, 1e-12)
     tip_sel = frac_e >= 1.0 - TIP_BAND_FRAC
@@ -167,6 +171,8 @@ def compute_metrics(s: FlowSamples, *, hub_r: float, tip_r: float, z_fan: float,
         missing["tip_band_uz_ratio"] = "the mesh has no exit cells in the outer 10 % of the blade"
     elif mean_uz == 0:
         missing["tip_band_uz_ratio"] = "no net forward flow to compare the tip with"
+    elif not math.isfinite(tip_ratio):
+        missing["tip_band_uz_ratio"] = "the exit cells in the outer 10 % of the blade have no volume"
 
     # Useful push: static + forward dynamic pressure. Swirl energy is the separate 'wasted spin'
     # row; counting it here made a swirly fan (Stock) look stronger than a better one (t9005).
@@ -181,7 +187,10 @@ def compute_metrics(s: FlowSamples, *, hub_r: float, tip_r: float, z_fan: float,
             bands.append(float("nan"))
             missing[f"band_dp0_pa[{i}]"] = "the mesh has no cells in this band at the exit or inlet"
             continue
-        bands.append(RHO_AMCA * (_wmean(p0_e[se], we[se]) - _wmean(p0_in[si], w_in[si])))
+        band_val = RHO_AMCA * (_wmean(p0_e[se], we[se]) - _wmean(p0_in[si], w_in[si]))
+        if not math.isfinite(band_val):
+            missing[f"band_dp0_pa[{i}]"] = "the cells in this band have no volume at the exit or inlet"
+        bands.append(band_val)
     mean_push = RHO_AMCA * (_wmean(p0_e, we) - _wmean(p0_in, w_in)) if np.any(inn) else float("nan")
     if not math.isfinite(mean_push):
         missing["mean_dp0_pa"] = "no usable inlet-plane cells"

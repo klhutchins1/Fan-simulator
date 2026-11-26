@@ -229,8 +229,9 @@ units:
     claim: >
       Prop BEMT (Prandtl tip loss, swirl, Re-aware polars, Prandtl-Glauert, windmill T/vi signed)
       never beats momentum theory; UIUC APC E 9x6 static C_T/C_P and C_T(J) RMS within Audit #3
-      tols; APC SF 9x4.7 static C_T and C_T(J) RMS (tol 0.020) PASS on the table default.
-      Table SF static C_P remains a known FAIL (~-21%, not claimed). NeuralFoil opt-in clears
+      tols; APC SF 9x4.7 static C_T PASS on the table default. SF C_T(J) RMS is a known FAIL
+      against the pre-registered 0.015 (~0.0175; ruling 2026-11-25, the after-the-data 0.020 is a
+      regression guard only). Table SF static C_P remains a known FAIL (~-21%, not claimed). NeuralFoil opt-in clears
       SF static C_T and C_P within the same tols (regression test; not the process default).
     source: {kind: datasheet, ref: "UIUC PropDB APC SF 9x4.7 / E 9x6; Audit #3 + §20.2 C_P split"}
     checks: [tests/audit/test_prop_bemt_audit.py, tests/test_bemt.py, tests/test_bemt_catalog.py, tests/test_prop_uiuc_gws.py]
@@ -256,7 +257,7 @@ units:
     claim: "Axial-fan BEM never beats momentum theory, gives zero static rise at its free delivery, and ranks designs like CFD (RANKING-ONLY screening). Opt-in axial_force model: static rise = blade axial force / annulus area with a Viterna post-stall polar; Stock fit 59.8 CFM / 22.1 Pa; paddles and wrong-hand blades are not fans (QA-4)"
     source: {kind: datasheet, ref: "Audit #4: CFD v5 Stock v1/v2 + re-scored designs; Euler turbomachinery + blade-element theory; QA rules a/b/b2/c/d 2026-10-09"}
     checks: [tests/audit/test_fan_bem_audit.py, tests/test_math_consistency.py, tests/test_fan_bem.py]
-    depends_on: [physics.air_properties]
+    depends_on: [physics.air_properties, cfd.cfm_from_outlet_flow, propeller.bemt, propeller.polars]
 
   - id: structural.deflection
     targets:
