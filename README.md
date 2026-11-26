@@ -214,9 +214,10 @@ Case internals (mesh, `processor*`, logs) are regenerable and safe to prune once
 
 ## Known limits
 
+- Nothing printed or measured yet (printed-rig measurements come in v1.1).
 - Mixed-flow: Experimental: not validated against published data.
-- Volute: Experimental: not validated against published data.
-- Prop CFD: Experimental: not validated against published data. (Prop BEMT fast estimate is validated within its stated band.)
+- Volute: Experimental: not validated against published data (unconverged on the fine mesh).
+- Prop CFD: Experimental: not validated against published data — propeller CFD is not a performance predictor. (Prop BEMT fast estimate is validated within its stated band.)
 - CROR: Experimental: not validated against published data.
 - noise levels are not validated;
 - the Stock recipe reads about 5 % less airflow than the real A12x25 shape (55.7 vs 58.3 CFM in the same test). Designs are compared with this Stock, so comparisons are like for like.
