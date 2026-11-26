@@ -17,6 +17,7 @@ before any CFD is spent on them.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import shutil
 import time
@@ -72,7 +73,6 @@ from fansim.optimize.system_curve import (
 from fansim.structural.deflection import (
     deflection_report,
     root_bending_stress,
-    tip_deflection_mm,
 )
 from fansim.structural.flutter import flutter_report
 from fansim.structural.stress import centrifugal_root_stress
@@ -232,6 +232,10 @@ def evaluate_candidate(
     if spec.motor_mount is not None:
         from fansim.manufacturability.print_export import mount_hub_params
         params, _grow_note = mount_hub_params(params, spec.motor_mount)
+    # Every gate below (centrifugal stress ∝ rpm², resonance vs blade-pass ∝ rpm) and the CFD must
+    # judge the speed the design will run at: the fan model's rpm or an Optuna --search-rpm sample.
+    # A copy, so the caller's params are not changed (RV-3: gates used to see the stale params.rpm).
+    params = dataclasses.replace(params, rpm=target_rpm)
 
     # --- Cheap gates first (no CFD) ---
     if require_mountable:
@@ -331,8 +335,9 @@ def evaluate_candidate(
                     f"floor (free {bem_free:.0f}; skipped CFD)",
                     t0, raw=gap_raw,
                 )
-        except Exception:  # noqa: BLE001,S110 - the screen must never break the eval
-            pass
+        except Exception as exc:  # noqa: BLE001 - the screen must never break the eval
+            # RV-3: stamp it. A silent pass sent the design to CFD with no trace of the crash.
+            gap_raw["bem_prescreen_error"] = f"{type(exc).__name__}: {exc}"
 
     # --- Catalog GP pre-screen (roadmap §7.4): skip CFD when the GP is confident the
     # predicted CFM is below the floor (mean + 1 std). Prefer the load-line GP when fitted.
@@ -363,7 +368,7 @@ def evaluate_candidate(
     # --- Geometry ---
     try:
         stl = export_stl(build_impeller(params), workdir / "impeller.stl")
-    except Exception as exc:  # noqa: BLE001 - geometry/loft/boolean failure
+    except Exception as exc:  # noqa: BLE001 - geometry/loft/boolean failure -> infeasible
         return _infeasible(f"geometry failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
     rep = watertight_report(stl)
     if not rep.ok:
@@ -394,7 +399,6 @@ def evaluate_candidate(
     # under-predict flow ~15% + hurt convergence (2.0/4.0 diameters converge cleanly to ~77/81
     # for trial 2; the earlier 1.0/1.5 gave ~65/71 unconverged — see adversarial-review §3.4).
     # Reusing one meshed dir across back-pressures was verified to NOT contaminate results.
-    params.rpm = target_rpm  # model RPM or an Optuna --search-rpm sample
     gap_raw["stator"] = (
         "stack" if stator_stack else ("stator" if stator else "frame"))
     gap_raw["inlet"] = "stepped" if stepped_inlet else "plain"
@@ -423,7 +427,7 @@ def evaluate_candidate(
             frame_path = workdir / "frame.stl"
             z_start = stack_frame_z_start_mm(rig0) if stator_stack else None
             export_frame_stl(params, rig0, frame_path, z_start_mm=z_start)
-    except Exception as exc:  # noqa: BLE001 - stator/frame export must not crash the eval
+    except Exception as exc:  # noqa: BLE001 - stator/frame build failure -> infeasible
         which = "stator" if (stator or stator_stack) and frame_path is None else "frame"
         return _infeasible(f"{which} failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
@@ -432,7 +436,7 @@ def evaluate_candidate(
         casing_path = workdir / "casing.stl"
         try:
             export_casing_stl(rig0, casing_path, stepped=True)
-        except Exception as exc:  # noqa: BLE001 - casing export must not crash the eval
+        except Exception as exc:  # noqa: BLE001 - casing build failure -> infeasible
             return _infeasible(f"casing failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
     runner = OpenFOAMRunner(workdir)
@@ -453,7 +457,7 @@ def evaluate_candidate(
                    stator_stl_mm=stator_path, wall_ks_mm=wall_ks_mm)
         # parallel_mesh: snappyHexMesh on ``procs`` ranks (see openfoam_case.mesh_pipeline).
         run_mesh(runner, n_procs=procs if parallel_mesh else 1)
-    except Exception as exc:  # noqa: BLE001 - mesh failure is an infeasible design, not a crash
+    except Exception as exc:  # noqa: BLE001 - meshing failure -> infeasible
         return _infeasible(f"mesh failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
     # Sanity checks (fansim.cfd.sanity) are report-only: they flag, they never make a design
@@ -461,6 +465,7 @@ def evaluate_candidate(
     # here, immediately after parsing that solve's metrics, keyed by which operating point
     # ("free"/"load") this call is for.
     sanity_by_label: dict[str, list] = {}
+    sanity_errors: dict[str, str] = {}
 
     def solve_at(back_pa: float, label: str | None = None):
         build_case(workdir, stl, rig0, mesh=mesh0,
@@ -473,8 +478,9 @@ def evaluate_candidate(
             try:
                 sanity_by_label[label] = run_sanity(
                     workdir, metrics=m, omega_signed=rig0.omega_signed)
-            except Exception:  # noqa: BLE001 - sanity is report-only, must never break the eval
+            except Exception as exc:  # noqa: BLE001 - sanity is report-only, must never break the eval
                 sanity_by_label[label] = []
+                sanity_errors[label] = f"{type(exc).__name__}: {exc}"  # RV-3: not "no warnings"
         return m
 
     noise_swl = INFEASIBLE_NOISE
@@ -488,8 +494,9 @@ def evaluate_candidate(
                 from fansim.acoustics.case import proudman_swl_from_case
                 runner.run("reconstructPar -latestTime", check=False)
                 noise_swl = float(proudman_swl_from_case(workdir))
-            except Exception:  # noqa: BLE001 - noise read failed -> worst score, won't be selected
+            except Exception as exc:  # noqa: BLE001 - noise read failed -> worst score, won't be selected
                 noise_swl = INFEASIBLE_NOISE
+                gap_raw["proudman_error"] = f"{type(exc).__name__}: {exc}"
         else:
             m_free = solve_at(0.0, "free")
             try:
@@ -506,12 +513,12 @@ def evaluate_candidate(
                         continue
                     (hist / fo).mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(src, hist / fo / name)
-            except Exception:  # noqa: BLE001,S110 - salvage file is best-effort
-                pass
+            except Exception as exc:  # noqa: BLE001 - salvage file is best-effort
+                gap_raw["free_salvage_error"] = f"{type(exc).__name__}: {exc}"
             m_load = solve_at(load_pa, "load")
             # Loading-noise proxy deferred until after motor derate (O7 / #53): thrust ∝ λ².
-    except Exception as exc:  # noqa: BLE001 - solve failure is an infeasible design, not a crash
-        return _infeasible(f"solve failed: {type(exc).__name__}", t0, raw=gap_raw)
+    except Exception as exc:  # noqa: BLE001 - any solver failure makes this design infeasible
+        return _infeasible(f"solve failed: {type(exc).__name__}: {exc}", t0, raw=gap_raw)
 
     # Sanity: flag-only. A FAIL is stamped into raw/reason for visibility but never rejects
     # the design (user decision, .superpowers/sdd/constraints-sanity.md).
@@ -519,7 +526,11 @@ def evaluate_candidate(
         *sanity_by_label.get("free", []),
         *sanity_by_label.get("load", []),
     ]
-    sanity_status = sanity_overall(sanity_checks_all) if sanity_checks_all else "SKIP"
+    if sanity_errors:
+        sanity_status = "ERROR"
+        gap_raw["sanity_error"] = sanity_errors
+    else:
+        sanity_status = sanity_overall(sanity_checks_all) if sanity_checks_all else "SKIP"
     sanity_dicts = [
         {"phase": phase, **asdict(c)}
         for phase, checks in sanity_by_label.items()
@@ -527,9 +538,13 @@ def evaluate_candidate(
     ]
     gap_raw["sanity"] = sanity_dicts
     gap_raw["sanity_status"] = sanity_status
-    sanity_note = ""
-    if sanity_status == SANITY_FAIL:
-        sanity_note = summarize_sanity(sanity_checks_all)
+    sanity_notes: list[str] = []
+    if sanity_checks_all and sanity_overall(sanity_checks_all) == SANITY_FAIL:
+        sanity_notes.append(summarize_sanity(sanity_checks_all))
+    if sanity_errors:
+        err_phases = ", ".join(f"{k}: {v}" for k, v in sanity_errors.items())
+        sanity_notes.append(f"sanity ERROR ({err_phases})")
+    sanity_note = "  ".join(sanity_notes)
 
     # Flag under-converged solves: near the stall operating point the steady RANS may not
     # settle within the iteration budget, making the number untrustworthy (see the
@@ -632,18 +647,15 @@ def evaluate_candidate(
         conv_note += ("  " if conv_note else "") + sanity_note
 
     # Sim→print knockdown (§7.6): report printed CFM/η from smooth-wall (or ks) RANS.
+    # Reuse defl.tip_deflection_mm from the FSI gate above (same params/material/load_pa).
     tip_t = tip_section_thickness(params)
-    try:
-        tip_defl = tip_deflection_mm(params, material=material, load_pa=float(load_pa))
-    except Exception:  # noqa: BLE001
-        tip_defl = None
     cfm_free, cfm_load, efficiency, print_stamps = apply_print_penalty(
         cfm_free,
         cfm_load,
         efficiency,
         enabled=print_penalty,
         tip_thickness=tip_t,
-        tip_deflection_mm=tip_defl,
+        tip_deflection_mm=float(defl.tip_deflection_mm),
         tip_gap_mm=float(remaining),
     )
 
