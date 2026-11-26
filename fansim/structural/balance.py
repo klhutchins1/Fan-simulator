@@ -30,7 +30,7 @@ class Unbalance:
 
     @property
     def balanced(self) -> bool:
-        return self.normalized < 1e-6
+        return self.normalized <= 1e-6
 
 
 def equal_spacing(n_blades: int) -> np.ndarray:
@@ -40,11 +40,24 @@ def equal_spacing(n_blades: int) -> np.ndarray:
     return np.arange(n_blades, dtype=float) * (TWO_PI / n_blades)
 
 
-def _mr(n, masses, radii):
-    m = np.ones(n) if masses is None else np.asarray(masses, float)
-    r = np.ones(n) if radii is None else np.asarray(radii, float)
-    if len(m) != n or len(r) != n:
+def _as_angles(angles) -> np.ndarray:
+    ang = np.asarray(angles, dtype=float)
+    if ang.ndim != 1 or len(ang) == 0:
+        raise ValueError("angles must be a non-empty 1-D sequence")
+    if not np.all(np.isfinite(ang)):
+        raise ValueError("angles must be finite")
+    return ang
+
+
+def _mr(n: int, masses, radii) -> np.ndarray:
+    m = np.ones(n, dtype=float) if masses is None else np.asarray(masses, dtype=float)
+    r = np.ones(n, dtype=float) if radii is None else np.asarray(radii, dtype=float)
+    if m.ndim != 1 or r.ndim != 1 or len(m) != n or len(r) != n:
         raise ValueError("masses/radii must match number of blades")
+    if not (np.all(np.isfinite(m)) and np.all(np.isfinite(r))):
+        raise ValueError("masses/radii must be finite")
+    if np.any(m < 0.0) or np.any(r < 0.0):
+        raise ValueError("masses/radii must be >= 0")
     return m * r
 
 
@@ -54,10 +67,10 @@ def static_unbalance(angles, masses=None, radii=None) -> Unbalance:
     ``masses``/``radii`` default to identical unit blades. Returns magnitude (kg*m), heavy-spot
     angle, and the value normalized by total m*r (so tolerance is scale-free).
     """
-    angles = np.asarray(angles, float)
-    mr = _mr(len(angles), masses, radii)
-    ux = float(np.sum(mr * np.cos(angles)))
-    uy = float(np.sum(mr * np.sin(angles)))
+    ang = _as_angles(angles)
+    mr = _mr(len(ang), masses, radii)
+    ux = float(np.sum(mr * np.cos(ang)))
+    uy = float(np.sum(mr * np.sin(ang)))
     mag = math.hypot(ux, uy)
     total = float(np.sum(np.abs(mr))) or 1.0
     return Unbalance(magnitude=mag, angle_rad=math.atan2(uy, ux), normalized=mag / total)
@@ -80,7 +93,13 @@ def required_counterweight(angles, masses=None, radii=None) -> tuple[float, floa
 
 def residual_force(unbalance_mr: float, omega_rad_s: float) -> float:
     """Rotating centrifugal force [N] from a residual unbalance U=m*r [kg*m]: F = U * omega^2."""
-    return unbalance_mr * omega_rad_s**2
+    u = float(unbalance_mr)
+    w = float(omega_rad_s)
+    if not (math.isfinite(u) and u >= 0.0):
+        raise ValueError(f"unbalance_mr must be finite and >= 0, got {unbalance_mr!r}")
+    if not math.isfinite(w):
+        raise ValueError(f"omega_rad_s must be finite, got {omega_rad_s!r}")
+    return float(u * w**2)
 
 
 def couple_unbalance(angles, z_positions, masses=None, radii=None) -> float:
@@ -89,11 +108,15 @@ def couple_unbalance(angles, z_positions, masses=None, radii=None) -> float:
     |sum_k m_k r_k z_k e^{i th_k}| -- nonzero couple tilts the axis even when static balance holds.
     Negligible for a thin single-plane rotor; report it for axially-staggered designs.
     """
-    angles = np.asarray(angles, float)
-    z = np.asarray(z_positions, float)
-    mr = _mr(len(angles), masses, radii)
-    cx = float(np.sum(mr * z * np.cos(angles)))
-    cy = float(np.sum(mr * z * np.sin(angles)))
+    ang = _as_angles(angles)
+    z = np.asarray(z_positions, dtype=float)
+    if z.ndim != 1 or len(z) != len(ang):
+        raise ValueError("z_positions must match number of blades")
+    if not np.all(np.isfinite(z)):
+        raise ValueError("z_positions must be finite")
+    mr = _mr(len(ang), masses, radii)
+    cx = float(np.sum(mr * z * np.cos(ang)))
+    cy = float(np.sum(mr * z * np.sin(ang)))
     return math.hypot(cx, cy)
 
 
@@ -109,6 +132,9 @@ def balanced_uneven_spacing(n_blades: int, spread: float = 0.3, rng=None,
     """
     if n_blades < 2:
         raise ValueError("need >= 2 blades")
+    spread_f = float(spread)
+    if not (math.isfinite(spread_f) and spread_f >= 0.0):
+        raise ValueError(f"spread must be finite and >= 0, got {spread!r}")
     rng = np.random.default_rng() if rng is None else rng
     step = TWO_PI / n_blades
 
@@ -116,21 +142,36 @@ def balanced_uneven_spacing(n_blades: int, spread: float = 0.3, rng=None,
         # pair method: N/2 base angles in [0, pi); blade at base and base+pi -> each pair self-cancels
         half = n_blades // 2
         base = np.arange(half) * (TWO_PI / n_blades)
-        base = base + spread * 0.5 * step * rng.standard_normal(half)
+        base = base + spread_f * 0.5 * step * rng.standard_normal(half)
         return np.sort(np.concatenate([base, base + math.pi]) % TWO_PI)
 
     # general case: perturb equal spacing, then null U by minimal-norm angle corrections
-    ang = equal_spacing(n_blades) + spread * 0.5 * step * rng.standard_normal(n_blades)
     mr = _mr(n_blades, masses, radii)
+    total_mr = float(np.sum(np.abs(mr)))
+    if total_mr > 0.0 and float(np.max(mr)) > (total_mr - float(np.max(mr))) + 1e-12:
+        raise ValueError(
+            "cannot statically balance blades by angle adjustment alone: "
+            "one blade's m*r exceeds the sum of all others"
+        )
+    ang = equal_spacing(n_blades) + spread_f * 0.5 * step * rng.standard_normal(n_blades)
+    denom = total_mr or 1.0
     for _ in range(50):
-        ux = np.sum(mr * np.cos(ang)); uy = np.sum(mr * np.sin(ang))
-        if math.hypot(ux, uy) / (np.sum(np.abs(mr)) or 1.0) < 1e-9:
+        ux = float(np.sum(mr * np.cos(ang)))
+        uy = float(np.sum(mr * np.sin(ang)))
+        if math.hypot(ux, uy) / denom < 1e-9:
             break
         # dU/dth_k = mr_k * (-sin, cos); solve J dth = -U with minimal norm (pseudoinverse)
         J = np.vstack([-mr * np.sin(ang), mr * np.cos(ang)])   # 2 x N
         dth = J.T @ np.linalg.solve(J @ J.T + 1e-12 * np.eye(2), -np.array([ux, uy]))
         ang = ang + dth
     ang = ang % TWO_PI
+    ux = float(np.sum(mr * np.cos(ang)))
+    uy = float(np.sum(mr * np.sin(ang)))
+    if math.hypot(ux, uy) / denom > 1e-6:
+        raise ValueError(
+            f"balanced_uneven_spacing did not converge to static balance "
+            f"(normalized residual {math.hypot(ux, uy) / denom:.3e} > 1e-6)"
+        )
     # Sorting reorders blades; with per-blade masses/radii that would break the mass<->angle pairing
     # the balance was solved for (Audit #5), so keep blade order in that case.
     return np.sort(ang) if (masses is None and radii is None) else ang

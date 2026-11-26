@@ -14,14 +14,26 @@ DIPOLE_EXPONENT = 55.0  # middle of the 50–60 Ffowcs Williams / Lighthill dipo
 
 
 def tip_speed_ms(rpm: float, tip_radius_mm: float) -> float:
-    return (float(rpm) * 2.0 * math.pi / 60.0) * (float(tip_radius_mm) / 1000.0)
+    rpm_f = float(rpm)
+    r_mm = float(tip_radius_mm)
+    if not (math.isfinite(rpm_f) and rpm_f >= 0.0):
+        raise ValueError(f"rpm must be finite and >= 0, got {rpm!r}")
+    if not (math.isfinite(r_mm) and r_mm >= 0.0):
+        raise ValueError(f"tip_radius_mm must be finite and >= 0, got {tip_radius_mm!r}")
+    return (rpm_f * 2.0 * math.pi / 60.0) * (r_mm / 1000.0)
 
 
 def tip_loading_swl_db(tip_speed_ms_: float, cfm_free: float) -> float:
     """Relative ranking SWL [dB-ish]. Lower is quieter. Compare designs, don't claim a mic."""
+    u = float(tip_speed_ms_)
+    cfm = float(cfm_free)
+    if not (math.isfinite(u) and math.isfinite(cfm)):
+        raise ValueError(
+            f"tip_speed_ms_ and cfm_free must be finite, got {tip_speed_ms_!r}, {cfm_free!r}"
+        )
     return (
-        DIPOLE_EXPONENT * math.log10(max(float(tip_speed_ms_), 1.0))
-        + 10.0 * math.log10(max(float(cfm_free), 0.1))
+        DIPOLE_EXPONENT * math.log10(max(u, 1.0))
+        + 10.0 * math.log10(max(cfm, 0.1))
     )
 
 
@@ -40,10 +52,10 @@ def noise_hint_from_case(case_dir) -> float | None:
         rpm = (raw.get("raw") or {}).get("actual_rpm")
     from fansim.cfd.spanwise import load_case_radii_omega
 
-    _hub, tip_m, omega = load_case_radii_omega(case_dir)
-    if rpm is None:
-        rpm = abs(float(omega)) * 60.0 / (2.0 * math.pi)
     try:
+        _hub, tip_m, omega = load_case_radii_omega(case_dir)
+        if rpm is None:
+            rpm = abs(float(omega)) * 60.0 / (2.0 * math.pi)
         return tip_loading_swl_db(tip_speed_ms(float(rpm), float(tip_m) * 1000.0), float(cfm))
-    except (TypeError, ValueError):
+    except (OSError, TypeError, ValueError):
         return None

@@ -21,9 +21,15 @@ import numpy as np
 def blade_passing_modes(angles_rad, m_max: int | None = None):
     """Array-factor amplitude A(m)=|sum_k e^{-i m theta_k}| for m=1..m_max. Returns (m, amplitude)."""
     ang = np.asarray(angles_rad, float)
+    if ang.ndim != 1 or len(ang) == 0:
+        raise ValueError("angles_rad must be a non-empty 1-D sequence")
+    if not np.all(np.isfinite(ang)):
+        raise ValueError("angles_rad must be finite")
     n = len(ang)
-    m_max = m_max or 4 * n
-    m = np.arange(1, m_max + 1)
+    m_hi = 4 * n if m_max is None else int(m_max)
+    if m_hi < 1:
+        raise ValueError(f"m_max must be >= 1, got {m_max!r}")
+    m = np.arange(1, m_hi + 1)
     amp = np.abs(np.exp(-1j * np.outer(m, ang)).sum(axis=1))
     return m, amp
 
@@ -40,10 +46,11 @@ def tonal_peak_ratio(angles_rad, m_max: int | None = None) -> float:
     < 1.0 = spread (quieter peak tone). The scale-free objective to MINIMIZE when choosing a spacing
     pattern; lower is quieter.
     """
-    return peak_tone_amplitude(angles_rad, m_max) / len(angles_rad)
+    ang = np.asarray(angles_rad, float)
+    return peak_tone_amplitude(ang, m_max) / len(ang)
 
 
 def peak_tone_reduction_db(angles_rad, m_max: int | None = None) -> float:
     """Peak-tone reduction vs equal spacing, in dB: 20*log10(ratio) (<= 0; more negative = quieter)."""
     r = tonal_peak_ratio(angles_rad, m_max)
-    return 20.0 * np.log10(r) if r > 0 else float("-inf")
+    return float(20.0 * np.log10(r)) if r > 0.0 else float("-inf")

@@ -14,8 +14,12 @@ from dataclasses import dataclass
 
 from fansim.geometry.blade import BladeParams
 from fansim.manufacturability.materials import MATERIALS
-from fansim.structural.deflection import BEAM_ASPECT_MIN, beam_aspect_ratio
-from fansim.structural.stress import FDM_E_K
+from fansim.structural.deflection import (
+    BEAM_ASPECT_MIN,
+    _fdm_e_factor,
+    _validate_radii,
+    beam_aspect_ratio,
+)
 
 MM_TO_M = 1.0e-3
 CANTILEVER_LAMBDA = 1.875104
@@ -35,23 +39,31 @@ class FlutterReport:
 
 
 def _mid_station(params: BladeParams):
-    return min(params.stations, key=lambda s: abs(s.r_frac - 0.5))
+    if not params.stations:
+        raise ValueError("BladeParams.stations must not be empty")
+    return min(params.stations, key=lambda s: abs(float(s.r_frac) - 0.5))
 
 
 def first_bending_hz(params: BladeParams, material: str = "PETG") -> float:
     mat = MATERIALS[material]
-    span_m = max(params.tip_radius - params.hub_radius, 1.0) * MM_TO_M
+    hub, tip = _validate_radii(params)
+    span_m = max(tip - hub, 1.0) * MM_TO_M
     st = _mid_station(params)
-    chord_m = max(st.chord, 1e-3) * MM_TO_M
-    thick_m = max(st.thickness, 1e-4) * chord_m
+    chord_raw = float(st.chord)
+    thick_raw = float(st.thickness)
+    if not (math.isfinite(chord_raw) and math.isfinite(thick_raw)):
+        raise ValueError(
+            f"station chord and thickness must be finite, got chord={st.chord!r}, thickness={st.thickness!r}"
+        )
+    chord_m = max(chord_raw, 1e-3) * MM_TO_M
+    thick_m = max(thick_raw, 1e-4) * chord_m
     area = chord_m * thick_m
     inertia = chord_m * thick_m ** 3 / 12.0
     mu = mat.density_kg_m3 * area
-    name = str(material).upper()
-    e_k = 1.0 if (name in ("RESIN", "ABS_RESIN", "SLA") or "RESIN" in name) else float(FDM_E_K)
-    e = mat.youngs_modulus_gpa * 1e9 * e_k
-    return (CANTILEVER_LAMBDA ** 2) / (2.0 * math.pi) * math.sqrt(
-        e * inertia / (mu * span_m ** 4))
+    e = mat.youngs_modulus_gpa * 1e9 * _fdm_e_factor(material)
+    return float(
+        (CANTILEVER_LAMBDA ** 2) / (2.0 * math.pi) * math.sqrt(e * inertia / (mu * span_m ** 4))
+    )
 
 
 def max_blades_for_margin(
@@ -61,10 +73,17 @@ def max_blades_for_margin(
     min_margin: float = MIN_F1_OVER_BPF,
 ) -> int:
     """Largest blade count that still clears ``f1 / BPF ≥ min_margin`` at ``rpm``."""
-    if rpm <= 0 or f1_hz <= 0:
+    f1 = float(f1_hz)
+    rpm_f = float(rpm)
+    margin_f = float(min_margin)
+    if not (math.isfinite(f1) and math.isfinite(rpm_f)):
+        raise ValueError(f"f1_hz and rpm must be finite, got f1_hz={f1_hz!r}, rpm={rpm!r}")
+    if not (math.isfinite(margin_f) and margin_f > 0.0):
+        raise ValueError(f"min_margin must be finite and > 0, got {min_margin!r}")
+    if rpm_f <= 0.0 or f1 <= 0.0:
         return 0
-    max_bpf = float(f1_hz) / float(min_margin)
-    return max(0, int(math.floor(max_bpf * 60.0 / float(rpm))))
+    max_bpf = f1 / margin_f
+    return max(0, math.floor(max_bpf * 60.0 / rpm_f))
 
 
 def resonance_user_message(
@@ -102,11 +121,20 @@ def flutter_report(
     material: str = "PETG",
     min_margin: float = MIN_F1_OVER_BPF,
 ) -> FlutterReport:
+    rpm = float(params.rpm)
+    n_blades = int(params.n_blades)
+    margin_f = float(min_margin)
+    if not (math.isfinite(rpm) and rpm >= 0.0):
+        raise ValueError(f"rpm must be finite and >= 0, got {params.rpm!r}")
+    if n_blades < 0:
+        raise ValueError(f"n_blades must be >= 0, got {params.n_blades!r}")
+    if not (math.isfinite(margin_f) and margin_f > 0.0):
+        raise ValueError(f"min_margin must be finite and > 0, got {min_margin!r}")
     f1 = first_bending_hz(params, material)
-    rpm_hz = float(params.rpm) / 60.0
-    bpf = params.n_blades * rpm_hz
-    margin = f1 / bpf if bpf > 1e-9 else float("inf")
-    ok = margin >= min_margin
+    rpm_hz = rpm / 60.0
+    bpf = n_blades * rpm_hz
+    margin = float(f1 / bpf) if bpf > 1e-9 else float("inf")
+    ok = margin >= margin_f
     aspect = beam_aspect_ratio(params, station="mid")
     regime = aspect >= BEAM_ASPECT_MIN
     reason = ""
@@ -115,10 +143,10 @@ def flutter_report(
             f1_hz=f1,
             bpf_hz=bpf,
             margin=margin,
-            min_margin=min_margin,
+            min_margin=margin_f,
             material=material,
-            n_blades=int(params.n_blades),
-            rpm=float(params.rpm),
+            n_blades=n_blades,
+            rpm=rpm,
         )
     elif not regime:
         reason = (

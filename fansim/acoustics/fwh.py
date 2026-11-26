@@ -12,6 +12,8 @@ Do not mix these numbers with catalog Curle rows.
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 from fansim.acoustics.farfield import (
@@ -44,8 +46,11 @@ def cv_box_from_dia_mm(dia_mm: float) -> dict:
     Lattice: Nx=Ny=160, Nz=240, 1 cell = 1 mm. half radial = min(R+12, Nx/2-8);
     half axial = 45 cells.
     """
+    dia = float(dia_mm)
+    if not (math.isfinite(dia) and dia > 0.0):
+        raise ValueError(f"dia_mm must be finite and > 0, got {dia_mm!r}")
     nx = 160
-    r_cells = 0.5 * float(dia_mm)
+    r_cells = 0.5 * dia
     bh = min(r_cells + 12.0, nx / 2.0 - 8.0)
     mm = 0.001
     return {
@@ -54,7 +59,7 @@ def cv_box_from_dia_mm(dia_mm: float) -> dict:
         "cz_m": 0.0,
         "half_xy_m": bh * mm,
         "half_z_m": 45.0 * mm,
-        "dia_mm": float(dia_mm),
+        "dia_mm": dia,
     }
 
 
@@ -103,13 +108,29 @@ def loading_pressure_compact(F, dt, *, r_hat=(0.0, 0.0, 1.0), r_obs: float = 1.0
                              c0: float = C0_AIR):
     """Far-field compact loading pressure [Pa]. Delay by r_obs/c0 (SPL unchanged for one source)."""
     F = np.asarray(F, float)
-    dFdt = np.gradient(F, dt, axis=0)
-    r_hat = np.asarray(r_hat, float)
-    r_obs = float(r_obs)
-    p_inst = (r_hat @ dFdt.T) / (4.0 * np.pi * c0 * r_obs)
+    dt_f = float(dt)
+    r_obs_f = float(r_obs)
+    c0_f = float(c0)
+    if F.ndim != 2 or F.shape[0] < 2 or F.shape[1] != 3:
+        raise ValueError(f"F must have shape (N >= 2, 3), got {F.shape}")
+    if not (math.isfinite(dt_f) and dt_f > 0.0):
+        raise ValueError(f"dt must be finite and > 0, got {dt!r}")
+    if not (math.isfinite(r_obs_f) and r_obs_f > 0.0):
+        raise ValueError(f"r_obs must be finite and > 0, got {r_obs!r}")
+    if not (math.isfinite(c0_f) and c0_f > 0.0):
+        raise ValueError(f"c0 must be finite and > 0, got {c0!r}")
+    rh = np.asarray(r_hat, float)
+    if rh.shape != (3,) or not np.all(np.isfinite(rh)):
+        raise ValueError(f"r_hat must be a finite 3-vector, got {r_hat!r}")
+    rh_norm = float(np.linalg.norm(rh))
+    if rh_norm <= 0.0:
+        raise ValueError("r_hat must be non-zero")
+    rh = rh / rh_norm
+    dFdt = np.gradient(F, dt_f, axis=0)
+    p_inst = (rh @ dFdt.T) / (4.0 * np.pi * c0_f * r_obs_f)
     n = p_inst.shape[0]
-    t = np.arange(n, dtype=float) * float(dt)
-    t_ret = t - r_obs / c0
+    t = np.arange(n, dtype=float) * dt_f
+    t_ret = t - r_obs_f / c0_f
     return np.interp(t_ret, t, p_inst, left=0.0, right=0.0)
 
 
@@ -121,10 +142,17 @@ def loading_pressure_panels(t, panels, *, x_obs=(0.0, 0.0, 1.0), c0: float = C0_
     """
     t = np.asarray(t, float)
     x_obs = np.asarray(x_obs, float)
+    c0_f = float(c0)
+    if not (math.isfinite(c0_f) and c0_f > 0.0):
+        raise ValueError(f"c0 must be finite and > 0, got {c0!r}")
+    if x_obs.shape != (3,) or not np.all(np.isfinite(x_obs)):
+        raise ValueError(f"x_obs must be a finite 3-vector, got {x_obs!r}")
     p = np.zeros(t.shape[0], dtype=float)
     if t.shape[0] < 2:
         return p
     dt = float(np.median(np.diff(t)))
+    if not (math.isfinite(dt) and dt > 0.0):
+        raise ValueError(f"time step dt must be finite and > 0, got {dt!r}")
     for pan in panels:
         r0 = np.asarray(pan["r0"], float)
         delta = x_obs - r0
@@ -133,9 +161,11 @@ def loading_pressure_panels(t, panels, *, x_obs=(0.0, 0.0, 1.0), c0: float = C0_
             continue
         r_hat = delta / r
         F = np.asarray(pan["f"], float)
+        if F.ndim != 2 or F.shape[0] != t.shape[0] or F.shape[1] != 3:
+            raise ValueError(f"panel force f must have shape ({t.shape[0]}, 3), got {F.shape}")
         dFdt = np.gradient(F, dt, axis=0)
-        p_inst = (r_hat @ dFdt.T) / (4.0 * np.pi * c0 * r)
-        t_ret = t - r / c0
+        p_inst = (r_hat @ dFdt.T) / (4.0 * np.pi * c0_f * r)
+        t_ret = t - r / c0_f
         p = p + np.interp(t_ret, t, p_inst, left=0.0, right=0.0)
     return p
 
@@ -146,7 +176,11 @@ def noise_from_compact_force(t, F, *, cutoff_hz: float = 2500.0,
     """Reduce a compact force history with the FW-H loading kernel (same metric keys as Curle)."""
     t = np.asarray(t, float)
     F = np.asarray(F, float)
+    if t.ndim != 1 or len(t) < 2:
+        raise ValueError("t must be a 1-D array with at least 2 samples")
     dt = float(np.median(np.diff(t)))
+    if not (math.isfinite(dt) and dt > 0.0):
+        raise ValueError(f"time step dt must be finite and > 0, got {dt!r}")
     thrust = float(F[:, 2].mean())
     Fp = F - F.mean(axis=0)
     p = loading_pressure_compact(Fp, dt, r_hat=r_hat, r_obs=r_obs)
@@ -158,9 +192,18 @@ def noise_from_compact_force(t, F, *, cutoff_hz: float = 2500.0,
         "peak_tone_db": round(peak_tone_over_harmonics(p, dt, rpm / 60.0), 2),
         "thrust_n": round(thrust, 4),
         "cutoff_hz": cutoff_hz,
-        "samples": int(len(t)),
+        "samples": len(t),
         "analogy": "fwh_compact",
     }
+
+
+def _face_panels_from_data(d, box: dict) -> list[dict]:
+    centers = _face_centers(box)
+    panels = []
+    for i, (r0, n_hat) in enumerate(zip(centers, _FACE_NORMALS)):
+        f = np.column_stack([d[f"F{i}x"], d[f"F{i}y"], d[f"F{i}z"]])
+        panels.append({"r0": r0, "n_hat": n_hat, "area": 1.0, "f": f})
+    return panels
 
 
 def face_panels_from_csv(path, box: dict) -> list[dict]:
@@ -170,12 +213,7 @@ def face_panels_from_csv(path, box: dict) -> list[dict]:
     ``box`` keys: ``cx_m, cy_m, cz_m, half_xy_m, half_z_m``.
     """
     d = np.genfromtxt(path, delimiter=",", names=True)
-    centers = _face_centers(box)
-    panels = []
-    for i, (r0, n_hat) in enumerate(zip(centers, _FACE_NORMALS)):
-        f = np.column_stack([d[f"F{i}x"], d[f"F{i}y"], d[f"F{i}z"]])
-        panels.append({"r0": r0, "n_hat": n_hat, "area": 1.0, "f": f})
-    return panels
+    return _face_panels_from_data(d, box)
 
 
 def noise_from_permeable_panels(t, panels, *, cutoff_hz: float = 2500.0,
@@ -183,7 +221,11 @@ def noise_from_permeable_panels(t, panels, *, cutoff_hz: float = 2500.0,
                                 x_obs=(0.0, 0.0, 1.0)) -> dict:
     """Reduce six (or more) face force histories with the panel FW-H loading kernel."""
     t = np.asarray(t, float)
+    if t.ndim != 1 or len(t) < 2:
+        raise ValueError("t must be a 1-D array with at least 2 samples")
     dt = float(np.median(np.diff(t)))
+    if not (math.isfinite(dt) and dt > 0.0):
+        raise ValueError(f"time step dt must be finite and > 0, got {dt!r}")
     # Mean-subtract each panel force (loading is about fluctuations)
     pans = []
     thrust = 0.0
@@ -200,14 +242,15 @@ def noise_from_permeable_panels(t, panels, *, cutoff_hz: float = 2500.0,
         "peak_tone_db": round(peak_tone_over_harmonics(p, dt, rpm / 60.0), 2),
         "thrust_n": round(thrust, 4),
         "cutoff_hz": cutoff_hz,
-        "samples": int(len(t)),
+        "samples": len(t),
         "analogy": "fwh_permeable",
         "n_panels": len(panels),
     }
 
 
 def analyze_permeable_csv(csv, box: dict | None = None, *, dia_mm: float | None = None,
-                          cutoff_hz: float = 2500.0, x_obs=(0.0, 0.0, 1.0)) -> dict:
+                          cutoff_hz: float = 2500.0, n_blades: int = N_BLADES_DEFAULT,
+                          rpm: float = RPM_DEFAULT, x_obs=(0.0, 0.0, 1.0)) -> dict:
     """Load a permeable multi-face CSV and return noise metrics."""
     if box is None:
         if dia_mm is None:
@@ -215,19 +258,15 @@ def analyze_permeable_csv(csv, box: dict | None = None, *, dia_mm: float | None 
         box = cv_box_from_dia_mm(dia_mm)
     d = np.genfromtxt(csv, delimiter=",", names=True)
     t = np.asarray(d["t_s"], float)
-    panels = face_panels_from_csv(csv, box)
-    return noise_from_permeable_panels(t, panels, cutoff_hz=cutoff_hz, x_obs=x_obs)
+    panels = _face_panels_from_data(d, box)
+    return noise_from_permeable_panels(
+        t, panels, cutoff_hz=cutoff_hz, n_blades=n_blades, rpm=rpm, x_obs=x_obs,
+    )
 
 
-def patch_panels_from_csv(path, box: dict, n: int = PATCH_N) -> list[dict]:
-    """Load a 2×2-per-face permeable CSV into panels.
-
-    Columns: ``t_s, P0x,P0y,P0z, …, P23x,P23y,P23z`` with
-    ``p = n*n*face + n*i + j`` (face order +x,-x,+y,-y,+z,-z).
-    """
+def _patch_panels_from_data(d, box: dict, n: int = PATCH_N) -> list[dict]:
     if n != PATCH_N:
         raise ValueError(f"stage 1 only supports n={PATCH_N}")
-    d = np.genfromtxt(path, delimiter=",", names=True)
     centers = _patch_centers(box, n=n)
     n_panels = 6 * n * n
     panels = []
@@ -243,8 +282,21 @@ def patch_panels_from_csv(path, box: dict, n: int = PATCH_N) -> list[dict]:
     return panels
 
 
+def patch_panels_from_csv(path, box: dict, n: int = PATCH_N) -> list[dict]:
+    """Load a 2×2-per-face permeable CSV into panels.
+
+    Columns: ``t_s, P0x,P0y,P0z, …, P23x,P23y,P23z`` with
+    ``p = n*n*face + n*i + j`` (face order +x,-x,+y,-y,+z,-z).
+    """
+    if n != PATCH_N:
+        raise ValueError(f"stage 1 only supports n={PATCH_N}")
+    d = np.genfromtxt(path, delimiter=",", names=True)
+    return _patch_panels_from_data(d, box, n=n)
+
+
 def analyze_patches_csv(csv, box: dict | None = None, *, dia_mm: float | None = None,
-                        cutoff_hz: float = 2500.0, x_obs=(0.0, 0.0, 1.0)) -> dict:
+                        cutoff_hz: float = 2500.0, n_blades: int = N_BLADES_DEFAULT,
+                        rpm: float = RPM_DEFAULT, x_obs=(0.0, 0.0, 1.0)) -> dict:
     """Load a 24-patch permeable CSV and return noise metrics (``analogy=fwh_patches``)."""
     if box is None:
         if dia_mm is None:
@@ -252,7 +304,9 @@ def analyze_patches_csv(csv, box: dict | None = None, *, dia_mm: float | None = 
         box = cv_box_from_dia_mm(dia_mm)
     d = np.genfromtxt(csv, delimiter=",", names=True)
     t = np.asarray(d["t_s"], float)
-    panels = patch_panels_from_csv(csv, box)
-    m = noise_from_permeable_panels(t, panels, cutoff_hz=cutoff_hz, x_obs=x_obs)
+    panels = _patch_panels_from_data(d, box)
+    m = noise_from_permeable_panels(
+        t, panels, cutoff_hz=cutoff_hz, n_blades=n_blades, rpm=rpm, x_obs=x_obs,
+    )
     m["analogy"] = "fwh_patches"
     return m

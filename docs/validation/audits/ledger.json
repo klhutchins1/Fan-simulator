@@ -1,27 +1,27 @@
 {
   "units": {
     "acoustics.curle_dipole": {
-      "date": "2026-11-25",
-      "fingerprint": "4d3b02d796dc5a24",
-      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
+      "date": "2026-11-26",
+      "fingerprint": "fac287499c91cd81",
+      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "acoustics.fwh": {
-      "date": "2026-11-25",
-      "fingerprint": "1f0b3b336bf3ac8a",
-      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
+      "date": "2026-11-26",
+      "fingerprint": "3ae7d27900292993",
+      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "acoustics.loading": {
-      "date": "2026-11-25",
-      "fingerprint": "19793fa9ef08a909",
-      "report": "docs/validation/audits/2026-11-25-o7-loading-noise-derate-prereg.md",
+      "date": "2026-11-26",
+      "fingerprint": "501cca7ef0535722",
+      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "acoustics.noise_hint": {
-      "date": "2026-10-17",
-      "fingerprint": "cf9284dd0acabf2c",
-      "report": "tests/test_tip_loading_noise.py (verification only; validation open, R0.4)",
+      "date": "2026-11-26",
+      "fingerprint": "a7574e4e76de3b09",
+      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "acoustics.proudman": {
@@ -31,9 +31,9 @@
       "verdict": "PASS"
     },
     "acoustics.tonal_bpf": {
-      "date": "2026-11-25",
-      "fingerprint": "18ca83a4e8d4f3b5",
-      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
+      "date": "2026-11-26",
+      "fingerprint": "d9eb9100631ae8b0",
+      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "audit.direction_geometry": {
@@ -175,27 +175,27 @@
       "verdict": "PASS"
     },
     "structural.balance": {
-      "date": "2026-11-25",
-      "fingerprint": "e956cac4fe07d360",
-      "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
+      "date": "2026-11-26",
+      "fingerprint": "0de1e6ce0eb99011",
+      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "structural.centrifugal": {
-      "date": "2026-11-25",
-      "fingerprint": "da780a94309af654",
-      "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
+      "date": "2026-11-26",
+      "fingerprint": "45a486f171ce24ed",
+      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "structural.deflection": {
-      "date": "2026-11-25",
-      "fingerprint": "18ff48f8bfded8f3",
-      "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
+      "date": "2026-11-26",
+      "fingerprint": "0e3a78a4fe2966bd",
+      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "structural.flutter": {
-      "date": "2026-11-25",
-      "fingerprint": "b9a2ecb785e1f17b",
-      "report": "docs/validation/audits/2026-11-25-pla-yield-tds.md",
+      "date": "2026-11-26",
+      "fingerprint": "fa2dfb4b431d23ce",
+      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     }
   }

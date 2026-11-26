@@ -12,11 +12,23 @@ and to keep that time dir; then proudman_swl_from_case(case) returns a screening
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import numpy as np
 
 from fansim.acoustics.proxies import CMU, epsilon_from_komega, proudman_swl
+
+
+def _parse_time_dir(name: str) -> float | None:
+    """Parse an OpenFOAM time-directory name (integer, float, or scientific notation like 1e-05)."""
+    try:
+        val = float(name)
+    except ValueError:
+        return None
+    if not (math.isfinite(val) and val >= 0.0):
+        return None
+    return val
 
 
 def integrate_proudman_grid(grid, k_field: str = "k", omega_field: str = "omega",
@@ -47,20 +59,26 @@ def read_case(case_dir: str | Path):
     import pyvista as pv
 
     case_dir = Path(case_dir)
-    times = [p.name for p in case_dir.iterdir() if p.is_dir() and p.name.replace(".", "", 1).isdigit()]
-    nonzero = [t for t in times if float(t) > 0.0]
+    parsed: list[tuple[float, str]] = []
+    for p in case_dir.iterdir():
+        if p.is_dir():
+            tval = _parse_time_dir(p.name)
+            if tval is not None:
+                parsed.append((tval, p.name))
+    nonzero = [tval for tval, _name in parsed if tval > 0.0]
     if not nonzero:
+        found = sorted(name for _tval, name in parsed)
         raise FileNotFoundError(
-            f"{case_dir} has no reconstructed non-zero time dir (found {sorted(times)}). "
+            f"{case_dir} has no reconstructed non-zero time dir (found {found}). "
             "Run `reconstructPar -latestTime` first; the optimizer keeps only decomposed processor*/.")
     foam = case_dir / f"{case_dir.name}.foam"
     if not foam.exists():
         foam.write_text("")
     reader = pv.OpenFOAMReader(str(foam))
-    reader.set_active_time_value(max(float(t) for t in nonzero))
+    reader.set_active_time_value(max(nonzero))
     multi = reader.read()
     # the internal mesh is the first block ("internalMesh")
-    return multi["internalMesh"] if "internalMesh" in multi.keys() else multi[0]
+    return multi["internalMesh"] if "internalMesh" in multi else multi[0]
 
 
 def proudman_swl_from_case(case_dir: str | Path) -> float:
