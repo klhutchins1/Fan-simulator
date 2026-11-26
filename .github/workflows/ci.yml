@@ -21,7 +21,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Static checks: ruff, mypy, physics ledger. Fast; runs alongside the test chunks.
+  # Static checks: ruff, mypy, physics ledger. Fast. The pytest chunks wait for this job,
+  # so ledger drift fails before any test minute is spent.
   static:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -86,6 +87,7 @@ jobs:
   # Windows OCCT teardown 0xC0000374 after a green summary is documented in
   # docs/validation/suite_baseline_2026-09-14.md; pytest_chunks.judge() accepts it.
   pytest:
+    needs: static
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
