@@ -206,8 +206,34 @@ def test_zero_exit_flow_records_why_values_are_missing():
     pts = _annulus()
     u = np.zeros((pts.shape[0], 3))
     m = compute_metrics(_samples(pts, u), hub_r=HUB, tip_r=TIP, z_fan=0.0)
-    assert np.isnan(m.swirl_frac) and np.isnan(m.tip_band_uz_ratio)
-    assert "swirl_frac" in m.missing and "tip_band_uz_ratio" in m.missing
+    assert np.isnan(m.swirl_frac) and np.isnan(m.tip_band_uz_ratio) and np.isnan(m.dead_frac)
+    assert "swirl_frac" in m.missing and "tip_band_uz_ratio" in m.missing and "dead_frac" in m.missing
+
+
+def test_balanced_forward_and_backflow_zero_mean_marks_dead_frac_missing():
+    """When mean_uz == 0 from opposing flows, 0.10*|mean_uz| == 0 is undefined, not 0 % dead."""
+    pts = _annulus()
+    u = np.zeros((pts.shape[0], 3))
+    ex = np.flatnonzero(pts[:, 2] > 0)
+    u[ex[: len(ex) // 2], 2] = 3.0
+    u[ex[len(ex) // 2 :], 2] = -3.0
+    m = compute_metrics(_samples(pts, u), hub_r=HUB, tip_r=TIP, z_fan=0.0)
+    assert m.mean_uz_exit == pytest.approx(0.0, abs=1e-12)
+    assert np.isnan(m.dead_frac) and "dead_frac" in m.missing
+
+
+def test_zero_volume_tip_or_band_records_missing():
+    pts = _annulus()
+    r = np.hypot(pts[:, 0], pts[:, 1])
+    frac = (r - HUB) / (TIP - HUB)
+    u = np.tile([0.0, 0.0, 3.0], (pts.shape[0], 1))
+    w = np.ones(pts.shape[0])
+    # Zero out cell volumes in the outer 10% tip strip and in the inner band (band 0).
+    w[(pts[:, 2] > 0) & (frac >= 0.9)] = 0.0
+    w[(pts[:, 2] > 0) & (frac < 0.2)] = 0.0
+    m = compute_metrics(_samples(pts, u, w=w), hub_r=HUB, tip_r=TIP, z_fan=0.0)
+    assert np.isnan(m.tip_band_uz_ratio) and "tip_band_uz_ratio" in m.missing
+    assert np.isnan(m.band_dp0_pa[0]) and "band_dp0_pa[0]" in m.missing
 
 
 def test_zero_weights_are_unavailable_not_nan():

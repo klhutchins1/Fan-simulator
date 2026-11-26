@@ -46,7 +46,7 @@ class RowVerdict:
 
 
 def _bad(x) -> bool:
-    return x is None or (isinstance(x, float) and math.isnan(x))
+    return x is None or (isinstance(x, float) and not math.isfinite(x))
 
 
 def _pct(x: float) -> str:
@@ -66,6 +66,8 @@ def _direction(d: FlowMetrics, s: FlowMetrics | None) -> RowVerdict:
     if s is None:
         return _row("direction", "ok",
                     f"Air leaves out the back. {_pct(d.backflow_frac)} of the fan face flows backwards.")
+    if _bad(s.backflow_frac):
+        return _row("direction", "na", "Couldn't compare the air direction with Stock.")
     delta = d.backflow_frac - s.backflow_frac
     text = (f"{_pct(d.backflow_frac)} of the fan face flows backwards "
             f"(Stock {_pct(s.backflow_frac)}). Less is better.")
@@ -79,9 +81,9 @@ def _band_labels(d, s):
     for a, b in zip(d.band_dp0_pa, s.band_dp0_pa):
         if _bad(a) or _bad(b) or b == 0:
             labels.append("unknown")
-        elif a > b * (1 + BAR_TOL):
+        elif a > b + BAR_TOL * abs(b):
             labels.append("stronger")
-        elif a < b * (1 - BAR_TOL):
+        elif a < b - BAR_TOL * abs(b):
             labels.append("weaker")
         else:
             labels.append("similar")
@@ -154,17 +156,17 @@ def _noise(d, s):
           "how quiet the design is.")
     hint_d = getattr(d, "noise_hint_db", None)
     hint_s = getattr(s, "noise_hint_db", None) if s is not None else None
-    if hint_d is not None:
-        if hint_s is not None:
+    if not _bad(hint_d):
+        if not _bad(hint_s):
             text = f"Hint {float(hint_d):.1f} (Stock {float(hint_s):.1f}). {g2}"
         else:
             text = f"Hint {float(hint_d):.1f}. {g2}"
         row = _row("noise", "na", text)
         row.expert_only = True
         return row
-    if d.noise_swl_db is None:
+    if _bad(d.noise_swl_db):
         return _row("noise", "na", "No turbulence data in this run.")
-    if s is None or s.noise_swl_db is None:
+    if s is None or _bad(s.noise_swl_db):
         row = _row("noise", "na", "No Stock comparison for noise.")
         row.expert_only = True
         return row

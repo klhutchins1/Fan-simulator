@@ -175,3 +175,26 @@ def test_expert_noise_hint_row_kept_without_turbulence_data():
     noise = [r for r in rows if r["key"] == "noise"]
     assert len(noise) == 1 and noise[0]["expert_only"] and noise[0]["status"] == "na"
     assert "not a comparison of how quiet" in noise[0]["text"]
+
+
+def test_band_labels_handle_negative_stock_push():
+    """Negative reference bands (e.g. hub swirl depression) must not invert stronger/weaker."""
+    neg_stock = _m(band_dp0_pa=[-5.0, -5.0, -5.0, -5.0, 6.0])
+    # BAR_TOL = 0.12 -> ±0.60 around -5.0: similar in [-5.6, -4.4], stronger > -4.4, weaker < -5.6
+    design = _m(band_dp0_pa=[-5.0, -5.5, -5.7, -4.3, 6.0])
+    assert judge(design, neg_stock)[1].bands == ["similar", "similar", "weaker", "stronger", "similar"]
+
+
+def test_direction_handles_nan_stock_backflow():
+    row = judge(STOCK, _m(backflow_frac=math.nan))[0]
+    assert row.status == "na" and row.better is None
+    assert "nan" not in row.text.lower()
+
+
+def test_nonfinite_inf_and_noise_nan_are_na():
+    rows = judge(_m(backflow_frac=math.inf, swirl_frac=math.inf,
+                    mean_dp0_pa=math.inf, dead_frac=math.inf,
+                    noise_swl_db=math.nan, noise_hint_db=math.nan), STOCK)
+    assert all(r.status == "na" and r.better is None for r in rows)
+    assert all("nan" not in r.text.lower() and "inf" not in r.text.lower() for r in rows)
+

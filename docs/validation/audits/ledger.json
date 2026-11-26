@@ -56,8 +56,8 @@
     },
     "cfd.cfm_from_outlet_flow": {
       "date": "2026-11-25",
-      "fingerprint": "cba0687d7bcb77ad",
-      "report": "docs/validation/audits/2026-11-25-bem-no-internal-round-prereg.md",
+      "fingerprint": "7f5fc7ae23b9503b",
+      "report": "docs/review/2026-11-25-rv3-cfd-metrics.md",
       "verdict": "PASS"
     },
     "cfd.duct_area": {
@@ -74,8 +74,8 @@
     },
     "cfd.flow_report": {
       "date": "2026-11-25",
-      "fingerprint": "0e52f96ae917e2e4",
-      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
+      "fingerprint": "03340652e46ed1a9",
+      "report": "docs/review/2026-11-25-rv3-cfd-metrics.md",
       "verdict": "PASS"
     },
     "cfd.sanity_checks": {
