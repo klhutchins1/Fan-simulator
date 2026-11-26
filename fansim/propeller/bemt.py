@@ -26,9 +26,9 @@ from dataclasses import dataclass
 import numpy as np
 
 from fansim.geometry.blade import BladeParams
+from fansim.physics.air import C0_AIR as C_AIR
 from fansim.physics.air import NU_AIR
 from fansim.physics.air import RHO_ISA as RHO_AIR
-from fansim.prop_spec import C_AIR
 
 G = 9.80665
 
@@ -124,19 +124,60 @@ def _interp_geom(params: BladeParams):
             lambda r: float(np.interp(r, rs, twists)), camber, thickness, r_root, r_tip)
 
 
+def _validate_analyze_inputs(
+    params: BladeParams,
+    rpm: float,
+    v_forward: float,
+    rho: float,
+    n_elem: int,
+) -> None:
+    if not math.isfinite(rpm) or rpm < 0.0:
+        raise ValueError(f"rpm must be finite and >= 0, got {rpm!r}")
+    if not math.isfinite(v_forward) or v_forward < 0.0:
+        raise ValueError(f"v_forward must be finite and >= 0, got {v_forward!r}")
+    if not math.isfinite(rho) or rho <= 0.0:
+        raise ValueError(f"rho must be finite and > 0, got {rho!r}")
+    if int(n_elem) < 1:
+        raise ValueError(f"n_elem must be >= 1, got {n_elem!r}")
+    if params.n_blades < 0:
+        raise ValueError(f"n_blades must be >= 0, got {params.n_blades!r}")
+    if not params.stations:
+        raise ValueError("BladeParams.stations must not be empty")
+    if not math.isfinite(params.hub_radius) or params.hub_radius < 0.0:
+        raise ValueError(f"hub_radius must be finite and >= 0, got {params.hub_radius!r}")
+    if not math.isfinite(params.tip_radius) or params.tip_radius <= params.hub_radius:
+        raise ValueError(
+            f"tip_radius ({params.tip_radius!r}) must be finite and > hub_radius ({params.hub_radius!r})"
+        )
+
+
 def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float = RHO_AIR,
             n_elem: int = 24) -> PropPerf:
     """BEMT performance of a propeller ``params`` at ``rpm`` (static if v_forward=0). Distances mm->m."""
+    rpm_f = float(rpm)
+    vf_f = float(v_forward)
+    rho_f = float(rho)
+    _validate_analyze_inputs(params, rpm_f, vf_f, rho_f, n_elem)
+    if params.n_blades == 0 or (rpm_f == 0.0 and vf_f == 0.0):
+        return PropPerf(
+            thrust_n=0.0, torque_nm=0.0, power_w=0.0, rpm=rpm_f, v_forward=vf_f,
+            thrust_g=0.0, efficiency_g_per_w=0.0, figure_of_merit=0.0,
+            prop_efficiency=None, figure_of_merit_raw=0.0, converged=True,
+        )
     chord_fn, twist_fn, camber, thickness, r_root_mm, r_tip_mm = _interp_geom(params)
     B = params.n_blades
-    omega = rpm * 2.0 * math.pi / 60.0
-    R = r_tip_mm / 1000.0
+    omega = rpm_f * 2.0 * math.pi / 60.0
+    R = float(r_tip_mm) / 1000.0
+    # Kinematic viscosity scales inversely with density at constant T (nu = mu/rho).
+    # Keep bit-for-bit NU_AIR at default rho == RHO_AIR.
+    nu = NU_AIR if rho_f == RHO_AIR else NU_AIR * (RHO_AIR / rho_f)
     edges = np.linspace(r_root_mm, r_tip_mm, n_elem + 1) / 1000.0   # element boundaries [m]
-    T = Q = 0.0
+    T = 0.0
+    Q = 0.0
     converged = True
     for i in range(n_elem):
-        r = 0.5 * (edges[i] + edges[i + 1])
-        dr = edges[i + 1] - edges[i]
+        r = float(0.5 * (edges[i] + edges[i + 1]))
+        dr = float(edges[i + 1] - edges[i])
         c = chord_fn(r * 1000.0) / 1000.0
         beta = math.radians(twist_fn(r * 1000.0))
         U = omega * r
@@ -149,14 +190,14 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
         cl = cd = 0.0
         elem_converged = False
         for _ in range(60):                                 # BEM fixed-point iteration (a, a')
-            Vax = v_forward + vi
+            Vax = vf_f + vi
             vth_m = 0.5 * vth                               # mean swirl through the disk
             Vt = max(U - vth_m, 0.05)                       # Vt = Ωr(1 − a′)
             phi = math.atan2(Vax, Vt)
             W2 = Vax * Vax + Vt * Vt
             alpha = beta - phi
             cl, cd, stalled, cl_cap = _section_aero(
-                alpha, camber, re=math.sqrt(W2) * c / NU_AIR, thickness=thickness,
+                alpha, camber, re=math.sqrt(W2) * c / nu, thickness=thickness,
             )
             mach = math.sqrt(W2) / C_AIR
             cl, cd = _compressibility_cl_cd(
@@ -166,24 +207,22 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
             f = (B / 2.0) * (R - r) / max(r * math.sin(phi), 1e-4)
             F = max(0.15, (2.0 / math.pi) * math.acos(math.exp(-min(f, 20.0))))
 
-            dT = 0.5 * rho * W2 * c * B * (cl * math.cos(phi) - cd * math.sin(phi))   # per unit span
-            f_theta = 0.5 * rho * W2 * c * B * (cl * math.sin(phi) + cd * math.cos(phi))
+            dT = 0.5 * rho_f * W2 * c * B * (cl * math.cos(phi) - cd * math.sin(phi))   # per unit span
+            f_theta = 0.5 * rho_f * W2 * c * B * (cl * math.sin(phi) + cd * math.cos(phi))
 
             # Momentum: dT = 4π r ρ |Vax| vi F  (per unit span) -> update vi
             # abs(Vax) keeps the fixed-point stable when windmilling (Vax may change sign).
-            denom_t = 4.0 * math.pi * r * rho * max(abs(Vax), 0.1) * F
+            denom_t = 4.0 * math.pi * r * rho_f * max(abs(Vax), 0.1) * F
             vi_new = dT / denom_t if denom_t > 0 else vi
             # Negative induced velocity is physical in the braking / windmill regime (§20.2).
             vi_new = max(-30.0, min(vi_new, 60.0))
 
             # Angular momentum: fθ = (ρ |Vax| 2π r) ΔVθ (per unit span), with ΔVθ ≈ vth (0 → far wake)
-            denom_th = rho * max(abs(Vax), 0.1) * 2.0 * math.pi * r
+            denom_th = rho_f * max(abs(Vax), 0.1) * 2.0 * math.pi * r
             vth_new = f_theta / denom_th if denom_th > 0 else vth
             vth_new = max(0.0, min(vth_new, 1.9 * U))       # a′ < 0.95 (since vth ≈ 2 a′ Ωr)
 
             if abs(vi_new - vi) < 1e-3 and abs(vth_new - vth) < 1e-3:
-                vi = vi_new
-                vth = vth_new
                 elem_converged = True
                 break
             vi = 0.5 * vi + 0.5 * vi_new                    # relax
@@ -195,18 +234,18 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
         Q += dQ * dr
     # Do not clamp T≥0: UIUC advance-ratio sweeps include windmill (CT_meas < 0). Clamping
     # zeroed those points and inflated C_T(J) RMS (§20.2 / Audit #3).
-    P = Q * omega
+    P = float(Q * omega)
     A = math.pi * R * R
-    fm = (T ** 1.5 / math.sqrt(2.0 * rho * A)) / P if (P > 0 and T > 0) else 0.0
-    prop_eff = (T * v_forward / P) if (v_forward > 0 and P > 0) else None
+    fm = float((T ** 1.5 / math.sqrt(2.0 * rho_f * A)) / P) if (P > 0 and T > 0) else 0.0
+    prop_eff = float(T * vf_f / P) if (vf_f > 0 and P > 0) else None
     # Full precision here (#50); cockpit/export format for display.
-    thrust_g = T / G * 1000.0
+    thrust_g = float(T / G * 1000.0)
     return PropPerf(
-        thrust_n=T, torque_nm=Q, power_w=P, rpm=rpm, v_forward=v_forward,
+        thrust_n=float(T), torque_nm=float(Q), power_w=P, rpm=rpm_f, v_forward=vf_f,
         thrust_g=thrust_g,
-        efficiency_g_per_w=(thrust_g / P) if P > 0 else 0.0,
-        figure_of_merit=min(fm, 1.0), prop_efficiency=prop_eff,
-        figure_of_merit_raw=fm, converged=converged,
+        efficiency_g_per_w=float(thrust_g / P) if P > 0 else 0.0,
+        figure_of_merit=float(min(fm, 1.0)), prop_efficiency=prop_eff,
+        figure_of_merit_raw=fm, converged=bool(converged),
     )
 
 

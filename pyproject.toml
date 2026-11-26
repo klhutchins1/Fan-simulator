@@ -123,4 +123,6 @@ files = [
     "fansim/cfd/flow_verdicts.py",
     "fansim/cfd/spanwise.py",
     "fansim/acoustics/proxies.py",
+    "fansim/propeller/bemt.py",
+    "fansim/propeller/polars.py",
 ]
