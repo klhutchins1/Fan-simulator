@@ -214,7 +214,7 @@ Case internals (mesh, `processor*`, logs) are regenerable and safe to prune once
 
 ## Known limits
 
-- Nothing printed or measured yet (printed-rig measurements come in v1.1).
+- No fan has been printed and measured yet (printed-rig measurements come in v1.1).
 - Mixed-flow: Experimental: not validated against published data.
 - Volute: Experimental: not validated against published data (unconverged on the fine mesh).
 - Prop CFD: Experimental: not validated against published data — propeller CFD is not a performance predictor. (Prop BEMT fast estimate is validated within its stated band.)
