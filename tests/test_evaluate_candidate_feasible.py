@@ -300,3 +300,16 @@ def test_sanity_fail_in_one_phase_is_not_masked_by_error_in_other(tmp_path, monk
     assert "mass_balance" in res.reason
     assert "sanity ERROR" in res.reason
     assert "load: ValueError: bad load postProcessing" in res.reason
+
+
+def test_evaluate_candidate_does_not_mutate_callers_params_through_cfd(tmp_path, monkeypatch):
+    """RV-3 O1: passing target rpm past geometry/CFD must not mutate caller's BladeParams.rpm."""
+    _stub_cfd(monkeypatch)
+    params = replace(_printable_params(), tip_radius=50.0)
+    assert params.rpm == 2000.0
+    res = evaluate_candidate(
+        params, tmp_path / "eval", procs=1, iters=1, load_pa=5.0, rpm=1500.0,
+    )
+    assert res.feasible is True, res.reason
+    assert res.actual_rpm == pytest.approx(1500.0)
+    assert params.rpm == 2000.0
