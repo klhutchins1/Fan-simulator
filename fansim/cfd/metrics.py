@@ -8,6 +8,8 @@ power, and aerodynamic efficiency.
 from __future__ import annotations
 
 import math
+import re
+import warnings
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -180,14 +182,72 @@ def oscillation_pct(case_dir: str | Path, tail_frac: float = TAIL_FRAC) -> float
     return (max(flows) - min(flows)) / (abs(mean) + 1e-12) * 100.0
 
 
+_RHO_INF_RE = re.compile(r"\brhoInf\s+([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s*;")
+
+
+def _control_dict_rho_inf(case_dir: Path) -> float | None:
+    """Read ``rhoInf`` from ``system/controlDict`` when present (OpenFOAM forces scaling)."""
+    cd = case_dir / "system" / "controlDict"
+    if not cd.is_file():
+        return None
+    try:
+        text = cd.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    match = _RHO_INF_RE.search(text)
+    if match is None:
+        return None
+    try:
+        val = float(match.group(1))
+    except ValueError:
+        return None
+    return val if math.isfinite(val) and val > 0.0 else None
+
+
 def parse_fan_metrics(
     case_dir: str | Path, omega_rad_s: float, rho: float = RHO_AIR
 ) -> FanMetrics:
+    """Parse OpenFOAM postProcessing outputs into :class:`FanMetrics`.
+
+    Parameters
+    ----------
+    case_dir:
+        OpenFOAM case directory containing ``postProcessing/{forces,outletFlow,inletP,outletP}``.
+    omega_rad_s:
+        Rotor angular speed magnitude [rad/s] (must be finite and non-negative).
+        For counter-rotating (CROR) cases where ``postProcessing/forcesRear`` is present,
+        ``torque_nm = |M_z,front| + |M_z,rear|`` and ``shaft_power_w = torque_nm * omega_rad_s``
+        assume equal rotor speeds ``|omega_front| == |omega_rear| == omega_rad_s`` and that
+        neither rotor is windmilling (checked separately by ``fansim.cfd.sanity._check_power_sign``).
+    rho:
+        Air density [kg/m^3] (must be finite and positive) used to scale kinematic pressures
+        ``(p_out - p_in) * rho``. OpenFOAM's ``forces`` functionObject bakes ``rhoInf`` from
+        ``system/controlDict`` into ``force.dat`` / ``moment.dat``; a ``UserWarning`` is emitted
+        if ``rho`` disagrees with ``controlDict``'s ``rhoInf`` (or ``RHO_AIR`` when absent).
+    """
     if not math.isfinite(omega_rad_s) or omega_rad_s < 0.0:
         raise ValueError(f"omega_rad_s must be finite and non-negative, got {omega_rad_s!r}")
     if not math.isfinite(rho) or rho <= 0.0:
         raise ValueError(f"rho must be finite and positive, got {rho!r}")
     case_dir = Path(case_dir)
+
+    rho_inf = _control_dict_rho_inf(case_dir)
+    if rho_inf is not None and not math.isclose(rho, rho_inf, rel_tol=1e-6, abs_tol=1e-9):
+        warnings.warn(
+            f"parse_fan_metrics rho={rho:g} differs from system/controlDict "
+            f"rhoInf={rho_inf:g}; OpenFOAM forces/moments keep rhoInf baked in "
+            "while static_pressure_rise_pa uses rho",
+            UserWarning,
+            stacklevel=2,
+        )
+    elif rho_inf is None and not math.isclose(rho, RHO_AIR, rel_tol=1e-6, abs_tol=1e-9):
+        warnings.warn(
+            f"parse_fan_metrics rho={rho:g} differs from default RHO_AIR={RHO_AIR:g} "
+            "and no system/controlDict rhoInf was found; ensure forces/moments "
+            "were solved with the same rhoInf",
+            UserWarning,
+            stacklevel=2,
+        )
 
     # Report the converged-tail MEAN of every metric, not the final-iteration sample:
     # near stall the steady solve limit-cycles, so a phase snapshot is not reproducible.

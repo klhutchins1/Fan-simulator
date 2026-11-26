@@ -25,9 +25,9 @@
       "verdict": "PASS"
     },
     "acoustics.proudman": {
-      "date": "2026-11-25",
-      "fingerprint": "0d6a31506a634839",
-      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
+      "date": "2026-11-26",
+      "fingerprint": "d4ae7814d5e4d87b",
+      "report": "docs/review/2026-11-25-rv3-cfd-metrics.md (#89 / RV-5 code health)",
       "verdict": "PASS"
     },
     "acoustics.tonal_bpf": {
@@ -55,9 +55,9 @@
       "verdict": "PASS"
     },
     "cfd.cfm_from_outlet_flow": {
-      "date": "2026-11-25",
-      "fingerprint": "7f5fc7ae23b9503b",
-      "report": "docs/review/2026-11-25-rv3-cfd-metrics.md",
+      "date": "2026-11-26",
+      "fingerprint": "cafc62aee5e9f2d1",
+      "report": "docs/review/2026-11-25-rv3-cfd-metrics.md (#89 / RV-5 code health)",
       "verdict": "PASS"
     },
     "cfd.duct_area": {
@@ -74,8 +74,8 @@
     },
     "cfd.flow_report": {
       "date": "2026-11-26",
-      "fingerprint": "b37ff856b0ffc2cb",
-      "report": "docs/review/2026-11-25-rv3-cfd-metrics.md",
+      "fingerprint": "748e7481b31b3d3e",
+      "report": "docs/review/2026-11-25-rv3-cfd-metrics.md (#89 / RV-5 code health)",
       "verdict": "PASS"
     },
     "cfd.sanity_checks": {
@@ -85,9 +85,9 @@
       "verdict": "PASS"
     },
     "cfd.spanwise": {
-      "date": "2026-10-17",
-      "fingerprint": "bf35ce43ed8cdf93",
-      "report": "docs/validation/audits/2026-10-17-push-row-planes.md",
+      "date": "2026-11-26",
+      "fingerprint": "46ef0a2a679e9e34",
+      "report": "docs/review/2026-11-25-rv3-cfd-metrics.md (#89 / RV-5 code health)",
       "verdict": "PASS"
     },
     "cror.noise": {

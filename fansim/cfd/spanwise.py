@@ -38,8 +38,7 @@ DEFAULT_SPAN_STATIONS = (0.25, 0.40, 0.55, 0.70, 0.85)
 DEFAULT_N_RADIAL = 28
 DEFAULT_N_THETA = 72
 DEFAULT_N_Z_B2B = 48
-# Axial offset from rotor plane as a fraction of tip radius (inlet −Z, exit +Z).
-_PLANE_Z_FRAC = 0.18
+# Plane offsets (PLANE_Z_FRAC) and slab_half_width are single-sourced in fansim.cfd.flow_report.
 # Radial half-width of the cylindrical shell for blade-to-blade, as frac of span.
 _B2B_SHELL_FRAC = 0.035
 
@@ -381,8 +380,12 @@ def compute_spanwise_profile(
     hub_r = float(hub_r)
     tip_r = float(tip_r)
     span = max(tip_r - hub_r, 1e-6)
-    half_dz = max(0.04 * tip_r, 0.002)
-    from fansim.cfd.flow_report import slab_centres  # same planes as the flow report card (27.3e)
+    from fansim.cfd.flow_report import (  # same planes as the flow report card (27.3e)
+        slab_centres,
+        slab_half_width,
+    )
+
+    half_dz = slab_half_width(tip_r)
     z_in, z_ex = slab_centres(tip_r=tip_r, z_fan=z_fan, blade_z=blade_z)
 
     _r, u_ax, u_th = cylindrical_velocity(pts, u)
@@ -500,8 +503,8 @@ def compute_blade_to_blade_cp(
     it = np.clip(np.digitize(th, theta_edges) - 1, 0, n_theta - 1)
     iz = np.clip(np.digitize(zz, z_edges) - 1, 0, n_z - 1)
     # Accumulate sums / counts
-    sums = np.zeros((n_z, n_theta), dtype=float)
-    counts = np.zeros((n_z, n_theta), dtype=float)
+    sums: np.ndarray = np.zeros((n_z, n_theta), dtype=float)
+    counts: np.ndarray = np.zeros((n_z, n_theta), dtype=float)
     for i in range(pp.shape[0]):
         sums[iz[i], it[i]] += pp[i]
         counts[iz[i], it[i]] += 1.0
@@ -642,6 +645,8 @@ def render_b2b_png(
             last_im = None
             for i, slc in enumerate(slices):
                 ax = axes[0, i]
+                th: np.ndarray
+                zz: np.ndarray
                 th, zz = np.meshgrid(slc.theta_deg, slc.z_m * 1e3)
                 last_im = ax.pcolormesh(
                     th, zz, slc.cp, shading="auto", cmap="RdBu_r",

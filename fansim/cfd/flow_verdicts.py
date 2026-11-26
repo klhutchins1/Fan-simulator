@@ -12,13 +12,9 @@ TITLES = {"direction": "Air direction", "push": "Push along the blade", "spin": 
           "dead": "Dead or blocked air", "noise": "Noise hint"}
 ICONS = {"ok": "✓", "warn": "⚠", "bad": "✕", "na": "–"}
 
-BACKFLOW_MARGIN = 0.02
 # Flow report v4 (blade-relative planes, 27.3e): 2σ of Stock v3 on five varied meshes, Kimball 2026-10-17 (R0.2).
 BAND_TOL = 0.06  # mean push: 5.7 % (was 0.03 at v3 planes)
 BAR_TOL = 0.12   # single bars (was 0.08 at v3 planes)
-SWIRL_FACTOR = 1.10
-DEAD_MARGIN = 0.02
-TIP_FACTOR = 0.90
 # R0.3: two-run scatter = max(existing margin, ceil(√2 × 2σ)) on v4 Stock meshes.
 CLOSE_BAND = 0.08          # mean push, relative
 CLOSE_BACKFLOW = 0.02      # abs
@@ -135,18 +131,25 @@ def _dead(d, s):
         return _row("dead", "na", "Couldn't compare dead or blocked air.")
     bits = [f"{_pct(d.dead_frac)} of the fan face has air that barely moves (Stock {_pct(s.dead_frac)})."]
     dead_delta = d.dead_frac - s.dead_frac
-    tip_rel = (d.tip_band_uz_ratio / s.tip_band_uz_ratio - 1.0) if s.tip_band_uz_ratio > 0 else 0.0
+    tip_comparable = s.tip_band_uz_ratio > 0
+    tip_rel = (d.tip_band_uz_ratio / s.tip_band_uz_ratio - 1.0) if tip_comparable else None
     worse_dead = dead_delta > CLOSE_DEAD + 1e-12
-    worse_tip = tip_rel < -CLOSE_TIP_REL - 1e-12
+    worse_tip = tip_rel is not None and tip_rel < -CLOSE_TIP_REL - 1e-12
     better_dead = dead_delta < -CLOSE_DEAD - 1e-12
-    better_tip = tip_rel > CLOSE_TIP_REL + 1e-12
-    if worse_tip:
+    better_tip = tip_rel is not None and tip_rel > CLOSE_TIP_REL + 1e-12
+    if not tip_comparable:
+        bits.append("Couldn't compare tip airflow with Stock.")
+    elif worse_tip:
         bits.append("Air near the blade tips is weak: likely leaking round the tips.")
+    elif better_tip:
+        bits.append("Air near the blade tips is stronger than Stock.")
     extra = " ".join(bits)
     if worse_dead or worse_tip:
         return _row("dead", "warn", extra, better=False)
     if better_dead or better_tip:
         return _row("dead", "ok", extra, better=True)
+    if not tip_comparable:
+        return _row("dead", "na", extra)
     return _row("dead", "na", f"Too close to call. {extra}")
 
 
@@ -191,11 +194,25 @@ def judge(design: FlowMetrics, stock: FlowMetrics | None) -> list[RowVerdict]:
 
 def overall_line(rows: list[RowVerdict], compared: bool) -> str:
     if not compared:
+        direction = next((r for r in rows if r.key == "direction"), None)
+        if direction is not None and direction.status == "bad":
+            return (
+                "No Stock comparison for this run, and the air direction check failed: "
+                "this fan is blowing the wrong way."
+            )
         return "No Stock comparison for this run, so only the air direction is checked."
     shown = [r for r in rows if not r.expert_only]
     better = [r.title.lower() for r in shown if r.status == "ok" and r.better]
     worse = [r.title.lower() for r in shown if r.status in ("warn", "bad")]
     if not better and not worse:
+        compared_rows = [
+            r for r in shown
+            if r.status != "na" or r.text.startswith("Too close to call")
+        ]
+        if not compared_rows:
+            return "Couldn't compare this run with Stock: no checks had comparable data."
+        if len(compared_rows) < len(shown):
+            return "About the same as Stock on the comparable checks."
         return "About the same as Stock on every check."
     parts = []
     if better:
