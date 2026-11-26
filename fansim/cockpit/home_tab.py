@@ -291,8 +291,8 @@ def render_home_tab(ctx: CockpitCtx) -> None:
                         )
                         html.Div("{{ dg.caption }}", classes="text-caption mt-1 text-medium-emphasis")
             html.Div(
-                "More detail in the repo docs: README.md, docs/how-scores-are-computed.md, "
-                "docs/adversarial-review.md, and docs/design-rules.md.",
+                "More detail in the repo docs: docs/VALIDATION.md, docs/validation/scoreboard.md, "
+                "docs/how-scores-are-computed.md, and docs/design-rules.md.",
                 classes="text-caption text-medium-emphasis mt-2",
             )
 
