@@ -245,7 +245,7 @@ def render_home_tab(ctx: CockpitCtx) -> None:
                             classes="text-body-2 text-medium-emphasis mb-3",
                         )
                     v3.VBtn(
-                        "{{ c.cta }}",
+                        "{{ c.key === 'accuracy' && home_accuracy_open ? 'Hide accuracy guide' : c.cta }}",
                         color=("c.color",),
                         variant="tonal",
                         size="small",
