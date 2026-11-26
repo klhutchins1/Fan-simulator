@@ -114,7 +114,7 @@ def test_tooltips_resolved_for_all_tabs():
 
     # Fan controls (existing + newly added selects/diagrams)
     s_simple, s_expert, s_uri = resolve_tooltip("assess_preset")
-    assert s_simple and "pressure" in s_simple.lower() or "resistance" in s_simple.lower()
+    assert s_simple and ("pressure" in s_simple.lower() or "resistance" in s_simple.lower())
     assert s_expert
     assert s_uri and s_uri.startswith("data:image/svg+xml;base64,")
 

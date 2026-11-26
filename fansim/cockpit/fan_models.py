@@ -33,7 +33,7 @@ def bind(session) -> None:
             try:
                 spec = get_fan_spec(k)
                 title = f"{spec.name} ({k})" if spec.name.lower() != k.lower() else spec.name
-            except Exception:  # noqa: BLE001
+            except (KeyError, ValueError, OSError):
                 title = k
             rows.append({"title": title, "value": k})
         return rows

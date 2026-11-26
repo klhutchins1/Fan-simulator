@@ -106,7 +106,8 @@ def home_validated_items() -> list[dict[str, str]]:
         {
             "title": "PC-fan airflow (Fan tab)",
             "detail": (
-                "Full CFD method checked against published PC fans near free air (within ~0.5–3 %). "
+                "Full CFD method checked against published PC fans near free air "
+                "(−0.5 % on Noctua A12x25; +8.1 % on lt120 at 6.85 Pa). "
                 "Loaded airflow ranks designs well, though absolute values under load can read ~25 % high. "
                 "Cockpit Assess uses a faster screening mesh for comparing designs."
             ),
