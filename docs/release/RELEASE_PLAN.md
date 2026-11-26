@@ -88,20 +88,12 @@ anything.
 Night CPU is now for gate suites and any R1.3 re-find campaign only.
 
 - **UX-1 Simple/Expert cockpit polish (GitHub #1–#41).** Lane: Cursor. CPU: day (UI copy + unit tests). Status: `done` (merged PR #21 / #42 / #43, 2026-11-25). Leftover #27 (Library “rebuild the catalog”) on `cursor/ux-library-empty-27`.
+- **UX-2 Plain-language audit and home page.** Lane: Cursor (omp). CPU: day. Status: `in progress (omp, 2026-11-25)`, branch `cursor/ux-homepage`.
+  Walk every tab in Simple and Expert mode, write `docs/review/2026-11-25-ux-audit.md`, add a start page (what the app does, design a fan / propeller / open a design / how accuracy is checked), fix wording, tooltips and diagrams; the rest become `ux` issues.
+- **CI-1 VTK segfault in pytest chunk 0.** Lane: Cursor (omp). CPU: day. Status: `in progress (omp, 2026-11-25)`, branch `cursor/ci-vtk-segfault`.
+  Master CI is red since the chunked workflow: chunk 0 dies with exit −11 in VTK. Blocks every PR going green (#83, #84, #85).
 
 ## Review and maths tracking (Claude, 2026-11-24; Kimball asked for it)
-
-**Merged 2026-11-25 (`d816438`, fast-forward of `claude/merge-train-2026-11-24`):** RV-0, RV-1, PR #21, PR #43 (with
-its review fixes), PR #42. Gate on Linux: 739 / 642 / 787 passed; the one failure (`test_assess_alert_says_two_solves`,
-stale after #21 and #43) was fixed in `d816438` and the 613 cockpit tests re-run green. The Linux-only fuse-memory
-test was fixed in `2d64a01`.
-- **For Cursor (2026-11-25, important):** a test-suite run killed two FAN-01 CFD runs on the laptop. Old code's
-  container cleanup (`kill_cfd_containers`, reached for real by `test_run_watched_kills_on_hard_cap`) kills every
-  OpenFOAM container without a session label. Fix: `claude/cfd-session-scope`. Once it is on master, merge master
-  into every branch before running `gate.py` on it.
-- **For Cursor:** `4ba172b` on `cursor/ux-round2-2026-11-24` repeats those two test fixes after #43 merged. Master
-  already has them; drop that commit, do not merge it (it conflicts on the same lines).
-- PR #42's screenshots predate #21/#43 (Assess ~15–30 min, "Fan · CFD", Kitware footer). Retake them.
 
 Plan: [`docs/review/2026-11-24-review-plan.md`](../review/2026-11-24-review-plan.md). Why the ledger drifted and CI is
 red: [`docs/validation/audits/2026-11-24-audit-drift-forensics.md`](../validation/audits/2026-11-24-audit-drift-forensics.md)
@@ -110,21 +102,11 @@ the validation page is built on a green CI and a clean ledger.
 
 - **RV-0 Make the safety nets real.** Lane: Claude or Cursor. CPU: day. Status: `done` (merged `claude/rv0-safety-nets` → `d837929`, 2026-11-25). Gate runs CI static checks; `audit_status --strict`; 8 units re-proven.
 - **RV-1 Maths snapshot.** Lane: Claude drafts the tolerance pre-registration; Cursor builds. CPU: day. Status: `done` (merged `claude/rv1-physics-snapshot` → `83ca5bf`, 2026-11-25). 16 pinned cases in `tests/data/physics_snapshot.json`.
-- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `in progress (Claude)`: PR #85; both questions answered; FAN-01 re-run running.
+- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `in progress (omp, 2026-11-25)`: PR #85 open; independent number check posted on the PR.
   Published-data comparisons recomputed from frozen results into `docs/validation/scoreboard.md`. R3.8 quotes it.
-  - Landed: `scoreboard_claims.yaml` (12 claims), `fansim/validation/scoreboard.py`, `scripts/scoreboard.py`,
-    `tests/test_scoreboard.py`. BEMT vs UIUC recomputed live; FAN-01 from its JSON; verdicts re-judged on the
-    pre-registered tolerance only. Result: 6 PASS, 4 FAIL, 2 NOT JUDGED. README FAN-01 corrected +2.6 → +2.5 %.
-  - **Question 1 answered (Kimball, 2026-11-25): FAIL against 0.015.** `docs/validation/audits/2026-11-25-apcsf-ct-j-rms-ruling.md`.
-    The ledger's `propeller.bemt` claim no longer says "C_T(J) RMS (tol 0.020) PASS"; a strict xfail records the
-    FAIL; the 0.020 tests are regression guards only; unit re-proven. The release claim (static C_T) is unchanged.
-  - **Question 2 answered (Kimball, 2026-11-24): pre-register.** `docs/validation/audits/2026-11-24-fan01-rerun-prereg.md`
-    (`203c534`, before any data): fresh run of the same 6 points; 7 and 64 Pa judged at ±10 % (the A12x25 / lt120
-    mark); near-stall points recorded only. **Next:** running on the laptop (Kimball, 2026-11-25), master `d816438`, 8 procs, in
-    `runs/worktrees/fan01-rv2`; then the verdict goes in the prereg and the FAN-01 rows switch to its JSON.
-  - **Left (Windows PC):** commit the result files behind the 4 markdown-only rows (A12x25 close-ref v5 P–Q,
-    lt120 `runs/lt120/summary.json`), then switch those rows to `kind: data`.
-- **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `ready`.
+- **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `in progress (omp, 2026-11-25)`:
+  module 1 PR #84 (review posted, fixes on the same branch); module 2 `fan_bem.py` on `cursor/rv3-fan-bem`; module 3
+  `cfd/metrics.py`, `flow_report.py`, `flow_verdicts.py` on `cursor/rv3-cfd-metrics`.
   Order and checklist are in the plan. Findings become GitHub issues labelled `math` or `review`. The first 7
   findings are listed there.
 - **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `done 7c23df1`. 38 scripts in `archive/scripts/`; `scripts/audit_forensics.py` + tests; promote follow-ups #74–#76 (`prop_section_2d`, `fan_noise_curle`, `fan_noise_cv`). Detail: `docs/review/2026-11-25-rv4-script-triage.md`.
