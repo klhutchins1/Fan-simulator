@@ -154,9 +154,10 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
     setup_cror_tab(ctx)
     setup_home_tab(ctx)
 
-    # Defer archetype tab layouts (and their VTK Plotters) until first tab visit so each
-    # VTK canvas mounts while visible (non-zero size) when launched on Home.
-    _lazy_ui = {"fan": False, "mixed": False, "volute": False, "propeller": False, "cror": False}
+    # Defer Mixed/Volute/Prop/CROR layout (and their VTK Plotters) until first tab visit.
+    # Fan stays eager so trame-vtk / trame-plotly modules and ctrl.view_update / figure_update
+    # register before server.start() fires state.ready().
+    _lazy_ui = {"mixed": False, "volute": False, "propeller": False, "cror": False}
 
     with SinglePageLayout(server) as layout:
         layout.title.set_text("Fan Simulator — printable blade designer")
@@ -253,6 +254,16 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                     v_show="ui_mode === 'expert' && active_tab !== 'home'",
                 )
                 render_home_tab(ctx)
+                render_fan_tab(ctx)
+                # Switching from Home to Fan unhides the VTK canvas (display:none -> visible);
+                # nudge resize so vtkRemoteView re-measures and renders the Stock impeller.
+                _client.ClientStateChange(
+                    value="active_tab",
+                    change=(
+                        "try { window.setTimeout(function() { "
+                        "window.dispatchEvent(new window.Event('resize')); }, 80); } catch (e) {}"
+                    ),
+                )
 
                 @state.change("ui_mode")
                 def _simple_leaves_proxy(ui_mode=None, **_):
@@ -264,22 +275,21 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                 @state.change("active_tab")
                 def _lazy_tab_ui(active_tab=None, **_):
                     tab = str(active_tab or state.active_tab or "home")
+                    if tab == "fan":
+                        if hasattr(ctrl, "view_update"):
+                            try:
+                                ctrl.view_update()
+                            except Exception:  # noqa: BLE001
+                                pass
+                        return
                     lazy = {
-                        "fan": render_fan_tab,
                         "mixed": render_mixed_tab,
                         "volute": render_volute_tab,
                         "propeller": render_prop_tab,
                         "cror": render_cror_tab,
                     }
                     render = lazy.get(tab)
-                    if render is None:
-                        return
-                    if _lazy_ui.get(tab):
-                        if tab == "fan" and hasattr(ctrl, "view_update"):
-                            try:
-                                ctrl.view_update()
-                            except Exception:  # noqa: BLE001
-                                pass
+                    if render is None or _lazy_ui.get(tab):
                         return
                     # The archetype tabs render lazily on first visit — but this callback fires long
                     # after the SinglePageLayout `with` blocks have closed, so the new widgets have no
@@ -289,10 +299,5 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                         render(ctx)
                     _lazy_ui[tab] = True
                     layout.flush_content()
-                    if tab == "fan" and hasattr(ctrl, "view_update"):
-                        try:
-                            ctrl.view_update()
-                        except Exception:  # noqa: BLE001
-                            pass
 
     return server
