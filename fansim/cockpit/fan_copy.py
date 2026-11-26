@@ -61,6 +61,11 @@ CONTROL_DESC = {
     "e_blade_hub_z": "Where the blade roots sit on the hub (mm). 0 = centered. Positive = blades higher toward the intake (+Z), with more hub below — matches the real A12x25 which sits toward the top face. Negative = blades lower / toward the outlet. Clamped so roots stay inside the hub.",
     "e_blade_z": "Moves the plate blade up or down relative to the hub (mm). Positive is up (+Z). Negative is down, toward the hub bottom. 0 leaves the blade where it is. The hub does not move.",
     "e_hub_nose": "Nose height (mm) for the cone/dome hub profile. Adds a spinner on the intake side (increases depth — may go over-spec).",
+    "e_hub_profile": "Hub intake cap shape: cylinder (flat face), cone (pointed spinner), or dome (rounded spinner). Set Hub nose > 0 mm for cone/dome.",
+    "assess_preset": "Airflow resistance curve (static pressure load in Pa at 50 CFM): Case (8 Pa, open airflow), Heatsink (20 Pa, medium fin restriction), Radiator (35 Pa, high back-pressure).",
+    "assess_material": "3D-print filament used for weight, blade-root spin stress, and print-sheet recommendations (PETG default; PLA+ is stiffer).",
+    "intake_overbuild": "Allow blades/hub to extend past the intake face (+Z) beyond the nominal frame depth. Flagged over-spec.",
+    "intake_overbuild_mm": "Extra axial intake depth allowed when intake overbuild is enabled (mm).",
     "e_camber_pos": "Where max camber sits along the chord (0.2 = near LE, 0.6 = aft). Fraction of chord — not mm.",
     "e_thick_root": "Wall t/c at the hub (fraction of chord). Tapered mode only. Through-blade thickness, not LE→TE width.",
     "e_thick_mid": "Wall t/c at mid-span. Tapered mode only.",
@@ -142,7 +147,10 @@ CONTROL_DESC_SIMPLE = {
     "e_hub_height": "Hub height. 0 = just tall enough to cover the blade roots.",
     "e_blade_hub_z": "Where the blades sit on the hub — up toward the intake or down toward the outlet.",
     "e_blade_z": "Moves a plate blade up or down on the hub. Positive is up. The hub stays put.",
-    "e_hub_nose": "Adds a nose cone on the intake side (makes the fan taller).",
+    "e_hub_nose": "Adds a nose cone on the intake side in mm (makes the fan taller).",
+    "e_hub_profile": "Shape of the center hub cap: flat cylinder, pointed cone, or rounded dome (uses Hub nose height).",
+    "assess_preset": "How much airflow resistance (static pressure) the fan pushes against: Case (8 Pa, open), Heatsink (20 Pa, medium), or Radiator (35 Pa, tight fins).",
+    "assess_material": "Plastic filament you plan to print with (sets weight, strength check, and print settings).",
 }
 
 # Plain-language help for Fan Optimize Advanced search (and Assess flags Optimize reuses).

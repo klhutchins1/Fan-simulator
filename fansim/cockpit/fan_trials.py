@@ -73,7 +73,7 @@ def bind(session) -> None:
             session._init_editor(p)
             session._set_baseline()
             state.fan_subtab = "design"
-            state.preview_msg = "Outline copy loaded. Press Preview geometry, then Export STL."
+            state.preview_msg = "Outline copy loaded. Press Preview, then Export STL."
             try:
                 state.flush()
                 ctrl.view_update()
@@ -82,12 +82,12 @@ def bind(session) -> None:
             return
         if d.extra.get("is_reference"):
             state.info_lines = [
-                f"Published free {o['cfm_free']:.1f} CFM   ·   hose-est load {o['cfm_load']:.1f} CFM",
+                f"Published free {o['cfm_free']:.1f} CFM   ·   est. loaded {o['cfm_load']:.1f} CFM",
                 STOCK_RECIPE_GAP,
             ]
             session._init_editor(p)
             session._set_baseline()
-            state.preview_msg = "Reference stock loaded. Preview geometry, or Assess to run CFD."
+            state.preview_msg = "Reference stock loaded. Press Preview, or Assess to run CFD."
             if not (state.preview_busy or state.assess_busy):
                 _show_stock_preview(str(state.fan_model or "a12x25"), session.active_spec())
             try:
@@ -97,13 +97,19 @@ def bind(session) -> None:
             return
         state.info_lines = [
             f"Trial {d.trial}   {d.extra.get('n_blades')} blades" + ("   ★ Pareto" if d.is_pareto else ""),
-            f"CFM free {o['cfm_free']:.1f}   CFM load {o['cfm_load']:.1f}"
-            f"   efficiency {o['efficiency']:.1f}%",
-            f"stagger r/m/t {p.get('stagger_root',0):.0f}/{p.get('stagger_mid',0):.0f}"
-            f"/{p.get('stagger_tip',0):.0f}   camber {p.get('max_camber',0):.3f}",
-            f"chord r/m/t {p.get('chord_root',0):.1f}/{p.get('chord_mid',0):.1f}"
-            f"/{p.get('chord_tip',0):.1f}   sweep m/t {p.get('sweep_mid',0):.1f}"
-            f"/{p.get('sweep_tip',0):.1f}",
+            (
+                f"CFM free {o['cfm_free']:.1f}   CFM load {o['cfm_load']:.1f}"
+                f"   efficiency {o['efficiency']:.1f}%"
+            ),
+            (
+                f"stagger r/m/t {p.get('stagger_root',0):.0f}/{p.get('stagger_mid',0):.0f}"
+                f"/{p.get('stagger_tip',0):.0f}   camber {p.get('max_camber',0):.3f}"
+            ),
+            (
+                f"chord r/m/t {p.get('chord_root',0):.1f}/{p.get('chord_mid',0):.1f}"
+                f"/{p.get('chord_tip',0):.1f}   sweep m/t {p.get('sweep_mid',0):.1f}"
+                f"/{p.get('sweep_tip',0):.1f}"
+            ),
         ]
         rpm = d.extra.get("actual_rpm", 0)
         spec = get_fan_spec(d.extra.get("fan_model", "a12x25"))
@@ -151,7 +157,7 @@ def bind(session) -> None:
                     "This design was scored by an older CFD solver (pre-2026-09-18 tail-mean + "
                     "adaptive-mesh fix). Its numbers are unreliable — press Assess to re-score.")
         elif d.has_model:
-            state.preview_msg = "Edit the sliders below, then press Preview geometry."
+            state.preview_msg = "Edit the sliders below, then press Preview."
         # else: missing-STL preview_msg already set above
         session._schedule_airflow(d)
         session._schedule_flow_report(d)

@@ -6,7 +6,8 @@ used by Prop / CROR Design panels. Does not own Fan ``e_*`` names.
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from fansim.cockpit.blade_copy import BLADE_DESC
 
@@ -115,30 +116,64 @@ def render_shape_panels(
     with v3.VExpansionPanels(variant="accordion", class_="mb-2"):
         with v3.VExpansionPanel(title=title_thick):
             with v3.VExpansionPanelText():
-                if help_switch is not None:
-                    # thick_mode as select-like switches is overkill; use slider labels.
-                    pass
-                slider(_lab("thick_mm", "Uniform wall"), f"{p}thick_mm", 0.8, 3.0, 0.1, unit="mm")
-                html.Div(
-                    "Set thick_mode to uniform in flat/Optimize to use wall mm; "
-                    "tapered uses t/c sliders below.",
-                    classes="text-caption mb-1",
+                slider(
+                    _lab("thick_mm", "Uniform wall"),
+                    f"{p}thick_mm",
+                    0.8,
+                    3.0,
+                    0.1,
+                    unit="mm",
+                    disabled=(f"{p}thick_mode !== 'uniform'",),
                 )
-                slider("t/c root", f"{p}thickness_root", 0.03, 0.14, 0.005)
-                slider("t/c mid", f"{p}thickness_mid", 0.02, 0.12, 0.005)
-                slider("t/c tip", f"{p}thickness_tip", 0.02, 0.10, 0.005)
-                slider("Scoop root", f"{p}camber_root", 0.0, 0.06, 0.005)
-                slider("Scoop mid", f"{p}camber_mid", 0.0, 0.06, 0.005)
-                slider("Scoop tip", f"{p}camber_tip", 0.0, 0.06, 0.005)
-                slider("Scoop pos", f"{p}camber_pos", 0.25, 0.55, 0.01)
+                html.Div(
+                    "Choose Uniform wall above to set thickness in mm, or Tapered to set hub-to-tip wall ratios below.",
+                    classes="text-caption text-medium-emphasis mb-1",
+                )
+                slider(
+                    "t/c root",
+                    f"{p}thickness_root",
+                    0.03,
+                    0.14,
+                    0.005,
+                    unit="t/c",
+                    simple_label="Wall ratio root",
+                    simple_unit="ratio",
+                    disabled=(f"{p}thick_mode === 'uniform'",),
+                )
+                slider(
+                    "t/c mid",
+                    f"{p}thickness_mid",
+                    0.02,
+                    0.12,
+                    0.005,
+                    unit="t/c",
+                    simple_label="Wall ratio mid",
+                    simple_unit="ratio",
+                    disabled=(f"{p}thick_mode === 'uniform'",),
+                )
+                slider(
+                    "t/c tip",
+                    f"{p}thickness_tip",
+                    0.02,
+                    0.10,
+                    0.005,
+                    unit="t/c",
+                    simple_label="Wall ratio tip",
+                    simple_unit="ratio",
+                    disabled=(f"{p}thick_mode === 'uniform'",),
+                )
+                slider("Scoop root", f"{p}camber_root", 0.0, 0.06, 0.005, unit="c/c", simple_unit="0–0.06")
+                slider("Scoop mid", f"{p}camber_mid", 0.0, 0.06, 0.005, unit="c/c", simple_unit="0–0.06")
+                slider("Scoop tip", f"{p}camber_tip", 0.0, 0.06, 0.005, unit="c/c", simple_unit="0–0.06")
+                slider("Scoop pos", f"{p}camber_pos", 0.25, 0.55, 0.01, unit="x/c", simple_unit="front→back")
         with v3.VExpansionPanel(title=title_3d):
             with v3.VExpansionPanelText():
                 slider("Sweep mid", f"{p}sweep_mid", -4, 10, 0.5, unit="mm")
                 slider("Sweep tip", f"{p}sweep_tip", -2, 14, 0.5, unit="mm")
-                slider("LE curve mid", f"{p}le_sweep_mid", -8, 8, 0.5, unit="mm")
-                slider("LE curve tip", f"{p}le_sweep_tip", -8, 8, 0.5, unit="mm")
-                slider("Sickle mid", f"{p}le_skew_mid", 0, 10, 0.5, unit="mm")
-                slider("Sickle tip", f"{p}le_skew_tip", 0, 14, 0.5, unit="mm")
+                slider("LE curve mid", f"{p}le_sweep_mid", -8, 8, 0.5, unit="mm", simple_label="Front edge curve mid")
+                slider("LE curve tip", f"{p}le_sweep_tip", -8, 8, 0.5, unit="mm", simple_label="Front edge curve tip")
+                slider("Sickle mid", f"{p}le_skew_mid", 0, 10, 0.5, unit="mm", simple_label="Curved front edge mid")
+                slider("Sickle tip", f"{p}le_skew_tip", 0, 14, 0.5, unit="mm", simple_label="Curved front edge tip")
                 slider("Wrap mid", f"{p}lean_mid", 0, 20, 1, unit="deg")
                 slider("Wrap tip", f"{p}lean_tip", 0, 25, 1, unit="deg")
         with v3.VExpansionPanel(title=title_tip):
@@ -149,5 +184,5 @@ def render_shape_panels(
                         "Cylindrical tip",
                         help_map={f"{p}cylindrical_tip": BLADE_DESC["cylindrical_tip"]},
                     )
-                slider("Tip round", f"{p}tip_round", 0.0, 1.0, 0.05)
+                slider("Tip round", f"{p}tip_round", 0.0, 1.0, 0.05, unit="0–1")
                 slider("Tip round start", f"{p}tip_round_start", 0.5, 0.95, 0.02, unit="span")

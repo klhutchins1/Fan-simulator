@@ -27,7 +27,19 @@ from fansim.fan_spec import (
 def bind(session) -> None:
     state = session.state
 
+    def _fan_model_items() -> list[dict[str, str]]:
+        rows = []
+        for k in fan_spec_names():
+            try:
+                spec = get_fan_spec(k)
+                title = f"{spec.name} ({k})" if spec.name.lower() != k.lower() else spec.name
+            except (KeyError, ValueError, OSError):
+                title = k
+            rows.append({"title": title, "value": k})
+        return rows
+
     def _model_readout():
+        state.fan_model_items = _fan_model_items()
         s = get_fan_spec(state.fan_model)
         refs = (
             f" Published {s.ref_cfm:.0f} CFM / {s.ref_static_pa:.0f} Pa / {s.ref_noise_dba:.0f} dBA."
@@ -41,6 +53,13 @@ def bind(session) -> None:
             f"hub {s.hub_dia_mm[0]:.0f}-{s.hub_dia_mm[1]:.0f} mm, "
             f"{s.max_shaft_power_w:.2f} W shaft ({s.voltage_v:.0f} V×{s.max_current_a:.2f} A), "
             f"{wt}{refs}"
+        )
+        pub_simple = (
+            f" · published {s.ref_cfm:.0f} CFM" if s.ref_cfm is not None else ""
+        )
+        state.model_info_simple = (
+            f"{s.name} · fits blades up to {s.tip_dia_mm[1]:.0f} mm wide, "
+            f"{s.depth_mm[1]:.0f} mm deep{pub_simple}."
         )
 
     def _hub_fit_readout():

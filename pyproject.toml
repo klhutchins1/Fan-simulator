@@ -103,6 +103,8 @@ extend-exclude = ["archive"]
 [tool.ruff.lint.per-file-ignores]
 # Tests build naive local wall-clock times on purpose (the 4-9 PM rule is local time).
 "tests/**" = ["DTZ001"]
+# Trame/Vuetify UI trees use nested with-blocks to mirror component hierarchy.
+"fansim/cockpit/**" = ["SIM117"]
 
 [tool.mypy]
 python_version = "3.12"

@@ -28,7 +28,9 @@ def bind(session) -> None:
             return
         e = get_entry(design_id)
         if e is None:
-            state.catalog_info = f"'{design_id}' not in the catalog (rebuild it if it's new)."
+            msg = f"'{design_id}' was not found in the saved designs list — restart the cockpit after adding a new run."
+            state.catalog_info = msg
+            state.library_msg = msg
             state.flush()
             return
         state.library_parent_id = ""
@@ -59,23 +61,28 @@ def bind(session) -> None:
                 else f"MEASURED {e.measured_cfm:.0f} CFM"
             )
         state.catalog_info = "  ·  ".join(parts)
+        state.library_msg = f"Loaded {e.design_id} into Design. Press Preview to see it."
         state.preview_msg = (
-            f"Loaded {e.design_id} from the catalog. Press Preview geometry to see it."
+            f"Loaded {e.design_id} from the catalog. Press Preview to see it."
         )
         state.flush()
 
     def _apply_library_to_editor(design_id: str, op: str):
         if not state.fan_model:
-            state.preview_msg = "Select a hub first."
+            state.library_msg = "Select a fan model first."
+            state.preview_msg = state.library_msg
             state.flush()
             return
         if not design_id:
-            state.preview_msg = "Select a library recipe first."
+            state.library_msg = "Click a saved design row below first."
+            state.preview_msg = state.library_msg
             state.flush()
             return
         e = get_entry(design_id)
         if e is None:
-            state.preview_msg = f"'{design_id}' not in the catalog (rebuild it if it's new)."
+            msg = f"'{design_id}' was not found in the saved designs list — restart the cockpit after adding a new run."
+            state.library_msg = msg
+            state.preview_msg = msg
             state.flush()
             return
         rec = apply_library_recipe(e.params or {}, session.active_spec(), op=op, parent_id=design_id)
@@ -84,9 +91,11 @@ def bind(session) -> None:
         state.library_place_op = rec.place_op
         state.library_leftover = rec.leftover or rec.message
         if not rec.ok or rec.flat is None:
-            state.preview_msg = rec.message or rec.leftover
+            state.library_msg = rec.message or rec.leftover
+            state.preview_msg = state.library_msg
             state.flush()
             return
+        state.library_msg = f"Loaded {design_id} into Design ({op.replace('_', ' ')})."
         session._init_editor(rec.flat)
         session._set_baseline()
         session.do_preview()

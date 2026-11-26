@@ -33,8 +33,7 @@ class _T(dict):
 
 @pytest.fixture
 def ui(tmp_path, monkeypatch):
-    import fansim.cockpit.fan_runtime as fan_runtime
-    import fansim.cockpit.fan_tab as fan_tab
+    from fansim.cockpit import fan_runtime, fan_tab
     from fansim.cockpit.context import CockpitCtx
 
     tasks: list = []
@@ -113,6 +112,7 @@ def test_preview_fit_grams_follow_picker(ui, tmp_path, monkeypatch):
     Checked at the weight call, not the caption: the caption rounds to whole grams and the 2.4 % PETG/PLA+ density gap
     disappears for small parts (Stock: 11.13 vs 10.87 g, both "11 g")."""
     import trimesh
+
     import fansim.cockpit.fan_assess as fa
 
     seen = []
@@ -121,7 +121,7 @@ def test_preview_fit_grams_follow_picker(ui, tmp_path, monkeypatch):
     stl = tmp_path / "c.stl"
     trimesh.creation.annulus(r_min=46, r_max=52, height=14).export(str(stl))
     ui.st.assess_material = "PLA+"
-    ok, msg = ui.s.spec_status(stl, ui.s.build_edit_params())
+    _ok, msg = ui.s.spec_status(stl, ui.s.build_edit_params())
     assert msg.startswith("✓ fits"), msg
     assert seen == ["PLA+"], seen
 
@@ -219,11 +219,13 @@ def _call_name(node):
 
 
 def _bound_name(node):
-    """Callable name from ``click=(fn,)`` or ``click=(getattr(ctx, "fn"),)``."""
+    """Callable name from ``click=(fn,)``, ``click=(ctx.fn,)``, or ``click=(getattr(ctx, "fn"),)``."""
     if isinstance(node, ast.Tuple) and node.elts:
         node = node.elts[0]
     if isinstance(node, ast.Name):
         return node.id
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in ("ctx", "ctrl"):
+        return node.attr
     if (
         isinstance(node, ast.Call)
         and _call_name(node.func) == "getattr"
@@ -243,7 +245,7 @@ def _dict_value(node: ast.Dict, key: str):
 
 
 def _ctx_aliases(tree: ast.AST) -> dict[str, str]:
-    """``do_preview = getattr(ctx, "fan_do_preview")`` → local name to ctx attribute."""
+    """``do_preview = ctx.fan_do_preview`` or ``getattr(ctx, "fan_do_preview")`` → local name to ctx attribute."""
     aliases = {}
     for node in ast.walk(tree):
         if not isinstance(node, ast.Assign) or len(node.targets) != 1:
@@ -252,7 +254,7 @@ def _ctx_aliases(tree: ast.AST) -> dict[str, str]:
         if not isinstance(target, ast.Name):
             continue
         bound = _bound_name(node.value)
-        if bound and isinstance(node.value, ast.Call):
+        if bound and isinstance(node.value, (ast.Call, ast.Attribute)):
             aliases[target.id] = bound
     return aliases
 
@@ -373,8 +375,7 @@ def _product_tabs(path: Path) -> list[tuple[str, str, str | None]]:
 @pytest.fixture(scope="module")
 def tabs(tmp_path_factory):
     """Headless cockpit with every shipping tab's handlers bound. Nothing is clicked."""
-    import fansim.cockpit.fan_runtime as fan_runtime
-    import fansim.cockpit.fan_tab as fan_tab
+    from fansim.cockpit import fan_runtime, fan_tab
     from fansim.cockpit.context import CockpitCtx
     from fansim.cockpit.cror_tab import setup_cror_tab
     from fansim.cockpit.mixed_tab import setup_mixed_tab

@@ -349,7 +349,7 @@ def bind(session) -> None:
                 continue
             try:
                 setattr(state, sv, cast(v))
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S112
                 continue
         if "thick_mode" in flat:
             mode = str(flat.get("thick_mode") or "").strip().lower()
@@ -459,8 +459,10 @@ def bind(session) -> None:
                 DutyPoint,
                 format_meanline_seed,
                 preserve_sign,
-                seed_from_duty as _seed,
                 station_magnitudes,
+            )
+            from fansim.optimize.meanline import (
+                seed_from_duty as _seed,
             )
 
             duty = DutyPoint(
@@ -503,7 +505,7 @@ def bind(session) -> None:
             state.seed_duty_msg = "\n".join(format_meanline_seed(seed))
             state.preview_msg = (
                 "Seeded stagger/camber magnitudes from duty (§20.4; signs/handedness kept). "
-                "Press Preview geometry."
+                "Press Preview."
             )
         except Exception as exc:  # noqa: BLE001
             state.seed_duty_msg = f"⚠ Seed from duty failed: {type(exc).__name__}: {exc}"
@@ -538,7 +540,7 @@ def bind(session) -> None:
         state.e_dim_rows = random.randint(2, 6) if on["dim"] else 0
         state.e_dim_cols = random.randint(2, 6) if on["dim"] else 0
         active = ", ".join(k for k, v in on.items() if v)
-        state.preview_msg = f"🎲 Randomized features ({active}). Press Preview geometry to see it."
+        state.preview_msg = f"🎲 Randomized features ({active}). Press Preview to see it."
         state.flush()
 
     def randomize_geometry():
@@ -626,7 +628,7 @@ def bind(session) -> None:
         # Uneven blade spacing (tonal-noise DOF; search-space band is 0.0–0.6).
         state.e_spacing = round(_r.uniform(0.0, 0.5), 2)
         state.preview_msg = (
-            "🎲 Randomized geometry. Press Preview geometry to see it (may be out-of-spec)."
+            "🎲 Randomized geometry. Press Preview to see it (may be out-of-spec)."
         )
         state.flush()
 
@@ -635,15 +637,15 @@ def bind(session) -> None:
 
     def _feat_dict() -> dict:
         f = edit_features()
-        return dict(
-            tubercle_amp=f.tubercle_amp,
-            tubercle_waves=f.tubercle_waves,
-            serration_amp=f.serration_amp,
-            serration_waves=f.serration_waves,
-            dimple_amp=f.dimple_amp,
-            dimple_rows=f.dimple_rows,
-            dimple_cols=f.dimple_cols,
-        )
+        return {
+            "tubercle_amp": f.tubercle_amp,
+            "tubercle_waves": f.tubercle_waves,
+            "serration_amp": f.serration_amp,
+            "serration_waves": f.serration_waves,
+            "dimple_amp": f.dimple_amp,
+            "dimple_rows": f.dimple_rows,
+            "dimple_cols": f.dimple_cols,
+        }
 
     def _editor_sig() -> dict:
         """Normalized signature of the current editor state (geometry + features)."""

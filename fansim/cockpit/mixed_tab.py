@@ -225,7 +225,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                 try:
                     state.flush()
                     ctrl.mf_view_update()
-                except Exception:  # noqa: BLE001
+                except Exception:  # noqa: BLE001, S110
                     pass
 
         asynchronous.create_task(task())
@@ -235,7 +235,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
         _apply_mf_airflow_field()
         try:
             state.flush()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def _mf_flat_from_state() -> dict:
@@ -452,8 +452,10 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                     f"η {result.efficiency:.1f}%  ({workdir.name}) — saved to scatter"
                 )
                 state.mf_readout = [
-                    f"cfm_free {result.cfm_free:.1f}  ·  cfm_load {result.cfm_load:.1f}  ·  "
-                    f"efficiency {result.efficiency:.1f}%",
+                    (
+                        f"cfm_free {result.cfm_free:.1f}  ·  cfm_load {result.cfm_load:.1f}  ·  "
+                        f"efficiency {result.efficiency:.1f}%"
+                    ),
                     "Assess runs MRF CFD (not validated against published data).",
                     f"workdir {workdir}",
                 ]
@@ -637,8 +639,10 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             state.mf_camber_pos = float(p["camber_pos"])
         o = row.get("objectives") or {}
         state.mf_readout = [
-            f"#{tid}  cfm_free {o.get('cfm_free', 0):.1f}  ·  cfm_load {o.get('cfm_load', 0):.1f}  ·  "
-            f"efficiency {o.get('efficiency', 0):.1f}%",
+            (
+                f"#{tid}  cfm_free {o.get('cfm_free', 0):.1f}  ·  cfm_load {o.get('cfm_load', 0):.1f}  ·  "
+                f"efficiency {o.get('efficiency', 0):.1f}%"
+            ),
             EXPERIMENTAL_LABEL,
             f"Loaded from {row.get('extra', {}).get('source_run', row.get('workdir', ''))}",
         ]
@@ -646,7 +650,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
         if stl and Path(stl).exists():
             try:
                 _show_mf_stl(Path(stl))
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
         state.mf_msg = f"Loaded Assess #{tid} into the editor."
         _render_mf_airflow(row.get("workdir"))  # duct-airflow viz from the loaded case (if kept)
@@ -663,13 +667,34 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
 
 def render_mixed_tab(ctx: CockpitCtx) -> None:
     """Build Mixed UI (call inside layout content)."""
-    state, ctrl = ctx.state, ctx.ctrl
+    ctrl = ctx.ctrl
     mf_plotter = ensure_plotter(ctx, "mf_plotter")
-    mf_design_store = getattr(ctx, "mf_design_store")  # set by setup_mixed_tab
+    mf_design_store = ctx.mf_design_store  # set by setup_mixed_tab
 
-    def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None, **_kw):
-        # Shared slider: label + exact value always visible (these tabs showed no numbers; §23.24).
-        _shared_slider(label, model, mn, mx, step, disabled=disabled)
+    def _slider(
+        label: str,
+        model: str,
+        mn: float,
+        mx: float,
+        step: float,
+        disabled=None,
+        unit: str = "",
+        simple_label: str | None = None,
+        simple_unit: str | None = None,
+        **_kw,
+    ):
+        # Shared slider: label + exact value + unit + hover tooltip/diagram always wired.
+        _shared_slider(
+            label,
+            model,
+            mn,
+            mx,
+            step,
+            disabled=disabled,
+            unit=unit,
+            simple_label=simple_label,
+            simple_unit=simple_unit,
+        )
 
     _mf_busy_expr = (
         "mf_preview_busy || mf_export_busy || mf_assess_busy || "
@@ -685,21 +710,21 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                     with v3.VCard(classes="mb-2 pa-3"):
                         html.Div("Core geometry (A12x25 envelope)", classes="text-subtitle-2 mb-2")
                         _slider("Blades", "mf_n_blades", 5, 13, 1)
-                        _slider("Eye hub R (mm)", "mf_r_eye", 12.0, 24.0, 0.5)
-                        _slider("Back hub R (mm)", "mf_r_back", 20.0, 35.0, 0.5)
-                        _slider("Tip R (mm)", "mf_r_tip", 48.0, 54.5, 0.5)
-                        _slider("Z span (mm)", "mf_z_span", 12.0, 22.0, 0.5)
+                        _slider("Eye hub R", "mf_r_eye", 12.0, 24.0, 0.5, unit="mm")
+                        _slider("Back hub R", "mf_r_back", 20.0, 35.0, 0.5, unit="mm")
+                        _slider("Tip R", "mf_r_tip", 48.0, 54.5, 0.5, unit="mm")
+                        _slider("Z span", "mf_z_span", 12.0, 22.0, 0.5, unit="mm")
                         html.Div("Planform (root → tip)", classes="text-subtitle-2 mt-3 mb-1")
-                        _slider("Chord root (mm)", "mf_chord_root", 14.0, 28.0, 0.5)
-                        _slider("Chord mid (mm)", "mf_chord", 14.0, 28.0, 0.5)
-                        _slider("Chord tip (mm)", "mf_chord_tip", 14.0, 28.0, 0.5)
-                        _slider("Stagger root (°)", "mf_stagger_root", 20.0, 50.0, 1.0)
-                        _slider("Stagger mid (°)", "mf_stagger", 20.0, 50.0, 1.0)
-                        _slider("Stagger tip (°)", "mf_stagger_tip", 20.0, 50.0, 1.0)
+                        _slider("Chord root", "mf_chord_root", 14.0, 28.0, 0.5, unit="mm")
+                        _slider("Chord mid", "mf_chord", 14.0, 28.0, 0.5, unit="mm")
+                        _slider("Chord tip", "mf_chord_tip", 14.0, 28.0, 0.5, unit="mm")
+                        _slider("Stagger root", "mf_stagger_root", 20.0, 50.0, 1.0, unit="deg")
+                        _slider("Stagger mid", "mf_stagger", 20.0, 50.0, 1.0, unit="deg")
+                        _slider("Stagger tip", "mf_stagger_tip", 20.0, 50.0, 1.0, unit="deg")
                         html.Div("Section aero", classes="text-subtitle-2 mt-3 mb-1")
-                        _slider("Thickness t/c", "mf_thickness", 0.04, 0.14, 0.005)
-                        _slider("Camber", "mf_camber", 0.0, 0.08, 0.005)
-                        _slider("Camber pos", "mf_camber_pos", 0.25, 0.55, 0.01)
+                        _slider("Thickness", "mf_thickness", 0.04, 0.14, 0.005, unit="t/c")
+                        _slider("Camber", "mf_camber", 0.0, 0.08, 0.005, unit="c/c")
+                        _slider("Camber pos", "mf_camber_pos", 0.25, 0.55, 0.01, unit="x/c")
                     with v3.VCard(classes="mb-2 pa-3"):
                         v3.VSelect(
                             label="Application",
@@ -726,7 +751,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                                     "label": "Preview",
                                     "color": "primary",
                                     "size": "small",
-                                    "click": (getattr(ctx, "mf_preview"),),
+                                    "click": (ctx.mf_preview,),
                                     "loading": ("mf_preview_busy",),
                                     "disabled": (_mf_busy_expr,),
                                 },
@@ -734,7 +759,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                                     "label": "Assess",
                                     "color": "success",
                                     "size": "small",
-                                    "click": (getattr(ctx, "mf_assess"),),
+                                    "click": (ctx.mf_assess,),
                                     "loading": ("mf_assess_busy",),
                                     "disabled": (f"{_mf_busy_expr} || !mf_geo_ready",),
                                 },
@@ -743,7 +768,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                                     "size": "small",
                                     "variant": "tonal",
                                     "color": "primary",
-                                    "click": (getattr(ctx, "mf_export"),),
+                                    "click": (ctx.mf_export,),
                                     "loading": ("mf_export_busy",),
                                     "disabled": (f"{_mf_busy_expr} || !mf_geo_ready",),
                                 },
@@ -751,11 +776,16 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                                     "label": "Optimize",
                                     "color": "success",
                                     "size": "small",
-                                    "click": (getattr(ctx, "optimize_mixed"),),
+                                    "click": (ctx.optimize_mixed,),
                                     "loading": ("mf_opt_busy",),
                                     "disabled": (_mf_busy_expr,),
                                 },
                             },
+                        )
+                        html.Div(
+                            "Press Preview first to build the 3-D mesh and unlock Assess / Export STL.",
+                            classes="text-caption text-medium-emphasis mt-1",
+                            v_show="!mf_geo_ready",
                         )
                         html.Div(
                             "{{ mf_msg }}",
@@ -819,7 +849,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                                     variant="tonal",  # solid orange looked enabled at top N = 0 (UI-21)
                                     size="small",
                                     block=True,
-                                    click=(getattr(ctx, "refine_mixed_cfd"),),
+                                    click=(ctx.refine_mixed_cfd,),
                                     loading=("mf_refine_busy",),
                                     disabled=(
                                         f"{_mf_busy_expr} || !mf_has_front || !(mf_cfd_top > 0)",
@@ -835,13 +865,13 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_mf_trial"), "[$event]"),
+                            update_modelValue=(ctx.load_mf_trial, "[$event]"),
                         )
                     with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
                         mf_fig_widget = plotly_widgets.Figure(
                             figure=mf_scatter_figure(mf_design_store),
                             click=(
-                                getattr(ctx, "load_mf_trial"),
+                                ctx.load_mf_trial,
                                 "[$event?.points?.[0]?.customdata]",
                             ),
                             style="width:100%;",
@@ -857,7 +887,7 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_mf_trial"), "[$event]"),
+                            update_modelValue=(ctx.load_mf_trial, "[$event]"),
                         )
                     with v3.VCard(classes="pa-2"):
                         html.Div(
@@ -885,6 +915,11 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
                 with v3.VCard(classes="mb-2 pa-3"):
                     html.Div("{{ line }}", v_for="line in mf_readout", classes="text-body-2")
                 with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
+                    html.Div(
+                        "3-D preview appears here after you press Preview.",
+                        classes="text-caption text-medium-emphasis px-3 pt-2",
+                        v_show="!mf_geo_ready",
+                    )
                     mf_view = plotter_ui(mf_plotter)
                     ctrl.mf_view_update = mf_view.update
                 with v3.VCard(classes="mb-2 pa-2", v_show="mf_subtab === 'results'"):

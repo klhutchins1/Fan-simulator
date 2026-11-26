@@ -162,8 +162,10 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
     )
     state.volute_readout = [
         "Preview / Export: impeller + sealed casing STLs.",
-        "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker). "
-        f"{EXPERIMENTAL_LABEL}",
+        (
+            "Assess: free+load CFD in the radial MRF domain (OpenFOAM Docker). "
+            f"{EXPERIMENTAL_LABEL}"
+        ),
         f"Optimize: NSGA geometry proxy — {EXPERIMENTAL_LABEL}",
     ]
     if volute_design_store:
@@ -238,7 +240,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
                 try:
                     state.flush()
                     ctrl.volute_view_update()
-                except Exception:  # noqa: BLE001
+                except Exception:  # noqa: BLE001, S110
                     pass
 
         asynchronous.create_task(task())
@@ -248,7 +250,7 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
         _apply_volute_airflow_field()
         try:
             state.flush()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def _volute_flat_from_state() -> dict:
@@ -422,8 +424,10 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
                     f"η={res.efficiency:.1f}%  ({res.runtime_s:.0f}s)"
                 )
                 state.volute_readout = [
-                    f"CFM free {res.cfm_free:.1f} · load {res.cfm_load:.1f} · "
-                    f"η {res.efficiency:.1f}% · {rpm:.0f} RPM",
+                    (
+                        f"CFM free {res.cfm_free:.1f} · load {res.cfm_load:.1f} · "
+                        f"η {res.efficiency:.1f}% · {rpm:.0f} RPM"
+                    ),
                     f"Domain: radial MRF stage 1 ({res.raw.get('honesty', '')}).",
                     f"Volute CFD: {EXPERIMENTAL_LABEL}",
                     f"Workdir: {workdir}",
@@ -551,8 +555,10 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
             state.volute_out_h = float(p["outlet_height_mm"])
         o = row.get("objectives") or {}
         state.volute_readout = [
-            f"#{tid}  capacity {o.get('capacity_proxy', 0):.1f}  ·  "
-            f"head {o.get('head_proxy', 0):.2f}  (proxy — not CFM)",
+            (
+                f"#{tid}  capacity {o.get('capacity_proxy', 0):.1f}  ·  "
+                f"head {o.get('head_proxy', 0):.2f}  (proxy — not CFM)"
+            ),
             f"Loaded from {row.get('extra', {}).get('source_run', '')}",
         ]
         state.volute_geo_ready = False
@@ -572,13 +578,34 @@ def setup_volute_tab(ctx: CockpitCtx) -> None:
 
 def render_volute_tab(ctx: CockpitCtx) -> None:
     """Build Volute UI (call inside layout content)."""
-    state, ctrl = ctx.state, ctx.ctrl
+    ctrl = ctx.ctrl
     volute_plotter = ensure_plotter(ctx, "volute_plotter")
     volute_design_store = getattr(ctx, "volute_design_store", [])
 
-    def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None, **_kw):
-        # Shared slider: label + exact value always visible (these tabs showed no numbers; §23.24).
-        _shared_slider(label, model, mn, mx, step, disabled=disabled)
+    def _slider(
+        label: str,
+        model: str,
+        mn: float,
+        mx: float,
+        step: float,
+        disabled=None,
+        unit: str = "",
+        simple_label: str | None = None,
+        simple_unit: str | None = None,
+        **_kw,
+    ):
+        # Shared slider: label + exact value + unit + hover tooltip/diagram always wired.
+        _shared_slider(
+            label,
+            model,
+            mn,
+            mx,
+            step,
+            disabled=disabled,
+            unit=unit,
+            simple_label=simple_label,
+            simple_unit=simple_unit,
+        )
 
     _volute_busy_expr = (
         "volute_preview_busy || volute_export_busy || volute_assess_busy || volute_opt_busy"
@@ -603,45 +630,62 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                             style="white-space: pre-line",
                         )
                         _slider("Blades", "volute_n_blades", 5, 11, 1)
-                        _slider("Hub R (mm)", "volute_r_hub", 12.0, 28.0, 0.5)
-                        _slider("Tip R (mm)", "volute_r_tip", 35.0, 60.0, 0.5)
-                        _slider("Blade height (mm)", "volute_blade_h", 12.0, 32.0, 0.5)
-                        _slider("Blade thick (mm)", "volute_blade_thick", 0.6, 2.5, 0.1)
-                        _slider("Backplate (mm)", "volute_backplate", 1.0, 4.0, 0.1)
+                        _slider("Hub R", "volute_r_hub", 12.0, 28.0, 0.5, unit="mm")
+                        _slider("Tip R", "volute_r_tip", 35.0, 60.0, 0.5, unit="mm")
+                        _slider("Blade height", "volute_blade_h", 12.0, 32.0, 0.5, unit="mm")
+                        _slider("Blade thick", "volute_blade_thick", 0.6, 2.5, 0.1, unit="mm")
+                        _slider("Backplate", "volute_backplate", 1.0, 4.0, 0.1, unit="mm")
                         with v3.VExpansionPanels(variant="accordion", class_="mb-2"):
                             with v3.VExpansionPanel(title="Scroll & tongue"):
                                 with v3.VExpansionPanelText():
-                                    _slider("Spiral growth (mm)", "volute_spiral", 10.0, 40.0, 1.0)
-                                    _slider("Tip clearance (mm)", "volute_clearance", 1.0, 8.0, 0.5)
-                                    _slider("Wall (mm)", "volute_wall", 1.0, 4.0, 0.1)
-                                    _slider("Tongue angle (°)", "volute_tongue_angle", 2.0, 15.0, 0.5)
-                                    _slider("Tongue clear (mm)", "volute_tongue_clear", 0.5, 4.0, 0.1)
-                                    _slider("Tongue fillet (mm)", "volute_tongue_fillet", 0.0, 4.0, 0.1)
+                                    _slider("Spiral growth", "volute_spiral", 10.0, 40.0, 1.0, unit="mm")
+                                    _slider("Tip clearance", "volute_clearance", 1.0, 8.0, 0.5, unit="mm")
+                                    _slider("Wall", "volute_wall", 1.0, 4.0, 0.1, unit="mm")
+                                    _slider("Tongue angle", "volute_tongue_angle", 2.0, 15.0, 0.5, unit="deg")
+                                    _slider("Tongue clear", "volute_tongue_clear", 0.5, 4.0, 0.1, unit="mm")
+                                    _slider("Tongue fillet", "volute_tongue_fillet", 0.0, 4.0, 0.1, unit="mm")
                             with v3.VExpansionPanel(title="Outlet"):
                                 with v3.VExpansionPanelText():
-                                    _slider("Outlet width (mm)", "volute_out_w", 20.0, 50.0, 1.0)
-                                    _slider("Outlet length (mm)", "volute_out_l", 20.0, 60.0, 1.0)
-                                    _slider("Outlet height (mm)", "volute_out_h", 12.0, 40.0, 1.0)
+                                    _slider("Outlet width", "volute_out_w", 20.0, 50.0, 1.0, unit="mm")
+                                    _slider("Outlet length", "volute_out_l", 20.0, 60.0, 1.0, unit="mm")
+                                    _slider("Outlet height", "volute_out_h", 12.0, 40.0, 1.0, unit="mm")
                         # mt-4: outlined labels float above the border and were clipped by the panels (§23.23)
+                        from fansim.cockpit.fan_widgets import resolve_tooltip as _resolve_tip
+
+                        _, _rpm_tip, _ = _resolve_tip("volute_rpm")
+                        _, _pa_tip, _pa_uri = _resolve_tip("volute_load_pa")
                         with v3.VRow(no_gutters=True, classes="mt-4"):
                             with v3.VCol(cols=6, classes="pr-1"):
-                                v3.VTextField(
-                                    label="RPM",
-                                    v_model=("volute_rpm",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
+                                with v3.VTooltip(location="end", open_delay=150, max_width=360):
+                                    with v3.Template(v_slot_activator="{ props }"):
+                                        v3.VTextField(
+                                            v_bind="props",
+                                            label="RPM",
+                                            v_model=("volute_rpm",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                    html.Div(_rpm_tip, classes="text-caption")
                             with v3.VCol(cols=6, classes="pl-1"):
-                                v3.VTextField(
-                                    label="Load Pa@50CFM",
-                                    v_model=("volute_load_pa",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
+                                with v3.VTooltip(location="end", open_delay=150, max_width=380):
+                                    with v3.Template(v_slot_activator="{ props }"):
+                                        v3.VTextField(
+                                            v_bind="props",
+                                            label="Load Pa @ 50 CFM",
+                                            v_model=("volute_load_pa",),
+                                            type="number",
+                                            density="compact",
+                                            variant="outlined",
+                                            hide_details=True,
+                                        )
+                                    if _pa_uri:
+                                        html.Img(
+                                            src=_pa_uri,
+                                            style="width:320px;max-width:100%;display:block;margin-bottom:4px;border-radius:4px;",
+                                        )
+                                    html.Div(_pa_tip, classes="text-caption")
                     with v3.VCard(classes="mb-2 pa-3"):
                         render_action_row(
                             v3,
@@ -650,7 +694,7 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                                     "label": "Preview",
                                     "color": "primary",
                                     "size": "small",
-                                    "click": (getattr(ctx, "volute_preview"),),
+                                    "click": (ctx.volute_preview,),
                                     "loading": ("volute_preview_busy",),
                                     "disabled": (_volute_busy_expr,),
                                 },
@@ -658,7 +702,7 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                                     "label": "Assess",
                                     "color": "success",
                                     "size": "small",
-                                    "click": (getattr(ctx, "volute_assess"),),
+                                    "click": (ctx.volute_assess,),
                                     "loading": ("volute_assess_busy",),
                                     "disabled": (f"{_volute_busy_expr} || !volute_geo_ready",),
                                 },
@@ -667,7 +711,7 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                                     "size": "small",
                                     "variant": "tonal",
                                     "color": "primary",
-                                    "click": (getattr(ctx, "volute_export"),),
+                                    "click": (ctx.volute_export,),
                                     "loading": ("volute_export_busy",),
                                     "disabled": (f"{_volute_busy_expr} || !volute_geo_ready",),
                                 },
@@ -675,11 +719,16 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                                     "label": "Optimize",
                                     "color": "success",
                                     "size": "small",
-                                    "click": (getattr(ctx, "optimize_volute"),),
+                                    "click": (ctx.optimize_volute,),
                                     "loading": ("volute_opt_busy",),
                                     "disabled": (_volute_busy_expr,),
                                 },
                             },
+                        )
+                        html.Div(
+                            "Press Preview first to build the 3-D mesh and unlock Assess / Export STLs.",
+                            classes="text-caption text-medium-emphasis mt-1",
+                            v_show="!volute_geo_ready",
                         )
                         html.Div(
                             "{{ volute_msg }}",
@@ -714,10 +763,12 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                             hide_details=True,
                             classes="mb-2",
                         )
-                        v3.VCheckbox(
+                        v3.VSwitch(
                             label="Resume last Optimize front",
                             v_model=("volute_resume",),
                             density="compact",
+                            color="primary",
+                            inset=True,
                             hide_details=True,
                         )
 
@@ -730,13 +781,13 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_volute_trial"), "[$event]"),
+                            update_modelValue=(ctx.load_volute_trial, "[$event]"),
                         )
                     with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
                         volute_fig_widget = plotly_widgets.Figure(
                             figure=volute_scatter_figure(volute_design_store),
                             click=(
-                                getattr(ctx, "load_volute_trial"),
+                                ctx.load_volute_trial,
                                 "[$event?.points?.[0]?.customdata]",
                             ),
                             style="width:100%;",
@@ -752,7 +803,7 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                             density="compact",
                             variant="outlined",
                             hide_details=True,
-                            update_modelValue=(getattr(ctx, "load_volute_trial"), "[$event]"),
+                            update_modelValue=(ctx.load_volute_trial, "[$event]"),
                         )
                     with v3.VCard(classes="pa-2"):
                         html.Div(
@@ -784,6 +835,11 @@ def render_volute_tab(ctx: CockpitCtx) -> None:
                         classes="text-body-2",
                     )
                 with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
+                    html.Div(
+                        "3-D preview appears here after you press Preview.",
+                        classes="text-caption text-medium-emphasis px-3 pt-2",
+                        v_show="!volute_geo_ready",
+                    )
                     volute_view = plotter_ui(volute_plotter)
                     ctrl.volute_view_update = volute_view.update
                 with v3.VCard(classes="mb-2 pa-2", v_show="volute_subtab === 'results'"):

@@ -207,11 +207,16 @@ def apply_state_defaults(session) -> None:
     state.library_items = []
     state.library_sel = None
     state.library_info = ""
+    state.library_msg = ""
     state.library_parent_id = ""
     state.library_place_op = ""
     state.library_leftover = ""
     state.fan_model = "a12x25"
     state.fan_models = fan_spec_names()
+    state.fan_model_items = []
+    state.model_info_simple = ""
+    from fansim.cockpit.diagrams import visual_guide_cards
+    state.fan_visual_diagrams = visual_guide_cards()
     state.lee_tip = 0.0
     state.lee_depth = 0.0
     state.lee_overvolt = 0.0

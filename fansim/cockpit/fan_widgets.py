@@ -1,10 +1,15 @@
-"""Fan-tab-local Trame widgets (sliders / switches with hover help)."""
+"""Shared cockpit Trame widgets (sliders / switches / selects with hover help & diagrams)."""
 
 from __future__ import annotations
 
 import sys
 
+from fansim.cockpit.blade_copy import BLADE_DESC, BLADE_DESC_SIMPLE, CROR_DESC
+from fansim.cockpit.diagrams import diagram_for_control
 from fansim.cockpit.fan_copy import _IMG_URI, CONTROL_DESC, CONTROL_DESC_SIMPLE, OPT_SEARCH_HELP
+from fansim.cockpit.mixed_copy import MIXED_DESC
+from fansim.cockpit.prop_copy import PROP_DESC, PROP_DESC_SIMPLE
+from fansim.cockpit.volute_copy import VOLUTE_DESC
 
 _RUNNING_TESTS = "pytest" in sys.modules
 
@@ -16,28 +21,108 @@ else:
     from trame.widgets import vuetify3 as v3
 
 
-def slider(label: str, model: str, mn: float, mx: float | str, step: float, disabled=None, unit: str = ""):
-    """Slider with always-visible value + unit (not only on thumb click).
+def resolve_tooltip(
+    model: str,
+    *,
+    help_map: dict[str, str] | None = None,
+    simple_help_map: dict[str, str] | None = None,
+) -> tuple[str, str, str]:
+    """Return ``(simple_desc, expert_desc, image_or_svg_uri)`` for any cockpit control key.
+
+    Checks explicit caller maps first, then falls back across Fan, Prop, Mixed, Volute,
+    CROR, shared BladeParams, and Optimize help maps. Image prefers rendered control PNGs
+    (``docs/control_images``) and falls back to inline explanatory SVG diagrams.
+    """
+    expert = ""
+    simple = ""
+    if help_map is not None:
+        expert = help_map.get(model, "")
+        if simple_help_map is not None:
+            simple = simple_help_map.get(model, expert)
+        elif help_map is CONTROL_DESC:
+            simple = CONTROL_DESC_SIMPLE.get(model, expert)
+        else:
+            simple = expert
+    else:
+        for exp_map, simp_map in (
+            (CONTROL_DESC, CONTROL_DESC_SIMPLE),
+            (PROP_DESC, PROP_DESC_SIMPLE),
+            (MIXED_DESC, MIXED_DESC),
+            (VOLUTE_DESC, VOLUTE_DESC),
+            (CROR_DESC, CROR_DESC),
+            (BLADE_DESC, BLADE_DESC_SIMPLE),
+            (OPT_SEARCH_HELP, OPT_SEARCH_HELP),
+        ):
+            if model in exp_map:
+                expert = exp_map[model]
+                simple = simp_map.get(model, expert)
+                break
+        if not expert:
+            for prefix in ("p_", "cror_f_", "cror_r_"):
+                if model.startswith(prefix):
+                    bare = model[len(prefix) :]
+                    if bare in BLADE_DESC:
+                        expert = BLADE_DESC[bare]
+                        simple = BLADE_DESC_SIMPLE.get(bare, expert)
+                        break
+
+    uri = _IMG_URI.get(model) or diagram_for_control(model)
+    return simple, expert, uri
+
+
+def slider(
+    label: str,
+    model: str,
+    mn: float,
+    mx: float | str,
+    step: float,
+    disabled=None,
+    unit: str = "",
+    *,
+    simple_label: str | None = None,
+    simple_unit: str | None = None,
+    help_map: dict[str, str] | None = None,
+    simple_help_map: dict[str, str] | None = None,
+):
+    """Slider with always-visible value + unit and hover tooltip/diagram.
 
     ``mx`` may be a float or a state variable name (str) for a reactive max.
     """
-    desc = CONTROL_DESC.get(model, "")
-    simple = CONTROL_DESC_SIMPLE.get(model, desc)
-    uri = _IMG_URI.get(model)
+    simple, desc, uri = resolve_tooltip(
+        model, help_map=help_map, simple_help_map=simple_help_map
+    )
     extra = {}
     if disabled is not None:
         extra["disabled"] = disabled
     unit_s = f" {unit}" if unit else ""
+    s_unit = unit if simple_unit is None else simple_unit
+    s_unit_s = f" {s_unit}" if s_unit else ""
     max_kw = (mx,) if isinstance(mx, str) else mx
 
     def _body():
         with html.Div(classes="d-flex justify-space-between align-center text-caption mb-0"):
-            html.Span(label)
-            html.Span(
-                f"{{{{ {model} }}}}{unit_s}",
-                classes="font-weight-medium text-no-wrap ml-2",
-            )
-        with v3.VSlider(  # noqa: SIM117 — trame nested contexts
+            if simple_label:
+                html.Span(simple_label, v_show="ui_mode === 'simple'")
+                html.Span(label, v_show="ui_mode === 'expert'")
+            else:
+                html.Span(label)
+            if simple_unit is not None and s_unit_s != unit_s:
+                html.Span(
+                    f"{{{{ {model} }}}}{s_unit_s}",
+                    classes="font-weight-medium text-no-wrap ml-2",
+                    v_show="ui_mode === 'simple'",
+                )
+                html.Span(
+                    f"{{{{ {model} }}}}{unit_s}",
+                    classes="font-weight-medium text-no-wrap ml-2",
+                    v_show="ui_mode === 'expert'",
+                )
+            else:
+                html.Span(
+                    f"{{{{ {model} }}}}{unit_s}",
+                    classes="font-weight-medium text-no-wrap ml-2",
+                )
+        with v3.VSlider(
             v_model=(model,),
             min=mn,
             max=max_kw,
@@ -92,8 +177,7 @@ def help_switch(
     disabled=None,
 ):
     """Compact switch with a hover tooltip (same pattern as design sliders)."""
-    desc = (help_map or OPT_SEARCH_HELP).get(model, "")
-    uri = _IMG_URI.get(model)
+    simple, desc, uri = resolve_tooltip(model, help_map=help_map or OPT_SEARCH_HELP)
     extra = {}
     if disabled is not None:
         extra["disabled"] = disabled
@@ -108,7 +192,7 @@ def help_switch(
         classes=cls,
         **extra,
     )
-    if not desc and not uri:
+    if not desc and not simple and not uri:
         v3.VSwitch(**kwargs)
         return
     with v3.VTooltip(location="end", open_delay=150, max_width=420):
@@ -120,7 +204,10 @@ def help_switch(
                 style="width:360px;max-width:100%;display:block;"
                 "margin-bottom:4px;border-radius:4px;",
             )
-        if desc:
+        if simple and simple != desc:
+            html.Div(simple, classes="text-caption", v_show="ui_mode === 'simple'")
+            html.Div(desc, classes="text-caption", v_show="ui_mode === 'expert'")
+        elif desc:
             html.Div(desc, classes="text-caption")
 
 
@@ -134,11 +221,8 @@ def help_select(
     item_value: str = "value",
     classes: str = "mb-2",
 ):
-    """Outlined VSelect with the same hover image+text tooltip as design sliders."""
-    base = help_map or CONTROL_DESC
-    desc = base.get(model, "")
-    simple = CONTROL_DESC_SIMPLE.get(model, desc) if base is CONTROL_DESC else desc
-    uri = _IMG_URI.get(model)
+    """Outlined VSelect with the same hover image/diagram + text tooltip as design sliders."""
+    simple, desc, uri = resolve_tooltip(model, help_map=help_map or CONTROL_DESC)
     kwargs = {
         "label": label,
         "v_model": (model,),

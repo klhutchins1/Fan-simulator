@@ -18,4 +18,6 @@ VOLUTE_DESC = {
     "volute_out_w": "Outlet width (mm).",
     "volute_out_l": "Outlet length (mm).",
     "volute_out_h": "Outlet height (mm).",
+    "volute_rpm": "Impeller shaft speed for CFD Assess (RPM).",
+    "volute_load_pa": "Back-pressure load point at 50 CFM reference flow (Pa). Higher Pa = tighter downstream duct.",
 }
