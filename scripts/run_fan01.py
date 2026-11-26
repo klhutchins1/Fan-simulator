@@ -27,8 +27,8 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from fansim.cfd.metrics import parse_fan_metrics  # noqa: E402
-from fansim.cfd.openfoam_case import (  # noqa: E402
+from fansim.cfd.metrics import parse_fan_metrics
+from fansim.cfd.openfoam_case import (
     MeshResolution,
     apply_urans_transient,
     build_case,
@@ -36,10 +36,11 @@ from fansim.cfd.openfoam_case import (  # noqa: E402
     run_solve,
     run_solve_urans,
 )
-from fansim.cfd.orientation import prepare_axial_cfd  # noqa: E402
-from fansim.cfd.runner import OpenFOAMRunner, image_available  # noqa: E402
-from fansim.cfd.sanity import overall as sanity_overall, run_sanity  # noqa: E402
-from fansim.cfd.timing import (  # noqa: E402
+from fansim.cfd.orientation import prepare_axial_cfd
+from fansim.cfd.runner import OpenFOAMRunner, image_available
+from fansim.cfd.sanity import overall as sanity_overall
+from fansim.cfd.sanity import run_sanity
+from fansim.cfd.timing import (
     mean_time_step,
     mesh_cells,
     pilot_iters,
@@ -47,7 +48,7 @@ from fansim.cfd.timing import (  # noqa: E402
     urans_pilot_estimate,
     write_pilot_json,
 )
-from fansim.validation.fan01 import (  # noqa: E402
+from fansim.validation.fan01 import (
     DEFAULT_OUT_STL,
     FAN01_MRF_MARGIN_MM,
     fan01_rig,
