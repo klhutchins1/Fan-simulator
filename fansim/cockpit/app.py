@@ -141,19 +141,22 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
     from fansim.cockpit.cror_tab import render_cror_tab, setup_cror_tab
     from fansim.cockpit.fan_core import tab_for_ui_mode
     from fansim.cockpit.fan_tab import render_fan_tab, setup_fan_tab
+    from fansim.cockpit.home_tab import HOME_TAB, render_home_tab, setup_home_tab
     from fansim.cockpit.mixed_tab import render_mixed_tab, setup_mixed_tab
     from fansim.cockpit.prop_tab import render_prop_tab, setup_prop_tab
     from fansim.cockpit.volute_tab import render_volute_tab, setup_volute_tab
 
-    state.active_tab = "fan"
+    state.active_tab = HOME_TAB
     setup_fan_tab(ctx)
     setup_mixed_tab(ctx)
     setup_volute_tab(ctx)
     setup_prop_tab(ctx)
     setup_cror_tab(ctx)
+    setup_home_tab(ctx)
 
-    # Defer Mixed/Volute/Prop/CROR layout (and their VTK Plotters) until first tab visit.
-    _lazy_ui = {"mixed": False, "volute": False, "propeller": False, "cror": False}
+    # Defer archetype tab layouts (and their VTK Plotters) until first tab visit so each
+    # VTK canvas mounts while visible (non-zero size) when launched on Home.
+    _lazy_ui = {"fan": False, "mixed": False, "volute": False, "propeller": False, "cror": False}
 
     with SinglePageLayout(server) as layout:
         layout.title.set_text("Fan Simulator — printable blade designer")
@@ -179,6 +182,13 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
         with layout.content:
             with v3.VContainer(fluid=True, classes="pa-2") as _tabs_box:
                 with v3.VTabs(v_model=("active_tab",), color="primary", classes="mb-3"):
+                    with v3.VTooltip(
+                        location="bottom",
+                        open_delay=400,
+                        text="Start page — pick a fan, a propeller, saved designs, or accuracy info",
+                    ):
+                        with v3.Template(v_slot_activator="{ props }"):
+                            v3.VTab("Home", value=HOME_TAB, v_bind="props")
                     with v3.VTooltip(
                         location="bottom",  # beside the tab it covered the next tab name (§23.27)
                         open_delay=400,
@@ -234,15 +244,15 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                 html.Div(
                     "Fan: printable PC-fan blades (airflow check). Prop: propeller (fast estimate).",
                     classes="text-caption text-medium-emphasis mb-2",
-                    v_show="ui_mode === 'simple'",
+                    v_show="ui_mode === 'simple' && active_tab !== 'home'",
                 )
                 html.Div(
                     "3D-printable PC-fan blade designer — CFD on Fan; other tabs are faster "
                     "estimates (see tab labels).",
                     classes="text-caption text-medium-emphasis mb-2",
-                    v_show="ui_mode === 'expert'",
+                    v_show="ui_mode === 'expert' && active_tab !== 'home'",
                 )
-                render_fan_tab(ctx)
+                render_home_tab(ctx)
 
                 @state.change("ui_mode")
                 def _simple_leaves_proxy(ui_mode=None, **_):
@@ -253,15 +263,23 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
 
                 @state.change("active_tab")
                 def _lazy_tab_ui(active_tab=None, **_):
-                    tab = str(active_tab or state.active_tab or "fan")
+                    tab = str(active_tab or state.active_tab or "home")
                     lazy = {
+                        "fan": render_fan_tab,
                         "mixed": render_mixed_tab,
                         "volute": render_volute_tab,
                         "propeller": render_prop_tab,
                         "cror": render_cror_tab,
                     }
                     render = lazy.get(tab)
-                    if render is None or _lazy_ui.get(tab):
+                    if render is None:
+                        return
+                    if _lazy_ui.get(tab):
+                        if tab == "fan" and hasattr(ctrl, "view_update"):
+                            try:
+                                ctrl.view_update()
+                            except Exception:  # noqa: BLE001
+                                pass
                         return
                     # The archetype tabs render lazily on first visit — but this callback fires long
                     # after the SinglePageLayout `with` blocks have closed, so the new widgets have no
@@ -271,5 +289,10 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                         render(ctx)
                     _lazy_ui[tab] = True
                     layout.flush_content()
+                    if tab == "fan" and hasattr(ctrl, "view_update"):
+                        try:
+                            ctrl.view_update()
+                        except Exception:  # noqa: BLE001
+                            pass
 
     return server

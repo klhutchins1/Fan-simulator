@@ -579,9 +579,30 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
     cror_pareto_store = getattr(ctx, "cror_pareto_store")  # set by setup_cror_tab
     cror_plotter = ensure_plotter(ctx, "cror_plotter")
 
-    def _slider(label: str, model: str, mn: float, mx: float, step: float, disabled=None, **_kw):
-        # Shared slider: label + exact value always visible (these tabs showed no numbers; §23.24).
-        _shared_slider(label, model, mn, mx, step, disabled=disabled)
+    def _slider(
+        label: str,
+        model: str,
+        mn: float,
+        mx: float,
+        step: float,
+        disabled=None,
+        unit: str = "",
+        simple_label: str | None = None,
+        simple_unit: str | None = None,
+        **_kw,
+    ):
+        # Shared slider: label + exact value + unit + hover tooltip/diagram always wired.
+        _shared_slider(
+            label,
+            model,
+            mn,
+            mx,
+            step,
+            disabled=disabled,
+            unit=unit,
+            simple_label=simple_label,
+            simple_unit=simple_unit,
+        )
 
     _cror_busy_expr = (
         "cror_preview_busy || cror_opt_busy || cror_refine_busy || "
@@ -606,9 +627,9 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                             classes="text-caption mb-2",
                             style="white-space: pre-line",
                         )
-                        _slider("Hub R (mm)", "cror_hub_r", 14.0, 28.0, 0.5)
-                        _slider("Tip R (mm)", "cror_tip_r", 45.0, 58.0, 0.5)
-                        _slider("Axial gap (mm)", "cror_gap", 2.0, 12.0, 0.5)
+                        _slider("Hub R", "cror_hub_r", 14.0, 28.0, 0.5, unit="mm")
+                        _slider("Tip R", "cror_tip_r", 45.0, 58.0, 0.5, unit="mm")
+                        _slider("Axial gap", "cror_gap", 2.0, 12.0, 0.5, unit="mm")
                         with v3.VExpansionPanels(variant="accordion", class_="mb-2"):
                             with v3.VExpansionPanel(title="Front rotor"):
                                 with v3.VExpansionPanelText():
@@ -656,16 +677,24 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                                         title_3d="Rear 3-D",
                                         title_tip="Rear tip",
                                     )
-                        v3.VBtn(
-                            "Thin to depth",
-                            size="small",
-                            variant="tonal",
-                            color="primary",
-                            click=(getattr(ctx, "thin_cror_now"),),
-                            classes="mb-2",
-                            loading=("cror_thin_busy",),
-                            disabled=(_cror_busy_expr,),
-                        )
+                        with v3.VTooltip(
+                            location="end",
+                            open_delay=150,
+                            max_width=360,
+                            text="Shrinks front/rear blade chord and axial gap so the stacked rotor depth fits Max depth mm below.",
+                        ):
+                            with v3.Template(v_slot_activator="{ props }"):
+                                v3.VBtn(
+                                    "Thin to depth",
+                                    v_bind="props",
+                                    size="small",
+                                    variant="tonal",
+                                    color="primary",
+                                    click=(getattr(ctx, "thin_cror_now"),),
+                                    classes="mb-2",
+                                    loading=("cror_thin_busy",),
+                                    disabled=(_cror_busy_expr,),
+                                )
                         render_action_row(
                             v3,
                             {
@@ -837,6 +866,11 @@ def render_cror_tab(ctx: CockpitCtx) -> None:
                         classes="text-body-2",
                     )
                 with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
+                    html.Div(
+                        "3-D preview appears here after you press Preview.",
+                        classes="text-caption text-medium-emphasis px-3 pt-2",
+                        v_show="!cror_geo_ready",
+                    )
                     cror_view = plotter_ui(cror_plotter)
                     ctrl.cror_view_update = cror_view.update
                 with v3.VCard(classes="mb-2 pa-2", v_show="cror_subtab === 'results'"):

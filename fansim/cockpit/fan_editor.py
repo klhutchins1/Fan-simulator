@@ -503,7 +503,7 @@ def bind(session) -> None:
             state.seed_duty_msg = "\n".join(format_meanline_seed(seed))
             state.preview_msg = (
                 "Seeded stagger/camber magnitudes from duty (§20.4; signs/handedness kept). "
-                "Press Preview geometry."
+                "Press Preview."
             )
         except Exception as exc:  # noqa: BLE001
             state.seed_duty_msg = f"⚠ Seed from duty failed: {type(exc).__name__}: {exc}"
@@ -538,7 +538,7 @@ def bind(session) -> None:
         state.e_dim_rows = random.randint(2, 6) if on["dim"] else 0
         state.e_dim_cols = random.randint(2, 6) if on["dim"] else 0
         active = ", ".join(k for k, v in on.items() if v)
-        state.preview_msg = f"🎲 Randomized features ({active}). Press Preview geometry to see it."
+        state.preview_msg = f"🎲 Randomized features ({active}). Press Preview to see it."
         state.flush()
 
     def randomize_geometry():
@@ -626,7 +626,7 @@ def bind(session) -> None:
         # Uneven blade spacing (tonal-noise DOF; search-space band is 0.0–0.6).
         state.e_spacing = round(_r.uniform(0.0, 0.5), 2)
         state.preview_msg = (
-            "🎲 Randomized geometry. Press Preview geometry to see it (may be out-of-spec)."
+            "🎲 Randomized geometry. Press Preview to see it (may be out-of-spec)."
         )
         state.flush()
 

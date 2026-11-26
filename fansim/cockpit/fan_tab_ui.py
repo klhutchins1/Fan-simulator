@@ -96,16 +96,24 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                     v3.VSelect(
                         label="Fan model (hub)",
                         v_model=("fan_model",),
-                        items=("fan_models",),
+                        items=("fan_model_items",),
+                        item_title="title",
+                        item_value="value",
                         density="compact",
                         variant="outlined",
                         hide_details=True,
                     )
                 with v3.VCol(cols=8, classes="pl-1"):
                     html.Div(
+                        "{{ model_info_simple }}",
+                        classes="text-caption",
+                        v_show="ui_mode === 'simple'",
+                    )
+                    html.Div(
                         "{{ model_info }}",
                         classes="text-caption",
                         style="white-space: pre-line",
+                        v_show="ui_mode === 'expert'",
                     )
 
             with v3.VRow(no_gutters=True):
@@ -243,9 +251,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 v_if="library_leftover",
                             )
                             html.Div(
-                                "{{ preview_msg }}",
-                                classes="text-caption mt-2",
+                                "{{ library_msg }}",
+                                classes="text-caption mt-1 mb-2",
                                 style="white-space: pre-line",
+                                v_if="library_msg",
                             )
                             v3.VBtn(
                                 "Scale to this hub",
@@ -255,20 +264,25 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 block=True,
                                 classes="mb-2",
                                 click=(on_library_scale_to_hub,),
+                                v_show="library_items && library_items.length",
                                 disabled=("!library_sel || preview_busy || assess_busy || export_busy || opt_running",),
                             )
-                            with v3.VList(density="compact", lines="two"):
-                                with html.Div(v_for="it in library_items", key="it.value || it.caption"):
-                                    with v3.VListSubheader(v_if="it.role === 'group'"):
-                                        html.Div("{{ it.title }}")
-                                        html.Div("{{ it.caption }}", classes="text-caption")
-                                    with v3.VListItem(
-                                        v_if="it.role === 'row'",
-                                        disabled=("!it.clickable",),
-                                        click=(select_library_design, "[it.value]"),
-                                    ):
-                                        v3.VListItemTitle("{{ it.title }}")
-                                        v3.VListItemSubtitle("{{ it.subtitle }}")
+                            with html.Div(
+                                style="max-height: 360px; overflow-y: auto;",
+                                v_if="library_items && library_items.length",
+                            ):
+                                with v3.VList(density="compact", lines="two"):
+                                    with html.Div(v_for="it in library_items", key="it.value || it.caption"):
+                                        with v3.VListSubheader(v_if="it.role === 'group'"):
+                                            html.Div("{{ it.title }}")
+                                            html.Div("{{ it.caption }}", classes="text-caption")
+                                        with v3.VListItem(
+                                            v_if="it.role === 'row'",
+                                            disabled=("!it.clickable",),
+                                            click=(select_library_design, "[it.value]"),
+                                        ):
+                                            v3.VListItemTitle("{{ it.title }}")
+                                            v3.VListItemSubtitle("{{ it.subtitle }}")
                         with v3.VExpansionPanels(
                             classes="mb-2",
                             v_show="fan_subtab === 'library' && ui_mode === 'expert'",
@@ -349,7 +363,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     with v3.VRow(no_gutters=True):
                                         with v3.VCol(cols=4, classes="pr-1"):
                                             v3.VTextField(
-                                                label="Cavity dia",
+                                                label="Cavity dia (mm)",
                                                 v_model=("fm_cav_dia",),
                                                 type="number",
                                                 density="compact",
@@ -359,7 +373,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             )
                                         with v3.VCol(cols=4, classes="px-1"):
                                             v3.VTextField(
-                                                label="Cavity depth",
+                                                label="Cavity depth (mm)",
                                                 v_model=("fm_cav_depth",),
                                                 type="number",
                                                 density="compact",
@@ -369,7 +383,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             )
                                         with v3.VCol(cols=4, classes="pl-1"):
                                             v3.VTextField(
-                                                label="Min hub H",
+                                                label="Min hub H (mm)",
                                                 v_model=("fm_hub_h",),
                                                 type="number",
                                                 density="compact",
@@ -580,7 +594,8 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             # design; say so on the dropdown itself (QA UI-20, §23.47). The label alone
                             # was too small: the shown VALUE must say it too (QA re-test).
                             label=("edited_stale ? '✎ Edited copy (not saved) — based on:' "
-                                   ": 'Design (unlocks Preview / Assess / Export)'",),
+                                   ": (e_tip_radius == null ? 'Design (pick one to unlock Preview / Assess)' "
+                                   ": 'Starting design')",),
                             base_color=("edited_stale ? 'warning' : undefined",),
                             color=("edited_stale ? 'warning' : 'primary'",),
                             v_model=("selected_trial",),
@@ -749,6 +764,24 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     classes="text-caption mb-1",
                                 )
                                 with v3.VExpansionPanels(variant="accordion", multiple=True):
+                                    with v3.VExpansionPanel(title="Visual guide — pitch, sweep, hub & pressure"):
+                                        with v3.VExpansionPanelText():
+                                            with v3.VRow(dense=True):
+                                                with v3.VCol(
+                                                    v_for="dg in fan_visual_diagrams",
+                                                    key="dg.key",
+                                                    cols=12,
+                                                    sm=6,
+                                                ):
+                                                    html.Img(
+                                                        src=("dg.src",),
+                                                        alt=("dg.title",),
+                                                        style="width:100%;display:block;border-radius:4px;",
+                                                    )
+                                                    html.Div(
+                                                        "{{ dg.caption }}",
+                                                        classes="text-caption text-medium-emphasis mt-1 mb-2",
+                                                    )
                                     with v3.VExpansionPanel(title="Planform — blades & width"):
                                         with v3.VExpansionPanelText():
                                             _slider("Blades", "e_n_blades", 5, 11, 1)
@@ -780,9 +813,18 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 classes="text-caption mb-2",
                                                 v_show="ui_mode === 'expert'",
                                             )
-                                            _slider("Scoop root", "e_camber_root", 0.0, 0.15, 0.005, unit="c/c")
-                                            _slider("Scoop mid", "e_camber_mid", 0.0, 0.15, 0.005, unit="c/c")
-                                            _slider("Scoop tip", "e_camber_tip", 0.0, 0.15, 0.005, unit="c/c")
+                                            _slider(
+                                                "Scoop root", "e_camber_root", 0.0, 0.15, 0.005,
+                                                unit="c/c", simple_unit="0–0.15",
+                                            )
+                                            _slider(
+                                                "Scoop mid", "e_camber_mid", 0.0, 0.15, 0.005,
+                                                unit="c/c", simple_unit="0–0.15",
+                                            )
+                                            _slider(
+                                                "Scoop tip", "e_camber_tip", 0.0, 0.15, 0.005,
+                                                unit="c/c", simple_unit="0–0.15",
+                                            )
                                             html.Div(
                                                 "Camber = the scoop in the blade face (LE→TE curve). "
                                                 "Raise tip/mid until the tip-on view matches the white reference. "
@@ -790,7 +832,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 classes="text-caption mb-2",
                                                 v_show="ui_mode === 'expert'",
                                             )
-                                            _slider("Scoop position", "e_camber_pos", 0.2, 0.6, 0.05, unit="x/c")
+                                            _slider(
+                                                "Scoop position", "e_camber_pos", 0.2, 0.6, 0.05,
+                                                unit="x/c", simple_unit="front→back",
+                                            )
                                             _help_select(
                                                 "e_thick_mode",
                                                 "Thickness span",
@@ -809,16 +854,22 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             _slider(
                                                 "Wall t/c root", "e_thick_root", 0.03, 0.15, 0.01,
                                                 unit="t/c",
+                                                simple_label="Wall ratio at hub",
+                                                simple_unit="ratio",
                                                 disabled=("e_thick_mode === 'uniform'",),
                                             )
                                             _slider(
                                                 "Wall t/c mid", "e_thick_mid", 0.03, 0.15, 0.01,
                                                 unit="t/c",
+                                                simple_label="Wall ratio at mid",
+                                                simple_unit="ratio",
                                                 disabled=("e_thick_mode === 'uniform'",),
                                             )
                                             _slider(
                                                 "Wall t/c tip", "e_thick_tip", 0.03, 0.15, 0.01,
                                                 unit="t/c",
+                                                simple_label="Wall ratio at tip",
+                                                simple_unit="ratio",
                                                 disabled=("e_thick_mode === 'uniform'",),
                                             )
                                             html.Div(
@@ -831,10 +882,12 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             _slider(
                                                 "LE thick / roundness", "e_le_thick", 0.0, 2.0, 0.05,
                                                 unit="×",
+                                                simple_label="Front edge roundness",
                                             )
                                             _slider(
                                                 "TE thick / roundness", "e_te_thick", 0.0, 2.0, 0.05,
                                                 unit="×",
+                                                simple_label="Back edge roundness",
                                             )
                                             _slider(
                                                 "Front edge, hub", "e_le_face_root", 0.0, 1.0, 0.05,
@@ -882,10 +935,10 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                             _slider("Wrap tip", "e_lean_tip", 0, 45, 1, unit="deg")
                                             _slider("Sweep mid", "e_sweep_mid", -10, 20, 0.5, unit="mm")
                                             _slider("Sweep tip", "e_sweep_tip", -8, 25, 0.5, unit="mm")
-                                            _slider("LE curve mid", "e_le_mid", -12, 12, 0.5, unit="mm")
-                                            _slider("LE curve tip", "e_le_tip", -12, 12, 0.5, unit="mm")
-                                            _slider("Sickle mid", "e_le_skew_mid", 0, 12, 0.5, unit="mm")
-                                            _slider("Sickle tip", "e_le_skew_tip", 0, 15, 0.5, unit="mm")
+                                            _slider("LE curve mid", "e_le_mid", -12, 12, 0.5, unit="mm", simple_label="Front edge curve mid")
+                                            _slider("LE curve tip", "e_le_tip", -12, 12, 0.5, unit="mm", simple_label="Front edge curve tip")
+                                            _slider("Sickle mid", "e_le_skew_mid", 0, 12, 0.5, unit="mm", simple_label="Curved front edge mid")
+                                            _slider("Sickle tip", "e_le_skew_tip", 0, 15, 0.5, unit="mm", simple_label="Curved front edge tip")
                                             _slider("Skew mid", "e_skew_mid", -20, 20, 0.5, unit="mm")
                                             _slider("Skew tip", "e_skew_tip", -25, 25, 0.5, unit="mm")
                                             html.Div("{{ depth_fit_info }}", classes="text-caption")
@@ -965,13 +1018,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                                 classes="text-caption mb-2",
                                                 v_show="ui_mode === 'expert'",
                                             )
-                                            v3.VSelect(
-                                                label="Hub profile",
-                                                v_model=("e_hub_profile",),
-                                                items=("hub_profiles",),
-                                                density="compact",
-                                                variant="outlined",
-                                                hide_details=True,
+                                            _help_select(
+                                                "e_hub_profile",
+                                                "Hub profile",
+                                                items="hub_profiles",
+                                                help_map=CONTROL_DESC,
                                                 classes="mb-3",
                                             )
                                             _slider(
@@ -1019,14 +1070,16 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     classes="text-caption text-medium-emphasis mb-2",
                                     v_show="ui_mode === 'expert'",
                                 )
-                                v3.VSelect(
-                                    label="Application (hose resistance)",
-                                    v_model=("assess_preset",),
-                                    items=("assess_preset_items",),
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                    classes="mb-2",
+                                _help_select(
+                                    "assess_preset",
+                                    "Application (airflow resistance)",
+                                    items="assess_preset_items",
+                                    help_map=CONTROL_DESC,
+                                )
+                                html.Div(
+                                    "Case = open airflow · Heatsink = medium resistance · Radiator = tight fins.",
+                                    classes="text-caption text-medium-emphasis mb-2",
+                                    v_show="ui_mode === 'simple'",
                                 )
                                 html.Div(
                                     "Case ≈ open airflow (low Pa). Heatsink ≈ fins. "
@@ -1034,14 +1087,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     classes="text-caption text-medium-emphasis mb-2",
                                     v_show="ui_mode === 'expert'",
                                 )
-                                v3.VSelect(
+                                _help_select(
+                                    "assess_material",
                                     label="Print material",
-                                    v_model=("assess_material",),
-                                    items=("assess_material_items",),
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                    classes="mb-2",
+                                    items="assess_material_items",
+                                    help_map=CONTROL_DESC,
                                 )
                                 html.Div(
                                     "Used by Assess and Optimize. Pick PLA+ here before Optimize "
@@ -1397,7 +1447,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     hide_details=True,
                                     color="primary",
                                     inset=True,
-                                    label="Rotation (CCW) + airflow (−Z) cues",
+                                    label=(
+                                        "ui_mode === 'simple' "
+                                        "? 'Rotation & airflow direction cues' "
+                                        ": 'Rotation (CCW) + airflow (−Z) cues'",
+                                    ),
                                 )
                         with v3.VRow(no_gutters=True, classes="align-center mt-1"):
                             with v3.VCol(cols=5, classes="pr-1"):
@@ -1410,7 +1464,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 ):
                                     v3.VBtn("Arrows on", value="on", size="small")
                                     v3.VBtn("Arrows off", value="off", size="small")
-                            with v3.VCol(cols=4):
+                            with v3.VCol(cols=4, v_show="ui_mode === 'expert'"):
                                 v3.VSelect(
                                     v_model=("glyph_density",),
                                     items=("glyph_density_items",),
@@ -1420,7 +1474,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     variant="underlined",
                                     disabled=("glyph_mode === 'off'",),
                                 )
-                            with v3.VCol(cols=3):
+                            with v3.VCol(cols=3, v_show="ui_mode === 'expert'"):
                                 v3.VTextField(
                                     v_model=("glyph_scale",),
                                     label="Scale",
