@@ -73,7 +73,6 @@ from fansim.optimize.system_curve import (
 from fansim.structural.deflection import (
     deflection_report,
     root_bending_stress,
-    tip_deflection_mm,
 )
 from fansim.structural.flutter import flutter_report
 from fansim.structural.stress import centrifugal_root_stress
@@ -495,8 +494,9 @@ def evaluate_candidate(
                 from fansim.acoustics.case import proudman_swl_from_case
                 runner.run("reconstructPar -latestTime", check=False)
                 noise_swl = float(proudman_swl_from_case(workdir))
-            except Exception:  # noqa: BLE001 - noise read failed -> worst score, won't be selected
+            except Exception as exc:  # noqa: BLE001 - noise read failed -> worst score, won't be selected
                 noise_swl = INFEASIBLE_NOISE
+                gap_raw["proudman_error"] = f"{type(exc).__name__}: {exc}"
         else:
             m_free = solve_at(0.0, "free")
             try:
@@ -538,9 +538,13 @@ def evaluate_candidate(
     ]
     gap_raw["sanity"] = sanity_dicts
     gap_raw["sanity_status"] = sanity_status
-    sanity_note = ""
-    if sanity_status == SANITY_FAIL:
-        sanity_note = summarize_sanity(sanity_checks_all)
+    sanity_notes: list[str] = []
+    if sanity_checks_all and sanity_overall(sanity_checks_all) == SANITY_FAIL:
+        sanity_notes.append(summarize_sanity(sanity_checks_all))
+    if sanity_errors:
+        err_phases = ", ".join(f"{k}: {v}" for k, v in sanity_errors.items())
+        sanity_notes.append(f"sanity ERROR ({err_phases})")
+    sanity_note = "  ".join(sanity_notes)
 
     # Flag under-converged solves: near the stall operating point the steady RANS may not
     # settle within the iteration budget, making the number untrustworthy (see the
@@ -643,18 +647,15 @@ def evaluate_candidate(
         conv_note += ("  " if conv_note else "") + sanity_note
 
     # Sim→print knockdown (§7.6): report printed CFM/η from smooth-wall (or ks) RANS.
+    # Reuse defl.tip_deflection_mm from the FSI gate above (same params/material/load_pa).
     tip_t = tip_section_thickness(params)
-    try:
-        tip_defl = tip_deflection_mm(params, material=material, load_pa=float(load_pa))
-    except Exception:  # noqa: BLE001
-        tip_defl = None
     cfm_free, cfm_load, efficiency, print_stamps = apply_print_penalty(
         cfm_free,
         cfm_load,
         efficiency,
         enabled=print_penalty,
         tip_thickness=tip_t,
-        tip_deflection_mm=tip_defl,
+        tip_deflection_mm=float(defl.tip_deflection_mm),
         tip_gap_mm=float(remaining),
     )
 

@@ -38,3 +38,14 @@ def test_callers_params_are_not_mutated(tmp_path):
     params = blade_from_flat(stock_blade_flat("a12x25"))
     _stopped_after_gates(tmp_path, params, spec=spec)
     assert params.rpm == 2000.0
+
+
+def test_high_rpm_trips_centrifugal_stress_gate(tmp_path):
+    """RV-3 O1: centrifugal_root_stress must see target_rpm, not stale 2000 rpm."""
+    params = blade_from_flat(stock_blade_flat("a12x25"))
+    assert params.rpm == 2000.0
+    # At stale 2000 rpm Stock PETG has SF > 400 and passes stress (stopping later at tip gap);
+    # at 30000 rpm centrifugal root stress exceeds allowable (SF < 3) and trips "overstressed".
+    res = _stopped_after_gates(tmp_path, params, rpm=30000.0)
+    assert not res.feasible
+    assert res.reason.startswith("overstressed:"), res.reason

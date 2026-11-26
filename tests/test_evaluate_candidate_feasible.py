@@ -9,12 +9,15 @@ import pytest
 import trimesh
 
 from fansim.cfd.metrics import FanMetrics
+from fansim.cfd.sanity import FAIL as SANITY_FAIL
+from fansim.cfd.sanity import SanityCheck
 from fansim.geometry.blade import BladeParams
 from fansim.geometry.features import Features
 from fansim.optimize import objectives as obj_mod
-from fansim.optimize.objectives import evaluate_candidate
+from fansim.optimize.objectives import INFEASIBLE_NOISE, evaluate_candidate
 from fansim.optimize.print_penalty import PRINT_K_CFM
 from fansim.optimize.search_space import blade_from_flat, stock_blade_flat
+from fansim.structural.deflection import DeflectionReport
 
 
 def _fake_export_stl(_shape, path):
@@ -199,3 +202,101 @@ def test_a_solve_failure_keeps_its_message(tmp_path, monkeypatch):
     res = evaluate_candidate(params, tmp_path / "eval", procs=1, iters=1, load_pa=5.0)
     assert not res.feasible
     assert res.reason == "solve failed: RuntimeError: simpleFoam exited 139"
+
+
+def test_a_crashed_free_salvage_is_stamped_not_silent(tmp_path, monkeypatch):
+    """RV-3 O5: a free-air salvage failure must be stamped into raw.free_salvage_error."""
+    _stub_cfd(monkeypatch)
+
+    def boom(*_a, **_k):
+        raise OSError("postProcessing unreadable")
+
+    monkeypatch.setattr(obj_mod, "latest_pp_file", boom)
+    params = replace(_printable_params(), tip_radius=50.0)
+    res = evaluate_candidate(params, tmp_path / "eval", procs=1, iters=1, load_pa=5.0)
+    assert res.feasible is True
+    assert res.raw["free_salvage_error"] == "OSError: postProcessing unreadable"
+
+
+def test_print_penalty_reuses_deflection_report_without_recomputing(tmp_path, monkeypatch):
+    """RV-3: print_penalty must reuse defl.tip_deflection_mm rather than a redundant silent call."""
+    _stub_cfd(monkeypatch)
+    monkeypatch.setattr(
+        obj_mod,
+        "deflection_report",
+        lambda _p, tip_gap_mm, **_k: DeflectionReport(
+            ok=True,
+            tip_deflection_mm=0.5,
+            tip_gap_mm=float(tip_gap_mm),
+            gap_frac=0.5 / float(tip_gap_mm),
+            load_pa=5.0,
+        ),
+    )
+    params = replace(_printable_params(), tip_radius=50.0)
+    res = evaluate_candidate(params, tmp_path / "eval", procs=1, iters=1, load_pa=5.0)
+    assert res.feasible is True
+    assert res.raw["tip_deflection_mm"] == pytest.approx(0.5)
+    expected_k_fsi = max(0.90, 1.0 - 0.5 * (0.5 / float(res.raw["tip_gap_mm"])))
+    assert res.raw["print_k_fsi"] == pytest.approx(expected_k_fsi)
+
+
+def test_a_crashed_proudman_noise_read_is_stamped_not_silent(tmp_path, monkeypatch):
+    """RV-3: Proudman noise failure must stamp raw.proudman_error instead of dropping the error."""
+    import fansim.acoustics.case as acoustics_case
+
+    _stub_cfd(monkeypatch)
+    monkeypatch.setattr(
+        obj_mod,
+        "OpenFOAMRunner",
+        lambda *_a, **_k: SimpleNamespace(run=lambda *_ra, **_rk: None),
+    )
+    # Proudman solves load first, then free.
+    calls = {"n": 0}
+
+    def fake_parse_load_then_free(_workdir, omega_rad_s=0.0):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return _metrics(cfm=55.0, dp_pa=8.0, shaft_w=0.5)
+        return _metrics(cfm=80.0, dp_pa=2.0, shaft_w=0.5)
+
+    monkeypatch.setattr(obj_mod, "parse_fan_metrics", fake_parse_load_then_free)
+
+    def boom(_workdir):
+        raise RuntimeError("missing k field")
+
+    monkeypatch.setattr(acoustics_case, "proudman_swl_from_case", boom)
+    params = replace(_printable_params(), tip_radius=50.0)
+    res = evaluate_candidate(
+        params,
+        tmp_path / "eval",
+        procs=1,
+        iters=1,
+        load_pa=5.0,
+        with_noise=True,
+        noise_model="proudman",
+    )
+    assert res.feasible is True
+    assert res.noise_swl == INFEASIBLE_NOISE
+    assert res.raw["proudman_error"] == "RuntimeError: missing k field"
+
+
+def test_sanity_fail_in_one_phase_is_not_masked_by_error_in_other(tmp_path, monkeypatch):
+    """RV-3: a SANITY_FAIL in one phase must stay in res.reason even if the other phase errors."""
+    calls = {"n": 0}
+
+    def mixed_sanity(*_a, **_k):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return [SanityCheck("mass_balance", SANITY_FAIL, 0.25, "|err| < 0.05", "leak")]
+        raise ValueError("bad load postProcessing")
+
+    _stub_cfd(monkeypatch, run_sanity=mixed_sanity)
+    params = replace(_printable_params(), tip_radius=50.0)
+    res = evaluate_candidate(params, tmp_path / "eval", procs=1, iters=1, load_pa=5.0)
+    assert res.feasible is True
+    assert res.raw["sanity_status"] == "ERROR"
+    assert res.raw["sanity_error"] == {"load": "ValueError: bad load postProcessing"}
+    assert "sanity FAIL:" in res.reason
+    assert "mass_balance" in res.reason
+    assert "sanity ERROR" in res.reason
+    assert "load: ValueError: bad load postProcessing" in res.reason

@@ -9,13 +9,13 @@ numeric tests, is it in the audit ledger, is anything over-long. "Fixed" means t
 
 | # | severity | finding | status |
 |---|---|---|---|
-| O1 | **high** | The structural gates (centrifugal stress ∝ rpm², resonance vs blade-pass ∝ rpm) ran **before** `params.rpm = target_rpm`, so they judged the stale `params.rpm` (BladeParams default 2000). For the 3900 rpm Delta AFC1212DE model, stress was under-stated by about 3.8× and blade-pass by 2× (300 Hz, not 585 Hz, which is above Stock's ~400 Hz first bending mode), so resonant designs passed. A12x25 `--search-rpm` (450–2000) was conservative. It also mutated the caller's params. | fixed `e349624` (`tests/test_objectives_gate_rpm.py`) |
+| O1 | **high** | The structural gates (centrifugal stress ∝ rpm², resonance vs blade-pass ∝ rpm) ran **before** `params.rpm = target_rpm`, so they judged the stale `params.rpm` (BladeParams default 2000). For the 3900 rpm Delta AFC1212DE model, stress was under-stated by about 3.8× and blade-pass by 2× (300 Hz, not 585 Hz, which is above Stock's ~400 Hz first bending mode), so resonant designs went unflagged (`flutter_report` stamps `vibration_warning`, not a hard reject). A12x25 `--search-rpm` (450–2000) was conservative. It also mutated the caller's params. | fixed `e349624` (`tests/test_objectives_gate_rpm.py`) |
 | O2 | medium | A BEM pre-screen crash was `pass`ed: the design went to CFD with no trace. | fixed `d6097c4` (`raw.bem_prescreen_error`) |
 | O3 | medium | A sanity-check crash became `[]`, and the status read `SKIP`, the same as "never ran". | fixed `d6097c4` (status `ERROR`, `raw.sanity_error`) |
 | O4 | low | "solve failed" dropped the exception message. | fixed `d6097c4` |
 | O5 | low | The free-air salvage failure was `pass`ed. | fixed `d6097c4` (`raw.free_salvage_error`) |
 | O6 | low | If trimesh cannot read the STL volume, the weight gate is skipped with no stamp (`weight_g = None`). | fixed by Cursor, PR #80 (`raw.weight_error`, #52) |
-| O7 | low | The loading-noise proxy uses free-air thrust at **rated** rpm; it is not derated with the motor (thrust ∝ λ²). It is ranking-only, so the order holds within one derate, but a motor-limited design reads louder than it runs. | open, issue #53 |
+| O7 | low | The loading-noise proxy uses free-air thrust at **rated** rpm; it is not derated with the motor (thrust ∝ λ²). It is ranking-only, so the order holds within one derate, but a motor-limited design reads louder than it runs. | fixed in PR #81 (`4a73960`, #53) |
 | O8 | code health | `evaluate_candidate` is ~490 lines: gates, pre-screens, geometry, CFD, scoring. | RV-5 (split into stages) |
 
 Checked and fine: derate (flow ∝ λ, power ∝ λ³, probe pressure ∝ λ²); signed CFM is never `abs()`-ed (a reversed
