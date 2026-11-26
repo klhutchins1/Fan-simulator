@@ -22,7 +22,6 @@ CFG = Path(__file__).resolve().parents[2] / "config" / "problems"
 CFD_V2 = {0: 56.5, 5: 49.8, 10: 40.2}      # CFD v5 complete setup, converged
 CFD_V1_FREE = 77.4                          # CFD v5 complete setup, free air only
 ABS_TOL = 0.25                              # pre-registered
-RND = 6e-3                                   # FanPoint rounds power to 0.01 W, dp to 0.01 Pa
 SPEARMAN_MIN, MIN_DESIGNS = 0.6, 5          # pre-registered
 
 
@@ -54,7 +53,7 @@ def ranking_verdict(n_designs: int, rho: float) -> str:
 def test_units_and_dimensions(v2):
     q = 0.0123                                   # m^3/s
     p = operating_point(v2, 2000, q)
-    assert p.flow_cfm == pytest.approx(q * M.CFM_PER_M3S, abs=0.06)
+    assert p.flow_cfm == pytest.approx(q * M.CFM_PER_M3S, rel=1e-12)
     assert p.flow_m3s == q and p.power_w > 0
     u_tip = 2000 * 2 * math.pi / 60 * v2.tip_radius / 1000
     assert 0 < p.dp_total_pa <= 0.95 * FB.RHO_AIR * u_tip**2     # Euler bound with vth <= 0.95 U
@@ -67,9 +66,9 @@ def test_momentum_bound_air_power_below_shaft_power(cfg, rpm):
     bp = load_blade_params(CFG / cfg)
     c = pq_curve(bp, rpm)
     for p in c.points:
-        assert p.flow_m3s * p.dp_total_pa <= p.power_w * 1.001 + RND, p     # ideal-actuator limit
+        assert p.flow_m3s * p.dp_total_pa <= p.power_w * (1.0 + 1e-12), p   # ideal-actuator limit
         assert 0.0 <= p.efficiency <= 1.0
-        assert p.flow_m3s * max(p.dp_static_pa, 0.0) <= p.power_w * 1.001 + RND
+        assert p.flow_m3s * max(p.dp_static_pa, 0.0) <= p.power_w * (1.0 + 1e-12)
 
 
 def test_pressure_rise_is_zero_at_free_delivery(v2, v1):
@@ -102,8 +101,9 @@ def test_swirl_iteration_converges_up_to_free_delivery(v2, v1):
 
 def test_constants_single_source():
     assert FB.CFM_PER_M3S is M.CFM_PER_M3S
-    assert FB.RHO_AIR == M.RHO_AIR            # local copy, on the KNOWN_COPIES list; values must agree
-    assert FB.NU_AIR == air.NU_AIR
+    assert FB.RHO_AIR is air.RHO_AMCA and FB.RHO_AIR == M.RHO_AIR
+    assert FB.MU_AIR is air.MU_AIR
+    assert FB.NU_AIR is air.NU_AIR
 
 
 # ------------------------------------------------------------------ validation (Stock, complete-setup CFD)
