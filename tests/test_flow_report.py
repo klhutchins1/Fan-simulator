@@ -5,7 +5,11 @@ import numpy as np
 import pytest
 
 from fansim.cfd.flow_report import (
-    FlowMetrics, FlowReportUnavailable, FlowSamples, compute_metrics, exit_slab_mask,
+    FlowMetrics,
+    FlowReportUnavailable,
+    FlowSamples,
+    compute_metrics,
+    exit_slab_mask,
 )
 
 HUB, TIP = 0.02, 0.055
@@ -306,6 +310,7 @@ def test_missing_blade_extent_is_reported():
 
 def test_blade_z_extent_from_stl(tmp_path):
     import trimesh
+
     from fansim.cfd.flow_report_case import blade_z_extent
     hub = trimesh.creation.cylinder(radius=20.0, height=30.0)                 # hub, mm, z -15..15
     blade = trimesh.creation.box(extents=(10.0, 4.0, 12.0))                    # blade, mm, z -6..6

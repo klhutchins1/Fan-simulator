@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import math
 
-from fansim.cfd.flow_report import FlowMetrics
 from fansim.cfd import flow_verdicts
+from fansim.cfd.flow_report import FlowMetrics
 from fansim.cfd.flow_verdicts import (
     BAND_TOL,
     BAR_TOL,
