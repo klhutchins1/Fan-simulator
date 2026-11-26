@@ -16,10 +16,11 @@ import tempfile
 from pathlib import Path
 
 import cadquery as cq
+import numpy as np
 import pyvista as pv
 
 from fansim.geometry import build_impeller, export_stl
-from fansim.geometry.blade import build_blade_solid
+from fansim.geometry.blade import build_blade_solid, with_screen_loft
 from fansim.geometry.features import Features
 from fansim.optimize.search_space import blade_from_flat
 
@@ -225,9 +226,290 @@ def _mesh(key, value, mode, base=None):
     return pv.read(str(tmp))
 
 
+def _cq_to_pv(shape, tol: float = 0.12) -> pv.PolyData:
+    verts, tris = shape.tessellate(tol)
+    pts = np.array([[v.x, v.y, v.z] for v in verts], dtype=np.float64)
+    faces = np.hstack(
+        [np.full((len(tris), 1), 3, dtype=np.int64), np.asarray(tris, dtype=np.int64)]
+    ).ravel()
+    return pv.PolyData(pts, faces)
+
+
+def _trimesh_to_pv(tm) -> pv.PolyData:
+    faces = np.hstack(
+        [np.full((len(tm.faces), 1), 3, dtype=np.int64), np.asarray(tm.faces, dtype=np.int64)]
+    ).ravel()
+    return pv.PolyData(np.asarray(tm.vertices, dtype=np.float64), faces)
+
+
+def _rotate_pv_z(mesh: pv.PolyData, deg: float) -> pv.PolyData:
+    return mesh.rotate_z(deg, inplace=False)
+
+
+# --- Multi-tab controls (Prop / Mixed / Volute / CROR; Issue #100) ---------------------------
+# Each entry: (model, label, key, lo, hi, view, unit, shared_scale)
+# view: "iso" | "top_tilt" | "side_tilt" | "rear_iso" | "volute_cut" | "volute_tongue"
+PROP_CONTROLS = [
+    ("p_n_blades", "Prop blades", "n_blades", 2, 4, "top_tilt", "", False),
+    ("p_pitch", "Prop pitch", "pitch_in", 1.5, 8.0, "side_tilt", " in", False),
+    ("p_chord_root", "Prop chord root", "chord_root", 0.08, 0.30, "top_tilt", " xR", False),
+    ("p_chord_mid", "Prop chord mid", "chord_mid", 0.10, 0.32, "top_tilt", " xR", False),
+    ("p_chord_tip", "Prop chord tip", "chord_tip", 0.04, 0.18, "top_tilt", " xR", False),
+    ("p_sweep_tip", "Prop sweep tip", "sweep_tip", -2.0, 14.0, "side_tilt", " mm", True),
+    ("p_tip_round", "Prop tip round", "tip_round", 0.0, 1.0, "top_tilt", "", False),
+]
+
+MIXED_CONTROLS = [
+    ("mf_n_blades", "Mixed blades", "n_blades", 5, 13, "iso", "", False),
+    ("mf_r_eye", "Mixed eye hub R", "r_eye_mm", 12.0, 24.0, "iso", " mm", True),
+    ("mf_r_back", "Mixed back hub R", "r_back_mm", 21.5, 35.0, "rear_iso", " mm", True),
+    ("mf_r_tip", "Mixed tip R", "r_tip_mm", 48.0, 54.5, "iso", " mm", True),
+    ("mf_z_span", "Mixed Z span", "z_span_mm", 12.0, 22.0, "side_tilt", " mm", True),
+    ("mf_chord_tip", "Mixed chord tip", "chord_tip", 14.0, 28.0, "iso", " mm", False),
+    ("mf_stagger", "Mixed stagger mid", "stagger_deg", 20.0, 50.0, "iso", " deg", False),
+]
+
+VOLUTE_CONTROLS = [
+    ("volute_n_blades", "Volute blades", "n_blades", 5, 11, "iso", "", False),
+    ("volute_r_hub", "Volute hub R", "r_hub_mm", 12.0, 28.0, "iso", " mm", True),
+    ("volute_blade_h", "Volute blade height", "blade_height_mm", 12.0, 32.0, "side_tilt", " mm", True),
+    ("volute_spiral", "Volute spiral growth", "spiral_growth_mm", 10.0, 40.0, "volute_cut", " mm", True),
+    ("volute_tongue_angle", "Volute tongue angle", "tongue_angle_deg", 2.0, 15.0, "volute_tongue", " deg", True),
+    ("volute_out_w", "Volute outlet width", "outlet_width_mm", 20.0, 50.0, "volute_cut", " mm", True),
+]
+
+CROR_CONTROLS = [
+    ("cror_hub_r", "CROR hub R", "hub_radius", 14.0, 28.0, "iso", " mm", True),
+    ("cror_tip_r", "CROR tip R", "tip_radius", 45.0, 58.0, "iso", " mm", True),
+    ("cror_gap", "CROR axial gap", "axial_gap_mm", 2.0, 12.0, "side_tilt", " mm", True),
+    ("cror_f_n", "CROR front blades", "n_front", 5, 11, "iso", "", False),
+    ("cror_r_n", "CROR rear blades", "n_rear", 5, 13, "rear_iso", "", False),
+    ("cror_f_stagger", "CROR front stagger", "f_stagger", 25.0, 50.0, "iso", " deg", False),
+    ("cror_r_stagger", "CROR rear stagger", "r_stagger", 25.0, 50.0, "rear_iso", " deg", False),
+]
+
+
+def _prop_scene(key: str, value) -> list[tuple[pv.PolyData, str]]:
+    from dataclasses import replace
+
+    from fansim.prop_spec import get_prop_spec
+    from fansim.propeller.params_io import prop_design_defaults, prop_params_from_flat
+
+    spec = get_prop_spec("fpv_5inch")
+    flat = prop_design_defaults()
+    if key == "n_blades":
+        spec = replace(spec, n_blades=int(value))
+    elif key == "pitch_in":
+        spec = replace(spec, pitch_in=float(value))
+    else:
+        flat[key] = float(value)
+    bp = with_screen_loft(prop_params_from_flat(spec, flat))
+    blade = _cq_to_pv(build_blade_solid(bp), tol=0.12)
+    z0, z1 = blade.bounds[4] - 1.0, blade.bounds[5] + 1.0
+    hub = _cq_to_pv(
+        cq.Solid.makeCylinder(
+            bp.hub_radius, max(z1 - z0, 4.0), cq.Vector(0, 0, z0), cq.Vector(0, 0, 1)
+        ),
+        tol=0.15,
+    )
+    parts = [hub] + [_rotate_pv_z(blade, k * 360.0 / bp.n_blades) for k in range(bp.n_blades)]
+    return [(pv.merge(parts), "#3b82f6")]
+
+
+def _mixed_scene(key: str, value) -> list[tuple[pv.PolyData, str]]:
+    from fansim.centrifugal.geometry import MixedFlowParams, build_mixed_flow_preview
+
+    kw = {}
+    if key == "n_blades":
+        kw[key] = int(value)
+    else:
+        kw[key] = float(value)
+    if key == "r_back_mm":
+        kw["r_eye_mm"] = 14.0
+    params = MixedFlowParams(**kw)
+    tm, _ = build_mixed_flow_preview(params, tol=0.12)
+    return [(_trimesh_to_pv(tm), "#3b82f6")]
+
+
+def _volute_scene(key: str, value, view: str) -> list[tuple[pv.PolyData, str]]:
+    from fansim.volute.geometry import (
+        VoluteParams,
+        build_radial_impeller,
+        build_volute_casing,
+        volute_enclosure_extents_mm,
+        volute_radii_mm,
+    )
+
+    kw = {key: int(value) if key == "n_blades" else float(value)}
+    params = VoluteParams(**kw)
+    imp = _cq_to_pv(build_radial_impeller(params).val(), tol=0.15)
+    if view not in ("volute_cut", "volute_tongue"):
+        return [(imp, "#3b82f6")]
+
+    casing = build_volute_casing(params).val()
+    rad = volute_radii_mm(params)
+    ext = volute_enclosure_extents_mm(params)
+    # Remove the top roof slab so the Archimedean scroll cavity, cutwater tongue,
+    # and discharge outlet throat are unobstructed from above.
+    z_cut = rad["z1_mm"] - 0.5
+    pad = 5.0
+    roof = (
+        cq.Workplane("XY")
+        .workplane(offset=z_cut)
+        .center(0.5 * (ext["xmin"] + ext["xmax"]), 0.5 * (ext["ymin"] + ext["ymax"]))
+        .box(
+            (ext["xmax"] - ext["xmin"]) + 2 * pad,
+            (ext["ymax"] - ext["ymin"]) + 2 * pad,
+            (ext["zmax_casing"] - z_cut) + 10.0,
+            centered=(True, True, False),
+        )
+        .val()
+    )
+    open_casing = _cq_to_pv(casing.cut(roof), tol=0.20)
+    return [(open_casing, "#94a3b8"), (imp, "#3b82f6")]
+
+
+def _cror_scene(key: str, value) -> list[tuple[pv.PolyData, str]]:
+    from fansim.cror.geometry import cror_axial_layout_mm
+    from fansim.cror.params_io import cror_params_from_flat
+
+    flat = {key: int(value) if key in ("n_front", "n_rear") else float(value)}
+    params = cror_params_from_flat(flat)
+    layout = cror_axial_layout_mm(params)
+    front_b = _cq_to_pv(build_blade_solid(with_screen_loft(params.front)), tol=0.15)
+    rear_b = _cq_to_pv(build_blade_solid(with_screen_loft(params.rear)), tol=0.15)
+    z_rear = layout["z_rear_mm"]
+    front_parts = [
+        _rotate_pv_z(front_b, k * 360.0 / params.front.n_blades)
+        for k in range(params.front.n_blades)
+    ]
+    rear_parts = [
+        _rotate_pv_z(rear_b, k * 360.0 / params.rear.n_blades).translate((0, 0, z_rear), inplace=False)
+        for k in range(params.rear.n_blades)
+    ]
+    z0, z1 = layout["hub_z0_mm"], layout["hub_z1_mm"]
+    hub = _cq_to_pv(
+        cq.Solid.makeCylinder(
+            params.front.hub_radius, abs(z1 - z0), cq.Vector(0, 0, min(z0, z1)), cq.Vector(0, 0, 1)
+        ),
+        tol=0.18,
+    )
+    return [
+        (hub, "#64748b"),
+        (pv.merge(front_parts), "#2563eb"),
+        (pv.merge(rear_parts), "#0891b2"),
+    ]
+
+
+def _set_view(p: pv.Plotter, view: str, bounds: tuple[float, ...]) -> None:
+    cx = 0.5 * (bounds[0] + bounds[1])
+    cy = 0.5 * (bounds[2] + bounds[3])
+    cz = 0.5 * (bounds[4] + bounds[5])
+    span = max(bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4], 10.0)
+    dist = 2.05 * span
+    if view == "top_tilt":
+        p.camera_position = [(cx + 0.35 * dist, cy - 0.50 * dist, cz + 0.95 * dist), (cx, cy, cz), (0, 0, 1)]
+    elif view == "side_tilt":
+        p.camera_position = [(cx + 0.95 * dist, cy - 0.45 * dist, cz + 0.32 * dist), (cx, cy, cz), (0, 0, 1)]
+    elif view == "rear_iso":
+        p.camera_position = [(cx + 0.65 * dist, cy - 0.65 * dist, cz - 0.60 * dist), (cx, cy, cz), (0, 0, -1)]
+    elif view == "volute_cut":
+        p.camera_position = [(cx + 0.15 * dist, cy - 0.30 * dist, cz + 1.15 * dist), (cx, cy, cz), (0, 1, 0)]
+    elif view == "volute_tongue":
+        # Center directly on the +X cutwater tongue septum (r_in..r_out0 ≈ 53..61 mm, y=0).
+        tx, ty = 58.0, 0.0
+        zd = 95.0
+        p.camera_position = [(tx + 0.04 * zd, ty - 0.12 * zd, cz + 1.05 * zd), (tx, ty, cz), (0, 1, 0)]
+    else:
+        p.camera_position = [(cx + 0.72 * dist, cy - 0.72 * dist, cz + 0.65 * dist), (cx, cy, cz), (0, 0, 1)]
+
+
+def _union_bounds(scene: list[tuple[pv.PolyData, str]]) -> tuple[float, float, float, float, float, float]:
+    b = [list(m.bounds) for m, _ in scene]
+    return (
+        min(x[0] for x in b), max(x[1] for x in b),
+        min(x[2] for x in b), max(x[3] for x in b),
+        min(x[4] for x in b), max(x[5] for x in b),
+    )
+
+
+def _optimize_png(path: Path) -> None:
+    try:
+        from PIL import Image
+    except ImportError:
+        return
+    with Image.open(path) as im:
+        im.convert("RGB").save(path, format="PNG", optimize=True)
+
+
+def _render_pair(
+    model: str,
+    label: str,
+    lo,
+    hi,
+    scene_lo: list[tuple[pv.PolyData, str]],
+    scene_hi: list[tuple[pv.PolyData, str]],
+    view: str,
+    unit: str,
+    shared_scale: bool,
+) -> None:
+    b_lo = _union_bounds(scene_lo)
+    b_hi = _union_bounds(scene_hi)
+    b_shared = (
+        min(b_lo[0], b_hi[0]), max(b_lo[1], b_hi[1]),
+        min(b_lo[2], b_hi[2]), max(b_lo[3], b_hi[3]),
+        min(b_lo[4], b_hi[4]), max(b_lo[5], b_hi[5]),
+    )
+    p = pv.Plotter(off_screen=True, shape=(1, 2), window_size=(460, 250), border=False)
+    p.background_color = "white"
+    for col, (scene, val, bnd) in enumerate([(scene_lo, lo, b_lo), (scene_hi, hi, b_hi)]):
+        p.subplot(0, col)
+        for mesh, color in scene:
+            p.add_mesh(mesh, color=color, smooth_shading=True)
+        tag = "min" if col == 0 else "max"
+        p.add_text(
+            f"{tag} = {_fmt_extreme(val)}{unit}",
+            font_size=9,
+            color="black",
+            position="upper_edge",
+        )
+        _set_view(p, view, b_shared if shared_scale else bnd)
+    out = OUT / f"{model}.png"
+    p.screenshot(str(out))
+    p.close()
+    _optimize_png(out)
+    print(f"  {model}.png  ({label}, {out.stat().st_size // 1024} KB)", flush=True)
+
+
+def _generate_tab_controls(want: set[str] | None) -> None:
+    families = [
+        (PROP_CONTROLS, lambda k, v, _view: _prop_scene(k, v)),
+        (MIXED_CONTROLS, lambda k, v, _view: _mixed_scene(k, v)),
+        (VOLUTE_CONTROLS, _volute_scene),
+        (CROR_CONTROLS, lambda k, v, _view: _cror_scene(k, v)),
+    ]
+    for rows, builder in families:
+        for model, label, key, lo, hi, view, unit, shared in rows:
+            if want is not None and model not in want:
+                continue
+            try:
+                s_lo = builder(key, lo, view)
+                s_hi = builder(key, hi, view)
+                _render_pair(model, label, lo, hi, s_lo, s_hi, view, unit, shared)
+            except Exception as e:  # noqa: BLE001
+                print(f"  SKIP {model}: {type(e).__name__}: {e}")
+
+
 def main(only=None):
     OUT.mkdir(parents=True, exist_ok=True)
-    want = set(only) if only else None
+    if only and set(only) == {"--other-tabs"}:
+        want = {
+            r[0]
+            for grp in (PROP_CONTROLS, MIXED_CONTROLS, VOLUTE_CONTROLS, CROR_CONTROLS)
+            for r in grp
+        }
+    else:
+        want = set(only) if only else None
     for row in CONTROLS:
         model, label, key, lo, hi, mode, base = _unpack(row)
         if want is not None and model not in want:
@@ -249,6 +531,7 @@ def main(only=None):
             print(f"  {model}.png  ({label})")
         except Exception as e:  # noqa: BLE001
             print(f"  SKIP {model}: {type(e).__name__}: {e}")
+    _generate_tab_controls(want)
     (OUT / "_test_shaded.png").unlink(missing_ok=True)
     print(f"-> {OUT}")
     os._exit(0)  # skip OCP/VTK teardown segfault

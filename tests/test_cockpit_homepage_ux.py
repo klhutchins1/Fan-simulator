@@ -128,7 +128,7 @@ def test_tooltips_resolved_for_all_tabs():
     p_simple, p_expert, p_uri = resolve_tooltip("p_pitch")
     assert p_simple and "pitch" in p_simple.lower()
     assert p_expert and "pitch" in p_expert.lower()
-    assert p_uri and p_uri.startswith("data:image/svg+xml;base64,")
+    assert p_uri and p_uri.startswith("data:image/png;base64,")
 
     for key in ("p_n_blades", "p_chord_mid", "p_sweep_tip", "p_thickness_mid", "p_tip_round"):
         simp, exp, _ = resolve_tooltip(key)
