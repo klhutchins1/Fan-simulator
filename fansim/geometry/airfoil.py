@@ -12,6 +12,8 @@ and chordwise weights must use the generator chord parameter instead — request
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 SECTION_NACA = "naca"
@@ -44,12 +46,21 @@ def naca4(
         Or ``(loop, x_param)`` when ``return_chord_param`` is True.
     """
     m, p, t = float(max_camber), float(camber_pos), float(thickness)
+    if not (math.isfinite(m) and math.isfinite(p) and math.isfinite(t)):
+        raise ValueError(
+            f"naca4 parameters must be finite: max_camber={m!r}, camber_pos={p!r}, thickness={t!r}"
+        )
+    if t < 0.0:
+        raise ValueError(f"naca4 thickness must be >= 0, got {t!r}")
+    n_pts = int(n_points)
+    if n_pts < 2:
+        raise ValueError(f"naca4 n_points must be >= 2, got {n_points!r}")
 
     # Cosine spacing clusters points near the leading and trailing edges.
-    beta = np.linspace(0.0, np.pi, n_points)
+    beta = np.linspace(0.0, np.pi, n_pts)
     x = 0.5 * (1.0 - np.cos(beta))
 
-    # Thickness distribution (last coefficient closes the trailing edge: -0.1036).
+    # Thickness distribution (Abbott & von Doenhoff 1959 §6.2; modified -0.1036 closes TE).
     yt = 5.0 * t * (
         0.2969 * np.sqrt(x)
         - 0.1260 * x
@@ -58,21 +69,7 @@ def naca4(
         - 0.1036 * x**4
     )
 
-    if m > 0.0 and 0.0 < p < 1.0:
-        yc = np.where(
-            x < p,
-            (m / p**2) * (2 * p * x - x**2),
-            (m / (1 - p) ** 2) * ((1 - 2 * p) + 2 * p * x - x**2),
-        )
-        dyc = np.where(
-            x < p,
-            (2 * m / p**2) * (p - x),
-            (2 * m / (1 - p) ** 2) * (p - x),
-        )
-        theta = np.arctan(dyc)
-    else:
-        yc = np.zeros_like(x)
-        theta = np.zeros_like(x)
+    yc, theta = _naca_camber_line(x, m, p)
 
     xu = x - yt * np.sin(theta)
     yu = yc + yt * np.cos(theta)
@@ -140,7 +137,22 @@ def rounded_plate(
     the false “LE bead” along the blade. Camber uses the NACA 4-digit meanline so the
     blade face bows chordwise; wrap/lean still handle spanwise planform.
     """
-    t = max(float(thickness), 1e-6)
+    t_raw = float(thickness)
+    if not math.isfinite(t_raw) or t_raw <= 0.0:
+        raise ValueError(f"rounded_plate thickness must be a positive finite number, got {thickness!r}")
+    if int(n_points) < 2:
+        raise ValueError(f"rounded_plate n_points must be >= 2, got {n_points!r}")
+    for name, val in (
+        ("max_camber", max_camber),
+        ("camber_pos", camber_pos),
+        ("te_radius_frac", te_radius_frac),
+        ("le_radius_frac", le_radius_frac),
+        ("te_face", te_face),
+        ("le_face", le_face),
+    ):
+        if not math.isfinite(float(val)):
+            raise ValueError(f"rounded_plate {name} must be finite, got {val!r}")
+    t = max(t_raw, 1e-6)
     half_t = 0.5 * t
     le_frac = float(np.clip(le_radius_frac, 0.0, 1.0))
     te_frac = float(np.clip(te_radius_frac, 0.0, 1.0))
@@ -235,7 +247,11 @@ def section_loop_2d(
     return_chord_param: bool = False,
 ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """Dispatch to NACA or rounded-plate generator."""
-    fam = str(family or SECTION_NACA).lower().strip()
+    fam = SECTION_NACA if not family else str(family).lower().strip()
+    if fam not in SECTION_FAMILIES:
+        raise ValueError(
+            f"unknown airfoil section family {family!r}; expected one of {SECTION_FAMILIES}"
+        )
     if fam == SECTION_PLATE:
         return rounded_plate(
             thickness,
