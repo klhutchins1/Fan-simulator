@@ -44,8 +44,51 @@ def test_side_view_matches_midplane_orientation_and_crops_to_fan():
     from fansim.cfd.flow_report_viz import side_view_box, side_view_camera
     pos, focal, up = side_view_camera(0.05, 0.0)
     assert pos[1] > 0 and tuple(up) == (1.0, 0.0, 0.0) and focal == (0.0, 0.0, 0.0)
-    x0, x1, y0, y1, z0, z1 = side_view_box(0.05, 0.0)
+    _x0, x1, _y0, _y1, z0, z1 = side_view_box(0.05, 0.0)
     assert (z0, z1) == pytest.approx((-0.075, 0.2)) and x1 == pytest.approx(0.06)
+
+
+def test_plotter_rejects_uninitialized_osmesa_instead_of_segfaulting(monkeypatch):
+    """Headless Linux without X11/EGL/OSMesa must raise RuntimeError, not SIGSEGV in Render()."""
+    from fansim.cfd import flow_report_viz as frv
+
+    class vtkOSOpenGLRenderWindow:
+        pass
+
+    class vtkXOpenGLRenderWindow:
+        pass
+
+    closed = []
+
+    class FakePlotter:
+        def __init__(self, rw):
+            self.render_window = rw
+            self.background_color = None
+
+        def close(self):
+            closed.append(self.render_window)
+
+    monkeypatch.setattr(frv, "_osmesa_available", lambda: False)
+    monkeypatch.setattr(
+        frv.pv, "Plotter", lambda **_kw: FakePlotter(vtkOSOpenGLRenderWindow())
+    )
+    with pytest.raises(RuntimeError, match="libOSMesa"):
+        frv._plotter()
+    assert len(closed) == 1
+
+    # Working backends (X11/Xvfb, or OSMesa when libOSMesa is installed) succeed.
+    monkeypatch.setattr(
+        frv.pv, "Plotter", lambda **_kw: FakePlotter(vtkXOpenGLRenderWindow())
+    )
+    pl = frv._plotter()
+    assert pl.background_color == "white"
+
+    monkeypatch.setattr(frv, "_osmesa_available", lambda: True)
+    monkeypatch.setattr(
+        frv.pv, "Plotter", lambda **_kw: FakePlotter(vtkOSOpenGLRenderWindow())
+    )
+    pl2 = frv._plotter()
+    assert pl2.background_color == "white"
 
 
 def test_push_chart_holds_the_shared_matplotlib_lock(tmp_path, monkeypatch):
