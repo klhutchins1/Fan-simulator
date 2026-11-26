@@ -82,7 +82,10 @@ def library_list_items(entries: list, spec: FanSpec) -> list[dict]:
     for e in entries or []:
         run = e.run or ""
         if run != last_run:
-            items.append({"role": "group", "title": run_label(run) or run or "Ungrouped", "caption": run})
+            title_grp = run_label(run) or run or "Ungrouped"
+            # Issue #99: do not repeat the raw folder slug when no friendly label exists.
+            caption = "" if title_grp == run else run
+            items.append({"role": "group", "title": title_grp, "caption": caption, "run": run})
             last_run = run
         p = e.params or {}
         try:
@@ -109,5 +112,42 @@ def library_list_items(entries: list, spec: FanSpec) -> list[dict]:
             "title": title,
             "subtitle": subtitle,
             "clickable": hint != HINT_NONE,
+            "fits": hint == HINT_FITS,
         })
     return items
+
+
+def filter_library_items(
+    items: list[dict],
+    query: str = "",
+    fits_only: bool = False,
+) -> list[dict]:
+    """Filter grouped library items by search text and optional 'fits this hub' toggle (#99)."""
+    q = (query or "").strip().lower()
+    out: list[dict] = []
+    pending_group: dict | None = None
+    group_haystack = ""
+    for it in items or []:
+        role = it.get("role")
+        if role == "group":
+            pending_group = it
+            group_haystack = (
+                f"{it.get('title', '')} {it.get('caption', '')} {it.get('run', '')}"
+            ).lower()
+            continue
+        if role != "row":
+            continue
+        if fits_only and not it.get("fits"):
+            continue
+        if q:
+            row_haystack = (
+                f"{it.get('title', '')} {it.get('subtitle', '')} {it.get('value', '')} "
+                f"{group_haystack}"
+            ).lower()
+            if q not in row_haystack:
+                continue
+        if pending_group is not None:
+            out.append(pending_group)
+            pending_group = None
+        out.append(it)
+    return out

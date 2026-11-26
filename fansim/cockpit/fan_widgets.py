@@ -70,6 +70,24 @@ def resolve_tooltip(
     return simple, expert, uri
 
 
+def _fmt_value_expr(model: str, step: float) -> str:
+    """Vue expression formatting a numeric slider value cleanly without noisy float tails.
+
+    Keeps up to 1–4 significant fractional digits depending on ``step`` so
+    between-step recipe values (e.g. 17.75 on a 0.5 step) stay exact while
+    stock values like 18.7018 mm or JS 0.04000000000000001 read cleanly.
+    """
+    if step >= 1:
+        dec = 1
+    elif step >= 0.1:
+        dec = 2
+    elif step >= 0.01:
+        dec = 3
+    else:
+        dec = 4
+    return f"(typeof {model} === 'number' ? Number({model}.toFixed({dec})) : {model})"
+
+
 def slider(
     label: str,
     model: str,
@@ -98,6 +116,7 @@ def slider(
     s_unit = unit if simple_unit is None else simple_unit
     s_unit_s = f" {s_unit}" if s_unit else ""
     max_kw = (mx,) if isinstance(mx, str) else mx
+    val_expr = _fmt_value_expr(model, step)
 
     def _body():
         with html.Div(classes="d-flex justify-space-between align-center text-caption mb-0"):
@@ -108,18 +127,18 @@ def slider(
                 html.Span(label)
             if simple_unit is not None and s_unit_s != unit_s:
                 html.Span(
-                    f"{{{{ {model} }}}}{s_unit_s}",
+                    f"{{{{ {val_expr} }}}}{s_unit_s}",
                     classes="font-weight-medium text-no-wrap ml-2",
                     v_show="ui_mode === 'simple'",
                 )
                 html.Span(
-                    f"{{{{ {model} }}}}{unit_s}",
+                    f"{{{{ {val_expr} }}}}{unit_s}",
                     classes="font-weight-medium text-no-wrap ml-2",
                     v_show="ui_mode === 'expert'",
                 )
             else:
                 html.Span(
-                    f"{{{{ {model} }}}}{unit_s}",
+                    f"{{{{ {val_expr} }}}}{unit_s}",
                     classes="font-weight-medium text-no-wrap ml-2",
                 )
         with v3.VSlider(
@@ -138,7 +157,7 @@ def slider(
             **extra,
         ):
             with v3.Template(v_slot_thumb_label=True):
-                html.Span(f"{{{{ {model} }}}}")
+                html.Span(f"{{{{ {val_expr} }}}}")
 
     if not desc and not simple and not uri:
         _body()

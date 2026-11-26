@@ -23,7 +23,7 @@ from fansim.cockpit.figures import (
     pareto_front,
     scatter_figure,
 )
-from fansim.cockpit.library_view import library_list_items
+from fansim.cockpit.library_view import filter_library_items, library_list_items
 from fansim.cockpit.placement import fit_envelope, nominal_fits_spec
 from fansim.fan_spec import (
     fan_spec_names,
@@ -205,6 +205,9 @@ def apply_state_defaults(session) -> None:
     state.meas_notes = ""
     state.meas_msg = "Select a design, print + test it, then record what you measured."
     state.library_items = []
+    state.library_all_items = []
+    state.library_search = ""
+    state.library_fits_only = False
     state.library_sel = None
     state.library_info = ""
     state.library_msg = ""
@@ -444,14 +447,28 @@ def bind(session) -> None:
             items.insert(0, ref_item)
         state.trial_items = items
 
+    def _apply_library_filter():
+        all_items = list(state.library_all_items or [])
+        filtered = filter_library_items(
+            all_items,
+            query=str(state.library_search or ""),
+            fits_only=bool(state.library_fits_only),
+        )
+        state.library_items = filtered
+
     def refresh_library():
         from fansim.cockpit.library_view import empty_library_info
 
         spec = active_spec()
         items = library_list_items(load_catalog(), spec)
-        state.library_items = items
+        state.library_all_items = items
+        _apply_library_filter()
         n = sum(1 for it in items if it.get("role") == "row")
         state.library_info = empty_library_info(n)
+
+    @state.change("library_search", "library_fits_only")
+    def _on_library_filter_change(**_):
+        _apply_library_filter()
 
     def _thin(designs, cell: float = 2.5):
         best = {}
