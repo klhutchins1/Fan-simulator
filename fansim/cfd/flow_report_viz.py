@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ctypes
+import ctypes.util
 from pathlib import Path
 
 import numpy as np
@@ -9,9 +11,9 @@ import pyvista as pv
 
 from fansim.cfd.flow_report import (
     DEAD_FRAC_OF_MEAN,
-    slab_centres,
     FlowMetrics,
     noise_density,
+    slab_centres,
 )
 from fansim.cfd.flow_report_case import blade_z_extent, case_geometry
 from fansim.cfd.midplane import _RENDER_LOCK, robust_clim, rotor_outline, slice_volume_for_viz
@@ -46,8 +48,30 @@ def picture_scales(case_dir, *, mesh) -> dict:
     return sc
 
 
+def _osmesa_available() -> bool:
+    """Return True if libOSMesa can be loaded by VTK's OSMesa backend."""
+    names = [n for n in (ctypes.util.find_library("OSMesa"), "libOSMesa.so.8", "libOSMesa.so") if n]
+    for name in names:
+        try:
+            ctypes.CDLL(name)
+            return True
+        except OSError:
+            continue
+    return False
+
+
 def _plotter():
     pl = pv.Plotter(off_screen=True, window_size=list(WINDOW))
+    if type(pl.render_window).__name__ == "vtkOSOpenGLRenderWindow" and not _osmesa_available():
+        # VTK 9.6 on headless Linux without X11, working EGL, or libOSMesa still returns an
+        # uninitialized vtkOSOpenGLRenderWindow whose Render() dereferences null GL pointers
+        # (SIGSEGV). Fail cleanly before Render() so callers keep verdicts and tests report an error.
+        pl.close()
+        raise RuntimeError(
+            "No usable OpenGL backend for off-screen VTK rendering: VTK fell back to "
+            "vtkOSOpenGLRenderWindow without libOSMesa. Set DISPLAY (e.g. run under xvfb-run) "
+            "or provide a working EGL driver."
+        )
     pl.background_color = "white"
     return pl
 
@@ -101,7 +125,7 @@ def _side(g, case_dir, field, cmap, clim, title, path, z_fan, tip_r, highlight_p
     slc = slice_volume_for_viz(g, (0.0, 1.0, 0.0), (0.0, 0.0, z_fan))
     try:
         slc = slc.clip_box(list(side_view_box(tip_r, z_fan)), invert=False)
-    except Exception:  # noqa: BLE001 - keep the full slice
+    except Exception:  # noqa: BLE001, S110 - keep the full slice
         pass
     with _RENDER_LOCK:
         pl = _plotter()
