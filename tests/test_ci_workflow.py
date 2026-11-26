@@ -1,4 +1,8 @@
-"""R3.5: the GitHub workflow has a short Windows geometry/export job and changed-files ruff."""
+"""R3.5: the GitHub workflow has a short Windows geometry/export job and changed-files ruff.
+
+Layout after the CI-speed change: ``static`` (ruff, mypy, physics ledger), then ``pytest``
+(three parallel chunk jobs, ``needs: static``), and ``windows-geometry``.
+"""
 
 from __future__ import annotations
 
@@ -27,7 +31,7 @@ def _runs(job: dict) -> str:
 
 def test_windows_job_is_the_fast_geometry_and_export_subset():
     jobs = _doc()["jobs"]
-    assert set(jobs) == {"fast", "windows-geometry"}
+    assert set(jobs) == {"static", "pytest", "windows-geometry"}
     job = jobs["windows-geometry"]
     assert job["runs-on"] == "windows-latest"
     script = _runs(job)
@@ -43,7 +47,7 @@ def test_windows_job_is_the_fast_geometry_and_export_subset():
 
 def test_default_ruff_runs_on_changed_files_only():
     jobs = _doc()["jobs"]
-    checkout = jobs["fast"]["steps"][0]
+    checkout = jobs["static"]["steps"][0]
     assert checkout["uses"].startswith("actions/checkout@")
     assert checkout["with"]["fetch-depth"] == 0
     runs = "\n".join(_runs(job) for job in jobs.values())
@@ -62,14 +66,16 @@ def test_default_ruff_runs_on_changed_files_only():
     assert "ruff check ." not in changed[0]
     names = [step.get("name") for job in jobs.values() for step in job["steps"]]
     assert "Ruff changed files" in names
-    assert "pytest_chunks.py --chunks 3 --all" in _runs(jobs["fast"])
+    assert "pytest_chunks.py --chunks 3 --chunk" in _runs(jobs["pytest"])
 
 
 def test_ci_fails_on_physics_audit_drift_before_pytest():
-    """RV-0: the ledger drifted for five weeks because nothing failed on it."""
-    steps = _doc()["jobs"]["fast"]["steps"]
-    runs = [str(step.get("run", "")) for step in steps]
-    audit = [i for i, r in enumerate(runs) if "scripts/audit_status.py --strict" in r]
-    pytest_step = [i for i, r in enumerate(runs) if "pytest_chunks.py" in r]
-    assert len(audit) == 1 and pytest_step
-    assert audit[0] < pytest_step[0]
+    """RV-0: the ledger drifted for five weeks because nothing failed on it.
+
+    The pytest chunks must wait for the static job, which runs the ledger check.
+    """
+    jobs = _doc()["jobs"]
+    audit = [s for s in jobs["static"]["steps"] if "scripts/audit_status.py --strict" in str(s.get("run", ""))]
+    assert len(audit) == 1
+    needs = jobs["pytest"]["needs"]
+    assert needs == "static" or "static" in needs
