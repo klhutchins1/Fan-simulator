@@ -108,10 +108,11 @@ def test_uiuc_static_point_within_preregistered_tolerance():
 
 
 # ---- Addendum 2026-09-29: UIUC measured geometry + J sweeps (vol-1 files, see uiuc_propdb/README.md) ----
-# E 9x6 keeps the original 0.015 gate. SF 9x4.7 registered gate is 0.020 (2026-09-30).
-# Aspirational SF full-curve 0.015 abandoned 2026-09-30: attached bias dominates (~0.018 RMS);
-# clearing 0.015 needs unknown-section camber ≈0.06 (forbidden datasheet fit; 0.07 blows up).
-CT_RMS_TOL = 0.015          # APC E 9x6 only
+# Ruling 2026-11-25 (docs/validation/audits/2026-11-25-apcsf-ct-j-rms-ruling.md): the pre-registered
+# 0.015 gate stands for both props; APC SF 9x4.7 is a FAIL (~0.0175 RMS, attached bias dominates;
+# clearing 0.015 needs unknown-section camber ≈0.06, forbidden datasheet fit). The 2026-09-30 0.020
+# threshold was set after the data and is kept as a regression guard only, not a validation gate.
+CT_RMS_TOL = 0.015          # pre-registered validation gate (both props; SF fails it)
 CT_RMS_TOL_SF = 0.020       # APC SF regression guard only, NOT a validation gate (ruling 2026-11-25)
 
 from fansim.propeller.bemt_catalog import (

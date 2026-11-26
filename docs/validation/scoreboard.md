@@ -10,8 +10,8 @@ recomputed verdict differs from the audit's.
 
 | Surface | Quantity | Published | Ours | Error | Tolerance | Verdict | Evidence |
 |---|---|---|---|---|---|---|---|
-| Fan CFD (axial) | free-air flow, close-reference A12x25 STL, CFD v5 (ring + frame + layers) | 60.1 CFM | 59.8 CFM | -0.5 % | ±10 % (`docs/roadmap.md`) | **PASS** | **markdown only** (`docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md#L56`), no result file committed |
-| Fan CFD (axial) | shut-off pressure (formal linear proxy), close-reference STL | 22.9 Pa | 28.0 Pa | +5.1 Pa | ±5 (`docs/roadmap.md`) | **FAIL** | **markdown only** (`docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md#L66`), no result file committed |
+| Fan CFD (axial) | free-air flow, close-reference A12x25 STL, CFD v5 (ring + frame + layers) | 60.1 CFM | 59.8 CFM | -0.5 % | ±10 % (`docs/validation/a12x25_geometry_acceptance.md`) | **PASS** | **markdown only** (`docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md#L56`), no result file committed |
+| Fan CFD (axial) | shut-off pressure (formal linear proxy), close-reference STL | 22.9 Pa | 28.0 Pa | +5.1 Pa | ±5 Pa (`docs/validation/a12x25_geometry_acceptance.md`) | **FAIL** | **markdown only** (`docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md#L66`), no result file committed |
 | Fan CFD (axial) | flow at 7 Pa, FAN-01 exact CAD (Zenodo 10787093) | 2.078 m³/s | 2.131 m³/s | +2.5 % | none pre-registered | **NOT JUDGED** | `docs/validation/fan01/fan01_cfd.json` |
 | Fan CFD (axial) | flow at 64 Pa, FAN-01 exact CAD | 1.804 m³/s | 1.859 m³/s | +3.1 % | none pre-registered | **NOT JUDGED** | `docs/validation/fan01/fan01_cfd.json` |
 | Fan CFD (axial) | flow at 6.85 Pa, lt120 frozen reference (mean of two meshes, 89.6 / 92.0) | 84.0 CFM | 90.8 CFM | +8.1 % | ±10 % (`docs/validation/audits/2026-10-18-lt120-validation-prereg.md`) | **PASS** | **markdown only** (`docs/validation/audits/2026-10-18-lt120-validation-prereg.md#L69`), no result file committed |

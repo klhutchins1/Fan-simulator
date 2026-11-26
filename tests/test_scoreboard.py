@@ -39,10 +39,54 @@ def test_every_claim_cites_files_that_exist():
 
 
 def test_recomputed_verdicts_match_the_recorded_ones(rows):
-    """A code or data change that flips a live/data claim fails here."""
+    """Any claim (live, data, or recorded) whose recomputed verdict disagrees fails here."""
     for r in rows:
-        if r["kind"] in ("live", "data"):
-            assert r["verdict"] == r["recorded_verdict"], (r["id"], r["verdict"], r["error_text"])
+        assert r["verdict"] == r["recorded_verdict"], (r["id"], r["verdict"], r["error_text"])
+
+
+def test_mismatched_recorded_verdict_is_caught(monkeypatch, tmp_path, capsys):
+    """scripts/scoreboard.py must catch a recorded row whose recorded_verdict disagrees with judge()."""
+    from scripts import scoreboard as scoreboard_cli
+
+    claims = [{
+        "id": "demo.recorded",
+        "surface": "Demo",
+        "quantity": "recorded mismatch",
+        "published": {"value": 60.0, "unit": "CFM", "source": "datasheet"},
+        "ours": {"kind": "recorded", "value": 59.8, "where": "a.md#L1", "where_text": "59.8"},
+        "tolerance": {"rel": 0.10, "source": "tol.md"},
+        "recorded_verdict": "FAIL",
+    }]
+    page_path = Path("scoreboard.md")
+    (tmp_path / page_path).write_text(sb.render(sb.evaluate(claims)), encoding="utf-8")
+    monkeypatch.setattr(sb, "load_claims", lambda: claims)
+    monkeypatch.setattr(sb, "ROOT", tmp_path)
+    monkeypatch.setattr(sb, "PAGE_PATH", page_path)
+
+    rc = scoreboard_cli.main([])
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "verdict changed: demo.recorded" in out
+
+
+def test_tol_text_includes_unit_for_abs_tolerance():
+    assert sb._tol_text({"abs": 5.0, "source": "a.md (§2)"}, "Pa") == "±5 Pa (`a.md`)"
+    assert sb._tol_text({"abs": 5.0, "source": "a.md"}, "") == "±5 (`a.md`)"
+    assert sb._tol_text({"abs": 5.0, "source": "a.md"}, "-") == "±5 (`a.md`)"
+    assert sb._tol_text({"rel": 0.10, "source": "a.md"}, "CFM") == "±10 % (`a.md`)"
+    assert sb._tol_text({"max": 0.015, "source": "a.md"}, "-") == "≤ 0.015 (`a.md`)"
+    assert sb._tol_text(None, "Pa") == "none pre-registered"
+
+    rows = sb.evaluate([{
+        "id": "demo.abs",
+        "surface": "Demo",
+        "quantity": "shut-off",
+        "published": {"value": 22.9, "unit": "Pa", "source": "datasheet"},
+        "ours": {"kind": "recorded", "value": 28.0, "where": "a.md#L1", "where_text": "28.0 Pa"},
+        "tolerance": {"abs": 5.0, "source": "a.md (§2)"},
+        "recorded_verdict": "FAIL",
+    }])
+    assert "| ±5 Pa (`a.md`) |" in sb.render(rows)
 
 
 def test_rows_without_a_preregistered_tolerance_are_not_judged(rows):

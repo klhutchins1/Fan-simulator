@@ -44,7 +44,7 @@ def uiuc_static(prefix: str) -> dict[str, float]:
     """Static C_T / C_P near 6000 rpm: UIUC measured vs BEMT on the UIUC geometry."""
     from fansim.propeller.bemt_catalog import UIUC_DIR, load_uiuc_performance
 
-    rows = load_uiuc_performance(next(UIUC_DIR.glob(f"{prefix}_static_*.txt")))
+    rows = load_uiuc_performance(next(iter(sorted(UIUC_DIR.glob(f"{prefix}_static_*.txt")))))
     rpm, ct, cp = min(rows, key=lambda r: abs(r[0] - UIUC_STATIC_RPM))
     c, p = _uiuc_coeffs(_uiuc_blade(prefix), UIUC_DIAMETER_IN[prefix], rpm, 0.0)
     return {"rpm": rpm, "ct_pub": ct, "cp_pub": cp, "ct_ours": c, "cp_ours": p}
@@ -170,13 +170,14 @@ def _num(x: float | None) -> str:
     return f"{x:.4f}"
 
 
-def _tol_text(tol: dict | None) -> str:
+def _tol_text(tol: dict | None, unit: str = "") -> str:
     if not tol:
         return "none pre-registered"
     if "rel" in tol:
         t = f"±{tol['rel'] * 100:g} %"
     elif "abs" in tol:
-        t = f"±{tol['abs']:g}"
+        u = f" {unit}" if unit not in ("", "-") else ""
+        t = f"±{tol['abs']:g}{u}"
     else:
         t = f"≤ {tol['max']:g}"
     return f"{t} (`{tol['source'].split(' ')[0]}`)"
@@ -202,7 +203,7 @@ def render(rows: list[dict]) -> str:
         pub = _num(r["published"]) + (unit if r["published"] is not None else "")
         out.append(
             f"| {r['surface']} | {r['quantity']} | {pub} | {_num(r['ours'])}{unit} | {r['error_text']} "
-            f"| {_tol_text(r['tolerance'])} | **{r['verdict']}** | {r['evidence']} |"
+            f"| {_tol_text(r['tolerance'], r['unit'])} | **{r['verdict']}** | {r['evidence']} |"
         )
     n = len(rows)
     count = {v: sum(1 for r in rows if r["verdict"] == v) for v in ("PASS", "FAIL", "NOT JUDGED")}

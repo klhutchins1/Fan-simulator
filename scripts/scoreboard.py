@@ -26,8 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     rows = sb.evaluate(sb.load_claims())
     page = sb.render(rows)
     print(page)
-    bad = [r["id"] for r in rows
-           if r["kind"] in ("live", "data") and r["verdict"] != r["recorded_verdict"]]
+    bad = [r["id"] for r in rows if r["verdict"] != r["recorded_verdict"]]
     stale = (sb.ROOT / sb.PAGE_PATH).read_text(encoding="utf-8") != page \
         if (sb.ROOT / sb.PAGE_PATH).is_file() else True
     if bad:

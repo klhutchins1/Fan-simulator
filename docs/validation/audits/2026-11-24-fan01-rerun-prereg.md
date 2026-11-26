@@ -75,3 +75,10 @@ outside; nothing about FAN-01 caused it, and nothing is judged from either attem
 
 **Attempt 3:** the same command, from `master` once that fix is merged (its containers carry a session label, so
 even an old-code cleanup skips them).
+
+## Amendment (2026-11-25)
+
+Citation correction only (no change to points, mesh, iterations, pass mark, or verdict rules): the pass-mark
+table above cites `docs/roadmap.md` §10 for the 2026-09-14 ±10 % free-air interim band. The original source is
+`docs/validation/a12x25_geometry_acceptance.md` §2 (committed 2026-09-14, `6fbaf9c`), mirrored in
+`docs/roadmap.md` §1.5 (`6f6b748`).

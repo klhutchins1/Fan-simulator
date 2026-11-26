@@ -7,8 +7,8 @@
 #             and `where_text` must appear on that line.
 # `tolerance` is the rule decided BEFORE the data, with the file that fixed it. null = none was
 # pre-registered, so the row is reported but NOT JUDGED.
-# `recorded_verdict` is what the audit concluded. For live/data rows the test fails if the
-# recomputed verdict differs from it, so a code or data change that flips a claim fails CI.
+# `recorded_verdict` is what the audit concluded. For every row (live, data, and recorded) the test
+# fails if the recomputed verdict differs from it, so a code, data, or YAML mismatch fails CI.
 #
 # Do not edit numbers to make a row pass. A changed verdict needs its own audit file.
 
@@ -18,7 +18,7 @@ claims:
     quantity: free-air flow, close-reference A12x25 STL, CFD v5 (ring + frame + layers)
     published: {value: 60.1, unit: CFM, source: "Noctua NF-A12x25 datasheet"}
     ours: {kind: recorded, value: 59.8, where: "docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md#L56", where_text: "59.8"}
-    tolerance: {rel: 0.10, source: "docs/roadmap.md (section 10 interim band, set 2026-09-14, before audit-02)"}
+    tolerance: {rel: 0.10, source: "docs/validation/a12x25_geometry_acceptance.md (§2 interim band, set 2026-09-14, 6fbaf9c; mirrored in docs/roadmap.md §1.5, before audit-02)"}
     recorded_verdict: PASS
 
   - id: a12x25.shutoff
@@ -26,7 +26,7 @@ claims:
     quantity: shut-off pressure (formal linear proxy), close-reference STL
     published: {value: 22.9, unit: Pa, source: "Noctua NF-A12x25 datasheet"}
     ours: {kind: recorded, value: 28.0, where: "docs/validation/audits/2026-09-28-audit-02-cfd-method-validation.md#L66", where_text: "28.0 Pa"}
-    tolerance: {abs: 5.0, source: "docs/roadmap.md (section 10 interim band, set 2026-09-14, before audit-02)"}
+    tolerance: {abs: 5.0, source: "docs/validation/a12x25_geometry_acceptance.md (§2 interim band, set 2026-09-14, 6fbaf9c; mirrored in docs/roadmap.md §1.5, before audit-02)"}
     recorded_verdict: FAIL
 
   - id: fan01.q_7pa
@@ -106,7 +106,8 @@ claims:
     # Audit #3 pre-registered RMS <= 0.015. SF read 0.021-0.024, then 0.0175 after the (genuine)
     # thickness fix. On 2026-09-30, after that data, the SF gate was "re-registered" to 0.020, which
     # passes it. A tolerance widened after the data does not count (AGENTS.md rule 1), so this row is
-    # judged on 0.015. Needs a ruling (RV-2 finding); the ledger's propeller.bemt claim cites 0.020.
+    # judged on 0.015. Ruling 2026-11-25 (docs/validation/audits/2026-11-25-apcsf-ct-j-rms-ruling.md):
+    # 0.015 gate stands, SF is FAIL, and 0.020 is kept as a regression guard only.
     quantity: "worst C_T(J) RMS over the UIUC sweeps, APC SF 9x4.7 (the 0.020 gate was set after the data and is not used)"
     published: {kind: live, unit: "-", source: "UIUC Propeller Database"}
     ours: {kind: live, func: uiuc_ct_rms, prefix: apcsf_9x4.7}

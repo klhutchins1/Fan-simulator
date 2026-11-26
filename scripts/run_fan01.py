@@ -62,7 +62,7 @@ DEFAULT_MIN_WALL_MM = 4.0  # measured 2026-09-28: chord-binned section thickness
 # (median 7.1 mm at r=140, 5.4 at r=185, 4.7 at r=230; thinner toward LE/TE) -> 4.0 mm for mesh sizing.
 RING_LENGTH_MM = 201.0  # rig casing sleeve: 96.5mm upstream + 104.5mm downstream of rotor mid
 RING_CENTER_OFFSET_MM = (104.5 - 96.5) / 2.0  # +4mm downstream of the rotor mid-plane
-OUT_JSON = Path("docs/validation/fan01/fan01_cfd.json")
+OUT_JSON = Path("docs/validation/fan01/fan01_cfd_rv2.json")
 URANS_OUT_JSON = Path("docs/validation/fan01/fan01_urans.json")
 URANS_PILOT_REV_FRAC = 0.25  # pilot end_time = this fraction of one revolution
 
@@ -89,6 +89,10 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--procs", type=int, default=16)
     ap.add_argument("--base-cell", type=float, default=0.02)
     ap.add_argument("--out", default="runs/fan01")
+    ap.add_argument(
+        "--out-json", type=Path, default=None,
+        help=f"result rows JSON path (default: {OUT_JSON} steady, {URANS_OUT_JSON} --urans)",
+    )
     ap.add_argument("--pilot", action="store_true",
                     help="mesh once, solve ONE point briefly, print the estimate for all "
                          "points, then exit without running the full sweep")
@@ -106,6 +110,13 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--pilot-seconds", type=float, default=600.0,
                     help="[urans --pilot] wall-clock budget for the short transient solve")
     return ap
+
+
+def resolve_out_json(args: argparse.Namespace) -> Path:
+    """Result JSON path: --out-json override, else URANS_OUT_JSON (--urans) or OUT_JSON (steady)."""
+    if args.out_json is not None:
+        return Path(args.out_json)
+    return URANS_OUT_JSON if args.urans else OUT_JSON
 
 
 def _mesh(base_cell: float, min_wall_mm: float, add_layers: bool) -> MeshResolution:
@@ -344,7 +355,8 @@ def run_urans(args) -> int:
         }
         row.update(measured_q_report(characteristic, b))
         rows.append(row)
-        write_rows_json(URANS_OUT_JSON, rows)
+        out_json = resolve_out_json(args)
+        write_rows_json(out_json, rows)
         print(
             f"  back={b:6.1f} Pa -> {m.cfm:6.1f} CFM ({m.flow_m3s:.3f} m3/s)  "
             f"measured~{row.get('measured_q_m3s')}  "
@@ -353,7 +365,7 @@ def run_urans(args) -> int:
             flush=True,
         )
 
-    print(f"-> {URANS_OUT_JSON}")
+    print(f"-> {resolve_out_json(args)}")
     return 0
 
 
@@ -421,7 +433,8 @@ def main() -> int:
         }
         row.update(measured_q_report(characteristic, b))
         rows.append(row)
-        write_rows_json(OUT_JSON, rows)
+        out_json = resolve_out_json(args)
+        write_rows_json(out_json, rows)
         print(
             f"  back={b:6.1f} Pa -> {m.cfm:6.1f} CFM ({m.flow_m3s:.3f} m3/s)  "
             f"measured~{row.get('measured_q_m3s')}  "
@@ -430,7 +443,7 @@ def main() -> int:
             flush=True,
         )
 
-    print(f"-> {OUT_JSON}")
+    print(f"-> {resolve_out_json(args)}")
     return 0
 
 
