@@ -21,9 +21,10 @@ cockpit. First target: a **Noctua NF-A12x25**-class blade.
 The honest north star is **validated relative gains + a real "fan showdown"** against a printed baseline,
 not beating a molded LCP fan on absolute numbers with a home print.
 
-Read [`docs/adversarial-review.md`](docs/adversarial-review.md) — it documents what is validated vs. not.
-Other docs: [`docs/high-accuracy-plan.md`](docs/high-accuracy-plan.md),
-[`docs/design-rules.md`](docs/design-rules.md), [`docs/a12x25-reference.md`](docs/a12x25-reference.md).
+Read [`docs/VALIDATION.md`](docs/VALIDATION.md) (and the machine-checked [`docs/validation/scoreboard.md`](docs/validation/scoreboard.md)) — they document what is validated vs. experimental.
+Other docs: [`docs/how-scores-are-computed.md`](docs/how-scores-are-computed.md),
+[`docs/design-rules.md`](docs/design-rules.md), [`docs/a12x25-reference.md`](docs/a12x25-reference.md),
+[`docs/high-accuracy-plan.md`](docs/high-accuracy-plan.md).
 Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Status (honest)
@@ -62,8 +63,8 @@ Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md).
   converged loaded points 5 / 10 Pa (52.5 / 41.0 CFM). Near-stall points are not shown (steady-RANS
   does not converge there). Published shut-off is 22.9 Pa.
 - External benchmark FAN-01 (exact published CAD): within **+2.5% / +3.1%** (no tolerance was pre-registered; see `docs/validation/scoreboard.md`).
-- Parametric Stock recipe v2: 56.5 / 49.8 / 40.2 CFM at 0 / 5 / 10 Pa (−5.5% vs the close-ref STL at
-  free air).
+- Second published 120 mm fan (lt120, frozen 0.5 mm tip gap): **+8.1%** at its lowest measured load (6.85 Pa, PASS within ±10%), **+25.8%** at mid load (13.71 Pa, FAIL; overall verdict **TRENDS**).
+- Parametric Stock recipe v3 (wrapped sections): **55.7 vs 58.3 CFM (−4.5%)** against the close-ref STL in the cylinder-sections diagnostic rig (`docs/validation/audits/2026-10-12-cylinder-sections.md`). Full per-surface details: [`docs/VALIDATION.md`](docs/VALIDATION.md).
 
 The cockpit **Assess** uses a faster screening mesh (no prism layers, not grid-converged, GCI ≈ 21%):
 use it to **rank** designs, not as absolute CFM. Cockpit "Stock" results dated before 2026-10-08 were

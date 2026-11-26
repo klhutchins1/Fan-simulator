@@ -571,14 +571,14 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     classes="text-body-2 mb-2",
                                 )
                                 html.Div(
-                                    "Checked against published data: Fan CFD matches three published "
-                                    "fans near free air. On one of them (lt120) loaded airflow reads "
-                                    "about 25 % high at mid load, so loaded airflow ranks designs; "
-                                    "treat its absolute value as uncertain (see README). "
+                                    "Checked against published data: Fan CFD matches A12x25 at free air "
+                                    "(−0.5 %) and lt120 at its lowest measured load (6.85 Pa, +8.1 %); "
+                                    "on lt120 loaded airflow reads about 25 % high at mid load, so loaded "
+                                    "airflow ranks designs — treat its absolute value as uncertain. "
                                     "Not validated: noise levels, Prop CFD / Mixed / Volute / CROR "
-                                    "(labelled experimental), blade vibration. Docs: README, "
-                                    "docs/design-rules.md, docs/a12x25-reference.md, "
-                                    "docs/adversarial-review.md.",
+                                    "(labelled experimental), blade vibration. Docs: docs/VALIDATION.md, "
+                                    "docs/validation/scoreboard.md, docs/design-rules.md, "
+                                    "docs/a12x25-reference.md.",
                                     classes="text-caption text-medium-emphasis mb-3",
                                 )
                                 v3.VBtn(

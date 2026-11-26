@@ -88,10 +88,10 @@ anything.
 Night CPU is now for gate suites and any R1.3 re-find campaign only.
 
 - **UX-1 Simple/Expert cockpit polish (GitHub #1–#41).** Lane: Cursor. CPU: day (UI copy + unit tests). Status: `done` (merged PR #21 / #42 / #43, 2026-11-25). Leftover #27 (Library “rebuild the catalog”) on `cursor/ux-library-empty-27`.
-- **UX-2 Plain-language audit and home page.** Lane: Cursor (omp). CPU: day. Status: `in progress (omp, 2026-11-25)`, branch `cursor/ux-homepage`.
-  Walk every tab in Simple and Expert mode, write `docs/review/2026-11-25-ux-audit.md`, add a start page (what the app does, design a fan / propeller / open a design / how accuracy is checked), fix wording, tooltips and diagrams; the rest become `ux` issues.
-- **CI-1 VTK segfault in pytest chunk 0.** Lane: Cursor (omp). CPU: day. Status: `in progress (omp, 2026-11-25)`, branch `cursor/ci-vtk-segfault`.
-  Master CI is red since the chunked workflow: chunk 0 dies with exit −11 in VTK. Blocks every PR going green (#83, #84, #85).
+- **UX-2 Plain-language audit and home page.** Lane: Cursor (omp). CPU: day. Status: `done 82c4dac` (PR #104, 2026-11-26).
+  Walked every tab in Simple and Expert mode, wrote `docs/review/2026-11-25-ux-audit.md`, added the Home start page, inline SVG diagrams, and tooltip/unit fixes; follow-ups filed as #99–#103.
+- **CI-1 VTK segfault in pytest chunk 0.** Lane: Cursor (omp). CPU: day. Status: `done` (PR #91, 2026-11-26).
+  Xvfb/Mesa OpenGL added for headless VTK rendering and uninitialized OSMesa guarded; master CI is green.
 
 ## Review and maths tracking (Claude, 2026-11-24; Kimball asked for it)
 
@@ -102,11 +102,10 @@ the validation page is built on a green CI and a clean ledger.
 
 - **RV-0 Make the safety nets real.** Lane: Claude or Cursor. CPU: day. Status: `done` (merged `claude/rv0-safety-nets` → `d837929`, 2026-11-25). Gate runs CI static checks; `audit_status --strict`; 8 units re-proven.
 - **RV-1 Maths snapshot.** Lane: Claude drafts the tolerance pre-registration; Cursor builds. CPU: day. Status: `done` (merged `claude/rv1-physics-snapshot` → `83ca5bf`, 2026-11-25). 16 pinned cases in `tests/data/physics_snapshot.json`.
-- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `in progress (omp, 2026-11-25)`: PR #85 open; independent number check posted on the PR.
-  Published-data comparisons recomputed from frozen results into `docs/validation/scoreboard.md`. R3.8 quotes it.
-- **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `in progress (omp, 2026-11-25)`:
-  module 1 PR #84 (review posted, fixes on the same branch); module 2 `fan_bem.py` on `cursor/rv3-fan-bem`; module 3
-  `cfd/metrics.py`, `flow_report.py`, `flow_verdicts.py` on `cursor/rv3-cfd-metrics`.
+- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `done 6f5a280` (PR #85, 2026-11-25).
+  Published-data comparisons recomputed from frozen results into `docs/validation/scoreboard.md`; FAN-01 re-run pre-registered (`docs/validation/audits/2026-11-24-fan01-rerun-prereg.md`). R3.8 quotes it.
+- **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `in progress (2026-11-26)`:
+  modules 1–3 merged (module 1 PR #84 `dacd65c`; module 2 `fan_bem.py` PR #98 `c95d825`; module 3 `cfd/metrics.py` / `flow_report.py` / `flow_verdicts.py` PR #92 `67806aa`). Open: modules 4–7 (`geometry`, `propeller`, `search_space`, `structural`/`acoustics`) plus filed `math`/`review` issues (#86–#90, #93–#97).
   Order and checklist are in the plan. Findings become GitHub issues labelled `math` or `review`. The first 7
   findings are listed there.
 - **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `done 7c23df1`. 38 scripts in `archive/scripts/`; `scripts/audit_forensics.py` + tests; promote follow-ups #74–#76 (`prop_section_2d`, `fan_noise_curle`, `fan_noise_cv`). Detail: `docs/review/2026-11-25-rv4-script-triage.md`.
@@ -335,7 +334,7 @@ Kimball's.
   - 2026-10-20: on APC SF, BEMT's C_T error grows with J (−13 % static, −15 / −20 / −29 % at J 0.20 / 0.30 / 0.43), most likely
     from the generic section. The release claim must say "±15 % at static; worse toward zero-thrust J on props with unknown
     sections" until grok r19 B shows the known-section number.
-  - Lane: Cursor labels the C_P limit; Claude confirms the claims list. Status: `ready`.
+  - Lane: Cursor labels the C_P limit; Claude confirms the claims list. Status: `done` (`cursor/r38-validation-page`, 2026-11-26): `PROP_BEMT_HONESTY` states the ~21 % slow-flyer C_P limit; `docs/VALIDATION.md` and `docs/validation/scoreboard.md` record both APC SF static C_P (−21.4 % FAIL) and C_T(J) RMS (0.0175 FAIL vs 0.015).
   - **Claude confirmed 2026-10-29** (`docs/validation/audits/2026-10-29-review-r21-claims-and-validation.md`): grok r21 A stands. The fixes are grouped G1–G5 there; G1 (the Assess message compares with the datasheet) goes first.
 - **R2.2 Propeller CFD: fix it** (Kimball 2026-10-17). **Frozen for v0.1.0 (Kimball 2026-11-15): ships labelled; see the decision at the top.** FAIL, −44 % C_T against UIUC (audit-08).
   - Pre-registered diagnostic ladder: `docs/validation/audits/2026-10-17-prop-cfd-fix-prereg.md`. Read its rules
@@ -464,11 +463,8 @@ Kimball's.
 - **R3.7 Cockpit UI regression tests (29.2)**. Lane: Cursor writes, grok proposes cases. CPU: day. Status: `done 2b98425`.
   - Headless "we say X, we do Y" tests (`tests/test_ui_says_what_it_does.py`), at least one per tab that ships.
   - Landed one headless say/do test per shipping tab (Fan, Prop, Mixed, Volute, CROR); handlers are read with inspect.getsource, not run, and no production copy changed.
-- **R3.8 Validation page**. Lane: Cursor drafts, Claude checks the numbers. CPU: day. Status: `blocked (RV-2)`.
-  - **Claude reviewed grok r21 B 2026-10-29: approved as the base.** Apply M1–M9 (M3: name the rig for 58.3 vs 59.8; M5: the link is `2026-10-12-cylinder-sections.md`). See the review doc. grok checks the final page.
-  - `docs/VALIDATION.md`: per surface, what it was validated against, the tolerance, the result and the known limits.
-    Every number links to its audit.
-  - grok r21 B (2026-10-25): draft from the audits in `docs/qa/notes/r21-B-validation-draft.md` (13 surfaces + Known limits, 9 mismatches listed) for Cursor to adapt and Claude to check.
+- **R3.8 Validation page**. Lane: Cursor drafts, Claude checks the numbers. CPU: day. Status: `done` (`cursor/r38-validation-page`, 2026-11-26).
+  - Landed `docs/VALIDATION.md` covering all 13 surfaces + Known limits, aligned with `docs/validation/scoreboard.md` (RV-2), M1–M9 fixes, QA-64 wording, lt120 TRENDS + tip-gap G3, APC SF C_T(J) RMS 0.015 ruling, R1.3 wrap bounds, and the 2026-11-15 freeze of the four experimental surfaces. Updated `README.md`, `home_tab.py`, and `fan_tab_ui.py` to link `docs/VALIDATION.md`. Contract test `tests/test_r38_validation_doc.py` verifies all links, scoreboard numbers, M1–M9/QA-64/R2.7 invariants, and release export inclusion. Closes M3.
 - **R3.9 Large files**. Lane: Cursor. CPU: day. Status: `done ac4024f`.
   - Landed: `fan01_rotor.stl`, `cad_model.zip`, and `a12x25_impeller.stl` stay in git and out of the public export, with no Git LFS, and the CC-BY attribution stays in `THIRD_PARTY.md`.
   - Decide per file between Git LFS, a release asset, or out of the export: `validation/reference/fan01/*.stl`
@@ -476,11 +472,11 @@ Kimball's.
 
 ## M4: Release candidate
 
-- **R4.1 Clean-clone install and test on Linux**. Lane: grok. Status: `blocked (M3)`.
+- **R4.1 Clean-clone install and test on Linux**. Lane: grok. Status: `ready` (M3 done).
   - From the release export: follow README install, run the fast suite and one headless cockpit start.
 - **R4.2 Windows install and one Assess**. Lane: Kimball, with Claude or Cursor on standby. CPU: night for the Assess.
-  Status: `blocked (M3)`.
-- **R4.3 Release notes v0.1.0**. Lane: Cursor drafts, Claude checks the claims. Status: `blocked (R3.8)`.
+  Status: `ready` (M3 done).
+- **R4.3 Release notes v0.1.0**. Lane: Cursor drafts, Claude checks the claims. Status: `ready` (R3.8 done).
 - **R4.4 Tag, publish and create the GitHub repo from the export**. Lane: Kimball. Status: `blocked (R4.1–R4.3)`.
 
 ---
