@@ -6,15 +6,15 @@ import csv
 import json
 import math
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from fansim.geometry.blade import BladeParams
+from fansim.physics.air import C0_AIR as C_AIR
 from fansim.propeller.bemt import RHO_AIR, analyze
 from fansim.propeller.polar import nondim, v_inf_from_j
 
-C_AIR = 343.0
 CSV_HEADER = (
     "rpm",
     "speed_mps",
@@ -31,7 +31,7 @@ CSV_HEADER = (
     "figure_of_merit",
 )
 DEFAULT_RPM_LIST = [1000.0, 3000.0, 5000.0, 7000.0, 9000.0, 11000.0]
-DEFAULT_J_LIST = [i * 0.05 for i in range(0, 13)]  # 0.0 .. 0.60
+DEFAULT_J_LIST = [i * 0.05 for i in range(13)]  # 0.0 .. 0.60
 
 
 def default_export_grid(*, rpm_max: float | None = None) -> tuple[list[float], list[float]]:
@@ -131,7 +131,7 @@ def export_bemt_pythrust_catalog(
         "j_list": js,
         "rho": float(rho),
         "n_rows": len(rows),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
     export_path = out_dir / export_name
     export_path.write_text(json.dumps(export_meta, indent=2) + "\n", encoding="utf-8")
