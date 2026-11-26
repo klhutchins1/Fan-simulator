@@ -1,12 +1,36 @@
 name: ci
 
+# One run per change. PRs run once (pull_request); pushes run only on master, so a branch
+# with an open PR no longer runs the whole suite twice. A newer push to the same ref cancels
+# the run that is still going. Docs-only handoff, review, board, and grok notes skip the run.
 on:
   push:
+    branches: [master]
+    paths-ignore:
+      - 'handoff/**/*.md'
+      - 'docs/qa/daily/**'
+      - 'docs/qa/rounds/**'
+      - 'docs/review/**'
+      - 'docs/release/**'
   pull_request:
+    paths-ignore:
+      - 'handoff/**/*.md'
+      - 'docs/qa/daily/**'
+      - 'docs/qa/rounds/**'
+      - 'docs/review/**'
+      - 'docs/release/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  fast:
+  # Static checks: ruff, mypy, physics ledger. Fast. Pytest and Windows jobs wait for this job,
+  # so lint or ledger drift fails in ~1 min before any test minute or extra job noise is spent.
+  static:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,6 +86,26 @@ jobs:
         # RV-0: every audited unit must be PROVEN and no physics code unregistered.
         # A logic change to an audited unit needs a re-prove (scripts/audit_status.py, AGENTS.md rule 5).
         run: uv run --extra dev python scripts/audit_status.py --strict
+
+  # Fast pytest as three chunks in parallel jobs (wall-clock ~ the slowest chunk, not the sum).
+  # Each chunk is its own fresh process (roadmap 23.9): glibc arenas and OCCT/VTK RSS stay bounded.
+  # Windows OCCT teardown 0xC0000374 after a green summary is documented in
+  # docs/validation/suite_baseline_2026-09-14.md; pytest_chunks.judge() accepts it.
+  pytest:
+    needs: static
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Sync deps
+        run: uv sync --extra dev
       - name: Install headless OpenGL (Xvfb + Mesa)
         # VTK 9.6 on headless Ubuntu 26.04 (no DISPLAY, no GPU/EGL, OSMesa removed in Mesa 25+)
         # falls back to an uninitialized vtkOSOpenGLRenderWindow and segfaults in Render().
@@ -69,19 +113,18 @@ jobs:
           sudo apt-get update &&
           sudo apt-get install -y --no-install-recommends
           xvfb xauth libgl1 libglx-mesa0 libxrender1
-      - name: Fast pytest
-        # 23.9: three fresh processes so Linux glibc arenas cannot grow one pytest to 4–6 GB.
-        # Windows OCCT teardown 0xC0000374 after a green summary is documented in
-        # docs/validation/suite_baseline_2026-09-14.md — Linux CI should exit 0 on pass.
+      - name: Fast pytest chunk ${{ matrix.chunk }}
         env:
           PYVISTA_OFF_SCREEN: "true"
         run: >
           xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24 +extension GLX +render -noreset"
-          uv run --extra dev python scripts/pytest_chunks.py --chunks 3 --all --
+          uv run --extra dev python scripts/pytest_chunks.py --chunks 3 --chunk ${{ matrix.chunk }} --
           -m "not docker and not slow" -q --tb=line
 
   windows-geometry:
+    needs: static
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
