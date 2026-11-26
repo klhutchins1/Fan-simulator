@@ -63,7 +63,7 @@ CONTROL_DESC = {
     "e_hub_nose": "Nose height (mm) for the cone/dome hub profile. Adds a spinner on the intake side (increases depth — may go over-spec).",
     "e_hub_profile": "Hub intake cap shape: cylinder (flat face), cone (pointed spinner), or dome (rounded spinner). Set Hub nose > 0 mm for cone/dome.",
     "assess_preset": "Airflow resistance curve (static pressure load in Pa at 50 CFM): Case (8 Pa, open airflow), Heatsink (20 Pa, medium fin restriction), Radiator (35 Pa, high back-pressure).",
-    "assess_material": "3D-print filament used for weight, centrifugal stress, and print-sheet recommendations (PETG default; PLA+ is stiffer).",
+    "assess_material": "3D-print filament used for weight, blade-root spin stress, and print-sheet recommendations (PETG default; PLA+ is stiffer).",
     "intake_overbuild": "Allow blades/hub to extend past the intake face (+Z) beyond the nominal frame depth. Flagged over-spec.",
     "intake_overbuild_mm": "Extra axial intake depth allowed when intake overbuild is enabled (mm).",
     "e_camber_pos": "Where max camber sits along the chord (0.2 = near LE, 0.6 = aft). Fraction of chord — not mm.",
