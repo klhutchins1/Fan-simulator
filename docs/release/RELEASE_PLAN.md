@@ -88,6 +88,10 @@ anything.
 Night CPU is now for gate suites and any R1.3 re-find campaign only.
 
 - **UX-1 Simple/Expert cockpit polish (GitHub #1–#41).** Lane: Cursor. CPU: day (UI copy + unit tests). Status: `done` (merged PR #21 / #42 / #43, 2026-11-25). Leftover #27 (Library “rebuild the catalog”) on `cursor/ux-library-empty-27`.
+- **UX-2 Plain-language audit and home page.** Lane: Cursor (omp). CPU: day. Status: `in progress (omp, 2026-11-25)`, branch `cursor/ux-homepage`.
+  Walk every tab in Simple and Expert mode, write `docs/review/2026-11-25-ux-audit.md`, add a start page (what the app does, design a fan / propeller / open a design / how accuracy is checked), fix wording, tooltips and diagrams; the rest become `ux` issues.
+- **CI-1 VTK segfault in pytest chunk 0.** Lane: Cursor (omp). CPU: day. Status: `in progress (omp, 2026-11-25)`, branch `cursor/ci-vtk-segfault`.
+  Master CI is red since the chunked workflow: chunk 0 dies with exit −11 in VTK. Blocks every PR going green (#83, #84, #85).
 
 ## Review and maths tracking (Claude, 2026-11-24; Kimball asked for it)
 
@@ -98,15 +102,13 @@ the validation page is built on a green CI and a clean ledger.
 
 - **RV-0 Make the safety nets real.** Lane: Claude or Cursor. CPU: day. Status: `done` (merged `claude/rv0-safety-nets` → `d837929`, 2026-11-25). Gate runs CI static checks; `audit_status --strict`; 8 units re-proven.
 - **RV-1 Maths snapshot.** Lane: Claude drafts the tolerance pre-registration; Cursor builds. CPU: day. Status: `done` (merged `claude/rv1-physics-snapshot` → `83ca5bf`, 2026-11-25). 16 pinned cases in `tests/data/physics_snapshot.json`.
-- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `ready` (unblocked by RV-1).
+- **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `in progress (omp, 2026-11-25)`: PR #85 open; independent number check posted on the PR.
   Published-data comparisons recomputed from frozen results into `docs/validation/scoreboard.md`. R3.8 quotes it.
-- **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `in progress (Claude, 2026-11-24)`.
+- **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `in progress (omp, 2026-11-25)`:
+  module 1 PR #84 (review posted, fixes on the same branch); module 2 `fan_bem.py` on `cursor/rv3-fan-bem`; module 3
+  `cfd/metrics.py`, `flow_report.py`, `flow_verdicts.py` on `cursor/rv3-cfd-metrics`.
   Order and checklist are in the plan. Findings become GitHub issues labelled `math` or `review`. The first 7
   findings are listed there.
-  - Progress log: `docs/review/rv3-findings.md` (branch `claude/rv3-review`). Module 1 (`objectives.py`) done:
-    **O1 high fixed** (`e349624`): the stress and resonance gates judged the stale `params.rpm` (2000), not the
-    rpm the design runs at; for the 3900 rpm Delta model, resonant designs passed. O2–O5 silent failures fixed
-    (`d6097c4`). O6 fixed by Cursor (#80); O7 open (#53). Modules 2 (`fan_bem.py`) and 3a (`cfd/metrics.py`): no new defects.
 - **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `done 7c23df1`. 38 scripts in `archive/scripts/`; `scripts/audit_forensics.py` + tests; promote follow-ups #74–#76 (`prop_section_2d`, `fan_noise_curle`, `fan_noise_cv`). Detail: `docs/review/2026-11-25-rv4-script-triage.md`.
 
 - **RV-5 Speed and code health.** Lane: Cursor. CPU: day (profile outside 4–9 PM). Status: `ready` (unblocked by RV-1). Profile
