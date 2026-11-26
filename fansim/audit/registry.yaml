@@ -256,7 +256,7 @@ units:
     claim: "Axial-fan BEM never beats momentum theory, gives zero static rise at its free delivery, and ranks designs like CFD (RANKING-ONLY screening). Opt-in axial_force model: static rise = blade axial force / annulus area with a Viterna post-stall polar; Stock fit 59.8 CFM / 22.1 Pa; paddles and wrong-hand blades are not fans (QA-4)"
     source: {kind: datasheet, ref: "Audit #4: CFD v5 Stock v1/v2 + re-scored designs; Euler turbomachinery + blade-element theory; QA rules a/b/b2/c/d 2026-10-09"}
     checks: [tests/audit/test_fan_bem_audit.py, tests/test_math_consistency.py, tests/test_fan_bem.py]
-    depends_on: [physics.air_properties]
+    depends_on: [physics.air_properties, cfd.cfm_from_outlet_flow, propeller.bemt, propeller.polars]
 
   - id: structural.deflection
     targets:

@@ -7,9 +7,12 @@ what made the propeller side instant.
 
 Physics: slice the annulus hub->tip into elements; at each one balance the blade-element lift/drag
 against the momentum imparted to the annular stream tube, solve for the swirl the rotor adds, and apply
-the Euler turbomachinery relation (ΔP0 = ρ·U·ΔVθ). Integrate over radius -> total pressure rise, shaft
-power, efficiency. Losses: airfoil profile drag (from the polar) now; TIP-CLEARANCE (Kröger-Venter) and
-low-Reynolds airfoil polars are the next upgrades (roadmap §7.2/§7.3).
+the Euler turbomachinery relation (ΔP0 = ρ·U·ΔVθ; Dixon & Hall 2014, Wallis 1983). Integrate over
+radius -> total pressure rise, shaft power, efficiency (AMCA 210 / ISO 5801 static definitions).
+Losses: the default ``"euler"`` model relies on empirical SLIP / K_FRICTION / K_TIP_LEAK buckets
+(it does NOT subtract airfoil profile-drag loss Δp0,prof = D/(2πr sin φ); see RV-3 findings). The
+opt-in ``"axial_force"`` model subtracts blade drag via f_x = L cos φ1 − D sin φ1 with Viterna–Corrigan
+(1982) post-stall continuation.
 
 HONEST SCOPE: RANKING-ONLY screening. Do not quote BEM CFM as absolute or beside CFD as
 equivalent — BEM ignores thickness/lean/wrap/LE-TE scales/plate sections; ranking only,
@@ -32,17 +35,17 @@ import numpy as np
 
 from fansim.cfd.metrics import CFM_PER_M3S
 from fansim.geometry.blade import BladeParams
-from fansim.physics.air import NU_AIR
+from fansim.physics.air import MU_AIR, NU_AIR
 from fansim.physics.air import RHO_AMCA as RHO_AIR
 from fansim.propeller.bemt import _cl_cd  # thin cambered-airfoil polar (shared with the prop BEMT)
 
 # --- first-order aggregate loss calibration (roadmap §7.3; refine with Kröger-Venter + low-Re polars) ---
-# Inviscid blade-element+Euler over-predicts ~1.6-2x: the real fan loses work to flow DEVIATION/slip
-# (fluid under-turns vs the blade), TIP-CLEARANCE leakage, and endwall/secondary flows. Until those are
-# modelled properly, three empirical buckets calibrated so the reference a12x25 geometry reproduces the
-# CFD-validated P-Q (~60 CFM free, ~23 Pa shut-off, ~25-35% eff):
-SLIP = 0.71                   # swirl actually delivered vs ideal (deviation) — gap leakage now explicit (§7.3)
-K_FRICTION = 1.7              # endwall/duct/blade friction static-pressure loss ~ K * dynamic head
+# Inviscid blade-element+Euler over-predicts ~1.6-2x: the real fan loses work to cascade interference /
+# flow deviation, tip-clearance leakage (Venter & Kröger 1992; Denton 1993), and endwall/secondary flows.
+# Three empirical buckets calibrated so the a12x25 Stock recipe matches ~60 CFM free delivery (Audit #4
+# notes shut-off ~39 Pa and peak η ~53% do not match datasheet 22.9 Pa / 25–35%):
+SLIP = 0.71                   # empirical hydraulic/swirl delivery factor (acts on Δp0, not shaft power)
+K_FRICTION = 1.7              # exit dynamic head (1.0) + endwall/duct/inlet friction (~0.7) × ½ρVx²
 K_TIP_LEAK = 9.0             # tip-clearance leakage knockdown in the outer span ~ K * gap/chord (§7.3)
 N_ITER_MAX = 50               # cap on the per-element swirl fixed-point iteration
 DEFAULT_TIP_GAP_MM = 0.5      # blade-to-shroud gap (leakage grows the loss near the tip)
@@ -64,14 +67,24 @@ CD_90 = 1.8                   # flat-plate drag at 90° incidence (literature 1.
 
 
 def _viterna(cl_s: float, cd_s: float, a_s: float, a: float) -> tuple[float, float]:
-    """Viterna–Corrigan post-stall cl/cd at incidence ``a`` (rad), continued from stall point ``a_s``."""
+    """Viterna–Corrigan (1982, NASA TM-82944) post-stall cl/cd at ``a`` (rad) from stall ``a_s``.
+
+    Valid on ``|a| <= pi/2``. Beyond ``+-pi/2`` the ``a2*cos^2(a)/sin(a)`` stall-matching term
+    has already vanished at ``cos(+-pi/2) = 0`` and has a ``1/sin(a)`` pole at ``+-pi``, so it is
+    dropped there, leaving the continuous flat-plate relation ``0.5*B1*sin(2a)``.
+    """
     b1 = CD_90
     s_s, c_s = math.sin(a_s), math.cos(a_s)
     a2 = (cl_s - b1 * s_s * c_s) * s_s / max(c_s * c_s, 1e-6)
     b2 = (cd_s - b1 * s_s * s_s) / max(c_s, 1e-6)
-    sa, ca = math.sin(a), max(abs(math.cos(a)), 1e-3)
-    cl = 0.5 * b1 * math.sin(2.0 * a) + a2 * ca * ca / max(abs(sa), 1e-3) * math.copysign(1.0, sa)
-    cd = b1 * sa * sa + b2 * ca
+    sa, ca = math.sin(a), abs(math.cos(a))
+    if abs(a) <= 0.5 * math.pi:
+        ca_eff = max(ca, 1e-3)
+        cl = 0.5 * b1 * math.sin(2.0 * a) + a2 * ca_eff * ca_eff / max(abs(sa), 1e-3) * math.copysign(1.0, sa)
+        cd = b1 * sa * sa + b2 * ca_eff
+    else:
+        cl = 0.5 * b1 * math.sin(2.0 * a)
+        cd = b1 * sa * sa + b2 * ca
     return cl, max(cd, cd_s)
 
 
@@ -103,7 +116,7 @@ class FanPoint:
 
 @dataclass
 class FanCurve:
-    points: list                 # list[FanPoint], low flow -> high flow
+    points: list[FanPoint]       # low flow -> high flow
     free_delivery_cfm: float     # flow where static rise crosses 0
     shutoff_dp_pa: float         # static rise at the lowest (near-zero) flow
     peak_efficiency: float
@@ -118,6 +131,8 @@ class FanCurve:
 
 def _interp_geometry(params: BladeParams):
     """chord(mm), stagger(deg), camber as callables of r_frac (0=hub .. 1=tip)."""
+    if not params.stations:
+        raise ValueError("params.stations must not be empty")
     st = sorted(params.stations, key=lambda s: s.r_frac)
     rs = np.array([s.r_frac for s in st])
     ch = np.array([s.chord for s in st])
@@ -137,6 +152,32 @@ def _effective_tip_gap_mm(params: BladeParams, tip_gap_mm: float | None) -> floa
     return 0.0 if shroud_is_full(params) else DEFAULT_TIP_GAP_MM
 
 
+def _validate_common(
+    params: BladeParams,
+    rpm: float,
+    n_elem: int,
+    rho: float,
+    tip_gap_mm: float,
+    *,
+    stator: bool,
+    pressure_model: str,
+) -> None:
+    if pressure_model not in PRESSURE_MODELS:
+        raise ValueError(f"pressure_model must be one of {PRESSURE_MODELS}, got {pressure_model!r}")
+    if stator and pressure_model == "axial_force":
+        raise ValueError("stator=True is not supported with pressure_model='axial_force'")
+    if not math.isfinite(rpm) or rpm < 0.0:
+        raise ValueError(f"rpm must be finite and >= 0, got {rpm!r}")
+    if not math.isfinite(rho) or rho <= 0.0:
+        raise ValueError(f"rho must be finite and > 0, got {rho!r}")
+    if int(n_elem) < 1:
+        raise ValueError(f"n_elem must be >= 1, got {n_elem!r}")
+    if not math.isfinite(tip_gap_mm) or tip_gap_mm < 0.0:
+        raise ValueError(f"tip_gap_mm must be finite and >= 0, got {tip_gap_mm!r}")
+    if params.hub_radius < 0.0:
+        raise ValueError(f"hub_radius must be >= 0, got {params.hub_radius!r}")
+
+
 _GeomFns = tuple[
     Callable[[float], float],
     Callable[[float], float],
@@ -154,19 +195,24 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
 
     ``stator=True`` recovers exit swirl into static pressure (ideal OGV); default loses it as KE.
     ``pressure_model="axial_force"`` (opt-in) takes the static rise from the blades' axial force with
-    a post-stall polar; ``stator`` does not apply there. The default ``"euler"`` is unchanged.
+    a post-stall polar; ``stator=True`` is rejected there. The default ``"euler"`` is unchanged.
     """
-    if pressure_model not in PRESSURE_MODELS:
-        raise ValueError(f"pressure_model must be one of {PRESSURE_MODELS}, got {pressure_model!r}")
+    tip_gap_mm = _effective_tip_gap_mm(params, tip_gap_mm)
+    _validate_common(params, rpm, n_elem, rho, tip_gap_mm,
+                     stator=stator, pressure_model=pressure_model)
+    if not math.isfinite(flow_m3s) or flow_m3s < 0.0:
+        raise ValueError(f"flow_m3s must be finite and >= 0, got {flow_m3s!r}")
     axial = pressure_model == "axial_force"
     polar = _cl_cd_post_stall if axial else _table_polar
-    tip_gap_mm = _effective_tip_gap_mm(params, tip_gap_mm)
     hub_r = params.hub_radius / 1000.0
     tip_r = params.tip_radius / 1000.0
     B = int(params.n_blades)
     omega = rpm * 2.0 * math.pi / 60.0
     area = math.pi * (tip_r * tip_r - hub_r * hub_r)
-    Vx = flow_m3s / area if area > 0 else 0.0             # mean axial velocity
+    if area <= 0.0:
+        return FanPoint(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, False)
+    Vx = flow_m3s / area                                  # mean axial velocity
+    nu = NU_AIR if rho == RHO_AIR else MU_AIR / rho       # kinematic viscosity scales as mu / rho
     chord_fn, stag_fn, camb_fn = geom if geom is not None else _interp_geometry(params)
     edges = np.linspace(hub_r, tip_r, n_elem + 1)
 
@@ -177,8 +223,8 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
     mass = 0.0
     converged = True
     for i in range(n_elem):
-        r = 0.5 * (edges[i] + edges[i + 1])
-        dr = edges[i + 1] - edges[i]
+        r = float(0.5 * (edges[i] + edges[i + 1]))
+        dr = float(edges[i + 1] - edges[i])
         rf = (r - hub_r) / (tip_r - hub_r) if tip_r > hub_r else 0.0
         U = omega * r
         c = chord_fn(rf) / 1000.0
@@ -192,7 +238,7 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
             vth_m = 0.5 * vth                             # mean swirl through the row
             phi = math.atan2(Vx, max(U - vth_m, 0.05))    # mean relative flow angle from tangential
             W = math.hypot(Vx, U - vth_m)
-            re = W * c / NU_AIR                           # local blade Reynolds number
+            re = W * c / nu                               # local blade Reynolds number
             alpha = beta - phi                            # incidence
             cl, cd = polar(alpha, camb, re)               # Re-aware low-Re polar (§7.2)
             # tangential (rotation-direction) blade force per unit span, all blades (prop-BEMT decomposition)
@@ -211,8 +257,7 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
         # Ducted fan screening model: do NOT apply Prandtl finite-blade tip loss (shroud suppresses the
         # free-tip vortex roll-up). Only model gap leakage in the outer span (screening approximation).
         leak = 1.0
-        r_norm = (r - hub_r) / (tip_r - hub_r) if tip_r > hub_r else 0.0
-        if r_norm > 0.65:                                 # outer span leaks across the blade-to-shroud gap
+        if rf > 0.65:                                     # outer span leaks across the blade-to-shroud gap
             leak *= max(0.2, 1.0 - K_TIP_LEAK * (tip_gap_mm / 1000.0) / max(c, 1e-3))
         vth_eff = SLIP * leak * vth                       # deviation + leakage -> useful swirl
         dp0_num += rho * U * vth_eff * dm                 # useful Euler total-pressure rise
@@ -221,7 +266,7 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
         if axial and B > 0:
             phi1 = math.atan2(Vx, U)                      # inlet relative flow angle (no swirl yet)
             w1 = math.hypot(Vx, U)
-            cl1, cd1 = polar(beta - phi1, camb, w1 * c / NU_AIR)
+            cl1, cd1 = polar(beta - phi1, camb, w1 * c / nu)
             f_x = 0.5 * rho * w1 * w1 * c * B * (cl1 * math.cos(phi1) - cd1 * math.sin(phi1))
             ax_force += AX_SLIP * leak * f_x * dr         # deviation + gap leakage, as for the swirl
         mass += dm
@@ -240,11 +285,12 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
     else:
         dp_static = dp_total - swirl_loss \
             - K_FRICTION * 0.5 * rho * Vx * Vx           # endwall/duct/blade friction (grows with flow)
-    flow_cfm = flow_m3s * CFM_PER_M3S
+    flow_cfm = float(flow_m3s * CFM_PER_M3S)
     air_power = flow_m3s * max(dp_static, 0.0)
     eff = air_power / power if power > 1e-6 else 0.0
     # Full precision here (#50); cockpit/export format for display.
-    return FanPoint(flow_cfm, flow_m3s, dp_static, dp_total, eff, power, converged)
+    return FanPoint(flow_cfm, float(flow_m3s), float(dp_static), float(dp_total),
+                    float(eff), float(power), converged)
 
 
 def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 20,
@@ -252,10 +298,14 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
              stator: bool = False, pressure_model: str = "euler") -> FanCurve:
     """Sweep flow from near-shutoff to past free-delivery -> the fan's P-Q curve + key points."""
     tip_gap_mm = _effective_tip_gap_mm(params, tip_gap_mm)
+    _validate_common(params, rpm, n_elem, rho, tip_gap_mm,
+                     stator=stator, pressure_model=pressure_model)
+    if int(n_points) < 2:
+        raise ValueError(f"n_points must be >= 2, got {n_points!r}")
     tip_r = params.tip_radius / 1000.0
     hub_r = params.hub_radius / 1000.0
     area = math.pi * (tip_r * tip_r - hub_r * hub_r)
-    if area <= 0.0 or int(params.n_blades) <= 0:
+    if area <= 0.0 or int(params.n_blades) <= 0 or rpm == 0.0:
         return FanCurve(points=[], free_delivery_cfm=0.0, shutoff_dp_pa=0.0, peak_efficiency=0.0,
                         peak_eff_cfm=0.0, converged=False, free_status="no_rise")
     v_tip = (rpm * 2.0 * math.pi / 60.0) * tip_r

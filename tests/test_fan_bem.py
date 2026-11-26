@@ -117,3 +117,130 @@ def test_axial_force_efficiency_never_exceeds_one():
     assert all(0.0 <= p.efficiency <= 1.0 + 1e-9 for p in c.points)
 # Energy bound near-cap; NU_AIR (#48) can nudge peak slightly (#50).
     assert c.peak_efficiency >= 0.95
+
+
+# --- RV-3 review bug-fix regression tests --------------------------------------------------------
+
+def test_viterna_no_pole_beyond_90_deg():
+    """Viterna–Corrigan (1982) has a 1/sin(a) pole at ±180° if applied past ±90°."""
+    import math
+
+    from fansim.fan_bem import CD_90, _cl_cd_post_stall
+
+    for deg in (-180.0, -179.9, -179.0, -175.0, -150.0, -120.0, -90.0, 90.0, 120.0, 150.0, 179.0, 180.0):
+        cl, cd = _cl_cd_post_stall(math.radians(deg), 0.02, 40000.0)
+        assert math.isfinite(cl) and math.isfinite(cd)
+        assert abs(cl) <= 0.5 * CD_90 + 1e-6, f"alpha={deg}: cl={cl}"
+        assert 0.0 < cd <= CD_90 + 1e-6, f"alpha={deg}: cd={cd}"
+    cl_m180, _ = _cl_cd_post_stall(math.radians(-180.0), 0.02, 40000.0)
+    cl_p180, _ = _cl_cd_post_stall(math.radians(180.0), 0.02, 40000.0)
+    assert abs(cl_m180) < 1e-9 and abs(cl_p180) < 1e-9
+
+
+def test_reynolds_scales_with_custom_rho():
+    """At non-default density, nu = MU_AIR / rho so Re depends on rho (and alters low-Re polars)."""
+    stock = _stock7()
+    p_hi = operating_point(stock, 1200.0, 0.01, rho=1.2)
+    p_lo = operating_point(stock, 1200.0, 0.01, rho=0.6)
+    # If nu were hardcoded at NU_AIR, Re would be identical and dp_total / rho would be identical.
+    assert abs(p_hi.dp_total_pa / 1.2 - p_lo.dp_total_pa / 0.6) > 1e-4
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"rpm": -100.0},
+        {"flow_m3s": -0.01},
+        {"rho": 0.0},
+        {"rho": -1.2},
+        {"n_elem": 0},
+        {"tip_gap_mm": -1.0},
+        {"stator": True, "pressure_model": AX},
+        {"pressure_model": "bogus"},
+    ],
+)
+def test_operating_point_rejects_invalid_inputs(kwargs):
+    args = {"rpm": 2000.0, "flow_m3s": 0.02, **kwargs}
+    with pytest.raises(ValueError):
+        operating_point(_stock7(), **args)
+
+
+def test_operating_point_rejects_negative_hub_and_empty_stations():
+    bad_hub = copy.deepcopy(_stock7())
+    bad_hub.hub_radius = -5.0
+    with pytest.raises(ValueError):
+        operating_point(bad_hub, 2000.0, 0.02)
+
+    no_st = copy.deepcopy(_stock7())
+    no_st.stations = []
+    with pytest.raises(ValueError):
+        operating_point(no_st, 2000.0, 0.02)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"rpm": -100.0},
+        {"rho": 0.0},
+        {"n_elem": 0},
+        {"n_points": 1},
+        {"tip_gap_mm": -1.0},
+        {"stator": True, "pressure_model": AX},
+        {"pressure_model": "bogus"},
+    ],
+)
+def test_pq_curve_rejects_invalid_inputs(kwargs):
+    args = {"rpm": 2000.0, **kwargs}
+    with pytest.raises(ValueError):
+        pq_curve(_stock7(), **args)
+
+
+def test_pq_curve_validates_pressure_model_even_for_zero_blades():
+    with pytest.raises(ValueError):
+        pq_curve(BladeParams(n_blades=0), 2000.0, pressure_model="bogus")
+
+
+def test_degenerate_zero_rpm_and_inverted_radii():
+    c0 = pq_curve(_stock7(), 0.0)
+    assert (c0.free_status, c0.points, c0.converged) == ("no_rise", [], False)
+
+    inv = copy.deepcopy(_stock7())
+    inv.hub_radius, inv.tip_radius = 60.0, 50.0
+    pt = operating_point(inv, 2000.0, 0.02)
+    assert pt.converged is False and pt.dp_static_pa == 0.0
+
+
+def test_fan_point_fields_are_native_python_floats():
+    pt = operating_point(_stock7(), 2000.0, 0.02)
+    for field in ("flow_cfm", "flow_m3s", "dp_static_pa", "dp_total_pa", "efficiency", "power_w"):
+        assert type(getattr(pt, field)) is float, f"{field} was {type(getattr(pt, field))}"
+
+
+def test_single_element_euler_identity_exact():
+    """Direct analytic verification of the Euler + swirl-KE + friction equations on 1 element."""
+    import math
+
+    from fansim.fan_bem import K_FRICTION, RHO_AIR, SLIP
+
+    bp = copy.deepcopy(_stock7())
+    for s in bp.stations:
+        s.chord = 35.0
+        s.stagger_deg = 32.0
+        s.max_camber = 0.02
+    q = 0.02
+    p_no_st = operating_point(bp, 2000.0, q, n_elem=1, tip_gap_mm=0.0, stator=False)
+    p_st = operating_point(bp, 2000.0, q, n_elem=1, tip_gap_mm=0.0, stator=True)
+    hub_r, tip_r = bp.hub_radius / 1000.0, bp.tip_radius / 1000.0
+    r = 0.5 * (hub_r + tip_r)
+    area = math.pi * (tip_r * tip_r - hub_r * hub_r)
+    vx = q / area
+    u = (2000.0 * 2.0 * math.pi / 60.0) * r
+    vth = p_no_st.power_w / (RHO_AIR * q * u)
+    vth_eff = SLIP * vth
+    assert p_no_st.dp_total_pa == pytest.approx(RHO_AIR * u * vth_eff, rel=1e-12)
+    swirl_ke = 0.5 * RHO_AIR * vth_eff * vth_eff
+    assert p_st.dp_static_pa - p_no_st.dp_static_pa == pytest.approx(swirl_ke, rel=1e-12)
+    assert p_no_st.dp_static_pa == pytest.approx(
+        p_no_st.dp_total_pa - swirl_ke - K_FRICTION * 0.5 * RHO_AIR * vx * vx, rel=1e-12
+    )
+
