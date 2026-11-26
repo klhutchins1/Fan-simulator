@@ -62,11 +62,21 @@ jobs:
         # RV-0: every audited unit must be PROVEN and no physics code unregistered.
         # A logic change to an audited unit needs a re-prove (scripts/audit_status.py, AGENTS.md rule 5).
         run: uv run --extra dev python scripts/audit_status.py --strict
+      - name: Install headless OpenGL (Xvfb + Mesa)
+        # VTK 9.6 on headless Ubuntu 26.04 (no DISPLAY, no GPU/EGL, OSMesa removed in Mesa 25+)
+        # falls back to an uninitialized vtkOSOpenGLRenderWindow and segfaults in Render().
+        run: >
+          sudo apt-get update &&
+          sudo apt-get install -y --no-install-recommends
+          xvfb xauth libgl1 libglx-mesa0 libxrender1
       - name: Fast pytest
         # 23.9: three fresh processes so Linux glibc arenas cannot grow one pytest to 4–6 GB.
         # Windows OCCT teardown 0xC0000374 after a green summary is documented in
         # docs/validation/suite_baseline_2026-09-14.md — Linux CI should exit 0 on pass.
+        env:
+          PYVISTA_OFF_SCREEN: "true"
         run: >
+          xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24 +extension GLX +render -noreset"
           uv run --extra dev python scripts/pytest_chunks.py --chunks 3 --all --
           -m "not docker and not slow" -q --tb=line
 
