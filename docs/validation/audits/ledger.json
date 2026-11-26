@@ -115,9 +115,9 @@
       "verdict": "PASS"
     },
     "optimize.search_space_handedness": {
-      "date": "2026-11-25",
-      "fingerprint": "4ee383c17382b2e7",
-      "report": "docs/validation/audits/2026-11-25-r13-guided-wrap-bounds.md",
+      "date": "2026-11-26",
+      "fingerprint": "ac1489cc213fc8eb",
+      "report": "docs/review/2026-11-26-rv3-search-space.md",
       "verdict": "PASS"
     },
     "physics.air_properties": {

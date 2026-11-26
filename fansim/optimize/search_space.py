@@ -1,17 +1,20 @@
 """Map an Optuna trial to a BladeParams design vector (~10 dimensions).
 
 Kept compact so a search is tractable: blade count, per-station stagger and chord, mid/tip
-sweep, and global camber. Thickness is fixed to a printable profile. Feature-layer
-parameters (tubercles, serrations, dimples) are added here once the feature library lands.
+sweep, and global camber. Thickness is fixed to a printable profile unless extended DOFs are
+enabled; optional bio-inspired features (tubercles, serrations, dimples) are sampled via
+``suggest_features``.
 """
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
+from fansim.cfd.domain import OPTIMIZER_TIP_GAP_MM
 from fansim.geometry.blade import (
     SHROUD_DEFAULT_MM,
     BladeParams,
@@ -113,12 +116,18 @@ EXTENDED = {
 WINGLET = {"winglet_sweep": (0.0, 10.0), "winglet_lean": (0.0, 18.0)}
 
 
-def _apply_spacing(bp: BladeParams, spread: float, seed) -> None:
+def _apply_spacing(bp: BladeParams, spread: float | None, seed: int | None) -> None:
     """Deterministically set a balanced uneven blade spacing on ``bp`` from (spread, seed)."""
-    import numpy as np
-
     from fansim.geometry.blade import set_uneven_spacing
-    set_uneven_spacing(bp, spread=float(spread), rng=np.random.default_rng(int(seed)))
+
+    sp = 0.0 if spread is None else float(spread)
+    if sp <= 0.0:
+        set_uneven_spacing(bp, spread=sp)
+        return
+    s = 0 if seed is None else int(seed)
+    if s < 0:
+        raise ValueError(f"spacing_seed must be >= 0, got {s}")
+    set_uneven_spacing(bp, spread=sp, rng=np.random.default_rng(s))
 
 
 def suggest_params(trial, with_features: bool = False, space: str = "open",
@@ -136,7 +145,13 @@ def suggest_params(trial, with_features: bool = False, space: str = "open",
     the hub radius to be SAMPLED from that range (used by --mountable to keep the hub big enough to
     house the motor) — it overrides the extended hub bound and applies even without --extended.
     frame_half_mm caps tip_radius so the built envelope (ring included) leaves 0.5 mm to the frame."""
+    if space not in BOUNDS:
+        raise KeyError(f"unknown search space {space!r}; known: {sorted(BOUNDS)}")
     b = BOUNDS[space]
+    if frame_half_mm is not None and float(frame_half_mm) <= 0.0:
+        raise ValueError(f"frame_half_mm must be > 0, got {frame_half_mm}")
+    if max_tip_radius is not None and float(max_tip_radius) <= 0.0:
+        raise ValueError(f"max_tip_radius must be > 0, got {max_tip_radius}")
     n_blades = trial.suggest_int("n_blades", *b["n_blades"])
 
     # Realistic (low) stagger: wide high-solidity blades need low stagger to fit the 25 mm
@@ -170,7 +185,10 @@ def suggest_params(trial, with_features: bool = False, space: str = "open",
     hub = None
     hub_range = hub_radius_range or (EXTENDED["hub_radius"] if with_extended else None)
     if hub_range is not None:  # --mountable forces a hub big enough to house the motor
-        hub = trial.suggest_float("hub_radius", *hub_range)
+        hub_lo, hub_hi = float(hub_range[0]), float(hub_range[1])
+        if hub_lo <= 0.0 or hub_lo > hub_hi:
+            raise ValueError(f"invalid hub_radius_range {(hub_lo, hub_hi)}")
+        hub = trial.suggest_float("hub_radius", hub_lo, hub_hi)
 
     stations = [
         RadialStation(0.0, ch_root, stg_root, th_r, camber, cpos, 0.0, 0.0, 0.0),
@@ -181,15 +199,21 @@ def suggest_params(trial, with_features: bool = False, space: str = "open",
 
     # tip_radius: frame-aware cap from the real section-point bulge when frame_half_mm is set.
     # Else max_tip_radius / extended range / BladeParams default.
-    if frame_half_mm is not None:
-        shroud = SHROUD_DEFAULT_MM if with_shroud else 0.0
-        cap = tip_radius_cap_mm(stations, hub_r, frame_half_mm, shroud, n_blades)
-        lo = min(TIP_CAP_SEARCH_LO_MM, cap - 1.0)
-        if lo >= cap:
-            lo = cap - 0.5
+    if frame_half_mm is not None or max_tip_radius is not None:
+        if frame_half_mm is not None:
+            shroud = SHROUD_DEFAULT_MM if with_shroud else 0.0
+            cap = tip_radius_cap_mm(stations, hub_r, frame_half_mm, shroud, n_blades)
+            if max_tip_radius is not None:
+                cap = min(cap, float(max_tip_radius))
+        else:
+            cap = float(max_tip_radius)  # type: ignore[arg-type]
+        if cap <= hub_r:
+            raise ValueError(
+                f"tip_radius cap ({cap:.2f} mm) must exceed hub_radius ({hub_r:.2f} mm)"
+            )
+        lo = max(min(TIP_CAP_SEARCH_LO_MM, cap - 1.0), hub_r + 1e-3)
+        lo = min(lo, cap)
         tip = trial.suggest_float("tip_radius", lo, cap)
-    elif max_tip_radius is not None:
-        tip = trial.suggest_float("tip_radius", min(48.0, max_tip_radius - 1.0), max_tip_radius)
     elif with_extended:
         tip = trial.suggest_float("tip_radius", *EXTENDED["tip_radius"])
     else:
@@ -211,6 +235,8 @@ def suggest_params(trial, with_features: bool = False, space: str = "open",
     if with_shroud:                       # tip ring; search its TE-anchored height (recovery: 7.5)
         bp.shroud_thick_mm = SHROUD_DEFAULT_MM
         bp.shroud_height_frac = trial.suggest_float("shroud_height_frac", 0.30, 1.0)
+        if hasattr(trial, "set_user_attr"):
+            trial.set_user_attr("shroud_thick_mm", float(bp.shroud_thick_mm))
     if with_winglet:                      # curl the tip; §7.5: no winglet under a FULL ring
         wl_sweep = trial.suggest_float("winglet_sweep", *WINGLET["winglet_sweep"])
         wl_lean = trial.suggest_float("winglet_lean", *WINGLET["winglet_lean"])
@@ -234,6 +260,11 @@ FLAT_STATION_SLOT_R = "station_slot_r"
 STATION_PAYLOAD_KEYS = (FLAT_STATIONS, FLAT_STATION_SLOTS, FLAT_STATION_SLOT_R)
 _STATION_FIELDS = ("r_frac", "chord", "stagger_deg", "thickness", "max_camber", "camber_pos",
                    "sweep", "skew", "lean_deg", "le_sweep", "le_skew", "te_face", "le_face")
+_STATION_DEFAULTS: dict[str, float] = {
+    f.name: float(f.default)
+    for f in dataclasses.fields(RadialStation)
+    if f.default is not dataclasses.MISSING
+}
 # station field -> flat keys at (root, mid, tip); None = no slot (fixed at the recipe value)
 _SLOT_KEYS = (
     ("chord", ("chord_root", "chord_mid", "chord_tip")),
@@ -257,6 +288,12 @@ def _opt_float(p: dict, key: str, default: float) -> float:
     return float(p[key])
 
 
+def _attr_float(obj: Any, name: str, default: float) -> float:
+    """Attribute value as float, keeping a real 0. Missing or None uses ``default``."""
+    val = getattr(obj, name, None)
+    return float(default) if val is None else float(val)
+
+
 def _slot_value(p: dict, key: str, original: float) -> float:
     """Flat value for a slot key with blade_from_flat's fallbacks (camber_* -> max_camber)."""
     if key in p and p[key] is not None:
@@ -268,22 +305,31 @@ def _slot_value(p: dict, key: str, original: float) -> float:
 
 def _stations_from_payload(p: dict) -> list[RadialStation]:
     """Every recipe station, with slot edits applied as interpolated deltas."""
-    slots = p[FLAT_STATION_SLOTS]
-    r_nodes = [float(r) for r in p[FLAT_STATION_SLOT_R]]
+    raw_stations = p[FLAT_STATIONS]
+    slots = p.get(FLAT_STATION_SLOTS) or {}
+    r_nodes_raw = p.get(FLAT_STATION_SLOT_R)
+    r_nodes = [float(r) for r in r_nodes_raw] if r_nodes_raw is not None else []
+    if slots and (len(r_nodes) != 3 or r_nodes[0] > r_nodes[1] or r_nodes[1] > r_nodes[2]):
+        raise ValueError(
+            f"{FLAT_STATION_SLOT_R} must be 3 non-decreasing r_frac values, got {r_nodes!r}"
+        )
     out = []
-    for raw in p[FLAT_STATIONS]:
-        st = {k: float(raw[k]) for k in _STATION_FIELDS if k in raw}
+    for raw in raw_stations:
+        st = {k: float(raw[k]) for k in _STATION_FIELDS if k in raw and raw[k] is not None}
         r = st["r_frac"]
-        for field_name, keys in _SLOT_KEYS:
-            deltas = [
-                0.0 if k is None or k not in slots else _slot_value(p, k, slots[k]) - float(slots[k])
-                for k in keys
-            ]
-            if any(deltas):
-                st[field_name] = st.get(field_name, 0.0) + float(np.interp(r, r_nodes, deltas))
-        if "camber_pos" in slots:
-            st["camber_pos"] = st.get("camber_pos", CAMBER_POS) + (
-                _slot_value(p, "camber_pos", slots["camber_pos"]) - float(slots["camber_pos"]))
+        if slots:
+            for field_name, keys in _SLOT_KEYS:
+                deltas = [
+                    0.0 if k is None or k not in slots else _slot_value(p, k, slots[k]) - float(slots[k])
+                    for k in keys
+                ]
+                if any(deltas):
+                    base = st.get(field_name, _STATION_DEFAULTS.get(field_name, 0.0))
+                    st[field_name] = base + float(np.interp(r, r_nodes, deltas))
+            if "camber_pos" in slots:
+                st["camber_pos"] = st.get("camber_pos", CAMBER_POS) + (
+                    _slot_value(p, "camber_pos", slots["camber_pos"]) - float(slots["camber_pos"])
+                )
         out.append(RadialStation(**st))
     return out
 
@@ -298,73 +344,82 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
     Camber: prefer ``camber_root`` / ``camber_mid`` / ``camber_tip``; else fall back to the single
     ``max_camber`` used by the optimizer (all three stations get that value).
     """
-    cpos = float(p.get("camber_pos", CAMBER_POS))
-    th_r = float(p.get("thickness_root", THICKNESS[0]))
-    th_m = float(p.get("thickness_mid", THICKNESS[1]))
-    th_t = float(p.get("thickness_tip", THICKNESS[2]))
-    cam_fallback = float(p.get("max_camber", 0.05))
-    cam_r = float(p.get("camber_root", cam_fallback))
-    cam_m = float(p.get("camber_mid", cam_fallback))
-    cam_t = float(p.get("camber_tip", cam_fallback))
-    stations = [
-        RadialStation(0.0, p["chord_root"], p["stagger_root"], th_r,
-                      cam_r, cpos, 0.0, 0.0, 0.0,
-                      le_sweep=p.get("le_sweep_root", 0.0),
-                      le_skew=p.get("le_skew_root", 0.0),
-                      te_face=_opt_float(p, "te_face_root", 1.0),
-                      le_face=_opt_float(p, "le_face_root", 1.0)),
-        RadialStation(0.5, p["chord_mid"], p["stagger_mid"], th_m,
-                      cam_m, cpos, p["sweep_mid"], p.get("skew_mid", 0.0),
-                      p.get("lean_mid", 0.0), le_sweep=p.get("le_sweep_mid", 0.0),
-                      le_skew=p.get("le_skew_mid", 0.0),
-                      te_face=_opt_float(p, "te_face_mid", 1.0),
-                      le_face=_opt_float(p, "le_face_mid", 1.0)),
-        RadialStation(1.0, p["chord_tip"], p["stagger_tip"], th_t,
-                      cam_t, cpos, p["sweep_tip"], p.get("skew_tip", 0.0),
-                      p.get("lean_tip", 0.0), le_sweep=p.get("le_sweep_tip", 0.0),
-                      le_skew=p.get("le_skew_tip", 0.0),
-                      te_face=_opt_float(p, "te_face_tip", 1.0),
-                      le_face=_opt_float(p, "le_face_tip", 1.0)),
-    ]
     if p.get(FLAT_STATIONS):                            # full recipe carried (§23.1)
         stations = _stations_from_payload(p)
+    else:
+        cpos = _opt_float(p, "camber_pos", CAMBER_POS)
+        th_r = _opt_float(p, "thickness_root", THICKNESS[0])
+        th_m = _opt_float(p, "thickness_mid", THICKNESS[1])
+        th_t = _opt_float(p, "thickness_tip", THICKNESS[2])
+        cam_fallback = _opt_float(p, "max_camber", 0.05)
+        cam_r = _opt_float(p, "camber_root", cam_fallback)
+        cam_m = _opt_float(p, "camber_mid", cam_fallback)
+        cam_t = _opt_float(p, "camber_tip", cam_fallback)
+        stations = [
+            RadialStation(0.0, float(p["chord_root"]), float(p["stagger_root"]), th_r,
+                          cam_r, cpos, 0.0, 0.0, 0.0,
+                          le_sweep=_opt_float(p, "le_sweep_root", 0.0),
+                          le_skew=_opt_float(p, "le_skew_root", 0.0),
+                          te_face=_opt_float(p, "te_face_root", 1.0),
+                          le_face=_opt_float(p, "le_face_root", 1.0)),
+            RadialStation(0.5, float(p["chord_mid"]), float(p["stagger_mid"]), th_m,
+                          cam_m, cpos, float(p["sweep_mid"]), _opt_float(p, "skew_mid", 0.0),
+                          _opt_float(p, "lean_mid", 0.0),
+                          le_sweep=_opt_float(p, "le_sweep_mid", 0.0),
+                          le_skew=_opt_float(p, "le_skew_mid", 0.0),
+                          te_face=_opt_float(p, "te_face_mid", 1.0),
+                          le_face=_opt_float(p, "le_face_mid", 1.0)),
+            RadialStation(1.0, float(p["chord_tip"]), float(p["stagger_tip"]), th_t,
+                          cam_t, cpos, float(p["sweep_tip"]), _opt_float(p, "skew_tip", 0.0),
+                          _opt_float(p, "lean_tip", 0.0),
+                          le_sweep=_opt_float(p, "le_sweep_tip", 0.0),
+                          le_skew=_opt_float(p, "le_skew_tip", 0.0),
+                          te_face=_opt_float(p, "te_face_tip", 1.0),
+                          le_face=_opt_float(p, "le_face_tip", 1.0)),
+        ]
     kw: dict[str, object] = {}
-    if "root_embed" in p and p["root_embed"] is not None:
+    if p.get("root_embed") is not None:
         kw["root_embed"] = float(p["root_embed"])
-    if "hub_radius" in p:
+    if p.get("hub_radius") is not None:
         kw["hub_radius"] = float(p["hub_radius"])
-    if "tip_radius" in p:                               # blade LENGTH (outer radius) -- shrink to fit
+    if p.get("tip_radius") is not None:                  # blade LENGTH (outer radius) -- shrink to fit
         kw["tip_radius"] = float(p["tip_radius"])
-    if float(p.get("hub_height", 0.0)) > 0.0:           # explicit hub height; <=0/absent = auto
+    if _opt_float(p, "hub_height", 0.0) > 0.0:          # explicit hub height; <=0/absent = auto
         kw["hub_height_mm"] = float(p["hub_height"])
-    if "blade_hub_z" in p or "blade_hub_z_mm" in p:
-        kw["blade_hub_z_mm"] = float(p.get("blade_hub_z", p.get("blade_hub_z_mm", 0.0)) or 0.0)
-    if "blade_z" in p or "blade_z_mm" in p:
-        kw["blade_z_mm"] = float(p.get("blade_z", p.get("blade_z_mm", 0.0)) or 0.0)
+    if p.get("blade_hub_z") is not None:
+        kw["blade_hub_z_mm"] = float(p["blade_hub_z"])
+    elif p.get("blade_hub_z_mm") is not None:
+        kw["blade_hub_z_mm"] = float(p["blade_hub_z_mm"])
+    if p.get("blade_z") is not None:
+        kw["blade_z_mm"] = float(p["blade_z"])
+    elif p.get("blade_z_mm") is not None:
+        kw["blade_z_mm"] = float(p["blade_z_mm"])
     if p.get("hub_profile"):                            # "cylinder" | "cone" | "dome"
         kw["hub_profile"] = str(p["hub_profile"])
-    if float(p.get("hub_nose", 0.0)) > 0.0:             # nose height for cone/dome
+    if _opt_float(p, "hub_nose", 0.0) > 0.0:            # nose height for cone/dome
         kw["hub_nose_mm"] = float(p["hub_nose"])
     bp = BladeParams(n_blades=int(p["n_blades"]), stations=stations,
                      features=features or Features(), **kw)
-    # thread the later geometry knobs (recovery): shroud, section family, span interp, thickness bias
-    if float(p.get("shroud_thick_mm", 0.0)) > 0.0:
-        bp.shroud_thick_mm = normalize_shroud_thick_mm(float(p["shroud_thick_mm"]))
-    if "shroud_height_frac" in p:
+    # thread the later geometry knobs: shroud, section family, span interp, thickness bias
+    shroud_t = _opt_float(p, "shroud_thick_mm", 0.0)
+    if shroud_t > 0.0:
+        bp.shroud_thick_mm = normalize_shroud_thick_mm(shroud_t)
+    if p.get("shroud_height_frac") is not None:
         bp.shroud_height_frac = min(max(float(p["shroud_height_frac"]), 0.0), 1.0)
     if p.get("section_family"):
         bp.section_family = str(p["section_family"])
-    if p.get("span_interp") in ("linear", "pchip"):
-        bp.span_interp = str(p["span_interp"])
-    if "le_thick_scale" in p:
+    span_interp = str(p.get("span_interp") or "").lower().strip()
+    if span_interp in ("linear", "pchip"):
+        bp.span_interp = span_interp
+    if p.get("le_thick_scale") is not None:
         bp.le_thick_scale = float(p["le_thick_scale"])
-    if "te_thick_scale" in p:
+    if p.get("te_thick_scale") is not None:
         bp.te_thick_scale = float(p["te_thick_scale"])
-    if "n_span" in p:
+    if p.get("n_span") is not None:
         bp.n_span = max(4, int(p["n_span"]))
-    if "n_chord" in p:
+    if p.get("n_chord") is not None:
         bp.n_chord = max(8, int(p["n_chord"]))
-    if "cylindrical_tip" in p:
+    if p.get("cylindrical_tip") is not None:
         bp.cylindrical_tip = bool(p["cylindrical_tip"])
     if p.get("chord_basis"):                        # absent = "measured"; legacy saves are stamped "loft"
         bp.chord_basis = str(p["chord_basis"])
@@ -373,28 +428,30 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
     if (
         int(p.get("tip_notch_count", 0) or 0) > 0
         or p.get("notched_tips")
-        or float(p.get("tip_notch_depth_mm", 0.0) or 0.0) > 0.0
+        or _opt_float(p, "tip_notch_depth_mm", 0.0) > 0.0
     ):
         # Notches are a FIXED recipe (on/off): apply_notched_tips stamps the canonical
         # count/depth. Do NOT override from the flat -- that silently reintroduced 1.2 mm
         # over the 1.5 mm recipe (test_fit_envelope_preserves_sickle_and_notch_keys).
         from fansim.geometry.blade import apply_notched_tips
         apply_notched_tips(bp)
-    if float(p.get("sickle_mm", 0.0)) > 0.0:
+    sickle_mm = _opt_float(p, "sickle_mm", 0.0)
+    if sickle_mm > 0.0:
         from fansim.geometry.blade import apply_sickle
-        apply_sickle(bp, float(p["sickle_mm"]))
-    if (not shroud_is_full(bp)) and (
-            float(p.get("winglet_sweep", 0.0)) or float(p.get("winglet_lean", 0.0))):
+        apply_sickle(bp, sickle_mm)
+    wl_sweep = _opt_float(p, "winglet_sweep", 0.0)
+    wl_lean = _opt_float(p, "winglet_lean", 0.0)
+    if (not shroud_is_full(bp)) and (wl_sweep or wl_lean):
         from fansim.geometry.blade import apply_winglet  # §7.5: no winglet under a full ring
-        apply_winglet(bp, span_frac=float(p.get("winglet_span", 0.85)),
-                      sweep_add=float(p.get("winglet_sweep", 0.0)),
-                      lean_add=float(p.get("winglet_lean", 0.0)))
-    if float(p.get("tip_round", 0.0)) > 0.0:        # round the tip (taper chord over the outer span)
+        apply_winglet(bp, span_frac=_opt_float(p, "winglet_span", 0.85),
+                      sweep_add=wl_sweep, lean_add=wl_lean)
+    tip_round = _opt_float(p, "tip_round", 0.0)
+    if tip_round > 0.0:                             # round the tip (taper chord over the outer span)
         # AFTER winglet: rounded tip keeps its curl
         from fansim.geometry.blade import apply_tip_shape
-        apply_tip_shape(bp, tip_round=float(p["tip_round"]),
-                        start_frac=float(p.get("tip_round_start", 0.80)))
-    if "spacing_spread" in p:                       # regenerate the same balanced pattern
+        apply_tip_shape(bp, tip_round=tip_round,
+                        start_frac=_opt_float(p, "tip_round_start", 0.80))
+    if p.get("spacing_spread") is not None:         # regenerate the same balanced pattern
         _apply_spacing(bp, p["spacing_spread"], p.get("spacing_seed", 0))
     return bp
 
@@ -403,7 +460,6 @@ OBJECTIVE_NAMES = ("cfm_free", "cfm_load", "efficiency")
 OBJECTIVE_DIRECTIONS = ("maximize", "maximize", "maximize")
 
 
-# --- spliced from transcript edit-history (recovery 2026-09-12) ---
 # Walls this close (mm) count as one uniform wall. Was 0.12: v3 Stock's 2.47/2.51/2.47 mm read as
 # uniform and the editor rewrote the recipe to one 2.48 mm wall (27.4). Designs made in uniform mode
 # have walls equal up to t/c rounding (1e-4 x chord <= ~0.006 mm).
@@ -437,7 +493,7 @@ def blade_to_flat(params: BladeParams) -> dict:
     ar, am, at = th_r * cr, th_m * cm, th_t * ct
     thick_mode = (
         "uniform"
-        if abs(ar - am) < UNIFORM_WALL_TOL_MM and abs(am - at) < UNIFORM_WALL_TOL_MM
+        if max(ar, am, at) - min(ar, am, at) < UNIFORM_WALL_TOL_MM
         else "tapered"
     )
     thick_mm = round((ar + am + at) / 3.0, 2)
@@ -454,31 +510,31 @@ def blade_to_flat(params: BladeParams) -> dict:
         thickness_root=th_r, thickness_mid=th_m, thickness_tip=th_t,
         thick_mode=thick_mode,
         thick_mm=thick_mm,
-        le_thick_scale=float(getattr(params, "le_thick_scale", 1.0) or 1.0),
-        te_thick_scale=float(getattr(params, "te_thick_scale", 1.0) or 1.0),
+        le_thick_scale=_attr_float(params, "le_thick_scale", 1.0),
+        te_thick_scale=_attr_float(params, "te_thick_scale", 1.0),
         sweep_mid=float(mid.sweep), sweep_tip=float(tip.sweep),
         skew_mid=float(mid.skew), skew_tip=float(tip.skew),
         lean_mid=float(mid.lean_deg), lean_tip=float(tip.lean_deg),
         le_sweep_mid=float(mid.le_sweep), le_sweep_tip=float(tip.le_sweep),
-        le_skew_mid=float(getattr(mid, "le_skew", 0.0) or 0.0),
-        le_skew_tip=float(getattr(tip, "le_skew", 0.0) or 0.0),
-        te_face_root=float(getattr(root, "te_face", 1.0)),
-        te_face_mid=float(getattr(mid, "te_face", 1.0)),
-        te_face_tip=float(getattr(tip, "te_face", 1.0)),
-        le_face_root=float(getattr(root, "le_face", 1.0)),
-        le_face_mid=float(getattr(mid, "le_face", 1.0)),
-        le_face_tip=float(getattr(tip, "le_face", 1.0)),
+        le_skew_mid=_attr_float(mid, "le_skew", 0.0),
+        le_skew_tip=_attr_float(tip, "le_skew", 0.0),
+        te_face_root=_attr_float(root, "te_face", 1.0),
+        te_face_mid=_attr_float(mid, "te_face", 1.0),
+        te_face_tip=_attr_float(tip, "te_face", 1.0),
+        le_face_root=_attr_float(root, "le_face", 1.0),
+        le_face_mid=_attr_float(mid, "le_face", 1.0),
+        le_face_tip=_attr_float(tip, "le_face", 1.0),
         root_embed=float(params.root_embed),
         cylindrical_tip=bool(getattr(params, "cylindrical_tip", True)),
         chord_basis=str(getattr(params, "chord_basis", "measured") or "measured"),
         section_wrap=str(getattr(params, "section_wrap", "planar") or "planar"),
         hub_height=float(params.hub_height_mm or 0.0),
-        blade_hub_z=float(getattr(params, "blade_hub_z_mm", 0.0) or 0.0),
-        blade_z=float(getattr(params, "blade_z_mm", 0.0) or 0.0),
+        blade_hub_z=_attr_float(params, "blade_hub_z_mm", 0.0),
+        blade_z=_attr_float(params, "blade_z_mm", 0.0),
         hub_profile=str(params.hub_profile or "cylinder"),
         hub_nose=float(params.hub_nose_mm or 0.0),
         shroud_thick_mm=float(params.shroud_thick_mm or 0.0),
-        shroud_height_frac=float(params.shroud_height_frac or 1.0),
+        shroud_height_frac=_attr_float(params, "shroud_height_frac", 1.0),
         span_interp=str(getattr(params, "span_interp", "linear") or "linear"),
         section_family=str(getattr(params, "section_family", "naca") or "naca"),
         n_span=int(getattr(params, "n_span", 18) or 18),
@@ -491,11 +547,16 @@ def blade_to_flat(params: BladeParams) -> dict:
         winglet_span=0.85, winglet_sweep=0.0, winglet_lean=0.0,
     )
     # The root/mid/tip slots lose information unless the recipe IS three stations at 0/0.5/1 with a
-    # plain root (blade_from_flat fixes root sweep/skew/lean at 0). Otherwise carry it all (§23.1).
+    # plain root (no sweep/skew/lean/le_sweep/le_skew) and uniform camber_pos. Otherwise carry it
+    # all (§23.1).
     lossless = (
         len(st) == 3
         and [float(x.r_frac) for x in st] == [0.0, 0.5, 1.0]
-        and not any(float(getattr(root, k)) for k in ("sweep", "skew", "lean_deg"))
+        and not any(
+            float(getattr(root, k))
+            for k in ("sweep", "skew", "lean_deg", "le_sweep", "le_skew")
+        )
+        and float(root.camber_pos) == float(mid.camber_pos) == float(tip.camber_pos)
     )
     if not lossless:
         flat[FLAT_STATIONS] = [
@@ -548,27 +609,22 @@ def stock_blade_flat(fan_model: str = "a12x25") -> dict:
 
 SICKLE_BOUNDS = (4.0, 12.0)   # tip le_skew mm
 
-
-# --- spliced STATOR_BOUNDS (recovery) ---
 STATOR_BOUNDS = {
     "stator_stagger_deg": (35.0, 65.0),
     "stator_n_extra": (1, 4),
 }
 
-
-# --- RECONSTRUCTED 2026-09-12 (never captured in any transcript; from test contract; VERIFY) ---
-TIP_CAP_CLEARANCE_MM = 0.5  # leftover to the frame ID; matches OPTIMIZER_TIP_GAP_MM
+# Leftover clearance to the frame ID; single-sourced from fansim.cfd.domain.OPTIMIZER_TIP_GAP_MM.
+TIP_CAP_CLEARANCE_MM = OPTIMIZER_TIP_GAP_MM
 TIP_CAP_SEARCH_LO_MM = 48.0
 
 
-# --- spliced suggest_sickle (recovery) ---
 def suggest_sickle(trial) -> float:
     """Sample tip sickle ``le_skew`` (mm) for a ``--sickle`` study."""
     lo, hi = SICKLE_BOUNDS
     return float(trial.suggest_float("sickle_mm", lo, hi))
 
 
-# --- spliced suggest_stator (recovery) ---
 def suggest_stator(trial) -> dict:
     """Sample stator stagger and vane-count offset for a ``--stator`` study."""
     lo_s, hi_s = STATOR_BOUNDS["stator_stagger_deg"]
@@ -578,7 +634,6 @@ def suggest_stator(trial) -> dict:
     return {"stagger_deg": float(stagger), "n_extra": int(n_extra)}
 
 
-# --- spliced tip_radius_cap_mm (recovery) ---
 def tip_radius_cap_mm(stations, hub_radius: float, frame_half_mm: float,
                       shroud_mm: float = 0.0, n_blades: int = 7,
                       cylindrical_tip: bool | None = None,
@@ -590,22 +645,41 @@ def tip_radius_cap_mm(stations, hub_radius: float, frame_half_mm: float,
     ``section_wrap`` is the design's placement: new axial designs are wrapped (no LE/TE bulge past
     their radius); "planar" measures the legacy tangent-plane bulge.
     """
+    st_list = list(stations)
+    if not st_list:
+        raise ValueError("stations must be non-empty")
+    hub_r = float(hub_radius)
+    if hub_r < 0.0:
+        raise ValueError(f"hub_radius must be >= 0, got {hub_r}")
+    frame_half = float(frame_half_mm)
+    if frame_half <= 0.0:
+        raise ValueError(f"frame_half_mm must be > 0, got {frame_half}")
     shroud = float(shroud_mm or 0.0)
-    allowed = float(frame_half_mm) - shroud - TIP_CAP_CLEARANCE_MM
-    tr = allowed
+    if shroud < 0.0:
+        raise ValueError(f"shroud_mm must be >= 0, got {shroud}")
+    # Outer built radius = open_tip_rmax_mm(probe) + shroud must stay <= frame_limit.
+    frame_limit = frame_half - TIP_CAP_CLEARANCE_MM
+    max_blade_r = frame_limit - shroud
+    if max_blade_r <= hub_r:
+        raise ValueError(
+            f"frame_half_mm ({frame_half:.2f}) minus clearance/shroud leaves no span above "
+            f"hub_radius ({hub_r:.2f})"
+        )
+    tr = max_blade_r
+    min_tr = hub_r + 1e-3
     tip_kw = {}
     if cylindrical_tip is not None:
         tip_kw["cylindrical_tip"] = bool(cylindrical_tip)
     for _ in range(12):
         probe = BladeParams(
-            n_blades=int(n_blades), hub_radius=float(hub_radius),
-            tip_radius=tr, stations=list(stations), section_wrap=section_wrap,
+            n_blades=int(n_blades), hub_radius=hub_r,
+            tip_radius=tr, stations=st_list, section_wrap=section_wrap,
             **tip_kw,
         )
         built = open_tip_rmax_mm(probe) + shroud
-        if built <= allowed:
+        if built <= frame_limit + 1e-9:
             return tr
-        tr -= (built - allowed) + 0.15
-        if tr < 20.0:
-            return 20.0
+        tr -= (built - frame_limit) + 0.15
+        if tr < min_tr:
+            return min_tr
     return tr
