@@ -51,14 +51,63 @@ No new defects. Checked:
 Note: torque is `abs(M_z)`, so a windmilling rotor shows positive power; `cfd.sanity` `power_sign` flags it, and
 it is not silent.
 
-## Next modules
+## 3b. `fansim/cfd/flow_report.py`, `flow_verdicts.py`, reviewed 2026-11-26
 
-3b. `fansim/cfd/flow_report.py`, `flow_verdicts.py`
-4. `fansim/geometry/blade.py`, `airfoil.py`
-5. `fansim/propeller/bemt.py`, `polars.py`
-6. `fansim/optimize/search_space.py`
-7. `fansim/structural/*`, `fansim/acoustics/*`
-8. cockpit
+Merged in PR #92 (`67806aa`) with RV-5 follow-ups in PR #114 (`929d2c9`, closes `#89`):
+- Removed dead threshold constants (`BACKFLOW_MARGIN`, `SWIRL_FACTOR`, `DEAD_MARGIN`, `TIP_FACTOR`), fixed `_dead`
+  tip-ratio ≤ 0 and `better_tip` text, fixed `overall_line` edge cases, and reused `slab_half_width` in `spanwise.py`.
+- Added `rho`/`rhoInf` mismatch `UserWarning` and documented CROR equal-`|\omega|` precondition in `metrics.py`.
+- Open `math` issues requiring pre-registration: `#86`, `#87`, `#88`, `#90`.
+
+## 4. `fansim/geometry/airfoil.py`, `blade.py`, reviewed 2026-11-26
+
+Full report: `docs/review/2026-11-26-rv3-geometry.md`. Merged in PR #119 (`ad7eb8a`):
+- Verified NACA 4-digit closed-TE thickness/meanline, `rounded_plate`, 3-D stagger/LE-leads mirror, and cylinder-wrap
+  kinematics from first principles.
+- Fixed lazy CadQuery/OCCT isolation (`blade.py`, `export.py`), falsy-zero `_thick_scale_kw`, dropped `_trim_tip`,
+  unchecked shroud fuse, 4 swallowed/unchained `except` blocks, and invalid-input guards (`tests/test_rv3_geometry.py`).
+- Re-proved `geometry.stock_handedness` with zero RV-1 drift.
+- Open issues: `#116` (`math`), `#117` (`math`), `#118` (`review`).
+
+## 5. `fansim/propeller/bemt.py`, `polars.py`, reviewed 2026-11-26
+
+Full report: `docs/review/2026-11-26-rv3-propeller.md`. Merged in PR #115 (`818e42e`); `#113` (`C_AIR` single-sourcing
+in `prop_spec.py` and `pythrust_export.py`) closed in PR #121 (`5771dcd`):
+- Single-sourced `C_AIR` from `fansim/physics/air.py`, fixed custom-`rho` Reynolds viscosity scaling and `rpm=0`
+  phantom thrust, tightened input and CSV validation, cached polar curve limits, and widened `mypy` to 10 source files
+  (`tests/test_rv3_propeller.py`, `tests/test_c_air_single_source.py`).
+- Re-proved `propeller.bemt` and `propeller.polars` with zero RV-1/RV-2 drift.
+- Open `math` issues requiring pre-registration: `#109` (high), `#110` (high), `#111` (med), `#112` (low).
+
+## 6. `fansim/optimize/search_space.py`, reviewed 2026-11-26
+
+Full report: `docs/review/2026-11-26-rv3-search-space.md`. Merged in PR #130 (`b1d3f34`):
+- Fixed `tip_radius_cap_mm` double-subtracting `shroud_mm`, spurious `1e-14` cylinder-wrap step, and magic `20.0 mm`
+  floor; single-sourced `TIP_CAP_CLEARANCE_MM` from `OPTIMIZER_TIP_GAP_MM`; fixed `blade_to_flat` / `blade_from_flat`
+  falsy-zero and explicit-`None` serialization bugs and `suggest_params` bounds/replay guards (`tests/test_rv3_search_space.py`).
+- Re-proved `optimize.search_space_handedness` with zero RV-1 drift.
+- Open issues: `#127` (`review`), `#128` (`math`).
+
+## 7. `fansim/structural/*`, `fansim/acoustics/*`, reviewed 2026-11-26
+
+Full report: `docs/review/2026-11-26-rv3-structural-acoustics.md`. Merged in PR #131 (`f5f0f27`); `proxies.py`
+`k >= 0`/`omega >= 0` clamps landed in PR #114 (`929d2c9`):
+- Eliminated silent-pass `NaN` traps in structural stress/deflection/flutter, fixed triangle-inequality non-convergence
+  in `balance.py`, fixed OpenFOAM scientific-notation time-dir discovery in `case.py`, normalized `r_hat`, forwarded
+  `n_blades`/`rpm` in `fwh.py`, and hardened input validation across all 13 modules (`tests/test_rv3_structural_acoustics.py`).
+- Re-proved all affected structural/acoustics ledger units with zero RV-1 drift.
+- Open issues: `#122` (`math` high — `loading.py` `c1 = -74.4`), `#123` (`math` med), `#124` (`math` med), `#125` (`math` low), `#126` (`review` low).
+
+## 8. `fansim/cockpit/*`, reviewed 2026-11-26
+
+Full report: `docs/review/2026-11-26-rv3-cockpit.md`. Merged in PR #132 (`2eea9d6`):
+- Verified zero duplicated physical constants across all 54 cockpit modules and audited every `except` block.
+- Fixed `placement.py:_blade_z_bounds` to reuse `_thick_scale_kw(params)` and forward `te_face`/`le_face`, fixed
+  `fan_assess.py:spec_status` to log and warn on unreadable preview STLs instead of silently returning `(True, "")`,
+  hid idle `⏹ Cancel viz` behind `airflow_busy`, and added `EXPERIMENTAL_LABEL` to the Mixed Design card
+  (`tests/test_rv3_cockpit.py`).
+- Follow-up fix in PR #137: kept `placement.py:impeller_z_extent` purely analytic for shrouded cylindrical-tip designs
+  so `fit_envelope` / `on_scale_to_hub` never invoke OCCT `prepare_loft_chords` lofts.
 
 Carried in from earlier work (see the plan) — all four now fixed and merged on `master`:
 - CFM factor single source (`#49`, PR #61 / `08cab17`);
