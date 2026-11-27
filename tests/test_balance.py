@@ -69,3 +69,42 @@ def test_spread_zero_recovers_even_spacing_variance():
     rng = np.random.default_rng(0)
     ang = balanced_uneven_spacing(8, spread=0.0, rng=rng)
     assert is_balanced(ang, tol=1e-6)
+
+
+@pytest.mark.parametrize("n", [5, 6, 7, 8, 9])
+def test_balanced_uneven_spacing_enforces_min_gap_at_high_spread(n):
+    # Issue #126: large spread must never cause blades to overlap or collide.
+    step = 2.0 * math.pi / n
+    min_gap_frac = 0.25
+    for seed in range(10):
+        ang = balanced_uneven_spacing(
+            n, spread=1.8, rng=np.random.default_rng(seed), min_gap_frac=min_gap_frac
+        )
+        assert is_balanced(ang, tol=1e-6)
+        s = np.sort(ang % (2.0 * math.pi))
+        gaps = np.diff(np.concatenate([s, [s[0] + 2.0 * math.pi]]))
+        assert float(np.min(gaps)) >= min_gap_frac * step - 1e-9
+
+
+def test_balanced_uneven_spacing_rejects_invalid_min_gap_frac():
+    with pytest.raises(ValueError, match="min_gap_frac"):
+        balanced_uneven_spacing(7, spread=0.3, min_gap_frac=-0.1)
+    with pytest.raises(ValueError, match="min_gap_frac"):
+        balanced_uneven_spacing(7, spread=0.3, min_gap_frac=1.0)
+
+
+def test_couple_unbalance_cg_and_plane_reference():
+    # Issue #126: ISO 21940 couple unbalance about CG is invariant to axial origin shifts,
+    # even when static unbalance != 0.
+    ang = np.radians([0.0, 20.0, 40.0])  # statically unbalanced
+    z = np.array([0.0, 0.01, 0.02])
+    c_cg = couple_unbalance(ang, z, z_ref="cg")
+    c_cg_shifted = couple_unbalance(ang, z + 5.0, z_ref="cg")
+    assert c_cg_shifted == pytest.approx(c_cg, rel=1e-12, abs=1e-12)
+    assert couple_unbalance(ang, z, z_ref=0.01) == pytest.approx(
+        couple_unbalance(ang, z - 0.01), rel=1e-12, abs=1e-12
+    )
+    # Default z_ref=0 preserves legacy behavior for unbalanced rotors and is already
+    # shift-invariant for statically balanced rotors.
+    assert couple_unbalance(ang, z) == pytest.approx(couple_unbalance(ang, z, z_ref=0.0))
+

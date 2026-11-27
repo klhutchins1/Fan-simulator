@@ -24,8 +24,6 @@ CMU = 0.09             # k-omega/k-epsilon Cmu
 ALPHA_PROUDMAN = 0.1   # rescaled Proudman constant (Sarkar & Hussaini 1993)
 W_REF = 1e-12          # reference acoustic power, W (=> dB re 1 pW)
 
-ArrayLike = "float | np.ndarray"
-
 
 def epsilon_from_komega(k, omega, cmu: float = CMU):
     """Turbulent dissipation rate epsilon [m^2/s^3] from k and specific rate omega (k-omega SST).

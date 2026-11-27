@@ -1,15 +1,15 @@
 {
   "units": {
     "acoustics.curle_dipole": {
-      "date": "2026-11-26",
-      "fingerprint": "fac287499c91cd81",
+      "date": "2026-11-27",
+      "fingerprint": "3a07bf439b7364c5",
       "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "acoustics.fwh": {
-      "date": "2026-11-26",
+      "date": "2026-11-27",
       "fingerprint": "ff1afd2d3f4afd23",
-      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md (#126 geometric panel areas, unrounded outputs, tonal_bpf dep)",
+      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "acoustics.loading": {
@@ -25,9 +25,9 @@
       "verdict": "PASS"
     },
     "acoustics.proudman": {
-      "date": "2026-11-26",
-      "fingerprint": "d4ae7814d5e4d87b",
-      "report": "docs/review/2026-11-25-rv3-cfd-metrics.md (#89 / RV-5 code health)",
+      "date": "2026-11-27",
+      "fingerprint": "ac137391dec9a61b",
+      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "acoustics.tonal_bpf": {
@@ -73,9 +73,9 @@
       "verdict": "PASS"
     },
     "cfd.flow_report": {
-      "date": "2026-11-26",
+      "date": "2026-11-27",
       "fingerprint": "748e7481b31b3d3e",
-      "report": "docs/review/2026-11-25-rv3-cfd-metrics.md (#89 / RV-5 code health)",
+      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "cfd.sanity_checks": {
@@ -181,26 +181,26 @@
       "verdict": "PASS"
     },
     "structural.balance": {
-      "date": "2026-11-26",
-      "fingerprint": "0de1e6ce0eb99011",
+      "date": "2026-11-27",
+      "fingerprint": "9dbc8f79b9d0e0ba",
       "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "structural.centrifugal": {
-      "date": "2026-11-26",
+      "date": "2026-11-27",
       "fingerprint": "45a486f171ce24ed",
       "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "structural.deflection": {
-      "date": "2026-11-26",
-      "fingerprint": "0e3a78a4fe2966bd",
+      "date": "2026-11-27",
+      "fingerprint": "fc7b524e39916244",
       "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "structural.flutter": {
-      "date": "2026-11-26",
-      "fingerprint": "fa2dfb4b431d23ce",
+      "date": "2026-11-27",
+      "fingerprint": "ad7985fe539bde0d",
       "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     }

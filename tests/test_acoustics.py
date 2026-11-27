@@ -58,6 +58,13 @@ def test_proudman_swl_integrates_and_ranks():
     assert math.isfinite(quiet)
 
 
+def test_proxies_has_no_dead_arraylike_alias():
+    from fansim.acoustics import proxies
+
+    assert not hasattr(proxies, "ArrayLike")
+
+
+
 def test_curle_surface_swl_and_estimate():
     areas = np.full(50, 2e-4)
     dpdt = curle_dpdt_estimate(np.full(50, 0.5), np.full(50, 100.0))  # (cp*rho*k)^2 * omega^2
