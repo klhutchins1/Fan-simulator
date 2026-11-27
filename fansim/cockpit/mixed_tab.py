@@ -708,7 +708,13 @@ def render_mixed_tab(ctx: CockpitCtx) -> None:
 
                 def _mf_design():
                     with v3.VCard(classes="mb-2 pa-3"):
-                        html.Div("Core geometry (A12x25 envelope)", classes="text-subtitle-2 mb-2")
+                        html.Div("Core geometry (A12x25 envelope)", classes="text-subtitle-2 mb-1")
+                        html.Div(
+                            "Conical-hub mixed-flow rotor. Optimize uses a meanline proxy. "
+                            f"{EXPERIMENTAL_LABEL}",
+                            classes="text-caption mb-2",
+                            style="white-space: pre-line",
+                        )
                         _slider("Blades", "mf_n_blades", 5, 13, 1)
                         _slider("Eye hub R", "mf_r_eye", 12.0, 24.0, 0.5, unit="mm")
                         _slider("Back hub R", "mf_r_back", 20.0, 35.0, 0.5, unit="mm")

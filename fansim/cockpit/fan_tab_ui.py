@@ -1774,6 +1774,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     size="small",
                                     variant="tonal",
                                     color="warning",
+                                    v_show="airflow_busy",
                                     disabled=("!airflow_busy",),
                                     click=(cancel_airflow,),
                                 )
