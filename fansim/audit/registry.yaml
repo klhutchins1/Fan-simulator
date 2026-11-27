@@ -334,7 +334,7 @@ units:
     claim: "Stationary-panel loading-noise kernel (retarded-time Curle); NOT moving-source Farassat 1A / full FW-H"
     source: {kind: derivation, ref: "Curle 1955 / FW-H loading term at M=0; Audit #6 offset-dipole analytic comparison"}
     checks: [tests/audit/test_acoustics_audit.py, tests/test_fwh.py, tests/test_permeable_fwh.py]
-    depends_on: [physics.air_properties, acoustics.curle_dipole]
+    depends_on: [physics.air_properties, acoustics.curle_dipole, acoustics.tonal_bpf]
 
   - id: physics.regime
     targets: ["fansim.physics.regime"]
