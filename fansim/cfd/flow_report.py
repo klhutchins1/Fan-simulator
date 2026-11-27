@@ -52,8 +52,11 @@ class FlowMetrics:
     tip_band_uz_ratio: float
     noise_swl_db: float | None
     mean_uz_exit: float
-    # Area-weighted mean push over the whole annulus [Pa]. Swirl's radial-equilibrium tilt (low at
-    # the hub, high at the tip) cancels in this mean, so the push verdict uses it (QA r7 Task G).
+    # Volume-weighted mean push over the whole exit slab minus inlet slab [Pa] (v4).
+    # Radial equilibrium (dp/dr = rho * U_theta^2 / r >= 0) depresses hub static pressure relative
+    # to the outer wall (p(r) - p(r_t) <= 0), so its area mean is strictly negative (does NOT cancel
+    # to zero; see audit 2026-10-17-push-row-planes.md and #90). Using the annulus mean still avoids
+    # per-band hub-weak / tip-strong tilt artifacts in the push verdict.
     mean_dp0_pa: float = math.nan
     noise_hint_db: float | None = None  # 27.3c tip-speed + CFM ranking; not Proudman
     missing: dict[str, str] = field(default_factory=dict)  # field -> why it couldn't be measured
