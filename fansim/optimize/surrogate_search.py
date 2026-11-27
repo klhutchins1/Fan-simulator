@@ -11,14 +11,20 @@ Tests inject ``label_fn`` / ``verify_fn`` so Docker is never required.
 
 from __future__ import annotations
 
+import contextlib
 import json
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Mapping, Sequence
 
 import numpy as np
 
-from fansim.optimize.search_space import BOUNDS, OBJECTIVE_NAMES, blade_from_flat
+from fansim.optimize.search_space import (
+    BOUNDS,
+    OBJECTIVE_NAMES,
+    TIP_CAP_CLEARANCE_MM,
+    blade_from_flat,
+)
 from fansim.surrogate.features import FEATURE_KEYS, feature_vector
 from fansim.surrogate.gp import GaussianProcess
 
@@ -33,6 +39,35 @@ DOE_KEYS: tuple[str, ...] = (
 )
 
 DEFAULT_HUB_TIP = {"hub_radius": 21.5, "tip_radius": 50.0}
+
+
+def _resolve_hub_tip(
+    hub_tip: Mapping[str, float] | None = None,
+    *,
+    fan_model: str | None = None,
+    frame_half_mm: float | None = None,
+) -> dict[str, float]:
+    """Build hub/tip radii for DoE / NSGA, honoring optional frame or fan-model cap."""
+    ht = {**DEFAULT_HUB_TIP, **(dict(hub_tip) if hub_tip else {})}
+    frame_half: float | None = None
+    if frame_half_mm is not None:
+        frame_half = float(frame_half_mm)
+        if frame_half <= 0.0:
+            raise ValueError(f"frame_half_mm must be > 0, got {frame_half}")
+    elif fan_model is not None:
+        from fansim.fan_spec import get_fan_spec
+
+        spec = get_fan_spec(fan_model)
+        frame_half = float(spec.tip_dia_mm[1]) / 2.0
+    if frame_half is not None:
+        max_tip = frame_half - TIP_CAP_CLEARANCE_MM
+        if max_tip <= float(ht["hub_radius"]):
+            raise ValueError(
+                f"tip_radius cap ({max_tip:.2f} mm) must exceed hub_radius "
+                f"({float(ht['hub_radius']):.2f} mm)"
+            )
+        ht["tip_radius"] = min(float(ht["tip_radius"]), max_tip)
+    return ht
 
 
 @dataclass
@@ -65,7 +100,7 @@ class GuidedSearchResult:
         return {
             "rounds": self.rounds,
             "notes": list(self.notes),
-            "n_train": int(len(self.X)),
+            "n_train": len(self.X),
             "labels": self.labels,
             "priors": dict(self.priors),
             "verified": [
@@ -112,12 +147,14 @@ def space_filling_doe(
     space: str = "guided",
     seed: int = 42,
     hub_tip: Mapping[str, float] | None = None,
+    fan_model: str | None = None,
+    frame_half_mm: float | None = None,
 ) -> list[dict]:
     """Space-filling designs as flat param dicts (blade_from_flat-ready)."""
     bounds = search_bounds(space)
     keys = list(bounds.keys())
     u = latin_hypercube(n, len(keys), seed=seed)
-    ht = {**DEFAULT_HUB_TIP, **(dict(hub_tip) if hub_tip else {})}
+    ht = _resolve_hub_tip(hub_tip, fan_model=fan_model, frame_half_mm=frame_half_mm)
     out: list[dict] = []
     for row in u:
         p = dict(ht)
@@ -125,7 +162,7 @@ def space_filling_doe(
             lo, hi = bounds[k]
             val = lo + float(row[j]) * (hi - lo)
             if k == "n_blades":
-                p[k] = int(round(val))
+                p[k] = round(val)
                 p[k] = max(int(lo), min(int(hi), p[k]))
             else:
                 p[k] = float(val)
@@ -161,21 +198,17 @@ def fit_models(
 
 def _fit_one(X: np.ndarray, y: np.ndarray, *, boost: bool, nn: bool):
     if nn:
-        try:
+        with contextlib.suppress(Exception):
             from fansim.surrogate.ensemble import NnGpEnsemble
             from fansim.surrogate.nn import available as nn_available
             if nn_available():
                 return NnGpEnsemble().fit(X, y)
-        except Exception:  # noqa: BLE001
-            pass
     if boost:
-        try:
+        with contextlib.suppress(Exception):
             from fansim.surrogate.boost import available
             from fansim.surrogate.ensemble import BoostGpEnsemble
             if available():
                 return BoostGpEnsemble().fit(X, y)
-        except Exception:  # noqa: BLE001
-            pass
     return GaussianProcess().fit(X, y)
 
 
@@ -242,13 +275,15 @@ def nsga_on_surrogate(
     seed: int = 42,
     population_size: int = 16,
     hub_tip: Mapping[str, float] | None = None,
+    fan_model: str | None = None,
+    frame_half_mm: float | None = None,
 ) -> list[SurrogateCandidate]:
     """NSGA-II maximizing surrogate μ for (cfm_free, cfm_load, efficiency)."""
     import optuna
 
     optuna.logging.set_verbosity(optuna.logging.WARNING)
     bounds = search_bounds(space)
-    ht = {**DEFAULT_HUB_TIP, **(dict(hub_tip) if hub_tip else {})}
+    ht = _resolve_hub_tip(hub_tip, fan_model=fan_model, frame_half_mm=frame_half_mm)
     obj_names = [n for n in OBJECTIVE_NAMES if n in models]
     if not obj_names:
         return []
@@ -421,7 +456,7 @@ def seed_from_catalog(
     Xf, yf = training_xy(entries, y_attr="cfm_free")
     if len(yf) < min_rows:
         return empty_X, empty_y, f"{len(yf)} free rows (need {min_rows})", {}
-    Xl, yl = training_xy(entries, y_attr="cfm_load", require_k=True)
+    _Xl, yl = training_xy(entries, y_attr="cfm_load", require_k=True)
     priors: dict[str, str] = {"efficiency": "prior, not CFD"}
     if len(yl) == len(yf):
         y_load = yl
@@ -511,7 +546,7 @@ def run_surrogate_guided(
         )
 
     if label is not None and n_doe > 0:
-        doe = space_filling_doe(n_doe, space=space, seed=seed)
+        doe = space_filling_doe(n_doe, space=space, seed=seed, fan_model=fan_model)
         doe_labels = [dict(label(p)) for p in doe]
         X, y = _append_labels(X, y, doe, doe_labels)
         notes.append(f"DoE n={len(doe)}")
@@ -536,7 +571,7 @@ def run_surrogate_guided(
             break
         models = fit_models(X, y_fit, boost=boost, nn=nn)
         pool = nsga_on_surrogate(
-            models, space=space, n_trials=n_nsga, seed=seed + rnd,
+            models, space=space, n_trials=n_nsga, seed=seed + rnd, fan_model=fan_model,
         )
         top = select_top_k(pool, top_k, kappa=kappa)
         last_top = top

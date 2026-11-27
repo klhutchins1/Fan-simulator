@@ -24,6 +24,7 @@ from fansim.geometry.blade import (
     shroud_is_full,
 )
 from fansim.geometry.features import Features
+from fansim.optimize.objective_keys import OBJECTIVE_NAMES
 
 # Fixed printable thickness profile (fraction of chord), root -> tip. Chosen with the chord
 # lower bound so the thinnest section (tip) stays above the ~0.8 mm min printable wall.
@@ -456,8 +457,7 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
     return bp
 
 
-OBJECTIVE_NAMES = ("cfm_free", "cfm_load", "efficiency")
-OBJECTIVE_DIRECTIONS = ("maximize", "maximize", "maximize")
+OBJECTIVE_DIRECTIONS = ("maximize",) * len(OBJECTIVE_NAMES)
 
 
 # Walls this close (mm) count as one uniform wall. Was 0.12: v3 Stock's 2.47/2.51/2.47 mm read as
@@ -637,13 +637,19 @@ def suggest_stator(trial) -> dict:
 def tip_radius_cap_mm(stations, hub_radius: float, frame_half_mm: float,
                       shroud_mm: float = 0.0, n_blades: int = 7,
                       cylindrical_tip: bool | None = None,
-                      section_wrap: str = "cylinder") -> float:
+                      section_wrap: str = "cylinder",
+                      features: Features | None = None,
+                      winglet: tuple[float, float] | None = None,
+                      sickle_mm: float = 0.0) -> float:
     """Largest tip_radius whose built envelope still leaves CLEARANCE to the frame.
 
     Same shrink as cockpit Fit (iterate open_tip_rmax_mm). No CadQuery.
     ``cylindrical_tip`` defaults to BladeParams (True); pass False to measure legacy bulge.
     ``section_wrap`` is the design's placement: new axial designs are wrapped (no LE/TE bulge past
     their radius); "planar" measures the legacy tangent-plane bulge.
+    Optional ``features``, ``winglet=(sweep_add, lean_add)``, and ``sickle_mm`` are applied to
+    cloned stations on each probe so active modifiers are accounted for without mutating caller
+    inputs.
     """
     st_list = list(stations)
     if not st_list:
@@ -657,6 +663,9 @@ def tip_radius_cap_mm(stations, hub_radius: float, frame_half_mm: float,
     shroud = float(shroud_mm or 0.0)
     if shroud < 0.0:
         raise ValueError(f"shroud_mm must be >= 0, got {shroud}")
+    sickle = float(sickle_mm or 0.0)
+    if sickle < 0.0:
+        raise ValueError(f"sickle_mm must be >= 0, got {sickle}")
     # Outer built radius = open_tip_rmax_mm(probe) + shroud must stay <= frame_limit.
     frame_limit = frame_half - TIP_CAP_CLEARANCE_MM
     max_blade_r = frame_limit - shroud
@@ -670,12 +679,21 @@ def tip_radius_cap_mm(stations, hub_radius: float, frame_half_mm: float,
     tip_kw = {}
     if cylindrical_tip is not None:
         tip_kw["cylindrical_tip"] = bool(cylindrical_tip)
+    probe_features = features if features is not None else Features()
+    needs_clone = winglet is not None or sickle > 0.0
     for _ in range(12):
+        probe_stations = [dataclasses.replace(s) for s in st_list] if needs_clone else st_list
         probe = BladeParams(
             n_blades=int(n_blades), hub_radius=hub_r,
-            tip_radius=tr, stations=st_list, section_wrap=section_wrap,
-            **tip_kw,
+            tip_radius=tr, stations=probe_stations, section_wrap=section_wrap,
+            features=probe_features, **tip_kw,
         )
+        if winglet is not None and shroud == 0.0:
+            from fansim.geometry.blade import apply_winglet
+            apply_winglet(probe, sweep_add=float(winglet[0]), lean_add=float(winglet[1]))
+        if sickle > 0.0:
+            from fansim.geometry.blade import apply_sickle
+            apply_sickle(probe, sickle)
         built = open_tip_rmax_mm(probe) + shroud
         if built <= frame_limit + 1e-9:
             return tr

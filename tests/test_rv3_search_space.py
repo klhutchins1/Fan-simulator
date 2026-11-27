@@ -420,3 +420,76 @@ def test_stock_and_outline_flats_round_trip_cleanly():
         assert len(bp.stations) >= 3
     with pytest.raises(KeyError, match="no parametric stock geometry"):
         stock_blade_flat("unknown_model")
+
+
+# ---------------------------------------------------------------------------
+# 5. Issue #128: single-sourced OBJECTIVE_NAMES, active-feature tip cap, archetype forwarding
+# ---------------------------------------------------------------------------
+
+
+def test_objective_names_single_sourced_from_objective_keys():
+    from fansim.optimize import objective_keys, search_space
+
+    assert search_space.OBJECTIVE_NAMES is objective_keys.OBJECTIVE_NAMES
+
+
+def test_tip_radius_cap_accounts_for_features_winglet_and_sickle_without_mutating():
+    from fansim.geometry.blade import apply_sickle, apply_winglet
+    from fansim.geometry.features import Features
+
+    frame_half = 55.0
+    st = _stations(chord_tip=34.0, lean_tip=25.0, lean_mid=10.0)
+    st_before = [dataclasses.replace(s) for s in st]
+
+    base_cap = tip_radius_cap_mm(
+        st, 21.5, frame_half, cylindrical_tip=False, section_wrap="planar"
+    )
+    feat = Features(tubercle_amp=0.10, tubercle_waves=5)
+    feat_cap = tip_radius_cap_mm(
+        st, 21.5, frame_half, cylindrical_tip=False, section_wrap="planar", features=feat
+    )
+    sickle_cap = tip_radius_cap_mm(
+        st, 21.5, frame_half, cylindrical_tip=False, section_wrap="planar", sickle_mm=12.0
+    )
+    wl_cap = tip_radius_cap_mm(
+        st,
+        21.5,
+        frame_half,
+        cylindrical_tip=False,
+        section_wrap="planar",
+        winglet=(6.0, 15.0),
+    )
+
+    # Caller's stations list must never be mutated by winglet/sickle probing.
+    assert st == st_before
+    # Sickle adds tangential LE displacement in planar mode -> must shrink cap further.
+    assert sickle_cap < base_cap
+    # Every returned cap must keep the actual built envelope inside frame_half - clearance.
+    for cap, kw in (
+        (feat_cap, {"features": feat}),
+        (sickle_cap, {"sickle_mm": 12.0}),
+        (wl_cap, {"winglet": (6.0, 15.0)}),
+    ):
+        probe = BladeParams(
+            hub_radius=21.5,
+            tip_radius=cap,
+            stations=[dataclasses.replace(s) for s in st],
+            cylindrical_tip=False,
+            section_wrap="planar",
+            features=kw.get("features") or Features(),
+        )
+        if kw.get("winglet") is not None:
+            apply_winglet(probe, sweep_add=kw["winglet"][0], lean_add=kw["winglet"][1])
+        if kw.get("sickle_mm"):
+            apply_sickle(probe, kw["sickle_mm"])
+        assert open_tip_rmax_mm(probe) <= frame_half - TIP_CAP_CLEARANCE_MM + 1e-9
+
+
+def test_axial_fan_archetype_forwards_frame_half_mm():
+    from fansim.problem.archetypes import AxialFanArchetype
+
+    arch = AxialFanArchetype()
+    study = optuna.create_study(sampler=optuna.samplers.RandomSampler(seed=7))
+    trial = study.ask()
+    bp = arch.suggest_design(trial, space="guided", frame_half_mm=45.0)
+    assert bp.tip_radius <= 45.0 - TIP_CAP_CLEARANCE_MM + 1e-9

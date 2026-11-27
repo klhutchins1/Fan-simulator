@@ -8,6 +8,7 @@ rewrite. The axial-fan archetype delegates to the existing, validated modules (n
 
 from __future__ import annotations
 
+import contextlib
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
@@ -53,9 +54,11 @@ class AxialFanArchetype(Archetype):
     name = "axial_fan"
     regime = "incompressible-RANS-MRF"
 
-    def suggest_design(self, trial, *, with_features: bool = False, space: str = "open"):
+    def suggest_design(
+        self, trial, *, with_features: bool = False, space: str = "open", **kwargs
+    ):
         from fansim.optimize.search_space import suggest_params
-        return suggest_params(trial, with_features=with_features, space=space)
+        return suggest_params(trial, with_features=with_features, space=space, **kwargs)
 
     def build_geometry(self, params, out_path: str | Path):
         from fansim.geometry import build_impeller, export_stl
@@ -134,16 +137,12 @@ def _register_optional() -> None:
         _REGISTRY.setdefault("wind_turbine", _StubArchetype(
             "wind_turbine", "high-Re-BEM+RANS",
             "large blade, BEM+aeroelastic; power coefficient"))
-    try:
+    with contextlib.suppress(Exception):
         from fansim.volute.archetype import VoluteArchetype
         _REGISTRY["volute"] = VoluteArchetype()
-    except Exception:  # noqa: BLE001
-        pass
-    try:
+    with contextlib.suppress(Exception):
         from fansim.cror.archetype import CrorArchetype
         _REGISTRY["cror"] = CrorArchetype()
-    except Exception:  # noqa: BLE001
-        pass
 
 
 _register_optional()
