@@ -47,4 +47,11 @@ search-space and round-trip defects that waste optimizer CFD trials or corrupt e
 
 ## Result
 
-Pending implementation.
+P1–P5 **PASS**. Updated `fansim/optimize/search_space.py` (`coprime_stator_extras`,
+`suggest_stator(..., n_blades=...)`, `EXTENDED["tip_radius"] = (48.0, 54.5)`,
+`EXTENDED["thickness_mid"] = (0.06, 0.09)`, `OPEN["stagger_root"] = (19.5, 48.0)`,
+`OPEN["stagger_mid"] = (18.0, 48.0)`, `blade_to_flat` / `blade_from_flat` `blade_angles_deg`
+round-trip), `fansim/optimize/study.py`, and `fansim/cockpit/fan_editor.py`.
+Re-proved `optimize.search_space_handedness` in `docs/validation/audits/ledger.json`
+(`scripts/audit_status.py --strict`: `PROVEN=34 CHANGED=0 AFFECTED=0 NEW=0 UNREGISTERED=0`).
+Zero drift on `tests/data/physics_snapshot.json`; 102/102 search-space/editor/snapshot tests pass.

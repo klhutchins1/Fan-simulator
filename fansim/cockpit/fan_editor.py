@@ -55,6 +55,9 @@ def bind(session) -> None:
     # root/mid/tip, so the recipe rides alongside and edit_flat() hands it back; blade_from_flat
     # applies slider edits across all stations (roadmap §23.1). Server-side only, not trame state.
     station_payload: list = [None]
+    # Explicit uneven blade angles loaded from a flat (when e_spacing == 0); preserved across
+    # unrelated slider edits until n_blades changes or e_spacing is raised (#127).
+    angles_payload: list = [None]
 
     def _editor_busy() -> bool:
         """True while Preview/Assess/Export/Optimize own the mesh; ignore slider-mutating clicks."""
@@ -70,6 +73,11 @@ def bind(session) -> None:
             station_payload[0] = {k: p[k] for k in STATION_PAYLOAD_KEYS if k in p}
         else:
             station_payload[0] = None
+        raw_angles = p.get("blade_angles_deg")
+        if raw_angles is not None:
+            angles_payload[0] = [float(a) for a in raw_angles]
+        else:
+            angles_payload[0] = None
 
     def _init_editor(p: dict, feat: Features | None = None):
         feat = feat or Features()
@@ -280,6 +288,15 @@ def bind(session) -> None:
             section_family=str(state.e_section_family or "naca"),
             spacing_spread=state.e_spacing,
             spacing_seed=0,
+            **(
+                {"blade_angles_deg": list(angles_payload[0])}
+                if (
+                    angles_payload[0] is not None
+                    and float(state.e_spacing or 0.0) <= 0.0
+                    and len(angles_payload[0]) == int(state.e_n_blades)
+                )
+                else {}
+            ),
             **(station_payload[0] or {}),
         )
 

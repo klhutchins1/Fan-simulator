@@ -7,6 +7,7 @@ so the sampler learns to avoid them. The study is backed by SQLite so it is resu
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import json
 from pathlib import Path
@@ -14,9 +15,8 @@ from pathlib import Path
 import optuna
 
 from fansim.cfd.metrics import CFD_VERSION
-from fansim.geometry.blade import BladeParams, SHROUD_DEFAULT_MM, apply_notched_tips, apply_sickle
+from fansim.geometry.blade import SHROUD_DEFAULT_MM, BladeParams, apply_notched_tips, apply_sickle
 from fansim.optimize.objectives import evaluate_candidate
-from fansim.optimize.trial_attrs import trial_flat
 from fansim.optimize.search_space import (
     OBJECTIVE_DIRECTIONS,
     OBJECTIVE_NAMES,
@@ -26,6 +26,7 @@ from fansim.optimize.search_space import (
     suggest_sickle,
     suggest_stator,
 )
+from fansim.optimize.trial_attrs import trial_flat
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
@@ -188,7 +189,7 @@ def run_study(
             trial.set_user_attr("shroud_thick_mm", float(params.shroud_thick_mm))
         stator_kw: dict = {}
         if stator or stator_stack:
-            stator_kw = suggest_stator(trial)
+            stator_kw = suggest_stator(trial, n_blades=params.n_blades)
         trial_rpm = suggest_rpm(trial, pwm_table) if search_rpm else None
         workdir = out_dir / "trials" / f"trial_{trial.number:04d}"
         result = evaluate_candidate(params, workdir, procs=procs, base_cell=base_cell,
@@ -209,7 +210,7 @@ def run_study(
                                     wall_ks_mm=wall_ks_mm)
         # Online GP update (§7.4): teach the in-memory screen from this study's CFD.
         if result.feasible and surrogate_prescreen_cfm > 0.0:
-            try:
+            with contextlib.suppress(Exception):  # online update must never break the study
                 from fansim.surrogate.catalog import append_and_refit
                 from fansim.surrogate.features import feature_vector
                 x = feature_vector(params)
@@ -223,8 +224,6 @@ def run_study(
                     surr_models[1], surr_load_xy[0], surr_load_xy[1] = append_and_refit(
                         surr_models[1], surr_load_xy[0], surr_load_xy[1],
                         x, result.cfm_load)
-            except Exception:  # noqa: BLE001 - online update must never break the study
-                pass
         trial.set_user_attr("feasible", result.feasible)
         trial.set_user_attr("reason", result.reason)
         if result.raw.get("converged") is not None:  # QA-65: loaded point settled? (caption K1)

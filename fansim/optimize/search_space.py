@@ -9,6 +9,7 @@ enabled; optional bio-inspired features (tubercles, serrations, dimples) are sam
 from __future__ import annotations
 
 import dataclasses
+import math
 from pathlib import Path
 from typing import Any
 
@@ -70,7 +71,8 @@ GUIDED = {
     "max_camber": (0.015, 0.06),  # was 0–0.06; P0 floor keeps Stock (0.0478) inside
 }
 OPEN = {
-    "n_blades": (5, 11), "stagger_root": (20.0, 48.0), "stagger_mid": (18.0, 42.0),
+    # #127 (prereg 2026-11-26-search-space-bounds-127): OPEN is a strict superset of GUIDED.
+    "n_blades": (5, 11), "stagger_root": (19.5, 48.0), "stagger_mid": (18.0, 48.0),
     "stagger_tip": (16.0, 38.0), "chord_root": (MIN_CHORD, MAX_CHORD),
     "chord_mid": (MIN_CHORD, MAX_CHORD), "chord_tip": (MIN_CHORD, MAX_CHORD),
     "sweep_mid": (-3.0, 8.0), "sweep_tip": (0.0, 12.0), "lean_mid": (0.0, 25.0),
@@ -101,13 +103,15 @@ BOUNDS = {"open": OPEN, "guided": GUIDED, "guided_lc": GUIDED_LC}
 # gated. Off by default so existing runs stay comparable.
 EXTENDED = {
     "hub_radius": (17.0, 28.0),
-    "tip_radius": (48.0, 58.0),   # blade length (outer radius); tip dia = 2x, must fit the frame
+    # Default cap matches a12x25 frame (55.0 - 0.5 mm clearance, #127); explicit frame_half_mm /
+    # max_tip_radius overrides this range for other frame sizes.
+    "tip_radius": (48.0, 54.5),   # blade length (outer radius); tip dia = 2x, must fit the frame
 
     # Thickness biased THIN (down toward the printability floor): thicker blades are never
-    # aerodynamically better and only add depth/weight. The opt_extended run showed a generous upper
-    # range (0.14) gated 21/30 trials on depth/weight -- so cap near/below the fixed defaults.
+    # aerodynamically better and only add depth/weight. Lower bounds stay >= 0.80 mm at MIN_CHORD
+    # (0.06 * 14.0 = 0.84 mm) for root and mid (#127).
     "thickness_root": (0.06, 0.11),
-    "thickness_mid": (0.05, 0.09),
+    "thickness_mid": (0.06, 0.09),
     "thickness_tip": (0.04, 0.07),
     "camber_pos": (0.30, 0.50),
 }
@@ -452,7 +456,14 @@ def blade_from_flat(p: dict, features: Features | None = None) -> BladeParams:
         from fansim.geometry.blade import apply_tip_shape
         apply_tip_shape(bp, tip_round=tip_round,
                         start_frac=_opt_float(p, "tip_round_start", 0.80))
-    if p.get("spacing_spread") is not None:         # regenerate the same balanced pattern
+    spread_val = _opt_float(p, "spacing_spread", 0.0)
+    if spread_val > 0.0:                             # regenerate the same balanced pattern
+        _apply_spacing(bp, p["spacing_spread"], p.get("spacing_seed", 0))
+    elif p.get("blade_angles_deg") is not None:
+        raw_angles = list(p["blade_angles_deg"])
+        if len(raw_angles) == bp.n_blades:
+            bp.blade_angles_deg = [float(a) for a in raw_angles]
+    elif p.get("spacing_spread") is not None:
         _apply_spacing(bp, p["spacing_spread"], p.get("spacing_seed", 0))
     return bp
 
@@ -546,6 +557,8 @@ def blade_to_flat(params: BladeParams) -> dict:
         tip_round=0.0, tip_round_start=0.80,
         winglet_span=0.85, winglet_sweep=0.0, winglet_lean=0.0,
     )
+    if params.blade_angles_deg is not None:
+        flat["blade_angles_deg"] = [float(a) for a in params.blade_angles_deg]
     # The root/mid/tip slots lose information unless the recipe IS three stations at 0/0.5/1 with a
     # plain root (no sweep/skew/lean/le_sweep/le_skew) and uniform camber_pos. Otherwise carry it
     # all (§23.1).
@@ -625,12 +638,35 @@ def suggest_sickle(trial) -> float:
     return float(trial.suggest_float("sickle_mm", lo, hi))
 
 
-def suggest_stator(trial) -> dict:
-    """Sample stator stagger and vane-count offset for a ``--stator`` study."""
+def coprime_stator_extras(
+    n_blades: int,
+    bounds: tuple[int, int] | None = None,
+) -> list[int]:
+    """Vane offsets ``e`` in ``bounds`` with ``gcd(n_blades, n_blades + e) == 1`` (Tyler & Sofrin 1962)."""
+    nb = int(n_blades)
+    if nb < 2:
+        raise ValueError(f"n_blades must be >= 2, got {n_blades!r}")
+    b = STATOR_BOUNDS["stator_n_extra"] if bounds is None else bounds
+    lo_e, hi_e = int(b[0]), int(b[1])
+    return [e for e in range(lo_e, hi_e + 1) if math.gcd(nb, nb + e) == 1]
+
+
+def suggest_stator(trial, *, n_blades: int | None = None) -> dict:
+    """Sample stator stagger and vane-count offset for a ``--stator`` study.
+
+    When ``n_blades`` is supplied, snaps the sampled offset to the nearest coprime value in
+    ``STATOR_BOUNDS["stator_n_extra"]`` so ``gcd(B, B + n_extra) == 1`` (avoids simultaneous
+    rotor–stator wake cutting and amplified cut-on BPF tones; #127) while keeping the Optuna
+    parameter distribution fixed across trials.
+    """
     lo_s, hi_s = STATOR_BOUNDS["stator_stagger_deg"]
-    lo_e, hi_e = STATOR_BOUNDS["stator_n_extra"]
+    lo_e, hi_e = int(STATOR_BOUNDS["stator_n_extra"][0]), int(STATOR_BOUNDS["stator_n_extra"][1])
     stagger = trial.suggest_float("stator_stagger_deg", lo_s, hi_s)
     n_extra = trial.suggest_int("stator_n_extra", lo_e, hi_e)
+    if n_blades is not None:
+        coprime = coprime_stator_extras(n_blades, (lo_e, hi_e))
+        if coprime and n_extra not in coprime:
+            n_extra = min(coprime, key=lambda e: (abs(e - n_extra), -e))
     return {"stagger_deg": float(stagger), "n_extra": int(n_extra)}
 
 
