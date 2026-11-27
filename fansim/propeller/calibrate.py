@@ -9,7 +9,6 @@ affinity scaling.
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
 
@@ -115,8 +114,8 @@ def datasheet_compare(
 
 def bemt_datasheet_report(spec, *, rpm: float | None = None) -> dict[str, Any]:
     """Instant BEMT vs datasheet at ``rpm`` (default ``ref_rpm`` or ``rpm_max``)."""
-    from fansim.propeller.geometry import prop_blade_params
     from fansim.propeller.bemt import analyze
+    from fansim.propeller.geometry import prop_blade_params
 
     rpm_f = float(
         rpm

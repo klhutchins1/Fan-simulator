@@ -16,9 +16,9 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from fansim.geometry.config import load_blade_params  # noqa: E402
-from scripts.outline_hub import with_hub  # noqa: E402
-from scripts.outline_match import _candidate  # noqa: E402
+from fansim.geometry.config import load_blade_params
+from scripts.outline_hub import with_hub
+from scripts.outline_match import _candidate
 
 # Six cylinder cuts. r/R 1.00 is the tip cap, not a blade, so it is not here.
 RADII = (0.50, 0.60, 0.70, 0.80, 0.90, 0.95)
@@ -189,7 +189,6 @@ def _preview(params):
 
 
 def _measure_mesh(mesh, radii):
-    import trimesh
     from fansim.validation.section_compare import measure_sections
 
     path = OUT / "_cut.stl"
@@ -217,7 +216,7 @@ def main() -> int:
         mesh = _preview(params)
         return _measure_mesh(mesh, RADII), ref_rows
 
-    params, rows, history = search(starting_params(), measure)
+    params, _rows, history = search(starting_params(), measure)
     print("full impeller", flush=True)
     stl = OUT / "z_edge.stl"
     export_stl(build_impeller(params), stl)

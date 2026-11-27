@@ -10,9 +10,9 @@ reconstruct readiness). Streamlines / Mixed-Volute reuse — see roadmap.
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from pathlib import Path
-import threading
 
 import numpy as np
 
@@ -69,7 +69,7 @@ def slice_volume_for_viz(mesh, normal, origin):
             subset = mesh.extract_cells(keep)
             if subset.n_cells > 0:
                 return subset.slice(normal=normal, origin=origin)
-    except Exception:  # noqa: BLE001 — fall through to center band
+    except Exception:  # noqa: BLE001, S110 — fall through to center band
         pass
 
     return _slice_cell_center_band(mesh, normal, origin)
@@ -114,18 +114,18 @@ def _slice_cell_center_band(mesh, normal, origin):
         if name not in cloud.array_names and name in centers.point_data:
             try:
                 cloud[name] = np.asarray(centers[name])[idx]
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
     try:
         # Project onto the cut plane then triangulate for a fillable surface.
         proj = cloud.points - np.outer((cloud.points - o) @ n, n)
         flat = pv.PolyData(proj)
-        for name in cloud.point_data.keys():
+        for name in cloud.point_data:
             flat[name] = cloud[name]
         surf = flat.delaunay_2d()
         if surf.n_cells > 0:
             return surf
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001, S110
         pass
     return cloud
 
@@ -139,10 +139,6 @@ class MidplaneArtifacts:
     p_png: Path | None
     caption: str
     available: bool
-
-    @property
-    def primary_png(self) -> Path | None:
-        return self.u_png or self.p_png
 
 
 def _is_time_dir(name: str) -> bool:
@@ -178,9 +174,7 @@ def has_reconstructed_fields(case_dir: str | Path) -> bool:
     # "Number of cells/points in mesh and field do not match". Treat it as absent so the caller
     # reconstructs from the current solve.
     owner = case_dir / "constant" / "polyMesh" / "owner"
-    if owner.is_file() and u.stat().st_mtime < owner.stat().st_mtime:
-        return False
-    return True
+    return not (owner.is_file() and u.stat().st_mtime < owner.stat().st_mtime)
 
 
 def has_decomposed_fields(case_dir: str | Path) -> bool:
@@ -446,7 +440,7 @@ def render_midplane_pngs(
                 ],
                 invert=False,
             )
-        except Exception:  # noqa: BLE001 — keep full slice if clip fails
+        except Exception:  # noqa: BLE001, S110 — keep full slice if clip fails
             pass
         if slc.n_points == 0:
             return MidplaneArtifacts(
@@ -472,18 +466,20 @@ def render_midplane_pngs(
     # Smooth shading (§24): flat per-cell colour read as blocky "Minecraft" stairs.
     try:
         slc = slc.cell_data_to_point_data(pass_cell_data=False)
-    except Exception:  # noqa: BLE001 - keep the cell-coloured slice
+    except Exception:  # noqa: BLE001, S110 - keep the cell-coloured slice
         pass
     if "p" in slc.point_data:
         slc.point_data["p_pa"] = pressure_pa(slc.point_data["p"])  # kinematic -> Pa
     outline = rotor_outline(case_dir, _MIDPLANE_NORMAL, origin)
 
     def _shot(scalars: str, title: str, path: Path) -> Path | None:
-        if scalars not in slc.array_names and scalars not in (
-            list(slc.cell_data.keys()) + list(slc.point_data.keys())
+        if (
+            scalars not in slc.array_names
+            and scalars not in (list(slc.cell_data.keys()) + list(slc.point_data.keys()))
+            and scalars not in slc.cell_data
+            and scalars not in slc.point_data
         ):
-            if scalars not in slc.cell_data and scalars not in slc.point_data:
-                return None
+            return None
         # Serialize: concurrent off-screen Plotters + vtkMatplotlibMathTextUtilities
         # hard-crash the interpreter on Windows (selecting designs while midplane builds).
         with _RENDER_LOCK:
@@ -640,7 +636,7 @@ def render_axial_uz_png(
 
     try:  # smooth shading (§24)
         slc = slc.cell_data_to_point_data(pass_cell_data=False)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001, S110
         pass
     outline = rotor_outline(case_dir, (0.0, 0.0, 1.0), (cx, cy, z_cut))
 
@@ -799,7 +795,7 @@ def render_streamlines_png(
         )
         if focused.n_points > 0:
             mesh = focused
-    except Exception:  # noqa: BLE001 — keep full mesh if clip fails
+    except Exception:  # noqa: BLE001, S110 — keep full mesh if clip fails
         pass
 
     # Rings in FRONT of the fan (air arriving) and BEHIND it (air leaving), traced both ways (§24).
@@ -852,7 +848,7 @@ def render_streamlines_png(
             if fan_stl.is_file():
                 try:
                     pl.add_mesh(pv.read(str(fan_stl)), color="lightgray", opacity=0.3)
-                except Exception:  # noqa: BLE001 - lines alone still render
+                except Exception:  # noqa: BLE001, S110 - lines alone still render
                     pass
             # Side view, flow left -> right like the midplane (inlet -Z on the LEFT).
             pl.camera_position = [
