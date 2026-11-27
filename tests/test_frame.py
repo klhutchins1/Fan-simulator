@@ -22,7 +22,7 @@ def _solid_contains_point(solid, x: float, y: float, z: float) -> bool:
     if hasattr(solid, "isInside"):
         try:
             return bool(solid.isInside(v))
-        except Exception:  # noqa: BLE001 - fall back to boolean probe
+        except Exception:  # noqa: BLE001, S110 - fall back to boolean probe
             pass
     # Fallback: intersect with a tiny sphere around the point.
     probe = cq.Solid.makeSphere(0.05, v)
@@ -32,10 +32,15 @@ def _solid_contains_point(solid, x: float, y: float, z: float) -> bool:
         return False
 
 
-def test_frame_is_one_solid_after_mrf():
+@pytest.fixture(scope="module")
+def _default_frame():
     params = BladeParams()
     rig = rig_for_impeller(params, tip_gap_mm=0.5)
-    solid = build_frame_solid(params, rig)
+    return params, rig, build_frame_solid(params, rig)
+
+
+def test_frame_is_one_solid_after_mrf(_default_frame):
+    params, rig, solid = _default_frame
     assert len(solid.Solids()) == 1
     bb = solid.BoundingBox()
     assert bb.zmin >= rig.mrf_z_max / MM_TO_M + STRUT_AFTER_MRF_MM - 0.05
@@ -60,10 +65,9 @@ def test_frame_is_one_solid_after_mrf():
     assert _solid_contains_point(solid, x, y, z) is False
 
 
-def test_frame_does_not_start_inside_mrf():
-    params = BladeParams()
-    rig = rig_for_impeller(params, tip_gap_mm=0.5)
-    bb = build_frame_solid(params, rig).BoundingBox()
+def test_frame_does_not_start_inside_mrf(_default_frame):
+    _params, rig, solid = _default_frame
+    bb = solid.BoundingBox()
     assert bb.zmin > rig.mrf_z_max / MM_TO_M
 
 

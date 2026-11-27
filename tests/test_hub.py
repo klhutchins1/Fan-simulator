@@ -28,10 +28,15 @@ def _depth(params) -> float:
     return hi[2] - lo[2]
 
 
+@pytest.fixture(scope="module")
+def _swept_flat_depth() -> float:
+    return _depth(_swept(sweep_tip=2.0))
+
+
 def test_auto_hub_covers_root_span():
     p = _swept()
     r_lo, r_hi = _root_axial_span(p)
-    z0, z1 = _hub_axial_range(p, build_impeller(p).val())  # auto
+    z0, z1 = _hub_axial_range(p)  # auto (root-station based; no CAD build needed)
     # auto hub height == root span + 2*margin, and it brackets the root
     assert (z1 - z0) == pytest.approx((r_hi - r_lo) + 2 * p.hub_axial_margin, abs=1e-6)
 
@@ -41,26 +46,24 @@ def test_explicit_hub_height_clamped_to_root_minimum():
     r_lo, r_hi = _root_axial_span(p)
     min_h = (r_hi - r_lo) + 2 * p.hub_axial_margin
     tiny = dataclasses.replace(p, hub_height_mm=1.0)  # below the minimum -> clamped up
-    z0, z1 = _hub_axial_range(tiny, build_impeller(tiny).val())
+    z0, z1 = _hub_axial_range(tiny)
     assert (z1 - z0) == pytest.approx(min_h, abs=1e-6)
     tall = dataclasses.replace(p, hub_height_mm=min_h + 8.0)
-    z0, z1 = _hub_axial_range(tall, build_impeller(tall).val())
+    z0, z1 = _hub_axial_range(tall)
     assert (z1 - z0) == pytest.approx(min_h + 8.0, abs=1e-6)
 
 
-def test_taller_hub_increases_depth():
+def test_taller_hub_increases_depth(_swept_flat_depth):
     p = _swept(sweep_tip=2.0)  # mild sweep so the hub is the depth driver
-    auto = _depth(p)
-    tall = _depth(dataclasses.replace(p, hub_height_mm=auto + 6.0))
-    assert tall > auto + 3.0, "a taller explicit hub must deepen the part"
+    tall = _depth(dataclasses.replace(p, hub_height_mm=_swept_flat_depth + 6.0))
+    assert tall > _swept_flat_depth + 3.0, "a taller explicit hub must deepen the part"
 
 
 @pytest.mark.parametrize("profile,nose", [("cone", 10.0), ("dome", 6.0), ("dome", 12.0)])
-def test_nose_profiles_watertight_and_add_height(profile, nose):
+def test_nose_profiles_watertight_and_add_height(profile, nose, _swept_flat_depth):
     p = _swept(sweep_tip=2.0)
-    flat_depth = _depth(p)
     nosed = _depth(dataclasses.replace(p, hub_profile=profile, hub_nose_mm=nose))
-    assert nosed > flat_depth, f"{profile} nose should add axial height"
+    assert nosed > _swept_flat_depth, f"{profile} nose should add axial height"
 
 
 def test_blade_hub_z_shifts_hub_relative_to_roots():
