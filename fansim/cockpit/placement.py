@@ -86,18 +86,82 @@ def _blade_z_bounds(params) -> tuple[float, float]:
     return lo, max(zs)
 
 
+def _fast_shroud_axial_range(params) -> tuple[float, float] | None:
+    """Analytic shroud axial Z span — no OCCT ``prepare_loft_chords`` build.
+
+    Mirrors ``fansim.geometry.blade.shroud_axial_range`` using the station chords directly
+    (matching ``_blade_z_bounds`` above), avoiding the multi-loft OCCT solver inside
+    ``tip_section_points`` that otherwise ran dozens of CAD builds per ``fit_envelope`` call.
+    """
+    t = float(getattr(params, "shroud_thick_mm", 0.0) or 0.0)
+    if t <= 0.0:
+        return None
+    from fansim.geometry.blade import (
+        SHROUD_FULL_EPS,
+        SHROUD_MIN_WALL_MM,
+        Features,
+        _clamp_points_to_cylinder,
+        _section_points_3d,
+        _thick_scale_kw,
+        plate_blade_z_mm,
+        tip_le_te_z,
+    )
+
+    st = max(params.stations, key=lambda s: s.r_frac)
+    r0 = params.hub_radius - params.root_embed
+    r = r0 + (params.tip_radius - r0) * st.r_frac
+    pts = _section_points_3d(
+        r=r,
+        r_frac=st.r_frac,
+        chord=st.chord,
+        stagger_deg=st.stagger_deg,
+        thickness=st.thickness,
+        max_camber=st.max_camber,
+        camber_pos=st.camber_pos,
+        sweep=st.sweep,
+        skew=st.skew,
+        le_sweep=st.le_sweep,
+        lean_deg=st.lean_deg,
+        n_chord=params.n_chord,
+        features=Features(),
+        le_skew=st.le_skew,
+        te_face=st.te_face,
+        le_face=st.le_face,
+        tip_notch_count=params.tip_notch_count,
+        tip_notch_depth_mm=params.tip_notch_depth_mm,
+        blade_z_mm=plate_blade_z_mm(params),
+        **_thick_scale_kw(params),
+    )
+    if bool(getattr(params, "cylindrical_tip", True)):
+        pts = _clamp_points_to_cylinder(pts, float(params.tip_radius))
+    zs = [p.z for p in pts]
+    z0, z1 = min(zs), max(zs)
+    span = z1 - z0
+    frac = min(max(float(getattr(params, "shroud_height_frac", 1.0) or 0.0), 0.0), 1.0)
+    if frac >= 1.0 - SHROUD_FULL_EPS:
+        return z0, z1
+    h = frac * span
+    h = min(max(h, SHROUD_MIN_WALL_MM), span) if span >= SHROUD_MIN_WALL_MM else span
+    z_le, z_te = tip_le_te_z(params)
+    if z_te >= z_le:
+        z_hi, z_lo = z_te, z_te - h
+    else:
+        z_lo, z_hi = z_te, z_te + h
+    return (z_lo, z_hi) if z_hi >= z_lo else (z_hi, z_lo)
+
+
 def impeller_z_extent(params) -> float:
     """Axial envelope of blades + hub (+ nose) + optional shroud — FAST, no CAD solid.
 
     Matches the Fit/UI/Assess depth gate: hub height and nose can exceed blade Z alone.
     """
-    from fansim.geometry.blade import _hub_axial_range, shroud_axial_range
+    from fansim.geometry.blade import _hub_axial_range
 
     b_lo, b_hi = _blade_z_bounds(params)
     hub_lo, hub_hi = _hub_axial_range(params)
     hub_hi = hub_hi + float(getattr(params, "hub_nose_mm", 0.0) or 0.0)
     zs = [b_lo, b_hi, hub_lo, hub_hi]
-    shroud = shroud_axial_range(params)
+    shroud = _fast_shroud_axial_range(params)
     if shroud is not None:
         zs.extend(shroud)
     return max(zs) - min(zs)

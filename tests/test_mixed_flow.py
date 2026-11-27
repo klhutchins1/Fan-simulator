@@ -12,7 +12,6 @@ from fansim.centrifugal.geometry import (
     MixedFlowParams,
     build_mixed_flow,
     build_mixed_flow_preview,
-    export_mixed_flow_stl,
 )
 from fansim.fan_spec import A12X25, mount_min_hub_radius
 
@@ -85,36 +84,42 @@ def test_mixed_span_planform_builds():
         solid, r_mid * math.cos(half), r_mid * math.sin(half), z_mid) is False
 
 
-def test_export_mixed_flow_stl_writes_file(tmp_path):
-    out = tmp_path / "mixed.stl"
-    export_mixed_flow_stl(MixedFlowParams(), out)
+@pytest.fixture(scope="module")
+def _default_mixed_stl(tmp_path_factory) -> tuple[MixedFlowParams, Path]:
+    from fansim.problem import get_archetype
+
+    a = get_archetype("centrifugal")
+    params = a.suggest_design(None)
+    stl = Path(a.build_geometry(params, tmp_path_factory.mktemp("mixed") / "mixed.stl"))
+    return params, stl
+
+
+def test_export_mixed_flow_stl_writes_file(_default_mixed_stl):
+    _params, out = _default_mixed_stl
     assert out.exists() and out.stat().st_size > 1000
 
 
-def test_mixed_flow_preview_matches_fused_bounds(tmp_path):
+def test_mixed_flow_preview_matches_fused_bounds(_default_mixed_stl):
     """Non-fused preview (§13.23) should share overall envelope with the fused solid."""
     import trimesh
 
-    params = MixedFlowParams()
+    params, fused = _default_mixed_stl
     mesh, vol = build_mixed_flow_preview(params)
     assert vol > 0
     assert mesh.vertices.shape[0] > 0
-    fused = tmp_path / "fused.stl"
-    export_mixed_flow_stl(params, fused)
     fused_m = trimesh.load(str(fused), force="mesh")
     for a, b in zip(mesh.bounds.ravel(), fused_m.bounds.ravel()):
         assert abs(float(a) - float(b)) < 2.0
 
 
-def test_centrifugal_archetype_builds_and_evaluates(tmp_path):
+def test_centrifugal_archetype_builds_and_evaluates(tmp_path, _default_mixed_stl):
     from fansim.centrifugal import MixedFlowArchetype
     from fansim.problem import get_archetype
 
     a = get_archetype("centrifugal")
     assert isinstance(a, MixedFlowArchetype)
-    params = a.suggest_design(None)
-    stl = a.build_geometry(params, tmp_path / "imp.stl")
-    assert Path(stl).exists() and Path(stl).stat().st_size > 1000
+    _params, stl = _default_mixed_stl
+    assert stl.exists() and stl.stat().st_size > 1000
     # Behavioral check without Docker: tip-gap preflight rejects cleanly instead of NotImplementedError.
     bad = MixedFlowParams(r_tip_mm=54.9)
     res = a.evaluate(bad, tmp_path / "w", tip_gap_mm=5.0)

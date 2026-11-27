@@ -10,6 +10,13 @@ from fansim.cror.geometry import CrorParams, build_cror, cror_axial_layout_mm, e
 from fansim.problem.archetypes import get_archetype
 
 
+@pytest.fixture(scope="module")
+def _default_cror_stl(tmp_path_factory) -> tuple[CrorParams, Path]:
+    params = CrorParams()
+    stl = export_cror_stl(params, tmp_path_factory.mktemp("cror") / "cror.stl")
+    return params, stl
+
+
 def test_cror_builds_one_solid():
     solid = build_cror(CrorParams()).val()
     assert len(solid.Solids()) == 1
@@ -27,9 +34,8 @@ def test_cror_axial_layout_rear_downstream():
     assert lay["gap_mm"] == pytest.approx(8.0)
 
 
-def test_export_cror_stl(tmp_path):
-    out = tmp_path / "cror.stl"
-    export_cror_stl(CrorParams(), out)
+def test_export_cror_stl(_default_cror_stl):
+    _params, out = _default_cror_stl
     assert out.exists() and out.stat().st_size > 1000
 
 
@@ -41,14 +47,13 @@ def test_dual_mrf_dict_opposite_omega():
     assert d["rear_z_min"] > d["front_z_max"]
 
 
-def test_build_case_dual_mrf_writes_two_zones(tmp_path):
+def test_build_case_dual_mrf_writes_two_zones(tmp_path, _default_cror_stl):
     from fansim.cfd.openfoam_case import MeshResolution, build_case
     from fansim.cror.evaluate import dual_mrf_dict, fit_cror_to_stl, rig_for_cror
-    from fansim.cror.geometry import export_cror_stl
 
-    stl = export_cror_stl(CrorParams(), tmp_path / "impeller.stl")
-    rig = rig_for_cror(CrorParams(), tip_gap_mm=0.5, casing_id_mm=120.0, rpm=2000.0)
-    dmrf = dual_mrf_dict(CrorParams(), rig.omega_signed)
+    params, stl = _default_cror_stl
+    rig = rig_for_cror(params, tip_gap_mm=0.5, casing_id_mm=120.0, rpm=2000.0)
+    dmrf = dual_mrf_dict(params, rig.omega_signed)
     rig, dmrf = fit_cror_to_stl(rig, dmrf, stl)
     case = tmp_path / "case"
     build_case(case, stl, rig, mesh=MeshResolution(base_cell=0.01),
@@ -60,7 +65,7 @@ def test_build_case_dual_mrf_writes_two_zones(tmp_path):
     assert "rotorFront" in mrf and "rotorRear" in mrf
 
 
-def test_fit_cror_to_stl_covers_hub_past_analytic_bands(tmp_path):
+def test_fit_cror_to_stl_covers_hub_past_analytic_bands(_default_cror_stl):
     """Regression: the hub cylinder (§cror_axial_layout_mm's 1 mm end margin) pokes past the
     analytic front/rear MRF bands built by ``dual_mrf_dict``, which used to fail
     ``check_placement`` (impeller z [-6.71, 26.13] mm vs MRF zone [-5.71, 25.13] mm)."""
@@ -69,10 +74,8 @@ def test_fit_cror_to_stl_covers_hub_past_analytic_bands(tmp_path):
     from fansim.cfd.domain import MM_TO_M
     from fansim.cfd.openfoam_case import check_placement
     from fansim.cror.evaluate import dual_mrf_dict, fit_cror_to_stl, rig_for_cror
-    from fansim.cror.geometry import export_cror_stl
 
-    params = CrorParams()
-    stl = export_cror_stl(params, tmp_path / "impeller.stl")
+    params, stl = _default_cror_stl
     rig = rig_for_cror(params, tip_gap_mm=0.5, casing_id_mm=120.0, rpm=2000.0)
     dmrf = dual_mrf_dict(params, rig.omega_signed)
 
@@ -116,14 +119,13 @@ def test_cli_evaluate_cror_declares_dry_run():
     assert "delta_afc1212de" in text
 
 
-def test_default_cror_fits_delta_not_a12x25(tmp_path):
+def test_default_cror_fits_delta_not_a12x25(_default_cror_stl):
     """Dual stack ~33 mm deep: A12x25 (25 mm) rejects; Delta 38 mm envelope accepts tip gap."""
     from fansim.cror.evaluate import remaining_cror_tip_gap_mm
     from fansim.fan_spec import A12X25, get_fan_spec
     from fansim.geometry import watertight_report
 
-    p = CrorParams()
-    stl = export_cror_stl(p, tmp_path / "cror.stl")
+    p, stl = _default_cror_stl
     rep = watertight_report(stl)
     (_, _, zmin), (_, _, zmax) = rep.bounds_mm
     depth = zmax - zmin
