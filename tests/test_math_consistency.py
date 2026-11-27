@@ -13,8 +13,8 @@ from fansim.geometry.blade import BladeParams
 
 
 def test_cfm_factor_is_single_source():
-    """§10.9 — CFM conversion must not drift across modules (#49)."""
-    assert CFM_PER_M3S == pytest.approx(2118.882)
+    """§10.9 / #87 — CFM conversion is exact NIST SI (60 / 0.3048^3) and single-sourced (#49)."""
+    assert CFM_PER_M3S == pytest.approx(60.0 / (0.3048**3), rel=1e-15)
     from fansim import fan_bem
     from fansim.optimize import meanline, multi_point
 

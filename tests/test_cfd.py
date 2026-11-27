@@ -50,7 +50,7 @@ def test_parse_fan_metrics(tmp_path):
     _write_pp(case, "outletP", "surfaceFieldValue.dat", "600  0.0\n")
 
     m = parse_fan_metrics(case, omega_rad_s=209.44)
-    assert m.cfm == pytest.approx(0.02645 * 2118.882, rel=1e-6)
+    assert m.cfm == pytest.approx(0.02645 * (60.0 / (0.3048**3)), rel=1e-12)
     assert m.torque_nm == pytest.approx(0.010, abs=1e-6)
     assert m.shaft_power_w == pytest.approx(0.010 * 209.44, rel=1e-3)
     # Fixed-velocity inlet over-driving the fan -> negative static rise at this point.
@@ -84,9 +84,9 @@ def test_parse_fan_metrics_reports_tail_mean_not_final(tmp_path):
 
     m = parse_fan_metrics(case, omega_rad_s=209.44)
     tail_mean = sum(tail) / len(tail)  # 0.021
-    assert m.cfm == pytest.approx(tail_mean * 2118.882, rel=1e-6)
+    assert m.cfm == pytest.approx(tail_mean * (60.0 / (0.3048**3)), rel=1e-12)
     # Must NOT be the final-iteration sample (0.026).
-    assert m.cfm != pytest.approx(0.026 * 2118.882, rel=1e-3)
+    assert m.cfm != pytest.approx(0.026 * (60.0 / (0.3048**3)), rel=1e-3)
 
 
 def test_min_blade_wall_mm_is_thinnest_station_wall():
@@ -126,7 +126,7 @@ def test_mesh_resolution_for_blade_sets_adaptive_levels():
 
 def test_optimizer_surf_max_floor_for_thick_walls():
     """§19.14: thick blades still get surf_max >= 3 on the optimizer path."""
-    from fansim.cfd.openfoam_case import MeshResolution, OPTIMIZER_SURF_MAX_FLOOR
+    from fansim.cfd.openfoam_case import OPTIMIZER_SURF_MAX_FLOOR, MeshResolution
 
     adaptive = MeshResolution.for_blade(0.005, 6.0)
     assert adaptive.surf_max == 2
@@ -154,8 +154,8 @@ def test_kinematic_pressure_contract_once_times_rho():
 @pytest.mark.docker
 def test_case_build_files(tmp_path):
     """Case assembly writes a valid directory structure (no meshing/solving)."""
+    from fansim.cfd.openfoam_case import MeshResolution, build_case
     from fansim.geometry import build_impeller, export_stl
-    from fansim.cfd.openfoam_case import build_case, MeshResolution
 
     params = BladeParams()
     stl = export_stl(build_impeller(params), tmp_path / "imp.stl")

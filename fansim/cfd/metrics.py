@@ -15,7 +15,8 @@ from pathlib import Path
 
 from fansim.physics.air import RHO_AMCA as RHO_AIR
 
-CFM_PER_M3S = 2118.882  # ft^3/min per m^3/s
+# Exact NIST SP 811 international-foot conversion: 1 ft == 0.3048 m exact (#87).
+CFM_PER_M3S = 60.0 / (0.3048**3)  # ft^3/min per m^3/s (~2118.880003289315)
 
 # Solver/metrics generation stamped on every scored trial (optimize/study.py + cockpit Assess),
 # so the catalog can tell which results are trustworthy. Bump when a change makes previously stored
