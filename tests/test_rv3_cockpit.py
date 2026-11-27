@@ -108,3 +108,39 @@ def test_mixed_design_card_shows_experimental_label_like_volute_and_cror():
         card_head = src[idx : idx + 650]
         assert "EXPERIMENTAL_LABEL" in card_head, f"{rel} missing EXPERIMENTAL_LABEL in top Design card"
     assert EXPERIMENTAL_LABEL.startswith("Experimental:")
+
+
+def test_impeller_z_extent_and_fit_envelope_never_run_cad_on_shrouded_fan(monkeypatch):
+    """Shrouded cylindrical-tip fans must stay purely analytic in impeller_z_extent/fit_envelope.
+
+    Regression for the 45-minute CI hang / cockpit UI freeze where ``impeller_z_extent``
+    called ``shroud_axial_range`` -> ``tip_section_points`` -> ``prepare_loft_chords``,
+    building hundreds of OCCT blade lofts inside ``fit_envelope`` iterations.
+    """
+    import pytest
+
+    import fansim.geometry.blade as blade_mod
+    import fansim.geometry.chord_realisation as chord_mod
+    from fansim.cockpit.placement import fit_envelope, impeller_z_extent
+    from fansim.geometry.blade import Features
+    from fansim.optimize.search_space import blade_from_flat, stock_blade_flat
+
+    def _forbid_cad(*_a, **_k):
+        pytest.fail("impeller_z_extent / fit_envelope must never invoke OCCT CAD lofts")
+
+    monkeypatch.setattr(chord_mod, "prepare_loft_chords", _forbid_cad)
+    monkeypatch.setattr(blade_mod, "build_blade_solid", _forbid_cad)
+
+    flat = stock_blade_flat("a12x25")
+    flat["shroud_thick_mm"] = 1.5
+    flat["section_wrap"] = "cylinder"
+    p = blade_from_flat(flat, Features(serration_amp=1.2, serration_waves=8))
+    assert p.cylindrical_tip is True
+
+    z = impeller_z_extent(p)
+    assert z > 0.0
+
+    res = fit_envelope(flat, get_fan_spec("a12x25"), Features(serration_amp=1.2, serration_waves=8))
+    assert isinstance(res.flat, dict)
+    assert isinstance(res.fit_status, str)
+
