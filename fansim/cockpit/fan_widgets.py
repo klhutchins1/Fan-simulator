@@ -6,7 +6,13 @@ import sys
 
 from fansim.cockpit.blade_copy import BLADE_DESC, BLADE_DESC_SIMPLE, CROR_DESC
 from fansim.cockpit.diagrams import diagram_for_control
-from fansim.cockpit.fan_copy import _IMG_URI, CONTROL_DESC, CONTROL_DESC_SIMPLE, OPT_SEARCH_HELP
+from fansim.cockpit.fan_copy import (
+    _IMG_URI,
+    CONTROL_DESC,
+    CONTROL_DESC_SIMPLE,
+    OPT_SEARCH_HELP,
+    control_image_url,
+)
 from fansim.cockpit.mixed_copy import MIXED_DESC
 from fansim.cockpit.prop_copy import PROP_DESC, PROP_DESC_SIMPLE
 from fansim.cockpit.volute_copy import VOLUTE_DESC
@@ -68,6 +74,11 @@ def resolve_tooltip(
 
     uri = _IMG_URI.get(model) or diagram_for_control(model)
     return simple, expert, uri
+
+
+def _tooltip_img_src(model: str, uri: str) -> str:
+    """Prefer the static HTTP URL for rendered control PNGs; keep inline SVG diagrams."""
+    return control_image_url(model) or uri
 
 
 def _fmt_value_expr(model: str, step: float) -> str:
@@ -170,7 +181,8 @@ def slider(
             _body()
         if uri:
             html.Img(
-                src=uri,
+                src=_tooltip_img_src(model, uri),
+                loading="lazy",
                 style="width:360px;max-width:100%;display:block;"
                 "margin-bottom:4px;border-radius:4px;",
             )
@@ -219,7 +231,8 @@ def help_switch(
             v3.VSwitch(v_bind="props", **kwargs)
         if uri:
             html.Img(
-                src=uri,
+                src=_tooltip_img_src(model, uri),
+                loading="lazy",
                 style="width:360px;max-width:100%;display:block;"
                 "margin-bottom:4px;border-radius:4px;",
             )
@@ -261,7 +274,8 @@ def help_select(
             v3.VSelect(v_bind="props", **kwargs)
         if uri:
             html.Img(
-                src=uri,
+                src=_tooltip_img_src(model, uri),
+                loading="lazy",
                 style="width:360px;max-width:100%;display:block;"
                 "margin-bottom:4px;border-radius:4px;",
             )
