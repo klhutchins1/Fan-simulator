@@ -1,2 +1,0 @@
-44:                        sol_tip>=0.6)
-77:                        thickness/lean/wrap/LE-TE/plate; BEM≈0.6× CFD). Never

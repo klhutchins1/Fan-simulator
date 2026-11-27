@@ -1,5 +1,0 @@
-{
- "sidecar": "# Mixed-flow export\n\nExperimental: not validated against published data.\n\nAssess runs MRF CFD (not validated against published data).\n",
- "has_exp": true,
- "has_mrf": true
-}

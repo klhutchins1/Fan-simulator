@@ -1,6 +1,0 @@
-A2a (prereg rule): run_r14 @ 9562574, PYTHONPATH=run_r14
-pytest tests/test_ui_says_what_it_does.py -q  ->  6 passed in 3.76s   (PASS, 0 failed)
-Extra (report only): r12 QA-36 tests (repo-r13 handoff/2026-10-14_from-qa-12/tests/test_ui_says_what_it_does_r12.py)
-copied to /tmp/qa14_r12t/ and run against run_r14 -> 4 passed in 2.72s.
-(Running the file in place under repo-r13 gives 2 failed: pytest's rootdir/conftest path insertion imported
-repo-r13's old fansim. Harness artefact, not a regression; noted so nobody repeats it.)

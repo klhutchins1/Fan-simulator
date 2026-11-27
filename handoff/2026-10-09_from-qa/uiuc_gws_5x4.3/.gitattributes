@@ -1,2 +1,0 @@
-# Keep the UIUC source files byte-identical (they use CRLF; the repo default eol=lf would rewrite them)
-*.txt -text

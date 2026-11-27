@@ -1,2 +1,0 @@
-ui-hunt-1-UI39-UI40-steps-trials applies
-ui-hunt-1-QA70-noise-hint-row applies
