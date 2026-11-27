@@ -168,6 +168,12 @@
       "report": "docs/review/2026-11-26-rv3-propeller.md",
       "verdict": "PASS"
     },
+    "propeller.section_2d": {
+      "date": "2026-11-26",
+      "fingerprint": "477be37ec8a3f908",
+      "report": "docs/review/2026-11-25-rv4-script-triage.md",
+      "verdict": "PASS"
+    },
     "propeller.thrust_sign": {
       "date": "2026-11-24",
       "fingerprint": "1345e8fc31ac8e68",

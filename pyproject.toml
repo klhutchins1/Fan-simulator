@@ -137,6 +137,7 @@ files = [
     "fansim/propeller/polar.py",
     "fansim/propeller/honesty.py",
     "fansim/propeller/pythrust_export.py",
+    "fansim/propeller/section_2d.py",
     "fansim/cockpit/vs_stock.py",
     "fansim/cockpit/score_caption.py",
     "fansim/cockpit/input_checks.py",

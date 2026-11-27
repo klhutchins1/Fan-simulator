@@ -425,3 +425,10 @@ units:
     source: {kind: derivation, ref: "incompressible Bernoulli without swirl; radial equilibrium (QA r7 Task G); Proudman 1952 / Sarkar & Hussaini; thresholds from 5 Stock v3 repeats (audit 2026-10-13-stock-flow-repeats-prereg)"}
     checks: [tests/test_flow_report.py, tests/test_flow_verdicts.py]
     depends_on: [acoustics.proudman, cfd.spanwise]
+
+  - id: propeller.section_2d
+    targets: ["fansim.propeller.section_2d"]
+    claim: "2-D prop section CFD maths: NACA4 parsing, y+<=1 wall spacing, C-grid / snappyHexMesh case geometry and grading, Cl/Cd/y+ parsers, and pre-registered rung A / rung A0 Ladson verdict rules"
+    source: {kind: derivation, ref: "Ladson NASA TM-4074 (rung A0); audit 2026-10-17-prop-cfd-fix-prereg + 2026-10-20-rulings-r18-r19-rungA + 2026-11-06-ruling-rung-a0-cgrid"}
+    checks: [tests/test_prop_section_2d.py]
+    depends_on: [physics.air_properties]
