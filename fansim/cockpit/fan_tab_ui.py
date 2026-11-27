@@ -1213,7 +1213,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         with v3.VCol(cols=6, classes="pr-1"):
                                             _help_select(
                                                 "sweep_param",
-                                                "Sweep",
+                                                label="Sweep",
                                                 items="sweep_items",
                                                 item_title=None,
                                                 item_value=None,
