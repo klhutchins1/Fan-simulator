@@ -8,8 +8,8 @@
     },
     "acoustics.fwh": {
       "date": "2026-11-26",
-      "fingerprint": "3ae7d27900292993",
-      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
+      "fingerprint": "ff1afd2d3f4afd23",
+      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md (#126 geometric panel areas, unrounded outputs, tonal_bpf dep)",
       "verdict": "PASS"
     },
     "acoustics.loading": {
@@ -98,7 +98,7 @@
     },
     "fan.bem_prescreen": {
       "date": "2026-11-26",
-      "fingerprint": "8dc8fc3f5c5a459f",
+      "fingerprint": "12fe95436ca08931",
       "report": "docs/validation/audits/2026-11-26-cfm-exact-si.md",
       "verdict": "PASS"
     },

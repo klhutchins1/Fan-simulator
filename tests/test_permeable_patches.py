@@ -63,6 +63,16 @@ def test_patch_panels_from_csv_twenty_four(tmp_path):
     assert m["analogy"] == "fwh_patches"
     assert m["n_panels"] == 24
     assert math.isfinite(m["noise_dba_band"])
+    # #126: each 2x2 patch carries exact geometric area = face_area / n^2
+    hxy, hz = box["half_xy_m"], box["half_z_m"]
+    face_areas = [4.0 * hxy * hz] * 4 + [4.0 * hxy * hxy] * 2
+    per_face = PATCH_N * PATCH_N
+    for face, fa in enumerate(face_areas):
+        slice_areas = [panels[face * per_face + k]["area"] for k in range(per_face)]
+        for a in slice_areas:
+            assert a == pytest.approx(fa / per_face, rel=1e-12)
+        assert sum(slice_areas) == pytest.approx(fa, rel=1e-12)
+    assert sum(p["area"] for p in panels) == pytest.approx(sum(face_areas), rel=1e-12)
 
 
 def test_four_patches_sum_to_face_force(tmp_path):

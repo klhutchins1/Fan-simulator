@@ -127,6 +127,9 @@ class FanCurve:
     # rise never positive (no blades, reversed/stalled blades, hub >= tip) -> free delivery 0, so a
     # dead design ranks last instead of at the sweep's max flow (roadmap §23.4).
     free_status: str = "crossed"
+    # True when shutoff_dp_pa came from the Q->0 linear intercept (_shut_off_pa); False when the
+    # sweep had no near-zero points and fell back to max(dp_static_pa) (or on a degenerate curve).
+    shutoff_extrapolated: bool = True
 
 
 def _interp_geometry(params: BladeParams):
@@ -307,7 +310,8 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
     area = math.pi * (tip_r * tip_r - hub_r * hub_r)
     if area <= 0.0 or int(params.n_blades) <= 0 or rpm == 0.0:
         return FanCurve(points=[], free_delivery_cfm=0.0, shutoff_dp_pa=0.0, peak_efficiency=0.0,
-                        peak_eff_cfm=0.0, converged=False, free_status="no_rise")
+                        peak_eff_cfm=0.0, converged=False, free_status="no_rise",
+                        shutoff_extrapolated=False)
     v_tip = (rpm * 2.0 * math.pi / 60.0) * tip_r
     q_max = 0.6 * v_tip * area                            # generous upper bound on flow
     flows = np.linspace(0.02 * q_max, q_max, n_points)
@@ -317,12 +321,15 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
                            pressure_model=pressure_model)
            for q in flows]
 
-    # free delivery: interpolate where static rise crosses 0 (high-flow end)
+    # free delivery: interpolate where static rise crosses 0 (high-flow end; scan from the
+    # high-flow tail so a low-flow stall dip below 0 Pa does not mask the true free-delivery point)
     if not any(p.dp_static_pa > 0.0 for p in pts):
         free_cfm, free_status = 0.0, "no_rise"
+    elif pts[-1].dp_static_pa > 0.0:
+        free_cfm, free_status = pts[-1].flow_cfm, "beyond_sweep"
     else:
         free_cfm, free_status = pts[-1].flow_cfm, "beyond_sweep"
-        for a, b in pairwise(pts):
+        for a, b in reversed(list(pairwise(pts))):
             if a.dp_static_pa > 0.0 >= b.dp_static_pa:
                 t = a.dp_static_pa / (a.dp_static_pa - b.dp_static_pa)
                 free_cfm = a.flow_cfm + t * (b.flow_cfm - a.flow_cfm)
@@ -335,6 +342,7 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
         [{"cfm": p.flow_cfm, "static_pa": p.dp_static_pa} for p in pts],
         q_near_zero=max(5.0, 0.15 * free_cfm),
     )
+    shutoff_extrapolated = shut_proxy is not None
     shutoff = float(shut_proxy) if shut_proxy is not None else max(
         p.dp_static_pa for p in pts)
     peak = max(pts, key=lambda p: p.efficiency)
@@ -342,4 +350,5 @@ def pq_curve(params: BladeParams, rpm: float, n_points: int = 22, n_elem: int = 
                     peak_efficiency=peak.efficiency, peak_eff_cfm=peak.flow_cfm,
                     converged=all(p.converged for p in pts if p.flow_cfm <= free_cfm + 1e-9
                                   or p.dp_static_pa > 0.0),
-                    free_status=free_status)
+                    free_status=free_status,
+                    shutoff_extrapolated=shutoff_extrapolated)

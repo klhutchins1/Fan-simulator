@@ -244,3 +244,83 @@ def test_single_element_euler_identity_exact():
         p_no_st.dp_total_pa - swirl_ke - K_FRICTION * 0.5 * RHO_AIR * vx * vx, rel=1e-12
     )
 
+
+def test_pq_curve_high_flow_crossing_ignores_low_flow_stall_dip(monkeypatch):
+    """#97: a low-flow stall dip below 0 Pa must not mask the true high-flow free-delivery crossing."""
+    import fansim.fan_bem as fb
+    from fansim.cfd.metrics import CFM_PER_M3S
+
+    profile = [
+        (10.0, 8.0),
+        (20.0, -2.0),   # stall dip below 0 Pa (would cross at 18 CFM)
+        (30.0, 6.0),    # recovers on main branch
+        (40.0, 3.0),
+        (50.0, -3.0),   # true high-flow free-delivery crossing at 45 CFM
+    ]
+    it = iter(profile)
+
+    def _fake_op(*_a, **_k):
+        cfm, dp = next(it)
+        return fb.FanPoint(
+            flow_cfm=cfm, flow_m3s=cfm / CFM_PER_M3S,
+            dp_static_pa=dp, dp_total_pa=max(dp, 0.0) + 1.0,
+            efficiency=0.2 if dp > 0 else 0.0, power_w=1.0, converged=True,
+        )
+
+    monkeypatch.setattr(fb, "operating_point", _fake_op)
+    c = pq_curve(_stock7(), 2000.0, n_points=len(profile))
+    assert c.free_status == "crossed"
+    assert c.free_delivery_cfm == pytest.approx(45.0, abs=1e-9)
+
+
+def test_pq_curve_beyond_sweep_when_tail_recovers_positive(monkeypatch):
+    """#97: if static rise dips below 0 Pa early but ends positive, free delivery is beyond_sweep."""
+    import fansim.fan_bem as fb
+    from fansim.cfd.metrics import CFM_PER_M3S
+
+    profile = [(10.0, 5.0), (20.0, -1.0), (30.0, 4.0), (40.0, 6.0)]
+    it = iter(profile)
+
+    def _fake_op(*_a, **_k):
+        cfm, dp = next(it)
+        return fb.FanPoint(
+            flow_cfm=cfm, flow_m3s=cfm / CFM_PER_M3S,
+            dp_static_pa=dp, dp_total_pa=max(dp, 0.0) + 1.0,
+            efficiency=0.2 if dp > 0 else 0.0, power_w=1.0, converged=True,
+        )
+
+    monkeypatch.setattr(fb, "operating_point", _fake_op)
+    c = pq_curve(_stock7(), 2000.0, n_points=len(profile))
+    assert c.free_status == "beyond_sweep"
+    assert c.free_delivery_cfm == pytest.approx(40.0, abs=1e-9)
+
+
+def test_pq_curve_shutoff_extrapolated_flag(monkeypatch):
+    """#97: FanCurve explicitly reports whether shutoff_dp_pa was extrapolated or fell back to max."""
+    import fansim.fan_bem as fb
+    from fansim.cfd.metrics import CFM_PER_M3S
+
+    c_stock = pq_curve(_stock7(), 2000.0)
+    assert c_stock.shutoff_extrapolated is True
+
+    c_zero = pq_curve(_stock7(), 0.0)
+    assert c_zero.shutoff_extrapolated is False
+
+    # Lowest sweep point (20 CFM) exceeds q_near_zero = max(5, 0.15 * 45) = 6.75 CFM -> fallback
+    profile = [(20.0, 12.0), (30.0, 8.0), (40.0, 3.0), (50.0, -3.0)]
+    it = iter(profile)
+
+    def _fake_op(*_a, **_k):
+        cfm, dp = next(it)
+        return fb.FanPoint(
+            flow_cfm=cfm, flow_m3s=cfm / CFM_PER_M3S,
+            dp_static_pa=dp, dp_total_pa=max(dp, 0.0) + 1.0,
+            efficiency=0.2 if dp > 0 else 0.0, power_w=1.0, converged=True,
+        )
+
+    monkeypatch.setattr(fb, "operating_point", _fake_op)
+    c_fb = pq_curve(_stock7(), 2000.0, n_points=len(profile))
+    assert c_fb.shutoff_extrapolated is False
+    assert c_fb.shutoff_dp_pa == pytest.approx(12.0, abs=1e-9)
+
+

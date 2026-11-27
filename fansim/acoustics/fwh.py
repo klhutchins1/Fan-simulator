@@ -186,23 +186,32 @@ def noise_from_compact_force(t, F, *, cutoff_hz: float = 2500.0,
     p = loading_pressure_compact(Fp, dt, r_hat=r_hat, r_obs=r_obs)
     bpf = blade_pass_frequency(n_blades, rpm)
     return {
-        "noise_dba_band": round(dba_from_pressure(p, dt, cutoff_hz), 2),
-        "noise_dba_full": round(dba_from_pressure(p, dt, None), 2),
-        "bpf_tone_db": round(tone_level_db(p, dt, bpf), 2),
-        "peak_tone_db": round(peak_tone_over_harmonics(p, dt, rpm / 60.0), 2),
-        "thrust_n": round(thrust, 4),
+        "noise_dba_band": float(dba_from_pressure(p, dt, cutoff_hz)),
+        "noise_dba_full": float(dba_from_pressure(p, dt, None)),
+        "bpf_tone_db": float(tone_level_db(p, dt, bpf)),
+        "peak_tone_db": float(peak_tone_over_harmonics(p, dt, rpm / 60.0)),
+        "thrust_n": float(thrust),
         "cutoff_hz": cutoff_hz,
         "samples": len(t),
         "analogy": "fwh_compact",
     }
 
 
+def _face_areas(box: dict) -> list[float]:
+    """Geometric area [m²] of each CV box face in (+x,-x,+y,-y,+z,-z) order."""
+    hxy, hz = float(box["half_xy_m"]), float(box["half_z_m"])
+    side = 4.0 * hxy * hz
+    cap = 4.0 * hxy * hxy
+    return [side, side, side, side, cap, cap]
+
+
 def _face_panels_from_data(d, box: dict) -> list[dict]:
     centers = _face_centers(box)
+    areas = _face_areas(box)
     panels = []
-    for i, (r0, n_hat) in enumerate(zip(centers, _FACE_NORMALS)):
+    for i, (r0, n_hat, area) in enumerate(zip(centers, _FACE_NORMALS, areas)):
         f = np.column_stack([d[f"F{i}x"], d[f"F{i}y"], d[f"F{i}z"]])
-        panels.append({"r0": r0, "n_hat": n_hat, "area": 1.0, "f": f})
+        panels.append({"r0": r0, "n_hat": n_hat, "area": area, "f": f})
     return panels
 
 
@@ -236,11 +245,11 @@ def noise_from_permeable_panels(t, panels, *, cutoff_hz: float = 2500.0,
     p = loading_pressure_panels(t, pans, x_obs=x_obs)
     bpf = blade_pass_frequency(n_blades, rpm)
     return {
-        "noise_dba_band": round(dba_from_pressure(p, dt, cutoff_hz), 2),
-        "noise_dba_full": round(dba_from_pressure(p, dt, None), 2),
-        "bpf_tone_db": round(tone_level_db(p, dt, bpf), 2),
-        "peak_tone_db": round(peak_tone_over_harmonics(p, dt, rpm / 60.0), 2),
-        "thrust_n": round(thrust, 4),
+        "noise_dba_band": float(dba_from_pressure(p, dt, cutoff_hz)),
+        "noise_dba_full": float(dba_from_pressure(p, dt, None)),
+        "bpf_tone_db": float(tone_level_db(p, dt, bpf)),
+        "peak_tone_db": float(peak_tone_over_harmonics(p, dt, rpm / 60.0)),
+        "thrust_n": float(thrust),
         "cutoff_hz": cutoff_hz,
         "samples": len(t),
         "analogy": "fwh_permeable",
@@ -268,15 +277,17 @@ def _patch_panels_from_data(d, box: dict, n: int = PATCH_N) -> list[dict]:
     if n != PATCH_N:
         raise ValueError(f"stage 1 only supports n={PATCH_N}")
     centers = _patch_centers(box, n=n)
-    n_panels = 6 * n * n
+    face_areas = _face_areas(box)
+    per_face = n * n
+    n_panels = 6 * per_face
     panels = []
     for p in range(n_panels):
-        face = p // (n * n)
+        face = p // per_face
         f = np.column_stack([d[f"P{p}x"], d[f"P{p}y"], d[f"P{p}z"]])
         panels.append({
             "r0": centers[p],
             "n_hat": _FACE_NORMALS[face],
-            "area": 1.0,
+            "area": face_areas[face] / per_face,
             "f": f,
         })
     return panels

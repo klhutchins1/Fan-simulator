@@ -92,6 +92,22 @@ def test_noise_from_compact_force_detects_bpf_tone():
     assert m["bpf_tone_db"] > off
 
 
+def test_noise_from_compact_force_does_not_round_internally():
+    """#126: physics helpers return full float precision (rounding belongs in display)."""
+    n_blades, rpm = 7, 2000.0
+    t, F, _dt, bpf = _bpf_force(n_blades=n_blades, rpm=rpm)
+    mean_fz = -1.0 / 30.0  # -0.033333... would lose precision under round(..., 4)
+    F = np.column_stack([np.zeros_like(t), np.zeros_like(t), mean_fz + F[:, 2]])
+    m = noise_from_compact_force(t, F, cutoff_hz=2500.0, n_blades=n_blades, rpm=rpm)
+    dt_med = float(np.median(np.diff(t)))
+    p = loading_pressure_compact(F - F.mean(axis=0), dt_med)
+    assert m["thrust_n"] == pytest.approx(float(F[:, 2].mean()), abs=1e-12)
+    assert m["noise_dba_band"] == pytest.approx(dba_from_pressure(p, dt_med, 2500.0), abs=1e-12)
+    assert m["noise_dba_full"] == pytest.approx(dba_from_pressure(p, dt_med, None), abs=1e-12)
+    assert m["bpf_tone_db"] == pytest.approx(tone_level_db(p, dt_med, bpf), abs=1e-12)
+
+
+
 def test_evaluate_noise_declares_fwh_flag():
     text = Path("scripts/evaluate_noise.py").read_text(encoding="utf-8")
     assert "--fwh" in text
