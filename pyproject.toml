@@ -33,8 +33,9 @@ dependencies = [
 ]
 
 [project.urls]
-# SSH host alias from the git remote. No public homepage until R4.4.
-Repository = "ssh://git@gitea/klhutchins/Fan-simulator.git"
+Homepage = "https://github.com/klhutchins1/Fan-simulator"
+Repository = "https://github.com/klhutchins1/Fan-simulator"
+Issues = "https://github.com/klhutchins1/Fan-simulator/issues"
 
 [project.scripts]
 fansim-cockpit = "fansim.cockpit_entry:main"

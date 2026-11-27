@@ -34,7 +34,7 @@ validation scoreboard [`docs/validation/scoreboard.md`](../validation/scoreboard
   - Machine-checked validation scoreboard (`docs/validation/scoreboard.md`, tested on every CI run).
   - Physics regression snapshot (`tests/data/physics_snapshot.json`) pinning BEM, BEMT, structural, acoustics,
     and air constants against unintended drift.
-  - 33-unit physics audit ledger (`fansim/audit/registry.yaml`, enforced with `scripts/audit_status.py --strict`).
+  - 34-unit physics audit ledger (`fansim/audit/registry.yaml`, enforced with `scripts/audit_status.py --strict`).
 
 ---
 
@@ -101,7 +101,7 @@ Requires **Python 3.12** via [`uv`](https://docs.astral.sh/uv/) (3.13+ lacks CAD
 ```bash
 uv sync --extra dev
 docker pull opencfd/openfoam-default:2406
-uv run python scripts/cockpit.py --run runs/opt_mountable --reload
+uv run python scripts/cockpit.py
 ```
 
 Open `http://127.0.0.1:8080` in your browser. For the fast test suite without Docker:

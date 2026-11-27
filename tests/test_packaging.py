@@ -34,13 +34,12 @@ def test_pyproject_license_authors_and_classifiers():
     assert "Programming Language :: Python :: 3.12" in classifiers
 
 
-def test_pyproject_repository_names_the_gitea_remote():
+def test_pyproject_repository_names_the_github_remote():
     urls = _project()["urls"]
     repo = urls["Repository"]
-    assert "github.com" not in repo.lower()
-    assert "gitea" in repo
-    assert "klhutchins/Fan-simulator" in repo
-    assert "Homepage" not in urls
+    assert repo == "https://github.com/klhutchins1/Fan-simulator"
+    assert urls["Homepage"] == "https://github.com/klhutchins1/Fan-simulator"
+    assert urls["Issues"] == "https://github.com/klhutchins1/Fan-simulator/issues"
 
 
 def test_pyproject_script_entry_wraps_cockpit():
@@ -64,8 +63,10 @@ def test_fansim_cockpit_help_exits_zero():
         [
             sys.executable,
             "-c",
-            "import sys; sys.argv = ['fansim-cockpit', '--help']; "
-            "from fansim.cockpit_entry import main; main()",
+            (
+                "import sys; sys.argv = ['fansim-cockpit', '--help']; "
+                "from fansim.cockpit_entry import main; main()"
+            ),
         ],
         cwd=ROOT,
         capture_output=True,

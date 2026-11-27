@@ -111,7 +111,7 @@ the validation page is built on a green CI and a clean ledger.
   (PR #115 `818e42e` + PR #121 `5771dcd`), module 6 `optimize/search_space.py` (PR #130 `b1d3f34`),
   module 7 `structural/*` / `acoustics/*` (PR #131 `f5f0f27`), and module 8 `cockpit/*` (PR #132 `2eea9d6`).
   Summary log: `docs/review/rv3-findings.md`; individual dated reviews in `docs/review/2026-11-26-rv3-*.md`.
-  Open pre-registration `math` / `review` follow-ups: #86–#88, #90, #93–#97, #109–#112, #116–#118, #122–#128.
+  RV-3 follow-ups closed in PRs #139–#146: #87, #88, #97, #122, #127, #128 (plus partial #86, #126). Open v0.2/calibration follow-ups: #86 (CFD_VERSION=7 decision), #90, #93–#96, #109–#112, #116–#118, #123–#126.
 - **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `done f87f59b` (triage `7c23df1`, 38 scripts in `archive/scripts/`, `scripts/audit_forensics.py` + tests; all promote follow-ups #74–#76 landed — `fan_noise_curle`, `fan_noise_cv`, and `prop_section_2d` in PR #135 `f87f59b` into `fansim/propeller/section_2d.py` with `propeller.section_2d` audited `PROVEN=34`). Detail: `docs/review/2026-11-25-rv4-script-triage.md`.
 
 - **RV-5 Speed and code health.** Lane: Cursor. CPU: day (profile outside 4–9 PM). Status: `done f4952d4` (2026-11-26).

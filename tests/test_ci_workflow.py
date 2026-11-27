@@ -79,3 +79,12 @@ def test_ci_fails_on_physics_audit_drift_before_pytest():
     assert len(audit) == 1
     needs = jobs["pytest"]["needs"]
     assert needs == "static" or "static" in needs
+
+
+def test_ci_does_not_ignore_release_notes():
+    """Edits to RELEASE_NOTES_v0.1.0.md must still trigger CI and test_r43_release_notes.py."""
+    doc = _doc()
+    on_block = doc.get("on", doc.get(True, {}))
+    for trigger in ("push", "pull_request"):
+        ignored = on_block[trigger].get("paths-ignore", [])
+        assert "docs/release/**" not in ignored, f"{trigger} ignores docs/release/**"

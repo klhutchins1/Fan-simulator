@@ -15,6 +15,9 @@ from fansim.optimize.search_space import blade_from_flat
 R16 = Path(__file__).resolve().parents[1] / "handoff/2026-10-17_from-qa-16-hang/data/p1_designed.jsonl"
 
 
+_SKIP_NO_R16 = pytest.mark.skipif(not R16.is_file(), reason="handoff/ omitted from public export")
+
+
 def _r16(design_id: str):
     for line in R16.open(encoding="utf-8"):
         row = json.loads(line)
@@ -23,6 +26,7 @@ def _r16(design_id: str):
     raise KeyError(design_id)
 
 
+@_SKIP_NO_R16
 def test_short_hub_grows_below_the_blades():
     """All of Δh sits below the blades; the intake (top) face stays put."""
     mount = get_fan_spec("a12x25").motor_mount
@@ -38,6 +42,7 @@ def test_short_hub_grows_below_the_blades():
     assert "hub" in note
 
 
+@_SKIP_NO_R16
 def test_already_tall_hub_is_unchanged():
     mount = get_fan_spec("a12x25").motor_mount
     p = _r16("S1_0001")
@@ -47,6 +52,7 @@ def test_already_tall_hub_is_unchanged():
     assert same is p and note == ""
 
 
+@_SKIP_NO_R16
 def test_validate_cfd_and_export_share_one_hub(tmp_path, monkeypatch):
     """QA-44: the hub validate/score/export see is the same object bounds."""
     from fansim.optimize import objectives as obj
@@ -90,6 +96,7 @@ def test_validate_cfd_and_export_share_one_hub(tmp_path, monkeypatch):
     assert seen["cfd"] == pytest.approx(export_hub, abs=1e-6)
 
 
+@_SKIP_NO_R16
 def test_prepare_export_flat_grows_hub_below_the_blades():
     from fansim.cockpit.placement import prepare_export_flat
     from fansim.optimize.search_space import blade_to_flat

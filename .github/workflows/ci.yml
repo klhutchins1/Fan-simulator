@@ -11,14 +11,16 @@ on:
       - 'docs/qa/daily/**'
       - 'docs/qa/rounds/**'
       - 'docs/review/**'
-      - 'docs/release/**'
+      - 'docs/release/RELEASE_PLAN.md'
+      - 'docs/release/RELEASE_DONE.md'
   pull_request:
     paths-ignore:
       - 'handoff/**/*.md'
       - 'docs/qa/daily/**'
       - 'docs/qa/rounds/**'
       - 'docs/review/**'
-      - 'docs/release/**'
+      - 'docs/release/RELEASE_PLAN.md'
+      - 'docs/release/RELEASE_DONE.md'
   workflow_dispatch:
 
 concurrency:

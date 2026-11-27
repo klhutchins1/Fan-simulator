@@ -91,12 +91,16 @@ def export(out: Path, *, files: list[str] | None = None, excludes: list[str] | N
             sample = src.read_bytes()[: 1_000_000]
         except OSError:
             sample = b""
-        try:
-            text = sample.decode("utf-8")
-        except UnicodeDecodeError:
-            text = sample.decode("utf-8", errors="replace")
-        if leaks_user_path(text):
-            continue
+        # Skip text leak scanning on binary files (e.g. PNGs/ZIPs) so random compressed
+        # bytes cannot trigger false-positive drive-prefix matches; filenames are already
+        # screened by select().
+        if b"\x00" not in sample[:8192]:
+            try:
+                text = sample.decode("utf-8")
+            except UnicodeDecodeError:
+                text = sample.decode("utf-8", errors="replace")
+            if leaks_user_path(text):
+                continue
         dst = out / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
