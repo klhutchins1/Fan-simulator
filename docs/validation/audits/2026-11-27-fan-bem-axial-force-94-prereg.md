@@ -52,4 +52,36 @@ All four criteria must pass. If any fails, record **FAIL** honestly in the Resul
 
 ## Results
 
-*(To be filled in after the pre-registered run is executed.)*
+- **Pre-registration commit (pushed before data):** `c73b0ef`
+- **Verdict: FAIL (on A3).** Per `AGENTS.md` Rule 1, the `fansim/fan_bem.py` change was **not** merged and constants (`AX_SLIP`, `AX_K_FRICTION`) were **not** re-tuned.
+
+### Measured table (un-retuned `(W_m, phi_m)` + torque power + `dp_total = dp_static + swirl_ke / mass`, zero clamps)
+
+| Case (2000 rpm, `axial_force`) | Free CFM | Status | Shut-off Pa | Peak $\eta$ | Violations (`dp`, `en`, `eta`) | `bem_exploit_reason` |
+|---|---|---|---|---|---|---|
+| Stock v3 (`a12x25_reference.yaml`) | 52.59 | `crossed` | 5.86 | 22.60 % | (0, 0, 0) | `""` |
+| Stock v2 (`a12x25_reference_planar.yaml`) | 50.69 | `crossed` | 4.98 | 24.94 % | (0, 0, 0) | `""` |
+| Stock v1 (`a12x25_reference_v1.yaml`) | 48.50 | `crossed` | 4.40 | 10.00 % | (0, 0, 0) | `""` |
+| `lt120` | 75.73 | `crossed` | 7.42 | 12.44 % | (0, 0, 0) | `""` |
+| `E_rand1396` (11-blade QA r4) | 66.44 | `crossed` | 15.96 | 23.70 % | (0, 0, 0) | `""` |
+| Stock v3 paddle (`stagger = 89°`) | 7.24 | `crossed` | 0.28 | 0.01 % | (0, 0, 0) | refused (`< 5 %`) |
+| Stock v3 reversed (`stagger = -45°`) | 0.00 | `no_rise` | -6.33 | 0.00 % | (0, 0, 0) | refused (`no_rise`) |
+| Stock v3 reversed (`stagger = -60°`) | 0.00 | `no_rise` | -5.36 | 0.00 % | (0, 0, 0) | refused (`no_rise`) |
+
+- Reversed `-45°` at `0.005 m³/s`: `dp_static = -7.736 Pa`, `dp_total = +6.551 Pa`.
+
+### Per-criterion verdicts
+
+- **A1 (Thermodynamic & momentum invariants): PASS.** Zero violations across all 5 real fans (eliminating all 15/22 `dp_static > dp_total` violations on `E_rand1396`); `E_rand1396` peak efficiency dropped from the clamped 100 % (raw 115 %) to 23.70 % without any clamp.
+- **A2 (QA-4 exploit-guard contract): PASS.** Paddles (`89°`: 7.24 CFM, 0.01 % peak $\eta$) and reversed blades (`-45°`, `-60°`: `no_rise`) are refused; all 5 real fans pass `bem_exploit_reason(...) == ""`.
+- **A3 (Un-retuned physical plausibility & ordering): FAIL.**
+  - Stock v3 free delivery `52.59 CFM` (-12.5 % vs published 60.1 CFM) passed the un-retuned ±25 % band (outside the old fitted QA rule (a) ±10 % band), **but** Stock v3 shut-off collapsed to `5.86 Pa` (**-74.4 %** vs published 22.9 Pa, far below `[14.9, 30.9] Pa`).
+  - Stock v1 (`48.50 CFM`) fell below Stock v2 (`50.69 CFM`), inverting CFD (`77.4 > 56.5 CFM`).
+  - `lt120` (`75.73 CFM`) > Stock v3 (`52.59 CFM`) passed, though `lt120` shut-off also collapsed to `7.42 Pa`.
+- **A4 (Default Euler preservation & ledger): N/A (code change reverted on A3 FAIL).**
+
+### Diagnosis
+
+1. **Swirl-clamp collapse of $W_m^2$ near shut-off:** Near shut-off ($V_x \to 0$), the 1-D angular-momentum balance `vth_new = f_theta / (rho * max(Vx, 0.05) * 2*pi*r)` saturates the upper clamp `vth = 0.95 * U`, forcing $U - v_{\theta,m} = 0.525\,U$ and cutting $W_m^2 \approx 0.276\,U^2$ (vs $W_1^2 \approx U^2$). Multiplying that already-collapsed $f_x(W_m, \phi_m)$ by the un-retuned `AX_SLIP = 0.65` (which had absorbed swirl induction when fitted on $W_1$) retains only $0.276 \times 0.65 \approx 18\%$ of the inlet-triangle force, collapsing Stock v3 shut-off from `22.1 Pa` to `5.86 Pa`.
+2. **Double-counting of deviation vs induction:** Replacing `(W_1, phi_1)` with `(W_m, phi_m)` cleanly fixes the algebraic energy/total-pressure violations (A1), but cannot be dropped onto the legacy `AX_SLIP = 0.65` / `vth <= 0.95*U` 1-D swirl-clamp scaffold in isolation. Resolving `#94` together with `#93` and `#95` requires a unified physical deviation + profile-drag + low-flow / radial-equilibrium formulation (v0.2), pre-registered against the full CFD and published benchmark corpus.
+
