@@ -202,7 +202,7 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
     state.prop_model = "fpv_5inch"
     state.prop_models = prop_spec_names()
     state.prop_model_items = [
-        {"title": f"{get_prop_spec(k).name} ({k})", "value": k}
+        {"title": get_prop_spec(k).name, "value": k}
         for k in state.prop_models
     ]
     state.prop_info = "Pick a size, tune the blade, then Analyze (instant) or Optimize."
@@ -1116,7 +1116,7 @@ def render_prop_tab(ctx: CockpitCtx) -> None:
                                     "size": "small",
                                     "click": (ctx.stop_prop_optimize,),
                                     "disabled": ("!prop_opt_running",),
-                                    "v_show": "ui_mode === 'expert'",
+                                    "v_show": "ui_mode === 'expert' && prop_opt_running",
                                 },
                                 "randomize": {
                                     "label": "Randomize",

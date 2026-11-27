@@ -215,7 +215,34 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             if state.show_stock
                             else None
                         )
-                        with v3.VCard(style="height:640px;", classes="mb-2 pa-1"):
+                        # Issue #103: compact Simple-mode empty state instead of 640 px blank plot.
+                        with v3.VCard(
+                            classes="mb-2 pa-4 text-center",
+                            variant="outlined",
+                            v_show="ui_mode === 'simple' && n_scored_designs < 1",
+                        ):
+                            html.Div(
+                                "No assessed blades yet — press Assess on Design to measure a "
+                                "blade's airflow and plot it here.",
+                                classes="text-body-2 text-medium-emphasis mb-3",
+                            )
+                            v3.VBtn(
+                                "Go to Design & run Assess",
+                                color="primary",
+                                variant="tonal",
+                                size="small",
+                                click="fan_subtab = 'design'",
+                            )
+                        with v3.VCard(
+                            style="height:640px;",
+                            classes="mb-2 pa-1",
+                            v_show="n_scored_designs >= 1 || ui_mode === 'expert'",
+                        ):
+                            html.Div(
+                                "Higher and farther right means more airflow — click any point to load it.",
+                                classes="text-caption text-medium-emphasis px-2 pt-1",
+                                v_show="ui_mode === 'simple' && n_scored_designs >= 1",
+                            )
                             html.Div(
                                 "CFM scatter — up and right is better (free vs load). "
                                 "Click a point to load Design. Color = efficiency, shape = run "
@@ -254,6 +281,29 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 style="white-space: pre-line",
                                 v_if="library_msg",
                             )
+                            # Issue #99: search + "Fits this hub only" filter above the Library list.
+                            with html.Div(
+                                v_if="library_all_items && library_all_items.length",
+                                classes="mb-2",
+                            ):
+                                v3.VTextField(
+                                    v_model=("library_search",),
+                                    label="Search saved designs",
+                                    placeholder="e.g. 7 blades, 56 CFM, run name",
+                                    density="compact",
+                                    variant="outlined",
+                                    clearable=True,
+                                    hide_details=True,
+                                    classes="mb-1",
+                                )
+                                v3.VSwitch(
+                                    v_model=("library_fits_only",),
+                                    label="Fits this hub only",
+                                    density="compact",
+                                    color="primary",
+                                    inset=True,
+                                    hide_details=True,
+                                )
                             v3.VBtn(
                                 "Scale to this hub",
                                 color="primary",
@@ -265,15 +315,27 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 v_show="library_items && library_items.length",
                                 disabled=("!library_sel || preview_busy || assess_busy || export_busy || opt_running",),
                             )
+                            html.Div(
+                                "No matching designs — clear search or turn off 'Fits this hub only'.",
+                                classes="text-caption text-medium-emphasis py-2",
+                                v_if="library_all_items && library_all_items.length && (!library_items || !library_items.length)",
+                            )
                             with html.Div(
                                 style="max-height: 360px; overflow-y: auto;",
                                 v_if="library_items && library_items.length",
                             ):
                                 with v3.VList(density="compact", lines="two"):
-                                    with html.Div(v_for="it in library_items", key="it.value || it.caption"):
+                                    with html.Div(
+                                        v_for="it in library_items",
+                                        key="it.value || it.run || it.title",
+                                    ):
                                         with v3.VListSubheader(v_if="it.role === 'group'"):
                                             html.Div("{{ it.title }}")
-                                            html.Div("{{ it.caption }}", classes="text-caption")
+                                            html.Div(
+                                                "{{ it.caption }}",
+                                                classes="text-caption",
+                                                v_if="it.caption",
+                                            )
                                         with v3.VListItem(
                                             v_if="it.role === 'row'",
                                             disabled=("!it.clickable",),
@@ -692,7 +754,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         "variant": "tonal",
                                         "click": (cancel_optimize,),
                                         "disabled": ("!opt_running",),
-                                        "v_show": "ui_mode === 'expert'",
+                                        "v_show": "ui_mode === 'expert' && opt_running",
                                     },
                                     {
                                         "label": "⏹ Cancel Assess",
@@ -701,6 +763,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         "variant": "tonal",
                                         "click": (cancel_assess,),
                                         "disabled": ("!assess_busy || opt_running",),
+                                        "v_show": "assess_busy && !opt_running",
                                     },
                                 ],
                                 "randomize": {
@@ -1507,6 +1570,27 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     )
                         html.Div("{{ glyph_caption }}", classes="text-caption text-medium-emphasis mt-1")
                     with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
+                        # Issue #102: visible stale-mesh warning bar on the 3-D viewer itself.
+                        with v3.VAlert(
+                            v_if="edited_stale && !preview_busy",
+                            type="warning",
+                            density="compact",
+                            variant="tonal",
+                            classes="ma-2 mb-1",
+                        ):
+                            with html.Div(classes="d-flex align-center justify-space-between ga-2"):
+                                html.Span(
+                                    "3-D view shows previous shape — press Preview to update.",
+                                    classes="text-caption font-weight-medium",
+                                )
+                                v3.VBtn(
+                                    "Preview now",
+                                    size="x-small",
+                                    color="warning",
+                                    variant="flat",
+                                    click=(do_preview,),
+                                    disabled=(_action_busy,),
+                                )
                         v3.VProgressLinear(
                             indeterminate=True,
                             color="primary",
@@ -1690,6 +1774,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     size="small",
                                     variant="tonal",
                                     color="warning",
+                                    v_show="airflow_busy",
                                     disabled=("!airflow_busy",),
                                     click=(cancel_airflow,),
                                 )

@@ -118,5 +118,11 @@ files = [
     "fansim/fan_spec.py",
     "fansim/fan_bem.py",
     "fansim/optimize/search_space.py",
+    "fansim/optimize/objectives.py",
     "fansim/cfd/metrics.py",
+    "fansim/cfd/flow_verdicts.py",
+    "fansim/cfd/spanwise.py",
+    "fansim/acoustics/proxies.py",
+    "fansim/propeller/bemt.py",
+    "fansim/propeller/polars.py",
 ]

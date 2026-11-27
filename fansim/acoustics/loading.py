@@ -17,6 +17,8 @@ Recalibrate with `calibrate(...)` as more designs are LBM-scored. Output is an L
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 # Calibrated on the 7 opt_noise finalists: LBM_band ~ c0*n_blades + c1*thrust_per_blade + c2.
@@ -30,13 +32,25 @@ def loading_noise_proxy(n_blades: int, thrust_per_blade_n: float, coeffs=DEFAULT
     n_blades: blade count. thrust_per_blade_n: RANS thrust / n_blades (N). Relative metric for
     ranking designs; use as a MINIMIZE objective. Cheaper than Proudman (no field reconstruction).
     """
+    nb = int(n_blades)
+    tpb = float(thrust_per_blade_n)
+    if nb < 1:
+        raise ValueError(f"n_blades must be >= 1, got {n_blades!r}")
+    if not math.isfinite(tpb):
+        raise ValueError(f"thrust_per_blade_n must be finite, got {thrust_per_blade_n!r}")
     c0, c1, c2 = coeffs
-    return c0 * float(n_blades) + c1 * float(thrust_per_blade_n) + c2
+    return float(c0 * float(nb) + c1 * tpb + c2)
 
 
 def loading_proxy_from_rans(n_blades: int, thrust_n: float, coeffs=DEFAULT_COEFFS) -> float:
     """Convenience: proxy from total RANS thrust (divides by n_blades internally)."""
-    return loading_noise_proxy(n_blades, thrust_n / max(n_blades, 1), coeffs)
+    nb = int(n_blades)
+    thrust = float(thrust_n)
+    if nb < 1:
+        raise ValueError(f"n_blades must be >= 1, got {n_blades!r}")
+    if not math.isfinite(thrust):
+        raise ValueError(f"thrust_n must be finite, got {thrust_n!r}")
+    return loading_noise_proxy(nb, thrust / nb, coeffs)
 
 
 def loading_proxy_operating(
@@ -51,7 +65,10 @@ def loading_proxy_operating(
     λ = actual_rpm / rated_rpm (``derate`` ≤ 1). Scale thrust before the proxy so
     motor-limited designs are not ranked on rated-RPM thrust.
     """
-    lam2 = float(derate) * float(derate)
+    d = float(derate)
+    if not (math.isfinite(d) and d >= 0.0):
+        raise ValueError(f"derate must be finite and >= 0, got {derate!r}")
+    lam2 = d * d
     return loading_proxy_from_rans(n_blades, float(thrust_n_at_rated) * lam2, coeffs)
 
 
@@ -64,8 +81,12 @@ def calibrate(n_blades, thrust_per_blade, lbm_band) -> tuple[float, float, float
     nb = np.asarray(n_blades, float)
     tpb = np.asarray(thrust_per_blade, float)
     y = np.asarray(lbm_band, float)
+    if nb.ndim != 1 or tpb.ndim != 1 or y.ndim != 1 or not (len(nb) == len(tpb) == len(y)):
+        raise ValueError("n_blades, thrust_per_blade, and lbm_band must be 1-D arrays of equal length")
     if len(nb) < 3:
         raise ValueError("need >= 3 calibration points")
+    if not (np.all(np.isfinite(nb)) and np.all(np.isfinite(tpb)) and np.all(np.isfinite(y))):
+        raise ValueError("calibration inputs must be finite")
     A = np.column_stack([nb, tpb, np.ones(len(nb))])
     coef, *_ = np.linalg.lstsq(A, y, rcond=None)
     return float(coef[0]), float(coef[1]), float(coef[2])

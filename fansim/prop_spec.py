@@ -15,11 +15,12 @@ confident part. New props are new PropSpec entries or config/prop_models/*.yaml 
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
+from fansim.physics.air import C0_AIR as C_AIR
+
 MM_PER_IN = 25.4
-C_AIR = 343.0  # m/s, speed of sound
 
 
 @dataclass

@@ -109,8 +109,12 @@ def bind(session) -> None:
                 except Exception as exc:  # noqa: BLE001
                     log_caught(_log, "preview volume sidecar", exc, level=logging.DEBUG)
             weight = estimate_weight_g(vol, spec.material)
-        except Exception:  # noqa: BLE001
-            return True, ""
+        except Exception as exc:  # noqa: BLE001
+            log_caught(_log, "spec_status STL read", exc)
+            return True, (
+                f"⚠ Could not verify build spec from preview STL ({type(exc).__name__}); "
+                "re-run Preview before printing."
+            )
         ok, reason = check_build(spec, dia, 2.0 * params.hub_radius, depth, weight)
         depth_msg = session._depth_driver_msg(flat) if (flat and "depth" in reason.lower()) else ""
         if not ok:
@@ -458,7 +462,7 @@ def bind(session) -> None:
             state.flush()
             return
         raw = list(np.linspace(mn, mx, steps))
-        values = sorted(set(int(round(v)) for v in raw)) if field == "n_blades" else raw
+        values = sorted({round(v) for v in raw}) if field == "n_blades" else raw
 
         async def task():
             state.assess_busy = True
@@ -535,6 +539,7 @@ def bind(session) -> None:
                     ["taskkill", "/F", "/T", "/PID", str(p.pid)],
                     capture_output=True,
                     text=True,
+                    check=False,
                 )
             else:
                 p.terminate()

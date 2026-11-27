@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import cadquery as cq
 import numpy as np
 import trimesh
+
+if TYPE_CHECKING:  # pragma: no cover
+    import cadquery as cq
 
 # K2 / QA-34: faces smaller than this (mm²) or with < 3 unique vertices are tessellation needles.
 _DEGEN_AREA_MM2 = 1e-9
@@ -59,6 +62,8 @@ def export_stl(
     model: cq.Workplane, path: str | Path, tolerance: float = 0.05, angular_tolerance: float = 0.2
 ) -> Path:
     """Tessellate and write an STL. ``tolerance`` is the max chordal deviation in mm."""
+    import cadquery as cq
+
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     cq.exporters.export(
@@ -76,6 +81,8 @@ def export_step(model: cq.Workplane, path: str | Path, *, unit: str = "MM") -> P
 
     No tessellation — CAD apps get the exact solid. ``unit`` is the STEP header unit.
     """
+    import cadquery as cq
+
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     cq.exporters.export(model, str(path), exportType="STEP", unit=unit)  # type: ignore[arg-type]
@@ -89,9 +96,9 @@ def watertight_report(path: str | Path) -> WatertightReport:
     lo, hi = mesh.bounds
     return WatertightReport(
         watertight=bool(mesh.is_watertight),
-        n_vertices=int(len(mesh.vertices)),
-        n_faces=int(len(mesh.faces)),
+        n_vertices=len(mesh.vertices),
+        n_faces=len(mesh.faces),
         volume_mm3=float(mesh.volume),
-        n_bodies=int(len(bodies)),
+        n_bodies=len(bodies),
         bounds_mm=(tuple(map(float, lo)), tuple(map(float, hi))),
     )

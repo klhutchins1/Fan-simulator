@@ -7,6 +7,7 @@ tables are missing so callers can fall back to the analytic ``_cl_cd``.
 
 from __future__ import annotations
 
+import itertools
 import math
 from functools import lru_cache
 from pathlib import Path
@@ -40,6 +41,8 @@ def family_for_camber(camber: float, thickness: float = _DEFAULT_THICKNESS) -> s
     """Nearest vendored polar family for section camber and thickness fractions."""
     c = float(camber)
     t = float(thickness) if thickness is not None else _DEFAULT_THICKNESS
+    if not (math.isfinite(c) and math.isfinite(t)):
+        raise ValueError(f"camber and thickness must be finite, got camber={camber!r}, thickness={thickness!r}")
     return min(
         _FAMILIES,
         key=lambda fct: abs(c - fct[1]) + 0.5 * abs(t - fct[2]),
@@ -55,11 +58,16 @@ def _polar_re_levels(family: str) -> tuple[float, ...]:
 
 def _parse_csv(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     data = np.genfromtxt(path, delimiter=",", names=True)
-    return (
-        np.asarray(data["alpha_deg"], float),
-        np.asarray(data["cl"], float),
-        np.asarray(data["cd"], float),
-    )
+    if data.size == 0:
+        raise ValueError(f"polar CSV is empty: {path}")
+    alpha = np.atleast_1d(np.asarray(data["alpha_deg"], float))
+    cl = np.atleast_1d(np.asarray(data["cl"], float))
+    cd = np.atleast_1d(np.asarray(data["cd"], float))
+    if not (np.all(np.isfinite(alpha)) and np.all(np.isfinite(cl)) and np.all(np.isfinite(cd))):
+        raise ValueError(f"polar CSV contains non-finite values: {path}")
+    if alpha.size > 1 and not bool(np.all(np.diff(alpha) > 0.0)):
+        raise ValueError(f"polar CSV alpha_deg must be strictly increasing: {path}")
+    return alpha, cl, cd
 
 
 @lru_cache(maxsize=32)
@@ -132,6 +140,13 @@ def _stall_from_limits(
     return stalled, float(cap)
 
 
+@lru_cache(maxsize=64)
+def _polar_curve_limits(family: str, re_key: float) -> tuple[float, float | None, float, float]:
+    """Cached stall-angle and Cl-bound summary for one `(family, Re)` table."""
+    alphas, cls, _cds = load_polar_family(family)[re_key]
+    return _curve_limits(alphas, cls)
+
+
 def section_table(
     alpha_rad: float,
     camber: float,
@@ -139,25 +154,30 @@ def section_table(
     thickness: float = _DEFAULT_THICKNESS,
 ) -> tuple[float, float, bool, float] | None:
     """Table `(cl, cd, stalled, cl_cap)` or None when `cl_cd_table` would miss."""
-    if re is None or not math.isfinite(float(re)):
+    if re is None:
         return None
-    fam = family_for_camber(camber, thickness)
+    r = float(re)
+    a_rad = float(alpha_rad)
+    c_val = float(camber)
+    t_val = float(thickness) if thickness is not None else _DEFAULT_THICKNESS
+    if not (math.isfinite(r) and math.isfinite(a_rad) and math.isfinite(c_val) and math.isfinite(t_val)):
+        return None
+    fam = family_for_camber(c_val, t_val)
     tables = load_polar_family(fam)
     if not tables:
         return None
-    a_deg = math.degrees(float(alpha_rad))
+    a_deg = math.degrees(a_rad)
     res = _polar_re_levels(fam)
-    r = float(re)
     if r < res[0]:
         return None
-    if r <= res[0] or r >= res[-1]:
-        key = res[0] if r <= res[0] else res[-1]
+    if r == res[0] or r >= res[-1]:
+        key = res[0] if r == res[0] else res[-1]
         alphas, cls, cds = tables[key]
         cl, cd = _interp_alpha(a_deg, alphas, cls, cds)
-        a_pos, a_neg, cl_peak, cl_trough = _curve_limits(alphas, cls)
+        a_pos, a_neg, cl_peak, cl_trough = _polar_curve_limits(fam, key)
         stalled, cap = _stall_from_limits(a_deg, cl, a_pos, a_neg, cl_peak, cl_trough)
         return cl, cd, stalled, cap
-    for lo, hi in zip(res[:-1], res[1:]):
+    for lo, hi in itertools.pairwise(res):
         if lo <= r <= hi:
             w = (math.log10(r) - math.log10(lo)) / (math.log10(hi) - math.log10(lo))
             a0, cl0, cd0 = tables[lo]
@@ -166,7 +186,7 @@ def section_table(
             c1, d1 = _interp_alpha(a_deg, a1, cl1, cd1)
             cl = c0 * (1.0 - w) + c1 * w
             cd = d0 * (1.0 - w) + d1 * w
-            limits = _blend_limits(_curve_limits(a0, cl0), _curve_limits(a1, cl1), w)
+            limits = _blend_limits(_polar_curve_limits(fam, lo), _polar_curve_limits(fam, hi), w)
             stalled, cap = _stall_from_limits(a_deg, cl, *limits)
             return cl, cd, stalled, cap
     return None
@@ -189,3 +209,4 @@ def clear_polar_cache() -> None:
     load_polar_family.cache_clear()
     family_for_camber.cache_clear()
     _polar_re_levels.cache_clear()
+    _polar_curve_limits.cache_clear()

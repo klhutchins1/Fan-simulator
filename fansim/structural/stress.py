@@ -18,6 +18,7 @@ factor against that knockdown by default (roadmap §1.3).
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from fansim.geometry.blade import BladeParams
@@ -50,15 +51,33 @@ def centrifugal_root_stress(
 ) -> CentrifugalReport:
     mat = MATERIALS[material]
     k = LAYER_ADHESION_K if adhesion_k is None else float(adhesion_k)
-    omega = params.rpm * 2.0 * 3.141592653589793 / 60.0
-    r_tip = params.tip_radius * MM_TO_M
-    r_hub = params.hub_radius * MM_TO_M
+    rpm = float(params.rpm)
+    tip_radius = float(params.tip_radius)
+    hub_radius = float(params.hub_radius)
+    min_sf = float(min_safety_factor)
+    if not (math.isfinite(rpm) and rpm >= 0.0):
+        raise ValueError(f"rpm must be finite and >= 0, got {params.rpm!r}")
+    if not (math.isfinite(hub_radius) and math.isfinite(tip_radius)):
+        raise ValueError(
+            f"hub_radius and tip_radius must be finite, got {params.hub_radius!r}, {params.tip_radius!r}"
+        )
+    if hub_radius < 0.0 or tip_radius < hub_radius:
+        raise ValueError(
+            f"require 0 <= hub_radius <= tip_radius, got hub={hub_radius}, tip={tip_radius}"
+        )
+    if not (math.isfinite(k) and k > 0.0):
+        raise ValueError(f"adhesion_k must be finite and > 0, got {k!r}")
+    if not (math.isfinite(min_sf) and min_sf > 0.0):
+        raise ValueError(f"min_safety_factor must be finite and > 0, got {min_safety_factor!r}")
+    omega = rpm * 2.0 * math.pi / 60.0
+    r_tip = tip_radius * MM_TO_M
+    r_hub = hub_radius * MM_TO_M
     sigma_pa = 0.5 * mat.density_kg_m3 * omega**2 * (r_tip**2 - r_hub**2)
-    sigma_mpa = sigma_pa / 1e6
+    sigma_mpa = float(sigma_pa / 1e6)
     in_plane = float(mat.yield_strength_mpa)
-    allow = in_plane * k
-    sf = allow / sigma_mpa if sigma_mpa > 1e-9 else float("inf")
-    ok = sf >= min_safety_factor
+    allow = float(in_plane * k)
+    sf = float(allow / sigma_mpa) if sigma_mpa > 1e-9 else float("inf")
+    ok = sf >= min_sf
     reason = ""
     if not ok:
         reason = f"safety factor {sf:.1f} < {min_safety_factor} ({material}"

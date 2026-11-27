@@ -14,17 +14,16 @@ through a few radial control stations, patterned into N blades on a cylindrical 
 from __future__ import annotations
 
 import math
+import warnings
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
-import cadquery as cq
 import numpy as np
 
 from fansim.geometry.airfoil import (
     SECTION_FAMILIES,
     SECTION_NACA,
     SECTION_PLATE,
-    naca4,
     section_loop_2d,
 )
 from fansim.geometry.features import Features, apply_features
@@ -37,21 +36,21 @@ _CQ = None
 
 def _cq():
     """Lazy CadQuery import (avoids importing OCCT on pure-math paths)."""
-    global _CQ  # noqa: PLW0603
+    global _CQ
     if _CQ is None:
-        import cadquery as cq  # noqa: PLC0415
+        import cadquery as cq
 
         _CQ = cq
     return _CQ
 
 
-@dataclass(frozen=True)
-class Vec:
-    """Lightweight 3D vector (CadQuery-free).
+class Vec(NamedTuple):
+    """Lightweight 3D vector (CadQuery-free 3-tuple with ``.x``/``.y``/``.z``).
 
     Many geometry helpers only need x/y/z floats for envelope checks, shrouds, etc. Keep those
     paths independent from CadQuery/OCCT so unit tests and non-CAD tooling don't pay the import
-    cost (or hit platform brittleness).
+    cost (or hit platform brittleness). Being a 3-tuple, CadQuery's ``Wire.makePolygon`` also
+    accepts ``list[Vec]`` directly without conversion.
     """
 
     x: float
@@ -239,7 +238,7 @@ def normalize_shroud_thick_mm(thick: float) -> float:
     return t
 
 
-def shroud_is_full(params: "BladeParams") -> bool:
+def shroud_is_full(params: BladeParams) -> bool:
     t = float(getattr(params, "shroud_thick_mm", 0.0) or 0.0)
     f = min(max(float(getattr(params, "shroud_height_frac", 1.0) or 0.0), 0.0), 1.0)
     return t > 0.0 and f >= 1.0 - SHROUD_FULL_EPS
@@ -274,9 +273,7 @@ def open_tip_rmax_mm(params: BladeParams) -> float:
             **_thick_scale_kw(params),
         )
         for v in pts:
-            rr = math.hypot(v.x, v.y)
-            if rr > rmax:
-                rmax = rr
+            rmax = max(rmax, math.hypot(v.x, v.y))
     if bool(getattr(params, "cylindrical_tip", True)):
         rmax = min(rmax, float(params.tip_radius))
     return rmax
@@ -324,6 +321,8 @@ def min_blade_wall_mm(params: BladeParams) -> float:
     blade loading. Excludes the LE/TE ``*_thick_scale`` knife edges, which are sub-features no
     practical mesh resolves.
     """
+    if not params.stations:
+        raise ValueError("min_blade_wall_mm requires at least one radial station")
     return min(float(s.thickness) * float(s.chord) for s in params.stations)
 
 
@@ -347,15 +346,33 @@ def _interp_stations(params: BladeParams, n_span: int) -> dict[str, np.ndarray]:
     out = {"r_frac": q}
     mode = str(getattr(params, "span_interp", SPAN_INTERP_LINEAR) or SPAN_INTERP_LINEAR).lower()
     use_pchip = mode == SPAN_INTERP_PCHIP and len(rf) >= 3
+    pchip_cls = None
+    if use_pchip:
+        if not np.all(np.diff(rf) > 0.0):
+            warnings.warn(
+                "PCHIP span interpolation requires strictly increasing station r_frac; "
+                "falling back to linear interpolation",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            use_pchip = False
+        else:
+            from scipy.interpolate import PchipInterpolator
+
+            pchip_cls = PchipInterpolator
     for name in fields:
         y = np.array([getattr(s, name) for s in ctrl], dtype=float)
-        if use_pchip:
+        if use_pchip and pchip_cls is not None:
             try:
-                from scipy.interpolate import PchipInterpolator
-                out[name] = PchipInterpolator(rf, y)(q)
+                out[name] = pchip_cls(rf, y)(q)
                 continue
-            except Exception:  # noqa: BLE001 — fall back to linear
-                pass
+            except ValueError as exc:
+                warnings.warn(
+                    f"PCHIP span interpolation failed for {name!r} ({exc}); "
+                    "falling back to linear interpolation",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
         out[name] = np.interp(q, rf, y)
     return out
 
@@ -384,7 +401,7 @@ def _section_loop(
     te_face: float = 1.0,
     le_face: float = 1.0,
     blade_z_mm: float = 0.0,
-) -> tuple[np.ndarray, list[cq.Vector]]:
+) -> tuple[np.ndarray, list[Vec]]:
     """Closed section at radius ``r``, plus chord-fraction ``x`` (LE/TE indexing).
 
     ``wrap=True`` puts the section ON the cylinder of radius ``r`` (theta = lean + t/r), so a
@@ -447,6 +464,8 @@ def _section_loop(
 
     th = np.radians(lean_deg)
     if wrap:
+        if float(r) <= 0.0:
+            raise ValueError(f"wrapped section requires r > 0 mm, got {r!r}")
         # Wrapped (default for BladeParams.section_wrap="cylinder"): ``t`` is arc length on the
         # cylinder of radius r. Planar sections stacked with lean/skew lost most of their camber in
         # a cylinder cut (Stock sliders 0.08-0.10 built 0.036-0.040; QA r8 Task D).
@@ -459,7 +478,7 @@ def _section_loop(
         ct, st = np.cos(th), np.sin(th)
         xs = r * ct - t * st
         ys = r * st + t * ct
-    pts = [cq.Vector(float(px), float(py), float(z))
+    pts = [Vec(float(px), float(py), float(z))
            for px, py, z in zip(xs, ys, axial)]
     return x, pts
 
@@ -488,7 +507,7 @@ def _section_points_3d(
     te_face: float = 1.0,
     le_face: float = 1.0,
     blade_z_mm: float = 0.0,
-) -> list[cq.Vector]:
+) -> list[Vec]:
     """Build the closed 3D loop of one airfoil section in the tangent plane at radius ``r``.
 
     Placement is planar-tangent (not θ = t/r stream-surface wrap): chordwise/thickness coords
@@ -530,6 +549,8 @@ def apply_winglet(params: BladeParams, span_frac: float = 0.85,
                              interp("lean_deg"), le_sweep=interp("le_sweep"), le_skew=interp("le_skew"),
                              te_face=interp("te_face"), le_face=interp("le_face"))
     tip = st[-1]
+    if tip.r_frac <= span_frac:
+        return params
     tip_wl = RadialStation(tip.r_frac, tip.chord, tip.stagger_deg, tip.thickness, tip.max_camber,
                            tip.camber_pos, tip.sweep + sweep_add, tip.skew, tip.lean_deg + lean_add,
                            le_sweep=tip.le_sweep, le_skew=tip.le_skew,
@@ -559,9 +580,10 @@ def apply_tip_shape(params: BladeParams, tip_round: float = 0.0,
         return float(np.interp(rf, rs, [getattr(s, field) for s in st]))
 
     kept = [s for s in st if s.r_frac < start_frac]
+    n_steps = max(int(n), 1)
     tip_stations = []
-    for i in range(1, n + 1):
-        rf = start_frac + (1.0 - start_frac) * i / n
+    for i in range(1, n_steps + 1):
+        rf = start_frac + (1.0 - start_frac) * i / n_steps
         u = (rf - start_frac) / (1.0 - start_frac)          # 0 at start .. 1 at the tip
         # quarter-ellipse chord scale: 1.0 at the start, (1-tr) at the very tip, bulging outward so
         # the outer edge reads as a rounded arc rather than a straight taper.
@@ -589,6 +611,7 @@ def _capped_loft(wires: list, loops: list) -> cq.Solid:
     (the loop runs TE -> one side -> LE at n/2 -> other side, so the halves pair point for point),
     sew, and make the solid.
     """
+    cq = _cq()
     from OCP.BRepOffsetAPI import BRepOffsetAPI_ThruSections
 
     # ruled: bilinear patches between neighbouring wires, the same patch type the planar loft gets.
@@ -633,11 +656,13 @@ def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False,
 
         # Screen/preview lofts also need realized loft chords — station.chord is the measured
         # target; prepare_* measures at full loft density so screen n_span does not under-compensate.
-        return build_blade_solid(prepare_loft_chords(params), _chord_realized=True)
+        return build_blade_solid(
+            prepare_loft_chords(params), _chord_realized=True, _trim_tip=_trim_tip
+        )
     if len(params.stations) > 3 and not screen:
         n_span = max(n_span, 30)
     if int(params.tip_notch_count or 0) > 0:
-        # Full solids keep 48; screen/preview loft uses a lighter floor.
+        # Full solids keep NOTCH_SPAN_SECTIONS; screen/preview loft uses its floor.
         notch_floor = (
             NOTCH_SPAN_SECTIONS_PREVIEW if screen else NOTCH_SPAN_SECTIONS
         )
@@ -782,8 +807,6 @@ def tip_section_rmin_mm(params: BladeParams) -> float:
     The max hypot occurs at the LE/TE corners (a staggered chord swings its ends outboard), so
     sizing the ring bore off ``open_tip_rmax_mm`` would only fuse the corners and leave the rest
     of the chord open to the outside. The bore must go under this minimum instead."""
-    import math
-
     return min(math.hypot(v.x, v.y) for v in tip_section_points(params))
 
 
@@ -852,10 +875,14 @@ def _cylinder_hub(params: BladeParams, z_bottom: float, z_top: float) -> cq.Soli
 def build_hub(params: BladeParams, z_bottom: float, z_top: float) -> cq.Solid:
     """The hub solid between z_bottom..z_top: a cylinder, optionally capped with a pointy cone or a
     rounded dome nose of height ``hub_nose_mm`` on the +Z (intake) end. Falls back to a plain
-    cylinder if a nose op fails, so the impeller always builds."""
+    cylinder (emitting a ``RuntimeWarning``) if a nose op fails, so the impeller always builds."""
     cq = _cq()
     R = params.hub_radius
     profile = (params.hub_profile or "cylinder").lower()
+    if profile not in ("cylinder", "cone", "dome"):
+        raise ValueError(
+            f"unknown hub_profile {params.hub_profile!r}; expected 'cylinder', 'cone', or 'dome'"
+        )
     nose = float(params.hub_nose_mm or 0.0)
     if profile == "cylinder" or nose <= 0.0:
         return _cylinder_hub(params, z_bottom, z_top)
@@ -866,15 +893,18 @@ def build_hub(params: BladeParams, z_bottom: float, z_top: float) -> cq.Solid:
             cap = cq.Solid.makeCone(R, 0.5, nose + ov, cq.Vector(0, 0, z_top - ov), cq.Vector(0, 0, 1))
             return base.fuse(cap).clean()
         if profile == "dome":  # ONE revolved profile (hub wall + quarter-ellipse dome) — no fuse seam
-            import numpy as np
             eps = 0.1  # tiny axis offset avoids the revolve axis-degeneracy (negligible center pinhole)
             arc = [(max(float(R * np.cos(t)), eps), float(z_top + nose * np.sin(t)))
                    for t in np.linspace(0.0, np.pi / 2, 24)[1:]]
             outline = [(eps, z_bottom), (R, z_bottom), (R, z_top), *arc]  # close() returns down the axis
             wp = cq.Workplane("XZ").polyline(outline).close().revolve(360, (0, 0, 0), (0, 1, 0))
             return wp.val()
-    except Exception:  # noqa: BLE001 - a kernel hiccup on the nose shouldn't kill the build
-        pass
+    except Exception as exc:  # noqa: BLE001 - a kernel hiccup on the nose shouldn't kill the build
+        warnings.warn(
+            f"hub {profile!r} nose failed ({exc}); falling back to plain cylinder",
+            RuntimeWarning,
+            stacklevel=2,
+        )
     return _cylinder_hub(params, z_bottom, z_top)
 
 
@@ -910,6 +940,34 @@ def validate_blade_params(params: BladeParams) -> None:
     if float(hub) >= float(tip):
         raise ValueError(f"hub_radius {float(hub):.2f} mm must be < tip_radius {float(tip):.2f} mm "
                          "(otherwise there is no blade span)")
+    embed = params.root_embed
+    if not finite(embed) or float(embed) < 0.0 or float(embed) >= float(hub):
+        raise ValueError(
+            f"root_embed must be finite and in [0, hub_radius={float(hub):.2f}), got {embed!r}"
+        )
+    for count_name in ("n_span", "n_chord"):
+        val = getattr(params, count_name)
+        ok_int = finite(val) and not isinstance(val, bool) and float(val) == int(float(val))
+        if not ok_int or int(float(val)) < 2:
+            raise ValueError(f"{count_name} must be an integer >= 2, got {val!r}")
+    if not finite(params.hub_axial_margin) or float(params.hub_axial_margin) < 0.0:
+        raise ValueError(f"hub_axial_margin must be finite and >= 0, got {params.hub_axial_margin!r}")
+    if params.hub_height_mm is not None and (
+        not finite(params.hub_height_mm) or float(params.hub_height_mm) <= 0.0
+    ):
+        raise ValueError(f"hub_height_mm must be positive and finite, got {params.hub_height_mm!r}")
+    for name in ("blade_hub_z_mm", "blade_z_mm"):
+        val = getattr(params, name)
+        if not finite(val):
+            raise ValueError(f"{name} must be finite, got {val!r}")
+    if not finite(params.shroud_thick_mm) or float(params.shroud_thick_mm) < 0.0:
+        raise ValueError(f"shroud_thick_mm must be finite and >= 0, got {params.shroud_thick_mm!r}")
+    if not finite(params.shroud_height_frac) or not (0.0 <= float(params.shroud_height_frac) <= 1.0):
+        raise ValueError(
+            f"shroud_height_frac must be in [0, 1], got {params.shroud_height_frac!r}"
+        )
+    if not finite(params.hub_nose_mm) or float(params.hub_nose_mm) < 0.0:
+        raise ValueError(f"hub_nose_mm must be finite and >= 0, got {params.hub_nose_mm!r}")
     if len(params.stations) < 2:
         raise ValueError(f"need at least 2 radial stations, got {len(params.stations)}")
     for i, st in enumerate(params.stations):
@@ -933,9 +991,14 @@ def validate_blade_params(params: BladeParams) -> None:
             raise ValueError(
                 f"station {i} camber {float(st.max_camber):.3f} is negative: the blade would be "
                 "curved backwards and pump the wrong way. Use a camber of 0 or more")
-    if params.blade_angles_deg is not None and len(params.blade_angles_deg) != int(float(n)):
-        raise ValueError(
-            f"blade_angles_deg has {len(params.blade_angles_deg)} entries, expected n_blades={n}")
+    if params.blade_angles_deg is not None:
+        if len(params.blade_angles_deg) != int(float(n)):
+            raise ValueError(
+                f"blade_angles_deg has {len(params.blade_angles_deg)} entries, expected n_blades={n}"
+            )
+        for j, ang in enumerate(params.blade_angles_deg):
+            if not finite(ang):
+                raise ValueError(f"blade_angles_deg[{j}] is not a finite number: {ang!r}")
     if (bool(getattr(params, "clip_below_hub", True))
             and str(getattr(params, "section_wrap", "planar")) == "cylinder"
             and not bool(getattr(params, "reference_build", False))):
@@ -1036,17 +1099,21 @@ def clip_blade_below(params: BladeParams, blade, z_floor: float):
     span = 4.0 * max(float(params.tip_radius), abs(bb.xmin), abs(bb.xmax), abs(bb.ymin), abs(bb.ymax))
     depth = float(z_floor - bb.zmin) + 10.0
     below = cq.Solid.makeBox(2 * span, 2 * span, depth, cq.Vector(-span, -span, z_floor - depth))
+    last_err: Exception | None = None
     for attempt in (lambda: blade.cut(below), lambda: blade.copy().fix().cut(below)):
         try:
             solids = _solids_of(attempt())
-        except Exception:  # noqa: BLE001 — try the next strategy
+        except Exception as exc:  # noqa: BLE001 — try the next strategy
+            last_err = exc
             solids = []
         if solids:
             out = max(solids, key=lambda s: abs(float(s.Volume())))
             if float(out.BoundingBox().zmin) >= z_floor - 0.01:
                 return out
-    raise RuntimeError(f"hub-face clip failed: blade reaches z={bb.zmin:.2f} below the hub "
-                       f"face z={z_floor:.2f} and no cut ended there")
+    raise RuntimeError(
+        f"hub-face clip failed: blade reaches z={bb.zmin:.2f} below the hub "
+        f"face z={z_floor:.2f} and no cut ended there"
+    ) from last_err
 
 
 def build_impeller_parts(params: BladeParams):
@@ -1129,6 +1196,16 @@ def fuse_impeller(hub, blades, ring=None, *, tier=None):
                            "separate pieces)")
     if ring is not None:
         fused = fuse_many(fused, (ring,), tier=tier)
+        if not _one_solid(fused) and tier.fuse_parallel:
+            from fansim.resources import TIERS
+
+            serial = next(t for t in TIERS if not t.fuse_parallel)
+            fused = fuse_many(fused, (ring,), tier=serial)
+        if not _one_solid(fused):
+            raise RuntimeError(
+                f"the shroud ring did not join into one solid ({len(fused.Solids())} "
+                "separate pieces)"
+            )
     return fused
 
 
@@ -1189,7 +1266,7 @@ def build_impeller_preview(
     hub = build_hub(params, z_bottom, z_top)
     blade = clip_blade_below(params, blade, z_bottom)
 
-    def _tm(shape: cq.Solid) -> "trimesh.Trimesh":
+    def _tm(shape: cq.Solid) -> trimesh.Trimesh:
         verts, faces = shape.tessellate(tol)
         v = np.array([[p.x, p.y, p.z] for p in verts], dtype=float)
         return trimesh.Trimesh(vertices=v, faces=np.array(faces, dtype=int), process=False)
@@ -1204,13 +1281,12 @@ def build_impeller_preview(
         m = blade_mesh.copy()
         m.apply_transform(trimesh.transformations.rotation_matrix(np.radians(a), (0, 0, 1)))
         parts.append(m)
-    mesh = trimesh.util.concatenate(parts)
     volume_mm3 = float(blade.Volume()) * len(angles) + float(hub.Volume())
     ring = _shroud_solid(params)
     if ring is not None:
         parts.append(_tm(ring))
         volume_mm3 += float(ring.Volume())
-        mesh = trimesh.util.concatenate(parts)
+    mesh = trimesh.util.concatenate(parts)
     return mesh, volume_mm3
 
 
@@ -1298,8 +1374,10 @@ def _thick_scale_kw(params: BladeParams) -> dict[str, float | str | bool]:
     """Per-design section keywords for every ``_section_points_3d`` call: LE/TE thickness, family,
     and ``wrap`` (sections on their cylinders unless the design is stamped ``section_wrap="planar"``)."""
     fam = _section_family(params)
-    te_raw = float(getattr(params, "te_thick_scale", 1.0) or 1.0)
-    le_raw = float(getattr(params, "le_thick_scale", 1.0) or 1.0)
+    te_attr = getattr(params, "te_thick_scale", 1.0)
+    le_attr = getattr(params, "le_thick_scale", 1.0)
+    te_raw = 1.0 if te_attr is None else float(te_attr)
+    le_raw = 1.0 if le_attr is None else float(le_attr)
     if fam == SECTION_PLATE:
         # Plate LE/TE roundness is 0–1 (sharp→bullnose); do not apply NACA 0.5 floor.
         te = float(min(max(te_raw, 0.0), 1.0))
@@ -1314,7 +1392,12 @@ def _thick_scale_kw(params: BladeParams) -> dict[str, float | str | bool]:
         te = _clamp_thick_scale(te_raw)
         le = _clamp_thick_scale(le_raw)
     wrap = str(getattr(params, "section_wrap", "cylinder") or "cylinder") != "planar"
-    return dict(le_thick_scale=le, te_thick_scale=te, section_family=fam, wrap=wrap)
+    return {
+        "le_thick_scale": le,
+        "te_thick_scale": te,
+        "section_family": fam,
+        "wrap": wrap,
+    }
 
 
 def le_te_thick_factors(
@@ -1389,17 +1472,17 @@ def uniform_thickness_tc(
     )
 
 # --- _clamp_points_to_cylinder (transcript, recovery) ---
-def _clamp_points_to_cylinder(pts: list[cq.Vector], radius: float) -> list[cq.Vector]:
+def _clamp_points_to_cylinder(pts: list[Vec], radius: float) -> list[Vec]:
     """Measurement helper: pull XY onto the cylinder (Z unchanged). Not used for loft wires."""
     R = float(radius)
     if R <= 0.0:
         return pts
-    out: list[cq.Vector] = []
+    out: list[Vec] = []
     for v in pts:
         rho = math.hypot(v.x, v.y)
         if rho > R and rho > 0.0:
             s = R / rho
-            out.append(cq.Vector(v.x * s, v.y * s, v.z))
+            out.append(Vec(v.x * s, v.y * s, v.z))
         else:
             out.append(v)
     return out
@@ -1433,6 +1516,7 @@ def apply_notched_tips(params: BladeParams) -> BladeParams:
 
 def _trim_blade_to_tip_cylinder(blade: cq.Solid, tip_radius: float) -> cq.Solid:
     """Intersect the lofted blade with a cylinder of radius ``tip_radius`` (true cylindrical tip)."""
+    cq = _cq()
     R = float(tip_radius)
     if R <= 0.0:
         return blade
@@ -1468,19 +1552,23 @@ def _trim_blade_to_tip_cylinder(blade: cq.Solid, tip_radius: float) -> cq.Solid:
     # which then breaks the next strategy.
     cyl = cq.Solid.makeCylinder(R, h, cq.Vector(0, 0, z0), cq.Vector(0, 0, 1))
     ring = cq.Solid.makeCylinder(R + 50.0, h, cq.Vector(0, 0, z0), cq.Vector(0, 0, 1)).cut(cyl)
+    last_err: Exception | None = None
     for attempt in (lambda: blade.copy().cut(ring),
                     lambda: _fuzzy_common(blade.copy(), cyl, 1e-4),
                     lambda: blade.copy().fix().intersect(cyl)):
         try:
             out = _trimmed_within(attempt(), R)
-        except Exception:  # noqa: BLE001 — try the next strategy
+        except Exception as exc:  # noqa: BLE001 — try the next strategy
+            last_err = exc
             out = None
         if out is not None:
             return out
     # Corners past tip_radius would hit the frame in print and in CFD: fail loudly (callers
     # report "geometry failed") rather than pass an untrimmed blade on.
-    raise RuntimeError(f"tip trim failed: blade crosses R={R:.2f} mm (reaches {r_max:.2f} mm) "
-                       "and no intersection ended at R")
+    raise RuntimeError(
+        f"tip trim failed: blade crosses R={R:.2f} mm (reaches {r_max:.2f} mm) "
+        "and no intersection ended at R"
+    ) from last_err
 
 
 def _trimmed_within(shape, R: float):
@@ -1505,6 +1593,7 @@ def _max_radius(shape: cq.Shape) -> float:
 
 
 def _solids_of(shape) -> list:
+    cq = _cq()
     if isinstance(shape, cq.Solid):
         return [shape]
     return list(shape.Solids()) if hasattr(shape, "Solids") else []
@@ -1512,6 +1601,7 @@ def _solids_of(shape) -> list:
 
 def _fuzzy_common(a: cq.Shape, b: cq.Shape, fuzzy: float) -> cq.Shape:
     """Boolean common with OCCT's fuzzy tolerance (mm): near-coincident faces count as touching."""
+    cq = _cq()
     from OCP.BRepAlgoAPI import BRepAlgoAPI_Common
     from OCP.TopTools import TopTools_ListOfShape
 
