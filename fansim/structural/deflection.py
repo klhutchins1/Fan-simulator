@@ -25,9 +25,8 @@ from dataclasses import dataclass
 
 from fansim.geometry.blade import BladeParams
 from fansim.manufacturability.materials import MATERIALS
-from fansim.structural.stress import FDM_E_K, LAYER_ADHESION_K
+from fansim.structural.stress import FDM_E_K, LAYER_ADHESION_K, MM_TO_M
 
-MM_TO_M = 1.0e-3
 # Classical slender-beam floor; Audit #5 Stock tip aspect ≈ 1.0 (wide plate).
 BEAM_ASPECT_MIN = 1.5
 

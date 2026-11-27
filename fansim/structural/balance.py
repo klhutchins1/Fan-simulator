@@ -102,11 +102,28 @@ def residual_force(unbalance_mr: float, omega_rad_s: float) -> float:
     return float(u * w**2)
 
 
-def couple_unbalance(angles, z_positions, masses=None, radii=None) -> float:
+def _min_circular_gap(angles: np.ndarray) -> float:
+    """Minimum angular separation [rad] between adjacent blades on the circle [0, 2*pi)."""
+    s = np.sort(np.asarray(angles, dtype=float) % TWO_PI)
+    gaps = np.diff(np.concatenate([s, [s[0] + TWO_PI]]))
+    return float(np.min(gaps))
+
+
+def couple_unbalance(
+    angles,
+    z_positions,
+    masses=None,
+    radii=None,
+    *,
+    z_ref: float | str = 0.0,
+) -> float:
     """Couple (dynamic) unbalance magnitude for blades at axial positions ``z_positions``.
 
-    |sum_k m_k r_k z_k e^{i th_k}| -- nonzero couple tilts the axis even when static balance holds.
-    Negligible for a thin single-plane rotor; report it for axially-staggered designs.
+    ``|sum_k m_k r_k (z_k - z_0) e^{i th_k}|`` -- nonzero couple tilts the axis even when static
+    balance holds. When static unbalance is zero, the result is independent of ``z_0``. When static
+    unbalance is nonzero, couple unbalance depends on the axial reference plane (ISO 21940-11):
+    pass ``z_ref="cg"`` for the mass-weighted axial centre of gravity, or a float plane position
+    (default ``0.0``).
     """
     ang = _as_angles(angles)
     z = np.asarray(z_positions, dtype=float)
@@ -115,35 +132,70 @@ def couple_unbalance(angles, z_positions, masses=None, radii=None) -> float:
     if not np.all(np.isfinite(z)):
         raise ValueError("z_positions must be finite")
     mr = _mr(len(ang), masses, radii)
-    cx = float(np.sum(mr * z * np.cos(ang)))
-    cy = float(np.sum(mr * z * np.sin(ang)))
+    if isinstance(z_ref, str):
+        if z_ref != "cg":
+            raise ValueError(f"z_ref must be a finite float or 'cg', got {z_ref!r}")
+        if masses is None:
+            z0 = float(np.mean(z))
+        else:
+            m = np.asarray(masses, dtype=float)
+            m_sum = float(np.sum(m))
+            z0 = float(np.sum(m * z) / m_sum) if m_sum > 0.0 else float(np.mean(z))
+    else:
+        z0 = float(z_ref)
+        if not math.isfinite(z0):
+            raise ValueError(f"z_ref must be finite, got {z_ref!r}")
+    dz = z - z0
+    cx = float(np.sum(mr * dz * np.cos(ang)))
+    cy = float(np.sum(mr * dz * np.sin(ang)))
     return math.hypot(cx, cy)
 
 
-def balanced_uneven_spacing(n_blades: int, spread: float = 0.3, rng=None,
-                            masses=None, radii=None) -> np.ndarray:
+def balanced_uneven_spacing(
+    n_blades: int,
+    spread: float = 0.3,
+    rng=None,
+    masses=None,
+    radii=None,
+    *,
+    min_gap_frac: float = 0.25,
+) -> np.ndarray:
     """Generate an UNEVEN but statically balanced set of blade angles [rad].
 
-    ``spread`` in [0,1) scales how far blades wander from equal spacing (0 = equal, tone concentrated;
+    ``spread`` >= 0 scales how far blades wander from equal spacing (0 = equal, tone concentrated;
     larger = more tonal spreading). Even blade counts use diametrically-opposite pairing (balanced by
     construction); odd counts perturb equal spacing then project the residual to zero via a few
-    minimal-norm Newton steps. Guarantees is_balanced(result) for the given masses/radii; with masses/radii the
-    angles are returned in BLADE ORDER (angle k belongs to masses[k]), otherwise sorted.
+    minimal-norm Newton steps. Guarantees ``is_balanced(result)`` for the given masses/radii and
+    minimum adjacent angular separation ``>= min_gap_frac * (2*pi / n_blades)`` so blades cannot
+    cross or collide at high ``spread``. With masses/radii the angles are returned in BLADE ORDER
+    (angle k belongs to masses[k]), otherwise sorted.
     """
     if n_blades < 2:
         raise ValueError("need >= 2 blades")
     spread_f = float(spread)
     if not (math.isfinite(spread_f) and spread_f >= 0.0):
         raise ValueError(f"spread must be finite and >= 0, got {spread!r}")
+    gap_frac = float(min_gap_frac)
+    if not (math.isfinite(gap_frac) and 0.0 <= gap_frac < 1.0):
+        raise ValueError(f"min_gap_frac must be in [0, 1), got {min_gap_frac!r}")
     rng = np.random.default_rng() if rng is None else rng
     step = TWO_PI / n_blades
+    min_gap = gap_frac * step
+    max_attempts = 64
 
     if n_blades % 2 == 0 and masses is None and radii is None:
         # pair method: N/2 base angles in [0, pi); blade at base and base+pi -> each pair self-cancels
         half = n_blades // 2
-        base = np.arange(half) * (TWO_PI / n_blades)
-        base = base + spread_f * 0.5 * step * rng.standard_normal(half)
-        return np.sort(np.concatenate([base, base + math.pi]) % TWO_PI)
+        base0 = np.arange(half) * step
+        scale = spread_f
+        for attempt in range(max_attempts):
+            base = base0 + scale * 0.5 * step * rng.standard_normal(half)
+            cand = np.sort(np.concatenate([base, base + math.pi]) % TWO_PI)
+            if _min_circular_gap(cand) >= min_gap - 1e-12:
+                return cand
+            if attempt >= 4:
+                scale *= 0.8
+        return equal_spacing(n_blades)
 
     # general case: perturb equal spacing, then null U by minimal-norm angle corrections
     mr = _mr(n_blades, masses, radii)
@@ -153,25 +205,34 @@ def balanced_uneven_spacing(n_blades: int, spread: float = 0.3, rng=None,
             "cannot statically balance blades by angle adjustment alone: "
             "one blade's m*r exceeds the sum of all others"
         )
-    ang = equal_spacing(n_blades) + spread_f * 0.5 * step * rng.standard_normal(n_blades)
     denom = total_mr or 1.0
-    for _ in range(50):
+    scale = spread_f
+    last_residual = float("inf")
+    for attempt in range(max_attempts):
+        ang = equal_spacing(n_blades) + scale * 0.5 * step * rng.standard_normal(n_blades)
+        for _ in range(50):
+            ux = float(np.sum(mr * np.cos(ang)))
+            uy = float(np.sum(mr * np.sin(ang)))
+            if math.hypot(ux, uy) / denom < 1e-9:
+                break
+            # dU/dth_k = mr_k * (-sin, cos); solve J dth = -U with minimal norm (pseudoinverse)
+            J = np.vstack([-mr * np.sin(ang), mr * np.cos(ang)])   # 2 x N
+            dth = J.T @ np.linalg.solve(J @ J.T + 1e-12 * np.eye(2), -np.array([ux, uy]))
+            ang = ang + dth
+        ang = ang % TWO_PI
         ux = float(np.sum(mr * np.cos(ang)))
         uy = float(np.sum(mr * np.sin(ang)))
-        if math.hypot(ux, uy) / denom < 1e-9:
-            break
-        # dU/dth_k = mr_k * (-sin, cos); solve J dth = -U with minimal norm (pseudoinverse)
-        J = np.vstack([-mr * np.sin(ang), mr * np.cos(ang)])   # 2 x N
-        dth = J.T @ np.linalg.solve(J @ J.T + 1e-12 * np.eye(2), -np.array([ux, uy]))
-        ang = ang + dth
-    ang = ang % TWO_PI
-    ux = float(np.sum(mr * np.cos(ang)))
-    uy = float(np.sum(mr * np.sin(ang)))
-    if math.hypot(ux, uy) / denom > 1e-6:
-        raise ValueError(
-            f"balanced_uneven_spacing did not converge to static balance "
-            f"(normalized residual {math.hypot(ux, uy) / denom:.3e} > 1e-6)"
-        )
-    # Sorting reorders blades; with per-blade masses/radii that would break the mass<->angle pairing
-    # the balance was solved for (Audit #5), so keep blade order in that case.
-    return np.sort(ang) if (masses is None and radii is None) else ang
+        last_residual = math.hypot(ux, uy) / denom
+        if last_residual <= 1e-6 and _min_circular_gap(ang) >= min_gap - 1e-12:
+            # Sorting reorders blades; with per-blade masses/radii that would break the
+            # mass<->angle pairing the balance was solved for (Audit #5), so keep blade order.
+            return np.sort(ang) if (masses is None and radii is None) else ang
+        if attempt >= 4:
+            scale *= 0.8
+
+    if masses is None and radii is None:
+        return equal_spacing(n_blades)
+    raise ValueError(
+        f"balanced_uneven_spacing did not converge to a non-overlapping statically balanced "
+        f"pattern (normalized residual {last_residual:.3e}, min_gap_frac={gap_frac})"
+    )
