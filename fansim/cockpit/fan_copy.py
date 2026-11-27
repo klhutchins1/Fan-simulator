@@ -87,6 +87,17 @@ CONTROL_DESC = {
     "e_hub_profile": "Hub intake cap shape: cylinder (flat face), cone (pointed spinner), or dome (rounded spinner). Set Hub nose > 0 mm for cone/dome.",
     "assess_preset": "Airflow resistance curve (static pressure load in Pa at 50 CFM): Case (8 Pa, open airflow), Heatsink (20 Pa, medium fin restriction), Radiator (35 Pa, high back-pressure).",
     "assess_material": "3D-print filament used for weight, blade-root spin stress, and print-sheet recommendations (PETG default; PLA+ is stiffer).",
+    "fan_model": "Donor fan hub & frame envelope (motor shaft, cup diameter, frame bore, depth, RPM). Sets fit checks, Assess RPM/duct, and STL motor-cup subtraction.",
+    "sweep_param": "Parameter to sweep across evenly spaced values from the current Design sliders. Each step runs a full CFD Assess (~30–40 min per step).",
+    "sweep_steps": "Number of evenly spaced points along the Sweep range (2–12). Wall-clock time scales linearly with steps.",
+    "seed_duty_cfm": "Target volumetric airflow (CFM) used to estimate initial stagger and camber magnitudes from Euler velocity triangles.",
+    "seed_duty_pa": "Target static pressure rise (Pa) at the duty point for Seed from duty.",
+    "seed_duty_rpm": "Shaft speed (RPM) at the duty point for Seed from duty.",
+    "seed_duty_vortex": "Spanwise swirl distribution for Seed from duty: Free vortex (r·Cu = const, uniform axial flow) or Forced vortex (Cu ∝ r, higher tip loading).",
+    "export_fit_hub": "Clamp hub radius and subtract the selected donor motor's rotor cup / shaft cavity on STL export so the hub mounts on the motor.",
+    "export_fit_frame": "Clamp outer tip radius and axial depth to the selected donor frame bore and thickness on STL export.",
+    "export_also_mirror": "Export both standard rotation (CW) and a mirror-image impeller (CCW) STL in one click.",
+    "preview_motor_cup": "Show the subtracted donor motor cup inside the 3D Preview mesh. Slower Preview; off by default while iterating on blades.",
     "intake_overbuild": "Allow blades/hub to extend past the intake face (+Z) beyond the nominal frame depth. Flagged over-spec.",
     "intake_overbuild_mm": "Extra axial intake depth allowed when intake overbuild is enabled (mm).",
     "e_camber_pos": "Where max camber sits along the chord (0.2 = near LE, 0.6 = aft). Fraction of chord — not mm.",
@@ -174,6 +185,9 @@ CONTROL_DESC_SIMPLE = {
     "e_hub_profile": "Shape of the center hub cap: flat cylinder, pointed cone, or rounded dome (uses Hub nose height).",
     "assess_preset": "How much airflow resistance (static pressure) the fan pushes against: Case (8 Pa, open), Heatsink (20 Pa, medium), or Radiator (35 Pa, tight fins).",
     "assess_material": "Plastic filament you plan to print with (sets weight, strength check, and print settings).",
+    "fan_model": "Pick the donor fan frame and motor hub you are designing replacement blades for. Sets fit limits, fan speed, and the motor cutout for STL export.",
+    "export_fit_hub": "Size the center hub and carve the motor socket so the printed blades fit your donor fan's motor.",
+    "export_fit_frame": "Trim outer blade reach and height if needed so the exported STL clears your fan's frame.",
 }
 
 # Plain-language help for Fan Optimize Advanced search (and Assess flags Optimize reuses).

@@ -91,15 +91,11 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
         with v3.VCol(cols=12):
             with v3.VRow(no_gutters=True, classes="align-center mb-2"):
                 with v3.VCol(cols=4, classes="pr-1"):
-                    v3.VSelect(
-                        label="Fan model (hub)",
-                        v_model=("fan_model",),
-                        items=("fan_model_items",),
-                        item_title="title",
-                        item_value="value",
-                        density="compact",
-                        variant="outlined",
-                        hide_details=True,
+                    _help_select(
+                        "fan_model",
+                        "Fan model (hub)",
+                        items="fan_model_items",
+                        classes="",
                     )
                 with v3.VCol(cols=8, classes="pl-1"):
                     html.Div(
@@ -726,6 +722,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "click": (do_preview,),
                                     "loading": ("preview_busy",),
                                     "disabled": (_action_busy,),
+                                    "tooltip": "Build the 3D impeller mesh from the current sliders and check hub/frame fit (~seconds, no CFD).",
                                 },
                                 "score": {
                                     "label": "Assess (~30–40 min)",
@@ -734,6 +731,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "click": (on_assess,),
                                     "loading": ("assess_busy",),
                                     "disabled": (_action_busy,),
+                                    "tooltip": "Run 3D OpenFOAM CFD on the current Design sliders to score airflow, pressure, efficiency, and noise.",
                                 },
                                 "optimize": {
                                     "label": "Optimize (hours)",
@@ -745,6 +743,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                         "preview_busy || assess_busy || export_busy || opt_running",
                                     ),
                                     "v_show": "ui_mode === 'expert'",
+                                    "tooltip": "Run a multi-trial CFD search from scratch (uses Optimize settings below; ignores current Design sliders).",
                                 },
                                 "stop": [
                                     {
@@ -774,6 +773,7 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     "click": (randomize_geometry,),
                                     "disabled": (_action_busy,),
                                     "v_show": "ui_mode === 'expert'",
+                                    "tooltip": "Fill Design sliders with a random printable blade inside the selected fan's bounds. Press Preview afterward.",
                                 },
                             },
                         )
@@ -783,22 +783,38 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             classes="text-caption text-medium-emphasis mt-1",
                             v_show="ui_mode === 'expert'",
                         )
-                        v3.VBtn(
-                            "Load Stock / Reference",
-                            size="small",
-                            variant="tonal",
-                            click=(load_stock_reference,),
-                            disabled=(_action_busy,),
-                            classes="mt-1 mb-1 mr-2",
-                        )
-                        v3.VBtn(
-                            "Reset",
-                            size="small",
-                            variant="tonal",
-                            click=(select, "[selected_trial]"),
-                            disabled=(_action_busy,),
-                            classes="mt-1 mb-1",
-                        )
+                        with v3.VTooltip(
+                            location="bottom",
+                            open_delay=300,
+                            max_width=340,
+                            text="Reset sliders to the selected donor fan's stock reference blade recipe.",
+                        ):
+                            with v3.Template(v_slot_activator="{ props }"):
+                                v3.VBtn(
+                                    "Load Stock / Reference",
+                                    v_bind="props",
+                                    size="small",
+                                    variant="tonal",
+                                    click=(load_stock_reference,),
+                                    disabled=(_action_busy,),
+                                    classes="mt-1 mb-1 mr-2",
+                                )
+                        with v3.VTooltip(
+                            location="bottom",
+                            open_delay=300,
+                            max_width=340,
+                            text="Discard unsaved slider edits and reload the currently selected trial.",
+                        ):
+                            with v3.Template(v_slot_activator="{ props }"):
+                                v3.VBtn(
+                                    "Reset",
+                                    v_bind="props",
+                                    size="small",
+                                    variant="tonal",
+                                    click=(select, "[selected_trial]"),
+                                    disabled=(_action_busy,),
+                                    classes="mt-1 mb-1",
+                                )
                         html.Div("{{ preview_msg }}", classes="text-caption", style="white-space: pre-line")
                         v3.VAlert(
                             "{{ assess_msg }}",
@@ -1195,26 +1211,37 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                     )
                                     with v3.VRow(no_gutters=True, classes="mt-2 align-center"):
                                         with v3.VCol(cols=6, classes="pr-1"):
-                                            v3.VSelect(
-                                                label="Sweep",
-                                                v_model=("sweep_param",),
-                                                items=("sweep_items",),
-                                                density="compact",
-                                                variant="outlined",
-                                                hide_details=True,
+                                            _help_select(
+                                                "sweep_param",
+                                                "Sweep",
+                                                items="sweep_items",
+                                                item_title=None,
+                                                item_value=None,
+                                                classes="",
                                             )
                                         with v3.VCol(cols=3, classes="px-1"):
-                                            v3.VTextField(
-                                                label="steps (2–12)",
-                                                v_model=("sweep_steps",),
-                                                type="number",
-                                                min=2,
-                                                max=12,
-                                                step=1,
-                                                density="compact",
-                                                variant="outlined",
-                                                hide_details=True,
-                                            )
+                                            with v3.VTooltip(
+                                                location="end",
+                                                open_delay=150,
+                                                max_width=380,
+                                            ):
+                                                with v3.Template(v_slot_activator="{ props }"):
+                                                    v3.VTextField(
+                                                        v_bind="props",
+                                                        label="steps (2–12)",
+                                                        v_model=("sweep_steps",),
+                                                        type="number",
+                                                        min=2,
+                                                        max=12,
+                                                        step=1,
+                                                        density="compact",
+                                                        variant="outlined",
+                                                        hide_details=True,
+                                                    )
+                                                html.Div(
+                                                    CONTROL_DESC["sweep_steps"],
+                                                    classes="text-caption",
+                                                )
                                         with v3.VCol(cols=3, classes="pl-1"):
                                             v3.VBtn(
                                                 "Run",
@@ -1367,25 +1394,18 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                             v_show="ui_mode === 'expert'",
                         ):
                             with v3.VExpansionPanelText():
-                                v3.VSwitch(
-                                    v_model=("intake_overbuild",),
-                                    density="compact",
-                                    hide_details=True,
-                                    color="primary",
-                                    inset=True,
-                                    label="Allow intake overbuild (+Z)",
-                                    classes="mb-1",
+                                _help_switch(
+                                    "intake_overbuild",
+                                    "Allow intake overbuild (+Z)",
+                                    help_map=CONTROL_DESC,
                                 )
-                                v3.VSlider(
-                                    v_model=("intake_overbuild_mm",),
-                                    min=0,
-                                    max=20,
-                                    step=1,
-                                    label="Extra intake (mm)",
-                                    thumb_label=True,
-                                    density="compact",
-                                    hide_details=True,
-                                    classes="mb-1",
+                                _slider(
+                                    "Extra intake",
+                                    "intake_overbuild_mm",
+                                    0,
+                                    20,
+                                    1,
+                                    unit="mm",
                                     disabled=("!intake_overbuild",),
                                 )
                                 html.Div(
@@ -1429,39 +1449,63 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 html.Div("Seed from duty", classes="text-subtitle-2 mb-1")
                                 with v3.VRow(no_gutters=True, classes="mb-1"):
                                     with v3.VCol(cols=4, classes="pr-1"):
-                                        v3.VTextField(
-                                            label="Target CFM",
-                                            v_model=("seed_duty_cfm",),
-                                            type="number",
-                                            density="compact",
-                                            variant="outlined",
-                                            hide_details=True,
-                                        )
+                                        with v3.VTooltip(
+                                            location="end", open_delay=150, max_width=380
+                                        ):
+                                            with v3.Template(v_slot_activator="{ props }"):
+                                                v3.VTextField(
+                                                    v_bind="props",
+                                                    label="Target CFM",
+                                                    v_model=("seed_duty_cfm",),
+                                                    type="number",
+                                                    density="compact",
+                                                    variant="outlined",
+                                                    hide_details=True,
+                                                )
+                                            html.Div(
+                                                CONTROL_DESC["seed_duty_cfm"],
+                                                classes="text-caption",
+                                            )
                                     with v3.VCol(cols=4, classes="px-1"):
-                                        v3.VTextField(
-                                            label="ΔP (Pa)",
-                                            v_model=("seed_duty_pa",),
-                                            type="number",
-                                            density="compact",
-                                            variant="outlined",
-                                            hide_details=True,
-                                        )
+                                        with v3.VTooltip(
+                                            location="end", open_delay=150, max_width=380
+                                        ):
+                                            with v3.Template(v_slot_activator="{ props }"):
+                                                v3.VTextField(
+                                                    v_bind="props",
+                                                    label="ΔP (Pa)",
+                                                    v_model=("seed_duty_pa",),
+                                                    type="number",
+                                                    density="compact",
+                                                    variant="outlined",
+                                                    hide_details=True,
+                                                )
+                                            html.Div(
+                                                CONTROL_DESC["seed_duty_pa"],
+                                                classes="text-caption",
+                                            )
                                     with v3.VCol(cols=4, classes="pl-1"):
-                                        v3.VTextField(
-                                            label="RPM",
-                                            v_model=("seed_duty_rpm",),
-                                            type="number",
-                                            density="compact",
-                                            variant="outlined",
-                                            hide_details=True,
-                                        )
-                                v3.VSelect(
-                                    label="Vortex",
-                                    v_model=("seed_duty_vortex",),
-                                    items=("seed_duty_vortex_items",),
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
+                                        with v3.VTooltip(
+                                            location="end", open_delay=150, max_width=380
+                                        ):
+                                            with v3.Template(v_slot_activator="{ props }"):
+                                                v3.VTextField(
+                                                    v_bind="props",
+                                                    label="RPM",
+                                                    v_model=("seed_duty_rpm",),
+                                                    type="number",
+                                                    density="compact",
+                                                    variant="outlined",
+                                                    hide_details=True,
+                                                )
+                                            html.Div(
+                                                CONTROL_DESC["seed_duty_rpm"],
+                                                classes="text-caption",
+                                            )
+                                _help_select(
+                                    "seed_duty_vortex",
+                                    "Vortex",
+                                    items="seed_duty_vortex_items",
                                     classes="mb-2",
                                 )
                                 v3.VBtn(
@@ -1632,27 +1676,27 @@ def render_fan_tab(ctx: CockpitCtx) -> None:
                                 )
                         with v3.VRow(no_gutters=True, classes="mt-1"):
                             with v3.VCol(cols=6, classes="pr-1"):
-                                v3.VSwitch(
-                                    v_model=("export_fit_hub",),
-                                    density="compact", hide_details=True, color="primary", inset=True,
-                                    label="Fit hub to the motor",
+                                _help_switch(
+                                    "export_fit_hub",
+                                    "Fit hub to the motor",
+                                    help_map=CONTROL_DESC,
                                 )
-                                v3.VSwitch(
-                                    v_model=("export_fit_frame",),
-                                    density="compact", hide_details=True, color="primary", inset=True,
-                                    label="Fit tip + depth to the frame",
+                                _help_switch(
+                                    "export_fit_frame",
+                                    "Fit tip + depth to the frame",
+                                    help_map=CONTROL_DESC,
                                 )
                             with v3.VCol(cols=6, classes="pl-1"):
-                                v3.VSwitch(
-                                    v_model=("export_also_mirror",),
-                                    density="compact", hide_details=True, color="primary", inset=True,
-                                    label="Also export the mirror-image fan (CW + CCW)",
+                                _help_switch(
+                                    "export_also_mirror",
+                                    "Also export the mirror-image fan (CW + CCW)",
+                                    help_map=CONTROL_DESC,
                                     v_show="ui_mode === 'expert'",
                                 )
-                                v3.VSwitch(
-                                    v_model=("preview_motor_cup",),
-                                    density="compact", hide_details=True, color="primary", inset=True,
-                                    label="Show the motor cup in Preview (slower)",
+                                _help_switch(
+                                    "preview_motor_cup",
+                                    "Show the motor cup in Preview (slower)",
+                                    help_map=CONTROL_DESC,
                                     disabled=("!cup_build_ok",),
                                     v_show="ui_mode === 'expert'",
                                 )
