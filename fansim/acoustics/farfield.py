@@ -172,13 +172,13 @@ def noise_from_cv_force(t, P, Fs, *, cutoff_hz: float = 2500.0, n_blades: int = 
     p = dipole_pressure(Fp, dt, r_hat=r_hat)
     bpf = blade_pass_frequency(n_blades, rpm)
     return {
-        "noise_dba_band": round(dba_from_pressure(p, dt, cutoff_hz), 2),
-        "noise_dba_full": round(dba_from_pressure(p, dt, None), 2),
-        "bpf_tone_db": round(tone_level_db(p, dt, bpf), 2),
+        "noise_dba_band": float(dba_from_pressure(p, dt, cutoff_hz)),
+        "noise_dba_full": float(dba_from_pressure(p, dt, None)),
+        "bpf_tone_db": float(tone_level_db(p, dt, bpf)),
         # loudest tone across ALL shaft-order harmonics — the honest tonality when a design (e.g. uneven
         # spacing) spreads its blade-pass energy off the single BPF. Use THIS to compare tonal designs.
-        "peak_tone_db": round(peak_tone_over_harmonics(p, dt, rpm / 60.0), 2),
-        "thrust_n": round(thrust, 4),
-        "cutoff_hz": cutoff_hz,
+        "peak_tone_db": float(peak_tone_over_harmonics(p, dt, rpm / 60.0)),
+        "thrust_n": float(thrust),
+        "cutoff_hz": float(cutoff_hz),
         "samples": len(t),
     }

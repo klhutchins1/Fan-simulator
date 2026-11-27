@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 # Locked across tabs. A missing slot is omitted, not replaced with a spacer.
 ACTION_SLOTS = ("preview", "score", "export", "optimize", "stop", "randomize")
@@ -46,7 +47,18 @@ def render_action_row(v3, buttons: dict[str, Any]) -> None:
                 kw = dict(btn)
                 classes = kw.pop("classes", "mr-2 mb-1")
                 label = kw.pop("label", kw.pop("children", slot.title()))
-                v3.VBtn(label, classes=classes, **kw)
+                tooltip = kw.pop("tooltip", None)
+                if tooltip:
+                    with v3.VTooltip(
+                        location="bottom",
+                        open_delay=300,
+                        max_width=340,
+                        text=tooltip,
+                    ):
+                        with v3.Template(v_slot_activator="{ props }"):
+                            v3.VBtn(label, v_bind="props", classes=classes, **kw)
+                else:
+                    v3.VBtn(label, classes=classes, **kw)
 
 
 def render_left_shell(

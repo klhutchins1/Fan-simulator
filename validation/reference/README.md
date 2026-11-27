@@ -1,5 +1,11 @@
 # A12x25 reference geometry assets
 
+> **Public release export note:** `validation/reference/a12x25_impeller.stl` and
+> `validation/reference/drone_radial/` are omitted from the public release export
+> (see `THIRD_PARTY.md` and `RELEASE_EXCLUDE` in `scripts/export_release.py`).
+> The vendored UIUC PropDB fixture (`uiuc_propdb/`) and parametric golden
+> (`a12x25_blade_golden.json`) are included in the public repo.
+
 ## Trusted impeller STL
 
 `validation/reference/a12x25_impeller.stl` — watertight impeller mesh used for silhouette

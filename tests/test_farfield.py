@@ -8,8 +8,8 @@ import pytest
 from fansim.acoustics.farfield import (
     a_weighting_db,
     blade_pass_frequency,
-    dipole_pressure,
     dba_from_pressure,
+    dipole_pressure,
     noise_from_cv_force,
     peak_tone_over_harmonics,
     tone_level_db,
@@ -75,3 +75,30 @@ def test_noise_scales_with_fluctuation_amplitude():
         return noise_from_cv_force(t, P, -F)["noise_dba_band"]
 
     assert band(0.02) > band(0.005)
+
+
+def test_noise_from_cv_force_does_not_round_internally():
+    # Issue #126: physics helper returns full float precision (rounding belongs in UI/presentation).
+    n_blades, rpm = 7, 2000.0
+    bpf = blade_pass_frequency(n_blades, rpm)
+    fs = 20000.0
+    t = np.arange(0, 0.4, 1.0 / fs)
+    steady_thrust = -0.051234567
+    Fz = steady_thrust + 0.013579 * np.sin(2.0 * np.pi * bpf * t)
+    F = np.column_stack([np.zeros_like(t), np.zeros_like(t), Fz])
+    P = np.zeros((len(t), 3))
+    m = noise_from_cv_force(t, P, -F, cutoff_hz=2500.0, n_blades=n_blades, rpm=rpm)
+
+    Fp = F - F.mean(axis=0)
+    dt_cv = float(np.median(np.diff(t)))
+    p = dipole_pressure(Fp, dt_cv)
+    assert m["noise_dba_band"] == pytest.approx(dba_from_pressure(p, dt_cv, 2500.0), abs=1e-12)
+    assert m["noise_dba_band"] != round(m["noise_dba_band"], 2)
+    assert m["noise_dba_full"] == pytest.approx(dba_from_pressure(p, dt_cv, None), abs=1e-12)
+    assert m["bpf_tone_db"] == pytest.approx(tone_level_db(p, dt_cv, bpf), abs=1e-12)
+    assert m["peak_tone_db"] == pytest.approx(
+        peak_tone_over_harmonics(p, dt_cv, rpm / 60.0), abs=1e-12
+    )
+    assert m["thrust_n"] == pytest.approx(float(F[:, 2].mean()), abs=1e-12)
+    assert m["thrust_n"] != round(m["thrust_n"], 4)
+

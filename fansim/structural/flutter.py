@@ -20,8 +20,8 @@ from fansim.structural.deflection import (
     _validate_radii,
     beam_aspect_ratio,
 )
+from fansim.structural.stress import MM_TO_M
 
-MM_TO_M = 1.0e-3
 CANTILEVER_LAMBDA = 1.875104
 MIN_F1_OVER_BPF = 1.2
 

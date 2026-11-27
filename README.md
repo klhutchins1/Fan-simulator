@@ -175,7 +175,7 @@ uv run python scripts/cockpit.py --run runs/opt_mountable --reload
 `--reload` auto-restarts the cockpit when you edit source — no manual restart.
 The cockpit is a single-user app: every browser tab connected to one cockpit shares the same state (switching a tab or design in one shows in all). Open one tab per cockpit, or start a second cockpit on another `--port`. A one-off `POST /paraview/ 405` in the browser console at load is the trame-vtk client probing for a launcher; it is harmless.
 Optional: `uv sync --extra dev --extra surrogate` adds sklearn; `--extra propulsion` adds PyThrust (without it two prop test modules show as skipped). Plain `uv sync` has no pytest.
-On a fresh clone `runs/`, `catalog/catalog.db`, `config/fan_models/` and `build/` don't exist yet: they are created by the first optimizer run, `scripts/catalog.py build`, the first saved user fan model and the first script export. The cockpit starts fine with an empty run folder.
+On a fresh clone `runs/`, `catalog/catalog.db`, `config/fan_models/` and `build/` don't exist yet: they are created by the first optimizer run, `scripts/catalog.py build`, the first saved user fan model and the first script export. The cockpit starts fine with an empty run folder. Run `uv run fansim-cockpit` or `scripts/cockpit.py` from an editable repo checkout (`uv sync`) so `config/` and `docs/control_images/` are on disk.
 
 ## Key commands
 
