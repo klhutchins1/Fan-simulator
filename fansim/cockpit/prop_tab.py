@@ -414,11 +414,16 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         )
 
     _prop_model_readout()
+    _skip_prop_model_reset: list[str | None] = [None]
 
     @state.change("prop_model")
     def _on_prop_model(**_):
-        _init_prop_editor(get_prop_spec(state.prop_model))
         _prop_model_readout()
+        if _skip_prop_model_reset[0] is not None and str(state.prop_model) == _skip_prop_model_reset[0]:
+            _skip_prop_model_reset[0] = None
+            return
+        _skip_prop_model_reset[0] = None
+        _init_prop_editor(get_prop_spec(state.prop_model))
 
     def prop_editor_spec():
         """The selected prop envelope with the editor's blade-count + pitch applied."""
@@ -805,16 +810,20 @@ def setup_prop_tab(ctx: CockpitCtx) -> None:
         store = _prop_click_store()
         if idx is None or not (0 <= int(idx) < len(store)):
             return
-        p = store[int(idx)]["params"]
-        if store[int(idx)].get("prop_model"):
+        row = store[int(idx)]
+        p = row["params"]
+        if row.get("prop_model"):
+            target_model = str(row["prop_model"])
+            if target_model != str(state.prop_model):
+                _skip_prop_model_reset[0] = target_model
             try:
-                state.prop_model = str(store[int(idx)]["prop_model"])
-            except Exception:  # noqa: BLE001, S110
-                pass
+                state.prop_model = target_model
+            except Exception:  # noqa: BLE001
+                _skip_prop_model_reset[0] = None
         _init_prop_editor(get_prop_spec(state.prop_model), flat=p)
+        _prop_model_readout()
         state.flush()
         analyze_prop(persist=False)
-        row = store[int(idx)]
         workdir = row.get("workdir") or prop_cfd_workdir_from_study(state.prop_last_opt or None)
         if workdir:
             _render_prop_airflow(workdir)

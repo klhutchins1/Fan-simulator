@@ -481,7 +481,14 @@ def bind(session) -> None:
                         break
                     flat, feat = dict(base_flat), dict(base_feat)
                     if kind == "flat":
-                        flat[field] = int(val) if field == "n_blades" else float(val)
+                        if field == "max_camber":
+                            v = float(val)
+                            flat["max_camber"] = v
+                            flat["camber_root"] = v
+                            flat["camber_mid"] = v
+                            flat["camber_tip"] = v
+                        else:
+                            flat[field] = int(val) if field == "n_blades" else float(val)
                     else:
                         feat[field] = float(val)
                         if kind == "tub" and feat["tubercle_waves"] == 0:
@@ -501,7 +508,7 @@ def bind(session) -> None:
                     if not check_printability(params).printable:
                         continue
                     try:
-                        if await _assess(params, flat, f"sweep {label}={val:g}", rs):
+                        if await _assess(params, {**flat, **feat}, f"sweep {label}={val:g}", rs):
                             done += 1
                     except Exception as exc:  # noqa: BLE001
                         if state.assess_cancel or "cancelled" in str(exc).lower():

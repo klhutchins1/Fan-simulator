@@ -87,6 +87,11 @@ def stamp_score_extra(
                 "grid_converged", "grid_note"):
         if raw.get(key) is not None:
             extra[key] = raw[key]
+    raw_ks = raw.get("wall_ks_mm")
+    if raw_ks is not None and float(raw_ks) > 0.0:
+        extra["wall_ks_mm"] = float(raw_ks)
+    else:
+        extra.pop("wall_ks_mm", None)
     if refine_op:
         if raw.get("op_cfd") is not None:
             extra["op_cfd"] = raw["op_cfd"]
