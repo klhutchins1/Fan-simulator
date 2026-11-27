@@ -206,12 +206,15 @@ def help_switch(
     help_map: dict | None = None,
     classes: str = "",
     disabled=None,
+    v_show: str | None = None,
 ):
     """Compact switch with a hover tooltip (same pattern as design sliders)."""
     simple, desc, uri = resolve_tooltip(model, help_map=help_map or OPT_SEARCH_HELP)
     extra = {}
     if disabled is not None:
         extra["disabled"] = disabled
+    if v_show is not None:
+        extra["v_show"] = v_show
     cls = f"mb-1 {classes}".strip()
     kwargs = dict(
         v_model=(model,),
@@ -249,8 +252,8 @@ def help_select(
     *,
     items: str,
     help_map: dict | None = None,
-    item_title: str = "title",
-    item_value: str = "value",
+    item_title: str | None = "title",
+    item_value: str | None = "value",
     classes: str = "mb-2",
 ):
     """Outlined VSelect with the same hover image/diagram + text tooltip as design sliders."""
@@ -259,13 +262,15 @@ def help_select(
         "label": label,
         "v_model": (model,),
         "items": (items,),
-        "item_title": item_title,
-        "item_value": item_value,
         "density": "compact",
         "variant": "outlined",
         "hide_details": True,
         "classes": classes,
     }
+    if item_title is not None:
+        kwargs["item_title"] = item_title
+    if item_value is not None:
+        kwargs["item_value"] = item_value
     if not desc and not simple and not uri:
         v3.VSelect(**kwargs)
         return
@@ -279,10 +284,11 @@ def help_select(
                 style="width:360px;max-width:100%;display:block;"
                 "margin-bottom:4px;border-radius:4px;",
             )
-        if simple:
+        if simple and simple != desc:
             html.Div(simple, classes="text-caption", v_show="ui_mode === 'simple'")
-        if desc:
             html.Div(desc, classes="text-caption", v_show="ui_mode === 'expert'")
+        elif desc:
+            html.Div(desc, classes="text-caption")
 
 
 # Back-compat aliases used by render_fan_tab
