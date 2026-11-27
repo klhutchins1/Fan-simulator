@@ -106,8 +106,8 @@ Full report: `docs/review/2026-11-26-rv3-cockpit.md`. Merged in PR #132 (`2eea9d
   `fan_assess.py:spec_status` to log and warn on unreadable preview STLs instead of silently returning `(True, "")`,
   hid idle `⏹ Cancel viz` behind `airflow_busy`, and added `EXPERIMENTAL_LABEL` to the Mixed Design card
   (`tests/test_rv3_cockpit.py`).
-- Follow-up fix in PR #137: kept `placement.py:impeller_z_extent` purely analytic for shrouded cylindrical-tip designs
-  so `fit_envelope` / `on_scale_to_hub` never invoke OCCT `prepare_loft_chords` lofts.
+- Follow-up fix merged in PR #137 (`ce3a872`): kept `placement.py:impeller_z_extent` purely analytic for shrouded
+  cylindrical-tip designs so `fit_envelope` / `on_scale_to_hub` never invoke OCCT `prepare_loft_chords` lofts.
 
 Carried in from earlier work (see the plan) — all four now fixed and merged on `master`:
 - CFM factor single source (`#49`, PR #61 / `08cab17`);

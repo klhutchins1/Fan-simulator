@@ -114,11 +114,11 @@ the validation page is built on a green CI and a clean ledger.
   Open pre-registration `math` / `review` follow-ups: #86–#88, #90, #93–#97, #109–#112, #116–#118, #122–#128.
 - **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `done f87f59b` (triage `7c23df1`, 38 scripts in `archive/scripts/`, `scripts/audit_forensics.py` + tests; all promote follow-ups #74–#76 landed — `fan_noise_curle`, `fan_noise_cv`, and `prop_section_2d` in PR #135 `f87f59b` into `fansim/propeller/section_2d.py` with `propeller.section_2d` audited `PROVEN=34`). Detail: `docs/review/2026-11-25-rv4-script-triage.md`.
 
-- **RV-5 Speed and code health.** Lane: Cursor. CPU: day (profile outside 4–9 PM). Status: `done (2026-11-26; PR #136 / #137 finishing CI)`.
+- **RV-5 Speed and code health.** Lane: Cursor. CPU: day (profile outside 4–9 PM). Status: `done f4952d4` (2026-11-26).
   `evaluate_candidate` split into clean stage helpers, `flow_verdicts`/`spanwise`/`metrics`/`proxies` cleanup (#89 closed; PR #114 `929d2c9`, PR #115 `818e42e`);
   `mypy` widened from 3 to 51 core source files (PR #133 `c66a024` closing #55, plus `section_2d.py` in PR #135 `f87f59b`);
   physics/geometry/worker source-grep tests replaced with behavioral assertions and ledger re-proved (PR #134 `3f7f295` closing #54);
-  fast-suite CAD fixtures sharing 22 redundant fused builds across chunks 0–2 (`pytest (0)` 5m23s → 4m20s, `pytest (2)` 13m14s → 9m20s; PR #136) and analytic shroud span fix eliminating the shrouded `fit_envelope` OCCT hang (PR #137).
+  fast-suite CAD fixtures sharing 22 redundant fused builds across chunks 0–2 (`pytest (0)` 5m23s → 4m20s, `pytest (2)` 13m14s → 9m20s; PR #136 `f4952d4`) and analytic shroud span fix eliminating the shrouded `fit_envelope` OCCT hang (PR #137 `ce3a872`).
 - **W1 (Windows PC)** still applies: `scripts\stray_work.py` must list nothing. GitHub has none of `stock-outline`,
   `r22a-wake-aspect` or `r110-g2-merge`, and this clone has no grok handoffs after 11-09, no `research/`, and no
   leads 23–48 pre-registrations.
