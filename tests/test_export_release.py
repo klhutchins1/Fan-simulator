@@ -5,6 +5,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("export_release", ROOT / "scripts" / "export_release.py")
 er = importlib.util.module_from_spec(spec)
@@ -135,6 +137,29 @@ NAMED_LARGE = (
 )
 
 
+def test_export_select_omits_named_large_files():
+    """RELEASE_EXCLUDE omits the named large reference assets even inside an exported repo."""
+    kept = er.select([*NAMED_LARGE, "README.md"], er.read_excludes(ROOT / "RELEASE_EXCLUDE"))
+    assert kept == ["README.md"]
+
+
+def test_export_does_not_drop_binary_png_containing_random_drive_bytes(tmp_path):
+    """Binary PNGs whose compressed stream happens to contain drive bytes must not be dropped."""
+    src = tmp_path / "src"
+    src.mkdir()
+    payload = _machine("E", "/", "fake-deflate-bytes").encode("ascii")
+    fake_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01" + payload + b"\x00"
+    (src / "shot.png").write_bytes(fake_png)
+    out = tmp_path / "out"
+    kept = er.export(out, files=["shot.png"], excludes=[], root=src)
+    assert kept == ["shot.png"]
+    assert (out / "shot.png").read_bytes() == fake_png
+
+
+@pytest.mark.skipif(
+    not all((ROOT / p).is_file() for p in NAMED_LARGE),
+    reason="named large reference files are omitted from public exports",
+)
 def test_export_omits_named_large_files_and_keeps_them_in_git(tmp_path):
     tracked = er.tracked_files(ROOT)
     fan01_stl = [

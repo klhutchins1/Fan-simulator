@@ -98,6 +98,21 @@ def test_release_notes_honesty_and_no_overstated_claims(notes_text: str):
     assert "opencfd/openfoam-default:2406" in notes_text
 
 
+def test_release_notes_audit_unit_count_matches_registry(notes_text: str):
+    from fansim.audit.registry import load_registry
+
+    n_units = len(load_registry().units)
+    assert f"{n_units}-unit physics audit ledger" in notes_text
+
+
+def test_readme_commands_reference_live_scripts_and_github_url():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "<the GitHub URL>" not in readme
+    assert "https://github.com/klhutchins1/Fan-simulator" in readme
+    for script in re.findall(r"scripts/([A-Za-z0-9_]+\.py)", readme):
+        assert (ROOT / "scripts" / script).is_file(), f"README references missing scripts/{script}"
+
+
 def test_release_notes_ships_in_release_export(tmp_path):
     from scripts import export_release as er
 

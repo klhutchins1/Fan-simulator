@@ -89,7 +89,7 @@ optimize  ─►  browse/tweak in the cockpit  ─►  export print files  ─�
 
 1. **Optimize** — search for good, buildable designs (see commands below).
 2. **Cockpit** — browse the Pareto front, load any catalogued design, edit and re-Assess, compare.
-3. **Export** — `export_finalists.py` writes a print-ready STL + print sheet per finalist, with the
+3. **Export** — the cockpit's **Export STL** panel writes a print-ready STL + print sheet, with the
    motor-mount cavity carved and a "mountable / print-difficulty" verdict.
 4. **Print + mount** — print the STL (PETG default), slip the hub cup over the motor.
 5. **Measure** — read airflow / noise, and type it into the cockpit's *Record measurement* panel.
@@ -118,7 +118,7 @@ Check: `uv --version`.
 ### 2. Clone and install the project
 
 ```bash
-git clone <the GitHub URL>
+git clone https://github.com/klhutchins1/Fan-simulator.git
 cd Fan-simulator          # or whatever you named the folder
 uv sync --extra dev       # core + cockpit + pytest. Plain `uv sync` installs no pytest.
 ```
@@ -180,20 +180,19 @@ On a fresh clone `runs/`, `catalog/catalog.db`, `config/fan_models/` and `build/
 ## Key commands
 
 ```bash
+# Launch the design cockpit (or `uv run fansim-cockpit`)
+uv run python scripts/cockpit.py
+
 # Optimize (CFD; needs Docker). --mountable keeps designs that fit the real motor.
 uv run python scripts/run_optimization.py --space guided --extended --mountable --noise --trials 30 --out runs/opt_mountable
-
-# Export a run's finalists as print-ready STLs + print sheets (+ motor-mount cup).
-uv run python scripts/export_finalists.py --run runs/opt_mountable --material PETG
 
 # Unified catalog: index every design across all runs + measurements, then browse it.
 uv run python scripts/catalog.py build
 uv run python scripts/catalog.py list --pareto
 uv run python scripts/catalog.py show opt_mountable_t1
 
-# Validate CFD against the real A12x25, or GPU-score a run's noise.
+# Validate CFD against the real A12x25.
 uv run python scripts/validate_a12x25.py
-uv run python scripts/score_feature_noise.py --run runs/feat_study2
 
 # Reclaim disk: prune regenerable OpenFOAM case internals (dry-run first; --apply to delete).
 uv run python scripts/prune_runs.py                # shows reclaimable; deletes nothing
@@ -215,7 +214,7 @@ Case internals (mesh, `processor*`, logs) are regenerable and safe to prune once
 
 ## Known limits
 
-- No fan has been printed and measured yet (printed-rig measurements come in v1.1).
+- No fan has been printed and measured yet (printed-rig measurements come in v0.1.1).
 - Mixed-flow: Experimental: not validated against published data.
 - Volute: Experimental: not validated against published data (unconverged on the fine mesh).
 - Prop CFD: Experimental: not validated against published data — propeller CFD is not a performance predictor. (Prop BEMT fast estimate is validated within its stated band.)

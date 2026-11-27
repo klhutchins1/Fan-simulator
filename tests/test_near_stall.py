@@ -41,6 +41,7 @@ def test_stock_past_shutoff_is_flagged():
 R3 = Path("handoff/2026-10-09_from-qa-2/screen_r3/designs")
 
 
+@pytest.mark.skipif(not R3.is_dir(), reason="handoff/ omitted from public export")
 @pytest.mark.parametrize(
     "stem, expect",
     [
@@ -54,6 +55,7 @@ def test_q3_holdout_9610_vs_healthy_neighbours(stem, expect):
     assert r.flagged is expect
 
 
+@pytest.mark.skipif(not R3.is_dir(), reason="handoff/ omitted from public export")
 def test_holdout_9613_also_flags_on_incidence():
     """Prereg hoped 9613 would stay quiet. BEM incidence is past stall; recorded MIXED."""
     r = near_stall_report(load_blade_params(R3 / "13_S02977.blade.yaml"), rpm=2000.0, load_pa=8.0)
