@@ -272,11 +272,12 @@ def test_full_frac_matches_tip_z_span():
 
 def test_partial_band_is_te_anchored():
     from fansim.geometry.blade import shroud_axial_range, tip_le_te_z, tip_section_points
+    from fansim.geometry.chord_realisation import prepare_loft_chords
 
     p = BladeParams()
     p.shroud_thick_mm = SHROUD_DEFAULT_MM
     p.shroud_height_frac = 0.3
-    z_le, z_te = tip_le_te_z(p)
+    z_le, z_te = tip_le_te_z(prepare_loft_chords(p))
     lo, hi = shroud_axial_range(p)
     span = max(v.z for v in tip_section_points(p)) - min(v.z for v in tip_section_points(p))
     assert abs((hi - lo) - 0.3 * span) < 1e-6

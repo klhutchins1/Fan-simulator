@@ -165,7 +165,8 @@ def rounded_plate(
     n_flat = max(int(n_points) // 2, 4)
 
     # Ellipse LE/TE: center (a_le,0) / (1-a_te,0); y always spans ±half_t so faces meet flush.
-    # Upper TE→LE: TE tip → TE arc → flat → LE arc → LE tip
+    # Upper TE→LE: TE tip → TE arc → flat → LE arc → LE tip, using identical arc steps on both
+    # ends and mirroring upper → lower so upper/lower coordinates are bit-exact symmetric (#118).
     th_te_u = np.linspace(0.0, 0.5 * np.pi, n_arc, endpoint=False)
     te_u = np.column_stack([
         (1.0 - a_te) + a_te * np.cos(th_te_u),
@@ -175,29 +176,16 @@ def rounded_plate(
     x_flat_u = np.linspace(1.0 - a_te, a_le, n_flat, endpoint=False)
     flat_u = np.column_stack([x_flat_u, np.full_like(x_flat_u, half_t)])
 
-    th_le_u = np.linspace(0.5 * np.pi, np.pi, n_arc, endpoint=True)
+    th_le_u = np.linspace(0.5 * np.pi, np.pi, n_arc + 1, endpoint=True)
     le_u = np.column_stack([
         a_le + a_le * np.cos(th_le_u),
         half_t * np.sin(th_le_u),
     ])
     upper = np.vstack([te_u, flat_u, le_u])
 
-    # Lower LE→TE (skip LE tip duplicate)
-    th_le_l = np.linspace(np.pi, 1.5 * np.pi, n_arc, endpoint=False)[1:]
-    le_l = np.column_stack([
-        a_le + a_le * np.cos(th_le_l),
-        half_t * np.sin(th_le_l),
-    ])
-
-    x_flat_l = np.linspace(a_le, 1.0 - a_te, n_flat, endpoint=False)
-    flat_l = np.column_stack([x_flat_l, np.full_like(x_flat_l, -half_t)])
-
-    th_te_l = np.linspace(-0.5 * np.pi, 0.0, n_arc, endpoint=True)
-    te_l = np.column_stack([
-        (1.0 - a_te) + a_te * np.cos(th_te_l),
-        half_t * np.sin(th_te_l),
-    ])
-    lower = np.vstack([le_l, flat_l, te_l])
+    # Lower LE→TE: exact mirror of upper (skip LE tip duplicate; ends at TE tip == upper[0]).
+    lower = upper[-2::-1].copy()
+    lower[:, 1] = -lower[:, 1]
 
     loop = np.vstack([upper, lower])
     if not np.allclose(loop[0], loop[-1]):
