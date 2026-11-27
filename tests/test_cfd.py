@@ -151,6 +151,81 @@ def test_kinematic_pressure_contract_once_times_rho():
     assert "pStatic" not in blob and "p_rgh" not in blob.split("functions")[-1]
 
 
+def test_parse_fan_metrics_reversed_flow_negative_dp_never_positive_power(tmp_path):
+    """#86: reversed flow (Q < 0) with negative pressure rise must NEVER give positive air power."""
+    case = tmp_path / "case_rev"
+    _write_pp(case, "forces", "moment.dat", "600 1e-5 -2e-5 -0.010 1e-5 -2e-5 -0.0099 0 0 -1e-4\n")
+    _write_pp(case, "forces", "force.dat", "600 -0.003 -0.0002 -0.20 -0.003 -0.0003 -0.20 0 0 -2e-4\n")
+    _write_pp(case, "outletFlow", "surfaceFieldValue.dat", "600 -0.015\n")
+    _write_pp(case, "inletP", "surfaceFieldValue.dat", "600 12.0\n")
+    _write_pp(case, "outletP", "surfaceFieldValue.dat", "600 0.0\n")
+    m = parse_fan_metrics(case, omega_rad_s=209.44)
+    assert m.flow_m3s < 0.0
+    assert m.static_pressure_rise_pa < 0.0
+    assert m.air_power_w < 0.0
+    assert m.efficiency < 0.0
+    assert m.eta_total is None
+
+
+def test_parse_fan_metrics_populates_eta_total_from_case_meta(tmp_path):
+    """#86: parse_fan_metrics populates ISO 5801 / AMCA 210 eta_total when outlet_area_m2 is known."""
+    import json
+
+    from fansim.cfd.sanity import run_sanity
+
+    case = tmp_path / "case_meta"
+    a_out = 0.010
+    _write_pp(case, "forces", "moment.dat", "600 0 0 -0.010 0 0 -0.010 0 0 0\n")
+    _write_pp(case, "forces", "force.dat", "600 0 0 0.25 0 0 0.25 0 0 0\n")
+    _write_pp(case, "outletFlow", "surfaceFieldValue.dat", "600 0.025\n")
+    _write_pp(case, "inletP", "surfaceFieldValue.dat", "600 -3.125\n")
+    _write_pp(case, "outletP", "surfaceFieldValue.dat", "600 6.6666666667\n")
+    (case / "constant").mkdir(parents=True, exist_ok=True)
+    (case / "constant" / "case_meta.json").write_text(
+        json.dumps({"outlet_area_m2": a_out, "inlet_area_m2": a_out}), encoding="utf-8"
+    )
+    (case / "0").mkdir(parents=True, exist_ok=True)
+    (case / "0" / "p").write_text(
+        "boundaryField\n{\n    inlet { type totalPressure; p0 uniform 0; value uniform 0; }\n"
+        "    outlet { type fixedValue; value uniform 6.6666666667; }\n}\n",
+        encoding="utf-8",
+    )
+    m = parse_fan_metrics(case, omega_rad_s=209.44)
+    p_total_pa = 6.6666666667 * 1.2 + 0.5 * 1.2 * (0.025 / a_out) ** 2
+    want = 0.025 * p_total_pa / (0.010 * 209.44)
+    assert m.eta_total == pytest.approx(want, rel=1e-6)
+    # sanity._check_energy_total must agree identically.
+    checks = {c.name: c for c in run_sanity(case, metrics=m)}
+    assert checks["energy_total"].value == pytest.approx(m.eta_total, rel=1e-6)
+
+
+def test_parse_fan_metrics_eta_total_velocity_driven_duct(tmp_path):
+    """#86: velocity-driven (zeroGradient inlet) eta_total uses p_t2 - p_t1."""
+    import json
+
+    case = tmp_path / "case_vdriven"
+    a_duct = 0.010
+    _write_pp(case, "forces", "moment.dat", "600 0 0 -0.010 0 0 -0.010 0 0 0\n")
+    _write_pp(case, "forces", "force.dat", "600 0 0 0.25 0 0 0.25 0 0 0\n")
+    _write_pp(case, "outletFlow", "surfaceFieldValue.dat", "600 0.025\n")
+    _write_pp(case, "inletP", "surfaceFieldValue.dat", "600 -8.0\n")
+    _write_pp(case, "outletP", "surfaceFieldValue.dat", "600 0.0\n")
+    (case / "constant").mkdir(parents=True, exist_ok=True)
+    (case / "constant" / "case_meta.json").write_text(
+        json.dumps({"outlet_area_m2": a_duct, "inlet_area_m2": a_duct}), encoding="utf-8"
+    )
+    (case / "0").mkdir(parents=True, exist_ok=True)
+    (case / "0" / "p").write_text(
+        "boundaryField\n{\n    inlet { type zeroGradient; }\n"
+        "    outlet { type fixedValue; value uniform 0; }\n}\n",
+        encoding="utf-8",
+    )
+    m = parse_fan_metrics(case, omega_rad_s=209.44)
+    # Constant-area duct: dynamic pressures cancel -> P_t == (p_out - p_in) * rho.
+    want = 0.025 * (8.0 * 1.2) / (0.010 * 209.44)
+    assert m.eta_total == pytest.approx(want, rel=1e-6)
+
+
 @pytest.mark.docker
 def test_case_build_files(tmp_path):
     """Case assembly writes a valid directory structure (no meshing/solving)."""
