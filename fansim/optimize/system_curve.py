@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import itertools
 import math
 from dataclasses import dataclass
 
@@ -155,7 +156,7 @@ def probe_flow_cfm(curve, load_pa: float) -> float:
     if p1 >= float(curve.shutoff_dp_pa):
         raise SystemCurveError("BEM shutoff below probe Pa")
     pts = list(curve.points)
-    for a, b in zip(pts, pts[1:]):
+    for a, b in itertools.pairwise(pts):
         pa, pb = float(a.dp_static_pa), float(b.dp_static_pa)
         if pa >= p1 >= pb or pb >= p1 >= pa:
             if pa == pb:
@@ -206,12 +207,6 @@ def bem_exploit_reason(params, rpm: float, tip_gap_mm: float | None = None) -> s
         return (f"blades churn air instead of pumping it (peak efficiency "
                 f"{100.0 * float(curve.peak_efficiency):.1f} % < {100 * EXPLOIT_MIN_PEAK_EFF:.0f} %; paddle-like?)")
     return ""
-
-
-def bem_load_cfm(params, rpm: float, load_pa: float, tip_gap_mm: float,
-                 *, stator: bool = False) -> float:
-    """BEM 2-point fan line ∩ ΔP = k Q² — same operating point CFD uses for cfm_load."""
-    return bem_screen_cfm(params, rpm, load_pa, tip_gap_mm, stator=stator)[1]
 
 
 # --- spliced from transcript edit-history (recovery 2026-09-12) ---

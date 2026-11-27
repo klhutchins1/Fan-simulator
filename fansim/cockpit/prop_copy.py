@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fansim.cockpit.blade_copy import BLADE_DESC, BLADE_DESC_SIMPLE, desc_for
+from fansim.cockpit.blade_copy import BLADE_DESC, BLADE_DESC_SIMPLE
 
 PROP_DESC = {
     "p_n_blades": "Blade count (2–4). More blades → more static thrust, usually less efficiency.",
@@ -28,7 +28,3 @@ for _bare, _text in BLADE_DESC.items():
     PROP_DESC[f"p_{_bare}"] = _text
 for _bare, _text in BLADE_DESC_SIMPLE.items():
     PROP_DESC_SIMPLE[f"p_{_bare}"] = _text
-
-
-def prop_help(model: str) -> str:
-    return PROP_DESC.get(model) or desc_for(model, prefix="p_")

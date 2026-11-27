@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 import math
 from dataclasses import dataclass
@@ -14,9 +13,9 @@ from fansim.cfd import templates as T
 from fansim.cfd.domain import MM_TO_M, TestRig
 from fansim.cfd.metrics import CFD_VERSION
 from fansim.cfd.wall_roughness import nut_wall_bc, wall_ks_m
-
-from fansim.physics.air import RHO_AMCA as RHO_AIR
 from fansim.physics.air import NU_AIR
+from fansim.physics.air import RHO_AMCA as RHO_AIR
+
 CMU = 0.09
 TURB_INTENSITY = 0.05
 BOX_SCALE = 1.12  # hex half-side / duct_radius when a circular casing is present
@@ -80,7 +79,7 @@ class MeshResolution:
         cells_across: int = WALL_CELLS_ACROSS,
         add_layers: bool = False,
         min_surf_max: int | None = None,
-    ) -> "MeshResolution":
+    ) -> MeshResolution:
         """Resolution whose surface refinement resolves ``min_wall_mm`` (>= ~3 cells).
 
         Adapts snappy surface + feature levels to the blade's thinnest wall so thin plates
@@ -110,20 +109,6 @@ def snappy_layers_mapping(mesh: MeshResolution) -> dict[str, str]:
         "ADDLAYERS": "true",
         "LAYER_PATCHES": f"        impeller {{ nSurfaceLayers {n}; }}\n",
     }
-
-
-def grid_convergence_parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(description="grid-convergence study (free delivery)")
-    ap.add_argument("--base-json", required=True)
-    ap.add_argument("--base-trial", type=int, required=True)
-    ap.add_argument("--cells", default="0.007,0.005,0.0035",
-                    help="base_cell sizes (m), coarse->fine")
-    ap.add_argument("--iters", type=int, default=1000)
-    ap.add_argument("--procs", type=int, default=8)
-    ap.add_argument("--out", default="runs/gridconv")
-    ap.add_argument("--layers", action="store_true", default=False,
-                    help="grow prism layers on the impeller (off)")
-    return ap
 
 
 def _header(cls: str, obj: str) -> str:
@@ -221,7 +206,7 @@ def add_rear_forces(control_dict: Path) -> None:
     text = Path(control_dict).read_text(encoding="utf-8")
     if "forcesRear" in text:
         return
-    m = re.search(r"\n    forces\n    \{.*?\n    \}\n", text, flags=re.S)
+    m = re.search(r"\n    forces\n    \{.*?\n    \}\n", text, flags=re.DOTALL)
     if m is None:
         raise ValueError(f"no forces block in {control_dict}")
     block = m.group(0)
