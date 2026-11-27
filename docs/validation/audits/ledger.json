@@ -56,8 +56,8 @@
     },
     "cfd.cfm_from_outlet_flow": {
       "date": "2026-11-26",
-      "fingerprint": "77b9ff1b4e56ef0b",
-      "report": "docs/validation/audits/2026-11-26-cfd-convergence-multimetric-prereg.md",
+      "fingerprint": "f8edfe34be1e33a0",
+      "report": "docs/validation/audits/2026-11-26-cfd-metrics-eta-86-prereg.md",
       "verdict": "PASS"
     },
     "cfd.duct_area": {
@@ -79,9 +79,9 @@
       "verdict": "PASS"
     },
     "cfd.sanity_checks": {
-      "date": "2026-10-01",
-      "fingerprint": "4a00e781f19f7056",
-      "report": "docs/validation/audits/2026-10-01-audit-07-cror-mixed-setup.md",
+      "date": "2026-11-26",
+      "fingerprint": "93e08b14571a5c9a",
+      "report": "docs/validation/audits/2026-11-26-cfd-metrics-eta-86-prereg.md",
       "verdict": "PASS"
     },
     "cfd.spanwise": {

@@ -7,6 +7,7 @@ power, and aerodynamic efficiency.
 
 from __future__ import annotations
 
+import json
 import math
 import re
 import warnings
@@ -269,6 +270,47 @@ def oscillation_pct(case_dir: str | Path, tail_frac: float = TAIL_FRAC) -> float
 
 
 _RHO_INF_RE = re.compile(r"\brhoInf\s+([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s*;")
+_INLET_BLOCK_RE = re.compile(r"\binlet\s*\{([^}]*)\}", re.DOTALL)
+
+
+def _case_meta_areas(case_dir: Path) -> tuple[float | None, float | None]:
+    """Read ``(inlet_area_m2, outlet_area_m2)`` from ``constant/case_meta.json`` when present."""
+    meta_path = case_dir / "constant" / "case_meta.json"
+    if not meta_path.is_file():
+        return None, None
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None, None
+    if not isinstance(meta, dict):
+        return None, None
+
+    def _pos(key: str) -> float | None:
+        raw = meta.get(key)
+        if raw is None:
+            return None
+        try:
+            v = float(raw)
+        except (TypeError, ValueError):
+            return None
+        return v if math.isfinite(v) and v > 0.0 else None
+
+    return _pos("inlet_area_m2"), _pos("outlet_area_m2")
+
+
+def _inlet_is_zero_gradient_p(case_dir: Path) -> bool:
+    """True when ``0/p`` uses a velocity-driven ``zeroGradient`` inlet BC (not ``totalPressure``)."""
+    p_path = case_dir / "0" / "p"
+    if not p_path.is_file():
+        return False
+    try:
+        text = p_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    m = _INLET_BLOCK_RE.search(text)
+    if m is None:
+        return False
+    return "zeroGradient" in m.group(1) and "totalPressure" not in m.group(1)
 
 
 def _control_dict_rho_inf(case_dir: Path) -> float | None:
@@ -291,7 +333,11 @@ def _control_dict_rho_inf(case_dir: Path) -> float | None:
 
 
 def parse_fan_metrics(
-    case_dir: str | Path, omega_rad_s: float, rho: float = RHO_AIR
+    case_dir: str | Path,
+    omega_rad_s: float,
+    rho: float = RHO_AIR,
+    *,
+    outlet_area_m2: float | None = None,
 ) -> FanMetrics:
     """Parse OpenFOAM postProcessing outputs into :class:`FanMetrics`.
 
@@ -306,15 +352,27 @@ def parse_fan_metrics(
         assume equal rotor speeds ``|omega_front| == |omega_rear| == omega_rad_s`` and that
         neither rotor is windmilling (checked separately by ``fansim.cfd.sanity._check_power_sign``).
     rho:
-        Air density [kg/m^3] (must be finite and positive) used to scale kinematic pressures
-        ``(p_out - p_in) * rho``. OpenFOAM's ``forces`` functionObject bakes ``rhoInf`` from
-        ``system/controlDict`` into ``force.dat`` / ``moment.dat``; a ``UserWarning`` is emitted
-        if ``rho`` disagrees with ``controlDict``'s ``rhoInf`` (or ``RHO_AIR`` when absent).
+        Air density [kg/m^3] (must be finite and positive) used to scale kinematic pressures.
+        OpenFOAM's ``forces`` functionObject bakes ``rhoInf`` from ``system/controlDict`` into
+        ``force.dat`` / ``moment.dat``; a ``UserWarning`` is emitted if ``rho`` disagrees with
+        ``controlDict``'s ``rhoInf`` (or ``RHO_AIR`` when absent).
+    outlet_area_m2:
+        Optional outlet patch area [m^2] used to populate ISO 5801 / AMCA 210 total efficiency
+        ``eta_total``. When omitted, ``case_meta.json`` is consulted if present.
+
+    Notes
+    -----
+    ``static_pressure_rise_pa`` is the duct static-to-static rise ``(p_out - p_in) * rho``
+    (CFD_VERSION 6 convention; on ``totalPressure`` ``p0=0`` inlets ``p_in = -0.5 |U_in|^2``,
+    so AMCA 210 fan static pressure is ``p_out * rho``). ``eta_total`` uses ISO 5801 / AMCA 210
+    fan total pressure ``P_t = p_t2 - p_t1`` (#86).
     """
     if not math.isfinite(omega_rad_s) or omega_rad_s < 0.0:
         raise ValueError(f"omega_rad_s must be finite and non-negative, got {omega_rad_s!r}")
     if not math.isfinite(rho) or rho <= 0.0:
         raise ValueError(f"rho must be finite and positive, got {rho!r}")
+    if outlet_area_m2 is not None and (not math.isfinite(outlet_area_m2) or outlet_area_m2 <= 0.0):
+        raise ValueError(f"outlet_area_m2 must be finite and positive, got {outlet_area_m2!r}")
     case_dir = Path(case_dir)
 
     rho_inf = _control_dict_rho_inf(case_dir)
@@ -359,12 +417,26 @@ def parse_fan_metrics(
     p_out = _tail_mean_row(_pp_file(case_dir, "outletP", "surfaceFieldValue.dat"))[-1]
 
     # Keep flow SIGNED: under a back-pressure beyond the fan's capability the flow reverses
-    # (negative), which must read as a failure, not be masked by abs().
-    static_rise_pa = (p_out - p_in) * rho  # kinematic (m^2/s^2) -> Pa
+    # (negative), which must read as a failure, not be masked by abs(). Guard against the
+    # double-negative product (flow < 0 and static_rise_pa < 0) giving positive air power (#86).
+    static_rise_pa = (p_out - p_in) * rho  # duct static-to-static: kinematic (m^2/s^2) -> Pa
     shaft_power = torque * omega_rad_s
-    air_power = flow * static_rise_pa
+    air_power = flow * static_rise_pa if flow > 0.0 else -abs(flow * static_rise_pa)
     efficiency = air_power / shaft_power if shaft_power > 1e-9 else 0.0
     converged, drift = convergence(case_dir)
+
+    meta_a_in, meta_a_out = _case_meta_areas(case_dir)
+    a_out = float(outlet_area_m2) if outlet_area_m2 is not None else meta_a_out
+    eta_total: float | None = None
+    if a_out is not None and flow > 0.0 and shaft_power > 1e-9:
+        dyn_out = 0.5 * rho * (flow / a_out) ** 2
+        if _inlet_is_zero_gradient_p(case_dir) and meta_a_in is not None:
+            # Velocity-driven duct: P_t = p_t2 - p_t1.
+            p_total_pa = static_rise_pa + dyn_out - 0.5 * rho * (flow / meta_a_in) ** 2
+        else:
+            # Pressure-driven (totalPressure inlet p_t1 = 0): P_t = p_s2 + p_d2.
+            p_total_pa = p_out * rho + dyn_out
+        eta_total = flow * p_total_pa / shaft_power
 
     return FanMetrics(
         flow_m3s=flow,
@@ -379,6 +451,7 @@ def parse_fan_metrics(
         p_outlet_kin=p_out,
         converged=converged,
         flow_drift_pct=drift,
+        eta_total=eta_total,
         moment_z_nm=moment_z,
         moment_z_rear_nm=moment_z_rear,
         oscillation_pct=oscillation_pct(case_dir),

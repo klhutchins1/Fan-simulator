@@ -126,12 +126,12 @@ def _infer_domain_z_min(case_dir: Path) -> float | None:
         return None
 
 
-def _load_mesh(path: Path) -> "trimesh.Trimesh | None":
+def _load_mesh(path: Path) -> trimesh.Trimesh | None:
     if not path.exists():
         return None
     try:
         return trimesh.load(str(path), force="mesh")
-    except Exception:
+    except Exception:  # noqa: BLE001 - corrupt/unreadable STL degrades check to SKIP
         return None
 
 
@@ -145,7 +145,7 @@ def _infer_tip_radius_m(case_dir: Path) -> float | None:
     return float(np.percentile(radii, 99.5))
 
 
-def _infer_bore_radius_m(casing_mesh: "trimesh.Trimesh") -> float | None:
+def _infer_bore_radius_m(casing_mesh: trimesh.Trimesh) -> float | None:
     """Min radial distance of casing.stl vertices at its inlet (z_min) end."""
     verts = np.asarray(casing_mesh.vertices)
     if verts.shape[0] == 0:
@@ -256,11 +256,14 @@ def _check_energy_total(metrics: FanMetrics | None, case_meta: dict | None) -> S
         return SanityCheck("energy_total", SKIP, None, limit, "Q<=0, check only applies to forward flow")
     if metrics.shaft_power_w <= 1e-9:
         return SanityCheck("energy_total", SKIP, None, limit, "shaft power ~0")
-    a_out = float(case_meta["outlet_area_m2"])
-    q = metrics.flow_m3s
-    p_out_static_pa = metrics.p_outlet_kin * RHO_AIR
-    dyn_out = 0.5 * RHO_AIR * (q / a_out) ** 2
-    eta_total = q * (p_out_static_pa + dyn_out) / metrics.shaft_power_w
+    if metrics.eta_total is not None and math.isfinite(metrics.eta_total):
+        eta_total = float(metrics.eta_total)
+    else:
+        a_out = float(case_meta["outlet_area_m2"])
+        q = metrics.flow_m3s
+        p_out_static_pa = metrics.p_outlet_kin * RHO_AIR
+        dyn_out = 0.5 * RHO_AIR * (q / a_out) ** 2
+        eta_total = q * (p_out_static_pa + dyn_out) / metrics.shaft_power_w
     status = PASS if eta_total < 1.0 else FAIL
     note = f"eta_total={eta_total:.3f}"
     return SanityCheck("energy_total", status, eta_total, limit, note)
