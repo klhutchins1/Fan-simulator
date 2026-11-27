@@ -144,3 +144,33 @@ def test_impeller_z_extent_and_fit_envelope_never_run_cad_on_shrouded_fan(monkey
     assert isinstance(res.flat, dict)
     assert isinstance(res.fit_status, str)
 
+
+def test_cockpit_template_serves_control_images_statically_instead_of_inlining_pngs():
+    """Control preview PNGs must be served over HTTP (lazy-loaded), not inlined into the Vue template."""
+    from fansim.cockpit.fan_copy import CONTROL_IMAGES_URL_PREFIX, control_image_url
+    from fansim.cockpit.fan_widgets import _tooltip_img_src
+
+    assert CONTROL_IMAGES_URL_PREFIX == "fansim_control_images"
+    url = control_image_url("e_n_blades")
+    assert url == "/fansim_control_images/e_n_blades.png"
+    assert _tooltip_img_src("e_n_blades", "data:image/png;base64,AAA") == url
+    # Fallback to inline SVG diagram URI when no rendered PNG exists for the control.
+    svg_uri = "data:image/svg+xml;utf8,<svg/>"
+    assert _tooltip_img_src("__no_such_control__", svg_uri) == svg_uri
+
+    app_src = (REPO / "fansim/cockpit/app.py").read_text(encoding="utf-8")
+    assert "CONTROL_IMAGES_URL_PREFIX" in app_src
+    widgets_src = (REPO / "fansim/cockpit/fan_widgets.py").read_text(encoding="utf-8")
+    assert 'loading="lazy"' in widgets_src
+
+
+def test_lazy_tabs_use_isolated_server_templates_instead_of_flushing_main_layout():
+    """Lazy tabs must flush into isolated ServerTemplate slots so VTK views in other tabs don't remount."""
+    import re
+
+    app_src = (REPO / "fansim/cockpit/app.py").read_text(encoding="utf-8")
+    assert "ServerTemplate" in app_src
+    assert "DivLayout" in app_src
+    assert "tab_layout.flush_content()" in app_src
+    assert re.search(r"(?<!\w)layout\.flush_content\(", app_src) is None
+

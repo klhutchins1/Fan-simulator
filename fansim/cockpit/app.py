@@ -20,6 +20,7 @@ _RUNNING_TESTS = "pytest" in sys.modules
 if _RUNNING_TESTS:
     asynchronous = None  # type: ignore[assignment]
     get_server = None  # type: ignore[assignment]
+    DivLayout = None  # type: ignore[assignment]
     SinglePageLayout = None  # type: ignore[assignment]
     v3 = None  # type: ignore[assignment]
     html = None  # type: ignore[assignment]
@@ -27,6 +28,7 @@ if _RUNNING_TESTS:
 else:
     import pyvista as pv
     from trame.app import asynchronous, get_server
+    from trame.ui.html import DivLayout
     from trame.ui.vuetify3 import SinglePageLayout
     from trame.widgets import html
     from trame.widgets import vuetify3 as v3
@@ -99,11 +101,15 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
 
     _guard_websockets()  # one frozen tab must not freeze every session (QA UI-16)
     # Serve exports/ so Export can offer a browser download, not only a server-side path (§23.19).
+    from fansim.cockpit.fan_copy import _CTRL_IMG_DIR, CONTROL_IMAGES_URL_PREFIX
     from fansim.cockpit.paths import exports_dir
 
     _exports = exports_dir()
     _exports.mkdir(parents=True, exist_ok=True)
-    server.enable_module({"serve": {EXPORTS_URL_PREFIX: str(_exports)}})
+    _serve_dirs = {EXPORTS_URL_PREFIX: str(_exports)}
+    if _CTRL_IMG_DIR.is_dir():
+        _serve_dirs[CONTROL_IMAGES_URL_PREFIX] = str(_CTRL_IMG_DIR)
+    server.enable_module({"serve": _serve_dirs})
 
     # Fan plotter only at startup; Mixed/Volute/Prop construct on first visit (§12.3).
     from fansim.cockpit.plotters import make_white_plotter
@@ -255,6 +261,10 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                 )
                 render_home_tab(ctx)
                 render_fan_tab(ctx)
+                # Isolated ServerTemplate slots for lazy archetype tabs so first-visit
+                # rendering never re-flushes the root layout or tears down mounted VTK views.
+                for _lazy_tab in ("mixed", "volute", "propeller", "cror"):
+                    _client.ServerTemplate(name=f"tab_{_lazy_tab}")
                 # Switching from Home to Fan unhides the VTK canvas (display:none -> visible);
                 # nudge resize so vtkRemoteView re-measures and renders the Stock impeller.
                 _client.ClientStateChange(
@@ -291,13 +301,11 @@ def build_server(run_dir: str | Path, study_name: str | None = None):
                     render = lazy.get(tab)
                     if render is None or _lazy_ui.get(tab):
                         return
-                    # The archetype tabs render lazily on first visit — but this callback fires long
-                    # after the SinglePageLayout `with` blocks have closed, so the new widgets have no
-                    # active parent and never reach the client (blank tab). Re-enter the tab container
-                    # so they attach, then flush the regenerated layout to the browser.
-                    with _tabs_box:
+                    # Render into this tab's isolated ServerTemplate so the main layout
+                    # (and any already-mounted VTK views in Fan/Prop/etc.) stays untouched.
+                    with DivLayout(server, template_name=f"tab_{tab}") as tab_layout:
                         render(ctx)
                     _lazy_ui[tab] = True
-                    layout.flush_content()
+                    tab_layout.flush_content()
 
     return server

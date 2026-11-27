@@ -6,6 +6,7 @@ import base64
 from pathlib import Path
 
 _CTRL_IMG_DIR = Path(__file__).resolve().parents[2] / "docs" / "control_images"
+CONTROL_IMAGES_URL_PREFIX = "fansim_control_images"
 
 
 _CONTROL_IMAGE_PATTERNS = (
@@ -34,6 +35,17 @@ def _load_control_images() -> dict:
 
 
 _IMG_URI = _load_control_images()
+
+
+def control_image_url(model: str) -> str:
+    """Return the static HTTP URL for a rendered control PNG, or ``""`` if none exists.
+
+    Serving PNGs statically via ``server.enable_module`` keeps the Trame Vue template
+    under ~300 KB instead of inlining ~3 MB of base64 data URIs on every layout flush.
+    """
+    if model in _IMG_URI:
+        return f"/{CONTROL_IMAGES_URL_PREFIX}/{model}.png"
+    return ""
 
 CONTROL_DESC = {
     "e_n_blades": "How many blades. More = more airflow & pressure, but louder and less efficient.",
