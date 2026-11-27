@@ -61,7 +61,7 @@ class FanSpec:
     ref_cfm: float | None = None       # published performance (reference / validation targets)
     ref_static_pa: float | None = None
     ref_noise_dba: float | None = None
-    motor_mount: "MotorMount | None" = None   # real motor interface (cup cavity + rear bore) for printing
+    motor_mount: MotorMount | None = None   # real motor interface (cup cavity + rear bore) for printing
     # LEEWAY: optional margins letting a design EXCEED the nominal limits for what-if exploration
     # (tip sticks out past the frame, blades extend further in Z, or over-voltage that may damage the
     # motor). Off by default (0) and never changes the nominal limits -- designs that use it are
@@ -343,7 +343,7 @@ def load_fan_models_dir(directory: str | Path = "config/fan_models") -> list[str
             try:
                 register_fan_spec(p.stem, load_fan_spec(p))
                 added.append(p.stem)
-            except Exception:  # noqa: BLE001 - skip a malformed model file
+            except Exception:  # noqa: BLE001, S112 - skip a malformed model file
                 continue
     return added
 

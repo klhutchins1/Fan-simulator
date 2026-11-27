@@ -91,14 +91,12 @@ def _read_iges_faces(igs_path: Path):
 
 def _tessellate(faces, linear_deflection: float = 0.5):
     """Mesh every face and return per-face (points Nx3, area) via BRepMesh + GProp."""
-    from OCP.BRep import BRep_Tool
+    # BRepMesh_IncrementalMesh needs a compound of all faces to mesh in one pass.
+    from OCP.BRep import BRep_Builder, BRep_Tool
     from OCP.BRepGProp import BRepGProp
+    from OCP.BRepMesh import BRepMesh_IncrementalMesh
     from OCP.GProp import GProp_GProps
     from OCP.TopLoc import TopLoc_Location
-
-    # BRepMesh_IncrementalMesh needs a compound of all faces to mesh in one pass.
-    from OCP.BRep import BRep_Builder
-    from OCP.BRepMesh import BRepMesh_IncrementalMesh
     from OCP.TopoDS import TopoDS_Compound
 
     builder = BRep_Builder()

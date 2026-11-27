@@ -108,6 +108,6 @@ def measure_prop_stl(path: str | Path) -> PropStlMetrics:
         axial_depth_mm=float(mesh.extents[2]),
         watertight=bool(mesh.is_watertight),
         volume_mm3=float(mesh.volume),
-        n_faces=int(len(mesh.faces)),
+        n_faces=len(mesh.faces),
         diameter_mm=2.0 * tip,
     )

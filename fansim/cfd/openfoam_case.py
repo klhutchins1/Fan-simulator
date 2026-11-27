@@ -13,9 +13,9 @@ from fansim.cfd import templates as T
 from fansim.cfd.domain import MM_TO_M, TestRig
 from fansim.cfd.metrics import CFD_VERSION
 from fansim.cfd.wall_roughness import nut_wall_bc, wall_ks_m
-
-from fansim.physics.air import RHO_AMCA as RHO_AIR
 from fansim.physics.air import NU_AIR
+from fansim.physics.air import RHO_AMCA as RHO_AIR
+
 CMU = 0.09
 TURB_INTENSITY = 0.05
 BOX_SCALE = 1.12  # hex half-side / duct_radius when a circular casing is present
@@ -79,7 +79,7 @@ class MeshResolution:
         cells_across: int = WALL_CELLS_ACROSS,
         add_layers: bool = False,
         min_surf_max: int | None = None,
-    ) -> "MeshResolution":
+    ) -> MeshResolution:
         """Resolution whose surface refinement resolves ``min_wall_mm`` (>= ~3 cells).
 
         Adapts snappy surface + feature levels to the blade's thinnest wall so thin plates
@@ -206,7 +206,7 @@ def add_rear_forces(control_dict: Path) -> None:
     text = Path(control_dict).read_text(encoding="utf-8")
     if "forcesRear" in text:
         return
-    m = re.search(r"\n    forces\n    \{.*?\n    \}\n", text, flags=re.S)
+    m = re.search(r"\n    forces\n    \{.*?\n    \}\n", text, flags=re.DOTALL)
     if m is None:
         raise ValueError(f"no forces block in {control_dict}")
     block = m.group(0)

@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 
-def format_elapsed(seconds: float | int) -> str:
+def format_elapsed(seconds: float) -> str:
     """Format elapsed seconds as ``M:SS`` (or ``H:MM:SS`` if ≥ 1 h)."""
     s = max(0, int(seconds))
     h, rem = divmod(s, 3600)
@@ -23,7 +23,7 @@ def format_elapsed(seconds: float | int) -> str:
 
 def busy_caption(
     action: str,
-    elapsed_s: float | int,
+    elapsed_s: float,
     *,
     hint: str = "",
     note: str = "",

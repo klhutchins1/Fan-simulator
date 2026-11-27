@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import itertools
 import math
 from dataclasses import dataclass
 
@@ -155,7 +156,7 @@ def probe_flow_cfm(curve, load_pa: float) -> float:
     if p1 >= float(curve.shutoff_dp_pa):
         raise SystemCurveError("BEM shutoff below probe Pa")
     pts = list(curve.points)
-    for a, b in zip(pts, pts[1:]):
+    for a, b in itertools.pairwise(pts):
         pa, pb = float(a.dp_static_pa), float(b.dp_static_pa)
         if pa >= p1 >= pb or pb >= p1 >= pa:
             if pa == pb:
