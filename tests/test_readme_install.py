@@ -21,7 +21,8 @@ def test_readme_has_an_install_section_for_windows_and_linux():
 
 def test_readme_clone_is_not_a_placeholder():
     assert "<this-repo>" not in README
-    assert "GitHub URL" in README
+    assert "<the GitHub URL>" not in README
+    assert "https://github.com/klhutchins1/Fan-simulator" in README
 
 
 def test_readme_cockpit_port_is_8080():
