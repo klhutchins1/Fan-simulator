@@ -88,8 +88,8 @@ anything.
 Night CPU is now for gate suites and any R1.3 re-find campaign only.
 
 - **UX-1 Simple/Expert cockpit polish (GitHub #1–#41).** Lane: Cursor. CPU: day (UI copy + unit tests). Status: `done` (merged PR #21 / #42 / #43, 2026-11-25). Leftover #27 (Library “rebuild the catalog”) on `cursor/ux-library-empty-27`.
-- **UX-2 Plain-language audit and home page.** Lane: Cursor (omp). CPU: day. Status: `done 82c4dac` (PR #104, 2026-11-26).
-  Walked every tab in Simple and Expert mode, wrote `docs/review/2026-11-25-ux-audit.md`, added the Home start page, inline SVG diagrams, and tooltip/unit fixes; follow-ups filed as #99–#103.
+- **UX-2 Plain-language audit and home page.** Lane: Cursor (omp). CPU: day. Status: `done 59edc63` (PR #104 `82c4dac`, 2026-11-26; live-Chrome UX follow-ups merged in PR #120 `9af043b` closing #99, #101–#103; 27 control preview PNGs merged in PR #129 `59edc63` closing #100; remaining idle Cancel viz & Mixed experimental banner merged in PR #132 `2eea9d6`).
+  Walked every tab in Simple and Expert mode, wrote `docs/review/2026-11-25-ux-audit.md`, added the Home start page, inline SVG diagrams, min/max control preview PNGs for all tabs, and live headless-Chrome verified fixes.
 - **CI-1 VTK segfault in pytest chunk 0.** Lane: Cursor (omp). CPU: day. Status: `done` (PR #91, 2026-11-26).
   Xvfb/Mesa OpenGL added for headless VTK rendering and uninitialized OSMesa guarded; master CI is green.
 
@@ -104,14 +104,21 @@ the validation page is built on a green CI and a clean ledger.
 - **RV-1 Maths snapshot.** Lane: Claude drafts the tolerance pre-registration; Cursor builds. CPU: day. Status: `done` (merged `claude/rv1-physics-snapshot` → `83ca5bf`, 2026-11-25). 16 pinned cases in `tests/data/physics_snapshot.json`.
 - **RV-2 Validation scoreboard.** Lane: Cursor; Claude checks the numbers. CPU: day. Status: `done 6f5a280` (PR #85, 2026-11-25).
   Published-data comparisons recomputed from frozen results into `docs/validation/scoreboard.md`; FAN-01 re-run pre-registered (`docs/validation/audits/2026-11-24-fan01-rerun-prereg.md`). R3.8 quotes it.
-- **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `in progress (2026-11-26)`:
-  modules 1–3 merged (module 1 PR #84 `dacd65c`; module 2 `fan_bem.py` PR #98 `c95d825`; module 3 `cfd/metrics.py` / `flow_report.py` / `flow_verdicts.py` PR #92 `67806aa`). Open: modules 4–7 (`geometry`, `propeller`, `search_space`, `structural`/`acoustics`) plus filed `math`/`review` issues (#86–#90, #93–#97).
-  Order and checklist are in the plan. Findings become GitHub issues labelled `math` or `review`. The first 7
-  findings are listed there.
-- **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `done 7c23df1`. 38 scripts in `archive/scripts/`; `scripts/audit_forensics.py` + tests; promote follow-ups #74–#76 (`prop_section_2d`, `fan_noise_curle`, `fan_noise_cv`). Detail: `docs/review/2026-11-25-rv4-script-triage.md`.
+- **RV-3 Module-by-module code review.** Lane: Claude or grok reviews, Cursor fixes. CPU: day. Status: `done (2026-11-26)`:
+  all 8 modules audited and merged — module 1 `objectives.py` (PR #84 `dacd65c`), module 2 `fan_bem.py` (PR #98 `c95d825`),
+  module 3 `cfd/metrics.py` / `flow_report.py` / `flow_verdicts.py` (PR #92 `67806aa` + PR #114 `929d2c9`),
+  module 4 `geometry/airfoil.py` / `blade.py` (PR #119 `ad7eb8a`), module 5 `propeller/bemt.py` / `polars.py`
+  (PR #115 `818e42e` + PR #121 `5771dcd`), module 6 `optimize/search_space.py` (PR #130 `b1d3f34`),
+  module 7 `structural/*` / `acoustics/*` (PR #131 `f5f0f27`), and module 8 `cockpit/*` (PR #132 `2eea9d6`).
+  Summary log: `docs/review/rv3-findings.md`; individual dated reviews in `docs/review/2026-11-26-rv3-*.md`.
+  Open pre-registration `math` / `review` follow-ups: #86–#88, #90, #93–#97, #109–#112, #116–#118, #122–#128.
+- **RV-4 Script triage.** Lane: Cursor. CPU: none. Status: `done f87f59b` (triage `7c23df1`, 38 scripts in `archive/scripts/`, `scripts/audit_forensics.py` + tests; all promote follow-ups #74–#76 landed — `fan_noise_curle`, `fan_noise_cv`, and `prop_section_2d` in PR #135 `f87f59b` into `fansim/propeller/section_2d.py` with `propeller.section_2d` audited `PROVEN=34`). Detail: `docs/review/2026-11-25-rv4-script-triage.md`.
 
-- **RV-5 Speed and code health.** Lane: Cursor. CPU: day (profile outside 4–9 PM). Status: `ready` (unblocked by RV-1). Profile
-  the 45-minute suite, split `evaluate_candidate`, and widen mypy one module at a time.
+- **RV-5 Speed and code health.** Lane: Cursor. CPU: day (profile outside 4–9 PM). Status: `done f4952d4` (2026-11-26).
+  `evaluate_candidate` split into clean stage helpers, `flow_verdicts`/`spanwise`/`metrics`/`proxies` cleanup (#89 closed; PR #114 `929d2c9`, PR #115 `818e42e`);
+  `mypy` widened from 3 to 51 core source files (PR #133 `c66a024` closing #55, plus `section_2d.py` in PR #135 `f87f59b`);
+  physics/geometry/worker source-grep tests replaced with behavioral assertions and ledger re-proved (PR #134 `3f7f295` closing #54);
+  fast-suite CAD fixtures sharing 22 redundant fused builds across chunks 0–2 (`pytest (0)` 5m23s → 4m20s, `pytest (2)` 13m14s → 9m20s; PR #136 `f4952d4`) and analytic shroud span fix eliminating the shrouded `fit_envelope` OCCT hang (PR #137 `ce3a872`).
 - **W1 (Windows PC)** still applies: `scripts\stray_work.py` must list nothing. GitHub has none of `stock-outline`,
   `r22a-wake-aspect` or `r110-g2-merge`, and this clone has no grok handoffs after 11-09, no `research/`, and no
   leads 23–48 pre-registrations.
@@ -472,11 +479,11 @@ Kimball's.
 
 ## M4: Release candidate
 
-- **R4.1 Clean-clone install and test on Linux**. Lane: grok. Status: `ready` (M3 done).
-  - From the release export: follow README install, run the fast suite and one headless cockpit start.
+- **R4.1 Clean-clone install and test on Linux**. Lane: grok. Status: `verified locally (2026-11-26); grok dry-run open`.
+  - From the release export (`scripts/export_release.py`, 1314/2738 files): verified `uv sync --extra dev`, `fansim-cockpit --help`, 26/26 core tests, and HTTP 200 headless cockpit start in a fresh temp clone on Linux.
 - **R4.2 Windows install and one Assess**. Lane: Kimball, with Claude or Cursor on standby. CPU: night for the Assess.
   Status: `ready` (M3 done).
-- **R4.3 Release notes v0.1.0**. Lane: Cursor drafts, Claude checks the claims. Status: `done` (draft landed on `cursor/r43-release-notes`, 2026-11-26; ready for final claims review / R4.4).
+- **R4.3 Release notes v0.1.0**. Lane: Cursor drafts, Claude checks the claims. Status: `done 0b9c792` (PR #108, 2026-11-26; ready for final claims review / R4.4).
   - Drafted `docs/release/RELEASE_NOTES_v0.1.0.md` synced to `docs/VALIDATION.md` and `docs/validation/scoreboard.md`; contract test `tests/test_r43_release_notes.py` verifies all links, scoreboard numbers, zero overstated phrases, experimental labels, and `RELEASE_EXCLUDE` export inclusion. `CHANGELOG.md` stays `## Unreleased` until R4.4 tags `v0.1.0`.
 - **R4.4 Tag, publish and create the GitHub repo from the export**. Lane: Kimball. Status: `blocked (R4.1–R4.3)`.
 
