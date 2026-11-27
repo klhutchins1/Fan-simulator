@@ -42,9 +42,9 @@ def test_dual_mrf_dict_opposite_omega():
 
 
 def test_build_case_dual_mrf_writes_two_zones(tmp_path):
+    from fansim.cfd.openfoam_case import MeshResolution, build_case
     from fansim.cror.evaluate import dual_mrf_dict, fit_cror_to_stl, rig_for_cror
     from fansim.cror.geometry import export_cror_stl
-    from fansim.cfd.openfoam_case import MeshResolution, build_case
 
     stl = export_cror_stl(CrorParams(), tmp_path / "impeller.stl")
     rig = rig_for_cror(CrorParams(), tip_gap_mm=0.5, casing_id_mm=120.0, rpm=2000.0)
@@ -64,11 +64,12 @@ def test_fit_cror_to_stl_covers_hub_past_analytic_bands(tmp_path):
     """Regression: the hub cylinder (§cror_axial_layout_mm's 1 mm end margin) pokes past the
     analytic front/rear MRF bands built by ``dual_mrf_dict``, which used to fail
     ``check_placement`` (impeller z [-6.71, 26.13] mm vs MRF zone [-5.71, 25.13] mm)."""
+    import trimesh
+
     from fansim.cfd.domain import MM_TO_M
     from fansim.cfd.openfoam_case import check_placement
     from fansim.cror.evaluate import dual_mrf_dict, fit_cror_to_stl, rig_for_cror
     from fansim.cror.geometry import export_cror_stl
-    import trimesh
 
     params = CrorParams()
     stl = export_cror_stl(params, tmp_path / "impeller.stl")
@@ -87,14 +88,18 @@ def test_fit_cror_to_stl_covers_hub_past_analytic_bands(tmp_path):
     check_placement(mesh, fitted_rig, dual_mrf=fitted_dmrf)
 
 
-def test_cror_archetype_evaluate_wired():
+def test_cror_archetype_evaluate_wired(tmp_path):
+    from fansim.geometry.blade import BladeParams
+
     a = get_archetype("cror")
     assert a.name == "cror"
     p = a.suggest_design(None)
     assert isinstance(p, CrorParams)
-    import inspect
-    src = inspect.getsource(type(a).evaluate)
-    assert "NotImplementedError" not in src
+    # Behavioral check without Docker: tip-gap preflight rejects cleanly instead of NotImplementedError.
+    bad = CrorParams(front=BladeParams(tip_radius=54.9))
+    res = a.evaluate(bad, tmp_path / "w", tip_gap_mm=5.0)
+    assert res.feasible is False
+    assert "tip gap" in res.reason.lower()
 
 
 def test_cli_export_cror_no_star():

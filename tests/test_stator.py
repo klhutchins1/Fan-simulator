@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-from pathlib import Path
 
 import cadquery as cq
 import numpy as np
@@ -32,7 +31,7 @@ def _solid_contains_point(solid, x: float, y: float, z: float) -> bool:
     if hasattr(solid, "isInside"):
         try:
             return bool(solid.isInside(v))
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
     probe = cq.Solid.makeSphere(0.05, v)
     try:
@@ -92,11 +91,23 @@ def test_stator_naca_constants():
     assert STATOR_THICKNESS == pytest.approx(0.12)
 
 
-def test_stator_source_uses_naca_not_plate_box():
-    text = Path("fansim/cfd/stator.py").read_text(encoding="utf-8")
-    assert "naca4" in text
-    assert "STATOR_CAMBER" in text
-    assert ".box(" not in text
+def test_stator_vane_profile_is_cambered_naca_not_flat_box():
+    """Stator vane cross-section is a cambered NACA 4-digit foil, not a symmetric box."""
+    from fansim.cfd.stator import _vane_yz_profile
+
+    pts = _vane_yz_profile(z_start=10.0)
+    ys = [y for y, _ in pts]
+    zs = [z for _, z in pts]
+    # Exact chord span along +Z from z_start.
+    assert min(zs) == pytest.approx(10.0, abs=1e-6)
+    assert max(zs) == pytest.approx(10.0 + CHORD_MM, abs=1e-6)
+    # Positive camber bows asymmetrically toward +Y (a flat rectangular box is symmetric).
+    assert max(ys) > abs(min(ys)) + 0.02 * CHORD_MM
+    # Total thickness matches STATOR_THICKNESS * CHORD_MM (rounded foil, not constant wall).
+    assert (max(ys) - min(ys)) == pytest.approx(STATOR_THICKNESS * CHORD_MM, rel=0.15)
+    # Leading/trailing edges taper to near zero thickness (unlike a rectangular box).
+    te_ys = [abs(y) for y, z in pts if z > 10.0 + 0.98 * CHORD_MM]
+    assert te_ys and max(te_ys) < 0.02 * CHORD_MM
 
 
 def test_stator_is_one_solid_after_mrf():

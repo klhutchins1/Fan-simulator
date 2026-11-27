@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 import math
-from pathlib import Path
 
 from fansim.manufacturability.print_id import (
     CHECK_ALPHABET,
-    CROCKFORD,
     GLYPH_ADVANCE_MM,
     MARK_DEPTH_MM,
     MARK_R_INNER,
@@ -62,24 +60,47 @@ def test_five_glyph_layout_stays_in_the_preferred_band():
     assert max(rs) <= 21.5 - 1.0
 
 
-def test_export_print_ready_wires_print_id_into_the_engrave():
-    src = Path("fansim/manufacturability/print_export.py").read_text(encoding="utf-8")
-    assert "def export_print_ready" in src
-    body = src.split("def export_print_ready", 1)[1]
-    assert "print_id" in body.split("def ", 1)[0]
-    assert "engrave_print_id" in body.split("def ", 1)[0]
-    do = Path("fansim/cockpit/fan_export.py").read_text(encoding="utf-8")
-    chunk = do.split("rep = export_print_ready", 1)[1][:200]
-    assert "print_id" in chunk
+def test_export_print_ready_engraves_hub_face_not_bbox_top(tmp_path, monkeypatch):
+    """export_print_ready forwards print_id and engraves at the hub +Z face, not BoundingBox.zmax."""
+    from types import SimpleNamespace
 
+    from fansim.geometry.blade import BladeParams, _hub_axial_range
+    from fansim.manufacturability import print_export
 
-def test_export_print_ready_engraves_the_hub_face_not_the_bbox_top():
-    """t9002 blades sit ~4 mm above the hub. Cutting at BoundingBox.zmax misses the face."""
-    src = Path("fansim/manufacturability/print_export.py").read_text(encoding="utf-8")
-    chunk = src.split("if print_id:", 1)[1].split("export_stl", 1)[0]
-    assert "_hub_axial_range" in chunk
-    assert "z_top=float(bb.zmax)" not in chunk
-    assert "z_top=z_top" in chunk
+    params = BladeParams(hub_radius=21.5)
+    hub_z_top = float(_hub_axial_range(params)[1])
+
+    class _FakeModel:
+        def val(self):
+            # Blades extend 4 mm above the hub face (like leaned t9002).
+            return SimpleNamespace(
+                BoundingBox=lambda: SimpleNamespace(zmin=0.0, zmax=hub_z_top + 4.0)
+            )
+
+    engrave_calls: list[dict] = []
+
+    def fake_engrave(model, code, *, z_top, hub_radius, bore_r=0.0):
+        engrave_calls.append({
+            "code": code, "z_top": z_top, "hub_radius": hub_radius, "bore_r": bore_r,
+        })
+        return model
+
+    monkeypatch.setattr(print_export, "build_impeller", lambda *_a, **_kw: _FakeModel())
+    monkeypatch.setattr(print_export, "export_stl", lambda *_a, **_kw: None)
+    monkeypatch.setattr(
+        print_export, "watertight_report",
+        lambda _p: SimpleNamespace(mount_fits=True, mount_msg=""),
+    )
+    monkeypatch.setattr("fansim.manufacturability.print_id_mark.engrave_print_id", fake_engrave)
+
+    out_stl = tmp_path / "imp.stl"
+    print_export.export_print_ready(
+        params, out_stl, bore=None, also_step=False, print_id="A1B2C",
+    )
+    assert len(engrave_calls) == 1
+    assert engrave_calls[0]["code"] == "A1B2C"
+    assert math.isclose(engrave_calls[0]["z_top"], hub_z_top, rel_tol=1e-9, abs_tol=1e-9)
+    assert engrave_calls[0]["z_top"] < hub_z_top + 4.0
 
 
 def test_engrave_on_a_stock_size_disk_stays_one_solid_and_removes_a_shallow_volume():
