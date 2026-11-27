@@ -99,7 +99,7 @@ def test_metrics_read_the_numerically_newest_time_folder(tmp_path):
                                              encoding="utf-8")
     m = parse_fan_metrics(tmp_path, omega_rad_s=209.4)
     assert m.flow_m3s == pytest.approx(0.03)
-    assert m.cfm == pytest.approx(0.03 * 2118.882)
+    assert m.cfm == pytest.approx(0.03 * (60.0 / (0.3048**3)), rel=1e-12)
 
 
 def test_axial_convention_is_flipped_at_spin_minus_one():

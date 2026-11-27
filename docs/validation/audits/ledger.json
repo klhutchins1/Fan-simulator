@@ -56,20 +56,20 @@
     },
     "cfd.cfm_from_outlet_flow": {
       "date": "2026-11-26",
-      "fingerprint": "5b2ff99d36698080",
-      "report": "",
+      "fingerprint": "841201d4d3ea24e8",
+      "report": "docs/validation/audits/2026-11-26-cfm-exact-si.md",
       "verdict": "PASS"
     },
     "cfd.duct_area": {
       "date": "2026-11-26",
-      "fingerprint": "318e0e6138f57e74",
-      "report": "",
+      "fingerprint": "9fd31007e465aedc",
+      "report": "docs/validation/audits/2026-11-26-cfm-exact-si.md",
       "verdict": "PASS"
     },
     "cfd.flow_direction_convention": {
-      "date": "2026-11-24",
-      "fingerprint": "16756a62e5d3a37a",
-      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
+      "date": "2026-11-26",
+      "fingerprint": "24ef3e7eaee3f094",
+      "report": "docs/validation/audits/2026-11-26-cfm-exact-si.md",
       "verdict": "PASS"
     },
     "cfd.flow_report": {
@@ -98,8 +98,8 @@
     },
     "fan.bem_prescreen": {
       "date": "2026-11-26",
-      "fingerprint": "8b076a51260abf22",
-      "report": "",
+      "fingerprint": "8dc8fc3f5c5a459f",
+      "report": "docs/validation/audits/2026-11-26-cfm-exact-si.md",
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
