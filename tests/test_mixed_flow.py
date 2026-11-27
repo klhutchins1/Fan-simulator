@@ -22,7 +22,7 @@ def _solid_contains_point(solid, x: float, y: float, z: float) -> bool:
     if hasattr(solid, "isInside"):
         try:
             return bool(solid.isInside(v))
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
     probe = cq.Solid.makeSphere(0.05, v)
     try:
@@ -109,15 +109,17 @@ def test_mixed_flow_preview_matches_fused_bounds(tmp_path):
 def test_centrifugal_archetype_builds_and_evaluates(tmp_path):
     from fansim.centrifugal import MixedFlowArchetype
     from fansim.problem import get_archetype
-    import inspect
 
     a = get_archetype("centrifugal")
     assert isinstance(a, MixedFlowArchetype)
     params = a.suggest_design(None)
     stl = a.build_geometry(params, tmp_path / "imp.stl")
     assert Path(stl).exists() and Path(stl).stat().st_size > 1000
-    src = inspect.getsource(type(a).evaluate)
-    assert "NotImplementedError" not in src
+    # Behavioral check without Docker: tip-gap preflight rejects cleanly instead of NotImplementedError.
+    bad = MixedFlowParams(r_tip_mm=54.9)
+    res = a.evaluate(bad, tmp_path / "w", tip_gap_mm=5.0)
+    assert res.feasible is False
+    assert "tip gap" in res.reason.lower()
     assert a.objective_names == ("cfm_free", "cfm_load", "efficiency")
 
 
