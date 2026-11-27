@@ -9,14 +9,13 @@ FPV standards (Gemfan/HQProp-class geometry; 5 mm T-mount with reducer rings is 
 
 Performance numbers are TYPICAL static values on a matched motor, for sanity/validation targets, not
 datasheet-exact — real thrust depends on the motor + battery. Geometry (dia/pitch/blades/shaft) is the
-confident part. New props are new PropSpec entries or config/prop_models/*.yaml (no engine change).
+confident part. New props are new PropSpec entries (no engine change).
 """
 
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from pathlib import Path
 
 from fansim.physics.air import C0_AIR as C_AIR
 
@@ -108,8 +107,6 @@ _REGISTRY: dict[str, PropSpec] = {
         notes="whoop/micro-quad; 1103-1303 motors"),
 }
 
-_TUPLE_FIELDS = ()  # (none nested-as-list yet; PropShaftMount handled explicitly on load)
-
 
 def get_prop_spec(name: str) -> PropSpec:
     if name not in _REGISTRY:
@@ -119,10 +116,6 @@ def get_prop_spec(name: str) -> PropSpec:
 
 def prop_spec_names() -> list[str]:
     return sorted(_REGISTRY)
-
-
-def register_prop_spec(key: str, spec: PropSpec) -> None:
-    _REGISTRY[key] = spec
 
 
 def prop_spec_to_dict(spec: PropSpec) -> dict:
@@ -136,23 +129,3 @@ def prop_spec_from_dict(d: dict) -> PropSpec:
     if isinstance(sh, dict):
         d["shaft"] = PropShaftMount(**sh)
     return PropSpec(**d)
-
-
-def save_prop_spec(spec: PropSpec, path: str | Path) -> None:
-    import yaml
-    Path(path).write_text(yaml.safe_dump(prop_spec_to_dict(spec), sort_keys=False))
-
-
-def load_prop_spec(path: str | Path) -> PropSpec:
-    import yaml
-    return prop_spec_from_dict(yaml.safe_load(Path(path).read_text()))
-
-
-def load_prop_models_dir(directory: str | Path = "config/prop_models") -> list[str]:
-    d = Path(directory)
-    added = []
-    if d.exists():
-        for p in sorted(d.glob("*.yaml")):
-            register_prop_spec(p.stem, load_prop_spec(p))
-            added.append(p.stem)
-    return added

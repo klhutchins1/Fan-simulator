@@ -7,14 +7,11 @@ stage hint. True percent is rare (sweep only); everything else is honest-indeter
 
 from __future__ import annotations
 
-import asyncio
 import re
-import time
-from collections.abc import Callable
 from pathlib import Path
 
 
-def format_elapsed(seconds: float | int) -> str:
+def format_elapsed(seconds: float) -> str:
     """Format elapsed seconds as ``M:SS`` (or ``H:MM:SS`` if ≥ 1 h)."""
     s = max(0, int(seconds))
     h, rem = divmod(s, 3600)
@@ -26,7 +23,7 @@ def format_elapsed(seconds: float | int) -> str:
 
 def busy_caption(
     action: str,
-    elapsed_s: float | int,
+    elapsed_s: float,
     *,
     hint: str = "",
     note: str = "",
@@ -77,23 +74,3 @@ def _live_iteration(log: Path) -> int | None:
         return None
     hits = _TIME_RE.findall(tail)
     return int(hits[-1]) if hits else None
-
-
-async def run_busy_ticker(
-    *,
-    is_active: Callable[[], bool],
-    set_msg: Callable[[str], None],
-    action: str,
-    t0: float,
-    note: str = "",
-    hint_fn: Callable[[], str] | None = None,
-    interval: float = 1.0,
-    flush: Callable[[], None] | None = None,
-) -> None:
-    """Refresh a busy caption with live elapsed (and optional stage hint) until inactive."""
-    while is_active():
-        hint = hint_fn() if hint_fn else ""
-        set_msg(busy_caption(action, time.time() - t0, hint=hint, note=note))
-        if flush is not None:
-            flush()
-        await asyncio.sleep(interval)

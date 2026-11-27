@@ -61,7 +61,7 @@ class FanSpec:
     ref_cfm: float | None = None       # published performance (reference / validation targets)
     ref_static_pa: float | None = None
     ref_noise_dba: float | None = None
-    motor_mount: "MotorMount | None" = None   # real motor interface (cup cavity + rear bore) for printing
+    motor_mount: MotorMount | None = None   # real motor interface (cup cavity + rear bore) for printing
     # LEEWAY: optional margins letting a design EXCEED the nominal limits for what-if exploration
     # (tip sticks out past the frame, blades extend further in Z, or over-voltage that may damage the
     # motor). Off by default (0) and never changes the nominal limits -- designs that use it are
@@ -196,15 +196,6 @@ def estimate_weight_g(
     f = _default_infill_frac(material) if infill_frac is None else float(infill_frac)
     f = min(max(f, 0.0), 1.0)
     return volume_mm3 * density_kg_m3 * 1e-6 * f  # mm^3 → g via kg/m^3
-
-
-def _within(val, rng, label, unit) -> str | None:
-    lo, hi = rng
-    if val < lo:
-        return f"{label} {val:.1f} {unit} < min {lo:.1f}"
-    if val > hi:
-        return f"{label} {val:.1f} {unit} > max {hi:.1f}"
-    return None
 
 
 def check_build(spec: FanSpec, tip_dia_mm: float, hub_dia_mm: float, depth_mm: float,
@@ -352,7 +343,7 @@ def load_fan_models_dir(directory: str | Path = "config/fan_models") -> list[str
             try:
                 register_fan_spec(p.stem, load_fan_spec(p))
                 added.append(p.stem)
-            except Exception:  # noqa: BLE001 - skip a malformed model file
+            except Exception:  # noqa: BLE001, S112 - skip a malformed model file
                 continue
     return added
 

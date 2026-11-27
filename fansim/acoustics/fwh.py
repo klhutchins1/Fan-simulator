@@ -1,13 +1,14 @@
-"""Far-field loading-noise kernel over stationary panels (NOT full Farassat 1A / FW-H: no Doppler,
-thickness or near-field terms; Audit #6).
+"""Stationary-panel FW-H loading & permeable acoustics kernel (Audit #6; #124).
 
-This module is the far-field loading term:
+Far-field default (Curle / stationary Farassat 1A loading term):
 
     p'(x, t) = (r_hat · Ḟ(t_ret)) / (4 π c₀ r)     t_ret = t - r/c₀
 
-A compact source at the origin: the delay is a pure shift and does not change SPL. Several panels
-at different r can (permeable six-face or 2×2 face patches). This is **not** calibrated dB(A).
-Do not mix these numbers with catalog Curle rows.
+Pass ``include_nearfield=True`` for the exact stationary dipole near-field term
+``(r_hat · F(t_ret)) / (4 π r²)``, optional panel mass flux ``q_n`` [kg/s] for the stationary
+permeable monopole term ``Q̇_n(t_ret) / (4 π r)`` (Di Francescantonio 1997, v=0), and
+``trim_retarded=True`` to slice to the common valid overlap ``t >= t₀ + max(r/c₀)``. No source
+motion / Doppler terms. This is **not** calibrated dB(A). Do not mix with catalog Curle rows.
 """
 
 from __future__ import annotations
@@ -105,8 +106,14 @@ def _patch_centers(box: dict, n: int = PATCH_N) -> list[tuple[float, float, floa
 
 
 def loading_pressure_compact(F, dt, *, r_hat=(0.0, 0.0, 1.0), r_obs: float = 1.0,
-                             c0: float = C0_AIR):
-    """Far-field compact loading pressure [Pa]. Delay by r_obs/c0 (SPL unchanged for one source)."""
+                             c0: float = C0_AIR, include_nearfield: bool = False,
+                             trim_retarded: bool = False):
+    """Stationary compact dipole loading pressure [Pa] with propagation delay r_obs/c0.
+
+    Default computes the far-field term ``(r_hat · Ḟ) / (4π c₀ r)``. Set ``include_nearfield=True``
+    to add the near-field term ``(r_hat · F) / (4π r²)``, and ``trim_retarded=True`` to slice off
+    the pre-arrival ``t < r_obs/c0`` transient.
+    """
     F = np.asarray(F, float)
     dt_f = float(dt)
     r_obs_f = float(r_obs)
@@ -126,19 +133,30 @@ def loading_pressure_compact(F, dt, *, r_hat=(0.0, 0.0, 1.0), r_obs: float = 1.0
     if rh_norm <= 0.0:
         raise ValueError("r_hat must be non-zero")
     rh = rh / rh_norm
+    n = F.shape[0]
+    delay = r_obs_f / c0_f
+    duration = (n - 1) * dt_f
+    if duration <= delay:
+        raise ValueError(
+            f"time window duration {duration:.6g} s does not exceed retarded delay {delay:.6g} s"
+        )
     dFdt = np.gradient(F, dt_f, axis=0)
     p_inst = (rh @ dFdt.T) / (4.0 * np.pi * c0_f * r_obs_f)
-    n = p_inst.shape[0]
+    if include_nearfield:
+        p_inst = p_inst + (rh @ F.T) / (4.0 * np.pi * r_obs_f * r_obs_f)
     t = np.arange(n, dtype=float) * dt_f
-    t_ret = t - r_obs_f / c0_f
-    return np.interp(t_ret, t, p_inst, left=0.0, right=0.0)
+    t_ret = t - delay
+    p_out = np.interp(t_ret, t, p_inst, left=0.0, right=0.0)
+    return p_out[t >= delay] if trim_retarded else p_out
 
 
-def loading_pressure_panels(t, panels, *, x_obs=(0.0, 0.0, 1.0), c0: float = C0_AIR):
-    """Sum far-field loading from discrete panels. Each panel: r0, area, n_hat, f[t,3].
+def loading_pressure_panels(t, panels, *, x_obs=(0.0, 0.0, 1.0), c0: float = C0_AIR,
+                            include_nearfield: bool = False, trim_retarded: bool = False):
+    """Sum stationary FW-H loading (and optional permeable mass-flux monopole) from discrete panels.
 
-    ``area`` / ``n_hat`` are stored for a later surface dump; stage 1 uses the force history ``f``.
-    Skip a panel whose observer distance is below ``_PANEL_R_MIN``.
+    Each panel provides ``r0`` and force history ``f[t, 3]`` (plus optional ``area``, ``n_hat``,
+    and normal mass flux ``q_n[t]`` [kg/s] for the stationary permeable monopole term
+    ``Q̇_n(t_ret) / (4π r)``). Skip a panel whose observer distance is below ``_PANEL_R_MIN``.
     """
     t = np.asarray(t, float)
     x_obs = np.asarray(x_obs, float)
@@ -153,26 +171,49 @@ def loading_pressure_panels(t, panels, *, x_obs=(0.0, 0.0, 1.0), c0: float = C0_
     dt = float(np.median(np.diff(t)))
     if not (math.isfinite(dt) and dt > 0.0):
         raise ValueError(f"time step dt must be finite and > 0, got {dt!r}")
+    duration = float(t[-1] - t[0])
+    max_delay = 0.0
     for pan in panels:
         r0 = np.asarray(pan["r0"], float)
         delta = x_obs - r0
         r = float(np.linalg.norm(delta))
         if r < _PANEL_R_MIN:
             continue
+        delay = r / c0_f
+        if duration <= delay:
+            raise ValueError(
+                f"time window duration {duration:.6g} s does not exceed panel retarded delay "
+                f"{delay:.6g} s"
+            )
+        max_delay = max(max_delay, delay)
         r_hat = delta / r
         F = np.asarray(pan["f"], float)
         if F.ndim != 2 or F.shape[0] != t.shape[0] or F.shape[1] != 3:
             raise ValueError(f"panel force f must have shape ({t.shape[0]}, 3), got {F.shape}")
         dFdt = np.gradient(F, dt, axis=0)
         p_inst = (r_hat @ dFdt.T) / (4.0 * np.pi * c0_f * r)
-        t_ret = t - r / c0_f
+        if include_nearfield:
+            p_inst = p_inst + (r_hat @ F.T) / (4.0 * np.pi * r * r)
+        qn_raw = pan.get("q_n")
+        if qn_raw is not None:
+            qn = np.asarray(qn_raw, float)
+            if qn.ndim != 1 or qn.shape[0] != t.shape[0]:
+                raise ValueError(
+                    f"panel mass flux q_n must have shape ({t.shape[0]},), got {qn.shape}"
+                )
+            p_inst = p_inst + np.gradient(qn, dt) / (4.0 * np.pi * r)
+        t_ret = t - delay
         p = p + np.interp(t_ret, t, p_inst, left=0.0, right=0.0)
+    if trim_retarded and max_delay > 0.0:
+        return p[t >= t[0] + max_delay]
     return p
 
 
 def noise_from_compact_force(t, F, *, cutoff_hz: float = 2500.0,
                              n_blades: int = N_BLADES_DEFAULT, rpm: float = RPM_DEFAULT,
-                             r_hat=(0.0, 0.0, 1.0), r_obs: float = 1.0) -> dict:
+                             r_hat=(0.0, 0.0, 1.0), r_obs: float = 1.0,
+                             include_nearfield: bool = False,
+                             trim_retarded: bool = False) -> dict:
     """Reduce a compact force history with the FW-H loading kernel (same metric keys as Curle)."""
     t = np.asarray(t, float)
     F = np.asarray(F, float)
@@ -183,7 +224,10 @@ def noise_from_compact_force(t, F, *, cutoff_hz: float = 2500.0,
         raise ValueError(f"time step dt must be finite and > 0, got {dt!r}")
     thrust = float(F[:, 2].mean())
     Fp = F - F.mean(axis=0)
-    p = loading_pressure_compact(Fp, dt, r_hat=r_hat, r_obs=r_obs)
+    p = loading_pressure_compact(
+        Fp, dt, r_hat=r_hat, r_obs=r_obs,
+        include_nearfield=include_nearfield, trim_retarded=trim_retarded,
+    )
     bpf = blade_pass_frequency(n_blades, rpm)
     return {
         "noise_dba_band": float(dba_from_pressure(p, dt, cutoff_hz)),
@@ -192,7 +236,7 @@ def noise_from_compact_force(t, F, *, cutoff_hz: float = 2500.0,
         "peak_tone_db": float(peak_tone_over_harmonics(p, dt, rpm / 60.0)),
         "thrust_n": float(thrust),
         "cutoff_hz": cutoff_hz,
-        "samples": len(t),
+        "samples": len(p),
         "analogy": "fwh_compact",
     }
 
@@ -227,7 +271,8 @@ def face_panels_from_csv(path, box: dict) -> list[dict]:
 
 def noise_from_permeable_panels(t, panels, *, cutoff_hz: float = 2500.0,
                                 n_blades: int = N_BLADES_DEFAULT, rpm: float = RPM_DEFAULT,
-                                x_obs=(0.0, 0.0, 1.0)) -> dict:
+                                x_obs=(0.0, 0.0, 1.0), include_nearfield: bool = False,
+                                trim_retarded: bool = False) -> dict:
     """Reduce six (or more) face force histories with the panel FW-H loading kernel."""
     t = np.asarray(t, float)
     if t.ndim != 1 or len(t) < 2:
@@ -235,14 +280,21 @@ def noise_from_permeable_panels(t, panels, *, cutoff_hz: float = 2500.0,
     dt = float(np.median(np.diff(t)))
     if not (math.isfinite(dt) and dt > 0.0):
         raise ValueError(f"time step dt must be finite and > 0, got {dt!r}")
-    # Mean-subtract each panel force (loading is about fluctuations)
+    # Mean-subtract each panel force (and optional mass flux) — acoustics depends on fluctuations.
     pans = []
     thrust = 0.0
     for pan in panels:
         F = np.asarray(pan["f"], float)
         thrust += float(F[:, 2].mean())
-        pans.append({**pan, "f": F - F.mean(axis=0)})
-    p = loading_pressure_panels(t, pans, x_obs=x_obs)
+        entry = {**pan, "f": F - F.mean(axis=0)}
+        if pan.get("q_n") is not None:
+            qn = np.asarray(pan["q_n"], float)
+            entry["q_n"] = qn - qn.mean()
+        pans.append(entry)
+    p = loading_pressure_panels(
+        t, pans, x_obs=x_obs,
+        include_nearfield=include_nearfield, trim_retarded=trim_retarded,
+    )
     bpf = blade_pass_frequency(n_blades, rpm)
     return {
         "noise_dba_band": float(dba_from_pressure(p, dt, cutoff_hz)),
@@ -251,7 +303,7 @@ def noise_from_permeable_panels(t, panels, *, cutoff_hz: float = 2500.0,
         "peak_tone_db": float(peak_tone_over_harmonics(p, dt, rpm / 60.0)),
         "thrust_n": float(thrust),
         "cutoff_hz": cutoff_hz,
-        "samples": len(t),
+        "samples": len(p),
         "analogy": "fwh_permeable",
         "n_panels": len(panels),
     }
@@ -259,7 +311,9 @@ def noise_from_permeable_panels(t, panels, *, cutoff_hz: float = 2500.0,
 
 def analyze_permeable_csv(csv, box: dict | None = None, *, dia_mm: float | None = None,
                           cutoff_hz: float = 2500.0, n_blades: int = N_BLADES_DEFAULT,
-                          rpm: float = RPM_DEFAULT, x_obs=(0.0, 0.0, 1.0)) -> dict:
+                          rpm: float = RPM_DEFAULT, x_obs=(0.0, 0.0, 1.0),
+                          include_nearfield: bool = False,
+                          trim_retarded: bool = False) -> dict:
     """Load a permeable multi-face CSV and return noise metrics."""
     if box is None:
         if dia_mm is None:
@@ -270,6 +324,7 @@ def analyze_permeable_csv(csv, box: dict | None = None, *, dia_mm: float | None 
     panels = _face_panels_from_data(d, box)
     return noise_from_permeable_panels(
         t, panels, cutoff_hz=cutoff_hz, n_blades=n_blades, rpm=rpm, x_obs=x_obs,
+        include_nearfield=include_nearfield, trim_retarded=trim_retarded,
     )
 
 
@@ -307,7 +362,9 @@ def patch_panels_from_csv(path, box: dict, n: int = PATCH_N) -> list[dict]:
 
 def analyze_patches_csv(csv, box: dict | None = None, *, dia_mm: float | None = None,
                         cutoff_hz: float = 2500.0, n_blades: int = N_BLADES_DEFAULT,
-                        rpm: float = RPM_DEFAULT, x_obs=(0.0, 0.0, 1.0)) -> dict:
+                        rpm: float = RPM_DEFAULT, x_obs=(0.0, 0.0, 1.0),
+                        include_nearfield: bool = False,
+                        trim_retarded: bool = False) -> dict:
     """Load a 24-patch permeable CSV and return noise metrics (``analogy=fwh_patches``)."""
     if box is None:
         if dia_mm is None:
@@ -318,6 +375,7 @@ def analyze_patches_csv(csv, box: dict | None = None, *, dia_mm: float | None = 
     panels = _patch_panels_from_data(d, box)
     m = noise_from_permeable_panels(
         t, panels, cutoff_hz=cutoff_hz, n_blades=n_blades, rpm=rpm, x_obs=x_obs,
+        include_nearfield=include_nearfield, trim_retarded=trim_retarded,
     )
     m["analogy"] = "fwh_patches"
     return m
