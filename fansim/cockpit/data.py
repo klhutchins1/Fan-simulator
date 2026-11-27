@@ -152,6 +152,7 @@ def load_designs(out_dir: str | Path, study_name: str | None = None) -> list[Des
                    "cfd_version": t.user_attrs.get("cfd_version"),
                    "surf_max": t.user_attrs.get("surf_max"),
                    "converged": t.user_attrs.get("converged"),  # QA-65; None on old studies
+                   "wall_ks_mm": t.user_attrs.get("wall_ks_mm"),
                    "cfd_stale": bool(_reason := stale_reason(
                        {"cfd_version": t.user_attrs.get("cfd_version"),
                         "surf_max": t.user_attrs.get("surf_max"),
@@ -180,7 +181,7 @@ def load_saved_opt_designs(runs_root: str | Path, *, exclude: str | Path | None,
             continue
         try:
             loaded = load_designs(run)
-        except Exception:  # noqa: BLE001 - a corrupt/empty study just stays off the plot
+        except Exception:  # noqa: BLE001, S112 - a corrupt/empty study just stays off the plot
             continue
         out += merge_opt_designs(loaded, source_run=run.name, existing_keys=existing_keys,
                                  offset=opt_trial_offset(run.name, runs_root))

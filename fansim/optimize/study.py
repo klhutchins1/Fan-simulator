@@ -241,6 +241,8 @@ def run_study(
         # (2026-10-07: had to be inferred from result.json's system-curve k).
         trial.set_user_attr("load_pa", float(load_pa))
         trial.set_user_attr("refine_op", bool(refine_op))
+        if wall_ks_mm is not None and float(wall_ks_mm) > 0:
+            trial.set_user_attr("wall_ks_mm", float(wall_ks_mm))
         if with_noise:
             trial.set_user_attr("noise_swl", result.noise_swl)
         if "sanity_status" in result.raw:

@@ -59,6 +59,13 @@ def identity_extra(s: RunSettings) -> dict:
 
 
 def stamp(extra: dict, raw: dict | None, s: RunSettings) -> None:
-    """Score stamps (hose, load, refine) from the snapshot, plus the solver generation."""
+    """Score stamps (hose, load, refine, wall-ks) from the snapshot, plus the solver generation."""
     stamp_score_extra(extra, raw, load_pa=s.load_pa, preset=s.preset, refine_op=s.refine_op)
+    if s.wall_ks:
+        if float(extra.get("wall_ks_mm") or 0.0) <= 0.0:
+            from fansim.cfd.wall_roughness import FDM_WALL_KS_MM
+
+            extra["wall_ks_mm"] = float(FDM_WALL_KS_MM)
+    else:
+        extra.pop("wall_ks_mm", None)
     extra["cfd_version"] = CFD_VERSION
