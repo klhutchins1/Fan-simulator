@@ -110,10 +110,15 @@ def test_stator_vane_profile_is_cambered_naca_not_flat_box():
     assert te_ys and max(te_ys) < 0.02 * CHORD_MM
 
 
-def test_stator_is_one_solid_after_mrf():
+@pytest.fixture(scope="module")
+def _default_stator():
     params = BladeParams()
     rig = rig_for_impeller(params, tip_gap_mm=0.5)
-    solid = build_stator_solid(params, rig)
+    return params, rig, build_stator_solid(params, rig)
+
+
+def test_stator_is_one_solid_after_mrf(_default_stator):
+    params, rig, solid = _default_stator
     assert len(solid.Solids()) == 1
     bb = solid.BoundingBox()
     assert bb.zmin >= rig.mrf_z_max / MM_TO_M + AFTER_MRF_MM - 0.05
@@ -138,23 +143,21 @@ def test_stator_is_one_solid_after_mrf():
         solid, r_mid * math.cos(half), r_mid * math.sin(half), z) is False
 
 
-def test_stator_does_not_start_inside_mrf():
-    params = BladeParams()
-    rig = rig_for_impeller(params, tip_gap_mm=0.5)
-    bb = build_stator_solid(params, rig).BoundingBox()
+def test_stator_does_not_start_inside_mrf(_default_stator):
+    _params, rig, solid = _default_stator
+    bb = solid.BoundingBox()
     assert bb.zmin > rig.mrf_z_max / MM_TO_M
 
 
-def test_stack_frame_sits_behind_stator():
+def test_stack_frame_sits_behind_stator(_default_stator):
     from fansim.cfd.frame import (
         STACK_GAP_MM,
         STRUT_DEPTH_MM,
         build_frame_solid,
         stack_frame_z_start_mm,
     )
-    params = BladeParams()
-    rig = rig_for_impeller(params, tip_gap_mm=0.5)
-    stator_bb = build_stator_solid(params, rig).BoundingBox()
+    params, rig, solid = _default_stator
+    stator_bb = solid.BoundingBox()
     z_frame = stack_frame_z_start_mm(rig)
     assert z_frame >= stator_bb.zmax + STACK_GAP_MM - 0.05
     frame_bb = build_frame_solid(params, rig, z_start_mm=z_frame).BoundingBox()
