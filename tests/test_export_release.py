@@ -82,6 +82,7 @@ def test_export_skips_files_that_embed_user_paths(tmp_path):
     assert _machine("C", "\\", "Users") not in tree
 
 
+@pytest.mark.skipif(not (ROOT / ".git").exists(), reason="requires git checkout")
 def test_tracked_selection_has_no_hygiene_leaks():
     kept = er.select(er.tracked_files(ROOT), er.read_excludes(ROOT / "RELEASE_EXCLUDE"))
     assert not any(f.startswith("archive/") for f in kept)
