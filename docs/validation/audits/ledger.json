@@ -56,8 +56,8 @@
     },
     "cfd.cfm_from_outlet_flow": {
       "date": "2026-11-26",
-      "fingerprint": "841201d4d3ea24e8",
-      "report": "docs/validation/audits/2026-11-26-cfm-exact-si.md",
+      "fingerprint": "77b9ff1b4e56ef0b",
+      "report": "docs/validation/audits/2026-11-26-cfd-convergence-multimetric-prereg.md",
       "verdict": "PASS"
     },
     "cfd.duct_area": {

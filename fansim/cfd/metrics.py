@@ -38,6 +38,13 @@ CFD_VERSION = 6
 
 TAIL_FRAC = 0.25  # fraction of the run treated as the converged tail (see convergence())
 
+# Non-vanishing reference scale floors for relative tail-mean shift / oscillation (ASME V&V 20 /
+# Roache 1998; #88). Above these floors the denominator is exact |mean|; near zero (shut-off flow,
+# free-delivery pressure, stationary torque) the floor prevents 0/0 singularities.
+FLOW_SCALE_FLOOR_M3S = 1e-4       # ~0.21 CFM (~0.35% of a 60 CFM fan)
+PRESSURE_KIN_SCALE_FLOOR = 0.5    # m^2/s^2 (~0.6 Pa at rho=1.2)
+TORQUE_SCALE_FLOOR_NM = 1e-4      # N*m (~1% of a 0.01 N*m fan)
+
 
 def _all_data_rows(path: Path) -> list[list[float]]:
     """Every fully-numeric row of an OpenFOAM .dat file (vector parens stripped)."""
@@ -130,6 +137,38 @@ class FanMetrics:
         return asdict(self)
 
 
+def _optional_pp_file(case_dir: Path, fo_name: str, filename: str) -> Path | None:
+    """Newest postProcessing file if present, else ``None``."""
+    try:
+        return latest_pp_file(case_dir, fo_name, filename)
+    except FileNotFoundError:
+        return None
+
+
+def _column_trajectory(path: Path, *, col: int, min_cols: int) -> list[float]:
+    """Extract one numeric column across all valid rows of an OpenFOAM .dat file."""
+    vals: list[float] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.replace("(", " ").replace(")", " ").split()
+        if len(parts) < min_cols:
+            continue
+        try:
+            vals.append(float(parts[col]))
+        except ValueError:
+            continue
+    return vals
+
+
+def _tail_slice(vals: list[float], tail_frac: float) -> list[float]:
+    """Last ``tail_frac`` of a trajectory (empty if fewer than 4 total samples)."""
+    if len(vals) < 4:
+        return []
+    return vals[max(1, int(len(vals) * (1.0 - tail_frac))):]
+
+
 def _flow_trajectory(case_dir: Path) -> list[tuple[float, float]]:
     """(iteration, outlet flow) history from the outletFlow function object."""
     path = _pp_file(case_dir, "outletFlow", "surfaceFieldValue.dat")
@@ -155,32 +194,78 @@ def _tail_flows(case_dir: Path, tail_frac: float) -> list[float]:
     return [f for _, f in traj[max(1, int(len(traj) * (1.0 - tail_frac))):]]
 
 
+def _half_mean_shift_pct(values: list[float], scale_floor: float) -> float:
+    """Two-half tail-mean shift as % of ``max(|mean|, scale_floor)``."""
+    h = len(values) // 2
+    m1 = sum(values[:h]) / h
+    m2 = sum(values[h:]) / (len(values) - h)
+    mean = sum(values) / len(values)
+    return abs(m2 - m1) / max(abs(mean), scale_floor) * 100.0
+
+
 def convergence(case_dir: str | Path, tail_frac: float = TAIL_FRAC,
                 tol_pct: float = 2.0) -> tuple[bool, float]:
-    """Is the integrated flow's tail MEAN stable? Returns (converged, mean_shift_pct).
+    """Are all available QoI tail MEANS stable? Returns ``(converged, worst_shift_pct)``.
 
     Steady RANS on thin blades settles into a limit cycle rather than a fixed point. The
-    reported metrics are the tail mean, so convergence judges that mean: split the tail into
-    two halves, and call it converged when their means agree within ``tol_pct`` of the tail
-    mean. The swing itself is reported by :func:`oscillation_pct`.
+    reported metrics are tail means, so convergence judges those means across every available
+    engineering QoI (ASME V&V 20-2009 / #88): mandatory ``outletFlow``, plus pressure rise
+    (``outletP - inletP``) and rotor torque (``forces/moment.dat``, CROR ``forcesRear/moment.dat``)
+    whenever present. Each QoI uses a non-vanishing physical scale floor so near-zero regimes
+    (shut-off flow, free-delivery pressure) do not divide by zero. The flow swing itself is
+    reported by :func:`oscillation_pct`.
     """
-    flows = _tail_flows(Path(case_dir), tail_frac)
+    if not (math.isfinite(tail_frac) and 0.0 < tail_frac <= 1.0):
+        raise ValueError(f"tail_frac must be in (0, 1], got {tail_frac!r}")
+    if not (math.isfinite(tol_pct) and tol_pct > 0.0):
+        raise ValueError(f"tol_pct must be finite and > 0, got {tol_pct!r}")
+    case_path = Path(case_dir)
+    flows = _tail_flows(case_path, tail_frac)
     if len(flows) < 4:
         return (False, 999.0)
-    h = len(flows) // 2
-    m1, m2 = sum(flows[:h]) / h, sum(flows[h:]) / (len(flows) - h)
-    mean = sum(flows) / len(flows)
-    shift = abs(m2 - m1) / (abs(mean) + 1e-12) * 100.0
-    return (shift < tol_pct, shift)
+    shifts = [_half_mean_shift_pct(flows, FLOW_SCALE_FLOOR_M3S)]
+
+    # Secondary QoI 1: pressure rise (outletP - inletP), closing the FIELD_U fixed-flow blind spot.
+    p_in_path = _optional_pp_file(case_path, "inletP", "surfaceFieldValue.dat")
+    p_out_path = _optional_pp_file(case_path, "outletP", "surfaceFieldValue.dat")
+    if p_in_path is not None and p_out_path is not None:
+        p_in_tail = _tail_slice(_column_trajectory(p_in_path, col=-1, min_cols=2), tail_frac)
+        p_out_tail = _tail_slice(_column_trajectory(p_out_path, col=-1, min_cols=2), tail_frac)
+        if len(p_in_tail) < 4 or len(p_out_tail) < 4:
+            return (False, 999.0)
+        n_p = min(len(p_in_tail), len(p_out_tail))
+        dp_tail = [po - pi for po, pi in zip(p_out_tail[-n_p:], p_in_tail[-n_p:])]
+        shifts.append(_half_mean_shift_pct(dp_tail, PRESSURE_KIN_SCALE_FLOOR))
+    elif p_in_path is not None or p_out_path is not None:
+        p_path = p_in_path if p_in_path is not None else p_out_path
+        assert p_path is not None
+        p_tail = _tail_slice(_column_trajectory(p_path, col=-1, min_cols=2), tail_frac)
+        if len(p_tail) < 4:
+            return (False, 999.0)
+        shifts.append(_half_mean_shift_pct(p_tail, PRESSURE_KIN_SCALE_FLOOR))
+
+    # Secondary QoI 2: rotor torque Mz (and CROR rear rotor torque when present).
+    for fo_name in ("forces", "forcesRear"):
+        m_path = _optional_pp_file(case_path, fo_name, "moment.dat")
+        if m_path is not None:
+            mz_tail = _tail_slice(_column_trajectory(m_path, col=3, min_cols=4), tail_frac)
+            if len(mz_tail) < 4:
+                return (False, 999.0)
+            shifts.append(_half_mean_shift_pct(mz_tail, TORQUE_SCALE_FLOOR_NM))
+
+    worst = max(shifts)
+    return (worst < tol_pct, worst)
 
 
 def oscillation_pct(case_dir: str | Path, tail_frac: float = TAIL_FRAC) -> float:
-    """Peak-to-peak flow over the tail as a % of its mean (the pre-v3 'drift')."""
+    """Peak-to-peak flow over the tail as a % of ``max(|mean|, FLOW_SCALE_FLOOR_M3S)``."""
+    if not (math.isfinite(tail_frac) and 0.0 < tail_frac <= 1.0):
+        raise ValueError(f"tail_frac must be in (0, 1], got {tail_frac!r}")
     flows = _tail_flows(Path(case_dir), tail_frac)
     if len(flows) < 4:
         return 999.0
     mean = sum(flows) / len(flows)
-    return (max(flows) - min(flows)) / (abs(mean) + 1e-12) * 100.0
+    return (max(flows) - min(flows)) / max(abs(mean), FLOW_SCALE_FLOOR_M3S) * 100.0
 
 
 _RHO_INF_RE = re.compile(r"\brhoInf\s+([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s*;")

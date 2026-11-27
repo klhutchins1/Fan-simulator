@@ -145,8 +145,8 @@ units:
 
   - id: cfd.cfm_from_outlet_flow
     targets: ["fansim.cfd.metrics:parse_fan_metrics", "fansim.cfd.metrics:latest_pp_file", "fansim.cfd.metrics:CFM_PER_M3S", "fansim.cfd.templates:CONTROL_DICT", "fansim.cfd.metrics:convergence", "fansim.cfd.metrics:oscillation_pct"]
-    claim: "CFM = sum(phi) over the +Z outlet patch * (60 / 0.3048^3); positive = delivery toward +Z; never abs()"
-    source: {kind: standard, ref: "NIST SP 811 exact international foot (1 ft = 0.3048 m); AMCA 210 flow sign"}
+    claim: "CFM = sum(phi) over the +Z outlet patch * (60 / 0.3048^3); positive = delivery toward +Z; never abs(); convergence checks tail-mean shift across flow, pressure rise, and torque with non-vanishing scale floors"
+    source: {kind: standard, ref: "NIST SP 811 exact international foot (1 ft = 0.3048 m); AMCA 210 flow sign; ASME V&V 20-2009"}
     checks: [tests/audit/test_cfd_direction_contract.py, tests/test_math_consistency.py, tests/test_convergence_rule.py]
     depends_on: [cfd.flow_direction_convention, physics.air_properties]
 
