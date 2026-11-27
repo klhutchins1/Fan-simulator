@@ -116,7 +116,7 @@
     },
     "optimize.search_space_handedness": {
       "date": "2026-11-26",
-      "fingerprint": "ac1489cc213fc8eb",
+      "fingerprint": "760c50c4ead8002a",
       "report": "docs/review/2026-11-26-rv3-search-space.md",
       "verdict": "PASS"
     },

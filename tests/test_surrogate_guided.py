@@ -273,7 +273,7 @@ def test_catalog_efficiency_prior_stamped_on_disk(tmp_path):
     assert priors["efficiency"] == "prior, not CFD"
     assert priors["cfm_load"] == "prior, not CFD"
     assert "prior, not CFD" in note
-    result = run_surrogate_guided(
+    run_surrogate_guided(
         out_dir=tmp_path / "sg",
         n_doe=8,
         n_nsga=8,
@@ -286,3 +286,31 @@ def test_catalog_efficiency_prior_stamped_on_disk(tmp_path):
     data = json.loads((tmp_path / "sg" / "surrogate_guided.json").read_text(encoding="utf-8"))
     assert data["priors"]["efficiency"] == "prior, not CFD"
     assert data["priors"]["cfm_load"] == "prior, not CFD"
+
+
+def test_surrogate_doe_and_nsga_respect_frame_half_mm_cap():
+    from fansim.optimize.search_space import TIP_CAP_CLEARANCE_MM
+
+    doe = space_filling_doe(6, space="guided", seed=5, frame_half_mm=40.0)
+    assert all(p["tip_radius"] == pytest.approx(40.0 - TIP_CAP_CLEARANCE_MM) for p in doe)
+
+    # Default (no frame_half_mm / a12x25) stays at 50.0 mm for backward compatibility.
+    doe_default = space_filling_doe(4, space="guided", seed=5)
+    assert all(p["tip_radius"] == pytest.approx(50.0) for p in doe_default)
+
+    # Invalid frame_half_mm rejected loudly.
+    with pytest.raises(ValueError, match="frame_half_mm"):
+        space_filling_doe(2, frame_half_mm=-5.0)
+    with pytest.raises(ValueError, match="tip_radius"):
+        space_filling_doe(2, frame_half_mm=20.0)
+
+    models = {
+        "cfm_free": _MockSurrogate(lambda r: 40.0, lambda r: 1.0),
+        "cfm_load": _MockSurrogate(lambda r: 20.0, lambda r: 0.5),
+        "efficiency": _MockSurrogate(lambda r: 15.0, lambda r: 0.2),
+    }
+    pool = nsga_on_surrogate(
+        models, space="guided", n_trials=8, seed=3, population_size=4, frame_half_mm=40.0
+    )
+    assert pool
+    assert all(c.params["tip_radius"] == pytest.approx(40.0 - TIP_CAP_CLEARANCE_MM) for c in pool)
