@@ -56,14 +56,14 @@
     },
     "cfd.cfm_from_outlet_flow": {
       "date": "2026-11-26",
-      "fingerprint": "cafc62aee5e9f2d1",
-      "report": "docs/review/2026-11-25-rv3-cfd-metrics.md (#89 / RV-5 code health)",
+      "fingerprint": "5b2ff99d36698080",
+      "report": "",
       "verdict": "PASS"
     },
     "cfd.duct_area": {
-      "date": "2026-11-25",
-      "fingerprint": "2a160276ee40fe61",
-      "report": "docs/validation/audits/2026-11-25-bem-no-internal-round-prereg.md",
+      "date": "2026-11-26",
+      "fingerprint": "318e0e6138f57e74",
+      "report": "",
       "verdict": "PASS"
     },
     "cfd.flow_direction_convention": {
@@ -97,9 +97,9 @@
       "verdict": "PASS"
     },
     "fan.bem_prescreen": {
-      "date": "2026-11-25",
-      "fingerprint": "c4594c3ba15906e3",
-      "report": "docs/review/2026-11-25-rv3-fan-bem.md",
+      "date": "2026-11-26",
+      "fingerprint": "8b076a51260abf22",
+      "report": "",
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {

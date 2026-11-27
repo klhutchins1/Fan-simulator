@@ -109,10 +109,27 @@ def test_apply_des_transient_writes_pimple_and_faces(tmp_path):
     assert (case / "constant/des_perm_box.json").is_file()
 
 
-def test_run_solve_des_declares_pimple():
-    text = Path("fansim/cfd/openfoam_case.py").read_text(encoding="utf-8")
-    assert "def run_solve_des" in text
-    assert "pimpleFoam" in text
+def test_run_solve_des_invokes_pimple_foam_serial_and_parallel():
+    from fansim.cfd.openfoam_case import run_solve_des
+
+    cmds_par: list[str] = []
+
+    class _FakeRunner:
+        def __init__(self, log: list[str]) -> None:
+            self.log = log
+
+        def run(self, cmd: str, **_kw) -> None:
+            self.log.append(cmd)
+
+    run_solve_des(_FakeRunner(cmds_par), n_procs=4, reconstruct=True)
+    assert any("pimpleFoam -parallel" in c for c in cmds_par)
+    assert any("reconstructPar -latestTime" in c for c in cmds_par)
+    assert not any("simpleFoam" in c for c in cmds_par)
+
+    cmds_ser: list[str] = []
+    run_solve_des(_FakeRunner(cmds_ser), n_procs=1, reconstruct=False)
+    assert "pimpleFoam" in cmds_ser
+    assert not any("simpleFoam" in c for c in cmds_ser)
 
 
 def test_evaluate_des_fwh_declares_flags():
@@ -123,11 +140,12 @@ def test_evaluate_des_fwh_declares_flags():
 
 
 def test_csv_only_cli(tmp_path):
-    from fansim.acoustics.fwh import cv_box_from_dia_mm
-    from fansim.cfd.des_fwh import write_box_sidecar
     import json
     import subprocess
     import sys
+
+    from fansim.acoustics.fwh import cv_box_from_dia_mm
+    from fansim.cfd.des_fwh import write_box_sidecar
 
     csv = tmp_path / "face_loads.csv"
     _write_six_face_csv(csv)
@@ -148,6 +166,7 @@ def test_csv_only_cli(tmp_path):
         cwd=Path(__file__).resolve().parents[1],
         capture_output=True,
         text=True,
+        check=False,
     )
     # CadQuery teardown can ACCESS_VIOLATION after a successful main(); judge by artifact.
     assert (out / "des_fwh.json").is_file(), r.stderr or r.stdout

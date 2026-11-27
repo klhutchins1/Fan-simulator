@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-from pathlib import Path
 
 import pytest
 
@@ -39,11 +38,38 @@ def test_bem_shutoff_is_q0_intercept_not_just_max_dp():
     assert c.shutoff_dp_pa == pytest.approx(expected, rel=1e-12, abs=0.0)
 
 
-def test_ducted_bem_source_drops_prandtl_tip_loss():
-    """§10.3 — ducted fan BEM must not apply Prandtl F; gap leakage only."""
-    src = Path("fansim/fan_bem.py").read_text(encoding="utf-8")
-    assert "do NOT apply Prandtl" in src or "do not apply Prandtl" in src.lower()
-    assert "K_TIP_LEAK" in src
+def test_ducted_bem_uses_gap_leakage_not_prandtl_tip_loss():
+    """§10.3 — ducted fan BEM applies tip-gap leakage (K_TIP_LEAK), not Prandtl tip-loss roll-off."""
+    from fansim.fan_bem import operating_point
+    from fansim.geometry.blade import RadialStation
+
+    # 1. Increasing tip gap monotonically lowers static rise via K_TIP_LEAK.
+    p = BladeParams()
+    p0 = operating_point(p, rpm=2000, flow_m3s=0.015, tip_gap_mm=0.0)
+    p1 = operating_point(p, rpm=2000, flow_m3s=0.015, tip_gap_mm=0.5)
+    p2 = operating_point(p, rpm=2000, flow_m3s=0.015, tip_gap_mm=2.0)
+    assert p0.dp_static_pa > p1.dp_static_pa > p2.dp_static_pa
+
+    # 2. A narrow outer-annulus blade (r_hub = 0.94 * r_tip, B = 2) at tip_gap_mm=0 still
+    # carries full unattenuated Euler head (dp_total ≈ power / Q * SLIP). A Prandtl tip-loss
+    # factor F -> 0 near r -> R would collapse outer-ring loading to a small fraction.
+    outer = BladeParams(
+        n_blades=2,
+        hub_radius=51.7,
+        tip_radius=55.0,
+        stations=[
+            RadialStation(r_frac=0.0, chord=20.0, stagger_deg=30.0, thickness=0.08, max_camber=0.03),
+            RadialStation(r_frac=1.0, chord=20.0, stagger_deg=30.0, thickness=0.08, max_camber=0.03),
+        ],
+    )
+    q = 0.0025
+    pt = operating_point(outer, rpm=2000, flow_m3s=q, n_elem=4, tip_gap_mm=0.0)
+    assert pt.dp_total_pa > 5.0
+    assert pt.power_w > 0.0
+    # Zero gap => zero tip-leakage loss; total pressure is pure SLIP * (shaft power / Q).
+    from fansim.fan_bem import SLIP
+
+    assert pt.dp_total_pa == pytest.approx(SLIP * pt.power_w / q, rel=1e-6)
 
 
 def test_screening_grid_stamp_false():
