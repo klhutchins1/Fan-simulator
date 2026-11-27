@@ -21,9 +21,13 @@ import math
 
 import numpy as np
 
-# Calibrated on the 7 opt_noise finalists: LBM_band ~ c0*n_blades + c1*thrust_per_blade + c2.
-# (thrust_per_blade in N; the negative c1 is a small-n confound with n_blades -- see module docstring.)
-DEFAULT_COEFFS = (2.263, -74.4, 35.55)
+# Physically signed default coefficients (#122, prereg 2026-11-26-loading-proxy-positive-slope):
+# LBM_band ~ c0*n_blades + c1*thrust_per_blade + c2.
+# Keeps the empirical blade-count slope c0 = 2.263 dB/blade from the 7 opt_noise finalists
+# (Spearman rho = 0.86), replaces the confounded small-n c1 = -74.4 with a physically positive
+# loading sensitivity c1 = +100.0 dB/N so higher blade thrust increases predicted noise and
+# motor derating strictly reduces it, and anchors nominal (7 blades, 0.01 N/blade) near 50.8 dB.
+DEFAULT_COEFFS = (2.263, 100.0, 34.0)
 
 
 def loading_noise_proxy(n_blades: int, thrust_per_blade_n: float, coeffs=DEFAULT_COEFFS) -> float:
@@ -72,11 +76,19 @@ def loading_proxy_operating(
     return loading_proxy_from_rans(n_blades, float(thrust_n_at_rated) * lam2, coeffs)
 
 
-def calibrate(n_blades, thrust_per_blade, lbm_band) -> tuple[float, float, float]:
+def calibrate(
+    n_blades,
+    thrust_per_blade,
+    lbm_band,
+    *,
+    non_negative: bool = False,
+) -> tuple[float, float, float]:
     """Refit the (c0, c1, c2) coefficients to new (n_blades, thrust_per_blade) -> LBM_band data.
 
     Pass arrays of equal length (more LBM-scored designs = a more robust proxy). Returns the fitted
-    coefficients; feed them back via the ``coeffs`` argument. Needs >= 3 points.
+    coefficients; feed them back via the ``coeffs`` argument. Needs >= 3 points. Pass
+    ``non_negative=True`` to constrain ``c0 >= 0, c1 >= 0`` (free intercept ``c2``) so small-n
+    collinearity cannot invert the physical blade-count or thrust-loading sign (#122).
     """
     nb = np.asarray(n_blades, float)
     tpb = np.asarray(thrust_per_blade, float)
@@ -88,5 +100,11 @@ def calibrate(n_blades, thrust_per_blade, lbm_band) -> tuple[float, float, float
     if not (np.all(np.isfinite(nb)) and np.all(np.isfinite(tpb)) and np.all(np.isfinite(y))):
         raise ValueError("calibration inputs must be finite")
     A = np.column_stack([nb, tpb, np.ones(len(nb))])
-    coef, *_ = np.linalg.lstsq(A, y, rcond=None)
+    if non_negative:
+        from scipy.optimize import lsq_linear
+
+        res = lsq_linear(A, y, bounds=([0.0, 0.0, -np.inf], [np.inf, np.inf, np.inf]))
+        coef = res.x
+    else:
+        coef, *_ = np.linalg.lstsq(A, y, rcond=None)
     return float(coef[0]), float(coef[1]), float(coef[2])

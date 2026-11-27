@@ -17,6 +17,31 @@ def test_proxy_increases_with_blade_count():
     assert hi > lo
 
 
+def test_proxy_increases_with_thrust_per_blade_and_positive_coeffs():
+    # #122: physically signed default coefficients (c0 > 0, c1 > 0) so higher per-blade
+    # loading increases predicted noise and never produces negative dB at high thrust.
+    from fansim.acoustics.loading import DEFAULT_COEFFS
+
+    c0, c1, _c2 = DEFAULT_COEFFS
+    assert c0 > 0.0 and c1 > 0.0
+    lo = loading_noise_proxy(7, 0.01)
+    hi = loading_noise_proxy(7, 0.05)
+    assert hi > lo > 0.0
+    assert loading_noise_proxy(7, 1.0) > hi
+
+
+def test_calibrate_non_negative_enforces_physical_signs():
+    # Confounded data whose unconstrained OLS gives c1 < 0 must yield c0 >= 0, c1 >= 0 under
+    # non_negative=True (#122).
+    nb = np.array([5, 6, 7, 8, 9, 10, 11], float)
+    tpb = np.array([0.014, 0.012, 0.010, 0.009, 0.008, 0.007, 0.006])
+    band = 2.0 * nb - 80.0 * tpb + 35.0
+    c0, c1, c2 = calibrate_loading_proxy(nb, tpb, band, non_negative=True)
+    assert c0 >= 0.0
+    assert c1 >= 0.0
+    assert np.isfinite(c2)
+
+
 def test_from_rans_divides_by_blade_count():
     assert loading_proxy_from_rans(7, 0.07) == pytest.approx(loading_noise_proxy(7, 0.01))
 

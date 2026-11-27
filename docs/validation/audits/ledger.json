@@ -14,8 +14,8 @@
     },
     "acoustics.loading": {
       "date": "2026-11-26",
-      "fingerprint": "501cca7ef0535722",
-      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
+      "fingerprint": "7f9fd4a7eee4fb4c",
+      "report": "docs/validation/audits/2026-11-26-loading-proxy-positive-slope-prereg.md",
       "verdict": "PASS"
     },
     "acoustics.noise_hint": {
