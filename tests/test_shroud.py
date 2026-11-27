@@ -2,11 +2,23 @@ import math
 from pathlib import Path
 
 import optuna
+import pytest
 
 from fansim.cockpit.placement import blade_max_dia
-from fansim.geometry.blade import BladeParams, SHROUD_DEFAULT_MM
+from fansim.geometry.blade import SHROUD_DEFAULT_MM, BladeParams
 from fansim.manufacturability.fdm_rules import check_printability
 from fansim.optimize.search_space import blade_from_flat, suggest_params
+
+
+@pytest.fixture(scope="module")
+def _shrouded_full_preview_vol() -> float:
+    from fansim.geometry.blade import build_impeller_preview
+
+    full = BladeParams()
+    full.shroud_thick_mm = SHROUD_DEFAULT_MM
+    full.shroud_height_frac = 1.0
+    _, v_full = build_impeller_preview(full)
+    return float(v_full)
 
 
 def test_zero_shroud_is_same_diameter_as_today():
@@ -62,14 +74,11 @@ def test_default_shroud_on_baseline_is_printable():
     assert check_printability(p).printable
 
 
-def test_preview_volume_grows_with_shroud():
+def test_preview_volume_grows_with_shroud(_shrouded_full_preview_vol):
     from fansim.geometry.blade import build_impeller_preview
 
-    open_mesh, open_vol = build_impeller_preview(BladeParams())
-    p = BladeParams()
-    p.shroud_thick_mm = SHROUD_DEFAULT_MM
-    _, sh_vol = build_impeller_preview(p)
-    assert sh_vol > open_vol
+    _open_mesh, open_vol = build_impeller_preview(BladeParams())
+    assert _shrouded_full_preview_vol > open_vol
 
 
 def test_bem_shrouded_shutoff_beats_open_tip():
@@ -159,7 +168,11 @@ def test_ring_wall_contains_every_tip_section_point():
     Sizing the bore off the max hypot (LE/TE corners) leaves mid-chord — which sits near
     tip_radius — outside the ring, i.e. an open channel to the outside."""
     from fansim.geometry.blade import (
-        SHROUD_EMBED_MM, open_tip_rmax_mm, tip_section_points, tip_section_rmin_mm)
+        SHROUD_EMBED_MM,
+        open_tip_rmax_mm,
+        tip_section_points,
+        tip_section_rmin_mm,
+    )
 
     p = BladeParams()
     p.shroud_thick_mm = SHROUD_DEFAULT_MM
@@ -178,8 +191,7 @@ def test_ring_bore_is_below_the_corner_only_radius():
     Uses cylindrical_tip=False so LE/TE corners still bulge past tip_radius (the case the
     bore-sizing rule exists for). With trim on, rmin≈rmax and this inequality does not apply.
     """
-    from fansim.geometry.blade import (
-        SHROUD_EMBED_MM, open_tip_rmax_mm, tip_section_rmin_mm)
+    from fansim.geometry.blade import SHROUD_EMBED_MM, open_tip_rmax_mm, tip_section_rmin_mm
 
     p = BladeParams()
     p.cylindrical_tip = False
@@ -292,19 +304,15 @@ def test_partial_frac_does_not_change_od():
     assert abs(blade_max_dia(p) - (open_dia + 2.0 * SHROUD_DEFAULT_MM)) < 1e-6
 
 
-def test_preview_partial_ring_is_shorter_than_full():
+def test_preview_partial_ring_is_shorter_than_full(_shrouded_full_preview_vol):
     from fansim.geometry.blade import build_impeller_preview
 
-    full = BladeParams()
-    full.shroud_thick_mm = SHROUD_DEFAULT_MM
-    full.shroud_height_frac = 1.0
-    _, v_full = build_impeller_preview(full)
     part = BladeParams()
     part.shroud_thick_mm = SHROUD_DEFAULT_MM
     part.shroud_height_frac = 0.3
     _, v_part = build_impeller_preview(part)
     assert v_part > 0
-    assert v_part < v_full
+    assert v_part < _shrouded_full_preview_vol
 
 
 def test_cockpit_declares_shroud_height_slider():

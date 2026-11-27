@@ -4,16 +4,19 @@ from __future__ import annotations
 
 import dataclasses
 
+import pytest
+
+from fansim.geometry import build_impeller, export_stl, watertight_report
 from fansim.geometry.blade import BladeParams, RadialStation, set_uneven_spacing
 from fansim.manufacturability.print_export import (
     BoreSpec,
     balance_summary,
     bore_hub,
+    build_impeller_with_mount,
     export_print_ready,
     print_readme,
     recommend_print_settings,
 )
-from fansim.geometry import build_impeller
 
 
 def _simple_params(n_blades: int = 5) -> BladeParams:
@@ -25,10 +28,40 @@ def _simple_params(n_blades: int = 5) -> BladeParams:
     return BladeParams(n_blades=n_blades, stations=stations)
 
 
-def test_export_solid_is_watertight(tmp_path):
-    rep = export_print_ready(_simple_params(), tmp_path / "solid.stl")
+@pytest.fixture(scope="module")
+def _simple_model():
+    return build_impeller(_simple_params())
+
+
+@pytest.fixture(scope="module")
+def _simple_solid_export(tmp_path_factory):
+    out_dir = tmp_path_factory.mktemp("print_export_solid")
+    stl = out_dir / "solid.stl"
+    rep = export_print_ready(_simple_params(), stl)
+    return rep, stl
+
+
+@pytest.fixture(scope="module")
+def _simple_bored_export(tmp_path_factory):
+    out_dir = tmp_path_factory.mktemp("print_export_bored")
+    stl = out_dir / "bored.stl"
+    rep = export_print_ready(_simple_params(), stl, bore=BoreSpec(bore_dia_mm=5.0))
+    return rep, stl
+
+
+@pytest.fixture(scope="module")
+def _wide_hub_solid(tmp_path_factory):
+    out_dir = tmp_path_factory.mktemp("print_export_wide")
+    p = dataclasses.replace(_simple_params(), hub_radius=30.0)
+    aero = build_impeller(p)
+    stl = export_stl(aero, out_dir / "solid.stl")
+    return p, aero, watertight_report(stl)
+
+
+def test_export_solid_is_watertight(_simple_solid_export):
+    rep, stl = _simple_solid_export
     assert rep.ok and rep.n_bodies == 1 and rep.volume_mm3 > 0
-    step = tmp_path / "solid.step"
+    step = stl.with_suffix(".step")
     assert step.is_file() and step.stat().st_size > 100
     # ISO-10303 header
     head = step.read_text(encoding="utf-8", errors="ignore")[:80]
@@ -36,29 +69,26 @@ def test_export_solid_is_watertight(tmp_path):
 
 
 def test_export_can_skip_step(tmp_path):
-    export_print_ready(_simple_params(), tmp_path / "no_step.stl", also_step=False)
+    export_print_ready(_simple_params(n_blades=2), tmp_path / "no_step.stl", also_step=False)
     assert not (tmp_path / "no_step.step").exists()
 
 
-def test_bore_removes_material_and_stays_watertight(tmp_path):
-    p = _simple_params()
-    solid = export_print_ready(p, tmp_path / "solid.stl")
-    bored = export_print_ready(p, tmp_path / "bored.stl", bore=BoreSpec(bore_dia_mm=5.0))
+def test_bore_removes_material_and_stays_watertight(_simple_solid_export, _simple_bored_export):
+    solid, _ = _simple_solid_export
+    bored, _ = _simple_bored_export
     assert bored.ok, "bored hub must stay a single watertight body"
     assert bored.volume_mm3 < solid.volume_mm3, "a through-bore must remove material"
 
 
-def test_bore_hub_direct_and_set_screw(tmp_path):
-    model = build_impeller(_simple_params())
-    v0 = model.val().Volume()
-    bored = bore_hub(model, BoreSpec(bore_dia_mm=4.0, set_screw_dia_mm=2.5))
+def test_bore_hub_direct_and_set_screw(_simple_model):
+    v0 = _simple_model.val().Volume()
+    bored = bore_hub(_simple_model, BoreSpec(bore_dia_mm=4.0, set_screw_dia_mm=2.5))
     assert bored.val().Volume() < v0
 
 
-def test_zero_bore_is_noop():
-    model = build_impeller(_simple_params())
-    same = bore_hub(model, BoreSpec(bore_dia_mm=0.0))
-    assert abs(same.val().Volume() - model.val().Volume()) < 1e-6
+def test_zero_bore_is_noop(_simple_model):
+    same = bore_hub(_simple_model, BoreSpec(bore_dia_mm=0.0))
+    assert abs(same.val().Volume() - _simple_model.val().Volume()) < 1e-6
 
 
 def test_even_spacing_is_balanced():
@@ -91,32 +121,30 @@ def test_print_settings_defaults_and_petg():
     assert recommend_print_settings("UNOBTANIUM")["material"] == "PETG"
 
 
-def test_motor_mount_carves_when_hub_fits(tmp_path):
+def test_motor_mount_carves_when_hub_fits(tmp_path, _wide_hub_solid):
     from fansim.fan_spec import get_fan_spec
     mount = get_fan_spec("a12x25").motor_mount
-    p = dataclasses.replace(_simple_params(), hub_radius=30.0)  # wide enough for the cup
-    solid = export_print_ready(p, tmp_path / "solid.stl")
-    carved = export_print_ready(p, tmp_path / "carved.stl", mount=mount)
+    p, _aero, solid = _wide_hub_solid
+    carved = export_print_ready(p, tmp_path / "carved.stl", mount=mount, also_step=False)
     assert carved.mount_fits is True
     assert carved.ok, "carved cup must stay watertight"
     assert carved.volume_mm3 < solid.volume_mm3, "the cavity must remove material"
     assert "grip" in (carved.mount_msg or "").lower()
 
 
-def test_motor_mount_grips_add_back_vs_smooth_cup(tmp_path):
+def test_motor_mount_grips_add_back_vs_smooth_cup(tmp_path, _wide_hub_solid):
     from fansim.fan_spec import get_fan_spec
     base = get_fan_spec("a12x25").motor_mount
-    p = dataclasses.replace(_simple_params(), hub_radius=30.0)
-    solid_v = export_print_ready(p, tmp_path / "solid.stl").volume_mm3
+    p, _aero, solid = _wide_hub_solid
     over = dataclasses.replace(base, grip_count=0, grip_clearance_mm=0.35)
     gripped = dataclasses.replace(base, grip_count=20, grip_dia_mm=2.4, grip_clearance_mm=0.35)
-    v_over = export_print_ready(p, tmp_path / "over.stl", mount=over).volume_mm3
-    v_grip = export_print_ready(p, tmp_path / "grip.stl", mount=gripped).volume_mm3
+    v_over = export_print_ready(p, tmp_path / "over.stl", mount=over, also_step=False).volume_mm3
+    v_grip = export_print_ready(p, tmp_path / "grip.stl", mount=gripped, also_step=False).volume_mm3
     assert v_grip > v_over, "grip pads must fuse material back into the oversize cup"
-    assert v_grip < solid_v
+    assert v_grip < solid.volume_mm3
 
 
-def test_motor_mount_grips_do_not_protrude_below_rear_face():
+def test_motor_mount_grips_do_not_protrude_below_rear_face(_wide_hub_solid):
     """Fused grip pads must stay flush with the hub rear (−Z) face, not poke out the back.
 
     They reuse the cavity *cutter's* z-range, which overshoots the face by ``eps`` for a clean
@@ -124,11 +152,9 @@ def test_motor_mount_grips_do_not_protrude_below_rear_face():
     (it would leave a ring of little nubs sticking below the hub).
     """
     from fansim.fan_spec import get_fan_spec
-    from fansim.manufacturability.print_export import build_impeller_with_mount
 
     mount = get_fan_spec("a12x25").motor_mount
-    p = dataclasses.replace(_simple_params(), hub_radius=30.0)  # wide enough for the cup
-    aero = build_impeller(p)
+    p, aero, _solid = _wide_hub_solid
     carved, fits, _msg = build_impeller_with_mount(p, mount)
     assert fits
     zmin_aero = aero.val().BoundingBox().zmin
@@ -143,9 +169,9 @@ def test_motor_mount_grips_do_not_protrude_below_rear_face():
 def test_motor_mount_refuses_small_hub(tmp_path):
     from fansim.fan_spec import get_fan_spec
     mount = get_fan_spec("a12x25").motor_mount
-    p = _simple_params()
+    p = _simple_params(n_blades=2)
     p.hub_radius = 15.0  # < 19.8 mm needed for the 37.25 mm cup + 1.2 mm wall
-    rep = export_print_ready(p, tmp_path / "small.stl", mount=mount)
+    rep = export_print_ready(p, tmp_path / "small.stl", mount=mount, also_step=False)
     assert rep.mount_fits is False
     assert "hub radius too small" in (rep.mount_msg or "")
     assert "did not join into one solid" not in (rep.mount_msg or "")
@@ -161,9 +187,9 @@ def test_fan_spec_motor_mount_roundtrips():
     assert back.motor_mount.grip_protrude_mm == 0.35
 
 
-def test_readme_flags_placeholder_bore(tmp_path):
+def test_readme_flags_placeholder_bore(_simple_bored_export):
     p = _simple_params()
-    rep = export_print_ready(p, tmp_path / "b.stl", bore=BoreSpec(bore_dia_mm=5.0))
+    rep, _ = _simple_bored_export
     bal = balance_summary(p, 2000)
     md = print_readme("t", p, "PETG", rep, bal, recommend_print_settings("PETG"),
                       BoreSpec(bore_dia_mm=5.0), {"cfm_free": 80.0})
