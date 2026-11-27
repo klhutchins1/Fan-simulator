@@ -40,10 +40,17 @@ def blade_overhang_below_hub_mm(params) -> float:
 
 
 def _blade_z_bounds(params) -> tuple[float, float]:
-    from fansim.geometry.blade import _interp_stations, _section_points_3d, plate_blade_z_mm
+    from fansim.geometry.blade import (
+        _interp_stations,
+        _section_points_3d,
+        _thick_scale_kw,
+        plate_blade_z_mm,
+    )
 
     it = _interp_stations(params, params.n_span)
     r0 = params.hub_radius - params.root_embed
+    skw = _thick_scale_kw(params)
+    bz = plate_blade_z_mm(params)
     zs = []
     for i in range(params.n_span):
         rf = float(it["r_frac"][i])
@@ -65,10 +72,10 @@ def _blade_z_bounds(params) -> tuple[float, float]:
             le_skew=float(it["le_skew"][i]),
             tip_notch_count=params.tip_notch_count,
             tip_notch_depth_mm=params.tip_notch_depth_mm,
-            le_thick_scale=float(getattr(params, "le_thick_scale", 1.0) or 1.0),
-            te_thick_scale=float(getattr(params, "te_thick_scale", 1.0) or 1.0),
-            section_family=str(getattr(params, "section_family", "naca") or "naca"),
-            blade_z_mm=plate_blade_z_mm(params),
+            te_face=float(it["te_face"][i]),
+            le_face=float(it["le_face"][i]),
+            blade_z_mm=bz,
+            **skw,
         )
         zs += [v.z for v in pts]
     lo = min(zs)
@@ -121,15 +128,19 @@ def intake_overbuild_note(depth_mm: float | None, nominal_mm: float,
         return (f"intake overbuild on (+{extra_mm:.0f} mm allowed) — depth unknown", True)
     if depth_mm > nominal_mm + 0.05:
         return (
-            f"intake overbuild on: impeller {depth_mm:.1f} mm deep vs {nominal_mm:.0f} mm stock "
-            f"frame (+{depth_mm - nominal_mm:.1f} mm) — won't drop into a stock frame. To make "
-            "it fit: Fit & seed → turn off \"Allow intake overbuild\", then Fit envelope. "
-            "(Optimize ignores this switch and always uses the stock depth.)",
+            (
+                f"intake overbuild on: impeller {depth_mm:.1f} mm deep vs {nominal_mm:.0f} mm stock "
+                f"frame (+{depth_mm - nominal_mm:.1f} mm) — won't drop into a stock frame. To make "
+                "it fit: Fit & seed → turn off \"Allow intake overbuild\", then Fit envelope. "
+                "(Optimize ignores this switch and always uses the stock depth.)"
+            ),
             True,
         )
     return (
-        f"intake overbuild on (+{extra_mm:.0f} mm allowed), but this impeller is "
-        f"{depth_mm:.1f} mm deep — still fits the {nominal_mm:.0f} mm stock frame.",
+        (
+            f"intake overbuild on (+{extra_mm:.0f} mm allowed), but this impeller is "
+            f"{depth_mm:.1f} mm deep — still fits the {nominal_mm:.0f} mm stock frame."
+        ),
         False,
     )
 
@@ -555,7 +566,7 @@ def scale_to_hub(flat: dict, spec: FanSpec, features=None, *, max_depth_mm: floa
             continue
         try:
             before = float(src[k])
-        except Exception:  # noqa: BLE001
+        except (TypeError, ValueError):
             continue
         after = before * s
         if abs(after - before) > 1e-9:
