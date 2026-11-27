@@ -66,10 +66,36 @@ def test_face_panels_from_csv_six_panels(tmp_path):
     m = noise_from_permeable_panels(t, panels)
     assert m["analogy"] == "fwh_permeable"
     assert math.isfinite(m["noise_dba_band"])
+    # #126: geometric face areas from box (not placeholder 1.0)
+    hxy, hz = box["half_xy_m"], box["half_z_m"]
+    side_area = 4.0 * hxy * hz
+    cap_area = 4.0 * hxy * hxy
+    for i in range(4):
+        assert panels[i]["area"] == pytest.approx(side_area, rel=1e-12)
+    for i in (4, 5):
+        assert panels[i]["area"] == pytest.approx(cap_area, rel=1e-12)
+    assert sum(p["area"] for p in panels) == pytest.approx(4.0 * side_area + 2.0 * cap_area, rel=1e-12)
+
+
+def test_noise_from_permeable_panels_does_not_round_internally():
+    """#126: permeable noise helper returns full float precision."""
+    from fansim.acoustics.farfield import dba_from_pressure
+    from fansim.acoustics.fwh import loading_pressure_panels
+
+    t, Fz, _dt, _bpf = _bpf_Fz()
+    mean_fz = -1.0 / 30.0
+    F = np.column_stack([np.zeros_like(t), np.zeros_like(t), mean_fz + Fz])
+    panels = [{"r0": (0.0, 0.0, 0.0), "n_hat": (0.0, 0.0, 1.0), "area": 0.01, "f": F}]
+    m = noise_from_permeable_panels(t, panels, cutoff_hz=2500.0)
+    dt_med = float(np.median(np.diff(t)))
+    p = loading_pressure_panels(t, [{**panels[0], "f": F - F.mean(axis=0)}])
+    assert m["thrust_n"] == pytest.approx(float(F[:, 2].mean()), abs=1e-12)
+    assert m["noise_dba_band"] == pytest.approx(dba_from_pressure(p, dt_med, 2500.0), abs=1e-12)
+
 
 
 def test_sum_to_origin_matches_compact_within_half_db():
-    t, Fz, dt, _bpf = _bpf_Fz(amp=0.02)
+    t, Fz, _dt, _bpf = _bpf_Fz(amp=0.02)
     F = np.column_stack([np.zeros_like(t), np.zeros_like(t), Fz])
     # Split equally across six faces; collapse by summing → one origin panel
     face_F = [F / 6.0 for _ in range(6)]
