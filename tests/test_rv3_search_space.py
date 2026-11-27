@@ -493,3 +493,111 @@ def test_axial_fan_archetype_forwards_frame_half_mm():
     trial = study.ask()
     bp = arch.suggest_design(trial, space="guided", frame_half_mm=45.0)
     assert bp.tip_radius <= 45.0 - TIP_CAP_CLEARANCE_MM + 1e-9
+
+
+# ---------------------------------------------------------------------------
+# 6. Issue #127: coprime stator, EXTENDED printability/frame bounds, OPEN ⊃ GUIDED,
+#    blade_angles_deg round-trip
+# ---------------------------------------------------------------------------
+
+
+def test_suggest_stator_enforces_coprime_counts_for_all_rotor_blade_counts():
+    import math
+
+    from fansim.optimize.search_space import suggest_stator
+
+    lo_e, hi_e = STATOR_BOUNDS["stator_n_extra"]
+    for n_blades in range(5, 12):
+        for raw_extra in range(lo_e, hi_e + 1):
+            trial = optuna.trial.FixedTrial(
+                {"stator_stagger_deg": 45.0, "stator_n_extra": raw_extra}
+            )
+            res = suggest_stator(trial, n_blades=n_blades)
+            n_extra = res["n_extra"]
+            assert lo_e <= n_extra <= hi_e
+            assert math.gcd(n_blades, n_blades + n_extra) == 1
+
+
+def test_extended_bounds_fit_a12x25_frame_and_fdm_wall_floor():
+    from fansim.optimize.search_space import MIN_CHORD
+
+    assert EXTENDED["tip_radius"][1] <= 54.5
+    assert EXTENDED["thickness_root"][0] * MIN_CHORD >= 0.80 - 1e-9
+    assert EXTENDED["thickness_mid"][0] * MIN_CHORD >= 0.80 - 1e-9
+
+
+def test_open_is_superset_of_guided():
+    for key, (glo, ghi) in GUIDED.items():
+        olo, ohi = OPEN[key]
+        assert olo <= glo <= ghi <= ohi, f"{key}: GUIDED {(glo, ghi)} not inside OPEN {(olo, ohi)}"
+
+
+def test_blade_to_flat_round_trips_blade_angles_deg():
+    import numpy as np
+
+    from fansim.geometry.blade import set_uneven_spacing
+
+    bp = BladeParams(n_blades=7)
+    set_uneven_spacing(bp, spread=0.35, rng=np.random.default_rng(12))
+    assert bp.blade_angles_deg is not None
+    flat = blade_to_flat(bp)
+    assert flat["blade_angles_deg"] == pytest.approx(bp.blade_angles_deg, abs=1e-12)
+    rebuilt = blade_from_flat(flat)
+    assert rebuilt.blade_angles_deg == pytest.approx(bp.blade_angles_deg, abs=1e-12)
+
+
+def test_fan_editor_preserves_blade_angles_deg_across_slider_edits():
+    import numpy as np
+
+    from fansim.cockpit import fan_editor
+    from fansim.geometry.blade import set_uneven_spacing
+
+    class _DummyState:
+        fan_model = "a12x25"
+
+        def __getattr__(self, name):
+            return 0.0
+
+        def change(self, *_args):
+            return lambda fn: fn
+
+        def flush(self):
+            pass
+
+    class _DummyCtrl:
+        pass
+
+    class _DummySession:
+        def __init__(self):
+            self.state = _DummyState()
+            self.ctrl = _DummyCtrl()
+            self.sel_sig = lambda: ""
+            self.on_apply_edit = lambda: None
+
+        def _hub_fit_readout(self):
+            return ""
+
+        def _tip_fit_readout(self):
+            return ""
+
+        def _depth_fit_readout(self):
+            return ""
+
+    session = _DummySession()
+    fan_editor.bind(session)
+
+    bp = BladeParams(n_blades=7)
+    set_uneven_spacing(bp, spread=0.35, rng=np.random.default_rng(12))
+    flat = blade_to_flat(bp)
+    session._init_editor(flat)
+    # Edit an unrelated slider (tip stagger) and verify uneven blade angles survive.
+    session.state.e_stagger_tip = float(session.state.e_stagger_tip) + 2.0
+    edited = session.edit_flat()
+    assert edited["blade_angles_deg"] == pytest.approx(bp.blade_angles_deg, abs=1e-12)
+    rebuilt = blade_from_flat(edited)
+    assert rebuilt.blade_angles_deg == pytest.approx(bp.blade_angles_deg, abs=1e-12)
+    # Changing n_blades drops the incompatible angle list cleanly.
+    session.state.e_n_blades = 9
+    edited_9 = session.edit_flat()
+    assert "blade_angles_deg" not in edited_9
+

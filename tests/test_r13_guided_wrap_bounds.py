@@ -20,10 +20,11 @@ def test_stock_v3_lies_inside_guided():
         assert lo <= val <= hi, f"{key}={val} outside GUIDED {(lo, hi)}"
 
 
-def test_open_and_guided_lc_unchanged_by_r13():
-    # Freeze the pre-R1.3 numbers so this task cannot silently widen other spaces.
-    assert OPEN["stagger_root"] == (20.0, 48.0)
-    assert OPEN["stagger_mid"] == (18.0, 42.0)
+def test_open_covers_guided_and_guided_lc_unchanged():
+    # #127 (prereg 2026-11-26-search-space-bounds-127): OPEN widened to be a strict superset of
+    # GUIDED (including Stock v3 under wrap); GUIDED_LC stays unchanged.
+    assert OPEN["stagger_root"] == (19.5, 48.0)
+    assert OPEN["stagger_mid"] == (18.0, 48.0)
     assert OPEN["max_camber"] == (0.0, 0.06)
     assert GUIDED_LC["stagger_root"] == (22.0, 44.0)
     assert GUIDED_LC["stagger_mid"] == (28.0, 44.0)
