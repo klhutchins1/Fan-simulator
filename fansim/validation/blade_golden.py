@@ -68,6 +68,14 @@ def load_golden(path: Path | None = None) -> dict[str, Any]:
     return json.loads(p.read_text(encoding="utf-8"))
 
 
+def write_golden(path: Path | None = None, metrics: dict[str, Any] | None = None) -> Path:
+    p = path or GOLDEN_PATH
+    data = metrics or measure_stock_golden()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return p
+
+
 def assert_matches_golden(
     measured: dict[str, Any],
     expected: dict[str, Any],

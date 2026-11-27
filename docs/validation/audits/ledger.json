@@ -69,7 +69,7 @@
     "cfd.flow_direction_convention": {
       "date": "2026-11-27",
       "fingerprint": "9aebf8f2b917f9c8",
-      "report": "ruff import-sort/lint cleanup in openfoam_case.py; 23 audit tests pass",
+      "report": "docs/validation/audits/2026-11-26-cfm-exact-si.md (ruff UP037 annotation cleanup, PR #155)",
       "verdict": "PASS"
     },
     "cfd.flow_report": {

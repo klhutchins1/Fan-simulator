@@ -14,9 +14,6 @@ from pathlib import Path
 import numpy as np
 import trimesh
 
-ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_IMPORT_DIR = ROOT / "validation" / "reference" / "drone_radial"
-
 
 @dataclass(frozen=True)
 class PropStlMetrics:
@@ -41,13 +38,6 @@ def spin_hint_from_name(name: str) -> int | None:
     if re.search(r"(^|_)CW(_|$)", upper):
         return 1
     return None
-
-
-def _sanitize_stem(name: str) -> str:
-    stem = Path(name).stem.strip()
-    stem = re.sub(r"\s+", "_", stem)
-    stem = re.sub(r"[^A-Za-z0-9_\-]+", "", stem)
-    return stem.lower()
 
 
 def prepare_prop_stl(
