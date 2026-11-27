@@ -65,16 +65,6 @@ MAX_CLUSTER_FACES = 500
 AREA_GROUP_TOL = 0.03  # relative area tolerance for "matching" blade faces
 
 
-@dataclass(frozen=True)
-class RotorExtractionInfo:
-    n_faces: int
-    tip_radius_mm: float
-    hub_radius_mm: float
-    axial_extent_mm: float
-    watertight: bool
-    n_blades_found: int
-
-
 def _read_iges_faces(igs_path: Path):
     """Return the list of TopoDS_Face in the IGES file, in Explorer order."""
     from OCP.IGESControl import IGESControl_Reader
@@ -345,67 +335,6 @@ def _transform_to_convention(solid, mean: np.ndarray, axis: np.ndarray, sample_p
 
     transformer = BRepBuilderAPI_Transform(solid, combined, True)
     return transformer.Shape()
-
-
-def extract_rotor_stl(
-    igs_path: str | Path = DEFAULT_IGS,
-    out_stl: str | Path = DEFAULT_OUT_STL,
-    expected_blade_count: int = 9,
-    tol_mm: float = 0.02,
-    expected_tip_radius_mm: float | None = 245.0,
-    stl_tolerance_mm: float = 0.1,
-) -> dict:
-    """Isolate the FAN-01 rotor from the full test-rig IGES and write a watertight STL.
-
-    Returns a dict of measured geometry (tip/hub radius, blade count, axial extent,
-    watertight flag) for reporting/verification -- see module docstring for the method.
-    """
-    import cadquery as cq
-
-    igs_path, out_stl = Path(igs_path), Path(out_stl)
-    rotor_faces, mean, axis = find_rotor_faces(
-        igs_path, expected_blade_count, tol_mm, expected_tip_radius_mm
-    )
-    solid = _sew_to_solid(rotor_faces)
-
-    sample = _tessellate(rotor_faces)
-    sample_pts = np.vstack([p for p, _ in sample if len(p)])
-
-    final_solid = _transform_to_convention(solid, mean, axis, sample_pts)
-
-    out_stl.parent.mkdir(parents=True, exist_ok=True)
-    shp = cq.Shape.cast(final_solid)
-    wp = cq.Workplane("XY").newObject([shp])
-    wp.val().exportStl(str(out_stl), tolerance=stl_tolerance_mm, angularTolerance=0.2)
-
-    mesh = trimesh.load(str(out_stl))
-    watertight = bool(mesh.is_watertight)
-    if not watertight:
-        mesh.fill_holes()
-        if mesh.is_watertight:
-            mesh.export(str(out_stl))
-            watertight = True
-
-    v = mesh.vertices
-    r = np.hypot(v[:, 0], v[:, 1])
-    tip_radius_mm = float(np.percentile(r, 99.5))
-    hub_radius_mm = float(np.percentile(r, 5.0))
-    axial_extent_mm = float(v[:, 2].max() - v[:, 2].min())
-
-    from fansim.audit.direction import _section_loops
-
-    m2 = mesh.copy()
-    m2.merge_vertices()
-    n_blades_found = sum(1 for _ in _section_loops(m2, 0.75 * tip_radius_mm))
-
-    return {
-        "n_faces": len(rotor_faces),
-        "tip_radius_mm": tip_radius_mm,
-        "hub_radius_mm": hub_radius_mm,
-        "axial_extent_mm": axial_extent_mm,
-        "watertight": watertight,
-        "n_blades_found": n_blades_found,
-    }
 
 
 # --- Rig + direction (task 1 & 2 of .superpowers/sdd/fan01-runner-brief.md) ---

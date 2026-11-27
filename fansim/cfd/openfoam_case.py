@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 import math
 from dataclasses import dataclass
@@ -110,20 +109,6 @@ def snappy_layers_mapping(mesh: MeshResolution) -> dict[str, str]:
         "ADDLAYERS": "true",
         "LAYER_PATCHES": f"        impeller {{ nSurfaceLayers {n}; }}\n",
     }
-
-
-def grid_convergence_parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(description="grid-convergence study (free delivery)")
-    ap.add_argument("--base-json", required=True)
-    ap.add_argument("--base-trial", type=int, required=True)
-    ap.add_argument("--cells", default="0.007,0.005,0.0035",
-                    help="base_cell sizes (m), coarse->fine")
-    ap.add_argument("--iters", type=int, default=1000)
-    ap.add_argument("--procs", type=int, default=8)
-    ap.add_argument("--out", default="runs/gridconv")
-    ap.add_argument("--layers", action="store_true", default=False,
-                    help="grow prism layers on the impeller (off)")
-    return ap
 
 
 def _header(cls: str, obj: str) -> str:

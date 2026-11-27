@@ -198,15 +198,6 @@ def estimate_weight_g(
     return volume_mm3 * density_kg_m3 * 1e-6 * f  # mm^3 → g via kg/m^3
 
 
-def _within(val, rng, label, unit) -> str | None:
-    lo, hi = rng
-    if val < lo:
-        return f"{label} {val:.1f} {unit} < min {lo:.1f}"
-    if val > hi:
-        return f"{label} {val:.1f} {unit} > max {hi:.1f}"
-    return None
-
-
 def check_build(spec: FanSpec, tip_dia_mm: float, hub_dia_mm: float, depth_mm: float,
                 weight_g: float | None = None) -> tuple[bool, str]:
     """Geometry/mass gate against a model's envelope + leeway. Returns (ok, reason).

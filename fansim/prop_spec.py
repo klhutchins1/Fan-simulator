@@ -138,21 +138,6 @@ def prop_spec_from_dict(d: dict) -> PropSpec:
     return PropSpec(**d)
 
 
-def save_prop_spec(spec: PropSpec, path: str | Path) -> None:
-    import yaml
-    Path(path).write_text(yaml.safe_dump(prop_spec_to_dict(spec), sort_keys=False))
-
-
 def load_prop_spec(path: str | Path) -> PropSpec:
     import yaml
     return prop_spec_from_dict(yaml.safe_load(Path(path).read_text()))
-
-
-def load_prop_models_dir(directory: str | Path = "config/prop_models") -> list[str]:
-    d = Path(directory)
-    added = []
-    if d.exists():
-        for p in sorted(d.glob("*.yaml")):
-            register_prop_spec(p.stem, load_prop_spec(p))
-            added.append(p.stem)
-    return added
