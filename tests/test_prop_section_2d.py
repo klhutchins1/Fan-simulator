@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+import itertools
 import re
 from pathlib import Path
 
@@ -135,11 +136,17 @@ def test_tu_changes_freestream_k(tmp_path):
     noisy = ps.write_case(
         tmp_path / "n", alpha_deg=0.0, model="kOmegaSST", tu=0.05)
     k_q = float(
-        [ln for ln in (quiet / "0" / "k").read_text(encoding="utf-8").splitlines()
-         if "internalField" in ln][0].split()[-1].rstrip(";"))
+        next(
+            ln for ln in (quiet / "0" / "k").read_text(encoding="utf-8").splitlines()
+            if "internalField" in ln
+        ).split()[-1].rstrip(";")
+    )
     k_n = float(
-        [ln for ln in (noisy / "0" / "k").read_text(encoding="utf-8").splitlines()
-         if "internalField" in ln][0].split()[-1].rstrip(";"))
+        next(
+            ln for ln in (noisy / "0" / "k").read_text(encoding="utf-8").splitlines()
+            if "internalField" in ln
+        ).split()[-1].rstrip(";")
+    )
     assert k_n > k_q * 10
 
 
@@ -384,7 +391,7 @@ def _direction_cell_sizes(length: float, n: int, grading) -> list[float]:
 
 def _polyline_length(pts: list[tuple[float, float]]) -> float:
     total = 0.0
-    for a, b in zip(pts, pts[1:]):
+    for a, b in itertools.pairwise(pts):
         total += float(np.hypot(b[0] - a[0], b[1] - a[1]))
     return total
 
@@ -399,7 +406,7 @@ def _size_ratio(a: float, b: float) -> float:
 def _max_step_ratio(sizes: list[float]) -> float:
     if len(sizes) < 2:
         return 1.0
-    return max(_size_ratio(a, b) for a, b in zip(sizes, sizes[1:]))
+    return max(_size_ratio(a, b) for a, b in itertools.pairwise(sizes))
 
 
 def measure_cgrid(block_mesh_text: str, chord: float) -> dict:
@@ -715,3 +722,52 @@ def test_cgrid_refine_flag_doubles_the_gate_grid_at_ten_degrees(tmp_path):
     assert gate["normal_growth"] <= 1.15, gate
     ctrl = (case / "system" / "controlDict").read_text(encoding="utf-8")
     assert re.search(r"endTime\s+10000\s*;", ctrl)
+
+
+def test_section_2d_promoted_module_and_cli_delegation():
+    """RV-4 (#74): maths and verdict logic live in fansim.propeller.section_2d."""
+    from fansim.propeller import section_2d as s2d
+
+    for name in (
+        "section_xy",
+        "u_inf",
+        "solve_u_nu",
+        "wall_spacing_m",
+        "first_cell_yplus",
+        "parse_naca4_code",
+        "write_case",
+        "verdict",
+        "verdict_a0",
+        "parse_cl_cd",
+        "parse_yplus",
+        "parse_layer_coverage",
+        "parse_surface_cells",
+        "is_a0_campaign",
+        "judge_summary",
+    ):
+        assert getattr(ps, name) is getattr(s2d, name), name
+
+    assert s2d.is_a0_campaign("0012", 6.0e6, [0.0, 5.0, 10.0]) is True
+    assert s2d.is_a0_campaign("4406", 8.0e4, [0.0, 2.0, 4.0, 6.0, 8.0]) is False
+    a0_summary = {
+        "points": {
+            "kOmegaSST": {
+                "0.0": {"cd": s2d.A0_CD_0},
+                "5.0": {"cl": s2d.A0_CL_5},
+                "10.0": {"cl": s2d.A0_CL_10},
+            }
+        }
+    }
+    assert s2d.judge_summary(
+        a0_summary, section="0012", re=6.0e6, alphas=[0.0, 5.0, 10.0]
+    )["verdict"] == "PASS"
+    rung_a_summary = {
+        "points": {
+            "kOmegaSST": {"4.0": {"cl": s2d.REF_CL_4 * 0.95}},
+            "kOmegaSSTLM": {"4.0": {"cl": s2d.REF_CL_4 * 0.50}},
+        }
+    }
+    assert s2d.judge_summary(
+        rung_a_summary, section="4406", re=8.0e4, alphas=[0.0, 2.0, 4.0, 6.0, 8.0]
+    )["verdict"] == "A2"
+
