@@ -12,8 +12,8 @@
     "bpf_7_2000": 233.33333333333334,
     "dipole_p_max": 0.15937674474400326,
     "dipole_p_rms": 0.08183349319282367,
-    "loading_proxy_7_0.05N": 47.67099999999999,
-    "loading_proxy_9_0.03N": 53.684999999999995,
+    "loading_proxy_7_0.05N": 54.841,
+    "loading_proxy_9_0.03N": 57.367,
     "tonal_ratio_equal_7": 1.0,
     "tonal_ratio_uneven_7": 0.9630381777550409
    }
@@ -1295,5 +1295,5 @@
    }
   }
  },
- "reason": "docs/validation/audits/2026-11-26-cfm-exact-si.md"
+ "reason": "docs/validation/audits/2026-11-26-loading-proxy-positive-slope-prereg.md"
 }

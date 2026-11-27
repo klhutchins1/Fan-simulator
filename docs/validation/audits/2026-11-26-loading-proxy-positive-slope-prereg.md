@@ -52,4 +52,7 @@ recalibration support:
 
 ## Result
 
-Pending implementation.
+P1–P5 **PASS**. Updated `fansim/acoustics/loading.py` (`DEFAULT_COEFFS = (2.263, 100.0, 34.0)`
+and `calibrate(..., non_negative=True)`), regenerated `tests/data/physics_snapshot.json` (moving
+only `loading_proxy_7_0.05N` and `loading_proxy_9_0.03N`), and re-proved `acoustics.loading` in
+`docs/validation/audits/ledger.json` (`scripts/audit_status.py --strict`: `PROVEN=34 CHANGED=0`).

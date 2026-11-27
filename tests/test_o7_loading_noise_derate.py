@@ -29,11 +29,11 @@ def test_derate_one_matches_rated_proxy():
     )
 
 
-def test_half_rpm_changes_proxy():
-    # P3 — λ=0.5 is not a no-op
+def test_half_rpm_reduces_proxy():
+    # P3 (O7 + #122) — λ=0.5 scales thrust by λ²=0.25 and strictly reduces predicted noise
     rated = loading_proxy_from_rans(7, 0.07)
     half = loading_proxy_operating(7, 0.07, 0.5)
-    assert half != pytest.approx(rated)
+    assert half < rated
 
 
 def test_evaluate_candidate_applies_derate_after_motor_limit():
