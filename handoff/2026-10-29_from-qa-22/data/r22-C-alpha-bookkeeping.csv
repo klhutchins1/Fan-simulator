@@ -1,4 +1,0 @@
-alpha_deg,U,liftDir,dragDir,alpha_U,alpha_liftDir,alpha_dragDir,geometry_alpha,effective_alpha,dragDir_par_U,liftDir_perp_dragDir,lift_suction_side,consistent,whatif_fixed_liftDir_Cl_err_pct
-0,(1.000000 0.000000 0),(-0.000000 1.000000 0),(1.000000 0.000000 0),0,0,0,0,0.0,True,True,True,True,
-5,(0.996195 0.087156 0),(-0.087156 0.996195 0),(0.996195 0.087156 0),5,5,5,0,5.0,True,True,True,True,-0.24
-10,(0.984808 0.173648 0),(-0.173648 0.984808 0),(0.984808 0.173648 0),10,10,10,0,10.0,True,True,True,True,-1.32

@@ -1,3 +1,0 @@
-g3-QA57-volute-assess-label: applies (not landed) [docs/qa/patches/g3-QA57-volute-assess-label.patch]
-ui-hunt-1-UI39-UI40-steps-trials: applies (not landed) [docs/qa/patches/ui-hunt-1-UI39-UI40-steps-trials.patch]
-ui-hunt-1-QA70-noise-hint-row: applies (not landed) [docs/qa/patches/ui-hunt-1-QA70-noise-hint-row.patch]
