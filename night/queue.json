@@ -490,16 +490,17 @@
     "--tb=line"
    ],
    "max_hours": 3,
-   "status": "queued",
+   "status": "done",
    "merge_on_green": true,
    "why": "re-gate R2.7 after Cursor fixed print-id star check digits that broke Windows paths (night 2026-11-17 RED on test_export_hint_uses_the_fit_hub_setting_from_the_click).",
-   "note": "2026-11-17: chunk 0 FAILED on OSError 22 for print-id 5YEE*; chunks 1\u20132 passed. 2026-11-19: branch r27-labels-fix = claude/r27-labels + origin/master + issue_print_id skips * in filenames."
+   "note": "2026-11-17: chunk 0 FAILED on OSError 22 for print-id 5YEE*; chunks 1\u20132 passed. 2026-11-19: branch r27-labels-fix = claude/r27-labels + origin/master + issue_print_id skips * in filenames. 2026-11-26: retired from queue — R2.7 already merged via PR #71 (616aa33)."
   },
   {
    "id": "chunk0-segfault-locate",
    "max_hours": 1.5,
-   "status": "queued",
+   "status": "done",
    "why": "PR #83 / master: pytest chunk 0 segfaults in VTK at ~33% on every run, so its summary never prints. Verbose run names the last test before the crash. Diagnosis only; no code change.",
+   "note": "2026-11-26: retired from queue — CI-1 VTK headless OpenGL/OSMesa fix already merged via PR #91 (e16f485); master CI is green.",
    "cmd": [
     "python",
     "scripts/pytest_chunks.py",
