@@ -112,17 +112,35 @@ ignore_missing_imports = true
 warn_unused_ignores = true
 check_untyped_defs = false
 follow_imports = "skip"
-# Stage 1 (§13.19): public CFM surface only. Expand later.
+# RV-5 (#55): core physics, structural, acoustics, centrifugal, geometry/airfoil,
+# CFD metrics/verdicts/flow-report, propeller BEMT/polars, optimize, and pure cockpit helpers.
 # follow_imports=skip avoids CadQuery→casadi stubs that crash mypy (duplicate INOUT).
 files = [
     "fansim/fan_spec.py",
     "fansim/fan_bem.py",
-    "fansim/optimize/search_space.py",
-    "fansim/optimize/objectives.py",
+    "fansim/prop_spec.py",
+    "fansim/physics",
+    "fansim/structural",
+    "fansim/acoustics",
+    "fansim/centrifugal",
+    "fansim/geometry/airfoil.py",
+    "fansim/cfd/domain.py",
+    "fansim/cfd/orientation.py",
     "fansim/cfd/metrics.py",
+    "fansim/cfd/flow_report.py",
     "fansim/cfd/flow_verdicts.py",
     "fansim/cfd/spanwise.py",
-    "fansim/acoustics/proxies.py",
+    "fansim/optimize/search_space.py",
+    "fansim/optimize/objectives.py",
     "fansim/propeller/bemt.py",
     "fansim/propeller/polars.py",
+    "fansim/propeller/polar.py",
+    "fansim/propeller/honesty.py",
+    "fansim/propeller/pythrust_export.py",
+    "fansim/cockpit/vs_stock.py",
+    "fansim/cockpit/score_caption.py",
+    "fansim/cockpit/input_checks.py",
+    "fansim/cockpit/library_view.py",
+    "fansim/cockpit/errors.py",
+    "fansim/cockpit/experimental.py",
 ]
