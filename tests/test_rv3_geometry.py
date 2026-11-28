@@ -152,20 +152,45 @@ def test_section_loop_exact_stagger_camber_and_mirror_symmetry():
 
 def test_blade_solidity_exact_analytical_formula():
     """Projected solidity B * c * cos(beta) / (2 * pi * r) at hub, mid, tip."""
-    p = BladeParams(
+    from fansim.geometry.blade import r_frac_at_radius
+
+    # With root_embed=0, physical hub/mid/tip sit directly at r_frac = 0.0, 0.5, 1.0.
+    p0 = BladeParams(
         n_blades=9,
         hub_radius=20.0,
         tip_radius=60.0,
+        root_embed=0.0,
         stations=[
             RadialStation(0.0, chord=25.0, stagger_deg=45.0),
             RadialStation(0.5, chord=35.0, stagger_deg=30.0),
             RadialStation(1.0, chord=30.0, stagger_deg=20.0),
         ],
     )
+    sol0 = blade_solidity(p0)
+    assert sol0["hub"] == pytest.approx(9 * 25.0 * math.cos(math.radians(45.0)) / (2 * math.pi * 20.0))
+    assert sol0["mid"] == pytest.approx(9 * 35.0 * math.cos(math.radians(30.0)) / (2 * math.pi * 40.0))
+    assert sol0["tip"] == pytest.approx(9 * 30.0 * math.cos(math.radians(20.0)) / (2 * math.pi * 60.0))
+
+    # #117: With root_embed > 0, blade_solidity reads chord & stagger at the CAD builder's
+    # r_frac_at_radius(r) for the exposed physical radii (r_hub, r_mid, r_tip).
+    p = BladeParams(
+        n_blades=9,
+        hub_radius=20.0,
+        tip_radius=60.0,
+        root_embed=4.0,
+        stations=p0.stations,
+    )
     sol = blade_solidity(p)
-    assert sol["hub"] == pytest.approx(9 * 25.0 * math.cos(math.radians(45.0)) / (2 * math.pi * 20.0))
-    assert sol["mid"] == pytest.approx(9 * 35.0 * math.cos(math.radians(30.0)) / (2 * math.pi * 40.0))
-    assert sol["tip"] == pytest.approx(9 * 30.0 * math.cos(math.radians(20.0)) / (2 * math.pi * 60.0))
+    # r0 = 16, span = 44 -> f(20) = 4/44 = 1/11; f(40) = 24/44 = 6/11; f(60) = 1.0
+    f_hub = r_frac_at_radius(p, 20.0)
+    f_mid = r_frac_at_radius(p, 40.0)
+    c_hub = 25.0 + (35.0 - 25.0) * (f_hub / 0.5)
+    b_hub = 45.0 + (30.0 - 45.0) * (f_hub / 0.5)
+    c_mid = 35.0 + (30.0 - 35.0) * ((f_mid - 0.5) / 0.5)
+    b_mid = 30.0 + (20.0 - 30.0) * ((f_mid - 0.5) / 0.5)
+    assert sol["hub"] == pytest.approx(9 * c_hub * math.cos(math.radians(b_hub)) / (2 * math.pi * 20.0))
+    assert sol["mid"] == pytest.approx(9 * c_mid * math.cos(math.radians(b_mid)) / (2 * math.pi * 40.0))
+    assert sol["tip"] == pytest.approx(sol0["tip"])
 
 
 # ---------------------------------------------------------------------------
@@ -547,4 +572,68 @@ def test_build_impeller_preview_volume_matches_fused_without_root_embed_double_c
     fused_vol = float(build_impeller(p).val().Volume())
     # Preview volume must match true fused solid volume within 1% (not inflated by root embed).
     assert prev_vol == pytest.approx(fused_vol, rel=0.01)
+
+
+# ---------------------------------------------------------------------------
+# Issues #116 / #117 (P1A): signed negative camber & builder radius mapping
+# ---------------------------------------------------------------------------
+
+
+def test_negative_max_camber_reflects_naca4_and_rounded_plate():
+    """#117A: negative max_camber must produce exact vertical reflection, not symmetric zero-camber."""
+    pos, xp_pos = naca4(0.04, 0.4, 0.12, n_points=61, return_chord_param=True)
+    neg, xp_neg = naca4(-0.04, 0.4, 0.12, n_points=61, return_chord_param=True)
+    np.testing.assert_allclose(xp_neg, xp_pos, atol=1e-12)
+    i_le = len(pos) // 2
+    assert neg[i_le, 0] == pytest.approx(0.0, abs=1e-12)
+    # Upper of -m equals lower of +m reflected across y=0, and vice versa.
+    np.testing.assert_allclose(neg[: i_le + 1, 0], pos[i_le:, 0][::-1], atol=1e-12)
+    np.testing.assert_allclose(neg[: i_le + 1, 1], -pos[i_le:, 1][::-1], atol=1e-12)
+    np.testing.assert_allclose(neg[i_le:, 0], pos[: i_le + 1, 0][::-1], atol=1e-12)
+    np.testing.assert_allclose(neg[i_le:, 1], -pos[: i_le + 1, 1][::-1], atol=1e-12)
+
+    p_pos = rounded_plate(0.08, n_points=60, max_camber=0.05, camber_pos=0.4)
+    p_neg = rounded_plate(0.08, n_points=60, max_camber=-0.05, camber_pos=0.4)
+    j_le = len(p_pos) // 2
+    np.testing.assert_allclose(p_neg[: j_le + 1, 0], p_pos[j_le:, 0][::-1], atol=1e-12)
+    np.testing.assert_allclose(p_neg[: j_le + 1, 1], -p_pos[j_le:, 1][::-1], atol=1e-12)
+    # Not silently symmetric: peak meanline height equals -0.05.
+    assert float(np.min(0.5 * (p_neg[: j_le + 1, 1] + p_neg[j_le:, 1][::-1]))) < -0.045
+
+
+def test_radius_mapping_helpers_and_fan_bem_follow_root_embed():
+    """#117B: shared builder radius helpers round-trip and fan_bem reads built radii."""
+    from fansim.fan_bem import operating_point
+    from fansim.geometry.blade import r_frac_at_radius, radius_at_r_frac, station_root_radius
+
+    p_embed0 = BladeParams(
+        n_blades=7,
+        hub_radius=20.0,
+        tip_radius=55.0,
+        root_embed=0.0,
+        stations=[
+            RadialStation(0.0, chord=15.0, stagger_deg=45.0, max_camber=0.04),
+            RadialStation(0.5, chord=30.0, stagger_deg=30.0, max_camber=0.06),
+            RadialStation(1.0, chord=35.0, stagger_deg=20.0, max_camber=0.05),
+        ],
+    )
+    p_embed6 = BladeParams(
+        n_blades=7,
+        hub_radius=20.0,
+        tip_radius=55.0,
+        root_embed=6.0,
+        stations=p_embed0.stations,
+    )
+    assert station_root_radius(p_embed6) == pytest.approx(14.0)
+    for f in (0.0, 0.25, 0.5, 0.75, 1.0):
+        r = radius_at_r_frac(p_embed6, f)
+        assert r_frac_at_radius(p_embed6, r) == pytest.approx(f, abs=1e-12)
+    assert r_frac_at_radius(p_embed6, 20.0) == pytest.approx(6.0 / 41.0, abs=1e-12)
+    assert r_frac_at_radius(p_embed6, 55.0) == pytest.approx(1.0, abs=1e-12)
+
+    # fan_bem must reflect the CAD shift when root_embed changes (exposed span sees larger chords/lower stagger).
+    op0 = operating_point(p_embed0, rpm=2000.0, flow_m3s=0.015)
+    op6 = operating_point(p_embed6, rpm=2000.0, flow_m3s=0.015)
+    assert abs(op6.dp_static_pa - op0.dp_static_pa) > 0.1
+
 

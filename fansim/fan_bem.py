@@ -245,6 +245,10 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
     Vx = flow_m3s / area                                  # mean axial velocity
     nu = NU_AIR if rho == RHO_AIR else MU_AIR / rho       # kinematic viscosity scales as mu / rho
     chord_fn, stag_fn, camb_fn = geom if geom is not None else _interp_geometry(params)
+    from fansim.geometry.blade import station_root_radius
+
+    r_root = station_root_radius(params) / 1000.0
+    span_cad = tip_r - r_root
     edges = np.linspace(hub_r, tip_r, n_elem + 1)
 
     dp0_num = 0.0        # mass-weighted Euler total-pressure rise
@@ -256,7 +260,8 @@ def operating_point(params: BladeParams, rpm: float, flow_m3s: float,
     for i in range(n_elem):
         r = float(0.5 * (edges[i] + edges[i + 1]))
         dr = float(edges[i + 1] - edges[i])
-        rf = (r - hub_r) / (tip_r - hub_r) if tip_r > hub_r else 0.0
+        # #117: query station geometry at the CAD builder's r_frac for physical radius r.
+        rf = min(max((r - r_root) / span_cad, 0.0), 1.0) if span_cad > 0.0 else 0.0
         U = omega * r
         c = chord_fn(rf) / 1000.0
         beta = math.radians(stag_fn(rf))                  # blade angle from tangential

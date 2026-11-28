@@ -24,6 +24,7 @@ from fansim.geometry.airfoil import (
     SECTION_FAMILIES,
     SECTION_NACA,
     SECTION_PLATE,
+    _naca_camber_line,
     section_loop_2d,
 )
 from fansim.geometry.features import Features, apply_features
@@ -244,6 +245,26 @@ def shroud_is_full(params: BladeParams) -> bool:
     return t > 0.0 and f >= 1.0 - SHROUD_FULL_EPS
 
 
+def station_root_radius(params: BladeParams) -> float:
+    """Radius (mm) where station ``r_frac = 0`` is placed by the CAD builder (``hub - root_embed``)."""
+    return float(params.hub_radius) - float(params.root_embed)
+
+
+def radius_at_r_frac(params: BladeParams, r_frac: float) -> float:
+    """Physical radius (mm) where the CAD builder places station fraction ``r_frac`` in [0, 1]."""
+    r0 = station_root_radius(params)
+    return r0 + (float(params.tip_radius) - r0) * float(r_frac)
+
+
+def r_frac_at_radius(params: BladeParams, r_mm: float) -> float:
+    """Station fraction ``r_frac`` in [0, 1] that the CAD builder places at physical radius ``r_mm``."""
+    r0 = station_root_radius(params)
+    span = float(params.tip_radius) - r0
+    if span <= 0.0:
+        return 0.0
+    return float(min(max((float(r_mm) - r0) / span, 0.0), 1.0))
+
+
 def open_tip_rmax_mm(params: BladeParams) -> float:
     """Max radial extent (mm) of blade section points — no ring.
 
@@ -252,11 +273,10 @@ def open_tip_rmax_mm(params: BladeParams) -> float:
     With ``cylindrical_tip``, the solid is cut to ``tip_radius``, so the reported OD is capped.
     """
     it = _interp_stations(params, params.n_span)
-    r0 = params.hub_radius - params.root_embed
     rmax = 0.0
     for i in range(params.n_span):
         rf = float(it["r_frac"][i])
-        r = r0 + (params.tip_radius - r0) * rf
+        r = radius_at_r_frac(params, rf)
         pts = _section_points_3d(
             r=r, r_frac=rf,
             chord=float(it["chord"][i]), stagger_deg=float(it["stagger_deg"][i]),
@@ -293,16 +313,17 @@ def blade_solidity(params: BladeParams) -> dict[str, float]:
     static pressure and the defining look of high-pressure fans like the A12x25. Reported so
     overlap is an explicit, optimizable quantity rather than an accident of the parameters.
 
-    Hub radius is ``params.hub_radius`` (physical annulus), not ``hub − root_embed`` (embed is
-    only for CAD fuse depth).
+    Evaluated at the physical exposed annulus radii ``hub_radius``, ``0.5*(hub + tip)``, and
+    ``tip_radius`` using the chord and stagger that the CAD builder places at each radius via
+    :func:`r_frac_at_radius` (#117).
     """
-    interp = _interp_stations(params, 3)  # hub, mid, tip
     r_hub = float(params.hub_radius)
     r_tip = float(params.tip_radius)
+    radii = (r_hub, 0.5 * (r_hub + r_tip), r_tip)
+    q = np.array([r_frac_at_radius(params, r) for r in radii], dtype=float)
+    interp = _interp_stations_at(params, q)
     out = {}
-    for i, name in enumerate(("hub", "mid", "tip")):
-        rf = float(interp["r_frac"][i])
-        r = r_hub + (r_tip - r_hub) * rf
+    for i, (name, r) in enumerate(zip(("hub", "mid", "tip"), radii)):
         chord = float(interp["chord"][i])
         beta = np.radians(float(interp["stagger_deg"][i]))
         if r <= 0.0:
@@ -331,19 +352,14 @@ SPAN_INTERP_PCHIP = "pchip"
 SPAN_INTERP_MODES = (SPAN_INTERP_LINEAR, SPAN_INTERP_PCHIP)
 
 
-def _interp_stations(params: BladeParams, n_span: int) -> dict[str, np.ndarray]:
-    """Interpolate control stations onto ``n_span`` spanwise samples.
-
-    Default ``span_interp="linear"`` matches historical behavior (can kink at mid).
-    ``span_interp="pchip"`` uses a shape-preserving cubic through the same stations
-    so mid can move without a sharp elbow.
-    """
+def _interp_stations_at(params: BladeParams, q: np.ndarray) -> dict[str, np.ndarray]:
+    """Interpolate control stations at explicit ``r_frac`` query points ``q``."""
     ctrl = sorted(params.stations, key=lambda s: s.r_frac)
     rf = np.array([s.r_frac for s in ctrl], dtype=float)
-    q = np.linspace(0.0, 1.0, n_span)
+    q_arr = np.asarray(q, dtype=float)
     fields = ["chord", "stagger_deg", "thickness", "max_camber", "camber_pos",
               "sweep", "skew", "le_sweep", "le_skew", "lean_deg", "te_face", "le_face"]
-    out = {"r_frac": q}
+    out = {"r_frac": q_arr}
     mode = str(getattr(params, "span_interp", SPAN_INTERP_LINEAR) or SPAN_INTERP_LINEAR).lower()
     use_pchip = mode == SPAN_INTERP_PCHIP and len(rf) >= 3
     pchip_cls = None
@@ -364,7 +380,7 @@ def _interp_stations(params: BladeParams, n_span: int) -> dict[str, np.ndarray]:
         y = np.array([getattr(s, name) for s in ctrl], dtype=float)
         if use_pchip and pchip_cls is not None:
             try:
-                out[name] = pchip_cls(rf, y)(q)
+                out[name] = pchip_cls(rf, y)(q_arr)
                 continue
             except ValueError as exc:
                 warnings.warn(
@@ -373,8 +389,18 @@ def _interp_stations(params: BladeParams, n_span: int) -> dict[str, np.ndarray]:
                     RuntimeWarning,
                     stacklevel=2,
                 )
-        out[name] = np.interp(q, rf, y)
+        out[name] = np.interp(q_arr, rf, y)
     return out
+
+
+def _interp_stations(params: BladeParams, n_span: int) -> dict[str, np.ndarray]:
+    """Interpolate control stations onto ``n_span`` spanwise samples.
+
+    Default ``span_interp="linear"`` matches historical behavior (can kink at mid).
+    ``span_interp="pchip"`` uses a shape-preserving cubic through the same stations
+    so mid can move without a sharp elbow.
+    """
+    return _interp_stations_at(params, np.linspace(0.0, 1.0, n_span))
 
 
 def _section_loop(
@@ -435,10 +461,11 @@ def _section_loop(
     x = np.asarray(x_param, dtype=float)
     a = (x_surf - 0.5) * chord  # chordwise distance from mid-chord (cambered surface)
     b = loop[:, 1] * chord  # thickness-wise distance
+    yc_mm = _naca_camber_line(x, max_camber, camber_pos)[0] * chord
     if fam != SECTION_PLATE:
-        b = apply_le_te_thickness(x, b, chord, le_thick_scale, te_thick_scale)
+        b = apply_le_te_thickness(x, b, chord, le_thick_scale, te_thick_scale, yc_mm=yc_mm)
     if features.active:
-        a, b = apply_features(x, a, b, r_frac, chord, features)
+        a, b = apply_features(x, a, b, r_frac, chord, features, yc_mm=yc_mm)
     if tip_notch_count > 0 and tip_notch_depth_mm > 0.0:
         span = 1.0 - NOTCH_START_FRAC
         u = float(np.clip((float(r_frac) - NOTCH_START_FRAC) / span, 0.0, 1.0))
@@ -672,8 +699,6 @@ def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False,
         n_span = max(n_span, notch_floor)
     n_chord = params.features.required_chord_points(params.n_chord)
     interp = _interp_stations(params, n_span)
-    r_root = params.hub_radius - params.root_embed
-    r_tip = params.tip_radius
 
     kw = _thick_scale_kw(params)
     wrap = bool(kw.pop("wrap"))
@@ -707,7 +732,7 @@ def build_blade_solid(params: BladeParams, *, _chord_realized: bool = False,
     last = n_span - 1
     loops = []
     for i in range(n_span):
-        r = r_root + (r_tip - r_root) * float(interp["r_frac"][i])
+        r = radius_at_r_frac(params, float(interp["r_frac"][i]))
         if wrap and cyl_tip and i == last:
             # A wire lying ON the trim cylinder defeats the boolean (the QA-21 design); put the last
             # wrapped wire just outside R so the trim crosses wrapped sections cleanly.
@@ -1032,13 +1057,12 @@ def blade_hang_below_hub_mm(params: BladeParams) -> float:
     """
     z_face = _hub_axial_range(params)[0]
     it = _interp_stations(params, params.n_span)
-    r0 = params.hub_radius - params.root_embed
     kw = _thick_scale_kw(params)
     zmin = math.inf
     for i in range(params.n_span):
         rf = float(it["r_frac"][i])
         pts = _section_points_3d(
-            r=r0 + (params.tip_radius - r0) * rf, r_frac=rf,
+            r=radius_at_r_frac(params, rf), r_frac=rf,
             chord=float(it["chord"][i]), stagger_deg=float(it["stagger_deg"][i]),
             thickness=float(it["thickness"][i]), max_camber=float(it["max_camber"][i]),
             camber_pos=float(it["camber_pos"][i]), sweep=float(it["sweep"][i]),
@@ -1330,8 +1354,7 @@ def shroud_axial_range(params: BladeParams) -> tuple[float, float] | None:
 def tip_le_te_z(params: BladeParams) -> tuple[float, float]:
     """Axial Z of LE (`x` min) and TE (`x` max) on the tip section (pure math, no CAD)."""
     st = max(params.stations, key=lambda s: s.r_frac)
-    r = params.hub_radius - params.root_embed
-    r = r + (params.tip_radius - r) * st.r_frac
+    r = radius_at_r_frac(params, st.r_frac)
     x, pts = _section_loop(
         r=r, r_frac=st.r_frac, chord=st.chord, stagger_deg=st.stagger_deg,
         thickness=st.thickness, max_camber=st.max_camber, camber_pos=st.camber_pos,
@@ -1427,46 +1450,87 @@ def le_te_thick_factors(
     return 1.0 + (le - 1.0) * (1.0 - x) ** 3 + (te - 1.0) * x ** 3
 
 
-def apply_le_te_thickness(
-    x: np.ndarray, b: np.ndarray, chord: float,
-    le_thick_scale: float = 1.0, te_thick_scale: float = 1.0,
-) -> np.ndarray:
-    """Bias NACA thickness toward LE / TE without double-fattening the mid-chord.
+def _infer_loop_camber_mm(x: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Recover camber meanline ``yc * chord`` from a standard closed airfoil loop (TE→LE→TE).
 
-    Multiplicative end-weighted blend (no additive LE puff). LE/TE scales may both exceed 1
-    so the nose and aft section actually thicken. TE > 1 also adds a short blunt floor in the
-    last few % of chord so the NACA razor tip does not stay zero. Both 1.0 = stock NACA.
+    For ``naca4`` and ``rounded_plate`` loops (closing duplicate stripped), ``i_le = argmin(x)``
+    splits the loop into paired upper (``i_le - k``) and lower (``i_le + k``) vertices at identical
+    generator chord parameter ``x``. Their midpoint ``0.5 * (b_u + b_l)`` equals ``yc(x) * chord``
+    to machine precision. Returns zeros for non-paired / 1-D inputs.
+    """
+    n = len(x)
+    yc = np.zeros(n, dtype=float)
+    if n < 4:
+        return yc
+    i_le = int(np.argmin(x))
+    if not (0 < i_le < n - 1):
+        return yc
+    if n == 2 * i_le:
+        lower_end = n
+    elif n == 2 * i_le + 1 and abs(float(x[0]) - float(x[-1])) < 1e-9:
+        lower_end = n - 1
+    else:
+        return yc
+    upper_x = x[i_le - 1 : 0 : -1]
+    lower_x = x[i_le + 1 : lower_end]
+    if len(upper_x) != len(lower_x) or not np.allclose(upper_x, lower_x, atol=1e-9):
+        return yc
+    mid = 0.5 * (b[i_le - 1 : 0 : -1] + b[i_le + 1 : lower_end])
+    yc[i_le - 1 : 0 : -1] = mid
+    yc[i_le + 1 : lower_end] = mid
+    return yc
+
+
+def apply_le_te_thickness(
+    x: np.ndarray,
+    b: np.ndarray,
+    chord: float,
+    le_thick_scale: float = 1.0,
+    te_thick_scale: float = 1.0,
+    *,
+    yc_mm: np.ndarray | None = None,
+) -> np.ndarray:
+    """Bias NACA thickness toward LE / TE strictly about the camber line ``yc_mm`` (#116).
+
+    Multiplicative end-weighted blend on the local half-thickness ``db = b - yc_mm`` so the
+    camber meanline is preserved. TE > 1 also adds a short blunt floor relative to ``yc_mm``
+    in the last few % of chord so the NACA razor tip does not stay zero and cambered lower
+    surfaces never jump across ``y = 0``. Both 1.0 = stock NACA.
     """
     le = _clamp_thick_scale(le_thick_scale)
     te = _clamp_thick_scale(te_thick_scale)
     if abs(le - 1.0) < 1e-9 and abs(te - 1.0) < 1e-9:
         return b
 
-    out = b * le_te_thick_factors(x, le, te)
+    x_arr = np.asarray(x, dtype=float)
+    b_arr = np.asarray(b, dtype=float)
+    yc = _infer_loop_camber_mm(x_arr, b_arr) if yc_mm is None else np.asarray(yc_mm, dtype=float)
+    db = b_arr - yc
+    db_out = db * le_te_thick_factors(x_arr, le, te)
 
     if te > 1.0 + 1e-9:
         # EXPERIMENTAL under stagger≠0: blunt is applied in section (a,b) before pitch, so
         # the floor is chord-normal, not TE-normal in the staggered plane. Prefer Rounded
         # plate for a true bullnose TE. Keep for printable NACA tips at moderate stagger.
-        abs_b = np.abs(out)
-        t_peak = float(np.max(abs_b)) if abs_b.size else 0.01 * float(chord)
+        abs_db = np.abs(db_out)
+        t_peak = float(np.max(abs_db)) if abs_db.size else 0.01 * float(chord)
         # te=1 → 0; te=2 → TE_BLUNT_FRAC * peak
         te_half = TE_BLUNT_FRAC * t_peak * (te - 1.0) / (THICK_SCALE_HI - 1.0)
         te_half = min(te_half, TE_BLUNT_FRAC * t_peak)
         span = max(1.0 - TE_BLUNT_START, 1e-6)
-        w = np.clip((x - TE_BLUNT_START) / span, 0.0, 1.0)
+        w = np.clip((x_arr - TE_BLUNT_START) / span, 0.0, 1.0)
         w = w * w
         # Upper = TE→LE (indices ≤ LE), lower = LE→TE. Matches naca4 / rounded_plate loop order.
-        i_le = int(np.argmin(x))
-        side = np.ones(len(x), dtype=float)
+        i_le = int(np.argmin(x_arr))
+        side = np.ones(len(x_arr), dtype=float)
         side[i_le + 1 :] = -1.0
-        mag = abs_b * (1.0 - w) + np.maximum(abs_b, te_half) * w
-        orig = np.sign(out)
+        mag = abs_db * (1.0 - w) + np.maximum(abs_db, te_half) * w
+        orig = np.sign(db_out)
         orig = np.where(orig == 0.0, side, orig)
-        lifted = mag > abs_b + 1e-12
+        lifted = mag > abs_db + 1e-12
         s = np.where(lifted, side, orig)
-        out = s * mag
-    return out
+        db_out = s * mag
+    return yc + db_out
 
 
 def thickness_tc_from_mm(thick_mm: float, chord_mm: float) -> float:

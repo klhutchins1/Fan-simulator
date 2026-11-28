@@ -98,14 +98,14 @@
     },
     "fan.bem_prescreen": {
       "date": "2026-11-28",
-      "fingerprint": "4bee2f1719141ecf",
+      "fingerprint": "e7426d38971e40b1",
       "report": "docs/validation/audits/2026-11-28-prop-bemt-p1b-decoupled-prereg.md",
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
-      "date": "2026-11-27",
-      "fingerprint": "591462b81870479e",
-      "report": "docs/review/2026-11-26-rv3-geometry.md",
+      "date": "2026-11-28",
+      "fingerprint": "7c7ca178d33fc222",
+      "report": "docs/validation/audits/2026-11-28-geometry-math-p1a-116-117-prereg.md",
       "verdict": "PASS"
     },
     "optimize.reject_dead_designs": {

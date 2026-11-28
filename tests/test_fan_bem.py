@@ -63,8 +63,9 @@ def test_default_pressure_model_is_euler_and_unchanged():
     p = load_blade_params("config/problems/a12x25_reference_planar.yaml")
     a, b = pq_curve(p, 2000.0), pq_curve(p, 2000.0, pressure_model="euler")
     assert a == b
-    assert a.free_delivery_cfm == pytest.approx(58.2, abs=0.05)
-# Unrounded Q→0 intercept; NU_AIR derive (#48) + no internal round (#50).
+    # #117: builder radius mapping (hub - root_embed .. tip) moved Stock v2 free delivery 58.2 -> 57.85 CFM.
+    assert a.free_delivery_cfm == pytest.approx(57.85, abs=0.05)
+    # Unrounded Q→0 intercept; NU_AIR derive (#48) + no internal round (#50) + #117 mapping.
     assert a.shutoff_dp_pa == pytest.approx(38.80, abs=0.15)
 
 

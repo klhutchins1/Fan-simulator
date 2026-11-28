@@ -94,9 +94,13 @@ def naca4(
 def _naca_camber_line(
     x: np.ndarray, max_camber: float, camber_pos: float,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """NACA 4-digit meanline ``yc`` and slope angle ``theta`` at chord stations ``x``."""
+    """NACA 4-digit meanline ``yc`` and slope angle ``theta`` at chord stations ``x``.
+
+    Supports signed ``max_camber`` (#117): negative values reflect the meanline across ``y = 0``
+    (``yc(-m) == -yc(+m)``, ``theta(-m) == -theta(+m)``) instead of silently collapsing to 0.
+    """
     m, p = float(max_camber), float(camber_pos)
-    if m <= 0.0 or not (0.0 < p < 1.0):
+    if abs(m) <= 1e-12 or not (0.0 < p < 1.0):
         z = np.zeros_like(x, dtype=float)
         return z, z
     yc = np.where(
@@ -208,7 +212,7 @@ def rounded_plate(
         loop[:, 1] = loop[:, 1] * scale
 
     m = float(max_camber)
-    if m > 1e-9:
+    if abs(m) > 1e-12:
         yc, theta = _naca_camber_line(x_param, m, float(camber_pos))
         y_local = loop[:, 1]
         loop = np.column_stack([

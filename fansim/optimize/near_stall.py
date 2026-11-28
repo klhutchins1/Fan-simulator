@@ -16,7 +16,8 @@ from fansim.fan_bem import N_ITER_MAX, _interp_geometry, _table_polar
 from fansim.geometry.blade import BladeParams
 from fansim.optimize.meanline import DF_LIMIT, lieblein_df, solidity
 from fansim.optimize.system_curve import SystemCurveError, bem_screen_cfm
-from fansim.physics.air import NU_AIR, RHO_AMCA as RHO_AIR
+from fansim.physics.air import NU_AIR
+from fansim.physics.air import RHO_AMCA as RHO_AIR
 
 # Polar-edge stall. A 2° pre-stall band flagged Stock on the case hose (prereg ruling B).
 STALL_MARGIN_DEG = 0.0
@@ -138,14 +139,19 @@ def _span_loading(
     area = math.pi * (tip_r * tip_r - hub_r * hub_r)
     vx = flow_m3s / area if area > 0 else 0.0
     chord_fn, stag_fn, camb_fn = _interp_geometry(params)
+    from fansim.geometry.blade import station_root_radius
+
+    r_root = station_root_radius(params) / 1000.0
+    span_cad = tip_r - r_root
     edges = np.linspace(hub_r, tip_r, N_ELEM + 1)
     out: list[tuple[float, float, float]] = []
     for i in range(N_ELEM):
         r = 0.5 * (edges[i] + edges[i + 1])
         u = omega * r
-        c = chord_fn((r - hub_r) / (tip_r - hub_r) if tip_r > hub_r else 0.0) / 1000.0
-        beta = math.radians(stag_fn((r - hub_r) / (tip_r - hub_r) if tip_r > hub_r else 0.0))
-        camb = camb_fn((r - hub_r) / (tip_r - hub_r) if tip_r > hub_r else 0.0)
+        rf = min(max((r - r_root) / span_cad, 0.0), 1.0) if span_cad > 0.0 else 0.0
+        c = chord_fn(rf) / 1000.0
+        beta = math.radians(stag_fn(rf))
+        camb = camb_fn(rf)
         vth = 0.0
         alpha = 0.0
         re = 0.0

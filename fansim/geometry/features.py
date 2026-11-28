@@ -66,12 +66,21 @@ def _sawtooth(phase: np.ndarray | float) -> np.ndarray | float:
 
 
 def apply_features(
-    x: np.ndarray, a: np.ndarray, b: np.ndarray, r_frac: float, chord: float, feat: Features
+    x: np.ndarray,
+    a: np.ndarray,
+    b: np.ndarray,
+    r_frac: float,
+    chord: float,
+    feat: Features,
+    *,
+    yc_mm: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return (a, b) modified in place-safe fashion for the active features.
 
     ``a`` is chordwise distance from mid-chord (LE negative, TE positive); ``b`` is
     thickness-wise distance. ``x`` is the chord fraction of each point (0=LE, 1=TE).
+    When ``yc_mm`` (meanline height in mm) is provided, dimples scale thickness strictly
+    about the camber line so the section camber is preserved (#116).
     """
     a = a.copy()
     b = b.copy()
@@ -92,8 +101,12 @@ def apply_features(
         # Grid of smooth depressions: thin the section locally (dents both surfaces inward).
         along_chord = 0.5 + 0.5 * np.cos(TWO_PI * feat.dimple_rows * x)
         along_span = 0.5 + 0.5 * np.cos(TWO_PI * feat.dimple_cols * r_frac)
-        factor = 1.0 - feat.dimple_amp * along_chord * along_span
-        b = b * np.clip(factor, 0.2, 1.0)  # keep thickness safely positive
+        factor = np.clip(1.0 - feat.dimple_amp * along_chord * along_span, 0.2, 1.0)
+        if yc_mm is not None:
+            yc = np.asarray(yc_mm, dtype=float)
+            b = yc + (b - yc) * factor  # keep thickness safely positive about camber line
+        else:
+            b = b * factor  # keep thickness safely positive
 
     return a, b
 

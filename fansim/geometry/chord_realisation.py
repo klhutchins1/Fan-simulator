@@ -32,8 +32,10 @@ HUB_MEASURE_MARGIN_MM = 4.1
 
 
 def _station_measure_fracs(params) -> list[float | None]:
+    from fansim.geometry.blade import radius_at_r_frac, station_root_radius
+
     tip = float(params.tip_radius)
-    r0 = float(params.hub_radius) - float(params.root_embed)
+    r0 = station_root_radius(params)
     span = tip - r0
     if tip <= 0.0 or span <= 0.0:
         return [float(s.r_frac) for s in params.stations]
@@ -43,7 +45,7 @@ def _station_measure_fracs(params) -> list[float | None]:
     hub_cut = (float(params.hub_radius) + HUB_MEASURE_MARGIN_MM) / tip
     out: list[float | None] = []
     for s in params.stations:
-        f = (r0 + span * float(s.r_frac)) / tip
+        f = radius_at_r_frac(params, float(s.r_frac)) / tip
         # Tip wire sits on the cut cylinder; measure just inboard (same as fit_recipe tip @ 0.99).
         if f >= 0.995:
             out.append(0.99)
