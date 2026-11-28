@@ -79,8 +79,11 @@ def home_steps() -> list[dict[str, str]]:
     return [
         {
             "num": "1",
-            "title": "Pick a starting blade",
-            "detail": "Stock Noctua A12x25 fan or a common drone propeller size.",
+            "title": "Pick a fan hub & motor fit",
+            "detail": (
+                "Choose a compatible fan frame and motor mount (e.g. Noctua A12x25) "
+                "or a common drone propeller size/mount."
+            ),
         },
         {
             "num": "2",

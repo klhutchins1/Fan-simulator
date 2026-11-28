@@ -57,6 +57,10 @@ def test_home_tab_routing_and_state(tmp_path):
     assert ctx.state.home_tagline
     assert len(ctx.state.home_choices) == 4
     assert len(ctx.state.home_steps) >= 3
+    step1 = ctx.state.home_steps[0]
+    step1_text = f"{step1['title']} {step1['detail']}".lower()
+    assert "hub" in step1_text and "motor" in step1_text
+    assert "starting blade" not in step1_text
     assert len(ctx.state.home_validated_items) >= 2
     assert len(ctx.state.home_experimental_items) >= 2
     assert ctx.state.home_accuracy_open is False
