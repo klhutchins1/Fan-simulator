@@ -17,8 +17,14 @@ The CFD runs the fan twice at its rated speed (A12x25: 2000 rpm):
 | **probe** | 8 Pa (the "case" load preset) | 41.75 CFM |
 
 Each solve also gives the shaft torque. That gives the shaft power and the raw efficiency
-η = air power ÷ shaft power. Near free delivery there is little pressure rise, so η is small there
-(Stock free solve: 6.9 %); it peaks toward the probe point.
+η = air power ÷ shaft power.
+
+> **Note (`CFD_VERSION = 7`, #86):** The 2026-10-09 Stock walkthrough numbers above were scored
+> under `CFD_VERSION = 6` duct static-to-static pressure rise `(p_out - p_in) * rho` (which left
+> `1.74 Pa` and `6.9 %` static efficiency at free delivery from inlet dynamic head). From
+> `CFD_VERSION = 7`, `static_pressure_rise_pa` reports AMCA 210 / ISO 5801 fan static pressure
+> `P_s = p_s2 - p_t1` (`0 Pa` and `0 %` static η at free delivery, `8 Pa` at the 8 Pa probe),
+> so both endpoints of the fan line share the same pressure convention.
 
 ## 2. Motor power limit (derate)
 

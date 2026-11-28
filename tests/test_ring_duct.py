@@ -14,7 +14,8 @@ import math
 import pytest
 import trimesh
 
-from fansim.cfd.domain import MM_TO_M, TestRig as _Rig
+from fansim.cfd.domain import MM_TO_M
+from fansim.cfd.domain import TestRig as _Rig
 from fansim.cfd.metrics import CFD_VERSION
 from fansim.cfd.openfoam_case import (
     BOX_SCALE,
@@ -43,7 +44,7 @@ def _load_meta(case_dir):
 
 
 def test_cfd_version_bumped_to_5():
-    assert CFD_VERSION == 6
+    assert CFD_VERSION == 7
 
 
 def test_default_duct_is_ring(tmp_path):

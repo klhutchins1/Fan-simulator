@@ -191,16 +191,81 @@ def test_parse_fan_metrics_populates_eta_total_from_case_meta(tmp_path):
         encoding="utf-8",
     )
     m = parse_fan_metrics(case, omega_rad_s=209.44)
-    p_total_pa = 6.6666666667 * 1.2 + 0.5 * 1.2 * (0.025 / a_out) ** 2
-    want = 0.025 * p_total_pa / (0.010 * 209.44)
-    assert m.eta_total == pytest.approx(want, rel=1e-6)
+    p_static_pa = 6.6666666667 * 1.2
+    dyn_out = 0.5 * 1.2 * (0.025 / a_out) ** 2
+    p_total_pa = p_static_pa + dyn_out
+    shaft_power = 0.010 * 209.44
+    want_eta_s = 0.025 * p_static_pa / shaft_power
+    want_eta_t = 0.025 * p_total_pa / shaft_power
+    assert m.static_pressure_rise_pa == pytest.approx(p_static_pa, rel=1e-6)
+    assert m.efficiency == pytest.approx(want_eta_s, rel=1e-6)
+    assert m.eta_total == pytest.approx(want_eta_t, rel=1e-6)
+    assert m.eta_total - m.efficiency == pytest.approx(0.025 * dyn_out / shaft_power, rel=1e-6)
     # sanity._check_energy_total must agree identically.
     checks = {c.name: c for c in run_sanity(case, metrics=m)}
     assert checks["energy_total"].value == pytest.approx(m.eta_total, rel=1e-6)
 
 
+def test_parse_fan_metrics_total_pressure_free_delivery_zero_static(tmp_path):
+    """#86 (CFD_VERSION 7): totalPressure p0=0 at p_back=0 gives AMCA P_s=0 Pa, eta_s=0, eta_total>0."""
+    import json
+
+    case = tmp_path / "case_free"
+    a_out = 0.010
+    _write_pp(case, "forces", "moment.dat", "600 0 0 -0.010 0 0 -0.010 0 0 0\n")
+    _write_pp(case, "forces", "force.dat", "600 0 0 0.25 0 0 0.25 0 0 0\n")
+    _write_pp(case, "outletFlow", "surfaceFieldValue.dat", "600 0.025\n")
+    # OpenFOAM sets p_k,in = -0.5 * |U_in|^2 = -3.125 m^2/s^2 on totalPressure p0=0 inflow.
+    _write_pp(case, "inletP", "surfaceFieldValue.dat", "600 -3.125\n")
+    _write_pp(case, "outletP", "surfaceFieldValue.dat", "600 0.0\n")
+    (case / "constant").mkdir(parents=True, exist_ok=True)
+    (case / "constant" / "case_meta.json").write_text(
+        json.dumps({"outlet_area_m2": a_out, "inlet_area_m2": a_out}), encoding="utf-8"
+    )
+    (case / "0").mkdir(parents=True, exist_ok=True)
+    (case / "0" / "p").write_text(
+        "boundaryField\n{\n    inlet { type totalPressure; p0 uniform 0; value uniform 0; }\n"
+        "    outlet { type fixedValue; value uniform 0; }\n}\n",
+        encoding="utf-8",
+    )
+    m = parse_fan_metrics(case, omega_rad_s=209.44)
+    assert m.static_pressure_rise_pa == pytest.approx(0.0, abs=1e-12)
+    assert m.air_power_w == pytest.approx(0.0, abs=1e-12)
+    assert m.efficiency == pytest.approx(0.0, abs=1e-12)
+    dyn_out = 0.5 * 1.2 * (0.025 / a_out) ** 2
+    assert m.eta_total == pytest.approx(0.025 * dyn_out / (0.010 * 209.44), rel=1e-6)
+
+
+def test_parse_fan_metrics_total_pressure_nonzero_p0(tmp_path):
+    """#86 (CFD_VERSION 7): totalPressure inlet with nonzero p0 subtracts p0*rho."""
+    import json
+
+    case = tmp_path / "case_p0"
+    a_out = 0.010
+    _write_pp(case, "forces", "moment.dat", "600 0 0 -0.010 0 0 -0.010 0 0 0\n")
+    _write_pp(case, "forces", "force.dat", "600 0 0 0.25 0 0 0.25 0 0 0\n")
+    _write_pp(case, "outletFlow", "surfaceFieldValue.dat", "600 0.025\n")
+    _write_pp(case, "inletP", "surfaceFieldValue.dat", "600 -1.125\n")
+    _write_pp(case, "outletP", "surfaceFieldValue.dat", "600 7.0\n")
+    (case / "constant").mkdir(parents=True, exist_ok=True)
+    (case / "constant" / "case_meta.json").write_text(
+        json.dumps({"outlet_area_m2": a_out, "inlet_area_m2": a_out}), encoding="utf-8"
+    )
+    (case / "0").mkdir(parents=True, exist_ok=True)
+    (case / "0" / "p").write_text(
+        "boundaryField\n{\n    inlet { type totalPressure; p0 uniform 2.0; value uniform 2.0; }\n"
+        "    outlet { type fixedValue; value uniform 7.0; }\n}\n",
+        encoding="utf-8",
+    )
+    m = parse_fan_metrics(case, omega_rad_s=209.44)
+    p_s = (7.0 - 2.0) * 1.2
+    dyn_out = 0.5 * 1.2 * (0.025 / a_out) ** 2
+    assert m.static_pressure_rise_pa == pytest.approx(p_s, rel=1e-6)
+    assert m.eta_total == pytest.approx(0.025 * (p_s + dyn_out) / (0.010 * 209.44), rel=1e-6)
+
+
 def test_parse_fan_metrics_eta_total_velocity_driven_duct(tmp_path):
-    """#86: velocity-driven (zeroGradient inlet) eta_total uses p_t2 - p_t1."""
+    """#86: velocity-driven (zeroGradient inlet) uses P_s = p_s2 - p_t1 and P_t = P_s + p_d2."""
     import json
 
     case = tmp_path / "case_vdriven"
@@ -221,9 +286,103 @@ def test_parse_fan_metrics_eta_total_velocity_driven_duct(tmp_path):
         encoding="utf-8",
     )
     m = parse_fan_metrics(case, omega_rad_s=209.44)
+    dyn_in = 0.5 * 1.2 * (0.025 / a_duct) ** 2
+    p_s = 8.0 * 1.2 - dyn_in
+    assert m.static_pressure_rise_pa == pytest.approx(p_s, rel=1e-6)
     # Constant-area duct: dynamic pressures cancel -> P_t == (p_out - p_in) * rho.
     want = 0.025 * (8.0 * 1.2) / (0.010 * 209.44)
     assert m.eta_total == pytest.approx(want, rel=1e-6)
+    assert m.eta_total - m.efficiency == pytest.approx(0.025 * dyn_in / (0.010 * 209.44), rel=1e-6)
+
+
+def test_parse_fan_metrics_velocity_driven_different_areas_and_missing_inlet_area(tmp_path):
+    """#86: zeroGradient contracting duct satisfies P_t = P_s + p_d2; missing A_in leaves eta_total None."""
+    import json
+
+    case = tmp_path / "case_vdiff"
+    a_in, a_out = 0.012, 0.008
+    _write_pp(case, "forces", "moment.dat", "600 0 0 -0.010 0 0 -0.010 0 0 0\n")
+    _write_pp(case, "forces", "force.dat", "600 0 0 0.25 0 0 0.25 0 0 0\n")
+    _write_pp(case, "outletFlow", "surfaceFieldValue.dat", "600 0.024\n")
+    _write_pp(case, "inletP", "surfaceFieldValue.dat", "600 -10.0\n")
+    _write_pp(case, "outletP", "surfaceFieldValue.dat", "600 2.0\n")
+    (case / "constant").mkdir(parents=True, exist_ok=True)
+    (case / "constant" / "case_meta.json").write_text(
+        json.dumps({"outlet_area_m2": a_out, "inlet_area_m2": a_in}), encoding="utf-8"
+    )
+    (case / "0").mkdir(parents=True, exist_ok=True)
+    (case / "0" / "p").write_text(
+        "boundaryField\n{\n    inlet { type zeroGradient; }\n"
+        "    outlet { type fixedValue; value uniform 2.0; }\n}\n",
+        encoding="utf-8",
+    )
+    m = parse_fan_metrics(case, omega_rad_s=209.44)
+    dyn_in = 0.5 * 1.2 * (0.024 / a_in) ** 2
+    dyn_out = 0.5 * 1.2 * (0.024 / a_out) ** 2
+    p_s = (2.0 - (-10.0)) * 1.2 - dyn_in
+    assert m.static_pressure_rise_pa == pytest.approx(p_s, rel=1e-6)
+    assert m.eta_total == pytest.approx(0.024 * (p_s + dyn_out) / (0.010 * 209.44), rel=1e-6)
+
+    # Without inlet_area_m2, velocity-driven inlet total pressure is unknown -> eta_total is None.
+    (case / "constant" / "case_meta.json").write_text(
+        json.dumps({"outlet_area_m2": a_out}), encoding="utf-8"
+    )
+    m_no_ain = parse_fan_metrics(case, omega_rad_s=209.44)
+    assert m_no_ain.static_pressure_rise_pa == pytest.approx((2.0 - (-10.0)) * 1.2, rel=1e-6)
+    assert m_no_ain.eta_total is None
+
+
+def test_parse_fan_metrics_total_pressure_reversed_flow_never_positive_power(tmp_path):
+    """#86: reversed flow on a totalPressure case stays negative power/efficiency, eta_total None."""
+    case = tmp_path / "case_tp_rev"
+    _write_pp(case, "forces", "moment.dat", "600 0 0 -0.010 0 0 -0.010 0 0 0\n")
+    _write_pp(case, "forces", "force.dat", "600 0 0 -0.20 0 0 -0.20 0 0 0\n")
+    _write_pp(case, "outletFlow", "surfaceFieldValue.dat", "600 -0.015\n")
+    _write_pp(case, "inletP", "surfaceFieldValue.dat", "600 0.0\n")
+    _write_pp(case, "outletP", "surfaceFieldValue.dat", "600 6.6666666667\n")
+    (case / "0").mkdir(parents=True, exist_ok=True)
+    (case / "0" / "p").write_text(
+        "boundaryField\n{\n    inlet { type totalPressure; p0 uniform 0; value uniform 0; }\n"
+        "    outlet { type fixedValue; value uniform 6.6666666667; }\n}\n",
+        encoding="utf-8",
+    )
+    m = parse_fan_metrics(case, omega_rad_s=209.44)
+    assert m.flow_m3s < 0.0
+    assert m.static_pressure_rise_pa == pytest.approx(8.0, rel=1e-6)
+    assert m.air_power_w < 0.0
+    assert m.efficiency < 0.0
+    assert m.eta_total is None
+
+
+def test_total_pressure_free_delivery_allows_one_pa_hose(tmp_path):
+    """#86: AMCA free delivery P_s=0 Pa aligns fan-line endpoints so even a 1 Pa hose works."""
+    from fansim.optimize.system_curve import score_operating_point
+
+    case = tmp_path / "case_1pa"
+    _write_pp(case, "forces", "moment.dat", "600 0 0 -0.010 0 0 -0.010 0 0 0\n")
+    _write_pp(case, "forces", "force.dat", "600 0 0 0.25 0 0 0.25 0 0 0\n")
+    _write_pp(case, "outletFlow", "surfaceFieldValue.dat", "600 0.025\n")
+    _write_pp(case, "inletP", "surfaceFieldValue.dat", "600 -3.125\n")
+    _write_pp(case, "outletP", "surfaceFieldValue.dat", "600 0.0\n")
+    (case / "0").mkdir(parents=True, exist_ok=True)
+    (case / "0" / "p").write_text(
+        "boundaryField\n{\n    inlet { type totalPressure; p0 uniform 0; value uniform 0; }\n"
+        "    outlet { type fixedValue; value uniform 0; }\n}\n",
+        encoding="utf-8",
+    )
+    m_free = parse_fan_metrics(case, omega_rad_s=209.44)
+    assert m_free.static_pressure_rise_pa == pytest.approx(0.0, abs=1e-12)
+    op = score_operating_point(
+        q_free_cfm=m_free.cfm,
+        q_probe_cfm=m_free.cfm * 0.9,
+        p_probe_pa=1.0,
+        eta_free=m_free.efficiency,
+        eta_load=0.10,
+        load_pa=1.0,
+        p_free_pa=max(0.0, m_free.static_pressure_rise_pa),
+    )
+    assert 0.0 < op.q_op_cfm < m_free.cfm
+    assert 0.0 < op.p_op_pa <= 1.0
 
 
 @pytest.mark.docker
