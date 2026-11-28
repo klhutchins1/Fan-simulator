@@ -53,3 +53,12 @@ All criteria must pass:
 5. **Reversed flow (`Q < 0`):** `air_power_w <= 0.0`, `efficiency <= 0.0`, `eta_total is None` across both `totalPressure` and `zeroGradient`.
 6. **Versioning & consistency:** `CFD_VERSION == 7`, `cfd_is_stale(6) is True`, `cfd_is_stale(7) is False`; two-point fan line accepts `1 Pa` hose on `totalPressure` free delivery (`p_free_pa == 0.0 < p_probe_pa`).
 7. **Hygiene & ledger:** `ruff check`, `mypy`, `scripts/audit_status.py --strict` (`PROVEN=34 CHANGED=0 AFFECTED=0 NEW=0 UNREGISTERED=0`), zero RV-1 snapshot changes, and all CFD/sanity/convergence/ring-duct/evaluate tests pass.
+
+## Results
+
+- **Pre-registration commit (pushed before code):** `4dc0d97`
+- **Verdict: PASS** (criteria 1–7 all met).
+- `fansim/cfd/metrics.py`: bumped `CFD_VERSION = 7`; replaced `_inlet_is_zero_gradient_p` with `_inlet_p_bc(case_dir)` parsing both `totalPressure` (including nonzero `p0`) and `zeroGradient` inlet BCs; `parse_fan_metrics` computes AMCA 210 / ISO 5801 `P_s = p_s2 - p_t1` and `P_t = P_s + p_d2` identically across both BC types (leaving `eta_total = None` on `zeroGradient` without `inlet_area_m2`, and preserving fallback for synthetic cases without `0/p`).
+- `docs/how-scores-are-computed.md`: documented the `CFD_VERSION = 7` AMCA 210 convention beside the archived v6 Stock walkthrough.
+- Re-proved `cfd.cfm_from_outlet_flow` in `docs/validation/audits/ledger.json`; `scripts/audit_status.py --strict` -> `PROVEN=34 CHANGED=0 AFFECTED=0 NEW=0 UNREGISTERED=0`.
+- `ruff check` (critical + all changed files) and `mypy` (51 source files) passed; targeted CFD/metrics/convergence/audit tests passed with zero RV-1 snapshot drift.

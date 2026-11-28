@@ -56,8 +56,8 @@
     },
     "cfd.cfm_from_outlet_flow": {
       "date": "2026-11-27",
-      "fingerprint": "f8edfe34be1e33a0",
-      "report": "docs/review/2026-11-26-rv3-geometry.md",
+      "fingerprint": "6038c429db91fda4",
+      "report": "docs/validation/audits/2026-11-27-cfd-amca-static-v7-86-prereg.md",
       "verdict": "PASS"
     },
     "cfd.duct_area": {

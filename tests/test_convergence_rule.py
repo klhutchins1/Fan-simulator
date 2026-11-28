@@ -38,7 +38,7 @@ def test_too_short_history(tmp_path):
 
 
 def test_cfd_version_bumped():
-    assert CFD_VERSION == 6
+    assert CFD_VERSION == 7
 
 
 def test_flow_trajectory_ignores_truncated_single_column_row(tmp_path):

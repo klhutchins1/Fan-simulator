@@ -35,7 +35,12 @@ CFM_PER_M3S = 60.0 / (0.3048**3)  # ft^3/min per m^3/s (~2118.880003289315)
 #                    v4 full-length noSlip duct gave pipe friction.
 #   6 (2026-10-20) — R1.7 print hub: validate/score/export grow min_hub_height below the blades.
 #                    Auto-hub scores are a different trailing edge; do not migrate them.
-CFD_VERSION = 6
+#   7 (2026-11-27) — #86: AMCA 210 / ISO 5801 fan static pressure P_s = p_s2 - p_t1. On
+#                    totalPressure inlets P_s = (p_out - p0_in) * rho (0 Pa at free delivery
+#                    instead of +0.5*rho*|U_in|^2); on zeroGradient inlets with inlet_area_m2,
+#                    P_s = (p_out - p_in) * rho - 0.5 * rho * (Q / A_in)^2. Aligns P_t = P_s + p_d2
+#                    and both two-point fan-line endpoints on the same pressure convention.
+CFD_VERSION = 7
 
 TAIL_FRAC = 0.25  # fraction of the run treated as the converged tail (see convergence())
 
@@ -271,6 +276,7 @@ def oscillation_pct(case_dir: str | Path, tail_frac: float = TAIL_FRAC) -> float
 
 _RHO_INF_RE = re.compile(r"\brhoInf\s+([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s*;")
 _INLET_BLOCK_RE = re.compile(r"\binlet\s*\{([^}]*)\}", re.DOTALL)
+_INLET_P0_RE = re.compile(r"\bp0\s+uniform\s+([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)")
 
 
 def _case_meta_areas(case_dir: Path) -> tuple[float | None, float | None]:
@@ -298,19 +304,32 @@ def _case_meta_areas(case_dir: Path) -> tuple[float | None, float | None]:
     return _pos("inlet_area_m2"), _pos("outlet_area_m2")
 
 
-def _inlet_is_zero_gradient_p(case_dir: Path) -> bool:
-    """True when ``0/p`` uses a velocity-driven ``zeroGradient`` inlet BC (not ``totalPressure``)."""
+def _inlet_p_bc(case_dir: Path) -> tuple[str | None, float]:
+    """Return ``(bc_type, p0_kin)`` from ``0/p``'s ``inlet`` block, or ``(None, 0.0)`` if absent."""
     p_path = case_dir / "0" / "p"
     if not p_path.is_file():
-        return False
+        return None, 0.0
     try:
         text = p_path.read_text(encoding="utf-8", errors="replace")
     except OSError:
-        return False
+        return None, 0.0
     m = _INLET_BLOCK_RE.search(text)
     if m is None:
-        return False
-    return "zeroGradient" in m.group(1) and "totalPressure" not in m.group(1)
+        return None, 0.0
+    body = m.group(1)
+    if "totalPressure" in body:
+        p0_m = _INLET_P0_RE.search(body)
+        if p0_m is not None:
+            try:
+                p0 = float(p0_m.group(1))
+            except ValueError:
+                p0 = 0.0
+            if math.isfinite(p0):
+                return "totalPressure", p0
+        return "totalPressure", 0.0
+    if "zeroGradient" in body:
+        return "zeroGradient", 0.0
+    return None, 0.0
 
 
 def _control_dict_rho_inf(case_dir: Path) -> float | None:
@@ -362,10 +381,17 @@ def parse_fan_metrics(
 
     Notes
     -----
-    ``static_pressure_rise_pa`` is the duct static-to-static rise ``(p_out - p_in) * rho``
-    (CFD_VERSION 6 convention; on ``totalPressure`` ``p0=0`` inlets ``p_in = -0.5 |U_in|^2``,
-    so AMCA 210 fan static pressure is ``p_out * rho``). ``eta_total`` uses ISO 5801 / AMCA 210
-    fan total pressure ``P_t = p_t2 - p_t1`` (#86).
+    ``static_pressure_rise_pa`` follows ANSI/AMCA 210-16 §3.2 / ISO 5801:2017 §3.1.24 fan static
+    pressure ``P_s = p_s2 - p_t1`` (``CFD_VERSION = 7``, #86):
+
+    - ``totalPressure`` inlet in ``0/p``: ``P_s = (p_out - p0_in) * rho`` (``0 Pa`` at free
+      delivery when ``p0 = 0``).
+    - ``zeroGradient`` inlet in ``0/p`` with ``inlet_area_m2`` in ``case_meta.json``:
+      ``P_s = (p_out - p_in) * rho - 0.5 * rho * (Q / A_in)^2``.
+    - Fallback when ``0/p`` (or ``zeroGradient`` ``inlet_area_m2``) is absent: duct
+      static-to-static ``(p_out - p_in) * rho``.
+
+    ``eta_total`` uses ISO 5801 / AMCA 210 fan total pressure ``P_t = P_s + 0.5 * rho * (Q / A_out)^2``.
     """
     if not math.isfinite(omega_rad_s) or omega_rad_s < 0.0:
         raise ValueError(f"omega_rad_s must be finite and non-negative, got {omega_rad_s!r}")
@@ -416,27 +442,35 @@ def parse_fan_metrics(
     p_in = _tail_mean_row(_pp_file(case_dir, "inletP", "surfaceFieldValue.dat"))[-1]
     p_out = _tail_mean_row(_pp_file(case_dir, "outletP", "surfaceFieldValue.dat"))[-1]
 
+    meta_a_in, meta_a_out = _case_meta_areas(case_dir)
+    a_out = float(outlet_area_m2) if outlet_area_m2 is not None else meta_a_out
+    bc_type, p0_in = _inlet_p_bc(case_dir)
+
     # Keep flow SIGNED: under a back-pressure beyond the fan's capability the flow reverses
-    # (negative), which must read as a failure, not be masked by abs(). Guard against the
-    # double-negative product (flow < 0 and static_rise_pa < 0) giving positive air power (#86).
-    static_rise_pa = (p_out - p_in) * rho  # duct static-to-static: kinematic (m^2/s^2) -> Pa
+    # (negative), which must read as a failure, not be masked by abs().
+    # AMCA 210 / ISO 5801 fan static pressure P_s = p_s2 - p_t1 (CFD_VERSION 7, #86).
+    if bc_type == "totalPressure":
+        static_rise_pa = (p_out - p0_in) * rho
+    elif bc_type == "zeroGradient" and meta_a_in is not None:
+        static_rise_pa = (p_out - p_in) * rho - 0.5 * rho * (flow / meta_a_in) ** 2
+    else:
+        static_rise_pa = (p_out - p_in) * rho
+
     shaft_power = torque * omega_rad_s
+    # Guard against double-negative (flow < 0 and static_rise_pa < 0) giving positive air power (#86).
     air_power = flow * static_rise_pa if flow > 0.0 else -abs(flow * static_rise_pa)
     efficiency = air_power / shaft_power if shaft_power > 1e-9 else 0.0
     converged, drift = convergence(case_dir)
 
-    meta_a_in, meta_a_out = _case_meta_areas(case_dir)
-    a_out = float(outlet_area_m2) if outlet_area_m2 is not None else meta_a_out
     eta_total: float | None = None
     if a_out is not None and flow > 0.0 and shaft_power > 1e-9:
         dyn_out = 0.5 * rho * (flow / a_out) ** 2
-        if _inlet_is_zero_gradient_p(case_dir) and meta_a_in is not None:
-            # Velocity-driven duct: P_t = p_t2 - p_t1.
-            p_total_pa = static_rise_pa + dyn_out - 0.5 * rho * (flow / meta_a_in) ** 2
-        else:
-            # Pressure-driven (totalPressure inlet p_t1 = 0): P_t = p_s2 + p_d2.
+        if bc_type == "totalPressure" or (bc_type == "zeroGradient" and meta_a_in is not None):
+            p_total_pa = static_rise_pa + dyn_out
+            eta_total = flow * p_total_pa / shaft_power
+        elif bc_type is None:
             p_total_pa = p_out * rho + dyn_out
-        eta_total = flow * p_total_pa / shaft_power
+            eta_total = flow * p_total_pa / shaft_power
 
     return FanMetrics(
         flow_m3s=flow,
