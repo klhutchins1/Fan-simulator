@@ -428,7 +428,7 @@ def test_build_hub_rejects_unknown_profile_and_warns_on_nose_failure(monkeypatch
 
     import cadquery as cq
 
-    monkeypatch.setattr(cq.Solid, "makeCone", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(cq.Workplane, "revolve", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
     with pytest.warns(RuntimeWarning, match="cone"):
         solid = build_hub(BladeParams(hub_profile="cone", hub_nose_mm=5.0), -10.0, 10.0)
     assert solid is not None and solid.Volume() > 0.0
@@ -456,3 +456,95 @@ def test_clip_blade_below_chains_cause_on_failure():
     with pytest.raises(RuntimeError, match="hub-face clip failed") as excinfo:
         clip_blade_below(BladeParams(clip_below_hub=True), _BadBlade(), z_floor=-10.0)
     assert isinstance(excinfo.value.__cause__, ValueError)
+
+
+# ---------------------------------------------------------------------------
+# Issue #118: Geometry code health fixes
+# ---------------------------------------------------------------------------
+
+
+def test_rounded_plate_upper_lower_exact_mirror_symmetry():
+    """#118 item 5: uncambered rounded_plate must be bit-symmetric upper vs lower."""
+    loop = rounded_plate(0.10, n_points=80, max_camber=0.0, le_radius_frac=0.6, te_radius_frac=0.3)
+    assert len(loop) % 2 == 1
+    le_idx = len(loop) // 2
+    assert loop[le_idx, 0] == pytest.approx(0.0, abs=1e-12)
+    upper = loop[: le_idx + 1]
+    lower_rev = loop[le_idx:][::-1]
+    np.testing.assert_allclose(upper[:, 0], lower_rev[:, 0], atol=1e-12)
+    np.testing.assert_allclose(upper[:, 1], -lower_rev[:, 1], atol=1e-12)
+
+
+def test_apply_tip_shape_inserts_shoulder_at_start_frac():
+    """#118 item 2: chord taper must start at start_frac, not jump from mid-span r_frac=0.5."""
+    p = BladeParams(
+        stations=[
+            RadialStation(0.0, 30.0, 30.0),
+            RadialStation(0.5, 40.0, 26.0),
+            RadialStation(1.0, 40.0, 22.0),
+        ]
+    )
+    apply_tip_shape(p, tip_round=0.8, start_frac=0.80, n=4)
+    r_fracs = [s.r_frac for s in p.stations]
+    assert any(abs(rf - 0.80) < 1e-9 for rf in r_fracs), f"missing shoulder at 0.80: {r_fracs}"
+    shoulder = next(s for s in p.stations if abs(s.r_frac - 0.80) < 1e-9)
+    assert shoulder.chord == pytest.approx(40.0, abs=1e-9)
+
+
+def test_thick_scale_kw_defaults_missing_section_wrap_to_planar():
+    """#118 item 6: missing section_wrap must default to planar (matching BladeParams)."""
+    from types import SimpleNamespace
+
+    stub = SimpleNamespace(section_family="naca", le_thick_scale=1.0, te_thick_scale=1.0)
+    kw = _thick_scale_kw(stub)
+    assert kw["wrap"] is False
+
+
+def test_shroud_axial_range_uses_realized_chord_for_partial_shroud():
+    """#118 item 1: partial shroud_axial_range anchors to realized TE inside realized tip z-span."""
+    from fansim.geometry.blade import _tip_z_span, shroud_axial_range, tip_le_te_z
+    from fansim.geometry.chord_realisation import prepare_loft_chords
+
+    p = BladeParams(
+        cylindrical_tip=True,
+        section_wrap="planar",
+        shroud_thick_mm=2.0,
+        shroud_height_frac=0.5,
+        stations=[
+            RadialStation(0.0, 30.0, 35.0, 0.08, 0.04, 0.4),
+            RadialStation(0.5, 42.0, 30.0, 0.06, 0.05, 0.4),
+            RadialStation(1.0, 48.0, 25.0, 0.04, 0.05, 0.4),
+        ],
+    )
+    z0, z1 = _tip_z_span(p)
+    realized = prepare_loft_chords(p)
+    z_le, z_te = tip_le_te_z(realized)
+    sh = shroud_axial_range(p)
+    assert sh is not None
+    assert sh[0] >= z0 - 1e-6 and sh[1] <= z1 + 1e-6
+    anchor = sh[1] if z_te >= z_le else sh[0]
+    assert anchor == pytest.approx(z_te, abs=1e-6)
+
+
+def test_build_hub_cone_has_no_annular_step_at_z_top():
+    """#118 item 3: cone nose volume must match exact cylinder + flush frustum (no 1.24 mm step)."""
+    R, z_bot, z_top, nose = 21.5, -10.0, 10.0, 8.0
+    p = BladeParams(hub_radius=R, hub_profile="cone", hub_nose_mm=nose)
+    solid = build_hub(p, z_bot, z_top)
+    # Exact cylinder + frustum (r_bottom=R, r_top=0.5, height=nose), minus negligible 0.1 mm axis pinhole.
+    cyl_vol = math.pi * R * R * (z_top - z_bot)
+    cone_vol = (math.pi * nose / 3.0) * (R * R + R * 0.5 + 0.5 * 0.5)
+    expected = cyl_vol + cone_vol
+    assert solid.Volume() == pytest.approx(expected, rel=1e-3)
+
+
+def test_build_impeller_preview_volume_matches_fused_without_root_embed_double_count():
+    """#118 item 4: preview volume should not double-count root-embedded blade overlap."""
+    from fansim.geometry.blade import build_impeller, build_impeller_preview
+
+    p = BladeParams(n_blades=5, root_embed=4.0, n_span=5, n_chord=20)
+    _, prev_vol = build_impeller_preview(p, screen=False)
+    fused_vol = float(build_impeller(p).val().Volume())
+    # Preview volume must match true fused solid volume within 1% (not inflated by root embed).
+    assert prev_vol == pytest.approx(fused_vol, rel=0.01)
+

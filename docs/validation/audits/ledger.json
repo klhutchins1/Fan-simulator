@@ -49,15 +49,15 @@
       "verdict": "PASS"
     },
     "cfd.archetype_direction": {
-      "date": "2026-11-24",
+      "date": "2026-11-27",
       "fingerprint": "83eccb52033d734c",
-      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
+      "report": "docs/review/2026-11-26-rv3-geometry.md",
       "verdict": "PASS"
     },
     "cfd.cfm_from_outlet_flow": {
-      "date": "2026-11-26",
+      "date": "2026-11-27",
       "fingerprint": "f8edfe34be1e33a0",
-      "report": "docs/validation/audits/2026-11-26-cfd-metrics-eta-86-prereg.md",
+      "report": "docs/review/2026-11-26-rv3-geometry.md",
       "verdict": "PASS"
     },
     "cfd.duct_area": {
@@ -97,14 +97,14 @@
       "verdict": "PASS"
     },
     "fan.bem_prescreen": {
-      "date": "2026-11-26",
+      "date": "2026-11-27",
       "fingerprint": "12fe95436ca08931",
-      "report": "docs/validation/audits/2026-11-26-cfm-exact-si.md",
+      "report": "docs/review/2026-11-26-rv3-geometry.md",
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
-      "date": "2026-11-26",
-      "fingerprint": "84b3e487198435c8",
+      "date": "2026-11-27",
+      "fingerprint": "591462b81870479e",
       "report": "docs/review/2026-11-26-rv3-geometry.md",
       "verdict": "PASS"
     },
@@ -139,9 +139,9 @@
       "verdict": "PASS"
     },
     "propeller.cfd_setup": {
-      "date": "2026-11-24",
+      "date": "2026-11-27",
       "fingerprint": "b48b6cc25c6054d4",
-      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
+      "report": "docs/review/2026-11-26-rv3-geometry.md",
       "verdict": "PASS"
     },
     "propeller.neuralfoil_polars": {
@@ -175,9 +175,9 @@
       "verdict": "PASS"
     },
     "propeller.thrust_sign": {
-      "date": "2026-11-24",
+      "date": "2026-11-27",
       "fingerprint": "1345e8fc31ac8e68",
-      "report": "docs/validation/audits/2026-11-24-rv0-reprove.md",
+      "report": "docs/review/2026-11-26-rv3-geometry.md",
       "verdict": "PASS"
     },
     "structural.balance": {

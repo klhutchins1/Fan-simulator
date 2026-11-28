@@ -581,8 +581,11 @@ def apply_tip_shape(params: BladeParams, tip_round: float = 0.0,
 
     kept = [s for s in st if s.r_frac < start_frac]
     n_steps = max(int(n), 1)
+    # Include the shoulder station at start_frac (i=0, scale=1.0) so chord tapering begins at
+    # start_frac rather than jumping from the previous interior station (#118).
+    start_idx = 0 if not (kept and abs(kept[-1].r_frac - start_frac) <= 1e-9) else 1
     tip_stations = []
-    for i in range(1, n_steps + 1):
+    for i in range(start_idx, n_steps + 1):
         rf = start_frac + (1.0 - start_frac) * i / n_steps
         u = (rf - start_frac) / (1.0 - start_frac)          # 0 at start .. 1 at the tip
         # quarter-ellipse chord scale: 1.0 at the start, (1-tr) at the very tip, bulging outward so
@@ -887,11 +890,12 @@ def build_hub(params: BladeParams, z_bottom: float, z_top: float) -> cq.Solid:
     if profile == "cylinder" or nose <= 0.0:
         return _cylinder_hub(params, z_bottom, z_top)
     try:
-        if profile == "cone":  # analytic cone cap, seated 0.5 mm into the hub for a clean fuse
-            ov = 0.5
-            base = _cylinder_hub(params, z_bottom, z_top)
-            cap = cq.Solid.makeCone(R, 0.5, nose + ov, cq.Vector(0, 0, z_top - ov), cq.Vector(0, 0, 1))
-            return base.fuse(cap).clean()
+        if profile == "cone":  # ONE revolved profile (hub wall + flush cone cap) — no fuse seam or step (#118)
+            eps = 0.1  # tiny axis offset avoids the revolve axis-degeneracy (negligible center pinhole)
+            r_tip = min(0.5, max(R, eps))
+            outline = [(eps, z_bottom), (R, z_bottom), (R, z_top), (r_tip, z_top + nose), (eps, z_top + nose)]
+            wp = cq.Workplane("XZ").polyline(outline).close().revolve(360, (0, 0, 0), (0, 1, 0))
+            return wp.val()
         if profile == "dome":  # ONE revolved profile (hub wall + quarter-ellipse dome) — no fuse seam
             eps = 0.1  # tiny axis offset avoids the revolve axis-degeneracy (negligible center pinhole)
             arc = [(max(float(R * np.cos(t)), eps), float(z_top + nose * np.sin(t)))
@@ -1281,7 +1285,11 @@ def build_impeller_preview(
         m = blade_mesh.copy()
         m.apply_transform(trimesh.transformations.rotation_matrix(np.radians(a), (0, 0, 1)))
         parts.append(m)
-    volume_mm3 = float(blade.Volume()) * len(angles) + float(hub.Volume())
+    # Subtract the root-embedded overlap on ONE blade so volume_mm3 matches the fused solid (#118).
+    blade_vol = float(blade.Volume())
+    if float(params.root_embed) > 0.0:
+        blade_vol = float(blade.cut(hub).Volume())
+    volume_mm3 = blade_vol * len(angles) + float(hub.Volume())
     ring = _shroud_solid(params)
     if ring is not None:
         parts.append(_tm(ring))
@@ -1294,6 +1302,10 @@ def shroud_axial_range(params: BladeParams) -> tuple[float, float] | None:
     t = float(params.shroud_thick_mm or 0.0)
     if t <= 0.0:
         return None
+    if bool(getattr(params, "cylindrical_tip", True)) and len(params.stations) >= 2:
+        from fansim.geometry.chord_realisation import prepare_loft_chords
+
+        params = prepare_loft_chords(params)
     z0, z1 = _tip_z_span(params)
     span = z1 - z0
     frac = min(max(float(params.shroud_height_frac or 0.0), 0.0), 1.0)
@@ -1315,26 +1327,26 @@ def shroud_axial_range(params: BladeParams) -> tuple[float, float] | None:
 
 
 def tip_le_te_z(params: BladeParams) -> tuple[float, float]:
-   """Axial Z of LE (`x` min) and TE (`x` max) on the tip section."""
-   st = max(params.stations, key=lambda s: s.r_frac)
-   r = params.hub_radius - params.root_embed
-   r = r + (params.tip_radius - r) * st.r_frac
-   x, pts = _section_loop(
-       r=r, r_frac=st.r_frac, chord=st.chord, stagger_deg=st.stagger_deg,
-       thickness=st.thickness, max_camber=st.max_camber, camber_pos=st.camber_pos,
-       sweep=st.sweep, skew=st.skew, le_sweep=st.le_sweep, lean_deg=st.lean_deg,
-       n_chord=params.n_chord, features=Features(), le_skew=st.le_skew,
-       te_face=st.te_face, le_face=st.le_face,
-       tip_notch_count=params.tip_notch_count,
-       tip_notch_depth_mm=params.tip_notch_depth_mm,
-       blade_z_mm=plate_blade_z_mm(params),
-       **_thick_scale_kw(params),
-   )
-   if bool(getattr(params, "cylindrical_tip", True)):
-       pts = _clamp_points_to_cylinder(pts, float(params.tip_radius))
-   i_le = int(x.argmin())
-   i_te = int(x.argmax())
-   return float(pts[i_le].z), float(pts[i_te].z)
+    """Axial Z of LE (`x` min) and TE (`x` max) on the tip section (pure math, no CAD)."""
+    st = max(params.stations, key=lambda s: s.r_frac)
+    r = params.hub_radius - params.root_embed
+    r = r + (params.tip_radius - r) * st.r_frac
+    x, pts = _section_loop(
+        r=r, r_frac=st.r_frac, chord=st.chord, stagger_deg=st.stagger_deg,
+        thickness=st.thickness, max_camber=st.max_camber, camber_pos=st.camber_pos,
+        sweep=st.sweep, skew=st.skew, le_sweep=st.le_sweep, lean_deg=st.lean_deg,
+        n_chord=params.n_chord, features=Features(), le_skew=st.le_skew,
+        te_face=st.te_face, le_face=st.le_face,
+        tip_notch_count=params.tip_notch_count,
+        tip_notch_depth_mm=params.tip_notch_depth_mm,
+        blade_z_mm=plate_blade_z_mm(params),
+        **_thick_scale_kw(params),
+    )
+    if bool(getattr(params, "cylindrical_tip", True)):
+        pts = _clamp_points_to_cylinder(pts, float(params.tip_radius))
+    i_le = int(x.argmin())
+    i_te = int(x.argmax())
+    return float(pts[i_le].z), float(pts[i_te].z)
 
 
 # --- LE / TE chordwise thickness bias ---
@@ -1391,7 +1403,7 @@ def _thick_scale_kw(params: BladeParams) -> dict[str, float | str | bool]:
     else:
         te = _clamp_thick_scale(te_raw)
         le = _clamp_thick_scale(le_raw)
-    wrap = str(getattr(params, "section_wrap", "cylinder") or "cylinder") != "planar"
+    wrap = str(getattr(params, "section_wrap", "planar") or "planar") != "planar"
     return {
         "le_thick_scale": le,
         "te_thick_scale": te,
