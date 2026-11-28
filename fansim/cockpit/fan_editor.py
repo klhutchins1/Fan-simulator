@@ -47,17 +47,10 @@ EDITOR_VARS = (
 )
 
 
-def bind(session) -> None:
+
+def _bind_editor_serialization(session, station_payload: list, angles_payload: list) -> None:
     state = session.state
     sel_sig = session.sel_sig
-
-    # Full station recipe of the loaded design (e.g. 7-station Stock). The sliders only hold
-    # root/mid/tip, so the recipe rides alongside and edit_flat() hands it back; blade_from_flat
-    # applies slider edits across all stations (roadmap §23.1). Server-side only, not trame state.
-    station_payload: list = [None]
-    # Explicit uneven blade angles loaded from a flat (when e_spacing == 0); preserved across
-    # unrelated slider edits until n_blades changes or e_spacing is raised (#127).
-    angles_payload: list = [None]
 
     def _editor_busy() -> bool:
         """True while Preview/Assess/Export/Optimize own the mesh; ignore slider-mutating clicks."""
@@ -396,8 +389,89 @@ def bind(session) -> None:
         if "tip_notch_depth_mm" in flat and float(flat.get("tip_notch_depth_mm") or 0) > 0:
             state.e_tip_notch_depth = float(flat["tip_notch_depth_mm"])
 
+
+    def edit_features() -> Features:
+        tw = int(state.e_tub_waves) or (6 if state.e_tub_amp > 0 else 0)
+        sw = int(state.e_ser_waves) or (8 if state.e_ser_amp > 0 else 0)
+        dr = int(state.e_dim_rows) or (5 if state.e_dim_amp > 0 else 0)
+        dc = int(state.e_dim_cols) or (5 if state.e_dim_amp > 0 else 0)
+        return Features(
+            tubercle_amp=state.e_tub_amp,
+            tubercle_waves=tw,
+            serration_amp=state.e_ser_amp,
+            serration_waves=sw,
+            dimple_amp=state.e_dim_amp,
+            dimple_rows=dr,
+            dimple_cols=dc,
+        )
+
+
+    def build_edit_params():
+        return blade_from_flat(edit_flat(), edit_features())
+
+    def _feat_dict() -> dict:
+        f = edit_features()
+        return {
+            "tubercle_amp": f.tubercle_amp,
+            "tubercle_waves": f.tubercle_waves,
+            "serration_amp": f.serration_amp,
+            "serration_waves": f.serration_waves,
+            "dimple_amp": f.dimple_amp,
+            "dimple_rows": f.dimple_rows,
+            "dimple_cols": f.dimple_cols,
+        }
+
+    def _editor_sig() -> dict:
+        """Normalized signature of the current editor state (geometry + features)."""
+        s = {**edit_flat(), **_feat_dict()}
+        return {k: (round(v, 4) if isinstance(v, float) else v) for k, v in s.items()}
+
+    def _set_baseline():
+        """Mark the current editor state as the assessed baseline (not stale)."""
+        sel_sig[0] = _editor_sig()
+        state.edited_stale = False
+        state.stale_msg = ""
+        state.export_msg = ""        # a "Saved …stl" line belongs to the previous design (§23.20)
+        state.export_download = ""
+
+    def _recompute_stale(**_):
+        session._hub_fit_readout()
+        session._tip_fit_readout()
+        session._depth_fit_readout()
+        if sel_sig[0] is None:
+            return
+        stale = _editor_sig() != sel_sig[0]
+        if stale and not state.export_busy:
+            state.export_msg = ""    # edited (e.g. Randomize): the last export no longer matches (§23.20)
+            state.export_download = ""
+        state.edited_stale = stale
+        state.stale_msg = (
+            "⚠ Edited since assessment — the shown CFM/efficiency are for the "
+            "un-edited design. Press Assess to evaluate your changes."
+            if stale
+            else ""
+        )
+
+    state.change(*EDITOR_VARS)(_recompute_stale)
+
+
+    session._editor_busy = _editor_busy
+    session._init_editor = _init_editor
+    session.edit_flat = edit_flat
+    session._apply_editor_flat = _apply_editor_flat
+    session.edit_features = edit_features
+    session.build_edit_params = build_edit_params
+    session._feat_dict = _feat_dict
+    session._editor_sig = _editor_sig
+    session._set_baseline = _set_baseline
+    session._recompute_stale = _recompute_stale
+
+
+def _bind_geometry_actions(session) -> None:
+    state = session.state
+
     def on_fit_envelope():
-        if _editor_busy():
+        if session._editor_busy():
             return
         spec = session.active_spec()
         extra = intake_extra_mm(
@@ -406,9 +480,9 @@ def bind(session) -> None:
         )
         max_d = effective_depth_max(spec, intake_extra=extra)
         res = fit_envelope(
-            edit_flat(), spec, features=edit_features(), max_depth_mm=max_d,
+            session.edit_flat(), spec, features=session.edit_features(), max_depth_mm=max_d,
         )
-        _apply_editor_flat(res.flat)
+        session._apply_editor_flat(res.flat)
         session._hub_fit_readout()
         session._tip_fit_readout()
         session._depth_fit_readout()
@@ -448,7 +522,7 @@ def bind(session) -> None:
     _refresh_intake_note()
 
     def on_scale_to_hub():
-        if _editor_busy():
+        if session._editor_busy():
             return
         spec = session.active_spec()
         extra = intake_extra_mm(
@@ -457,9 +531,9 @@ def bind(session) -> None:
         )
         max_d = effective_depth_max(spec, intake_extra=extra)
         res = scale_to_hub(
-            edit_flat(), spec, features=edit_features(), max_depth_mm=max_d,
+            session.edit_flat(), spec, features=session.edit_features(), max_depth_mm=max_d,
         )
-        _apply_editor_flat(res.flat)
+        session._apply_editor_flat(res.flat)
         session._hub_fit_readout()
         session._tip_fit_readout()
         session._depth_fit_readout()
@@ -469,7 +543,7 @@ def bind(session) -> None:
 
     def seed_from_duty():
         """§20.4: Cordier + velocity-triangle magnitudes → editor stagger/camber (signs kept)."""
-        if _editor_busy():
+        if session._editor_busy():
             return
         try:
             from fansim.optimize.meanline import (
@@ -528,23 +602,9 @@ def bind(session) -> None:
             state.seed_duty_msg = f"⚠ Seed from duty failed: {type(exc).__name__}: {exc}"
         state.flush()
 
-    def edit_features() -> Features:
-        tw = int(state.e_tub_waves) or (6 if state.e_tub_amp > 0 else 0)
-        sw = int(state.e_ser_waves) or (8 if state.e_ser_amp > 0 else 0)
-        dr = int(state.e_dim_rows) or (5 if state.e_dim_amp > 0 else 0)
-        dc = int(state.e_dim_cols) or (5 if state.e_dim_amp > 0 else 0)
-        return Features(
-            tubercle_amp=state.e_tub_amp,
-            tubercle_waves=tw,
-            serration_amp=state.e_ser_amp,
-            serration_waves=sw,
-            dimple_amp=state.e_dim_amp,
-            dimple_rows=dr,
-            dimple_cols=dc,
-        )
 
     def randomize_features():
-        if _editor_busy():
+        if session._editor_busy():
             return
         on = {k: random.random() < 0.6 for k in ("tub", "ser", "dim")}
         if not any(on.values()):
@@ -563,7 +623,7 @@ def bind(session) -> None:
     def randomize_geometry():
         import random as _r
 
-        if _editor_busy():
+        if session._editor_busy():
             return
         state.library_parent_id = ""
         state.library_place_op = ""
@@ -649,53 +709,16 @@ def bind(session) -> None:
         )
         state.flush()
 
-    def build_edit_params():
-        return blade_from_flat(edit_flat(), edit_features())
 
-    def _feat_dict() -> dict:
-        f = edit_features()
-        return {
-            "tubercle_amp": f.tubercle_amp,
-            "tubercle_waves": f.tubercle_waves,
-            "serration_amp": f.serration_amp,
-            "serration_waves": f.serration_waves,
-            "dimple_amp": f.dimple_amp,
-            "dimple_rows": f.dimple_rows,
-            "dimple_cols": f.dimple_cols,
-        }
+    session.on_fit_envelope = on_fit_envelope
+    session.on_scale_to_hub = on_scale_to_hub
+    session.seed_from_duty = seed_from_duty
+    session.randomize_features = randomize_features
+    session.randomize_geometry = randomize_geometry
 
-    def _editor_sig() -> dict:
-        """Normalized signature of the current editor state (geometry + features)."""
-        s = {**edit_flat(), **_feat_dict()}
-        return {k: (round(v, 4) if isinstance(v, float) else v) for k, v in s.items()}
 
-    def _set_baseline():
-        """Mark the current editor state as the assessed baseline (not stale)."""
-        sel_sig[0] = _editor_sig()
-        state.edited_stale = False
-        state.stale_msg = ""
-        state.export_msg = ""        # a "Saved …stl" line belongs to the previous design (§23.20)
-        state.export_download = ""
-
-    def _recompute_stale(**_):
-        session._hub_fit_readout()
-        session._tip_fit_readout()
-        session._depth_fit_readout()
-        if sel_sig[0] is None:
-            return
-        stale = _editor_sig() != sel_sig[0]
-        if stale and not state.export_busy:
-            state.export_msg = ""    # edited (e.g. Randomize): the last export no longer matches (§23.20)
-            state.export_download = ""
-        state.edited_stale = stale
-        state.stale_msg = (
-            "⚠ Edited since assessment — the shown CFM/efficiency are for the "
-            "un-edited design. Press Assess to evaluate your changes."
-            if stale
-            else ""
-        )
-
-    state.change(*EDITOR_VARS)(_recompute_stale)
+def _bind_thickness_watchers(session) -> None:
+    state = session.state
 
     @state.change("e_thick_mode")
     def _on_thick_mode(e_thick_mode=None, **_):
@@ -765,17 +788,13 @@ def bind(session) -> None:
             f"(t/c sliders — tip was historically too thin at 3%)"
         )
 
-    session._init_editor = _init_editor
-    session.edit_flat = edit_flat
-    session._apply_editor_flat = _apply_editor_flat
-    session.on_fit_envelope = on_fit_envelope
-    session.on_scale_to_hub = on_scale_to_hub
-    session.seed_from_duty = seed_from_duty
-    session.edit_features = edit_features
-    session.randomize_features = randomize_features
-    session.randomize_geometry = randomize_geometry
-    session.build_edit_params = build_edit_params
-    session._feat_dict = _feat_dict
-    session._editor_sig = _editor_sig
-    session._set_baseline = _set_baseline
-    session._recompute_stale = _recompute_stale
+
+def bind(session) -> None:
+    # Full station recipe of the loaded design (e.g. 7-station Stock). Server-side only, not trame state.
+    station_payload: list = [None]
+    # Explicit uneven blade angles loaded from a flat (when e_spacing == 0).
+    angles_payload: list = [None]
+
+    _bind_editor_serialization(session, station_payload, angles_payload)
+    _bind_geometry_actions(session)
+    _bind_thickness_watchers(session)

@@ -29,8 +29,8 @@ from fansim.cfd.midplane import (
 )
 from fansim.cfd.orientation import AXIAL_CFD_ORIENTATION
 from fansim.cfd.spanwise import ensure_spanwise_artifacts, find_cached_spanwise
-from fansim.cockpit.airflow_panel import pick_airflow_uri, png_data_uri
 from fansim.cockpit import fan_runtime
+from fansim.cockpit.airflow_panel import pick_airflow_uri, png_data_uri
 from fansim.cockpit.data import Design, scored_case_dir
 from fansim.cockpit.errors import log_caught
 from fansim.geometry.blade import validate_blade_params
@@ -63,14 +63,11 @@ def _has_speed_range(arrows) -> bool:
         return False
 
 
-def bind(session) -> None:
+
+def _bind_3d_renderer(session) -> None:
     state, ctrl = session.state, session.ctrl
     plotter = session.plotter
-    spawn_busy_ticker = session.spawn_busy_ticker
     render_state = session.render_state
-    preview_stl = session.preview_stl
-    airflow_gen = session.airflow_gen
-    airflow_lock = session.airflow_lock
 
     def _rebuild_glyph_arrows():
         cloud = render_state.get("glyph_cloud")
@@ -309,7 +306,7 @@ def bind(session) -> None:
                 await asyncio.sleep(0)
                 if state.selected_trial != token:
                     return
-                _prepare_glyphs_for_design(d)
+                session._prepare_glyphs_for_design(d)
                 _apply_render(reset=False, overlays=True)
                 try:
                     ctrl.view_update()
@@ -354,17 +351,29 @@ def bind(session) -> None:
         except Exception as exc:  # noqa: BLE001
             log_caught(_log, "view_update (glyph params)", exc, level=logging.DEBUG)
 
+
+    session._rebuild_glyph_arrows = _rebuild_glyph_arrows
+    session._clear_glyphs = _clear_glyphs
+    session._apply_render = _apply_render
+    session._draw = _draw
+    session._draw_impeller = _draw_impeller
+    session._schedule_viz_overlay = _schedule_viz_overlay
+
+
+def _bind_preview_builder(session) -> None:
+    state, ctrl = session.state, session.ctrl
+    spawn_busy_ticker = session.spawn_busy_ticker
+    preview_stl = session.preview_stl
+
     def _build_preview_stl(flat, feat, spec, cup: bool):
         from dataclasses import asdict
 
         from fansim.geometry.isolated import build_stl_isolated
-
         from fansim.resources import current_tier
 
         mount = None
-        if cup and current_tier().cup_build_ok:
-            if spec.motor_mount is not None:
-                mount = asdict(spec.motor_mount)
+        if cup and current_tier().cup_build_ok and spec.motor_mount is not None:
+            mount = asdict(spec.motor_mount)
         # Motor cup needs a real boolean solid (not the fast non-fused preview mesh).
         build_stl_isolated(
             flat, feat, preview_stl, timeout=300.0,
@@ -469,7 +478,7 @@ def bind(session) -> None:
                         return status, ""
 
                 status, print_line = await loop.run_in_executor(None, _readouts)
-                _draw(preview_stl, "darkorange")
+                session._draw(preview_stl, "darkorange")
                 feats = "features ON" if params.features.active else "smooth"
                 tone_line = ""
                 if params.blade_angles_deg is not None:
@@ -520,6 +529,16 @@ def bind(session) -> None:
 
     _png_data_uri = png_data_uri  # shared with the archetype tabs (airflow_panel)
 
+
+    session.do_preview = do_preview
+
+
+def _bind_airflow_panels(session) -> None:
+    state, ctrl = session.state, session.ctrl
+    render_state = session.render_state
+    airflow_gen = session.airflow_gen
+    airflow_lock = session.airflow_lock
+
     def _apply_airflow_field():
         uris = {
             "U": state._airflow_u_uri,
@@ -550,7 +569,7 @@ def bind(session) -> None:
         state._airflow_b2b_uri = ""
         state.airflow_img_uri = ""
         state.airflow_caption = msg
-        _clear_glyphs("Velocity arrows not available for this design")
+        session._clear_glyphs("Velocity arrows not available for this design")
 
     def _mark(done: bool | None) -> str:
         if done is True:
@@ -598,24 +617,24 @@ def bind(session) -> None:
                 gly.cloud, AXIAL_CFD_ORIENTATION
             )
             state.glyph_caption = gly.caption
-            _rebuild_glyph_arrows()
+            session._rebuild_glyph_arrows()
         elif gly is not None:
-            _clear_glyphs(gly.caption or "Velocity arrows not available for this design")
+            session._clear_glyphs(gly.caption or "Velocity arrows not available for this design")
 
     def _apply_png_pack(art, uz, stream, span) -> None:
         """Push PNG URIs into state. ``None`` args leave that slot unchanged (§22.7 partial)."""
         if uz is not None:
-            state._airflow_uz_uri = _png_data_uri(uz.png) if uz.available else ""
+            state._airflow_uz_uri = png_data_uri(uz.png) if uz.available else ""
         if stream is not None:
             state._airflow_stream_uri = (
-                _png_data_uri(stream.png) if stream.available else "")
+                png_data_uri(stream.png) if stream.available else "")
         if span is not None:
             state._airflow_span_uri = (
-                _png_data_uri(span.spanwise_png)
+                png_data_uri(span.spanwise_png)
                 if span.available and span.spanwise_png
                 else "")
             state._airflow_b2b_uri = (
-                _png_data_uri(span.b2b_png)
+                png_data_uri(span.b2b_png)
                 if span.available and span.b2b_png
                 else "")
         has_extra = bool(
@@ -623,8 +642,8 @@ def bind(session) -> None:
             or state._airflow_span_uri or state._airflow_b2b_uri
         )
         if art is not None and art.available:
-            state._airflow_u_uri = _png_data_uri(art.u_png)
-            state._airflow_p_uri = _png_data_uri(art.p_png)
+            state._airflow_u_uri = png_data_uri(art.u_png)
+            state._airflow_p_uri = png_data_uri(art.p_png)
             state.airflow_busy = False
             _apply_airflow_field()
         elif art is not None and not art.available and not has_extra:
@@ -633,10 +652,7 @@ def bind(session) -> None:
             state._airflow_p_uri = ""
             state.airflow_img_uri = ""
             state.airflow_caption = art.caption or "Airflow not available for this design"
-        elif has_extra or (art is not None and art.available):
-            state.airflow_busy = False
-            _apply_airflow_field()
-        elif art is None and (uz is not None or stream is not None or span is not None):
+        elif has_extra or (art is not None and art.available) or art is None and (uz is not None or stream is not None or span is not None):
             state.airflow_busy = False
             _apply_airflow_field()
 
@@ -679,7 +695,7 @@ def bind(session) -> None:
         if gly is not None and gly.available:
             _apply_glyph_artifact(gly)
             return True
-        _clear_glyphs(
+        session._clear_glyphs(
             "Loading 3-D velocity arrows…" if case is not None
             else "Velocity arrows not available for this design"
         )
@@ -763,7 +779,7 @@ def bind(session) -> None:
         case = scored_case_dir(d) if d.has_model else None
         if case is None or d.extra.get("cfd_stale"):
             _clear_airflow("Airflow not available for this design")
-            _apply_render(reset=False)
+            session._apply_render(reset=False)
             return
 
         token = int(d.trial)
@@ -805,7 +821,7 @@ def bind(session) -> None:
             state._airflow_b2b_uri = ""
         mid_cached_now = _apply_cached_pngs(case)
         _set_airflow_progress(
-            midplane=True if mid_cached_now else False,
+            midplane=bool(mid_cached_now),
             arrows=False,
             heavy=None,
             note="Loading core airflow…",
@@ -814,7 +830,7 @@ def bind(session) -> None:
         cached_gly = peek_cached_velocity_glyphs(case)
         if cached_gly is not None and cached_gly.available:
             _set_airflow_progress(
-                midplane=True if mid_cached_now else False,
+                midplane=bool(mid_cached_now),
                 arrows=True,
                 heavy=None,
                 note="Loading core airflow…",
@@ -853,7 +869,7 @@ def bind(session) -> None:
                 art, gly, uz = pack
                 _apply_png_pack(art, uz, None, None)
                 _apply_glyph_artifact(gly)
-                _apply_render(reset=False)
+                session._apply_render(reset=False)
                 state.airflow_busy = False
                 state.airflow_cancel = False
                 _set_airflow_progress(
@@ -897,8 +913,8 @@ def bind(session) -> None:
                     state._airflow_p_uri = ""
                     state.airflow_img_uri = ""
                     state.airflow_caption = "Airflow not available for this design"
-                    _clear_glyphs()
-                    _apply_render(reset=False)
+                    session._clear_glyphs()
+                    session._apply_render(reset=False)
             finally:
                 if state.selected_trial == token and airflow_gen[0] == gen:
                     state.airflow_busy = False
@@ -925,16 +941,16 @@ def bind(session) -> None:
         except Exception as exc:  # noqa: BLE001
             log_caught(_log, "state.flush (airflow field)", exc, level=logging.DEBUG)
 
-    session._rebuild_glyph_arrows = _rebuild_glyph_arrows
-    session._clear_glyphs = _clear_glyphs
-    session._apply_render = _apply_render
+
     session._prepare_glyphs_for_design = _prepare_glyphs_for_design
-    session._draw = _draw
-    session._draw_impeller = _draw_impeller
-    session._schedule_viz_overlay = _schedule_viz_overlay
-    session.do_preview = do_preview
     session._schedule_airflow = _schedule_airflow
     session._clear_airflow = _clear_airflow
     session._apply_airflow_field = _apply_airflow_field
     session._schedule_heavy_field = _schedule_heavy_field
     session.cancel_airflow = cancel_airflow
+
+
+def bind(session) -> None:
+    _bind_3d_renderer(session)
+    _bind_preview_builder(session)
+    _bind_airflow_panels(session)
