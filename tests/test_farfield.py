@@ -48,12 +48,12 @@ def test_noise_from_cv_force_detects_bpf_tone_and_thrust():
     bpf = blade_pass_frequency(n_blades, rpm)
     fs = 20000.0
     t = np.arange(0, 0.4, 1.0 / fs)
-    steady_thrust = -0.05
+    steady_thrust = 0.05
     Fz = steady_thrust + 0.01 * np.sin(2 * np.pi * bpf * t)
     F = np.column_stack([np.zeros_like(t), np.zeros_like(t), Fz])
-    # feed as (P=0, Fs=-F) so force_from_cv returns F = -(0 + Fs) = F
+    # feed as (P=0, Fs=+F) so force_from_cv returns F_{fan->fluid} = +(0 + Fs) = F (#124)
     P = np.zeros((len(t), 3))
-    m = noise_from_cv_force(t, P, -F, cutoff_hz=2500.0, n_blades=n_blades, rpm=rpm)
+    m = noise_from_cv_force(t, P, F, cutoff_hz=2500.0, n_blades=n_blades, rpm=rpm)
     assert m["thrust_n"] == pytest.approx(steady_thrust, abs=2e-3)
     assert math.isfinite(m["noise_dba_band"])
     # the BPF tone should sit clearly above a distant off-tone band
@@ -72,7 +72,7 @@ def test_noise_scales_with_fluctuation_amplitude():
     def band(amp):
         Fz = amp * np.sin(2 * np.pi * bpf * t)
         F = np.column_stack([np.zeros_like(t), np.zeros_like(t), Fz])
-        return noise_from_cv_force(t, P, -F)["noise_dba_band"]
+        return noise_from_cv_force(t, P, F)["noise_dba_band"]
 
     assert band(0.02) > band(0.005)
 
@@ -83,11 +83,11 @@ def test_noise_from_cv_force_does_not_round_internally():
     bpf = blade_pass_frequency(n_blades, rpm)
     fs = 20000.0
     t = np.arange(0, 0.4, 1.0 / fs)
-    steady_thrust = -0.051234567
+    steady_thrust = 0.051234567
     Fz = steady_thrust + 0.013579 * np.sin(2.0 * np.pi * bpf * t)
     F = np.column_stack([np.zeros_like(t), np.zeros_like(t), Fz])
     P = np.zeros((len(t), 3))
-    m = noise_from_cv_force(t, P, -F, cutoff_hz=2500.0, n_blades=n_blades, rpm=rpm)
+    m = noise_from_cv_force(t, P, F, cutoff_hz=2500.0, n_blades=n_blades, rpm=rpm)
 
     Fp = F - F.mean(axis=0)
     dt_cv = float(np.median(np.diff(t)))

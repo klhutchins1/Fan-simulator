@@ -52,4 +52,15 @@
 
 ## 3. Results
 
-*(To be recorded after implementation and verification.)*
+- **Verdict:** **PASS (5/5: A1–A5 all PASS)**
+- **Date evaluated:** 2026-11-28 (`cursor/epic-1d-acoustics`, pre-registered at `9548e47`)
+
+### Summary by Criterion
+
+| ID | Verdict | Observed Evidence |
+|---|---|---|
+| **A1** | **PASS** | `force_from_cv(t, P, Fs)` now returns `+(dP/dt + Fs)` per Reynolds Transport Theorem (`F[:, 2] == +4.0` to `1e-12` for `P_z = 3t, Fs_z = 1`); `noise_from_cv_force` reports positive `thrust_n == +0.05` for positive outward flux `Fs = +F` while preserving Curle dipole SPL to `< 0.3 dB`. |
+| **A2** | **PASS** | Short window (`N = 200, fs = 20 kHz, df = 100 Hz > 2*8 Hz`) returns finite `tone_level_db` within `3 dB` of exact RMS SPL and finite `peak_tone_over_harmonics`; frequencies past Nyquist (`f0 > fs/2 + half_bw`) still return `NaN`; normal-resolution windows (`df <= 2*half_bw`) are bit-for-bit identical. |
+| **A3** | **PASS** | `proudman_power_density(1.0, -5.0) == 0.0`; invalid `rho`, `c0`, `alpha`, `w_ref`, `cp`, `corr_area_m2` raise `ValueError`; `sound_power_level(NaN)` returns `NaN` (not `-inf`); `curle_surface_swl(..., corr_area_m2=A_c)` shifts SWL by exactly `+10*log10(A_c)` dB (`rel=1e-12`). |
+| **A4** | **PASS** | `fansim/acoustics/tonal.py` explicitly documents unweighted geometric array factor scope, Dirichlet `m_max` sensitivity, and v0.2 deferral of $|F_m|$ / Curle $\propto m$ / IEC A-weighting; zero numeric change to tonal outputs. |
+| **A5** | **PASS** | `ruff check` (critical + changed `.py` files) clean; `mypy --config-file pyproject.toml` clean (51 source files); `scripts/audit_status.py --strict` reports `PROVEN=34 CHANGED=0 AFFECTED=0 NEW=0 UNREGISTERED=0`; `tests/test_physics_snapshot.py` passes with **zero diff** to `tests/data/physics_snapshot.json`; acoustics + flow_report + snapshot suite `160 passed, 0 failed`. |

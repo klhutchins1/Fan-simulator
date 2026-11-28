@@ -5,9 +5,10 @@ levels. It is the single, tested home for the A-weighting curve, the Curle dipol
 the band-limited dB(A) reduction that were previously duplicated across scripts/fan_noise_*.py.
 
 Curle compact dipole (docs/bibliography.md sec.1):  p'(x,t) = (r_hat . dF/dt) / (4 pi c0 r),
-with the fan force on the fluid F(t) = -(dP/dt + Fs), P = control-volume momentum, Fs = surface
-momentum-flux + pressure. Absolute dB(A) is coarse-grid-limited; the BPF tone and RELATIVE deltas
-(a consistent band-limit) are the trustworthy outputs.
+with the fan force on the fluid F(t) = +(dP/dt + Fs) from Reynolds Transport Theorem (#124),
+P = control-volume momentum, Fs = outward surface momentum-flux + pressure. Absolute dB(A) is
+coarse-grid-limited; the BPF tone and RELATIVE deltas (a consistent band-limit) are the
+trustworthy outputs.
 """
 
 from __future__ import annotations
@@ -83,7 +84,12 @@ def dba_from_pressure(p, dt, cutoff_hz: float | None = None) -> float:
 
 
 def tone_level_db(p, dt, f0, half_bw: float = 8.0) -> float:
-    """Band SPL [dB] within +/- half_bw of f0 (e.g. the blade-pass tone)."""
+    """Band SPL [dB] within +/- half_bw of f0 (e.g. the blade-pass tone).
+
+    On short windows where the Welch bin spacing exceeds ``2 * half_bw`` and ``f0`` still lies
+    inside the resolved spectrum (``f0 <= f[-1] + half_bw``), falls back to the single nearest
+    frequency bin instead of returning NaN (#124). Frequencies past Nyquist return NaN.
+    """
     f0_f = float(f0)
     bw = float(half_bw)
     if not (math.isfinite(f0_f) and f0_f >= 0.0):
@@ -91,10 +97,15 @@ def tone_level_db(p, dt, f0, half_bw: float = 8.0) -> float:
     if not (math.isfinite(bw) and bw > 0.0):
         raise ValueError(f"half_bw must be finite and > 0, got {half_bw!r}")
     f, pxx = _welch(p, dt)
-    m = np.abs(f - f0_f) <= bw
-    if not np.any(m):
+    if f0_f > float(f[-1]) + bw:
         return float("nan")
-    ms = float(np.sum(pxx[m] * (f[1] - f[0])))
+    df = float(f[1] - f[0])
+    m = np.abs(f - f0_f) <= bw
+    if np.any(m):
+        ms = float(np.sum(pxx[m] * df))
+    else:
+        idx = int(np.argmin(np.abs(f - f0_f)))
+        ms = float(pxx[idx] * df)
     if not math.isfinite(ms):
         return float("nan")
     return float(20.0 * math.log10(math.sqrt(ms) / PREF)) if ms > 0.0 else float("-inf")
@@ -143,7 +154,7 @@ def dipole_pressure(F_fluct, dt, r_hat=(0.0, 0.0, 1.0), c0: float = C0_AIR, r_ob
 
 
 def force_from_cv(t, P, Fs):
-    """Fan force on the fluid F(t) = -(dP/dt + Fs) from CV momentum P and surface-flux Fs (both (N,3))."""
+    """Fan force on the fluid F(t) = +(dP/dt + Fs) from CV momentum P and outward flux Fs (both (N,3))."""
     t_arr = np.asarray(t, float)
     P_arr = np.asarray(P, float)
     Fs_arr = np.asarray(Fs, float)
@@ -156,7 +167,7 @@ def force_from_cv(t, P, Fs):
     dt = float(np.median(np.diff(t_arr)))
     if not (math.isfinite(dt) and dt > 0.0):
         raise ValueError(f"time step dt must be finite and > 0, got {dt!r}")
-    return -(np.gradient(P_arr, dt, axis=0) + Fs_arr), dt
+    return (np.gradient(P_arr, dt, axis=0) + Fs_arr), dt
 
 
 def noise_from_cv_force(t, P, Fs, *, cutoff_hz: float = 2500.0, n_blades: int = N_BLADES_DEFAULT,
