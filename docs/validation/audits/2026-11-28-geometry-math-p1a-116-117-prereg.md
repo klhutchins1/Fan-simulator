@@ -59,6 +59,17 @@ All 7 criteria must pass; any failure is recorded honestly and blocks merge with
 
 ---
 
-## 3. Results
+## 3. Results — **PASS (7/7 criteria)**
 
-*(To be recorded after implementation and verification.)*
+- **Pre-registration commit (committed & pushed before code):** `57693d6`
+- **Tests-first failure proof:** 6/6 new tests failed on pre-edit code (`test_te_blunt_no_tip_sign_spike`, `test_le_te_preserves_camber_line`, `test_dimple_preserves_camber_line`, `test_blade_solidity_exact_analytical_formula`, `test_negative_max_camber_reflects_naca4_and_rounded_plate`, `test_radius_mapping_helpers_and_fan_bem_follow_root_embed`).
+
+| ID | Verdict | Evidence |
+|---|---|---|
+| **C1** | **PASS** | `apply_le_te_thickness` (both stripped and unstripped closed loops + explicit `yc_mm`) and `apply_features` (dimples via `_section_loop` and direct `yc_mm`) preserve the camber line `yc(x)` to `< 1e-9 mm`; thin cambered NACA TE blunt (`m=0.06, t=0.03, te=2.0`) keeps lower surface smoothly below `yc_mm` (`b_l - yc_mm < 0`). Symmetric (`m=0`) outputs unchanged (`tests/test_le_te_thick.py`, `tests/test_features.py`). |
+| **C2** | **PASS** | `naca4(-0.04, 0.4, 0.12)` and `rounded_plate(0.08, max_camber=-0.04)` match exact vertical reflection within `1e-12`; `m >= 0` bit-identical; `tests/test_direction_crosscheck_2.py` passes (`BACKWARDS_CAMBER = -0.02` unchanged). |
+| **C3** | **PASS** | `tests/test_outline_hub.py`, `tests/test_a12x25_reference_geometry.py`, `tests/test_blade_golden.py`, `tests/test_geometry.py`, `tests/test_hub_hang.py`, and `tests/audit/test_stock_handedness.py` all pass with zero tracked reference STL changes. |
+| **C4** | **PASS** | `blade_solidity` matches analytical `B * c(f(r)) * cos(beta(f(r))) / (2*pi*r)` for `root_embed = 0` and `root_embed > 0` (`tests/test_rv3_geometry.py`, `tests/test_solidity.py`, `tests/test_blade_validation.py`). Stock v3 solidity shift: hub `1.1425 -> 1.1186` (`-2.09%`), mid `0.7949 -> 0.8169` (`+2.77%`), tip `0.8187 -> 0.8187` (`+0.00%`) — all well within ±5%. |
+| **C5** | **PASS** | `tests/audit/test_fan_bem_audit.py`, `tests/test_fan_bem.py` (Stock v2 lock updated `58.2 -> 57.85` CFM for `#117` builder mapping; closer to 56.5 CFM CFD), `tests/test_bem_exploit_guard.py`, `tests/test_near_stall.py`, `tests/test_multi_point.py`, `tests/test_mixed_flow_bem.py` all pass. |
+| **C6** | **PASS** | Audit #4 Spearman $\rho$ over the 7 designs (`stock_v2`, `stock_v1`, `t9000`, `t9005`, `t9006`, `t9008`, `t9012`): pre-edit baseline on current `master` `0.8571` -> post-edit **`0.8929`** (`+0.0357`, well above `0.60` floor and improved over both `0.714` historical and `0.857` current baseline). Per-design BEM free CFM: `stock_v2 57.85` (CFD `56.50`), `stock_v1 62.87` (`77.40`), `t9000 57.52` (`51.72`), `t9005 62.09` (`67.20`), `t9006 60.32` (`52.48`), `t9008 60.73` (`55.11`), `t9012 39.06` (`27.42`). |
+| **C7** | **PASS** | `ruff check` (critical + all changed `.py` files) passed; `mypy` (51 source files) passed; `scripts/audit_status.py --strict` -> `PROVEN=34 CHANGED=0 AFFECTED=0 NEW=0 UNREGISTERED=0` (`geometry.stock_handedness` -> `7c7ca178d33fc222`, `fan.bem_prescreen` -> `ea483c6cf4377242`). RV-1 `tests/data/physics_snapshot.json` regenerated with this file as `--reason` (only `fan_bem.*` and `mixed_bem.default` shifted slightly from `root_embed` mapping: Stock v3 free `60.421 -> 60.197` CFM, shutoff `38.835 -> 38.919` Pa; all propeller/structural/acoustics cases unchanged); `tests/test_scoreboard.py` (10 passed) and 221/221 targeted P1A tests pass. |

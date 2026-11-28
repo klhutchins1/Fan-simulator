@@ -6,8 +6,8 @@ import numpy as np
 
 from fansim.geometry.airfoil import naca4
 from fansim.geometry.blade import (
-    BladeParams,
     TE_BLUNT_FRAC,
+    BladeParams,
     apply_le_te_thickness,
     le_te_thick_factors,
     uniform_thickness_tc,
@@ -65,21 +65,59 @@ def test_le_te_uses_parametric_x_not_cambered_surface():
 
 
 def test_te_blunt_no_tip_sign_spike():
-    """Cambered NACA TE tip is ~-0.0; blunt must not drive that vertex alone to -te_half (flap)."""
+    """#116: Cambered NACA TE blunt lifts relative to camber line yc — no jump across y=0."""
+    from fansim.geometry.airfoil import _naca_camber_line
+
     loop, x = naca4(0.06, 0.4, 0.03, 60, return_chord_param=True)
     if np.allclose(loop[0], loop[-1]):
         loop, x = loop[:-1], x[:-1]
-    b0 = loop[:, 1] * 40.0
-    b = apply_le_te_thickness(x, b0.copy(), 40.0, 1.0, 2.0)
+    chord = 40.0
+    b0 = loop[:, 1] * chord
+    yc_mm = _naca_camber_line(x, 0.06, 0.4)[0] * chord
+    b = apply_le_te_thickness(x, b0.copy(), chord, 1.0, 2.0)
     i_le = int(np.argmin(x))
-    abs0 = np.abs(b0)
-    assert b[0] > 0.0
-    assert b[-1] < 0.0
-    lifted_upper = (np.arange(len(x)) <= i_le) & (x > 0.97) & (np.abs(b) > abs0 + 1e-9)
-    lifted_lower = (np.arange(len(x)) > i_le) & (x > 0.97) & (np.abs(b) > abs0 + 1e-9)
+    # TE tip (x=1, yc=0): upper positive, lower negative relative to camber line
+    assert b[0] - yc_mm[0] > 0.0
+    assert b[-1] - yc_mm[-1] < 0.0
+    db0 = np.abs(b0 - yc_mm)
+    db = np.abs(b - yc_mm)
+    lifted_upper = (np.arange(len(x)) <= i_le) & (x > 0.94) & (db > db0 + 1e-9)
+    lifted_lower = (np.arange(len(x)) > i_le) & (x > 0.94) & (db > db0 + 1e-9)
     assert lifted_upper.any() and lifted_lower.any()
-    assert float(np.min(b[lifted_upper])) > 0.0
-    assert float(np.max(b[lifted_lower])) < 0.0
+    assert float(np.min((b - yc_mm)[lifted_upper])) > 0.0
+    assert float(np.max((b - yc_mm)[lifted_lower])) < 0.0
+    # Lower surface in aft region must stay smooth (no sign jump from +yc to -te_half across y=0).
+    lower_aft = b[(np.arange(len(x)) > i_le) & (x > 0.90)]
+    assert float(np.max(np.abs(np.diff(lower_aft)))) < 0.12
+
+
+def test_le_te_preserves_camber_line():
+    """#116: LE/TE thickness scaling must preserve the camber line yc(x) to machine precision."""
+    from fansim.geometry.airfoil import _naca_camber_line
+
+    chord = 40.0
+    loop, x = naca4(0.08, 0.4, 0.08, 60, return_chord_param=True)
+    if np.allclose(loop[0], loop[-1]):
+        loop, x = loop[:-1], x[:-1]
+    b0 = loop[:, 1] * chord
+    yc_mm = _naca_camber_line(x, 0.08, 0.4)[0] * chord
+    i_le = int(np.argmin(x))
+
+    for le, te in ((1.5, 1.5), (1.0, 2.0), (0.6, 1.4)):
+        b = apply_le_te_thickness(x, b0.copy(), chord, le, te)
+        # Upper/lower pairs at identical x_param: midpoint must stay equal to yc_mm.
+        for k in range(1, i_le):
+            mid = 0.5 * (b[i_le - k] + b[i_le + k])
+            assert abs(mid - yc_mm[i_le - k]) < 1e-9, (
+                f"camber shifted at k={k} (x={x[i_le - k]:.3f}): mid={mid} vs yc={yc_mm[i_le - k]}"
+            )
+    # Also verify raw unstripped closed naca4 loop (n == 2 * i_le + 1) infers yc_mm accurately.
+    raw_loop, raw_x = naca4(0.08, 0.4, 0.08, 60, return_chord_param=True)
+    raw_b = apply_le_te_thickness(raw_x, raw_loop[:, 1] * chord, chord, 1.5, 1.5)
+    raw_yc = _naca_camber_line(raw_x, 0.08, 0.4)[0] * chord
+    raw_le = int(np.argmin(raw_x))
+    for k in range(1, raw_le):
+        assert abs(0.5 * (raw_b[raw_le - k] + raw_b[raw_le + k]) - raw_yc[raw_le - k]) < 1e-9
 
 
 def test_te_blunt_under_stagger_is_documented_experimental():
@@ -169,28 +207,28 @@ def test_uniform_thickness_tc_keeps_abs_mm():
 
 def test_blade_from_flat_uniform_mm_stations():
     th_r, th_m, th_t = uniform_thickness_tc(2.0, 18.0, 25.0, 38.0)
-    flat = dict(
-        n_blades=9,
-        chord_root=18,
-        chord_mid=25,
-        chord_tip=38,
-        stagger_root=40,
-        stagger_mid=30,
-        stagger_tip=22,
-        max_camber=0.05,
-        camber_pos=0.4,
-        sweep_mid=0,
-        sweep_tip=0,
-        skew_mid=0,
-        skew_tip=0,
-        lean_mid=0,
-        lean_tip=0,
-        thickness_root=th_r,
-        thickness_mid=th_m,
-        thickness_tip=th_t,
-        le_thick_scale=1.0,
-        te_thick_scale=1.0,
-    )
+    flat = {
+        "n_blades": 9,
+        "chord_root": 18,
+        "chord_mid": 25,
+        "chord_tip": 38,
+        "stagger_root": 40,
+        "stagger_mid": 30,
+        "stagger_tip": 22,
+        "max_camber": 0.05,
+        "camber_pos": 0.4,
+        "sweep_mid": 0,
+        "sweep_tip": 0,
+        "skew_mid": 0,
+        "skew_tip": 0,
+        "lean_mid": 0,
+        "lean_tip": 0,
+        "thickness_root": th_r,
+        "thickness_mid": th_m,
+        "thickness_tip": th_t,
+        "le_thick_scale": 1.0,
+        "te_thick_scale": 1.0,
+    }
     bp = blade_from_flat(flat, Features())
     abs_mm = [s.thickness * s.chord for s in sorted(bp.stations, key=lambda s: s.r_frac)]
     assert all(abs(a - 2.0) < 1e-9 for a in abs_mm)
