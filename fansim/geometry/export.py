@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
-import trimesh
 
 if TYPE_CHECKING:  # pragma: no cover
     import cadquery as cq
@@ -42,6 +41,8 @@ def sanitize_stl(path: str | Path) -> Path:
     triangle per blade. ``fuse_impeller`` already saw 1 B-rep solid; the needles only exist in the
     mesh. Leaving them makes trimesh report extra bodies and Assess refuse a printable impeller.
     """
+    import trimesh
+
     path = Path(path)
     mesh = trimesh.load(str(path), force="mesh", process=False)
     if not isinstance(mesh, trimesh.Trimesh) or len(mesh.faces) == 0:
@@ -91,6 +92,8 @@ def export_step(model: cq.Workplane, path: str | Path, *, unit: str = "MM") -> P
 
 def watertight_report(path: str | Path) -> WatertightReport:
     """Load an STL with trimesh and report watertightness / body count."""
+    import trimesh
+
     mesh = trimesh.load(str(path), force="mesh")
     bodies = mesh.split(only_watertight=False)
     lo, hi = mesh.bounds

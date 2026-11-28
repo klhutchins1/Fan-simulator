@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import optuna
-
 # Canonical Design lives in optimize/ (Cursor 09-11 move). Re-export for cockpit callers.
 from fansim.cfd.metrics import CFD_VERSION
 from fansim.optimize.design import Design
@@ -113,6 +111,8 @@ def stale_reason(extra: dict | None, params: dict | None) -> str:
 
 def load_designs(out_dir: str | Path, study_name: str | None = None) -> list[Design]:
     """Read all completed trials from a run directory's Optuna study + trial STLs."""
+    import optuna
+
     out_dir = Path(out_dir)
     storage = _study_storage(out_dir)
     if study_name is None:

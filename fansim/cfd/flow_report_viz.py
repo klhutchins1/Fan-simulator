@@ -7,7 +7,15 @@ import ctypes.util
 from pathlib import Path
 
 import numpy as np
-import pyvista as pv
+
+
+def __getattr__(name: str):
+    if name == "pv":
+        import pyvista as pv
+
+        globals()["pv"] = pv
+        return pv
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 from fansim.cfd.flow_report import (
     DEAD_FRAC_OF_MEAN,
@@ -61,6 +69,8 @@ def _osmesa_available() -> bool:
 
 
 def _plotter():
+    import pyvista as pv
+
     pl = pv.Plotter(off_screen=True, window_size=list(WINDOW))
     if type(pl.render_window).__name__ == "vtkOSOpenGLRenderWindow" and not _osmesa_available():
         # VTK 9.6 on headless Linux without X11, working EGL, or libOSMesa still returns an
