@@ -4,6 +4,8 @@ Owner: Kimball. Written by Claude, 2026-10-17. Rules for every agent are in [`AG
 The backlog behind this is in [`docs/roadmap.md`](../roadmap.md). This board is the *ordered* subset that gets us to
 a release.
 
+**Active v0.1.0 close-out epic:** [`docs/release/EPIC_V010.md`](EPIC_V010.md) · GitHub tracking issue [#169](https://github.com/klhutchins1/Fan-simulator/issues/169) (start here for the remaining pre-release checklist and frozen baseline).
+
 **Definition of done for v0.1.0 (Kimball, 2026-10-17):**
 - every surface we ship is validated against published data, with a pre-registered tolerance;
 - anything not validated is either fixed, hidden, or labelled "experimental, not validated" in both the UI and the
