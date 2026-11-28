@@ -60,75 +60,10 @@ else:
     from trame.widgets import vuetify3 as v3
 
 
-def setup_cror_tab(ctx: CockpitCtx) -> None:
-    """Init cror_* state and controllers (call before SinglePageLayout)."""
+
+def _bind_cror_viz_and_state(ctx: CockpitCtx) -> None:
     state, ctrl = ctx.state, ctx.ctrl
-    runs_root = ctx.runs_root
-    spawn_busy_ticker = ctx.spawn_busy_ticker
-
-    # ---- CROR tab (counter-rotating stacked rotors, §4.2) ---------------------------------
-    cror_pareto_store: list[dict] = []
-    cror_preview_stl = session_tmp("fansim_cror_preview.stl")  # per-cockpit (QA UI-30)
-
-    # Shared objects for render + callbacks (kept per-session).
-    ctx.cror_pareto_store = cror_pareto_store  # type: ignore[attr-defined]
-    ctx.cror_preview_stl = cror_preview_stl  # type: ignore[attr-defined]
-
-    state.cror_subtab = "design"
-    state.cror_export_items = []
-    state.cror_trials = 60
-    state.cror_rpm = 2000.0
-    state.cror_max_depth = 25.0
-    state.cror_cfd_top = 0
-    state.cror_opt_busy = False
-    state.cror_refine_busy = False
-    state.cror_thin_busy = False
-    state.cror_export_busy = False
-    state.cror_preview_busy = False
-    state.cror_geo_ready = False
-    # Duct-airflow viz (§17.3): rendered from the top CFD-refined design (dual counter-rotating
-    # AXIAL rotors, so the axial slices apply). |U|/p midplane + axial-Uz + streamlines.
-    state.cror_airflow_field = "U"
-    state.cror_airflow_img_uri = ""
-    state.cror_airflow_caption = "Run CFD refine to see duct airflow for the top design."
-    state.cror_airflow_busy = False
-    state.cror_sel_idx = None  # previous-runs dropdown (loads by click index)
-    state.cror_trial_items = design_dropdown_items(cror_pareto_store, by_index=True)
-    state.cror_msg = ""
-    state.cror_readout = [
-        (
-            "CROR: edit front/rear blades, Preview the stack, Thin to ≤25 mm, Optimize (BEMT proxy), "
-            "CFD refine top-N. Relative noise only. "
-            f"{EXPERIMENTAL_LABEL}"
-        ),
-    ]
-    # Design defaults (§14.5)
-    _c0 = CrorParams()
-    state.cror_hub_r = float(_c0.front.hub_radius)
-    state.cror_tip_r = float(_c0.front.tip_radius)
-    state.cror_gap = float(_c0.axial_gap_mm)
-    state.cror_f_n = int(_c0.front.n_blades)
-    state.cror_r_n = int(_c0.rear.n_blades)
-    from fansim.cockpit.blade_editor import init_shape_state
-    from fansim.cror.params_io import cror_flat_from_params
-
-    _flat0 = cror_flat_from_params(_c0)
-    state.cror_f_chord_root = float(_flat0["f_chord_root"])
-    state.cror_f_chord_mid = float(_flat0["f_chord_mid"])
-    state.cror_f_chord_tip = float(_flat0["f_chord_tip"])
-    state.cror_f_stagger = float(_flat0["f_stagger"])
-    state.cror_r_chord_root = float(_flat0["r_chord_root"])
-    state.cror_r_chord_mid = float(_flat0["r_chord_mid"])
-    state.cror_r_chord_tip = float(_flat0["r_chord_tip"])
-    state.cror_r_stagger = float(_flat0["r_stagger"])
-    # Map f_/r_ shape keys onto cror_f_ / cror_r_ state prefixes.
-    init_shape_state(state, "cror_f_", {k[2:]: v for k, v in _flat0.items() if k.startswith("f_")})
-    init_shape_state(state, "cror_r_", {k[2:]: v for k, v in _flat0.items() if k.startswith("r_")})
-    _cror_runs = runs_root if runs_root.exists() else Path("runs")
-    _cror_last = latest_cror_opt_dir(_cror_runs)
-    state.cror_last_opt = str(_cror_last) if _cror_last else ""
-    cror_pareto_store.extend(load_all_cror_pareto(_cror_runs))
-    state.cror_has_front = bool(cror_pareto_store) or bool(_cror_last)
+    cror_pareto_store = ctx.cror_pareto_store  # type: ignore[attr-defined]
 
     def _refresh_cror_figure():
         if hasattr(ctrl, "cror_fig_update"):
@@ -233,9 +168,24 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
         except Exception:  # noqa: BLE001, S110
             pass
 
+
+    ctx._refresh_cror_figure = _refresh_cror_figure  # type: ignore[attr-defined]
+    ctx._refresh_cror_export_items = _refresh_cror_export_items  # type: ignore[attr-defined]
+    ctx._render_cror_airflow = _render_cror_airflow  # type: ignore[attr-defined]
+    ctx._cror_busy = _cror_busy  # type: ignore[attr-defined]
+    ctx._draw_cror = _draw_cror  # type: ignore[attr-defined]
+
+
+def _bind_cror_actions(ctx: CockpitCtx) -> None:
+    state = ctx.state
+    runs_root = ctx.runs_root
+    spawn_busy_ticker = ctx.spawn_busy_ticker
+    cror_pareto_store = ctx.cror_pareto_store  # type: ignore[attr-defined]
+    cror_preview_stl = ctx.cror_preview_stl  # type: ignore[attr-defined]
+
     def preview_cror(**_):
         """Build thinned CROR stack STL and show it in the tab plotter (§14.6)."""
-        if _cror_busy() or asynchronous is None:
+        if ctx._cror_busy() or asynchronous is None:
             return
 
         async def task():
@@ -254,7 +204,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
                     None,
                     lambda: export_cror_stl(params, cror_preview_stl),
                 )
-                _draw_cror(cror_preview_stl)
+                ctx._draw_cror(cror_preview_stl)
                 depth = cror_stack_depth_mm(params)
                 nz = estimate_cror_noise(params, float(state.cror_rpm))
                 state.cror_geo_ready = True
@@ -311,7 +261,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
         return thin_cror_for_frame(raw, max_depth_mm=float(state.cror_max_depth))
 
     def thin_cror_now():
-        if _cror_busy() or asynchronous is None:
+        if ctx._cror_busy() or asynchronous is None:
             return
 
         async def task():
@@ -357,7 +307,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
         asynchronous.create_task(task())
 
     def optimize_cror():
-        if _cror_busy() or asynchronous is None:
+        if ctx._cror_busy() or asynchronous is None:
             return
         try:
             trials = max(20, int(float(state.cror_trials)))
@@ -405,7 +355,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
             state.cror_has_front = True
             cror_pareto_store.clear()
             cror_pareto_store.extend(load_all_cror_pareto(root))
-            _refresh_cror_figure()
+            ctx._refresh_cror_figure()
             top = pareto[0] if pareto else None
             extra = ""
             if top:
@@ -425,7 +375,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
         asynchronous.create_task(task())
 
     def refine_cror_cfd():
-        if _cror_busy() or asynchronous is None:
+        if ctx._cror_busy() or asynchronous is None:
             return
         try:
             n_top = int(float(state.cror_cfd_top))
@@ -491,7 +441,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
             # Show the airflow for the best refined (feasible) design.
             best = next((r for r in rows if r.get("feasible")), rows[0] if rows else None)
             if best and best.get("workdir"):
-                _render_cror_airflow(best["workdir"])
+                ctx._render_cror_airflow(best["workdir"])
             state.flush()
 
         asynchronous.create_task(task())
@@ -536,7 +486,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
         state.flush()
 
     def export_cror_now():
-        if _cror_busy() or asynchronous is None:
+        if ctx._cror_busy() or asynchronous is None:
             return
 
         async def task():
@@ -563,7 +513,7 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
                 state.cror_msg = (
                     f"Saved {out.resolve()} (depth {depth:.1f} mm). {EXPERIMENTAL_LABEL}"
                 )
-                _refresh_cror_export_items()
+                ctx._refresh_cror_export_items()
             except Exception as exc:  # noqa: BLE001
                 state.cror_msg = f"⚠ CROR export failed: {type(exc).__name__}: {exc}"
             finally:
@@ -582,340 +532,406 @@ def setup_cror_tab(ctx: CockpitCtx) -> None:
     ctx.load_cror_row = load_cror_row  # type: ignore[attr-defined]
 
 
-def render_cror_tab(ctx: CockpitCtx) -> None:
-    """Build CROR UI (call inside layout content)."""
-    if html is None or v3 is None or plotly_widgets is None or plotter_ui is None:
-        return
 
-    ctrl = ctx.ctrl
-    cror_pareto_store = ctx.cror_pareto_store  # set by setup_cror_tab
-    cror_plotter = ensure_plotter(ctx, "cror_plotter")
+def setup_cror_tab(ctx: CockpitCtx) -> None:
+    """Init cror_* state and controllers (call before SinglePageLayout)."""
+    """Init cror_* state and controllers (call before SinglePageLayout)."""
+    state, _ctrl = ctx.state, ctx.ctrl
+    runs_root = ctx.runs_root
 
-    def _slider(
-        label: str,
-        model: str,
-        mn: float,
-        mx: float,
-        step: float,
-        disabled=None,
-        unit: str = "",
-        simple_label: str | None = None,
-        simple_unit: str | None = None,
-        **_kw,
-    ):
-        # Shared slider: label + exact value + unit + hover tooltip/diagram always wired.
-        _shared_slider(
-            label,
-            model,
-            mn,
-            mx,
-            step,
-            disabled=disabled,
-            unit=unit,
-            simple_label=simple_label,
-            simple_unit=simple_unit,
-        )
+    # ---- CROR tab (counter-rotating stacked rotors, §4.2) ---------------------------------
+    cror_pareto_store: list[dict] = []
+    cror_preview_stl = session_tmp("fansim_cror_preview.stl")  # per-cockpit (QA UI-30)
 
+    # Shared objects for render + callbacks (kept per-session).
+    ctx.cror_pareto_store = cror_pareto_store  # type: ignore[attr-defined]
+    ctx.cror_preview_stl = cror_preview_stl  # type: ignore[attr-defined]
+
+    state.cror_subtab = "design"
+    state.cror_export_items = []
+    state.cror_trials = 60
+    state.cror_rpm = 2000.0
+    state.cror_max_depth = 25.0
+    state.cror_cfd_top = 0
+    state.cror_opt_busy = False
+    state.cror_refine_busy = False
+    state.cror_thin_busy = False
+    state.cror_export_busy = False
+    state.cror_preview_busy = False
+    state.cror_geo_ready = False
+    # Duct-airflow viz (§17.3): rendered from the top CFD-refined design (dual counter-rotating
+    # AXIAL rotors, so the axial slices apply). |U|/p midplane + axial-Uz + streamlines.
+    state.cror_airflow_field = "U"
+    state.cror_airflow_img_uri = ""
+    state.cror_airflow_caption = "Run CFD refine to see duct airflow for the top design."
+    state.cror_airflow_busy = False
+    state.cror_sel_idx = None  # previous-runs dropdown (loads by click index)
+    state.cror_trial_items = design_dropdown_items(cror_pareto_store, by_index=True)
+    state.cror_msg = ""
+    state.cror_readout = [
+        (
+            "CROR: edit front/rear blades, Preview the stack, Thin to ≤25 mm, Optimize (BEMT proxy), "
+            "CFD refine top-N. Relative noise only. "
+            f"{EXPERIMENTAL_LABEL}"
+        ),
+    ]
+    # Design defaults (§14.5)
+    _c0 = CrorParams()
+    state.cror_hub_r = float(_c0.front.hub_radius)
+    state.cror_tip_r = float(_c0.front.tip_radius)
+    state.cror_gap = float(_c0.axial_gap_mm)
+    state.cror_f_n = int(_c0.front.n_blades)
+    state.cror_r_n = int(_c0.rear.n_blades)
+    from fansim.cockpit.blade_editor import init_shape_state
+    from fansim.cror.params_io import cror_flat_from_params
+
+    _flat0 = cror_flat_from_params(_c0)
+    state.cror_f_chord_root = float(_flat0["f_chord_root"])
+    state.cror_f_chord_mid = float(_flat0["f_chord_mid"])
+    state.cror_f_chord_tip = float(_flat0["f_chord_tip"])
+    state.cror_f_stagger = float(_flat0["f_stagger"])
+    state.cror_r_chord_root = float(_flat0["r_chord_root"])
+    state.cror_r_chord_mid = float(_flat0["r_chord_mid"])
+    state.cror_r_chord_tip = float(_flat0["r_chord_tip"])
+    state.cror_r_stagger = float(_flat0["r_stagger"])
+    # Map f_/r_ shape keys onto cror_f_ / cror_r_ state prefixes.
+    init_shape_state(state, "cror_f_", {k[2:]: v for k, v in _flat0.items() if k.startswith("f_")})
+    init_shape_state(state, "cror_r_", {k[2:]: v for k, v in _flat0.items() if k.startswith("r_")})
+    _cror_runs = runs_root if runs_root.exists() else Path("runs")
+    _cror_last = latest_cror_opt_dir(_cror_runs)
+    state.cror_last_opt = str(_cror_last) if _cror_last else ""
+    cror_pareto_store.extend(load_all_cror_pareto(_cror_runs))
+    state.cror_has_front = bool(cror_pareto_store) or bool(_cror_last)
+
+    _bind_cror_viz_and_state(ctx)
+    _bind_cror_actions(ctx)
+
+
+def _cror_slider(label: str, model: str, mn: float, mx: float, step: float,
+                 disabled=None, unit: str = "", simple_label: str | None = None,
+                 simple_unit: str | None = None, **_kw) -> None:
+    _shared_slider(label, model, mn, mx, step, disabled=disabled, unit=unit,
+                   simple_label=simple_label, simple_unit=simple_unit)
+
+
+def _render_cror_design(ctx: CockpitCtx) -> None:
+    _slider = _cror_slider
     _cror_busy_expr = (
         "cror_preview_busy || cror_opt_busy || cror_refine_busy || "
         "cror_thin_busy || cror_export_busy"
     )
+    with v3.VCard(classes="mb-2 pa-3"):
+        html.Div(
+            "Counter-rotating stacked rotors — Design + BEMT proxy Optimize",
+            classes="text-subtitle-2 mb-1",
+        )
+        html.Div(
+            "Edit front/rear planform, then Preview / Export / Optimize. "
+            "Optimize is BEMT-proxy NSGA (not dual-MRF). Relative noise only. "
+            f"{EXPERIMENTAL_LABEL}",
+            classes="text-caption mb-2",
+            style="white-space: pre-line",
+        )
+        _slider("Hub R", "cror_hub_r", 14.0, 28.0, 0.5, unit="mm")
+        _slider("Tip R", "cror_tip_r", 45.0, 58.0, 0.5, unit="mm")
+        _slider("Axial gap", "cror_gap", 2.0, 12.0, 0.5, unit="mm")
+        with v3.VExpansionPanels(variant="accordion", class_="mb-2"):
+            with v3.VExpansionPanel(title="Front rotor"):
+                with v3.VExpansionPanelText():
+                    _slider("Front blades", "cror_f_n", 5, 11, 1)
+                    _slider(
+                        "Chord root", "cror_f_chord_root", 8.0, 20.0, 0.5, unit="mm")
+                    _slider(
+                        "Chord mid", "cror_f_chord_mid", 8.0, 20.0, 0.5, unit="mm")
+                    _slider(
+                        "Chord tip", "cror_f_chord_tip", 6.0, 16.0, 0.5, unit="mm")
+                    _slider(
+                        "Stagger", "cror_f_stagger", 25.0, 50.0, 1.0, unit="deg")
+                    from fansim.cockpit.blade_editor import render_shape_panels
+                    from fansim.cockpit.fan_widgets import help_switch as _hs
+                    render_shape_panels(
+                        prefix="cror_f_",
+                        slider=_slider,
+                        help_switch=_hs,
+                        v3=v3,
+                        html=html,
+                        title_thick="Front thickness/camber",
+                        title_3d="Front 3-D",
+                        title_tip="Front tip",
+                    )
+            with v3.VExpansionPanel(title="Rear rotor"):
+                with v3.VExpansionPanelText():
+                    _slider("Rear blades", "cror_r_n", 5, 13, 1)
+                    _slider(
+                        "Chord root", "cror_r_chord_root", 8.0, 20.0, 0.5, unit="mm")
+                    _slider(
+                        "Chord mid", "cror_r_chord_mid", 8.0, 20.0, 0.5, unit="mm")
+                    _slider(
+                        "Chord tip", "cror_r_chord_tip", 6.0, 16.0, 0.5, unit="mm")
+                    _slider(
+                        "Stagger", "cror_r_stagger", 25.0, 50.0, 1.0, unit="deg")
+                    from fansim.cockpit.blade_editor import render_shape_panels
+                    from fansim.cockpit.fan_widgets import help_switch as _hs
+                    render_shape_panels(
+                        prefix="cror_r_",
+                        slider=_slider,
+                        help_switch=_hs,
+                        v3=v3,
+                        html=html,
+                        title_thick="Rear thickness/camber",
+                        title_3d="Rear 3-D",
+                        title_tip="Rear tip",
+                    )
+        with v3.VTooltip(
+            location="end",
+            open_delay=150,
+            max_width=360,
+            text="Shrinks front/rear blade chord and axial gap so the stacked rotor depth fits Max depth mm below.",
+        ):
+            with v3.Template(v_slot_activator="{ props }"):
+                v3.VBtn(
+                    "Thin to depth",
+                    v_bind="props",
+                    size="small",
+                    variant="tonal",
+                    color="primary",
+                    click=(ctx.thin_cror_now,),
+                    classes="mb-2",
+                    loading=("cror_thin_busy",),
+                    disabled=(_cror_busy_expr,),
+                )
+        render_action_row(
+            v3,
+            {
+                "preview": {
+                    "label": "Preview",
+                    "size": "small",
+                    "variant": "tonal",
+                    "color": "primary",
+                    "click": (ctx.preview_cror,),
+                    "loading": ("cror_preview_busy",),
+                    "disabled": (_cror_busy_expr,),
+                },
+                "export": {
+                    "label": "Export STL",
+                    "size": "small",
+                    "variant": "tonal",
+                    "color": "primary",
+                    "click": (ctx.export_cror_now,),
+                    "loading": ("cror_export_busy",),
+                    "disabled": (_cror_busy_expr,),
+                },
+                "optimize": {
+                    "label": "Optimize",
+                    "color": "success",
+                    "size": "small",
+                    "click": (ctx.optimize_cror,),
+                    "loading": ("cror_opt_busy",),
+                    "disabled": (_cror_busy_expr,),
+                },
+            },
+        )
+        html.Div(
+            "{{ cror_msg }}",
+            classes="text-caption mt-2",
+            style="white-space: pre-line",
+        )
+        ctx.busy_bar(
+            "cror_preview_busy",
+            "cror_opt_busy",
+            "cror_refine_busy",
+            "cror_thin_busy",
+            "cror_export_busy",
+            color="success",
+        )
+    with v3.VCard(classes="mb-2 pa-3"):
+        html.Div(
+            "Optimize (BEMT proxy NSGA)",
+            classes="text-subtitle-2 mb-1",
+        )
+        html.Div(
+            "Screen counter-rotating stacks for thrust, efficiency, and relative "
+            "noise. Optional CFD refine scores top-N finalists (dual-MRF). "
+            f"{EXPERIMENTAL_LABEL}",
+            classes="text-caption mb-2",
+            style="white-space: pre-line",
+        )
+        with v3.VRow(no_gutters=True, classes="align-center"):
+            with v3.VCol(cols=4, classes="pr-1"):
+                v3.VTextField(
+                    label="Trials",
+                    v_model=("cror_trials",),
+                    type="number",
+                    density="compact",
+                    variant="outlined",
+                    hide_details=True,
+                )
+            with v3.VCol(cols=4, classes="px-1"):
+                v3.VTextField(
+                    label="RPM",
+                    v_model=("cror_rpm",),
+                    type="number",
+                    density="compact",
+                    variant="outlined",
+                    hide_details=True,
+                )
+            with v3.VCol(cols=4, classes="pl-1"):
+                v3.VTextField(
+                    label="Max depth mm",
+                    v_model=("cror_max_depth",),
+                    type="number",
+                    density="compact",
+                    variant="outlined",
+                    hide_details=True,
+                )
+        with v3.VRow(no_gutters=True, classes="mt-2 align-center"):
+            with v3.VCol(cols=5, classes="pr-1"):
+                v3.VTextField(
+                    label="CFD refine top N",
+                    v_model=("cror_cfd_top",),
+                    type="number",
+                    density="compact",
+                    variant="outlined",
+                    hide_details=True,
+                )
+            with v3.VCol(cols=7, classes="pl-1"):
+                v3.VBtn(
+                    "CFD refine",
+                    color="warning",
+                    variant="tonal",  # solid orange looked enabled while disabled (§23.26)
+                    size="small",
+                    block=True,
+                    click=(ctx.refine_cror_cfd,),
+                    loading=("cror_refine_busy",),
+                    disabled=(
+                        f"{_cror_busy_expr} || !cror_has_front || !(cror_cfd_top > 0)",
+                    ),
+                )
 
-    # ---- CROR TAB -----------------------------------------------------------------
+
+
+def _render_cror_results(ctx: CockpitCtx) -> None:
+    ctrl = ctx.ctrl
+    cror_pareto_store = ctx.cror_pareto_store  # type: ignore[attr-defined]
+    with v3.VCard(classes="pa-2 mb-2"):
+        v3.VSelect(
+            label="Previous runs",
+            v_model=("cror_sel_idx",),
+            items=("cror_trial_items",),
+            density="compact",
+            variant="outlined",
+            hide_details=True,
+            update_modelValue=(ctx.load_cror_row, "[$event]"),
+        )
+    with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
+        cror_fig_widget = plotly_widgets.Figure(
+            figure=cror_scatter_figure(cror_pareto_store),
+            click=(
+                ctx.load_cror_row,
+                "[$event?.points?.[0]?.customdata]",
+            ),
+            style="width:100%;",
+        )
+        ctrl.cror_fig_update = cror_fig_widget.update
+
+
+
+def _render_cror_library(ctx: CockpitCtx) -> None:
+    with v3.VCard(classes="pa-2 mb-2"):
+        v3.VSelect(
+            label="Previous runs",
+            v_model=("cror_sel_idx",),
+            items=("cror_trial_items",),
+            density="compact",
+            variant="outlined",
+            hide_details=True,
+            update_modelValue=(ctx.load_cror_row, "[$event]"),
+        )
+    with v3.VCard(classes="pa-2"):
+        html.Div(
+            "Exported CROR files under exports/ (cror*).",
+            classes="text-caption mb-2",
+        )
+        with v3.VList(density="compact", lines="one"):
+            with v3.VListItem(v_for="it in cror_export_items", key="it.value"):
+                v3.VListItemTitle("{{ it.title }}")
+        html.Div(
+            "No exports yet — use Export STL on Design.",
+            classes="text-caption text-medium-emphasis",
+            v_if="!cror_export_items.length",
+        )
+
+
+
+def _render_cror_right_col(ctx: CockpitCtx, cror_plotter) -> None:
+    ctrl = ctx.ctrl
+    with v3.VCol(cols=7):
+        with v3.VCard(classes="mb-2 pa-3"):
+            html.Div(
+                "{{ line }}",
+                v_for="line in cror_readout",
+                classes="text-body-2",
+            )
+        with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
+            html.Div(
+                "3-D preview appears here after you press Preview.",
+                classes="text-caption text-medium-emphasis px-3 pt-2",
+                v_show="!cror_geo_ready",
+            )
+            cror_view = plotter_ui(cror_plotter)
+            ctrl.cror_view_update = cror_view.update
+        with v3.VCard(classes="mb-2 pa-2", v_show="cror_subtab === 'results'"):
+            html.Div(
+                "Duct airflow — top CFD-refined design",
+                classes="text-subtitle-2 mb-1",
+            )
+            html.Div(
+                "From the best design of the last CFD refine (dual-MRF). |U|/pressure "
+                "midplane; axial Uz (blue = delivery, red = reverse); streamlines by |U|. "
+                "Counter-rotating rotors cancel much of the net swirl.",
+                classes="text-caption text-medium-emphasis mb-2",
+            )
+            with v3.VBtnToggle(
+                v_model=("cror_airflow_field",),
+                density="compact",
+                color="primary",
+                classes="mb-2",
+                mandatory=True,
+            ):
+                v3.VBtn("|U| midplane", value="U", size="small")
+                v3.VBtn("pressure midplane", value="p", size="small")
+                v3.VBtn("axial Uz", value="uz", size="small")
+                v3.VBtn("streamlines", value="stream", size="small")
+            html.Div(
+                "{{ cror_airflow_caption }}",
+                classes="text-caption text-medium-emphasis mb-1",
+            )
+            html.Img(
+                src=("cror_airflow_img_uri",),
+                v_show="cror_airflow_img_uri",
+                style=(
+                    "width:100%;max-height:520px;object-fit:contain;"
+                    "display:block;background:#fafafa;border-radius:4px;"
+                ),
+            )
+
+
+def render_cror_tab(ctx: CockpitCtx) -> None:
+    """Build CROR UI (call inside layout content)."""
+    cror_plotter = ensure_plotter(ctx, "cror_plotter")
+    if html is None or v3 is None or plotly_widgets is None or plotter_ui is None:
+        return
+
+    cror_plotter = ensure_plotter(ctx, "cror_plotter")
+
     with html.Div(v_show="active_tab === 'cror'"):
         with v3.VRow(no_gutters=True):
             with v3.VCol(cols=5, classes="pr-2"):
 
-                def _cror_design():
-                    with v3.VCard(classes="mb-2 pa-3"):
-                        html.Div(
-                            "Counter-rotating stacked rotors — Design + BEMT proxy Optimize",
-                            classes="text-subtitle-2 mb-1",
-                        )
-                        html.Div(
-                            "Edit front/rear planform, then Preview / Export / Optimize. "
-                            "Optimize is BEMT-proxy NSGA (not dual-MRF). Relative noise only. "
-                            f"{EXPERIMENTAL_LABEL}",
-                            classes="text-caption mb-2",
-                            style="white-space: pre-line",
-                        )
-                        _slider("Hub R", "cror_hub_r", 14.0, 28.0, 0.5, unit="mm")
-                        _slider("Tip R", "cror_tip_r", 45.0, 58.0, 0.5, unit="mm")
-                        _slider("Axial gap", "cror_gap", 2.0, 12.0, 0.5, unit="mm")
-                        with v3.VExpansionPanels(variant="accordion", class_="mb-2"):
-                            with v3.VExpansionPanel(title="Front rotor"):
-                                with v3.VExpansionPanelText():
-                                    _slider("Front blades", "cror_f_n", 5, 11, 1)
-                                    _slider(
-                                        "Chord root", "cror_f_chord_root", 8.0, 20.0, 0.5, unit="mm")
-                                    _slider(
-                                        "Chord mid", "cror_f_chord_mid", 8.0, 20.0, 0.5, unit="mm")
-                                    _slider(
-                                        "Chord tip", "cror_f_chord_tip", 6.0, 16.0, 0.5, unit="mm")
-                                    _slider(
-                                        "Stagger", "cror_f_stagger", 25.0, 50.0, 1.0, unit="deg")
-                                    from fansim.cockpit.blade_editor import render_shape_panels
-                                    from fansim.cockpit.fan_widgets import help_switch as _hs
-                                    render_shape_panels(
-                                        prefix="cror_f_",
-                                        slider=_slider,
-                                        help_switch=_hs,
-                                        v3=v3,
-                                        html=html,
-                                        title_thick="Front thickness/camber",
-                                        title_3d="Front 3-D",
-                                        title_tip="Front tip",
-                                    )
-                            with v3.VExpansionPanel(title="Rear rotor"):
-                                with v3.VExpansionPanelText():
-                                    _slider("Rear blades", "cror_r_n", 5, 13, 1)
-                                    _slider(
-                                        "Chord root", "cror_r_chord_root", 8.0, 20.0, 0.5, unit="mm")
-                                    _slider(
-                                        "Chord mid", "cror_r_chord_mid", 8.0, 20.0, 0.5, unit="mm")
-                                    _slider(
-                                        "Chord tip", "cror_r_chord_tip", 6.0, 16.0, 0.5, unit="mm")
-                                    _slider(
-                                        "Stagger", "cror_r_stagger", 25.0, 50.0, 1.0, unit="deg")
-                                    from fansim.cockpit.blade_editor import render_shape_panels
-                                    from fansim.cockpit.fan_widgets import help_switch as _hs
-                                    render_shape_panels(
-                                        prefix="cror_r_",
-                                        slider=_slider,
-                                        help_switch=_hs,
-                                        v3=v3,
-                                        html=html,
-                                        title_thick="Rear thickness/camber",
-                                        title_3d="Rear 3-D",
-                                        title_tip="Rear tip",
-                                    )
-                        with v3.VTooltip(
-                            location="end",
-                            open_delay=150,
-                            max_width=360,
-                            text="Shrinks front/rear blade chord and axial gap so the stacked rotor depth fits Max depth mm below.",
-                        ):
-                            with v3.Template(v_slot_activator="{ props }"):
-                                v3.VBtn(
-                                    "Thin to depth",
-                                    v_bind="props",
-                                    size="small",
-                                    variant="tonal",
-                                    color="primary",
-                                    click=(ctx.thin_cror_now,),
-                                    classes="mb-2",
-                                    loading=("cror_thin_busy",),
-                                    disabled=(_cror_busy_expr,),
-                                )
-                        render_action_row(
-                            v3,
-                            {
-                                "preview": {
-                                    "label": "Preview",
-                                    "size": "small",
-                                    "variant": "tonal",
-                                    "color": "primary",
-                                    "click": (ctx.preview_cror,),
-                                    "loading": ("cror_preview_busy",),
-                                    "disabled": (_cror_busy_expr,),
-                                },
-                                "export": {
-                                    "label": "Export STL",
-                                    "size": "small",
-                                    "variant": "tonal",
-                                    "color": "primary",
-                                    "click": (ctx.export_cror_now,),
-                                    "loading": ("cror_export_busy",),
-                                    "disabled": (_cror_busy_expr,),
-                                },
-                                "optimize": {
-                                    "label": "Optimize",
-                                    "color": "success",
-                                    "size": "small",
-                                    "click": (ctx.optimize_cror,),
-                                    "loading": ("cror_opt_busy",),
-                                    "disabled": (_cror_busy_expr,),
-                                },
-                            },
-                        )
-                        html.Div(
-                            "{{ cror_msg }}",
-                            classes="text-caption mt-2",
-                            style="white-space: pre-line",
-                        )
-                        ctx.busy_bar(
-                            "cror_preview_busy",
-                            "cror_opt_busy",
-                            "cror_refine_busy",
-                            "cror_thin_busy",
-                            "cror_export_busy",
-                            color="success",
-                        )
-                    with v3.VCard(classes="mb-2 pa-3"):
-                        html.Div(
-                            "Optimize (BEMT proxy NSGA)",
-                            classes="text-subtitle-2 mb-1",
-                        )
-                        html.Div(
-                            "Screen counter-rotating stacks for thrust, efficiency, and relative "
-                            "noise. Optional CFD refine scores top-N finalists (dual-MRF). "
-                            f"{EXPERIMENTAL_LABEL}",
-                            classes="text-caption mb-2",
-                            style="white-space: pre-line",
-                        )
-                        with v3.VRow(no_gutters=True, classes="align-center"):
-                            with v3.VCol(cols=4, classes="pr-1"):
-                                v3.VTextField(
-                                    label="Trials",
-                                    v_model=("cror_trials",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                            with v3.VCol(cols=4, classes="px-1"):
-                                v3.VTextField(
-                                    label="RPM",
-                                    v_model=("cror_rpm",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                            with v3.VCol(cols=4, classes="pl-1"):
-                                v3.VTextField(
-                                    label="Max depth mm",
-                                    v_model=("cror_max_depth",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                        with v3.VRow(no_gutters=True, classes="mt-2 align-center"):
-                            with v3.VCol(cols=5, classes="pr-1"):
-                                v3.VTextField(
-                                    label="CFD refine top N",
-                                    v_model=("cror_cfd_top",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                            with v3.VCol(cols=7, classes="pl-1"):
-                                v3.VBtn(
-                                    "CFD refine",
-                                    color="warning",
-                                    variant="tonal",  # solid orange looked enabled while disabled (§23.26)
-                                    size="small",
-                                    block=True,
-                                    click=(ctx.refine_cror_cfd,),
-                                    loading=("cror_refine_busy",),
-                                    disabled=(
-                                        f"{_cror_busy_expr} || !cror_has_front || !(cror_cfd_top > 0)",
-                                    ),
-                                )
-
-                def _cror_results():
-                    with v3.VCard(classes="pa-2 mb-2"):
-                        v3.VSelect(
-                            label="Previous runs",
-                            v_model=("cror_sel_idx",),
-                            items=("cror_trial_items",),
-                            density="compact",
-                            variant="outlined",
-                            hide_details=True,
-                            update_modelValue=(ctx.load_cror_row, "[$event]"),
-                        )
-                    with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
-                        cror_fig_widget = plotly_widgets.Figure(
-                            figure=cror_scatter_figure(cror_pareto_store),
-                            click=(
-                                ctx.load_cror_row,
-                                "[$event?.points?.[0]?.customdata]",
-                            ),
-                            style="width:100%;",
-                        )
-                        ctrl.cror_fig_update = cror_fig_widget.update
-
-                def _cror_library():
-                    with v3.VCard(classes="pa-2 mb-2"):
-                        v3.VSelect(
-                            label="Previous runs",
-                            v_model=("cror_sel_idx",),
-                            items=("cror_trial_items",),
-                            density="compact",
-                            variant="outlined",
-                            hide_details=True,
-                            update_modelValue=(ctx.load_cror_row, "[$event]"),
-                        )
-                    with v3.VCard(classes="pa-2"):
-                        html.Div(
-                            "Exported CROR files under exports/ (cror*).",
-                            classes="text-caption mb-2",
-                        )
-                        with v3.VList(density="compact", lines="one"):
-                            with v3.VListItem(v_for="it in cror_export_items", key="it.value"):
-                                v3.VListItemTitle("{{ it.title }}")
-                        html.Div(
-                            "No exports yet — use Export STL on Design.",
-                            classes="text-caption text-medium-emphasis",
-                            v_if="!cror_export_items.length",
-                        )
-
                 render_left_shell(
-                    v3,
-                    html,
-                    state_key="cror_subtab",
-                    design=_cror_design,
-                    results=_cror_results,
-                    library=_cror_library,
+                    v3, html, state_key="cror_subtab",
+                    design=lambda: _render_cror_design(ctx),
+                    results=lambda: _render_cror_results(ctx),
+                    library=lambda: _render_cror_library(ctx),
                 )
-            with v3.VCol(cols=7):
-                with v3.VCard(classes="mb-2 pa-3"):
-                    html.Div(
-                        "{{ line }}",
-                        v_for="line in cror_readout",
-                        classes="text-body-2",
-                    )
-                with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
-                    html.Div(
-                        "3-D preview appears here after you press Preview.",
-                        classes="text-caption text-medium-emphasis px-3 pt-2",
-                        v_show="!cror_geo_ready",
-                    )
-                    cror_view = plotter_ui(cror_plotter)
-                    ctrl.cror_view_update = cror_view.update
-                with v3.VCard(classes="mb-2 pa-2", v_show="cror_subtab === 'results'"):
-                    html.Div(
-                        "Duct airflow — top CFD-refined design",
-                        classes="text-subtitle-2 mb-1",
-                    )
-                    html.Div(
-                        "From the best design of the last CFD refine (dual-MRF). |U|/pressure "
-                        "midplane; axial Uz (blue = delivery, red = reverse); streamlines by |U|. "
-                        "Counter-rotating rotors cancel much of the net swirl.",
-                        classes="text-caption text-medium-emphasis mb-2",
-                    )
-                    with v3.VBtnToggle(
-                        v_model=("cror_airflow_field",),
-                        density="compact",
-                        color="primary",
-                        classes="mb-2",
-                        mandatory=True,
-                    ):
-                        v3.VBtn("|U| midplane", value="U", size="small")
-                        v3.VBtn("pressure midplane", value="p", size="small")
-                        v3.VBtn("axial Uz", value="uz", size="small")
-                        v3.VBtn("streamlines", value="stream", size="small")
-                    html.Div(
-                        "{{ cror_airflow_caption }}",
-                        classes="text-caption text-medium-emphasis mb-1",
-                    )
-                    html.Img(
-                        src=("cror_airflow_img_uri",),
-                        v_show="cror_airflow_img_uri",
-                        style=(
-                            "width:100%;max-height:520px;object-fit:contain;"
-                            "display:block;background:#fafafa;border-radius:4px;"
-                        ),
-                    )
+            _render_cror_right_col(ctx, cror_plotter)
