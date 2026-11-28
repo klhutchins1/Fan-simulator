@@ -57,4 +57,16 @@
 
 ## 3. Results
 
-*(To be recorded after implementation and verification.)*
+- **Verdict:** **PASS (6/6: S1–S6 all PASS)**
+- **Date evaluated:** 2026-11-28 (`cursor/epic-1c-structural`, pre-registered at `dff21b0`)
+
+### Summary by Criterion
+
+| ID | Verdict | Observed Evidence |
+|---|---|---|
+| **S1** | **PASS** | Prismatic blades match $\tfrac{1}{2}\rho\omega^2(r_{\text{tip}}^2 - r_{\text{hub}}^2)$ to `rel <= 1e-9`; outward-flaring and inward-tapering blades match 200,000-point trapezoidal integration to `rel <= 1e-6`; Stock v3 (`a12x25`) PETG centrifugal root stress rises `0.069858 -> 0.100482 MPa` (**1.4384×**, within pre-registered `1.40x–1.55x`; SF `429.4 -> 298.6`). |
+| **S2** | **PASS** | Prismatic plate & NACA beams match closed-form $M c / I$ to `rel <= 1e-9`; linearly tapered plate blade matches exact $\Delta P L^2(c_r/6 + c_t/3) / Z_{\text{root}}$ to `rel <= 1e-9`; Stock v3 (`a12x25`, plate, 10 Pa) root bending stress rises `0.005351 -> 0.008018 MPa` (**1.4983×**, within pre-registered `1.45x–1.65x`; SF `5606.2 -> 3741.8`). |
+| **S3** | **PASS** | `NACA_AREA_K = 0.6808833333` and `NACA_INERTIA_K = 0.4706266577` match Green's-theorem integration of `airfoil.naca4(0, 0.4, 0.10, n_points=400)` (`0.680876`, `0.470614`, rel `< 3e-5`). All Audit #5 uniform deflection, point-load deflection, root bending, and $f_1$ closed-form + 40-element Hermite FE tests pass for both `"plate"` and `"naca"`. NACA/plate ratios match `1/K_I = 2.1248x` and `sqrt(K_I/K_A) = 0.8314x` to `rel <= 1e-9`. Note: thin-mid NACA default `BladeParams()` (`t/c = 0.05`) drops from `312 Hz` to `259.5 Hz` (`1.11x BPF < 1.2`), exposing the prior non-conservative rectangular overestimate. |
+| **S4** | **PASS** | `RESIN` defaults to `adhesion_k = 1.0` (`yield_mpa = 50.0 MPa`, no `"layer-adhesion"` tag in failure reasons) in both `centrifugal_root_stress` and `root_bending_stress`; all 5 FDM filaments (`PETG`, `PLA`, `ABS`, `PLA+`, `TPU`) retain default `adhesion_k = 0.60`. |
+| **S5** | **PASS** | Stock v3 (`a12x25_reference.yaml`, `section_family="plate"`, PETG, 2000 RPM, 10 Pa, 0.5 mm tip gap): centrifugal `ok=True` (`SF=298.6`), root bending `ok=True` (`SF=3741.8`), deflection `ok=True` (`0.000802 mm`, `beam_regime_ok=False`), flutter `ok=True` (`f1=399.91 Hz`, `BPF=300.00 Hz`, `margin=1.333`, `beam_regime_ok=False`). |
+| **S6** | **PASS** | `ruff check` (critical + all changed `.py` files) clean; `mypy --config-file pyproject.toml` clean (51 source files); `scripts/audit_status.py --strict` reports `PROVEN=34 CHANGED=0 AFFECTED=0 NEW=0 UNREGISTERED=0`; RV-1 `tests/data/physics_snapshot.json` regenerated (only `structural.stock_v3` `bending_*` and `centrifugal_*` moved, `8 passed`); structural + audit + gate suite `168 passed, 0 failed`; zero tracked `.stl` changes. |

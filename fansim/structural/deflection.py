@@ -1,14 +1,21 @@
 """Analytic tip deflection vs leftover tip gap (cheap FSI gate, roadmap §7.6).
 
-Treat the blade as a uniform rectangular cantilever (tip-station chord × thickness,
-span = tip − hub). A hose static pressure ``load_pa`` loads the planform as a
-uniform line load ``q = ΔP · chord``. Tip deflection:
+Treat the blade as an Euler-Bernoulli cantilever with section-family shape factors
+``(K_A, K_I)`` matching ``fansim.geometry.airfoil`` (#123):
+  - ``plate`` (rounded constant-thickness plate): ``K_A = 1.0``, ``K_I = 1.0`` (``I = c t³ / 12``)
+  - ``naca`` (closed-TE symmetric NACA 4-digit, Abbott & von Doenhoff 1959 §6.2):
+    ``K_A ≈ 0.6809``, ``K_I ≈ 0.4706`` (``I ≈ 0.03922 c t³``)
 
-    δ = q L⁴ / (8 E I),   I = c t³ / 12
+A hose static pressure ``load_pa`` loads the planform as ``q(s) = ΔP · c(s)`` (conservative
+solidity-free proxy; flapwise ``δ`` is compared directly to radial ``tip_gap_mm``). Tip
+deflection uses the tip-station section:
 
-Root bending stress under the same load (roadmap §19.17):
+    δ = q L⁴ / (8 E I),   I = K_I c t³ / 12
 
-    M = q L² / 2,   σ = M (t/2) / I
+Root bending stress (roadmap §19.17, #123) integrates the tapered cantilever moment along
+the span and evaluates section modulus at the **root** station:
+
+    M_root = ΔP ∫_0^L c(s) s ds,   σ_root = M_root (t_root / 2) / I_root
 
 Reject when δ ≥ leftover tip gap (rub / catastrophic leakage risk). Not FEA,
 not coupled OpenFOAM FSI — same order-of-magnitude class as the flutter gate.
@@ -22,13 +29,33 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from itertools import pairwise
 
+from fansim.geometry.airfoil import SECTION_FAMILIES, SECTION_NACA, SECTION_PLATE
 from fansim.geometry.blade import BladeParams
 from fansim.manufacturability.materials import MATERIALS
-from fansim.structural.stress import FDM_E_K, LAYER_ADHESION_K, MM_TO_M
+from fansim.structural.stress import (
+    _GL3_W,
+    _GL3_X,
+    FDM_E_K,
+    MM_TO_M,
+    _adhesion_factor,
+    _interp_clamped,
+    _is_isotropic_material,
+    _station_profile,
+    _unit_breakpoints,
+)
 
 # Classical slender-beam floor; Audit #5 Stock tip aspect ≈ 1.0 (wide plate).
 BEAM_ASPECT_MIN = 1.5
+
+# Exact analytic section shape factors relative to a solid c × t rectangle for the closed-TE
+# symmetric NACA 4-digit thickness equation in fansim/geometry/airfoil.py (-0.1036 TE coeff):
+#   K_A = ∫_0^1 (2 y_t(x) / t) dx,   K_I = ∫_0^1 (2 y_t(x) / t)^3 dx  (I = K_I * c t^3 / 12).
+NACA_AREA_K = 0.6808833333
+NACA_INERTIA_K = 0.4706266577
+PLATE_AREA_K = 1.0
+PLATE_INERTIA_K = 1.0
 
 
 @dataclass
@@ -42,6 +69,7 @@ class DeflectionReport:
     e_fdm_knockdown: float = 1.0
     beam_aspect: float = float("inf")
     beam_regime_ok: bool = True
+
 
 @dataclass
 class RootBendingReport:
@@ -61,6 +89,12 @@ def _tip_station(params: BladeParams):
     return max(params.stations, key=lambda s: float(s.r_frac))
 
 
+def _root_station(params: BladeParams):
+    if not params.stations:
+        raise ValueError("BladeParams.stations must not be empty")
+    return min(params.stations, key=lambda s: float(s.r_frac))
+
+
 def _validate_radii(params: BladeParams) -> tuple[float, float]:
     hub = float(params.hub_radius)
     tip = float(params.tip_radius)
@@ -71,6 +105,19 @@ def _validate_radii(params: BladeParams) -> tuple[float, float]:
     if hub < 0.0 or tip < hub:
         raise ValueError(f"require 0 <= hub_radius <= tip_radius, got hub={hub}, tip={tip}")
     return hub, tip
+
+
+def _section_shape_factors(params: BladeParams) -> tuple[float, float]:
+    """Return ``(K_A, K_I)`` section shape factors for ``params.section_family``."""
+    raw = getattr(params, "section_family", SECTION_NACA)
+    fam = SECTION_NACA if not raw else str(raw).lower().strip()
+    if fam not in SECTION_FAMILIES:
+        raise ValueError(
+            f"unknown airfoil section family {raw!r}; expected one of {SECTION_FAMILIES}"
+        )
+    if fam == SECTION_PLATE:
+        return PLATE_AREA_K, PLATE_INERTIA_K
+    return NACA_AREA_K, NACA_INERTIA_K
 
 
 def beam_aspect_ratio(params: BladeParams, *, station: str = "tip") -> float:
@@ -99,31 +146,33 @@ def beam_regime_ok(params: BladeParams, *, station: str = "tip") -> bool:
 
 def _fdm_e_factor(material: str) -> float:
     """In-plane E is optimistic for FDM interlayer flapping; knock down non-resin prints."""
-    name = str(material).upper()
-    # Resin / SLA stay full E (isotropic). Key may be RESIN or any MATERIALS alias with RESIN.
-    if name in ("RESIN", "ABS_RESIN", "SLA") or "RESIN" in name:
+    if _is_isotropic_material(material):
         return 1.0
     if material not in MATERIALS:
         raise KeyError(material)
     return float(FDM_E_K)
 
 
-def _beam_section(params: BladeParams, material: str) -> tuple[float, float, float, float]:
-    """Return (span_m, chord_m, thick_m, E_Pa) for the tip-station rectangular cantilever."""
+def _station_section(params: BladeParams, station, material: str) -> tuple[float, float, float, float]:
+    """Return ``(span_m, chord_m, thick_m, E_Pa)`` for a chosen station."""
     mat = MATERIALS[material]
     hub, tip = _validate_radii(params)
     span_m = max(tip - hub, 1.0) * MM_TO_M
-    st = _tip_station(params)
-    chord_raw = float(st.chord)
-    thick_raw = float(st.thickness)
+    chord_raw = float(station.chord)
+    thick_raw = float(station.thickness)
     if not (math.isfinite(chord_raw) and math.isfinite(thick_raw)):
         raise ValueError(
-            f"station chord and thickness must be finite, got chord={st.chord!r}, thickness={st.thickness!r}"
+            f"station chord and thickness must be finite, got chord={station.chord!r}, thickness={station.thickness!r}"
         )
     chord_m = max(chord_raw, 1e-3) * MM_TO_M
     thick_m = max(thick_raw, 1e-4) * chord_m
     e = mat.youngs_modulus_gpa * 1e9 * _fdm_e_factor(material)
     return span_m, chord_m, thick_m, e
+
+
+def _beam_section(params: BladeParams, material: str) -> tuple[float, float, float, float]:
+    """Return ``(span_m, chord_m, thick_m, E_Pa)`` for the tip-station cantilever."""
+    return _station_section(params, _tip_station(params), material)
 
 
 def tip_deflection_mm(
@@ -136,7 +185,8 @@ def tip_deflection_mm(
     if not math.isfinite(load):
         raise ValueError(f"load_pa must be finite, got {load_pa!r}")
     span_m, chord_m, thick_m, e = _beam_section(params, material)
-    inertia = chord_m * thick_m ** 3 / 12.0
+    _, k_i = _section_shape_factors(params)
+    inertia = k_i * chord_m * thick_m ** 3 / 12.0
     q = max(load, 0.0) * chord_m  # N/m along span
     if e <= 0.0 or inertia <= 0.0:
         return float("inf")
@@ -154,7 +204,8 @@ def tip_deflection_point_load_mm(
     if not math.isfinite(force):
         raise ValueError(f"force_n must be finite, got {force_n!r}")
     span_m, chord_m, thick_m, e = _beam_section(params, material)
-    inertia = chord_m * thick_m ** 3 / 12.0
+    _, k_i = _section_shape_factors(params)
+    inertia = k_i * chord_m * thick_m ** 3 / 12.0
     if e <= 0.0 or inertia <= 0.0:
         return float("inf")
     delta_m = abs(force) * span_m ** 3 / (3.0 * e * inertia)
@@ -168,26 +219,43 @@ def root_bending_stress(
     min_safety_factor: float = 3.0,
     adhesion_k: float | None = None,
 ) -> RootBendingReport:
-    """Root bending stress under the same uniform hose load as :func:`tip_deflection_mm`.
+    """Root bending stress under uniform hose pressure ``load_pa`` (#123).
 
-    ``M = q L² / 2``, ``σ = M (t/2) / I`` with ``I = c t³ / 12``. Allowable is in-plane yield
-    times layer-adhesion knockdown (same as centrifugal).
+    Integrates the tapered root moment ``M = ΔP ∫_0^L c(s) s ds`` across ``params.stations``
+    and evaluates ``σ = M (t_root / 2) / I_root`` at ``_root_station(params)`` with
+    ``I_root = K_I c_root t_root³ / 12``. Allowable is in-plane yield times layer-adhesion
+    knockdown (``1.0`` for isotropic ``RESIN``, ``0.60`` for FDM).
     """
     mat = MATERIALS[material]
     load = float(load_pa)
     if not math.isfinite(load):
         raise ValueError(f"load_pa must be finite, got {load_pa!r}")
-    k = LAYER_ADHESION_K if adhesion_k is None else float(adhesion_k)
+    k = _adhesion_factor(material) if adhesion_k is None else float(adhesion_k)
     if not (math.isfinite(k) and k > 0.0):
         raise ValueError(f"adhesion_k must be finite and > 0, got {k!r}")
     min_sf = float(min_safety_factor)
     if not (math.isfinite(min_sf) and min_sf > 0.0):
         raise ValueError(f"min_safety_factor must be finite and > 0, got {min_safety_factor!r}")
-    span_m, chord_m, thick_m, _e = _beam_section(params, material)
-    inertia = chord_m * thick_m ** 3 / 12.0
-    q = max(load, 0.0) * chord_m
-    moment = q * span_m ** 2 / 2.0
-    sigma_pa = (moment * (thick_m / 2.0) / inertia) if inertia > 0.0 else float("inf")
+
+    span_m, chord_root_m, thick_root_m, _e = _station_section(params, _root_station(params), material)
+    _, k_i = _section_shape_factors(params)
+    inertia = k_i * chord_root_m * thick_root_m ** 3 / 12.0
+
+    # Tapered root moment M = ΔP * L^2 * ∫_0^1 c(u) * u du (exact for piecewise-linear chord).
+    us, cs, _taus = _station_profile(params)
+    load_pos = max(load, 0.0)
+    moment_int = 0.0
+    cuts = _unit_breakpoints(us)
+    for a, b in pairwise(cuts):
+        mid = 0.5 * (a + b)
+        half = 0.5 * (b - a)
+        for xq, wq in zip(_GL3_X, _GL3_W, strict=True):
+            u = mid + half * xq
+            c = _interp_clamped(u, us, cs)
+            moment_int += wq * half * c * u
+    moment = load_pos * (span_m ** 2) * moment_int
+
+    sigma_pa = (moment * (thick_root_m / 2.0) / inertia) if inertia > 0.0 else float("inf")
     sigma_mpa = float(sigma_pa / 1e6)
     in_plane = float(mat.yield_strength_mpa)
     allow = float(in_plane * k)

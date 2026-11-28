@@ -1,7 +1,12 @@
 """Cantilever first-bending vs blade-passing frequency (cheap resonance gate).
 
-Treat the blade as a uniform rectangular cantilever of mid-span chord × thickness. This is not
-flutter derivatives or FEA — it only catches TPU / extreme RPM / long-span pathologies.
+Treat the blade as a uniform Euler-Bernoulli cantilever of mid-span chord × thickness,
+using section-family shape factors ``(K_A, K_I)`` from :mod:`fansim.structural.deflection`
+(``plate``: ``1.0 / 1.0``; ``naca``: ``0.6809 / 0.4706``, #123).
+
+This is a fundamental ``1× BPF`` resonance check — not flutter derivatives, FEA,
+or a full Campbell diagram (does not check ``1×`` shaft order, strut/stator harmonics,
+or ``2× BPF`` coincidence). It only catches TPU / extreme RPM / long-span pathologies.
 
 Wide plates (span/chord ≲ :data:`~fansim.structural.deflection.BEAM_ASPECT_MIN`) stamp
 ``beam_regime_ok=False`` without failing the resonance gate alone (§19.18).
@@ -17,6 +22,7 @@ from fansim.manufacturability.materials import MATERIALS
 from fansim.structural.deflection import (
     BEAM_ASPECT_MIN,
     _fdm_e_factor,
+    _section_shape_factors,
     _validate_radii,
     beam_aspect_ratio,
 )
@@ -57,8 +63,9 @@ def first_bending_hz(params: BladeParams, material: str = "PETG") -> float:
         )
     chord_m = max(chord_raw, 1e-3) * MM_TO_M
     thick_m = max(thick_raw, 1e-4) * chord_m
-    area = chord_m * thick_m
-    inertia = chord_m * thick_m ** 3 / 12.0
+    k_a, k_i = _section_shape_factors(params)
+    area = k_a * chord_m * thick_m
+    inertia = k_i * chord_m * thick_m ** 3 / 12.0
     mu = mat.density_kg_m3 * area
     e = mat.youngs_modulus_gpa * 1e9 * _fdm_e_factor(material)
     return float(
@@ -143,7 +150,7 @@ def flutter_report(
             f1_hz=f1,
             bpf_hz=bpf,
             margin=margin,
-            min_margin=margin_f,
+            min_margin=min_margin,
             material=material,
             n_blades=n_blades,
             rpm=rpm,
