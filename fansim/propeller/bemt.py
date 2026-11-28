@@ -26,8 +26,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from fansim.geometry.blade import BladeParams
-from fansim.physics.air import C0_AIR as C_AIR
-from fansim.physics.air import NU_AIR
+from fansim.physics.air import C0_ISA as C_AIR
+from fansim.physics.air import NU_ISA as NU_AIR
 from fansim.physics.air import RHO_ISA as RHO_AIR
 
 G = 9.80665
@@ -65,9 +65,9 @@ class PropPerf:
     v_forward: float
     thrust_g: float                 # thrust in grams (drone convention)
     efficiency_g_per_w: float        # static hover efficiency = thrust/power
-    figure_of_merit: float           # ideal/actual hover power ratio (0..1; ~0.6-0.8 good)
-    prop_efficiency: float | None = None   # propulsive eff (forward flight); None in hover
-    figure_of_merit_raw: float = 0.0        # UNCLIPPED FM; > 1 would violate momentum theory (a bug flag)
+    figure_of_merit: float | None = None    # ideal/actual hover power ratio (0..1); None when v_forward > 0
+    prop_efficiency: float | None = None    # propulsive eff (forward flight); None in hover
+    figure_of_merit_raw: float | None = None  # UNCLIPPED hover FM (> 1 flags bug); None when v_forward > 0
     converged: bool = True                  # False if any element hit the 60-iteration inflow cap
 
 
@@ -111,17 +111,23 @@ def _section_aero(
 
 
 def _interp_geom(params: BladeParams):
-    """Return callables chord(r_mm), twist_deg(r_mm) over the actual radius, from the blade stations."""
+    """Return callables chord(r_mm), twist_deg(r_mm), camber(r_mm), thickness(r_mm) over radius (#111)."""
     st = sorted(params.stations, key=lambda s: s.r_frac)
     r_root = params.hub_radius
     r_tip = params.tip_radius
     rs = np.array([r_root + (r_tip - r_root) * s.r_frac for s in st])
     chords = np.array([s.chord for s in st])
     twists = np.array([s.stagger_deg for s in st])
-    camber = float(np.mean([s.max_camber for s in st]))
-    thickness = float(np.mean([s.thickness for s in st]))
-    return (lambda r: float(np.interp(r, rs, chords)),
-            lambda r: float(np.interp(r, rs, twists)), camber, thickness, r_root, r_tip)
+    cambers = np.array([s.max_camber for s in st])
+    thicknesses = np.array([s.thickness for s in st])
+    return (
+        lambda r: float(np.interp(r, rs, chords)),
+        lambda r: float(np.interp(r, rs, twists)),
+        lambda r: float(np.interp(r, rs, cambers)),
+        lambda r: float(np.interp(r, rs, thicknesses)),
+        r_root,
+        r_tip,
+    )
 
 
 def _validate_analyze_inputs(
@@ -159,17 +165,21 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
     rho_f = float(rho)
     _validate_analyze_inputs(params, rpm_f, vf_f, rho_f, n_elem)
     if params.n_blades == 0 or (rpm_f == 0.0 and vf_f == 0.0):
+        hover = vf_f == 0.0
         return PropPerf(
             thrust_n=0.0, torque_nm=0.0, power_w=0.0, rpm=rpm_f, v_forward=vf_f,
-            thrust_g=0.0, efficiency_g_per_w=0.0, figure_of_merit=0.0,
-            prop_efficiency=None, figure_of_merit_raw=0.0, converged=True,
+            thrust_g=0.0, efficiency_g_per_w=0.0,
+            figure_of_merit=0.0 if hover else None,
+            prop_efficiency=None,
+            figure_of_merit_raw=0.0 if hover else None,
+            converged=True,
         )
-    chord_fn, twist_fn, camber, thickness, r_root_mm, r_tip_mm = _interp_geom(params)
+    chord_fn, twist_fn, camber_fn, thickness_fn, r_root_mm, r_tip_mm = _interp_geom(params)
     B = params.n_blades
     omega = rpm_f * 2.0 * math.pi / 60.0
     R = float(r_tip_mm) / 1000.0
     # Kinematic viscosity scales inversely with density at constant T (nu = mu/rho).
-    # Keep bit-for-bit NU_AIR at default rho == RHO_AIR.
+    # Keep bit-for-bit NU_ISA at default rho == RHO_ISA.
     nu = NU_AIR if rho_f == RHO_AIR else NU_AIR * (RHO_AIR / rho_f)
     edges = np.linspace(r_root_mm, r_tip_mm, n_elem + 1) / 1000.0   # element boundaries [m]
     T = 0.0
@@ -178,8 +188,11 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
     for i in range(n_elem):
         r = float(0.5 * (edges[i] + edges[i + 1]))
         dr = float(edges[i + 1] - edges[i])
-        c = chord_fn(r * 1000.0) / 1000.0
-        beta = math.radians(twist_fn(r * 1000.0))
+        r_mm = r * 1000.0
+        c = chord_fn(r_mm) / 1000.0
+        beta = math.radians(twist_fn(r_mm))
+        camber = camber_fn(r_mm)
+        thickness = thickness_fn(r_mm)
         U = omega * r
         vi = 2.0                                            # induced axial velocity guess [m/s]
         vth = 0.0                                           # far-wake swirl velocity (≈ 2 a' Ωr), +rotation
@@ -203,8 +216,9 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
             cl, cd = _compressibility_cl_cd(
                 cl, cd, mach, stalled=stalled, cl_cap=cl_cap
             )
-            # Prandtl tip-loss factor (open propeller only; no root loss modelled)
-            f = (B / 2.0) * (R - r) / max(r * math.sin(phi), 1e-4)
+            # Prandtl tip-loss factor (open propeller only; no root loss modelled).
+            # Use |sin(phi)| so negative axial inflow does not collapse F -> 1 (#109).
+            f = (B / 2.0) * (R - r) / max(r * abs(math.sin(phi)), 1e-4)
             F = max(0.15, (2.0 / math.pi) * math.acos(math.exp(-min(f, 20.0))))
 
             dT = 0.5 * rho_f * W2 * c * B * (cl * math.cos(phi) - cd * math.sin(phi))   # per unit span
@@ -217,10 +231,11 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
             # Negative induced velocity is physical in the braking / windmill regime (§20.2).
             vi_new = max(-30.0, min(vi_new, 60.0))
 
-            # Angular momentum: fθ = (ρ |Vax| 2π r) ΔVθ (per unit span), with ΔVθ ≈ vth (0 → far wake)
-            denom_th = rho_f * max(abs(Vax), 0.1) * 2.0 * math.pi * r
+            # Angular momentum: fθ = 2π r ρ |Vax| vth F (Glauert 1935; Adkins & Liebeck 1994, #109).
+            denom_th = 2.0 * math.pi * r * rho_f * max(abs(Vax), 0.1) * F
             vth_new = f_theta / denom_th if denom_th > 0 else vth
-            vth_new = max(0.0, min(vth_new, 1.9 * U))       # a′ < 0.95 (since vth ≈ 2 a′ Ωr)
+            # Symmetric swirl bound |a'| <= 0.95 allows negative swirl in windmill mode (#109).
+            vth_new = max(-1.9 * U, min(vth_new, 1.9 * U))
 
             if abs(vi_new - vi) < 1e-3 and abs(vth_new - vth) < 1e-3:
                 elem_converged = True
@@ -236,7 +251,14 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
     # zeroed those points and inflated C_T(J) RMS (§20.2 / Audit #3).
     P = float(Q * omega)
     A = math.pi * R * R
-    fm = float((T ** 1.5 / math.sqrt(2.0 * rho_f * A)) / P) if (P > 0 and T > 0) else 0.0
+    # Static hover Figure of Merit is defined only at v_forward == 0 (Leishman 2006 Eq. 2.40, #112).
+    if vf_f == 0.0:
+        fm_raw_f = float((T ** 1.5 / math.sqrt(2.0 * rho_f * A)) / P) if (P > 0 and T > 0) else 0.0
+        fm_raw: float | None = fm_raw_f
+        fm_val: float | None = float(min(fm_raw_f, 1.0))
+    else:
+        fm_raw = None
+        fm_val = None
     prop_eff = float(T * vf_f / P) if (vf_f > 0 and P > 0) else None
     # Full precision here (#50); cockpit/export format for display.
     thrust_g = float(T / G * 1000.0)
@@ -244,8 +266,8 @@ def analyze(params: BladeParams, rpm: float, v_forward: float = 0.0, rho: float 
         thrust_n=float(T), torque_nm=float(Q), power_w=P, rpm=rpm_f, v_forward=vf_f,
         thrust_g=thrust_g,
         efficiency_g_per_w=float(thrust_g / P) if P > 0 else 0.0,
-        figure_of_merit=float(min(fm, 1.0)), prop_efficiency=prop_eff,
-        figure_of_merit_raw=fm, converged=bool(converged),
+        figure_of_merit=fm_val, prop_efficiency=prop_eff,
+        figure_of_merit_raw=fm_raw, converged=bool(converged),
     )
 
 
@@ -260,7 +282,9 @@ def _compressibility_cl_cd(
 ) -> tuple[float, float]:
     """Prandtl–Glauert on attached Cl, capped at the polar peak; stalled Cl unchanged.
 
-    Soft wave-drag rise past M≈0.7 applies either way. Mach is clamped to [0, 0.95].
+    Validity scope (#111): linear Prandtl–Glauert is accurate in subsonic flow (M <= 0.70);
+    above M = 0.70 a soft, section-independent wave-drag rise is added (unvalidated transonic
+    estimate; Mach clamped to [0, 0.95]).
     """
     m = max(0.0, min(float(mach), 0.95))
     beta = math.sqrt(max(1e-6, 1.0 - m * m))
@@ -286,7 +310,9 @@ def _cl_cd_analytic(alpha_rad: float, camber: float, re: float | None = None):
 def _analytic_section(
     alpha_rad: float, camber: float, re: float | None = None
 ) -> tuple[float, float, bool, float]:
-    a_deg = math.degrees(alpha_rad)
+    """Thin-airfoil + quadratic attached drag + Viterna–Corrigan (1982) post-stall polar (#110)."""
+    from fansim.propeller.polars import viterna_post_stall
+
     cl_max, cd0, stall_deg, slope = 1.4, 0.012, 14.0, 2.0 * math.pi
     if re is not None:
         r = max(float(re), 5000.0)
@@ -295,9 +321,24 @@ def _analytic_section(
         stall_deg = max(8.0, min(15.0, 10.0 + 3.0 * f))
         cd0 = max(0.010, 0.008 + 5.0 / math.sqrt(r))
         slope = 2.0 * math.pi * max(0.75, min(1.0, 0.88 + 0.12 * f))
-    cl_lin = slope * camber + slope * alpha_rad
-    cl = max(-cl_max, min(cl_max, cl_lin))
-    if a_deg > stall_deg:
-        cl *= max(0.55, 1.0 - (a_deg - stall_deg) * 0.03)
-    stalled = a_deg > stall_deg or abs(cl_lin) >= cl_max
-    return cl, cd0, stalled, cl_max
+    stall_rad = math.radians(stall_deg)
+    # Parabolic camber zero-lift angle alpha_{L=0} = -2*m => Cl_0 = 2 * slope * m (4*pi*m at 2*pi).
+    a_neg_rad = min(-stall_rad, -2.0 * camber - 0.5 * stall_rad)
+
+    def _attached(a: float) -> tuple[float, float, float]:
+        cl_lin_a = slope * (a + 2.0 * camber)
+        cl_a = max(-cl_max, min(cl_max, cl_lin_a))
+        cd_a = cd0 + 0.025 * cl_a * cl_a
+        return cl_a, cd_a, cl_lin_a
+
+    if alpha_rad > stall_rad:
+        cl_s, cd_s, _ = _attached(stall_rad)
+        cl, cd = viterna_post_stall(alpha_rad, stall_rad, cl_s, cd_s)
+        return cl, cd, True, cl_max
+    if alpha_rad < a_neg_rad:
+        cl_s, cd_s, _ = _attached(a_neg_rad)
+        cl, cd = viterna_post_stall(alpha_rad, a_neg_rad, cl_s, cd_s)
+        return cl, cd, True, cl_max
+    cl, cd, cl_lin = _attached(alpha_rad)
+    stalled = abs(cl_lin) >= cl_max
+    return cl, cd, stalled, cl_max

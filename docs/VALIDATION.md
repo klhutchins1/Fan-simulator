@@ -7,7 +7,7 @@ an estimate, or an experimental surface and is labelled so in the app and README
 
 - **Machine-checked scoreboard (RV-2):** [`docs/validation/scoreboard.md`](validation/scoreboard.md) (generated from
   [`docs/validation/scoreboard_claims.yaml`](validation/scoreboard_claims.yaml) and checked in CI by
-  `tests/test_scoreboard.py` — 12 claims: **6 PASS, 4 FAIL, 2 NOT JUDGED**).
+  `tests/test_scoreboard.py` — 12 claims: **7 PASS, 3 FAIL, 2 NOT JUDGED**).
 - **Regression pin (RV-1):** `tests/data/physics_snapshot.json` pins BEM, BEMT, structural, acoustics, and air
   constants at tight tolerances ([pre-registration](validation/audits/2026-11-24-physics-snapshot-prereg.md)). That
   detects unintended math drift; it does not judge models against published data.
@@ -25,7 +25,7 @@ an estimate, or an experimental surface and is labelled so in the app and README
 | **Stock parametric A12x25 recipe (v3)** | Known gap, stated | **55.7 vs 58.3 CFM (−4.5 %)** against the close-ref STL in the cylinder-sections diagnostic rig |
 | **Blade geometry** | Verified | Cylinder-cut check PASS on Stock and lt120; R1.3 `GUIDED` wrap bounds cover Stock with 2.0 % hang refusals |
 | **Fan BEM pre-screen** | Coarse ranking only | Spearman ρ = 0.714 vs CFD; cannot separate close designs |
-| **Propeller BEMT** | Validated at static C_T (with limits) | APC E 9x6: static C_T **−1.0 % PASS** (±15 %), C_P **−9.3 % PASS** (±20 %), C_T(J) RMS **0.0037 PASS** (≤ 0.015). APC SF 9x4.7: static C_T **−12.9 % PASS** (±15 %), static C_P **−21.4 % FAIL** (±20 %), C_T(J) RMS **0.0175 FAIL** (≤ 0.015) |
+| **Propeller BEMT** | Validated at static C_T (with limits) | APC E 9x6: static C_T **+0.4 % PASS** (±15 %), C_P **−5.3 % PASS** (±20 %), C_T(J) RMS **0.0085 PASS** (≤ 0.015). APC SF 9x4.7: static C_T **−12.5 % PASS** (±15 %), static C_P **−20.2 % FAIL** (±20 %), C_T(J) RMS **0.0139 PASS** (≤ 0.015) |
 | **Propeller CFD** | Experimental: not validated against published data | **FAIL** (−44 % C_T / −40 % C_P static; −40 / −45 / −58 % C_T at J = 0.20 / 0.30 / 0.43). Direction and flow pictures only |
 | **Structural & blade vibration** | Verified, not validated | Closed-form beam checks only; labelled "estimate, not validated (resonance check, not flutter)" |
 | **Acoustics** | Verified, not validated | Blade-pass tone frequency (rpm × blades) is exact; sound levels are unvalidated estimates |
@@ -176,14 +176,13 @@ CFD reads +25.8 % high (**FAIL**), giving lt120 an overall **TRENDS** verdict.
   RMS **≤ 0.015**.
 - **Results (recomputed live on every CI run in [`docs/validation/scoreboard.md`](validation/scoreboard.md)):**
   - **APC E 9x6:**
-    - static C_T: 0.1149 vs 0.1160 (**−1.0 %, PASS**);
-    - static C_P: 0.0466 vs 0.0513 (**−9.3 %, PASS**);
-    - worst C_T(J) RMS: **0.0037 (PASS, ≤ 0.015)**.
+    - static C_T: 0.1165 vs 0.1160 (**+0.4 %, PASS**);
+    - static C_P: 0.0486 vs 0.0513 (**−5.3 %, PASS**);
+    - worst C_T(J) RMS: **0.0085 (PASS, ≤ 0.015)**.
   - **APC SF 9x4.7 (default table polars):**
-    - static C_T: 0.1039 vs 0.1192 (**−12.9 %, PASS**);
-    - static C_P: 0.0381 vs 0.0484 (**−21.4 %, FAIL** — known fail, not claimed);
-    - worst C_T(J) RMS: **0.0175 (FAIL vs pre-registered ≤ 0.015)**; the later 0.020 threshold was set after
-      seeing the data and is kept as a regression guard only ([2026-11-25 ruling](validation/audits/2026-11-25-apcsf-ct-j-rms-ruling.md)).
+    - static C_T: 0.1043 vs 0.1192 (**−12.5 %, PASS**);
+    - static C_P: 0.0386 vs 0.0484 (**−20.2 %, FAIL** — known fail, not claimed);
+    - worst C_T(J) RMS: **0.0139 (PASS vs pre-registered ≤ 0.015)** after P1B BEMT/polar fixes ([2026-11-28 pre-reg](validation/audits/2026-11-28-prop-bemt-p1b-decoupled-prereg.md); previously 0.0175 FAIL under [2026-11-25 ruling](validation/audits/2026-11-25-apcsf-ct-j-rms-ruling.md)).
   - **Forward flight on APC SF (unknown airfoil section):** C_T error grows with advance ratio J: −15 / −20 /
     −29 % at J = 0.20 / 0.30 / 0.43 (shared generic-section limit).
 - **Release wording (R2.1):** static thrust within ±15 %; worse toward zero-thrust J on props with unknown
@@ -309,7 +308,7 @@ CFD reads +25.8 % high (**FAIL**), giving lt120 an overall **TRENDS** verdict.
 6. **Structural and blade vibration checks are estimates, not validated:** the vibration check is a resonance check,
    not aeroelastic flutter.
 7. **Propeller BEMT limits:** validated within ±15 % on static C_T, worse toward zero-thrust J on props with
-   unknown airfoil sections; static C_P reads −21.4 % low (FAIL) and C_T(J) RMS reads 0.0175 (FAIL vs 0.015) on
+   unknown airfoil sections; static C_P reads −20.2 % low (FAIL) while C_T(J) RMS reads 0.0139 (PASS vs 0.015) on
    APC SF 9x4.7 with default table polars.
 8. **Four experimental surfaces (frozen for v0.1.0):** Propeller CFD (−40 to −58 % low on thrust), Mixed-flow,
    Volute (unconverged on the fine mesh), and CROR are all *Experimental: not validated against published data.*

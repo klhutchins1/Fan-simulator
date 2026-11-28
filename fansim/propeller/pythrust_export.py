@@ -84,7 +84,7 @@ def export_bemt_pythrust_catalog(
             ct, cp = float(nd["CT"] or 0.0), float(nd["CP"] or 0.0)
             eta = 0.0 if nd["eta"] is None else float(nd["eta"])
             tip_mach = (math.pi * d_m * float(rpm) / 60.0) / C_AIR
-            fom = float(perf.figure_of_merit) if abs(float(j)) < 1e-12 else 0.0
+            fom = float(perf.figure_of_merit) if (abs(float(j)) < 1e-12 and perf.figure_of_merit is not None) else 0.0
             tpp = (float(perf.thrust_n) / float(perf.power_w)) if perf.power_w > 0 else 0.0
             rows.append(
                 [
