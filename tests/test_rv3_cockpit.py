@@ -99,9 +99,9 @@ def test_cancel_viz_button_hidden_when_airflow_idle():
 def test_mixed_design_card_shows_experimental_label_like_volute_and_cror():
     """C4: Mixed Design card must display EXPERIMENTAL_LABEL consistently with Volute and CROR."""
     for rel, anchor in (
-        ("fansim/cockpit/mixed_tab.py", "def _mf_design():"),
-        ("fansim/cockpit/volute_tab.py", "def _volute_design():"),
-        ("fansim/cockpit/cror_tab.py", "def _cror_design():"),
+        ("fansim/cockpit/mixed_tab.py", "def _render_mf_design("),
+        ("fansim/cockpit/volute_tab.py", "def _render_volute_design("),
+        ("fansim/cockpit/cror_tab.py", "def _render_cror_design("),
     ):
         src = (REPO / rel).read_text(encoding="utf-8")
         idx = src.index(anchor)
