@@ -100,8 +100,8 @@ exempt:
 units:
   - id: physics.air_properties
     targets: ["fansim.physics.air"]
-    claim: "Room-temperature sea-level air: rho 1.2 (AMCA) / 1.225 (ISA), nu = mu/rho_AMCA, mu 1.81e-5, c0 343"
-    source: {kind: standard, ref: "AMCA 210 standard air; ISA sea level; ideal gas + Sutherland"}
+    claim: "Sea-level air: AMCA 20 °C (rho 1.2, mu 1.81e-5, nu = mu/rho, c0 343) and ISO 2533 ISA 15 °C (rho 1.225, mu 1.7894e-5, nu = mu/rho, c0 340.29)"
+    source: {kind: standard, ref: "AMCA 210 standard air; ISO 2533:1975 ISA sea level; ideal gas + Sutherland"}
     regime: {fluid: air, T_K: [288, 298], p_Pa: 101325}
     checks: [tests/audit/test_air_properties.py]
 
@@ -226,12 +226,13 @@ units:
       - "fansim.propeller.bemt:_compressibility_cl_cd"
       - "fansim.propeller.bemt_catalog"
     claim: >
-      Prop BEMT (Prandtl tip loss, swirl, Re-aware polars, Prandtl-Glauert, windmill T/vi signed)
-      never beats momentum theory; UIUC APC E 9x6 static C_T/C_P and C_T(J) RMS within Audit #3
-      tols; APC SF 9x4.7 static C_T PASS on the table default. SF C_T(J) RMS is a known FAIL
-      against the pre-registered 0.015 (~0.0175; ruling 2026-11-25, the after-the-data 0.020 is a
-      regression guard only). Table SF static C_P remains a known FAIL (~-21%, not claimed). NeuralFoil opt-in clears
-      SF static C_T and C_P within the same tols (regression test; not the process default).
+      Prop BEMT (Prandtl tip loss in axial and angular momentum, signed windmill swirl/T/vi,
+      Re-aware polars with Viterna-Corrigan post-stall, 15 C ISA air, hover-only FM, radial
+      camber/thickness interp, subsonic Prandtl-Glauert) never beats momentum theory; UIUC
+      APC E 9x6 static C_T/C_P and C_T(J) RMS and APC SF 9x4.7 static C_T and C_T(J) RMS
+      (~0.0139 <= 0.015) PASS Audit #3 pre-registered tols on the table default. Table SF
+      static C_P remains a known FAIL (~-20.2%, not claimed). NeuralFoil opt-in clears SF
+      static C_T and C_P within the same tols (regression test; not the process default).
     source: {kind: datasheet, ref: "UIUC PropDB APC SF 9x4.7 / E 9x6; Audit #3 + §20.2 C_P split"}
     checks: [tests/audit/test_prop_bemt_audit.py, tests/test_bemt.py, tests/test_bemt_catalog.py, tests/test_prop_uiuc_gws.py, tests/test_rv3_propeller.py]
     depends_on: [physics.air_properties, propeller.polars, propeller.neuralfoil_polars, propeller.polar_coefficients]
@@ -256,7 +257,7 @@ units:
     claim: "Axial-fan BEM never beats momentum theory, gives zero static rise at its free delivery, and ranks designs like CFD (RANKING-ONLY screening). Opt-in axial_force model: static rise = blade axial force / annulus area with a Viterna post-stall polar; Stock fit 59.8 CFM / 22.1 Pa; paddles and wrong-hand blades are not fans (QA-4)"
     source: {kind: datasheet, ref: "Audit #4: CFD v5 Stock v1/v2 + re-scored designs; Euler turbomachinery + blade-element theory; QA rules a/b/b2/c/d 2026-10-09"}
     checks: [tests/audit/test_fan_bem_audit.py, tests/test_math_consistency.py, tests/test_fan_bem.py]
-    depends_on: [physics.air_properties, cfd.cfm_from_outlet_flow, propeller.bemt, propeller.polars]
+    depends_on: [physics.air_properties, cfd.cfm_from_outlet_flow, propeller.polars]
 
   - id: structural.deflection
     targets:
@@ -364,7 +365,8 @@ units:
       - "fansim.propeller.polars:section_table"
       - "fansim.propeller.polars:cl_cd_table"
       - "fansim.propeller.polars:family_for_camber"
-    claim: "UIUC/Selig table polars: Re log-interp, stall flags, cl_cap at polar peak; miss returns None below tabulated Re"
+      - "fansim.propeller.polars:viterna_post_stall"
+    claim: "UIUC/Selig table polars: Re log-interp, Viterna-Corrigan post-stall continuation above +18 deg and below negative stall, stall flags, cl_cap at polar peak; miss returns None below tabulated Re"
     source: {kind: datasheet, ref: "UIUC airfoil polar database; §1.6 / §20.2 table default"}
     checks: [tests/test_uiuc_polars.py, tests/test_polar_cache.py, tests/test_rv3_propeller.py]
     depends_on: [physics.air_properties]

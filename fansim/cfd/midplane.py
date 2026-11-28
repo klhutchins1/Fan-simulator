@@ -374,6 +374,134 @@ def rotor_outline(case_dir, normal, origin):
     return out if out.n_points > 0 else None
 
 
+def _midplane_layout_config(
+    layout: str,
+    slc,
+    origin: tuple[float, float, float],
+):
+    """Clip slice for ``layout`` and return ``(slc, cam_focal, view_up, left_label, right_label, cap_u, cap_p)``."""
+    b = slc.bounds
+    z0, z1 = float(b[4]), float(b[5])
+    x0, x1 = float(b[0]), float(b[1])
+    xc = 0.5 * (x0 + x1)
+    zc = 0.0 if (z0 < 0.0 < z1) else 0.5 * (z0 + z1)
+
+    if layout == "axial":
+        # Impeller-anchored crop (rig places the rotor near Z=0). Bias +Z: short approach,
+        # long wake — uniform inlet green is boring; the jet develops behind the blades.
+        r_tip = max(abs(x0), abs(x1), abs(x0 - xc), abs(x1 - xc), 0.03)
+        z_in = max(1.1 * r_tip, 0.04)   # −Z (FRONT) — just enough to see the LE entry
+        z_out = max(4.0 * r_tip, 0.10)  # +Z (OUTLET) — hub wake + tip jets
+        z_look = zc + 0.5 * (z_out - z_in)  # frame mid of the asymmetric window
+        x_keep = 1.08 * r_tip
+        try:
+            slc = slc.clip_box(
+                [
+                    xc - x_keep, xc + x_keep,
+                    float(b[2]) - 0.01, float(b[3]) + 0.01,
+                    zc - z_in, zc + z_out,
+                ],
+                invert=False,
+            )
+        except Exception:  # noqa: BLE001, S110 — keep full slice if clip fails
+            pass
+        return (
+            slc,
+            (float(xc), float(origin[1]), float(z_look)),
+            (1.0, 0.0, 0.0),
+            "FRONT (inlet)",
+            "OUTLET (flow ->)",
+            "Umag midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)",
+            "pressure midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)",
+        )
+    # Full scroll section — outlet stub lives at +X beyond tip radius.
+    return (
+        slc,
+        (float(xc), float(origin[1]), float(zc)),
+        (0.0, 0.0, 1.0),
+        "scroll / eye",
+        "OUTLET (+X)",
+        "Umag scroll section — OUTLET RIGHT (+X), INLET UP (+Z)",
+        "pressure scroll section — OUTLET RIGHT (+X), INLET UP (+Z)",
+    )
+
+
+def _render_midplane_shot(
+    pv,
+    slc,
+    outline,
+    *,
+    case_dir: Path,
+    scalars: str,
+    title: str,
+    path: Path,
+    window_size: tuple[int, int],
+    layout: str,
+    cam_focal: tuple[float, float, float],
+    view_up: tuple[float, float, float],
+    left_label: str,
+    right_label: str,
+    clim_override: dict[str, tuple[float, float]] | None,
+) -> Path | None:
+    """Render one midplane scalar field PNG under ``_RENDER_LOCK``."""
+    if (
+        scalars not in slc.array_names
+        and scalars not in (list(slc.cell_data.keys()) + list(slc.point_data.keys()))
+        and scalars not in slc.cell_data
+        and scalars not in slc.point_data
+    ):
+        return None
+    # Serialize: concurrent off-screen Plotters + vtkMatplotlibMathTextUtilities
+    # hard-crash the interpreter on Windows (selecting designs while midplane builds).
+    with _RENDER_LOCK:
+        pl = pv.Plotter(off_screen=True, window_size=list(window_size))
+        try:
+            pl.background_color = "white"
+            mesh_kw = {}
+            src = slc.point_data if scalars in slc.point_data else slc.cell_data
+            if clim_override and scalars in clim_override:
+                mesh_kw["clim"] = list(clim_override[scalars])
+            elif scalars == "U_mag":
+                mesh_kw["clim"] = list(throughflow_umag_clim(src["U_mag"]))
+            elif scalars == "p_pa":
+                _h, _tip, _o = load_case_radii_omega(case_dir)
+                zz = slc.points[:, 2] if scalars in slc.point_data else slc.cell_centers().points[:, 2]
+                mesh_kw["clim"] = list(duct_clim(zz, src["p_pa"], z_fan=0.0, tip_r=_tip))
+            pl.add_mesh(
+                slc, scalars=scalars, cmap="turbo", show_edges=False,
+                scalar_bar_args={
+                    "title": title,
+                    "n_labels": 5,
+                    "fmt": "%.2f",
+                    "title_font_size": 12,
+                    "label_font_size": 10,
+                    "width": 0.12,
+                    "height": 0.55,
+                    "position_x": 0.86,
+                    "position_y": 0.2,
+                },
+                **mesh_kw,
+            )
+            if outline is not None:
+                pl.add_mesh(outline, color="black", line_width=2)
+            bb = slc.bounds
+            xspan = max(abs(float(bb[1]) - float(bb[0])), 1e-6)
+            zspan = max(abs(float(bb[5]) - float(bb[4])), 1e-6)
+            half = 0.55 * max(xspan, zspan) if layout == "scroll" else 0.55 * xspan
+            dist = 3.0 * max(half, 0.1)
+            fx, fy, fz = cam_focal
+            pl.camera_position = [(fx, fy + dist, fz), (fx, fy, fz), view_up]
+            pl.camera.parallel_projection = True
+            pl.camera.parallel_scale = half
+            # Title lives in the card's HTML (§24); side labels stay. ASCII only (mathtext crash).
+            pl.add_text(left_label, font_size=11, color="black", position="lower_left")
+            pl.add_text(right_label, font_size=11, color="black", position="lower_right")
+            pl.screenshot(str(path))
+        finally:
+            pl.close()
+    return path if path.is_file() else None
+
+
 def render_midplane_pngs(
     case_dir: str | Path,
     *,
@@ -417,50 +545,14 @@ def render_midplane_pngs(
             caption="Airflow not available for this design", available=False,
         )
 
-    b = slc.bounds
-    z0, z1 = float(b[4]), float(b[5])
-    x0, x1 = float(b[0]), float(b[1])
-    xc = 0.5 * (x0 + x1)
-    zc = 0.0 if (z0 < 0.0 < z1) else 0.5 * (z0 + z1)
-
-    if layout == "axial":
-        # Impeller-anchored crop (rig places the rotor near Z=0). Bias +Z: short approach,
-        # long wake — uniform inlet green is boring; the jet develops behind the blades.
-        r_tip = max(abs(x0), abs(x1), abs(x0 - xc), abs(x1 - xc), 0.03)
-        z_in = max(1.1 * r_tip, 0.04)   # −Z (FRONT) — just enough to see the LE entry
-        z_out = max(4.0 * r_tip, 0.10)  # +Z (OUTLET) — hub wake + tip jets
-        z_look = zc + 0.5 * (z_out - z_in)  # frame mid of the asymmetric window
-        x_keep = 1.08 * r_tip
-        try:
-            slc = slc.clip_box(
-                [
-                    xc - x_keep, xc + x_keep,
-                    float(b[2]) - 0.01, float(b[3]) + 0.01,
-                    zc - z_in, zc + z_out,
-                ],
-                invert=False,
-            )
-        except Exception:  # noqa: BLE001, S110 — keep full slice if clip fails
-            pass
-        if slc.n_points == 0:
-            return MidplaneArtifacts(
-                case_dir=case_dir, u_png=None, p_png=None,
-                caption="Airflow not available for this design", available=False,
-            )
-        cam_focal = (float(xc), float(origin[1]), float(z_look))
-        view_up = (1.0, 0.0, 0.0)
-        left_label, right_label = "FRONT (inlet)", "OUTLET (flow ->)"
-        title_u, title_p = "speed (m/s)", "pressure (Pa)"
-        cap_u = "Umag midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)"
-        cap_p = "pressure midplane — FRONT LEFT -> OUTLET RIGHT (wake-biased)"
-    else:
-        # Full scroll section — outlet stub lives at +X beyond tip radius.
-        cam_focal = (float(xc), float(origin[1]), float(zc))
-        view_up = (0.0, 0.0, 1.0)
-        left_label, right_label = "scroll / eye", "OUTLET (+X)"
-        title_u, title_p = "speed (m/s)", "pressure (Pa)"
-        cap_u = "Umag scroll section — OUTLET RIGHT (+X), INLET UP (+Z)"
-        cap_p = "pressure scroll section — OUTLET RIGHT (+X), INLET UP (+Z)"
+    slc, cam_focal, view_up, left_label, right_label, cap_u, cap_p = _midplane_layout_config(
+        layout, slc, origin,
+    )
+    if slc.n_points == 0:
+        return MidplaneArtifacts(
+            case_dir=case_dir, u_png=None, p_png=None,
+            caption="Airflow not available for this design", available=False,
+        )
 
     u_written = p_written = None
     # Smooth shading (§24): flat per-cell colour read as blocky "Minecraft" stairs.
@@ -471,84 +563,25 @@ def render_midplane_pngs(
     if "p" in slc.point_data:
         slc.point_data["p_pa"] = pressure_pa(slc.point_data["p"])  # kinematic -> Pa
     outline = rotor_outline(case_dir, _MIDPLANE_NORMAL, origin)
-
-    def _shot(scalars: str, title: str, path: Path) -> Path | None:
-        if (
-            scalars not in slc.array_names
-            and scalars not in (list(slc.cell_data.keys()) + list(slc.point_data.keys()))
-            and scalars not in slc.cell_data
-            and scalars not in slc.point_data
-        ):
-            return None
-        # Serialize: concurrent off-screen Plotters + vtkMatplotlibMathTextUtilities
-        # hard-crash the interpreter on Windows (selecting designs while midplane builds).
-        with _RENDER_LOCK:
-            pl = pv.Plotter(off_screen=True, window_size=list(window_size))
-            try:
-                pl.background_color = "white"
-                mesh_kw = {}
-                src = slc.point_data if scalars in slc.point_data else slc.cell_data
-                if clim_override and scalars in clim_override:
-                    mesh_kw["clim"] = list(clim_override[scalars])
-                elif scalars == "U_mag":
-                    mesh_kw["clim"] = list(throughflow_umag_clim(src["U_mag"]))
-                elif scalars == "p_pa":
-                    _h, _tip, _o = load_case_radii_omega(case_dir)
-                    zz = slc.points[:, 2] if scalars in slc.point_data else slc.cell_centers().points[:, 2]
-                    mesh_kw["clim"] = list(duct_clim(zz, src["p_pa"], z_fan=0.0, tip_r=_tip))
-                pl.add_mesh(
-                    slc, scalars=scalars, cmap="turbo", show_edges=False,
-                    scalar_bar_args={
-                        "title": title,
-                        "n_labels": 5,
-                        "fmt": "%.2f",
-                        "title_font_size": 12,
-                        "label_font_size": 10,
-                        "width": 0.12,
-                        "height": 0.55,
-                        "position_x": 0.86,
-                        "position_y": 0.2,
-                    },
-                    **mesh_kw,
-                )
-                if outline is not None:
-                    pl.add_mesh(outline, color="black", line_width=2)
-                bb = slc.bounds
-                xspan = max(abs(float(bb[1]) - float(bb[0])), 1e-6)
-                zspan = max(abs(float(bb[5]) - float(bb[4])), 1e-6)
-                if layout == "scroll":
-                    # Fit both X (outlet) and Z (inlet) extents in the viewport.
-                    half = 0.55 * max(xspan, zspan)
-                else:
-                    half = 0.55 * xspan  # fit duct diameter in viewport height → wide Z panorama
-                dist = 3.0 * max(half, 0.1)
-                fx, fy, fz = cam_focal
-                pl.camera_position = [
-                    (fx, fy + dist, fz),
-                    (fx, fy, fz),
-                    view_up,
-                ]
-                pl.camera.parallel_projection = True
-                pl.camera.parallel_scale = half
-                # Title lives in the card's HTML (§24); side labels stay. ASCII only (mathtext crash).
-                pl.add_text(
-                    left_label, font_size=11, color="black", position="lower_left",
-                )
-                pl.add_text(
-                    right_label, font_size=11, color="black", position="lower_right",
-                )
-                pl.screenshot(str(path))
-            finally:
-                pl.close()
-        return path if path.is_file() else None
+    shot_kw = {
+        "case_dir": case_dir, "window_size": window_size, "layout": layout,
+        "cam_focal": cam_focal, "view_up": view_up,
+        "left_label": left_label, "right_label": right_label, "clim_override": clim_override,
+    }
 
     try:
-        u_written = _shot("U_mag", title_u, out_u)
+        u_written = _render_midplane_shot(
+            pv, slc, outline, scalars="U_mag", title="speed (m/s)", path=out_u, **shot_kw,
+        )
     except Exception:  # noqa: BLE001
         u_written = None
     try:
         if "p_pa" in slc.point_data or "p" in slc.cell_data:
-            p_written = _shot("p_pa" if "p_pa" in slc.point_data else "p", title_p, out_p)
+            p_written = _render_midplane_shot(
+                pv, slc, outline,
+                scalars="p_pa" if "p_pa" in slc.point_data else "p",
+                title="pressure (Pa)", path=out_p, **shot_kw,
+            )
     except Exception:  # noqa: BLE001
         p_written = None
 

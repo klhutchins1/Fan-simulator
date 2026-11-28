@@ -103,13 +103,12 @@ claims:
 
   - id: bemt.apcsf_9x4.7.ct_j_rms
     surface: Prop BEMT
-    # Audit #3 pre-registered RMS <= 0.015. SF read 0.021-0.024, then 0.0175 after the (genuine)
-    # thickness fix. On 2026-09-30, after that data, the SF gate was "re-registered" to 0.020, which
-    # passes it. A tolerance widened after the data does not count (AGENTS.md rule 1), so this row is
-    # judged on 0.015. Ruling 2026-11-25 (docs/validation/audits/2026-11-25-apcsf-ct-j-rms-ruling.md):
-    # 0.015 gate stands, SF is FAIL, and 0.020 is kept as a regression guard only.
-    quantity: "worst C_T(J) RMS over the UIUC sweeps, APC SF 9x4.7 (the 0.020 gate was set after the data and is not used)"
+    # Audit #3 pre-registered RMS <= 0.015 (2026-09-29). SF read 0.021-0.024, then 0.0175 after the
+    # thickness fix (ruled FAIL on 2026-11-25 against the unchanged 0.015 gate). After P1B (#109-#112;
+    # docs/validation/audits/2026-11-28-prop-bemt-p1b-decoupled-prereg.md), worst C_T(J) RMS drops to
+    # ~0.0139 and clears the original 2026-09-29 pre-registered <= 0.015 gate without tolerance change.
+    quantity: "worst C_T(J) RMS over the UIUC sweeps, APC SF 9x4.7"
     published: {kind: live, unit: "-", source: "UIUC Propeller Database"}
     ours: {kind: live, func: uiuc_ct_rms, prefix: apcsf_9x4.7}
     tolerance: {max: 0.015, source: "docs/validation/audits/2026-09-29-audit-03-prop-bemt-uiuc.md"}
-    recorded_verdict: FAIL
+    recorded_verdict: PASS

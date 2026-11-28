@@ -42,9 +42,10 @@ def _coeffs(blade, rpm, j):
 
 
 def test_air_constants_match_isa():
-    # bemt.py keeps its own copies (known, see test_air_properties.KNOWN_COPIES); they must agree.
+    # #112: bemt.py uses one consistent 15 °C ISA sea-level state (rho, nu, c0).
     assert B.RHO_AIR == pytest.approx(air.RHO_ISA)
-    assert B.NU_AIR == pytest.approx(air.NU_AIR)
+    assert B.NU_AIR == pytest.approx(air.NU_ISA)
+    assert B.C_AIR == pytest.approx(air.C0_ISA)
 
 
 @pytest.mark.parametrize("rpm", [3000.0, 6026.0, 9000.0])
@@ -205,32 +206,24 @@ def test_uiuc_apcsf_static_neuralfoil_within_tolerance():
     assert abs(e_cp) <= CP_STATIC_TOL, e_cp
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Ruling 2026-11-25 (docs/validation/audits/2026-11-25-apcsf-ct-j-rms-ruling.md): APC SF "
-    "C_T(J) RMS is a FAIL against the pre-registered 0.015 (~0.0175). The 0.020 gate was set after "
-    "the data and is not a pass. Strict: flags if the model ever clears 0.015.",
-)
 def test_uiuc_apcsf_ct_j_rms_within_preregistered_tolerance():
-    """Audit #3 pre-registered C_T(J) RMS <= 0.015 for every prop; APC SF fails it."""
+    """Audit #3 pre-registered C_T(J) RMS <= 0.015; cleared after P1B (#109-#112) fixes."""
     worst = max(_ct_rms("apcsf_9x4.7", f) for f in _sweep_files("apcsf_9x4.7"))
     assert worst <= CT_RMS_TOL, worst
 
 
 def test_uiuc_apcsf_ct_j_rms_regression_guard():
-    """Regression guard only (not a validation pass, ruling 2026-11-25): SF RMS must not grow past 0.020."""
+    """Regression guard (ruling 2026-11-25): SF RMS must not grow past 0.020."""
     worst = max(_ct_rms("apcsf_9x4.7", f) for f in _sweep_files("apcsf_9x4.7"))
     assert worst <= CT_RMS_TOL_SF, worst
 
 
 def test_uiuc_apcsf_ct_j_attached_rms_regression_guard():
-    """Attached-window RMS is the driver. Regression guard at 0.020 only (ruling 2026-11-25)."""
+    """Attached-window RMS also clears the pre-registered 0.015 gate after P1B (#109-#112)."""
     worst = max(
         _ct_rms("apcsf_9x4.7", f, attached_only=True) for f in _sweep_files("apcsf_9x4.7")
     )
-    assert worst <= CT_RMS_TOL_SF, worst
-    # Honesty stamp: attached RMS does not meet the old 0.015 aspirational tol.
-    assert worst > CT_RMS_TOL, worst
+    assert worst <= CT_RMS_TOL, worst
 
 
 def test_bemt_allows_negative_thrust_in_windmill():

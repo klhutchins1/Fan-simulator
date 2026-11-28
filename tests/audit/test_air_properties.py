@@ -77,6 +77,16 @@ def test_viscosity_matches_sutherland_and_nu_is_mu_over_rho():
     assert air.NU_AIR == air.MU_AIR / air.RHO_AMCA
 
 
+def test_isa_15c_viscosity_and_speed_of_sound():
+    """#112: ISO 2533:1975 15 °C ISA sea-level viscosity and speed of sound."""
+    t_isa = air.T_ISA_K
+    assert t_isa == pytest.approx(288.15, abs=0.0)
+    mu_isa = 1.458e-6 * t_isa**1.5 / (t_isa + 110.4)
+    assert air.MU_ISA == pytest.approx(mu_isa, rel=0.005)
+    assert air.NU_ISA == air.MU_ISA / air.RHO_ISA
+    assert air.C0_ISA == pytest.approx(math.sqrt(air.GAMMA_AIR * air.R_AIR * t_isa), rel=1e-12)
+
+
 def test_not_water_not_mars():
     # Water: rho ~1000, nu ~1e-6, c ~1480. Mars surface: rho ~0.02, c ~240.
     assert 1.0 < air.RHO_AMCA < 1.3 and 1.0e-5 < air.NU_AIR < 2.0e-5 and 330 < air.C0_AIR < 350

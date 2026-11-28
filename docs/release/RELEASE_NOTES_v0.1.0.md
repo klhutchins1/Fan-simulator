@@ -40,7 +40,7 @@ validation scoreboard [`docs/validation/scoreboard.md`](../validation/scoreboard
 
 ## What is validated (against published data)
 
-Full evidence and audit links: [`docs/VALIDATION.md`](../VALIDATION.md) · [`docs/validation/scoreboard.md`](../validation/scoreboard.md) (12 claims: **6 PASS, 4 FAIL, 2 NOT JUDGED**).
+Full evidence and audit links: [`docs/VALIDATION.md`](../VALIDATION.md) · [`docs/validation/scoreboard.md`](../validation/scoreboard.md) (12 claims: **7 PASS, 3 FAIL, 2 NOT JUDGED**).
 
 | Surface | Published benchmark | Result | Verdict (pre-registered tolerance) |
 |---|---|---|---|
@@ -49,8 +49,8 @@ Full evidence and audit links: [`docs/VALIDATION.md`](../VALIDATION.md) · [`doc
 | **Fan CFD (axial, CFD v5)** | Lin & Tsai lt120 (frozen 0.5 mm tip gap, lowest measured load 6.85 Pa) | **90.8 vs 84.0 CFM (+8.1 %)** | **PASS** (±10 %) |
 | **Fan CFD (axial, CFD v5)** | Lin & Tsai lt120 (mid load 13.71 Pa) | **75.5 vs 60.0 CFM (+25.8 %)** | **FAIL** (±10 %; overall lt120 verdict: **TRENDS**) |
 | **Fan CFD (axial, CFD v5)** | FAN-01 exact CAD (Zenodo 10787093, 7 Pa / 64 Pa) | **+2.5 %** at 7 Pa / **+3.1 %** at 64 Pa | **NOT JUDGED** (no tolerance was pre-registered) |
-| **Propeller BEMT** | UIUC APC E 9x6 (near 6000 rpm, default tables) | static C_T **−1.0 %**, static C_P **−9.3 %**, C_T(J) RMS **0.0037** | **PASS / PASS / PASS** (±15 % / ±20 % / ≤ 0.015) |
-| **Propeller BEMT** | UIUC APC SF 9x4.7 (near 6000 rpm, default tables) | static C_T **−12.9 %** (PASS), static C_P **−21.4 %** (FAIL), C_T(J) RMS **0.0175** (FAIL vs ≤ 0.015) | Static C_T **PASS**; C_P and sweep RMS **FAIL** (known limits) |
+| **Propeller BEMT** | UIUC APC E 9x6 (near 6000 rpm, default tables) | static C_T **+0.4 %**, static C_P **−5.3 %**, C_T(J) RMS **0.0085** | **PASS / PASS / PASS** (±15 % / ±20 % / ≤ 0.015) |
+| **Propeller BEMT** | UIUC APC SF 9x4.7 (near 6000 rpm, default tables) | static C_T **−12.5 %** (PASS), static C_P **−20.2 %** (FAIL), C_T(J) RMS **0.0139** (PASS vs ≤ 0.015) | Static C_T & sweep RMS **PASS**; static C_P **FAIL** (known limit) |
 
 ---
 

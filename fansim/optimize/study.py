@@ -58,6 +58,113 @@ def make_study(study_name: str, storage: str, seed: int | None = 42,
     )
 
 
+def _fit_prescreen_surrogates(
+    surrogate_db: str | Path | None,
+    *,
+    surrogate_boost: bool,
+    surrogate_nn: bool,
+) -> tuple[list, list, list]:
+    """Fit free and load prescreen surrogates from catalog DB."""
+    from fansim.catalog import CATALOG_DB
+    from fansim.surrogate.catalog import prescreen_fit
+
+    db = Path(surrogate_db) if surrogate_db is not None else CATALOG_DB
+    if surrogate_nn and surrogate_boost:
+        print("surrogate-prescreen: nn enabled; boost ignored")
+
+    surr_free_xy: list = [None, None]
+    surr_load_xy: list = [None, None]
+    surr_models: list = [None, None]
+    specs = (
+        ("free", {"boost": surrogate_boost, "nn": surrogate_nn}, surr_free_xy, 0),
+        ("load", {"y_attr": "cfm_load", "require_k": True, "boost": surrogate_boost, "nn": surrogate_nn}, surr_load_xy, 1),
+    )
+    for label, kw, xy_cell, idx in specs:
+        surrogate, x_arr, y_arr, why = prescreen_fit(db, **kw)
+        if surrogate is None:
+            print(f"surrogate-prescreen: {label} off ({why})")
+        else:
+            xy_cell[0], xy_cell[1] = x_arr, y_arr
+            surr_models[idx] = surrogate
+            if why:
+                print(f"surrogate-prescreen: {label} ({why})")
+            elif surrogate_nn:
+                print(f"surrogate-prescreen: {label} nn+GP ensemble")
+            elif surrogate_boost:
+                print(f"surrogate-prescreen: {label} boost+GP ensemble")
+    return surr_models, surr_free_xy, surr_load_xy
+
+
+def _update_online_surrogates(
+    params,
+    result,
+    surr_models: list,
+    surr_free_xy: list,
+    surr_load_xy: list,
+) -> None:
+    """Online GP update (§7.4): teach the in-memory screen from this study's CFD."""
+    with contextlib.suppress(Exception):  # online update must never break the study
+        from fansim.surrogate.catalog import append_and_refit
+        from fansim.surrogate.features import feature_vector
+
+        x = feature_vector(params)
+        if surr_models[0] is not None and surr_free_xy[0] is not None and result.cfm_free > -1e5:
+            surr_models[0], surr_free_xy[0], surr_free_xy[1] = append_and_refit(
+                surr_models[0], surr_free_xy[0], surr_free_xy[1], x, result.cfm_free,
+            )
+        if (
+            surr_models[1] is not None
+            and surr_load_xy[0] is not None
+            and result.raw.get("k") is not None
+            and result.cfm_load > -1e5
+        ):
+            surr_models[1], surr_load_xy[0], surr_load_xy[1] = append_and_refit(
+                surr_models[1], surr_load_xy[0], surr_load_xy[1], x, result.cfm_load,
+            )
+
+
+def _record_trial_attrs(
+    trial: optuna.Trial,
+    params,
+    result,
+    workdir: Path,
+    *,
+    load_pa: float,
+    refine_op: bool,
+    wall_ks_mm: float | None,
+    with_noise: bool,
+) -> None:
+    """Persist trial user_attrs and ``result.json``."""
+    trial.set_user_attr("feasible", result.feasible)
+    trial.set_user_attr("reason", result.reason)
+    if result.raw.get("converged") is not None:  # QA-65: loaded point settled? (caption K1)
+        trial.set_user_attr("converged", bool(result.raw["converged"]))
+    trial.set_user_attr("n_blades", params.n_blades)
+    trial.set_user_attr("runtime_s", result.runtime_s)
+    trial.set_user_attr("cfd_version", CFD_VERSION)  # so stale (pre-fix) scores are detectable
+    if result.raw.get("surf_max") is not None:   # mesh level actually used (§23.39 floor)
+        trial.set_user_attr("surf_max", int(result.raw["surf_max"]))
+    if result.raw.get("motor_eff") is not None:  # motor budget the derate used
+        trial.set_user_attr("motor_eff", float(result.raw["motor_eff"]))
+    if result.raw.get("hub_clip") is not None:   # blades cut at the hub face
+        trial.set_user_attr("hub_clip", bool(result.raw["hub_clip"]))
+    # The hose the load score is on; without it, load CFM across runs can't be compared
+    # (2026-10-07: had to be inferred from result.json's system-curve k).
+    trial.set_user_attr("load_pa", float(load_pa))
+    trial.set_user_attr("refine_op", bool(refine_op))
+    if wall_ks_mm is not None and float(wall_ks_mm) > 0:
+        trial.set_user_attr("wall_ks_mm", float(wall_ks_mm))
+    if with_noise:
+        trial.set_user_attr("noise_swl", result.noise_swl)
+    if "sanity_status" in result.raw:
+        trial.set_user_attr("sanity_status", result.raw["sanity_status"])
+        trial.set_user_attr("sanity", result.raw.get("sanity", []))
+    if result.raw:
+        (workdir / "result.json").write_text(
+            json.dumps(result.to_dict(), indent=2), encoding="utf-8",
+        )
+
+
 def run_study(
     n_trials: int,
     out_dir: str | Path,
@@ -130,43 +237,15 @@ def run_study(
     if search_rpm:
         pwm_table = resolve_pwm_table(rpm_min, rpm_max)
 
-    surr_free_xy: list = [None, None]
-    surr_load_xy: list = [None, None]
-    # Mutable cells so the trial closure can rebind models after online refit.
-    surr_models: list = [None, None]  # [free, load]
     if surrogate_prescreen_cfm > 0.0:
-        from fansim.catalog import CATALOG_DB
-        from fansim.surrogate.catalog import prescreen_fit
-        db = Path(surrogate_db) if surrogate_db is not None else CATALOG_DB
-        if surrogate_nn and surrogate_boost:
-            print("surrogate-prescreen: nn enabled; boost ignored")
-        surrogate, Xf, yf, why = prescreen_fit(
-            db, boost=surrogate_boost, nn=surrogate_nn)
-        if surrogate is None:
-            print(f"surrogate-prescreen: free off ({why})")
-        else:
-            surr_free_xy[0], surr_free_xy[1] = Xf, yf
-            surr_models[0] = surrogate
-            if why:
-                print(f"surrogate-prescreen: free ({why})")
-            elif surrogate_nn:
-                print("surrogate-prescreen: free nn+GP ensemble")
-            elif surrogate_boost:
-                print("surrogate-prescreen: free boost+GP ensemble")
-        surrogate_load, Xl, yl, why_load = prescreen_fit(
-            db, y_attr="cfm_load", require_k=True,
-            boost=surrogate_boost, nn=surrogate_nn)
-        if surrogate_load is None:
-            print(f"surrogate-prescreen: load off ({why_load})")
-        else:
-            surr_load_xy[0], surr_load_xy[1] = Xl, yl
-            surr_models[1] = surrogate_load
-            if why_load:
-                print(f"surrogate-prescreen: load ({why_load})")
-            elif surrogate_nn:
-                print("surrogate-prescreen: load nn+GP ensemble")
-            elif surrogate_boost:
-                print("surrogate-prescreen: load boost+GP ensemble")
+        surr_models, surr_free_xy, surr_load_xy = _fit_prescreen_surrogates(
+            surrogate_db, surrogate_boost=surrogate_boost, surrogate_nn=surrogate_nn,
+        )
+    else:
+        surr_free_xy = [None, None]
+        surr_load_xy = [None, None]
+        # Mutable cells so the trial closure can rebind models after online refit.
+        surr_models = [None, None]  # [free, load]
 
     def objective(trial: optuna.Trial):
         if base_params is not None:
@@ -208,49 +287,12 @@ def run_study(
                                     stepped_inlet=stepped_inlet,
                                     rpm=trial_rpm,
                                     wall_ks_mm=wall_ks_mm)
-        # Online GP update (§7.4): teach the in-memory screen from this study's CFD.
         if result.feasible and surrogate_prescreen_cfm > 0.0:
-            with contextlib.suppress(Exception):  # online update must never break the study
-                from fansim.surrogate.catalog import append_and_refit
-                from fansim.surrogate.features import feature_vector
-                x = feature_vector(params)
-                if (surr_models[0] is not None and surr_free_xy[0] is not None
-                        and result.cfm_free > -1e5):
-                    surr_models[0], surr_free_xy[0], surr_free_xy[1] = append_and_refit(
-                        surr_models[0], surr_free_xy[0], surr_free_xy[1], x, result.cfm_free)
-                if (surr_models[1] is not None and surr_load_xy[0] is not None
-                        and result.raw.get("k") is not None
-                        and result.cfm_load > -1e5):
-                    surr_models[1], surr_load_xy[0], surr_load_xy[1] = append_and_refit(
-                        surr_models[1], surr_load_xy[0], surr_load_xy[1],
-                        x, result.cfm_load)
-        trial.set_user_attr("feasible", result.feasible)
-        trial.set_user_attr("reason", result.reason)
-        if result.raw.get("converged") is not None:  # QA-65: loaded point settled? (caption K1)
-            trial.set_user_attr("converged", bool(result.raw["converged"]))
-        trial.set_user_attr("n_blades", params.n_blades)
-        trial.set_user_attr("runtime_s", result.runtime_s)
-        trial.set_user_attr("cfd_version", CFD_VERSION)  # so stale (pre-fix) scores are detectable
-        if result.raw.get("surf_max") is not None:   # mesh level actually used (§23.39 floor)
-            trial.set_user_attr("surf_max", int(result.raw["surf_max"]))
-        if result.raw.get("motor_eff") is not None:  # motor budget the derate used
-            trial.set_user_attr("motor_eff", float(result.raw["motor_eff"]))
-        if result.raw.get("hub_clip") is not None:   # blades cut at the hub face
-            trial.set_user_attr("hub_clip", bool(result.raw["hub_clip"]))
-        # The hose the load score is on; without it, load CFM across runs can't be compared
-        # (2026-10-07: had to be inferred from result.json's system-curve k).
-        trial.set_user_attr("load_pa", float(load_pa))
-        trial.set_user_attr("refine_op", bool(refine_op))
-        if wall_ks_mm is not None and float(wall_ks_mm) > 0:
-            trial.set_user_attr("wall_ks_mm", float(wall_ks_mm))
-        if with_noise:
-            trial.set_user_attr("noise_swl", result.noise_swl)
-        if "sanity_status" in result.raw:
-            trial.set_user_attr("sanity_status", result.raw["sanity_status"])
-            trial.set_user_attr("sanity", result.raw.get("sanity", []))
-        if result.raw:
-            (workdir / "result.json").write_text(
-                json.dumps(result.to_dict(), indent=2), encoding="utf-8")
+            _update_online_surrogates(params, result, surr_models, surr_free_xy, surr_load_xy)
+        _record_trial_attrs(
+            trial, params, result, workdir,
+            load_pa=load_pa, refine_op=refine_op, wall_ks_mm=wall_ks_mm, with_noise=with_noise,
+        )
         if on_trial:
             on_trial(trial, params, result)
         return result.as_tuple(with_noise=with_noise)

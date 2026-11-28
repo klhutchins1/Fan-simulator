@@ -441,7 +441,7 @@ def _bind_prop_editor_and_plots(ctx: CockpitCtx) -> None:
             lines = [
                 prop_static_headline(spec),
                 f"Thrust {perf.thrust_g:.0f} g   ·   {perf.efficiency_g_per_w:.2f} g/W   ·   {perf.power_w:.0f} W",
-                f"Figure of merit {perf.figure_of_merit:.2f}   (0.6–0.8 = a good real prop)",
+                f"Figure of merit {0.0 if perf.figure_of_merit is None else perf.figure_of_merit:.2f}   (0.6–0.8 = a good real prop)",
                 f"Polar backend: {get_polar_backend()}",
             ]
             ref_line = prop_reference_line(spec, perf)
