@@ -206,3 +206,40 @@ def test_library_missing_design_has_no_rebuild_dead_end(tmp_path):
 
     assert "rebuild" not in (ctx.state.preview_msg or "").lower()
     assert "rebuild" not in (ctx.state.library_msg or "").lower()
+
+
+def test_ui41_seed_duty_and_scale_numeric_validation():
+    """UI-41: Seed-from-duty and arrow scale numeric fields validate inputs cleanly."""
+    from pathlib import Path
+
+    import pytest
+
+    from fansim.cockpit.fan_editor import validate_seed_duty_inputs
+
+    # Valid inputs normalize cleanly to floats
+    assert validate_seed_duty_inputs("60", "15", "2000") == (60.0, 15.0, 2000.0)
+    assert validate_seed_duty_inputs(45.5, 0.0, 1500) == (45.5, 0.0, 1500.0)
+
+    # Non-numeric / empty / non-finite / out-of-range inputs raise clear ValueError
+    for bad in [
+        ("abc", 15, 2000),
+        ("", 15, 2000),
+        (0, 15, 2000),
+        (-5, 15, 2000),
+        (60, -1, 2000),
+        (60, 15, 0),
+        (float("nan"), 15, 2000),
+        (60, float("inf"), 2000),
+    ]:
+        with pytest.raises(ValueError):
+            validate_seed_duty_inputs(*bad)
+
+    # UI template sets inline min + error highlight bindings on all 4 numeric fields
+    src = Path(__file__).resolve().parents[1] / "fansim" / "cockpit" / "fan_tab_ui.py"
+    text = src.read_text(encoding="utf-8")
+    for field in ("seed_duty_cfm", "seed_duty_pa", "seed_duty_rpm", "glyph_scale"):
+        idx = text.index(f'v_model=("{field}",)')
+        snippet = text[idx : idx + 450]
+        assert "min=" in snippet, f"missing min= on {field}"
+        assert "error=" in snippet, f"missing error= validation binding on {field}"
+
