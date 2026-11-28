@@ -7,18 +7,12 @@ and writes binary STLs ready for :func:`fansim.propeller.cfd.build_prop_case`.
 
 from __future__ import annotations
 
-import json
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 import trimesh
-
-from fansim.propeller.direction import chirality_hint_from_name
-
-ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_IMPORT_DIR = ROOT / "validation" / "reference" / "drone_radial"
 
 
 @dataclass(frozen=True)
@@ -44,13 +38,6 @@ def spin_hint_from_name(name: str) -> int | None:
     if re.search(r"(^|_)CW(_|$)", upper):
         return 1
     return None
-
-
-def _sanitize_stem(name: str) -> str:
-    stem = Path(name).stem.strip()
-    stem = re.sub(r"\s+", "_", stem)
-    stem = re.sub(r"[^A-Za-z0-9_\-]+", "", stem)
-    return stem.lower()
 
 
 def prepare_prop_stl(
@@ -111,46 +98,6 @@ def measure_prop_stl(path: str | Path) -> PropStlMetrics:
         axial_depth_mm=float(mesh.extents[2]),
         watertight=bool(mesh.is_watertight),
         volume_mm3=float(mesh.volume),
-        n_faces=int(len(mesh.faces)),
+        n_faces=len(mesh.faces),
         diameter_mm=2.0 * tip,
     )
-
-
-def import_prop_stl_dir(
-    src_dir: str | Path,
-    dst_dir: str | Path = DEFAULT_IMPORT_DIR,
-    *,
-    pattern: str = "*.stl",
-) -> list[dict]:
-    """Prepare every STL in ``src_dir`` into ``dst_dir`` and write a manifest JSON."""
-    src_dir, dst_dir = Path(src_dir), Path(dst_dir)
-    dst_dir.mkdir(parents=True, exist_ok=True)
-    rows: list[dict] = []
-    for src in sorted(src_dir.glob(pattern)):
-        if not src.is_file():
-            continue
-        stem = _sanitize_stem(src.name)
-        dst = dst_dir / f"{stem}.stl"
-        prepare_prop_stl(src, dst)
-        metrics = measure_prop_stl(dst)
-        row = {
-            "source": str(src),
-            "prepared": str(dst.as_posix()),
-            "name": stem,
-            "chirality_hint": chirality_hint_from_name(src.name),
-            **asdict(metrics),
-        }
-        rows.append(row)
-        (dst.with_suffix(".meta.json")).write_text(
-            json.dumps(row, indent=2) + "\n", encoding="utf-8"
-        )
-
-    manifest = {
-        "source_dir": str(src_dir),
-        "n": len(rows),
-        "items": rows,
-    }
-    (dst_dir / "manifest.json").write_text(
-        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
-    )
-    return rows

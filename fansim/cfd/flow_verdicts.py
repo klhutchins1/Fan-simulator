@@ -90,10 +90,13 @@ BARS_NOTE = "The bars show where along the blade; spin tilts them toward the tip
 
 
 def _push(d, s):
-    """Judged on the area-weighted mean push (Kimball 2026-10-12, roadmap 27.3 option b).
+    """Judged on the slab-mean push (Kimball 2026-10-12, roadmap 27.3 option b).
 
-    Swirl alone shifts static pressure from hub to tip (radial equilibrium), so per-band labels made a
-    swirly fan look hub-weak / tip-strong. That tilt cancels in the mean. Bands stay as a picture.
+    Swirl tilts static pressure upward from hub to tip via radial equilibrium (dp/dr = rho U_th^2 / r),
+    making per-band labels read hub-weak / tip-strong on swirly fans. The radial-equilibrium hub
+    depression does NOT cancel to zero in the annulus mean (its area mean is negative relative to the
+    outer wall; see audit 2026-10-17-push-row-planes.md and #90), so bands stay as a picture and the
+    overall verdict uses ``mean_dp0_pa`` on blade-external v4 planes.
     """
     if s is None:
         return _row("push", "na", "No Stock comparison for the push along the blade.")

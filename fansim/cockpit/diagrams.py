@@ -161,11 +161,6 @@ CONTROL_DIAGRAM: dict[str, str] = {
 }
 
 
-def diagram_svg(name: str) -> str:
-    """Raw SVG markup for ``name``, or '' if unknown."""
-    return _SVGS.get(name, "")
-
-
 def diagram_data_uri(name: str) -> str:
     """Base64 SVG data URI for ``name``, or '' if unknown."""
     return _URI_CACHE.get(name, "")
