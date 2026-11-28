@@ -21,14 +21,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import matplotlib  # noqa: E402
+import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
 
-from fansim.cfd.runner import image_available  # noqa: E402
-from fansim.optimize.study import pareto_summary, run_study  # noqa: E402
-from fansim.optimize.search_space import OBJECTIVE_NAMES  # noqa: E402
+from fansim.cfd.runner import image_available
+from fansim.optimize.study import pareto_summary, run_study
 
 _t0 = time.time()
 

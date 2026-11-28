@@ -20,13 +20,12 @@ from pathlib import Path
 import numpy as np
 
 PROJECT = Path(__file__).resolve().parent.parent
-from fansim.external_tools import fluidx3d_dir, fluidx3d_exe, msys_bin  # noqa: E402
+from fansim.external_tools import fluidx3d_dir, fluidx3d_exe, msys_bin
 
 FLUIDX3D = fluidx3d_dir()          # env FANSIM_FLUIDX3D (default ../FluidX3D)
 EXE = fluidx3d_exe()
 UCRT = msys_bin()                  # env FANSIM_MSYS_BIN (Windows msys2 runtime)
 CFG = PROJECT / "build" / "noise_job.cfg"
-from fansim.physics.air import C0_AIR as C0
 R_OBS, PREF = 1.0, 20e-6
 N_BLADES, RPM = 7, 2000.0
 BPF = N_BLADES * RPM / 60.0
@@ -119,7 +118,7 @@ def evaluate_noise(stl, dia_mm=None, label=None, cutoff_hz=2500.0, keep_csv=True
     env["PATH"] = UCRT + os.pathsep + env.get("PATH", "")
     print(f"[noise] {label}: dia={dia_mm:.1f} mm  mode={mode}  running LBM (~3 min) ...", flush=True)
     r = subprocess.run([str(EXE)], cwd=str(FLUIDX3D), env=env,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, timeout=900)
+                       stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, timeout=900, check=False)
     if not out.exists():
         sys.stderr.write((r.stderr or "")[-1500:] + "\n")
         raise RuntimeError(f"noise run produced no output for {label}")

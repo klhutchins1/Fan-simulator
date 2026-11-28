@@ -27,9 +27,8 @@ import numpy as np
 import pytest
 
 from fansim.acoustics import farfield as ff
-from fansim.acoustics import fwh
+from fansim.acoustics import fwh, tonal
 from fansim.acoustics import proxies as px
-from fansim.acoustics import tonal
 from fansim.physics import air
 
 C0 = air.C0_AIR
@@ -268,7 +267,7 @@ def test_db_reference_and_sine_level():
 # ---------------------------------------------------------------- acoustics.fwh
 def test_panel_kernel_offset_dipole_matches_analytic():
     """One panel at r0 (observer at x_obs): p = r_hat.Fdot(t-r/c)/(4 pi c r), r = |x - r0|."""
-    t, dt = _t(dur=0.4)
+    t, _dt = _t(dur=0.4)
     F = np.zeros((len(t), 3))
     F[:, 0] = F0 * np.cos(W * t)
     F[:, 2] = 0.5 * F0 * np.sin(W * t)
@@ -343,7 +342,8 @@ def test_script_a_weighting_uses_farfield_module():
         assert mod.C0 == air.C0_AIR
     mod = _load(ROOT / "scripts" / "evaluate_noise.py")
     assert np.allclose(mod._a_weight_db(f), ff.a_weighting_db(f), atol=1e-12)
-    assert mod.C0 == air.C0_AIR
+    # evaluate_noise delegates all acoustic math to fansim.acoustics.farfield / fwh (no local C0 alias)
+    assert not hasattr(mod, "C0")
 
 
 def test_curle_script_uses_one_over_r_dipole():
@@ -372,6 +372,7 @@ def test_prop_fwh_synthetic_is_not_a_fwh_calculation():
 
 def test_prop_rel_dba_monotone_in_tip_speed():
     from types import SimpleNamespace
+
     from fansim.propeller.noise import estimate_prop_noise
     prm = SimpleNamespace(tip_radius=60.0, n_blades=3)
     perf = SimpleNamespace(thrust_n=2.0)

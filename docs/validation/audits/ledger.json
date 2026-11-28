@@ -2,13 +2,13 @@
   "units": {
     "acoustics.curle_dipole": {
       "date": "2026-11-27",
-      "fingerprint": "3a07bf439b7364c5",
+      "fingerprint": "193c4627165e35d1",
       "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "acoustics.fwh": {
       "date": "2026-11-27",
-      "fingerprint": "36e3d6965a63414a",
+      "fingerprint": "726b6bb54b4e5c00",
       "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
@@ -26,13 +26,13 @@
     },
     "acoustics.proudman": {
       "date": "2026-11-27",
-      "fingerprint": "ac137391dec9a61b",
+      "fingerprint": "c58f5bd7b6ab550d",
       "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
     "acoustics.tonal_bpf": {
-      "date": "2026-11-26",
-      "fingerprint": "d9eb9100631ae8b0",
+      "date": "2026-11-27",
+      "fingerprint": "79d5246f61dcbcbf",
       "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
       "verdict": "PASS"
     },
@@ -151,8 +151,8 @@
       "verdict": "PASS"
     },
     "propeller.noise": {
-      "date": "2026-11-25",
-      "fingerprint": "d9f7cbd3534f5560",
+      "date": "2026-11-27",
+      "fingerprint": "bab01829e0e9b271",
       "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
       "verdict": "PASS"
     },
