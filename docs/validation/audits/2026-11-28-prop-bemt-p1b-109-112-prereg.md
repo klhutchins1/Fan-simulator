@@ -67,4 +67,21 @@ All 7 criteria must pass to merge. Any failure is recorded honestly in Section 3
 
 ## 3. Results
 
-*(To be recorded after implementation and verification.)*
+- **Verdict:** **FAIL** (C1–C5 **PASS**; **C6 FAIL**; C7 not finalized under this pre-registration).
+- **Date evaluated:** 2026-11-28 (pre-decoupling unified `_cl_cd` run on `cursor/epic-1b-prop-bemt`).
+
+### Summary by Criterion
+
+| ID | Verdict | Observed Evidence |
+|---|---|---|
+| **C1** (`#109`) | **PASS** | Closed-form 1-element BEMT check with `denom_th = 2*pi*r*rho*|Vax|*F`, APC SF 9×4.7 windmill (`J=0.75, 4008 rpm`) `vth < 0` & `T < 0`, and unsigned `abs(sin(phi))` all passed (`tests/test_rv3_propeller.py`). |
+| **C2** (`#110`) | **PASS** | `_analytic_section(0, m, re=None) == 4*pi*m`, attached quadratic drag rise `cd > cd0`, and symmetric Viterna–Corrigan (`Cl(±90°)=0`, `Cd(±90°)=1.29`, continuous at stall edges) all passed. |
+| **C3** (`#111`) | **PASS** | Table polars continue smoothly via Viterna–Corrigan to `Cl(±90°)=0, Cd(±90°)=1.29`, `s1223` flags `stalled=True` at `-30°`, `naca4412` is attached at `-5°`, and `_interp_geom` passes radially varying `camber(r)` and `thickness(r)`. |
+| **C4** (`#112`) | **PASS** | `T_ISA_K`, `MU_ISA`, `NU_ISA`, `C0_ISA` pass ISO 2533 / Sutherland / ideal-gas checks (`tests/audit/test_air_properties.py`); `bemt.py` uses `RHO_ISA`, `NU_ISA`, `C0_ISA`; `figure_of_merit` and `figure_of_merit_raw` are `None` for `v_forward > 0` and preserve `0 < FM_raw < 1` at hover. |
+| **C5** (UIUC Audit #3 & GWS) | **PASS** | **APC E 9×6:** static $C_T = 0.1165$ (`+0.4%`, tol `±15%`, was `-1.0%`), static $C_P = 0.0486$ (`-5.3%`, tol `±20%`, was `-9.3%`), worst $C_T(J)$ RMS $= 0.0085$ (`≤ 0.015`, was `0.0037`). **APC SF 9×4.7:** static $C_T = 0.1043$ (`-12.5%`, tol `±15%`, was `-12.9%`), static $C_P = 0.0386$ (`-20.2%`, tol `±20%`, improved from `-21.4%`, stays honest **FAIL**), worst $C_T(J)$ RMS $= 0.0139$ (was `0.0175`) — **cleared the original 2026-09-29 pre-registered `≤ 0.015` gate (PASS!)**, attached-window RMS dropped `0.0188 -> 0.01467`. **GWS 5×4.3**, `test_bemt.py`, and `test_bemt_catalog.py` all passed. |
+| **C6** (Fan BEM non-regression) | **FAIL** | `tests/audit/test_fan_bem_audit.py` passed, **but `tests/test_fan_bem.py` failed 4 tests** because `fan_bem.py` shared `bemt._cl_cd` (100% of A12x25 fan elements run at $\text{Re} < 40{,}000$ on `_analytic_section`, and `SLIP = 0.71` / `AX_SLIP = 0.65` were empirically fitted to the legacy `2*pi*m` camber / constant-`cd0` polar): (1) Stock v2 Euler free delivery rose `58.2 -> 65.34 CFM` (`+12.3%`, failing `test_default_pressure_model_is_euler_and_unchanged`); (2) Stock `axial_force` free delivery rose `59.8 -> 67.37 CFM` (failing QA rule (a) `<= 66.1 CFM` in `test_axial_force_stock_calibration`); (3) `E_rand1396` peak $\eta$ fell `>= 0.95 -> 0.809` (`test_axial_force_efficiency_never_exceeds_one`); (4) `test_viterna_no_pole_beyond_90_deg` saw `cd(-90°) = 1.800057 > 1.8 + 1e-6` because `fan_bem._cl_cd_post_stall` passed `-stall = -10.9°` at `Re = 40,000` into `polars.py`'s new negative continuation, raising `cd_s` so `b2 * 1e-3` nudged `cd(-90°)` above `CD_90 + 1e-6`. |
+| **C7** | **DEFERRED** | Halted before snapshot/ledger finalization because C6 failed. |
+
+### Disposition
+
+Per `AGENTS.md` Rule 1, we do **not** re-tune `fan_bem.py`'s empirical `SLIP`/`AX_SLIP` constants or silently modify the pre-registration. This pre-registration is closed as **FAIL (C6)** and superseded by a separate ruling and pre-registration (`docs/validation/audits/2026-11-28-prop-bemt-p1b-decoupled-prereg.md`) that decouples `fansim/fan_bem.py` (parked for v0.2 `#93`/`#95`) onto its preserved v0.1 calibrated helper while landing `#109`–`#112` cleanly on `fansim/physics/air.py`, `fansim/propeller/polars.py`, and `fansim/propeller/bemt.py`.
