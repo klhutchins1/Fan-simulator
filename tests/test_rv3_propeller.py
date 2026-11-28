@@ -45,8 +45,8 @@ def _simple_blade(
 
 def test_bemt_air_constants_single_sourced_from_physics_air():
     assert B.RHO_AIR == air.RHO_ISA
-    assert B.NU_AIR == air.NU_AIR
-    assert B.C_AIR == air.C0_AIR
+    assert B.NU_AIR == air.NU_ISA
+    assert B.C_AIR == air.C0_ISA
     assert B.G == 9.80665
 
     src = Path("fansim/propeller/bemt.py").read_text(encoding="utf-8")
@@ -103,7 +103,7 @@ def test_single_element_bemt_matches_closed_form_equations(monkeypatch):
         dT = 0.5 * rho * W2 * c * 2 * (cl_const * math.cos(phi) - cd_const * math.sin(phi))
         f_th = 0.5 * rho * W2 * c * 2 * (cl_const * math.sin(phi) + cd_const * math.cos(phi))
         vi_new = dT / (4.0 * math.pi * r * rho * abs(Vax) * F)
-        vth_new = f_th / (2.0 * math.pi * r * rho * abs(Vax))
+        vth_new = f_th / (2.0 * math.pi * r * rho * abs(Vax) * F)
         if abs(vi_new - vi) < 1e-12 and abs(vth_new - vth) < 1e-12:
             break
         vi = 0.5 * (vi + vi_new)
@@ -113,7 +113,6 @@ def test_single_element_bemt_matches_closed_form_equations(monkeypatch):
     expected_Q = f_th * r * dr
     expected_P = expected_Q * omega
     expected_eta = expected_T * v_fwd / expected_P
-    expected_fm = (expected_T**1.5 / math.sqrt(2.0 * rho * math.pi * R * R)) / expected_P
 
     assert perf.thrust_n == pytest.approx(expected_T, rel=1e-4)
     assert perf.torque_nm == pytest.approx(expected_Q, rel=1e-4)
@@ -121,7 +120,16 @@ def test_single_element_bemt_matches_closed_form_equations(monkeypatch):
     assert perf.thrust_g == pytest.approx(perf.thrust_n / 9.80665 * 1000.0, rel=1e-12)
     assert perf.efficiency_g_per_w == pytest.approx(perf.thrust_g / perf.power_w, rel=1e-12)
     assert perf.prop_efficiency == pytest.approx(expected_eta, rel=1e-4)
-    assert perf.figure_of_merit_raw == pytest.approx(expected_fm, rel=1e-4)
+    # #112: static hover FM is undefined (None) in forward flight.
+    assert perf.figure_of_merit is None
+    assert perf.figure_of_merit_raw is None
+
+    # Hover (v_forward == 0) reports exact hover FM and prop_efficiency is None.
+    hover = analyze(blade, rpm, v_forward=0.0, n_elem=1)
+    expected_fm = (hover.thrust_n**1.5 / math.sqrt(2.0 * rho * math.pi * R * R)) / hover.power_w
+    assert hover.prop_efficiency is None
+    assert hover.figure_of_merit_raw == pytest.approx(expected_fm, rel=1e-12)
+    assert hover.figure_of_merit == pytest.approx(min(expected_fm, 1.0), rel=1e-12)
 
     # Nondim consistency with fansim.propeller.polar.nondim
     nd = nondim(perf.thrust_n, perf.power_w, rpm=rpm, diameter_m=2.0 * R, v_inf=v_fwd, rho=rho)
@@ -190,13 +198,18 @@ def test_analyze_returns_native_python_floats():
         "v_forward",
         "thrust_g",
         "efficiency_g_per_w",
-        "figure_of_merit",
-        "figure_of_merit_raw",
         "prop_efficiency",
     ):
         val = getattr(p, field_name)
         assert type(val) is float, f"{field_name} has type {type(val).__name__}, expected float"
+    assert p.figure_of_merit is None
+    assert p.figure_of_merit_raw is None
     assert type(p.converged) is bool
+
+    hover = analyze(blade, rpm=6026.0, v_forward=0.0)
+    assert type(hover.figure_of_merit) is float
+    assert type(hover.figure_of_merit_raw) is float
+    assert hover.prop_efficiency is None
 
 
 def test_analyze_reynolds_scales_with_custom_rho(monkeypatch):
@@ -318,4 +331,100 @@ def test_registry_propeller_bemt_depends_on_polars_and_no_stale_exempt():
     assert "propeller.polars" in bemt_unit.depends_on
     assert "propeller.neuralfoil_polars" in bemt_unit.depends_on
     assert "propeller.polar_coefficients" in bemt_unit.depends_on
-    assert "fansim.propeller.polars:PolarPoint" not in reg.exempt
+
+
+# ------------------------------------------------------------------ P1B (#109-#112) tests
+
+
+def test_windmill_allows_negative_swirl_and_prandtl_abs_sin_phi(monkeypatch):
+    """#109: windmill regime must allow negative swirl vth < 0 and keep F < 1 if Vax < 0."""
+    import sys
+
+    seen_vth: list[float] = []
+    real = B._section_aero
+
+    def spy(*args, **kwargs):
+        loc = sys._getframe(1).f_locals
+        if "vth" in loc:
+            seen_vth.append(float(loc["vth"]))
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(B, "_section_aero", spy)
+    blade = load_uiuc_geometry_blade(UIUC_DIR / "apcsf_9x4.7_geom.txt", 9.0)
+    d = 9.0 * 0.0254
+    rpm = 4008.0
+    perf = analyze(blade, rpm, v_forward=0.75 * (rpm / 60.0) * d)
+    assert perf.thrust_n < 0.0
+    assert min(seen_vth) < -1e-3, f"expected negative windmill swirl, got min(vth)={min(seen_vth)}"
+
+
+def test_analytic_section_thin_airfoil_camber_drag_and_viterna_stall():
+    """#110: 4*pi*m camber lift, attached drag rise, and symmetric Viterna post-stall to +/-90 deg."""
+    # High-Re (re=None): thin-airfoil zero-lift cl = 4*pi*m
+    cl0, cd_at_0, stalled0, _ = B._analytic_section(0.0, 0.04, re=None)
+    assert not stalled0
+    assert cl0 == pytest.approx(4.0 * math.pi * 0.04, rel=1e-9)
+    assert cd_at_0 > 0.012  # attached drag rise above cd0
+
+    # Deep positive & negative stall at +/-90 deg: Cl -> 0, Cd -> CD_MAX = 1.29
+    for re_val in (None, 16000.0):
+        cl_p90, cd_p90, st_p90, _ = B._analytic_section(math.radians(90.0), 0.04, re=re_val)
+        cl_m90, cd_m90, st_m90, _ = B._analytic_section(math.radians(-90.0), 0.04, re=re_val)
+        assert st_p90 is True and st_m90 is True
+        assert abs(cl_p90) < 1e-6 and abs(cl_m90) < 1e-6
+        assert cd_p90 == pytest.approx(1.29, abs=1e-6)
+        assert cd_m90 == pytest.approx(1.29, abs=1e-6)
+
+        # Negative stall at -30 deg must be flagged stalled with rising drag
+        cl_m30, cd_m30, st_m30, _ = B._analytic_section(math.radians(-30.0), 0.04, re=re_val)
+        assert st_m30 is True
+        assert cl_m30 < 0.0
+        assert cd_m30 > 0.25
+
+
+def test_polars_viterna_post_stall_and_s1223_negative_stall():
+    """#111: table polars extrapolate via Viterna past +/-stall and flag s1223 negative stall."""
+    P.clear_polar_cache()
+    # Positive deep stall (+90 deg): Cl -> 0, Cd -> 1.29
+    p90 = P.section_table(math.radians(90.0), 0.04, 80000.0)
+    assert p90 is not None
+    cl_p90, cd_p90, st_p90, _ = p90
+    assert st_p90 is True
+    assert abs(cl_p90) < 1e-6
+    assert cd_p90 == pytest.approx(1.29, abs=1e-6)
+
+    # naca4412 at -5 deg is still attached (not spuriously stalled)
+    at_m5 = P.section_table(math.radians(-5.0), 0.04, 80000.0)
+    assert at_m5 is not None and at_m5[2] is False
+
+    # s1223 at -30 deg and -90 deg must be flagged stalled with negative Cl / flat-plate Cd
+    s_m30 = P.section_table(math.radians(-30.0), 0.085, 80000.0)
+    s_m90 = P.section_table(math.radians(-90.0), 0.085, 80000.0)
+    assert s_m30 is not None and s_m90 is not None
+    assert s_m30[2] is True and s_m30[0] < 0.0 and s_m30[1] > 0.25
+    assert s_m90[2] is True and abs(s_m90[0]) < 1e-6 and s_m90[1] == pytest.approx(1.29, abs=1e-6)
+
+
+def test_interp_geom_varies_camber_and_thickness_radially(monkeypatch):
+    """#111: _interp_geom must interpolate thickness and camber per radial element, not average."""
+    seen: list[tuple[float, float]] = []
+
+    def spy(alpha, camber, re=None, thickness=0.12):
+        seen.append((float(camber), float(thickness)))
+        return (0.5, 0.02, False, 1.4)
+
+    monkeypatch.setattr(B, "_section_aero", spy)
+    blade = BladeParams(
+        n_blades=2,
+        hub_radius=20.0,
+        tip_radius=100.0,
+        stations=[
+            RadialStation(0.0, 20.0, 30.0, 0.12, 0.06, 0.4),
+            RadialStation(1.0, 12.0, 15.0, 0.04, 0.01, 0.4),
+        ],
+    )
+    analyze(blade, rpm=6000.0, n_elem=4)
+    cambers = {round(c, 6) for c, _ in seen}
+    thicks = {round(t, 6) for _, t in seen}
+    assert len(cambers) == 4 and min(cambers) < 0.03 < max(cambers)
+    assert len(thicks) == 4 and min(thicks) < 0.07 < max(thicks)

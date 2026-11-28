@@ -97,9 +97,9 @@
       "verdict": "PASS"
     },
     "fan.bem_prescreen": {
-      "date": "2026-11-27",
-      "fingerprint": "12fe95436ca08931",
-      "report": "docs/review/2026-11-26-rv3-geometry.md",
+      "date": "2026-11-28",
+      "fingerprint": "4bee2f1719141ecf",
+      "report": "docs/validation/audits/2026-11-28-prop-bemt-p1b-decoupled-prereg.md",
       "verdict": "PASS"
     },
     "geometry.stock_handedness": {
@@ -121,9 +121,9 @@
       "verdict": "PASS"
     },
     "physics.air_properties": {
-      "date": "2026-11-25",
-      "fingerprint": "58429c36fb2d5bab",
-      "report": "docs/validation/audits/2026-11-25-nu-air-derive.md",
+      "date": "2026-11-28",
+      "fingerprint": "e393fd0824c2dc28",
+      "report": "docs/validation/audits/2026-11-28-prop-bemt-p1b-decoupled-prereg.md",
       "verdict": "PASS"
     },
     "physics.regime": {
@@ -133,9 +133,9 @@
       "verdict": "PASS"
     },
     "propeller.bemt": {
-      "date": "2026-11-26",
-      "fingerprint": "b974161d4dd58e77",
-      "report": "docs/review/2026-11-26-rv3-propeller.md",
+      "date": "2026-11-28",
+      "fingerprint": "b44739e18ea0f45a",
+      "report": "docs/validation/audits/2026-11-28-prop-bemt-p1b-decoupled-prereg.md",
       "verdict": "PASS"
     },
     "propeller.cfd_setup": {
@@ -163,9 +163,9 @@
       "verdict": "PASS"
     },
     "propeller.polars": {
-      "date": "2026-11-26",
-      "fingerprint": "5a6b3bc71b6e28cb",
-      "report": "docs/review/2026-11-26-rv3-propeller.md",
+      "date": "2026-11-28",
+      "fingerprint": "5ffb8dde1306f882",
+      "report": "docs/validation/audits/2026-11-28-prop-bemt-p1b-decoupled-prereg.md",
       "verdict": "PASS"
     },
     "propeller.section_2d": {

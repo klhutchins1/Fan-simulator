@@ -37,7 +37,7 @@ from fansim.cfd.metrics import CFM_PER_M3S
 from fansim.geometry.blade import BladeParams
 from fansim.physics.air import MU_AIR, NU_AIR
 from fansim.physics.air import RHO_AMCA as RHO_AIR
-from fansim.propeller.bemt import _cl_cd  # thin cambered-airfoil polar (shared with the prop BEMT)
+from fansim.propeller.polars import cl_cd_table  # table lookup (Re >= 40k)
 
 # --- first-order aggregate loss calibration (roadmap §7.3; refine with Kröger-Venter + low-Re polars) ---
 # Inviscid blade-element+Euler over-predicts ~1.6-2x: the real fan loses work to cascade interference /
@@ -88,19 +88,47 @@ def _viterna(cl_s: float, cd_s: float, a_s: float, a: float) -> tuple[float, flo
     return cl, max(cd, cd_s)
 
 
+def _legacy_fan_cl_cd(alpha_rad: float, camber: float, re: float | None = None) -> tuple[float, float]:
+    """v0.1 calibrated low-Re polar for fan_bem (decoupled from prop BEMT; replace in v0.2 #93/#95).
+
+    SLIP (0.71) and AX_SLIP (0.65) were empirically calibrated against this polar before P1B
+    (#109-#112; see docs/validation/audits/2026-11-28-prop-bemt-p1b-decoupled-prereg.md).
+    At Re >= 40k, table lookup is clamped to the tabulated [-5°, +18°] band because
+    ``_cl_cd_post_stall`` applies its own ``_viterna`` (CD_90 = 1.8) outside stall.
+    """
+    if re is not None:
+        a_clamped = max(math.radians(-5.0), min(math.radians(18.0), alpha_rad))
+        tab = cl_cd_table(a_clamped, camber, re)
+        if tab is not None:
+            return tab
+    a_deg = math.degrees(alpha_rad)
+    cl_max, cd0, stall_deg, slope = 1.4, 0.012, 14.0, 2.0 * math.pi
+    if re is not None:
+        r = max(float(re), 5000.0)
+        f = math.log10(r / 20000.0)
+        cl_max = max(0.80, min(1.5, 0.95 + 0.30 * f))
+        stall_deg = max(8.0, min(15.0, 10.0 + 3.0 * f))
+        cd0 = max(0.010, 0.008 + 5.0 / math.sqrt(r))
+        slope = 2.0 * math.pi * max(0.75, min(1.0, 0.88 + 0.12 * f))
+    cl_lin = slope * camber + slope * alpha_rad
+    cl = max(-cl_max, min(cl_max, cl_lin))
+    if a_deg > stall_deg:
+        cl *= max(0.55, 1.0 - (a_deg - stall_deg) * 0.03)
+    return cl, cd0
+
+
 def _cl_cd_post_stall(alpha: float, camber: float, re: float) -> tuple[float, float]:
-    """The shared low-Re polar inside its stall band, Viterna–Corrigan beyond it (the table polar
-    clamps cl/cd at its edges, so a 60–90° paddle would otherwise keep cl ≈ 0.77, cd ≈ 0.10)."""
+    """Legacy low-Re polar inside its stall band, Viterna–Corrigan (CD_90=1.8) beyond it."""
     stall = math.radians(max(8.0, min(15.0, 10.0 + 3.0 * math.log10(max(re, 5000.0) / 20000.0))))
     if -stall <= alpha <= stall:
-        return _cl_cd(alpha, camber, re=re)
+        return _legacy_fan_cl_cd(alpha, camber, re=re)
     edge = stall if alpha > stall else -stall
-    cl_s, cd_s = _cl_cd(edge, camber, re=re)
+    cl_s, cd_s = _legacy_fan_cl_cd(edge, camber, re=re)
     return _viterna(cl_s, cd_s, edge, alpha)
 
 
 def _table_polar(alpha: float, camber: float, re: float) -> tuple[float, float]:
-    return _cl_cd(alpha, camber, re=re)
+    return _legacy_fan_cl_cd(alpha, camber, re=re)
 
 
 @dataclass
