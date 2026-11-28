@@ -111,14 +111,14 @@ def test_dipole_power_matches_curle_closed_form():
 
 
 def test_cv_force_pipeline_tone_level():
-    """P=0, Fs=-F(t) => fluid force F(t); BPF tone level equals analytic rms SPL."""
+    """P=0, Fs=+F(t) => fan-on-fluid force F(t) (#124); BPF tone level equals analytic rms SPL."""
     n_b, rpm = 7, 2000.0
     bpf = ff.blade_pass_frequency(n_b, rpm)
     dt = 1.0 / 8192.0
     t = np.arange(0, 2.0, dt)
     Fz = 0.05 * np.sin(2 * math.pi * bpf * t)
     Fs = np.zeros((len(t), 3))
-    Fs[:, 2] = -Fz
+    Fs[:, 2] = Fz
     out = ff.noise_from_cv_force(t, np.zeros((len(t), 3)), Fs, n_blades=n_b, rpm=rpm)
     p_rms = 0.05 * 2 * math.pi * bpf / (4 * math.pi * C0) / math.sqrt(2)
     assert out["bpf_tone_db"] == pytest.approx(20 * math.log10(p_rms / 20e-6), abs=0.3)
@@ -126,14 +126,14 @@ def test_cv_force_pipeline_tone_level():
 
 
 def test_force_from_cv_sign_convention():
-    """F_fluid = -(dP/dt + Fs): constant momentum growth P=a t => F = -a - Fs."""
+    """F_{fan->fluid} = +(dP/dt + Fs) per RTT (#124): P=a t => F = +a + Fs."""
     t = np.linspace(0, 1, 101)
     P = np.zeros((101, 3))
     P[:, 2] = 3.0 * t
     Fs = np.zeros((101, 3))
     Fs[:, 2] = 1.0
     F, _ = ff.force_from_cv(t, P, Fs)
-    assert np.allclose(F[:, 2], -4.0)
+    assert np.allclose(F[:, 2], 4.0)
 
 
 def test_near_field_term_error_is_quantified():

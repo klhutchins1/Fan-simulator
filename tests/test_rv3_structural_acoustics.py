@@ -385,3 +385,92 @@ def test_tonal_guards_empty_nan_and_m_max():
     red_db = peak_tone_reduction_db(ang)
     assert type(amp) is float and type(ratio) is float and type(red_db) is float
     assert 0.0 < ratio < 1.0 and red_db < 0.0
+
+
+# ------------------------------------------------------------------ P1D (#124, #125) acoustics
+def test_force_from_cv_follows_reynolds_transport_sign():
+    """#124 A1: F_{fan->fluid} = +(dP/dt + Fs) per Reynolds Transport Theorem."""
+    t = np.linspace(0.0, 1.0, 101)
+    P = np.zeros((len(t), 3))
+    P[:, 2] = 3.0 * t
+    Fs = np.zeros((len(t), 3))
+    Fs[:, 2] = 1.0
+    F, _dt = force_from_cv(t, P, Fs)
+    assert np.allclose(F[:, 2], 4.0, rtol=1e-12, atol=1e-12)
+
+
+def test_tone_level_db_short_window_falls_back_to_nearest_bin():
+    """#124 A2: short DES window (df=100 Hz > 2*half_bw) returns finite SPL, not NaN."""
+    fs = 20000.0
+    dt = 1.0 / fs
+    t = np.arange(200) * dt  # df = 100 Hz
+    f0 = 233.333
+    amp = 0.2
+    p = amp * np.sin(2.0 * math.pi * f0 * t)
+    lvl = tone_level_db(p, dt, f0, half_bw=8.0)
+    exact_db = 20.0 * math.log10((amp / math.sqrt(2.0)) / 20e-6)
+    assert math.isfinite(lvl)
+    assert abs(lvl - exact_db) <= 3.0
+    peak = peak_tone_over_harmonics(p, dt, f_rev=2000.0 / 60.0, n_harm=12, half_bw=8.0)
+    assert math.isfinite(peak)
+    # Frequencies past Nyquist still return NaN
+    assert math.isnan(tone_level_db(p, dt, 0.5 * fs + 500.0, half_bw=8.0))
+
+
+def test_proxies_guards_nan_negative_epsilon_and_corr_area():
+    """#124 A3: proxies.py clamps negative epsilon, preserves NaN in SWL, validates constants & corr_area."""
+    from fansim.acoustics.proxies import (
+        curle_dpdt_estimate,
+        curle_surface_swl,
+        proudman_power_density,
+        sound_power_level,
+        turbulent_mach,
+    )
+
+    assert float(proudman_power_density(1.0, -5.0)) == 0.0
+    assert math.isnan(sound_power_level(float("nan")))
+    assert math.isnan(sound_power_level([1e-6, float("nan")]))
+    assert sound_power_level(0.0) == float("-inf")
+
+    for bad_kw in (
+        {"rho": 0.0},
+        {"rho": -1.2},
+        {"rho": float("nan")},
+        {"c0": 0.0},
+        {"c0": -343.0},
+        {"alpha": -0.1},
+        {"alpha": float("nan")},
+    ):
+        with pytest.raises(ValueError):
+            proudman_power_density(1.0, 1.0, **bad_kw)
+
+    with pytest.raises(ValueError, match="c0"):
+        turbulent_mach(1.0, c0=0.0)
+    with pytest.raises(ValueError, match="w_ref"):
+        sound_power_level(1e-6, w_ref=0.0)
+    with pytest.raises(ValueError, match="rho"):
+        curle_dpdt_estimate(1.0, 100.0, rho=-1.0)
+    with pytest.raises(ValueError, match="cp"):
+        curle_dpdt_estimate(1.0, 100.0, cp=float("nan"))
+
+    dpdt = np.full(10, 1e4)
+    areas = np.full(10, 1e-4)
+    swl_rel = curle_surface_swl(dpdt, areas)
+    ac = 2.5e-5
+    swl_w = curle_surface_swl(dpdt, areas, corr_area_m2=ac)
+    assert swl_w - swl_rel == pytest.approx(10.0 * math.log10(ac), rel=1e-12)
+    with pytest.raises(ValueError, match="corr_area_m2"):
+        curle_surface_swl(dpdt, areas, corr_area_m2=0.0)
+    with pytest.raises(ValueError, match="corr_area_m2"):
+        curle_surface_swl(dpdt, areas, corr_area_m2=float("nan"))
+
+
+def test_tonal_documents_unweighted_dirichlet_scope():
+    """#125 A4: tonal.py explicitly documents unweighted geometric scope and Dirichlet m_max sensitivity."""
+    import fansim.acoustics.tonal as tonal_mod
+
+    doc = (tonal_mod.__doc__ or "").lower()
+    assert "unweighted" in doc
+    assert "dirichlet" in doc
+    assert "m_max" in doc
+    assert "a-weighting" in doc or "a-weight" in doc

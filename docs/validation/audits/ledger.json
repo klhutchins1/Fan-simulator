@@ -1,15 +1,15 @@
 {
   "units": {
     "acoustics.curle_dipole": {
-      "date": "2026-11-27",
-      "fingerprint": "193c4627165e35d1",
-      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
+      "date": "2026-11-28",
+      "fingerprint": "d7d293cf32de0683",
+      "report": "docs/validation/audits/2026-11-28-acoustics-p1d-124-125-prereg.md",
       "verdict": "PASS"
     },
     "acoustics.fwh": {
-      "date": "2026-11-27",
-      "fingerprint": "726b6bb54b4e5c00",
-      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
+      "date": "2026-11-28",
+      "fingerprint": "b3b2eee283e28794",
+      "report": "docs/validation/audits/2026-11-28-acoustics-p1d-124-125-prereg.md",
       "verdict": "PASS"
     },
     "acoustics.loading": {
@@ -25,15 +25,15 @@
       "verdict": "PASS"
     },
     "acoustics.proudman": {
-      "date": "2026-11-27",
-      "fingerprint": "c58f5bd7b6ab550d",
-      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
+      "date": "2026-11-28",
+      "fingerprint": "061d8b084ba97222",
+      "report": "docs/validation/audits/2026-11-28-acoustics-p1d-124-125-prereg.md",
       "verdict": "PASS"
     },
     "acoustics.tonal_bpf": {
-      "date": "2026-11-27",
-      "fingerprint": "79d5246f61dcbcbf",
-      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
+      "date": "2026-11-28",
+      "fingerprint": "b830d5e3d53bbc04",
+      "report": "docs/validation/audits/2026-11-28-acoustics-p1d-124-125-prereg.md",
       "verdict": "PASS"
     },
     "audit.direction_geometry": {
@@ -151,9 +151,9 @@
       "verdict": "PASS"
     },
     "propeller.noise": {
-      "date": "2026-11-27",
-      "fingerprint": "bab01829e0e9b271",
-      "report": "docs/validation/audits/2026-11-25-noise-scripts-farfield-promote.md",
+      "date": "2026-11-28",
+      "fingerprint": "c4f139301bbc3125",
+      "report": "docs/validation/audits/2026-11-28-acoustics-p1d-124-125-prereg.md",
       "verdict": "PASS"
     },
     "propeller.polar_coefficients": {
