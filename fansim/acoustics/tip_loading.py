@@ -1,7 +1,12 @@
 """Mesh-robust relative noise hint from tip speed and airflow (roadmap 27.3c).
 
 Proudman SWL on the Assess mesh moved ~36 dB on the same Stock fan (27.3b). This ranking number
-uses only U_tip and free-air CFM, so it cannot see near-blade turbulence. Not calibrated dB(A).
+uses only U_tip and free-air CFM, so it cannot see near-blade turbulence or pressure loading ΔP.
+Not calibrated dB(A), and never judged in ``flow_verdicts`` (``NOISE_JUDGED = False``, R0.4):
+- At fixed geometry (CFM ∝ U_tip), ``55 log10(U_tip) + 10 log10(CFM)`` scales as U_tip^6.5 rather
+  than pure U^5–U^6 dipole scaling and omits ΔP (cf. Madison/Graham specific sound power; #125).
+- At fixed RPM and tip diameter, U_tip is constant so the hint reduces to ``const + 10 log10(CFM)``,
+  strictly ordering higher-CFM designs louder regardless of loading or stall.
 """
 
 from __future__ import annotations
