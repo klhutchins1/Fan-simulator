@@ -41,16 +41,16 @@ Purpose: give every session one authoritative map of what is **already verified 
 | ID | Phase | Item | Issues / PRs | Status | Exit Gate |
 |---|---|---|---|---|---|
 | **P0.1** | Phase 0 | Pull `origin/master` (`96ddb00`) and remove our merged `issue-86-amca-static` worktree | PR #164 | `done` | Clean `master`, our merged worktree gone |
-| **P0.2** | Phase 0 | Land `docs/release/EPIC_V010.md` + `RELEASE_PLAN.md` pointer and link #169 | #169 | `in progress` | PR merged to `master` |
-| **P0.3** | Phase 0 | Track open perf PR #168 (`cad-preview-perf`, owned by another session) until merged | #167 / PR #168 | `tracking` | Merged to `master` (do not touch its worktree) |
-| **P1A** | Phase 1 | Geometry math: thickness-about-camber (`apply_le_te_thickness`, dimples), CAD/BEM radius fraction & negative `max_camber` | #116, #117 | `ready` | Pre-reg + tests-first + `geometry.stock_handedness` PROVEN + issues closed |
-| **P1B** | Phase 1 | Propeller BEMT & Polars math: Prandtl `F` + windmill swirl, `_analytic_section` drag/camber, post-stall polars & radial camber/thickness, air temp + hover FM guard | #109, #110, #111, #112 | `ready` | Pre-reg vs UIUC APC E 9x6 & SF 9x4.7 BEFORE code; honest PASS/FAIL; `propeller.*` PROVEN |
-| **P1C** | Phase 1 | Structural math: root station bending, tapered centrifugal & airfoil `I`, RESIN knockdown | #123 | `ready` | Pre-reg Audit #5 amendment + RV-1 snapshot trail + `structural.*` PROVEN |
-| **P1D** | Phase 1 | Acoustics math close-out: remaining #124 items (CV force sign, `proxies.py`) and #125 (`tonal.py` harmonic weighting / `m_max`) | #124, #125 | `ready` | Remaining items fixed (pre-reg) or explicitly closed/deferred to v0.2 |
-| **P2.1** | Phase 2 | Triage open LOW/MED UI rows in `docs/QA_REVIEW.md` (`UI-23`, `UI-26`–`UI-29`, `UI-37`–`UI-38`, `UI-41`–`UI-42`, `QA-77`) | `QA_REVIEW.md` | `queued` | One batched UX PR or explicit `deferred v0.1.1` on every row |
-| **P2.2** | Phase 2 | Prune completed blocks from `docs/release/RELEASE_PLAN.md` into `docs/release/RELEASE_DONE.md` | `RELEASE_PLAN.md` | `queued` | Board lists only live open work |
-| **P3.1** | Phase 3 | **R4.3 Refresh:** sync `RELEASE_NOTES_v0.1.0.md`, `docs/VALIDATION.md`, `scoreboard.md`, `CHANGELOG.md` for all merges since PR #108 | R4.3 | `queued` | `test_r38_validation_doc`, `test_r43_release_notes`, `test_export_release` pass |
-| **P3.2** | Phase 3 | **R4.1 Linux:** fresh `scripts/export_release.py` tarball → clean clone → `uv sync --extra dev` → `fansim-cockpit` + fast suite | R4.1 | `queued` | Clean-clone install & test pass logged |
+| **P0.2** | Phase 0 | Land `docs/release/EPIC_V010.md` + `RELEASE_PLAN.md` pointer and link #169 | #169 / PR #170 | `done` | PR merged to `master` |
+| **P0.3** | Phase 0 | Track open perf PR #168 (`cad-preview-perf`, owned by another session) until merged | #167 / PR #168 | `done` | Merged to `master` (do not touch its worktree) |
+| **P1A** | Phase 1 | Geometry math: thickness-about-camber (`apply_le_te_thickness`, dimples), CAD/BEM radius fraction & negative `max_camber` | #116, #117 / PR #181 | `done 005a0e2` | Pre-reg + tests-first + `geometry.stock_handedness` PROVEN + issues closed |
+| **P1B** | Phase 1 | Propeller BEMT & Polars math: Prandtl `F` + windmill swirl, `_analytic_section` drag/camber, post-stall polars & radial camber/thickness, air temp + hover FM guard | #109–#112 / PR #187 | `done 04c4d4c` | Pre-reg vs UIUC APC E 9x6 & SF 9x4.7 BEFORE code; honest PASS/FAIL; `propeller.*` PROVEN |
+| **P1C** | Phase 1 | Structural math: root station bending, tapered centrifugal & airfoil `I`, RESIN knockdown | #123 / PR #188 | `open PR #188` | Pre-reg Audit #5 amendment + RV-1 snapshot trail + `structural.*` PROVEN |
+| **P1D** | Phase 1 | Acoustics math close-out: remaining #124 items (CV force sign, `proxies.py`) and #125 (`tonal.py` harmonic weighting / `m_max`) | #124, #125 / PR #189 | `open PR #189` | Remaining items fixed (pre-reg) or explicitly closed/deferred to v0.2 |
+| **P2.1** | Phase 2 | Triage open LOW/MED UI rows in `docs/QA_REVIEW.md` (`UI-23`, `UI-26`–`UI-29`, `UI-37`–`UI-38`, `UI-41`–`UI-42`, `QA-77`) | `QA_REVIEW.md` | `done` | `UI-37`/`UI-38`/`UI-42` verified fixed, `UI-41` fixed + tested, `UI-23`/`UI-26`–`UI-29`/`QA-77` deferred v0.1.1 |
+| **P2.2** | Phase 2 | Prune completed blocks from `docs/release/RELEASE_PLAN.md` into `docs/release/RELEASE_DONE.md` | `RELEASE_PLAN.md` | `done` | Board lists only live open work |
+| **P3.1** | Phase 3 | **R4.3 Refresh:** sync `RELEASE_NOTES_v0.1.0.md`, `docs/VALIDATION.md`, `scoreboard.md`, `CHANGELOG.md` for all merges since PR #108 | R4.3 | `ready` | `test_r38_validation_doc`, `test_r43_release_notes`, `test_export_release` pass |
+| **P3.2** | Phase 3 | **R4.1 Linux:** fresh `scripts/export_release.py` tarball → clean clone → `uv sync --extra dev` → `fansim-cockpit` + fast suite | R4.1 | `ready` | Clean-clone install & test pass logged |
 | **P3.3** | Phase 3 | **R4.2 + W1 Windows (Kimball):** Windows `scripts/stray_work.py` rescue (`stock-outline`, `r22a-wake-aspect`, `r110-g2-merge`), clean Windows install + 1 OpenFOAM Assess (outside 4–9 PM) | R4.2, W1 | `needs Kimball` | Windows install + Assess pass; W1 closed |
 | **P3.4** | Phase 3 | **R4.4 Tag & Publish:** finalize `CHANGELOG.md` (`v0.1.0`), tag `v0.1.0` on 5/5 green CI, publish GitHub release from clean export | R4.4 | `blocked (P3.1–P3.3)` | `v0.1.0` tagged & published |
 
@@ -110,4 +110,6 @@ Each sub-phase is **one branch, one pre-registration (committed & pushed before 
 
 ## Progress Log
 
-- **2026-11-28:** Epic created ([#169](https://github.com/klhutchins1/Fan-simulator/issues/169)) and committed in `docs/release/EPIC_V010.md`. Completed **P0.1** (synced `master` to `96ddb00`, removed our merged `issue-86-amca-static` worktree). All other pre-existing worktrees left untouched per Kimball's directive. Next up: **P1A** (`#116`, `#117`).
+- **2026-11-28:** Epic created ([#169](https://github.com/klhutchins1/Fan-simulator/issues/169)) and committed in `docs/release/EPIC_V010.md`. Completed **P0.1**–**P0.3**.
+- **2026-11-28:** Merged **P1A** (`#116`, `#117`, PR #181 `005a0e2`) and **P1B** (`#109`–`#112`, PR #187 `04c4d4c`, flipping APC SF 9×4.7 $C_T(J)$ RMS `0.0175 → 0.0139` PASS). Opened **P1C** (`#123`, PR #188) and **P1D** (`#124`–`#125`, PR #189).
+- **2026-11-28:** Completed **P2.1** (verified `UI-37`/`UI-38`/`UI-42` fixed, fixed & tested `UI-41`, deferred `UI-23`/`UI-26`–`UI-29`/`QA-77` to v0.1.1) and **P2.2** (pruned `RELEASE_PLAN.md` into `RELEASE_DONE.md`). Next up: **P3.1** (R4.3 refresh) and **P3.2** (R4.1 Linux clean-clone export verification) once P1C/P1D merge.

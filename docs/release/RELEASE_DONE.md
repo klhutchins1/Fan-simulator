@@ -127,5 +127,48 @@ The text is unchanged. Newest moves are at the bottom.
   - Earlier Claude branch notes (2026-11-17) and print-id OSError gate red were historical; recreate + merge on Linux
     remote completed 2026-11-25.
 
-- **RV-4 Script triage.** Lane: Cursor. Status: `done 7c23df1` (PR #77).
-  - 38 scripts archived; `scripts/audit_forensics.py` + tests; promote maths follow-ups #74–#76.
+- **RV-4 Script triage.** Lane: Cursor. Status: `done 7c23df1` / `f87f59b` (PR #77 + PR #135).
+  - 38 scripts archived to `archive/scripts/`; `scripts/audit_forensics.py` + tests; all promote follow-ups `#74`–`#76` landed (`fan_noise_curle`, `fan_noise_cv`, and `prop_section_2d` in PR #135 `f87f59b` into `fansim/propeller/section_2d.py` with `propeller.section_2d` audited `PROVEN=34`). Detail: `docs/review/2026-11-25-rv4-script-triage.md`.
+
+---
+
+## Completed M1, M2, M3, UX, RV, and Print-Session-1 tasks (archived from `RELEASE_PLAN.md`, 2026-11-28, Epic #169 P2.2)
+
+- **UX-1 Simple/Expert cockpit polish (`#1`–`#41`):** `done` (merged PR #21 / #42 / #43, 2026-11-25; leftover `#27` closed in PR #104).
+- **UX-2 Plain-language audit and home page:** `done 59edc63` (PR #104 `82c4dac`, PR #120 `9af043b` closing `#99`/`#101`–`#103`, PR #129 `59edc63` closing `#100` with 27 control preview PNGs, PR #132 `2eea9d6`). Audit: `docs/review/2026-11-25-ux-audit.md`.
+- **CI-1 VTK segfault in pytest chunk 0:** `done` (PR #91, 2026-11-26). Xvfb/Mesa OpenGL added for headless VTK rendering and uninitialized OSMesa guarded.
+- **RV-0 Make the safety nets real:** `done d837929` (2026-11-25). CI static gate + `audit_status.py --strict` + 8 units re-proven.
+- **RV-1 Maths snapshot:** `done 83ca5bf` (2026-11-25). 16 pinned cases in `tests/data/physics_snapshot.json`.
+- **RV-2 Validation scoreboard:** `done 6f5a280` (PR #85, 2026-11-25). Recomputed from frozen results into `docs/validation/scoreboard.md`; FAN-01 re-run pre-registered (`docs/validation/audits/2026-11-24-fan01-rerun-prereg.md`).
+- **RV-3 Module-by-module code review:** `done` (2026-11-26). All 8 modules audited & merged (PRs #84, #92, #98, #114, #115, #119, #121, #130, #131, #132; summary in `docs/review/rv3-findings.md`), plus follow-ups in PRs #139–#146, Epic #169 Phase 1A (`005a0e2`), Phase 1B (`04c4d4c`), Phase 1C (PR #188), and Phase 1D (PR #189).
+- **RV-5 Speed and code health:** `done f4952d4` / `ce3a872` (2026-11-26). `evaluate_candidate` split (`#89`), `mypy` widened to 51 core files (PR #133, PR #135), source-grep tests replaced with behavioral assertions (PR #134), shared CAD fixtures across pytest chunks (PR #136), and analytic shroud span fix eliminating shrouded `fit_envelope` OCCT hang (PR #137).
+- **Print session 1 (completed items):**
+  - **P1 / §28.3 Engraved print-id on the hub:** `done 2bfde35` (QA-73/74/75/76/78/79 fixed; cap 5.0 mm, stroke 0.9 mm, band r 11.5–16.5 mm; 25 glyph tests pass).
+  - **P2 Recording tool:** `done f60d234` (`scripts/analyze_fan_recording.py` + `validation/recording.py`, 12 tests).
+  - **P3 Export the print:** `done` 2026-11-09 (`H7MQ8` Stock v3, `E0MWW` t9002).
+  - **P4a Hub opening:** `done 0beb057` (pad tips on 37.25 mm circle; fit coupon verified by Kimball 2026-11-12).
+  - **N1 Night runner visibility:** `done` 2026-11-16 (`runner.log` records master + fetch failures; `morning_check` reports `APPLY FAILED/SKIPPED`).
+- **M1 Axial validated (completed items):**
+  - **R1.1 Second published axial case (`lt120`):** `done 6f25583` / 2026-10-30 verdict **TRENDS** (+8.1 % at 6.85 Pa PASS, +25.8 % at 13.71 Pa FAIL; tip-gap follow-up G3 not explained; QA-64 wording adopted).
+  - **R1.2 Loaded branch & shut-off honesty + QA-65:** `done c10c06b` / `1c2cf12` (P–Q stops at last converged point; `converged=False` warning caption verified).
+  - **R1.3 Optimizer space under wrap:** `done 3b0a021` (PR #45; P0 GUIDED wrap bounds, Stock inside).
+  - **R1.5 Structural & flutter labels:** `done 1c2cf12` ("estimate, not validated" across UI + README).
+  - **R1.6 Acoustics claims audit:** `done 8d06672` (no bare dB(A) on model outputs; relative/ranking only).
+  - **R1.9 Small QA fixes (QA-39/40/41/42/45):** `done 1c2cf12`.
+  - **R1.10 Release claims fixes (G1–G5, QA-55/56/57/58/64/69):** `done` (`bf2ee37`, `8d06672`, `5945620`, `5c79aaa`, `1c2cf12`).
+  - **R1.11 Surrogate-guided Optimize guard (UI-31, QA-62, QA-66, QA-68):** `done 5611332` / `r26-qa68` (hidden in cockpit; CLI refuses ungated stub and requires catalog ≥ 8 rows + Docker under `--verify-cfd`, exiting 2 on refusal).
+- **M2 Every other tab decided (completed items):**
+  - **R2.1 Propeller BEMT:** `done` (`cursor/r38-validation-page` + P1B PR #187 `04c4d4c`: APC E 9×6 all PASS, APC SF 9×4.7 $C_T(J)$ RMS flipped FAIL→PASS `0.0175 → 0.0139 ≤ 0.015`, static $C_P$ `-20.2%` stays honest FAIL).
+  - **R2.2a / R2.2a′ / R2.2b Prop CFD ladder + QA-51:** `done` (`3fe5c60`, `b8559f1`; NeuralFoil Expert-only; A0c/C/D frozen for v0.1.0 per Kimball 2026-11-15).
+  - **R2.3 / R2.4 / R2.5 Data hunts + Mixed label (`5945620`) + Volute relaxation sweep (`7efee56`):** `done`; remaining CFD validation frozen for v0.1.0 and shipped labelled via R2.7 (`616aa33`).
+  - **R2.6 Hide centrifugal-only and wind-turbine scaffolds:** `done 1d5e8b9` (`tests/test_r26_hide_scaffolds.py`).
+- **M3 Releasable repo (all items done):**
+  - **R3.1 Release export hygiene & R3.9 Large files:** `done ac4024f` (`RELEASE_EXCLUDE`, user-path redaction, large reference STLs/zip excluded from public export, CC-BY attribution kept in `THIRD_PARTY.md`).
+  - **R3.2 Packaging:** `done 26ccf29` (`pyproject.toml`, `fansim-cockpit` entry point, `uv build` tested).
+  - **R3.3 Install guide + QA-53:** `done 5705d0e` (Windows/Linux README install + troubleshooting).
+  - **R3.4 Docker/OpenFOAM readiness badge:** `done 540829e`.
+  - **R3.5 GitHub Actions CI:** `done 8c34965` (Ubuntu 3-chunk fast suite + Windows geometry/export job + static ruff/mypy/ledger gate).
+  - **R3.6 CHANGELOG, CONTRIBUTING, issue templates:** `done 2311d26`.
+  - **R3.7 Cockpit UI regression tests:** `done 2b98425` (`tests/test_ui_says_what_it_does.py` across all 5 shipping tabs).
+  - **R3.8 Validation page:** `done` (`docs/VALIDATION.md`, `tests/test_r38_validation_doc.py`).
+

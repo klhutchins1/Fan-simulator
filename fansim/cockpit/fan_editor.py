@@ -8,7 +8,9 @@ Cross-domain: fit actions and staleness call the model fit-readouts (``session._
 
 from __future__ import annotations
 
+import math
 import random
+from typing import Any
 
 from fansim.cockpit.placement import (
     effective_depth_max,
@@ -28,6 +30,34 @@ from fansim.optimize.search_space import (
     UNIFORM_WALL_TOL_MM,
     blade_from_flat,
 )
+
+
+def validate_seed_duty_inputs(
+    cfm_raw: Any, dp_pa_raw: Any, rpm_raw: Any
+) -> tuple[float, float, float]:
+    """Validate and normalize Seed-from-duty numeric fields (UI-41)."""
+    def _parse(name: str, raw: Any) -> float:
+        if raw is None or (isinstance(raw, str) and not raw.strip()):
+            raise ValueError(f"{name} must be a finite number.")
+        try:
+            val = float(raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{name} must be a finite number.") from exc
+        if not math.isfinite(val):
+            raise ValueError(f"{name} must be a finite number.")
+        return val
+
+    cfm = _parse("Target CFM", cfm_raw)
+    dp_pa = _parse("ΔP (Pa)", dp_pa_raw)
+    rpm = _parse("RPM", rpm_raw)
+    if cfm <= 0.0:
+        raise ValueError("Target CFM must be > 0.")
+    if dp_pa < 0.0:
+        raise ValueError("ΔP (Pa) must be >= 0.")
+    if rpm <= 0.0:
+        raise ValueError("RPM must be > 0.")
+    return cfm, dp_pa, rpm
+
 
 EDITOR_VARS = (
     "e_n_blades", "e_stagger_root", "e_stagger_mid", "e_stagger_tip",
@@ -556,11 +586,15 @@ def _bind_geometry_actions(session) -> None:
                 seed_from_duty as _seed,
             )
 
-            duty = DutyPoint(
-                cfm=float(state.seed_duty_cfm),
-                dp_pa=float(state.seed_duty_pa),
-                rpm=float(state.seed_duty_rpm),
+            cfm, dp_pa, rpm = validate_seed_duty_inputs(
+                state.seed_duty_cfm,
+                state.seed_duty_pa,
+                state.seed_duty_rpm,
             )
+            state.seed_duty_cfm = cfm
+            state.seed_duty_pa = dp_pa
+            state.seed_duty_rpm = rpm
+            duty = DutyPoint(cfm=cfm, dp_pa=dp_pa, rpm=rpm)
             vortex = str(getattr(state, "seed_duty_vortex", "free") or "free")
             seed = _seed(
                 duty,
