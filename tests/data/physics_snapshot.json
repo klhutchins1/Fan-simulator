@@ -1278,22 +1278,22 @@
   "structural.stock_v3": {
    "kind": "closed",
    "values": {
-    "PETG.bending_sf": 5606.241574268219,
-    "PETG.bending_sigma_mpa": 0.005351178610942375,
+    "PETG.bending_sf": 3741.7887282641777,
+    "PETG.bending_sigma_mpa": 0.008017555821201335,
     "PETG.centrifugal_ok": true,
-    "PETG.centrifugal_sf": 429.4402727560186,
-    "PETG.centrifugal_sigma_mpa": 0.06985837589816395,
+    "PETG.centrifugal_sf": 298.56063585939677,
+    "PETG.centrifugal_sigma_mpa": 0.10048210111036911,
     "PETG.first_bending_hz": 399.9086395246875,
     "PETG.tip_deflection_mm_10pa": 0.0008021953729829449,
-    "PLA.bending_sf": 6727.489889121863,
-    "PLA.bending_sigma_mpa": 0.005351178610942375,
+    "PLA.bending_sf": 4490.146473917013,
+    "PLA.bending_sigma_mpa": 0.008017555821201335,
     "PLA.centrifugal_ok": true,
-    "PLA.centrifugal_sf": 527.7959481291712,
-    "PLA.centrifugal_sigma_mpa": 0.06820817804230181,
+    "PLA.centrifugal_sf": 366.9406524594521,
+    "PLA.centrifugal_sigma_mpa": 0.0981085081707541,
     "PLA.first_bending_hz": 522.4878302300366,
     "PLA.tip_deflection_mm_10pa": 0.0004813172237897669
    }
   }
  },
- "reason": "docs/validation/audits/2026-11-28-prop-bemt-p1b-decoupled-prereg.md"
+ "reason": "docs/validation/audits/2026-11-28-structural-p1c-123-prereg.md"
 }

@@ -11,9 +11,19 @@ from fansim.structural.flutter import first_bending_hz, flutter_report
 
 
 def test_default_petg_is_clear_of_bpf():
-    r = flutter_report(BladeParams())
+    from pathlib import Path
+
+    from fansim.geometry.config import load_blade_params
+
+    # Stock v3 (plate section) clears 1.2x BPF in PETG.
+    stock = load_blade_params(Path("config/problems/a12x25_reference.yaml"))
+    r = flutter_report(stock)
     assert r.ok
     assert r.f1_hz > 1.2 * r.bpf_hz
+    # Thin NACA default BladeParams() (5% mid t/c) is caught by NACA K_I/K_A (#123).
+    r_naca = flutter_report(BladeParams())
+    assert not r_naca.ok
+    assert r_naca.margin < 1.2
 
 
 def test_tpu_high_rpm_can_fail():

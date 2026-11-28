@@ -181,27 +181,27 @@
       "verdict": "PASS"
     },
     "structural.balance": {
-      "date": "2026-11-27",
-      "fingerprint": "9dbc8f79b9d0e0ba",
-      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
+      "date": "2026-11-28",
+      "fingerprint": "e6bf43fdd61ac9dd",
+      "report": "docs/validation/audits/2026-11-28-structural-p1c-123-prereg.md",
       "verdict": "PASS"
     },
     "structural.centrifugal": {
-      "date": "2026-11-27",
-      "fingerprint": "45a486f171ce24ed",
-      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
+      "date": "2026-11-28",
+      "fingerprint": "8364c0ba62488291",
+      "report": "docs/validation/audits/2026-11-28-structural-p1c-123-prereg.md",
       "verdict": "PASS"
     },
     "structural.deflection": {
-      "date": "2026-11-27",
-      "fingerprint": "fc7b524e39916244",
-      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
+      "date": "2026-11-28",
+      "fingerprint": "5360815e044219ee",
+      "report": "docs/validation/audits/2026-11-28-structural-p1c-123-prereg.md",
       "verdict": "PASS"
     },
     "structural.flutter": {
-      "date": "2026-11-27",
-      "fingerprint": "ad7985fe539bde0d",
-      "report": "docs/review/2026-11-26-rv3-structural-acoustics.md",
+      "date": "2026-11-28",
+      "fingerprint": "c3bc81a87633e298",
+      "report": "docs/validation/audits/2026-11-28-structural-p1c-123-prereg.md",
       "verdict": "PASS"
     }
   }

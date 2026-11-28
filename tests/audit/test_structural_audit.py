@@ -26,6 +26,10 @@ from fansim.manufacturability.materials import MATERIALS
 from fansim.optimize.print_penalty import apply_print_penalty
 from fansim.structural import balance as B
 from fansim.structural.deflection import (
+    NACA_AREA_K,
+    NACA_INERTIA_K,
+    PLATE_AREA_K,
+    PLATE_INERTIA_K,
     deflection_report,
     root_bending_stress,
     tip_deflection_mm,
@@ -43,10 +47,31 @@ DEFL_TOL = 0.02
 STRESS_TOL = 1e-6
 FREQ_TOL = 0.01
 
+SECTION_FACTORS = {
+    "plate": (PLATE_AREA_K, PLATE_INERTIA_K),
+    "naca": (NACA_AREA_K, NACA_INERTIA_K),
+}
 
-def prismatic(chord_mm=12.0, t_frac=0.10, hub=20.0, tip=60.0, rpm=2000.0, n=5) -> BladeParams:
+
+def prismatic(
+    chord_mm=12.0,
+    t_frac=0.10,
+    hub=20.0,
+    tip=60.0,
+    rpm=2000.0,
+    n=5,
+    section_family="plate",
+) -> BladeParams:
     sts = [RadialStation(r, chord_mm, 30.0, thickness=t_frac) for r in (0.0, 0.5, 1.0)]
-    return replace(BladeParams(), stations=sts, hub_radius=hub, tip_radius=tip, rpm=rpm, n_blades=n)
+    return replace(
+        BladeParams(),
+        stations=sts,
+        hub_radius=hub,
+        tip_radius=tip,
+        rpm=rpm,
+        n_blades=n,
+        section_family=section_family,
+    )
 
 
 def e_eff_mpa(material):  # FDM knockdown applies to non-resin materials
@@ -91,13 +116,15 @@ def fe_f1(EI, rhoA, L):
 
 
 # ---- structural.deflection ---------------------------------------------------------------------
+@pytest.mark.parametrize("section_family", ["plate", "naca"])
 @pytest.mark.parametrize("material", ["PETG", "PLA", "ABS"])
 @pytest.mark.parametrize("chord,tf,load", [(12.0, 0.10, 20.0), (25.0, 0.06, 5.0), (8.0, 0.2, 100.0)])
-def test_uniform_load_tip_deflection_closed_form(material, chord, tf, load):
-    p = prismatic(chord, tf)
+def test_uniform_load_tip_deflection_closed_form(section_family, material, chord, tf, load):
+    p = prismatic(chord, tf, section_family=section_family)
+    _k_a, k_i = SECTION_FACTORS[section_family]
     L = p.tip_radius - p.hub_radius                       # mm
     t = tf * chord                                        # mm
-    I = chord * t**3 / 12.0                               # mm^4
+    I = k_i * chord * t**3 / 12.0                         # mm^4
     q = load * 1e-6 * chord                               # N/mm  (Pa = 1e-6 N/mm^2)
     expected = q * L**4 / (8 * e_eff_mpa(material) * I)   # mm
     got = tip_deflection_mm(p, material, load)
@@ -115,23 +142,25 @@ def test_deflection_scaling_and_units():
     assert tip_deflection_mm(p2, "PETG", 10.0) == pytest.approx(16 * d, rel=1e-9)     # L^4
     p3 = prismatic(t_frac=0.20)                                                        # q fixed, I x8
     assert tip_deflection_mm(p3, "PETG", 10.0) == pytest.approx(d / 8, rel=1e-9)
-    # absolute anchor, SI hand numbers: c=10 mm, t=1 mm, L=40 mm, 100 Pa, PETG E=2.1e9*0.7
-    pa = prismatic(10.0, 0.10, hub=20.0, tip=60.0)
+    # absolute anchor, SI hand numbers: c=10 mm, t=1 mm, L=40 mm, 100 Pa, PETG E=2.1e9*0.7 (plate)
+    pa = prismatic(10.0, 0.10, hub=20.0, tip=60.0, section_family="plate")
     E, c, tt, L = 2.1e9 * 0.7, 0.010, 0.001, 0.040
     delta_m = (100.0 * c) * L**4 / (8 * E * (c * tt**3 / 12))
     assert tip_deflection_mm(pa, "PETG", 100.0) == pytest.approx(delta_m * 1e3, rel=1e-9)
 
 
-def test_tip_point_load_closed_form():
-    """§19.17: tip point-load δ = P L³/(3EI) matches closed form (and the FE harness)."""
-    p = prismatic(chord_mm=10.0, t_frac=0.10, hub=20.0, tip=60.0)
+@pytest.mark.parametrize("section_family", ["plate", "naca"])
+def test_tip_point_load_closed_form(section_family):
+    """§19.17 / #123: tip point-load δ = P L³/(3EI) matches closed form and FE for plate & NACA."""
+    p = prismatic(chord_mm=10.0, t_frac=0.10, hub=20.0, tip=60.0, section_family=section_family)
+    _k_a, k_i = SECTION_FACTORS[section_family]
     force_n = 0.5
     got = tip_deflection_point_load_mm(p, force_n, "PETG")
     span_m = 0.040
     chord_m = 0.010
     thick_m = 0.001
     e = 2.1e9 * FDM_E_K
-    inertia = chord_m * thick_m ** 3 / 12.0
+    inertia = k_i * chord_m * thick_m ** 3 / 12.0
     closed_mm = force_n * span_m ** 3 / (3.0 * e * inertia) * 1e3
     assert got == pytest.approx(closed_mm, rel=1e-9)
     EI = e * inertia
@@ -139,15 +168,17 @@ def test_tip_point_load_closed_form():
         force_n * (span_m * 1e3) ** 3 / (3 * EI), rel=1e-3)
 
 
-def test_root_bending_stress_closed_form():
-    """§19.17: σ = M c / I with M = q L²/2 under the same hose load as tip deflection."""
-    p = prismatic(chord_mm=10.0, t_frac=0.10, hub=20.0, tip=60.0)
+@pytest.mark.parametrize("section_family", ["plate", "naca"])
+def test_root_bending_stress_closed_form(section_family):
+    """§19.17 / #123: σ = M c / I with M = q L²/2 on prismatic plate & NACA beams."""
+    p = prismatic(chord_mm=10.0, t_frac=0.10, hub=20.0, tip=60.0, section_family=section_family)
+    _k_a, k_i = SECTION_FACTORS[section_family]
     load = 20.0
     rep = root_bending_stress(p, "PETG", load_pa=load)
     span_m, chord_m, thick_m = 0.040, 0.010, 0.001
     q = load * chord_m
     moment = q * span_m ** 2 / 2.0
-    inertia = chord_m * thick_m ** 3 / 12.0
+    inertia = k_i * chord_m * thick_m ** 3 / 12.0
     closed_mpa = moment * (thick_m / 2.0) / inertia / 1e6
     assert rep.sigma_root_mpa == pytest.approx(closed_mpa, rel=1e-9)
     assert rep.yield_mpa == pytest.approx(MATERIALS["PETG"].yield_strength_mpa * 0.6)
@@ -197,18 +228,20 @@ def test_cantilever_lambda_is_first_root():
     assert math.cos(lam) * math.cosh(lam) + 1 == pytest.approx(0.0, abs=1e-5)
 
 
+@pytest.mark.parametrize("section_family", ["plate", "naca"])
 @pytest.mark.parametrize("material", ["PETG", "PLA", "ABS"])
 @pytest.mark.parametrize("chord,tf,hub,tip", [(12.0, 0.10, 20.0, 60.0), (30.0, 0.05, 21.5, 56.5),
                                               (8.0, 0.2, 10.0, 90.0)])
-def test_first_bending_frequency_closed_form(material, chord, tf, hub, tip):
-    p = prismatic(chord, tf, hub, tip)
+def test_first_bending_frequency_closed_form(section_family, material, chord, tf, hub, tip):
+    p = prismatic(chord, tf, hub, tip, section_family=section_family)
+    k_a, k_i = SECTION_FACTORS[section_family]
     m = MATERIALS[material]
     L = (tip - hub) * 1e-3
     c = chord * 1e-3
     t = tf * c
     E = m.youngs_modulus_gpa * 1e9 * FDM_E_K
-    EI = E * c * t**3 / 12
-    rhoA = m.density_kg_m3 * c * t
+    EI = E * k_i * c * t**3 / 12
+    rhoA = m.density_kg_m3 * k_a * c * t
     expected = (1.875104**2 / (2 * math.pi)) * math.sqrt(EI / (rhoA * L**4))
     got = first_bending_hz(p, material)
     assert got == pytest.approx(expected, rel=FREQ_TOL)

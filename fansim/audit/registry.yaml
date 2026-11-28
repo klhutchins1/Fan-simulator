@@ -263,22 +263,22 @@ units:
     targets:
       - "fansim.structural.deflection"
       - "fansim.manufacturability.materials"
-    claim: "Uniform-pressure cantilever tip deflection q L^4/(8 E I) with FDM E knockdown 0.7 (prismatic-beam, SI-consistent, materials inside datasheet ranges)"
-    source: {kind: derivation, ref: "Euler-Bernoulli cantilever (Roark); Audit #5 closed-form + Hermite FE; material TDS ranges in the test"}
-    checks: [tests/audit/test_structural_audit.py, tests/test_deflection.py]
+    claim: "Cantilever tip deflection q L^4/(8 E I) and tapered root bending M = dP * int c(s) s ds at root station with section-family shape factors (plate 1/1, NACA 0.6809/0.4706), FDM E knockdown 0.7, and isotropic RESIN adhesion 1.0"
+    source: {kind: derivation, ref: "Euler-Bernoulli cantilever (Roark); Audit #5 + 2026-11-28 P1C amendment (#123); Hermite FE; material TDS ranges"}
+    checks: [tests/audit/test_structural_audit.py, tests/test_deflection.py, tests/test_rv3_structural_acoustics.py]
 
   - id: structural.centrifugal
     targets: ["fansim.structural.stress"]
-    claim: "Root centrifugal stress of a uniform rotating bar rho w^2 (R^2 - r^2)/2 in MPa, safety factor vs 0.6 x yield"
-    source: {kind: derivation, ref: "Timoshenko, Strength of Materials; Audit #5 closed form + numerical integral"}
-    checks: [tests/audit/test_structural_audit.py]
+    claim: "Tapered rotating-blade root centrifugal stress (rho w^2 / A_root) * int A(r) r dr in MPa (reduces to rho w^2 (R^2 - r^2)/2 for prismatic), SF vs 0.6 x yield (1.0 for isotropic RESIN)"
+    source: {kind: derivation, ref: "Timoshenko, Strength of Materials; Audit #5 + 2026-11-28 P1C amendment (#123) closed form + numerical integral"}
+    checks: [tests/audit/test_structural_audit.py, tests/test_rv3_structural_acoustics.py]
     depends_on: [structural.deflection]
 
   - id: structural.flutter
     targets: ["fansim.structural.flutter"]
-    claim: "First bending frequency of a uniform cantilever (1.875^2/2pi) sqrt(EI/(rho A L^4)) vs blade-pass frequency (resonance gate, not aeroelastic flutter)"
-    source: {kind: derivation, ref: "Euler-Bernoulli cantilever modes (Blevins, Formulas for Natural Frequency and Mode Shape); Audit #5 Hermite FE eigenvalue"}
-    checks: [tests/audit/test_structural_audit.py, tests/test_flutter.py]
+    claim: "First bending frequency of a uniform cantilever (1.875^2/2pi) sqrt(E I / (rho A L^4)) with section-family shape factors (plate 1/1, NACA 0.6809/0.4706) vs 1x BPF (resonance gate, not flutter)"
+    source: {kind: derivation, ref: "Euler-Bernoulli cantilever modes (Blevins); Audit #5 + 2026-11-28 P1C amendment (#123) Hermite FE eigenvalue"}
+    checks: [tests/audit/test_structural_audit.py, tests/test_flutter.py, tests/test_rv3_structural_acoustics.py]
     depends_on: [structural.deflection]
 
   - id: structural.balance
