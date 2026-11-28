@@ -164,7 +164,7 @@
     },
     "propeller.polars": {
       "date": "2026-11-28",
-      "fingerprint": "5ffb8dde1306f882",
+      "fingerprint": "aaa76aa81ccd21cf",
       "report": "docs/validation/audits/2026-11-28-prop-bemt-p1b-decoupled-prereg.md",
       "verdict": "PASS"
     },

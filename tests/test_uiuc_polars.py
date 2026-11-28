@@ -11,8 +11,8 @@ import pytest
 from fansim.propeller.bemt import _cl_cd, _cl_cd_analytic
 from fansim.propeller.polars import (
     POLAR_DIR,
-    clear_polar_cache,
     cl_cd_table,
+    clear_polar_cache,
     family_for_camber,
     load_polar_family,
     section_table,
@@ -62,7 +62,7 @@ def test_e387_table_hit_via_thickness():
     clear_polar_cache()
     tables = load_polar_family("e387")
     assert 80000.0 in tables
-    a, cl, cd = tables[80000.0]
+    a, cl, _cd = tables[80000.0]
     i = int(np.argmin(np.abs(a - 4.0)))
     out = cl_cd_table(math.radians(float(a[i])), 0.04, 80000.0, thickness=0.09)
     assert out is not None
