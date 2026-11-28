@@ -1286,9 +1286,10 @@ def build_impeller_preview(
         m.apply_transform(trimesh.transformations.rotation_matrix(np.radians(a), (0, 0, 1)))
         parts.append(m)
     # Subtract the root-embedded overlap on ONE blade so volume_mm3 matches the fused solid (#118).
-    blade_vol = float(blade.Volume())
     if float(params.root_embed) > 0.0:
         blade_vol = float(blade.cut(hub).Volume())
+    else:
+        blade_vol = float(blade.Volume())
     volume_mm3 = blade_vol * len(angles) + float(hub.Volume())
     ring = _shroud_solid(params)
     if ring is not None:
