@@ -74,84 +74,10 @@ else:
     from trame.widgets import vuetify3 as v3
 
 
-def setup_mixed_tab(ctx: CockpitCtx) -> None:
-    """Init mf_* state and controllers (call before SinglePageLayout)."""
+
+def _bind_mf_viz_and_state(ctx: CockpitCtx) -> None:
     state, ctrl = ctx.state, ctx.ctrl
-    runs_root = ctx.runs_root
-    spawn_busy_ticker = ctx.spawn_busy_ticker
-
-    # ---- Mixed-flow tab (drop-in impeller; axial-duct Assess) --------------------------------
-    from fansim.centrifugal.geometry import MixedFlowParams as _MFDefaults
-    from fansim.centrifugal.isolated import (
-        build_mixed_stl_isolated,
-        evaluate_mixed_flow_isolated,
-    )
-    from fansim.centrifugal.params_io import mixed_params_from_flat
-
-    _mf0 = _MFDefaults()
-    mf_preview_stl = session_tmp("fansim_mf_preview.stl")  # per-cockpit (QA UI-30)
-    mf_design_store: list[dict] = load_all_mixed_designs(
-        runs_root if runs_root.exists() else Path("runs")
-    )
-
-    # Shared objects for render + callbacks (kept per-session).
-    ctx.mf_preview_stl = mf_preview_stl  # type: ignore[attr-defined]
-    ctx.mf_design_store = mf_design_store  # type: ignore[attr-defined]
-
-    state.mf_n_blades = int(_mf0.n_blades)
-    state.mf_r_eye = float(_mf0.r_eye_mm)
-    state.mf_r_back = float(_mf0.r_back_mm)
-    state.mf_r_tip = float(_mf0.r_tip_mm)
-    state.mf_z_span = float(_mf0.z_span_mm)
-    state.mf_chord = float(_mf0.chord_mm)
-    state.mf_chord_root = float(_mf0.chord_root)
-    state.mf_chord_tip = float(_mf0.chord_tip)
-    state.mf_stagger = float(_mf0.stagger_deg)
-    state.mf_stagger_root = float(_mf0.stagger_root)
-    state.mf_stagger_tip = float(_mf0.stagger_tip)
-    state.mf_thickness = float(_mf0.thickness)
-    state.mf_camber = float(_mf0.max_camber)
-    state.mf_camber_pos = float(_mf0.camber_pos)
-    state.mf_assess_preset = "case"
-    state.mf_refine_op = False
-    state.mf_subtab = "design"
-    state.mf_export_items = []
-    state.mf_preview_busy = False
-    state.mf_export_busy = False
-    state.mf_assess_busy = False
-    state.mf_opt_busy = False
-    state.mf_refine_busy = False
-    state.mf_trials = 120
-    state.mf_resume = False
-    state.mf_cfd_top = 0
-    state.mf_geo_ready = False
-    # Duct-airflow viz (shared with the Fan tab; §17.3): |U|/p midplane + axial-Uz + streamlines
-    state.mf_airflow_field = "U"
-    state.mf_airflow_img_uri = ""
-    state.mf_airflow_caption = "Assess or load a mixed design to see duct airflow."
-    state.mf_airflow_busy = False
-    state.mf_sel_trial = None  # previous-runs dropdown selection (loads by trial)
-    state.mf_trial_items = design_dropdown_items(mf_design_store)
-    _mf_runs = runs_root if runs_root.exists() else Path("runs")
-    _mf_last = latest_mixed_opt_dir(_mf_runs)
-    state.mf_last_opt = str(_mf_last) if _mf_last else ""
-    state.mf_has_front = bool(_mf_last) or any(
-        str(r.get("source") or "").startswith("cockpit_mf_opt") for r in mf_design_store
-    )
-    state.mf_msg = "Tune the cone and tip, then Preview → Assess → Export → Optimize (BEM)."
-    state.mf_readout = [
-        EXPERIMENTAL_LABEL,
-        "Assess runs MRF CFD (not validated against published data).",
-        "Optimize is a BEM screen (axial adapter) — not CFD.",
-    ]
-    if mf_design_store:
-        n_opt = sum(
-            1
-            for r in mf_design_store
-            if str((r.get("extra") or {}).get("source", "")) == "mixed_optimize"
-        )
-        n_as = len(mf_design_store) - n_opt
-        state.mf_msg = f"Loaded {n_as} Assess + {n_opt} Optimize point(s) onto the mixed scatter."
+    mf_design_store = ctx.mf_design_store  # type: ignore[attr-defined]
 
     def _refresh_mf_figure():
         if hasattr(ctrl, "mf_fig_update"):
@@ -278,11 +204,32 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
         mf_plotter.reset_camera()
         ctrl.mf_view_update()
 
+
+    ctx._refresh_mf_figure = _refresh_mf_figure  # type: ignore[attr-defined]
+    ctx._refresh_mf_export_items = _refresh_mf_export_items  # type: ignore[attr-defined]
+    ctx._render_mf_airflow = _render_mf_airflow  # type: ignore[attr-defined]
+    ctx._mf_flat_from_state = _mf_flat_from_state  # type: ignore[attr-defined]
+    ctx._mf_busy = _mf_busy  # type: ignore[attr-defined]
+    ctx._show_mf_stl = _show_mf_stl  # type: ignore[attr-defined]
+
+
+def _bind_mf_actions(ctx: CockpitCtx) -> None:
+    from fansim.centrifugal.isolated import (
+        build_mixed_stl_isolated,
+        evaluate_mixed_flow_isolated,
+    )
+    from fansim.centrifugal.params_io import mixed_params_from_flat
+    state, _ctrl = ctx.state, ctx.ctrl
+    runs_root = ctx.runs_root
+    spawn_busy_ticker = ctx.spawn_busy_ticker
+    mf_preview_stl = ctx.mf_preview_stl  # type: ignore[attr-defined]
+    mf_design_store = ctx.mf_design_store  # type: ignore[attr-defined]
+
     async def mf_preview(**_):
-        if _mf_busy():
+        if ctx._mf_busy():
             return
         try:
-            flat = _mf_flat_from_state()
+            flat = ctx._mf_flat_from_state()
             mixed_params_from_flat(flat)  # validate early
         except Exception as exc:  # noqa: BLE001
             state.mf_msg = f"⚠ Invalid params: {exc}"
@@ -304,7 +251,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                     flat, mf_preview_stl, timeout=300.0, preview=True,
                 ),
             )
-            _show_mf_stl(mf_preview_stl)
+            ctx._show_mf_stl(mf_preview_stl)
             state.mf_geo_ready = True
             state.mf_msg = "✓ Preview ready (non-fused visual mesh)."
         except Exception as exc:  # noqa: BLE001
@@ -315,10 +262,10 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             state.flush()
 
     async def mf_export(**_):
-        if _mf_busy():
+        if ctx._mf_busy():
             return
         try:
-            flat = _mf_flat_from_state()
+            flat = ctx._mf_flat_from_state()
             params = mixed_params_from_flat(flat)
         except Exception as exc:  # noqa: BLE001
             state.mf_msg = f"⚠ Invalid params: {exc}"
@@ -347,7 +294,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             md = Path(path).with_suffix(".md")
             md.write_text(mixed_export_readme(), encoding="utf-8")
             state.mf_msg = f"✓ Saved {Path(path).resolve()}"
-            _refresh_mf_export_items()
+            ctx._refresh_mf_export_items()
         except Exception as exc:  # noqa: BLE001
             state.mf_msg = f"⚠ Export failed: {type(exc).__name__}: {exc}"
         finally:
@@ -356,10 +303,10 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             state.flush()
 
     async def mf_assess(**_):
-        if _mf_busy():
+        if ctx._mf_busy():
             return
         try:
-            flat = _mf_flat_from_state()
+            flat = ctx._mf_flat_from_state()
             mixed_params_from_flat(flat)
         except Exception as exc:  # noqa: BLE001
             state.mf_msg = f"⚠ Invalid params: {exc}"
@@ -445,8 +392,8 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                     "workdir": str(workdir),
                 }
                 mf_design_store.append(row)
-                _refresh_mf_figure()
-                _render_mf_airflow(workdir)  # duct-airflow viz from the just-solved case
+                ctx._refresh_mf_figure()
+                ctx._render_mf_airflow(workdir)  # duct-airflow viz from the just-solved case
                 state.mf_msg = (
                     f"✓ free {result.cfm_free:.1f} CFM  ·  load {result.cfm_load:.1f} CFM  ·  "
                     f"η {result.efficiency:.1f}%  ({workdir.name}) — saved to scatter"
@@ -461,7 +408,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
                 ]
                 stl = workdir / "impeller.stl"
                 if stl.exists():
-                    _show_mf_stl(stl)
+                    ctx._show_mf_stl(stl)
         except Exception as exc:  # noqa: BLE001
             state.mf_msg = f"⚠ Assess failed: {type(exc).__name__}: {exc}"
         finally:
@@ -471,7 +418,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
 
     def optimize_mixed():
         """BEM NSGA screen for mixed-flow (instant; axial-adapter CFM — not CFD)."""
-        if _mf_busy():
+        if ctx._mf_busy():
             return
         try:
             trials = max(40, int(float(state.mf_trials)))
@@ -520,7 +467,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
             # Reload disk so prior Assess + Optimize fronts stay on the graph.
             mf_design_store.clear()
             mf_design_store.extend(load_all_mixed_designs(root))
-            _refresh_mf_figure()
+            ctx._refresh_mf_figure()
             state.mf_msg = (
                 f"✓ {len(pareto)} BEM front design(s) → {out_dir.name} "
                 f"(axial adapter — Assess for CFD). Click a ● point to load knobs."
@@ -533,7 +480,7 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
 
     def refine_mixed_cfd():
         """CFD-score top-N rows from the last mixed BEM Optimize front."""
-        if _mf_busy():
+        if ctx._mf_busy():
             return
         try:
             n_top = int(float(state.mf_cfd_top))
@@ -649,11 +596,11 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
         stl = row.get("stl_path")
         if stl and Path(stl).exists():
             try:
-                _show_mf_stl(Path(stl))
+                ctx._show_mf_stl(Path(stl))
             except Exception:  # noqa: BLE001, S110
                 pass
         state.mf_msg = f"Loaded Assess #{tid} into the editor."
-        _render_mf_airflow(row.get("workdir"))  # duct-airflow viz from the loaded case (if kept)
+        ctx._render_mf_airflow(row.get("workdir"))  # duct-airflow viz from the loaded case (if kept)
         state.flush()
 
     # Expose callbacks for the UI renderer.
@@ -665,297 +612,367 @@ def setup_mixed_tab(ctx: CockpitCtx) -> None:
     ctx.load_mf_trial = load_mf_trial  # type: ignore[attr-defined]
 
 
-def render_mixed_tab(ctx: CockpitCtx) -> None:
-    """Build Mixed UI (call inside layout content)."""
-    ctrl = ctx.ctrl
-    mf_plotter = ensure_plotter(ctx, "mf_plotter")
-    mf_design_store = ctx.mf_design_store  # set by setup_mixed_tab
 
-    def _slider(
-        label: str,
-        model: str,
-        mn: float,
-        mx: float,
-        step: float,
-        disabled=None,
-        unit: str = "",
-        simple_label: str | None = None,
-        simple_unit: str | None = None,
-        **_kw,
-    ):
-        # Shared slider: label + exact value + unit + hover tooltip/diagram always wired.
-        _shared_slider(
-            label,
-            model,
-            mn,
-            mx,
-            step,
-            disabled=disabled,
-            unit=unit,
-            simple_label=simple_label,
-            simple_unit=simple_unit,
+def setup_mixed_tab(ctx: CockpitCtx) -> None:
+    """Init mf_* state and controllers (call before SinglePageLayout)."""
+    """Init mf_* state and controllers (call before SinglePageLayout)."""
+    state, _ctrl = ctx.state, ctx.ctrl
+    runs_root = ctx.runs_root
+
+    # ---- Mixed-flow tab (drop-in impeller; axial-duct Assess) --------------------------------
+    from fansim.centrifugal.geometry import MixedFlowParams as _MFDefaults
+
+    _mf0 = _MFDefaults()
+    mf_preview_stl = session_tmp("fansim_mf_preview.stl")  # per-cockpit (QA UI-30)
+    mf_design_store: list[dict] = load_all_mixed_designs(
+        runs_root if runs_root.exists() else Path("runs")
+    )
+
+    # Shared objects for render + callbacks (kept per-session).
+    ctx.mf_preview_stl = mf_preview_stl  # type: ignore[attr-defined]
+    ctx.mf_design_store = mf_design_store  # type: ignore[attr-defined]
+
+    state.mf_n_blades = int(_mf0.n_blades)
+    state.mf_r_eye = float(_mf0.r_eye_mm)
+    state.mf_r_back = float(_mf0.r_back_mm)
+    state.mf_r_tip = float(_mf0.r_tip_mm)
+    state.mf_z_span = float(_mf0.z_span_mm)
+    state.mf_chord = float(_mf0.chord_mm)
+    state.mf_chord_root = float(_mf0.chord_root)
+    state.mf_chord_tip = float(_mf0.chord_tip)
+    state.mf_stagger = float(_mf0.stagger_deg)
+    state.mf_stagger_root = float(_mf0.stagger_root)
+    state.mf_stagger_tip = float(_mf0.stagger_tip)
+    state.mf_thickness = float(_mf0.thickness)
+    state.mf_camber = float(_mf0.max_camber)
+    state.mf_camber_pos = float(_mf0.camber_pos)
+    state.mf_assess_preset = "case"
+    state.mf_refine_op = False
+    state.mf_subtab = "design"
+    state.mf_export_items = []
+    state.mf_preview_busy = False
+    state.mf_export_busy = False
+    state.mf_assess_busy = False
+    state.mf_opt_busy = False
+    state.mf_refine_busy = False
+    state.mf_trials = 120
+    state.mf_resume = False
+    state.mf_cfd_top = 0
+    state.mf_geo_ready = False
+    # Duct-airflow viz (shared with the Fan tab; §17.3): |U|/p midplane + axial-Uz + streamlines
+    state.mf_airflow_field = "U"
+    state.mf_airflow_img_uri = ""
+    state.mf_airflow_caption = "Assess or load a mixed design to see duct airflow."
+    state.mf_airflow_busy = False
+    state.mf_sel_trial = None  # previous-runs dropdown selection (loads by trial)
+    state.mf_trial_items = design_dropdown_items(mf_design_store)
+    _mf_runs = runs_root if runs_root.exists() else Path("runs")
+    _mf_last = latest_mixed_opt_dir(_mf_runs)
+    state.mf_last_opt = str(_mf_last) if _mf_last else ""
+    state.mf_has_front = bool(_mf_last) or any(
+        str(r.get("source") or "").startswith("cockpit_mf_opt") for r in mf_design_store
+    )
+    state.mf_msg = "Tune the cone and tip, then Preview → Assess → Export → Optimize (BEM)."
+    state.mf_readout = [
+        EXPERIMENTAL_LABEL,
+        "Assess runs MRF CFD (not validated against published data).",
+        "Optimize is a BEM screen (axial adapter) — not CFD.",
+    ]
+    if mf_design_store:
+        n_opt = sum(
+            1
+            for r in mf_design_store
+            if str((r.get("extra") or {}).get("source", "")) == "mixed_optimize"
         )
+        n_as = len(mf_design_store) - n_opt
+        state.mf_msg = f"Loaded {n_as} Assess + {n_opt} Optimize point(s) onto the mixed scatter."
 
+    _bind_mf_viz_and_state(ctx)
+    _bind_mf_actions(ctx)
+
+
+def _mf_slider(label: str, model: str, mn: float, mx: float, step: float,
+               disabled=None, unit: str = "", simple_label: str | None = None,
+               simple_unit: str | None = None, **_kw) -> None:
+    _shared_slider(label, model, mn, mx, step, disabled=disabled, unit=unit,
+                   simple_label=simple_label, simple_unit=simple_unit)
+
+
+def _render_mf_design(ctx: CockpitCtx) -> None:
+    _slider = _mf_slider
     _mf_busy_expr = (
         "mf_preview_busy || mf_export_busy || mf_assess_busy || "
         "mf_opt_busy || mf_refine_busy"
     )
+    with v3.VCard(classes="mb-2 pa-3"):
+        html.Div("Core geometry (A12x25 envelope)", classes="text-subtitle-2 mb-1")
+        html.Div(
+            "Conical-hub mixed-flow rotor. Optimize uses a meanline proxy. "
+            f"{EXPERIMENTAL_LABEL}",
+            classes="text-caption mb-2",
+            style="white-space: pre-line",
+        )
+        _slider("Blades", "mf_n_blades", 5, 13, 1)
+        _slider("Eye hub R", "mf_r_eye", 12.0, 24.0, 0.5, unit="mm")
+        _slider("Back hub R", "mf_r_back", 20.0, 35.0, 0.5, unit="mm")
+        _slider("Tip R", "mf_r_tip", 48.0, 54.5, 0.5, unit="mm")
+        _slider("Z span", "mf_z_span", 12.0, 22.0, 0.5, unit="mm")
+        html.Div("Planform (root → tip)", classes="text-subtitle-2 mt-3 mb-1")
+        _slider("Chord root", "mf_chord_root", 14.0, 28.0, 0.5, unit="mm")
+        _slider("Chord mid", "mf_chord", 14.0, 28.0, 0.5, unit="mm")
+        _slider("Chord tip", "mf_chord_tip", 14.0, 28.0, 0.5, unit="mm")
+        _slider("Stagger root", "mf_stagger_root", 20.0, 50.0, 1.0, unit="deg")
+        _slider("Stagger mid", "mf_stagger", 20.0, 50.0, 1.0, unit="deg")
+        _slider("Stagger tip", "mf_stagger_tip", 20.0, 50.0, 1.0, unit="deg")
+        html.Div("Section aero", classes="text-subtitle-2 mt-3 mb-1")
+        _slider("Thickness", "mf_thickness", 0.04, 0.14, 0.005, unit="t/c")
+        _slider("Camber", "mf_camber", 0.0, 0.08, 0.005, unit="c/c")
+        _slider("Camber pos", "mf_camber_pos", 0.25, 0.55, 0.01, unit="x/c")
+    with v3.VCard(classes="mb-2 pa-3"):
+        v3.VSelect(
+            label="Application",
+            v_model=("mf_assess_preset",),
+            items=("assess_preset_items",),
+            density="compact",
+            variant="outlined",
+            hide_details=True,
+            classes="mb-2",
+        )
+        v3.VSwitch(
+            v_model=("mf_refine_op",),
+            density="compact",
+            hide_details=True,
+            color="primary",
+            inset=True,
+            label="Third CFD at operating point",
+            classes="mb-2",
+        )
+        render_action_row(
+            v3,
+            {
+                "preview": {
+                    "label": "Preview",
+                    "color": "primary",
+                    "size": "small",
+                    "click": (ctx.mf_preview,),
+                    "loading": ("mf_preview_busy",),
+                    "disabled": (_mf_busy_expr,),
+                },
+                "score": {
+                    "label": "Assess",
+                    "color": "success",
+                    "size": "small",
+                    "click": (ctx.mf_assess,),
+                    "loading": ("mf_assess_busy",),
+                    "disabled": (f"{_mf_busy_expr} || !mf_geo_ready",),
+                },
+                "export": {
+                    "label": "Export STL",
+                    "size": "small",
+                    "variant": "tonal",
+                    "color": "primary",
+                    "click": (ctx.mf_export,),
+                    "loading": ("mf_export_busy",),
+                    "disabled": (f"{_mf_busy_expr} || !mf_geo_ready",),
+                },
+                "optimize": {
+                    "label": "Optimize",
+                    "color": "success",
+                    "size": "small",
+                    "click": (ctx.optimize_mixed,),
+                    "loading": ("mf_opt_busy",),
+                    "disabled": (_mf_busy_expr,),
+                },
+            },
+        )
+        html.Div(
+            "Press Preview first to build the 3-D mesh and unlock Assess / Export STL.",
+            classes="text-caption text-medium-emphasis mt-1",
+            v_show="!mf_geo_ready",
+        )
+        html.Div(
+            "{{ mf_msg }}",
+            classes="text-caption mt-2",
+            style="white-space: pre-line",
+        )
+        ctx.busy_bar(
+            "mf_preview_busy",
+            "mf_export_busy",
+            "mf_assess_busy",
+            "mf_opt_busy",
+            "mf_refine_busy",
+            color="success",
+        )
+    with v3.VCard(classes="mb-2 pa-3"):
+        html.Div(
+            "Optimize (BEM screen, ~1 s) — axial adapter CFM",
+            classes="text-subtitle-2 mb-1",
+        )
+        html.Div(
+            "NSGA on free↔load CFM via the axial BEM stand-in. Not CFD. "
+            "Assess runs MRF CFD (not validated against published data). Continue last "
+            "appends into the newest cockpit_mf_opt_* study. "
+            "Optional CFD refine scores the top-N BEM finalists "
+            "(same hose as Assess; writes cfd_refine.json).",
+            classes="text-caption mb-2",
+            style="white-space: pre-line",
+        )
+        v3.VTextField(
+            label="Trials",
+            v_model=("mf_trials",),
+            type="number",
+            density="compact",
+            variant="outlined",
+            hide_details=True,
+            classes="mb-2",
+        )
+        v3.VSwitch(
+            v_model=("mf_resume",),
+            density="compact",
+            hide_details=True,
+            color="primary",
+            inset=True,
+            label="Continue last",
+            classes="mb-2",
+        )
+        with v3.VRow(no_gutters=True, classes="align-center"):
+            with v3.VCol(cols=5, classes="pr-1"):
+                v3.VTextField(
+                    label="CFD refine top N",
+                    v_model=("mf_cfd_top",),
+                    type="number",
+                    density="compact",
+                    variant="outlined",
+                    hide_details=True,
+                )
+            with v3.VCol(cols=7, classes="pl-1"):
+                v3.VBtn(
+                    "CFD refine",
+                    color="warning",
+                    variant="tonal",  # solid orange looked enabled at top N = 0 (UI-21)
+                    size="small",
+                    block=True,
+                    click=(ctx.refine_mixed_cfd,),
+                    loading=("mf_refine_busy",),
+                    disabled=(
+                        f"{_mf_busy_expr} || !mf_has_front || !(mf_cfd_top > 0)",
+                    ),
+                )
 
-    # ---- MIXED-FLOW TAB -----------------------------------------------------------
+
+
+def _render_mf_results(ctx: CockpitCtx) -> None:
+    ctrl = ctx.ctrl
+    mf_design_store = ctx.mf_design_store  # type: ignore[attr-defined]
+    with v3.VCard(classes="pa-2 mb-2"):
+        v3.VSelect(
+            label="Previous runs",
+            v_model=("mf_sel_trial",),
+            items=("mf_trial_items",),
+            density="compact",
+            variant="outlined",
+            hide_details=True,
+            update_modelValue=(ctx.load_mf_trial, "[$event]"),
+        )
+    with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
+        mf_fig_widget = plotly_widgets.Figure(
+            figure=mf_scatter_figure(mf_design_store),
+            click=(
+                ctx.load_mf_trial,
+                "[$event?.points?.[0]?.customdata]",
+            ),
+            style="width:100%;",
+        )
+        ctrl.mf_fig_update = mf_fig_widget.update
+
+
+
+def _render_mf_library(ctx: CockpitCtx) -> None:
+    with v3.VCard(classes="pa-2 mb-2"):
+        v3.VSelect(
+            label="Previous runs",
+            v_model=("mf_sel_trial",),
+            items=("mf_trial_items",),
+            density="compact",
+            variant="outlined",
+            hide_details=True,
+            update_modelValue=(ctx.load_mf_trial, "[$event]"),
+        )
+    with v3.VCard(classes="pa-2"):
+        html.Div(
+            "Exported mixed-flow STL files under exports/.",
+            classes="text-caption mb-2",
+        )
+        with v3.VList(density="compact", lines="one"):
+            with v3.VListItem(v_for="it in mf_export_items", key="it.value"):
+                v3.VListItemTitle("{{ it.title }}")
+        html.Div(
+            "No exports yet — use Export STL on Design.",
+            classes="text-caption text-medium-emphasis",
+            v_if="!mf_export_items.length",
+        )
+
+
+
+def _render_mf_right_col(ctx: CockpitCtx, mf_plotter) -> None:
+    ctrl = ctx.ctrl
+    with v3.VCol(cols=7):
+        with v3.VCard(classes="mb-2 pa-3"):
+            html.Div("{{ line }}", v_for="line in mf_readout", classes="text-body-2")
+        with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
+            html.Div(
+                "3-D preview appears here after you press Preview.",
+                classes="text-caption text-medium-emphasis px-3 pt-2",
+                v_show="!mf_geo_ready",
+            )
+            mf_view = plotter_ui(mf_plotter)
+            ctrl.mf_view_update = mf_view.update
+        with v3.VCard(classes="mb-2 pa-2", v_show="mf_subtab === 'results'"):
+            html.Div("Duct airflow — slices & streamlines", classes="text-subtitle-2 mb-1")
+            html.Div(
+                f"From the last Assess. {EXPERIMENTAL_LABEL} "
+                "|U|/pressure midplane; axial Uz (blue = delivery, red = reverse); "
+                "streamlines colored by |U|.",
+                classes="text-caption text-medium-emphasis mb-2",
+            )
+            with v3.VBtnToggle(
+                v_model=("mf_airflow_field",),
+                density="compact",
+                color="primary",
+                classes="mb-2",
+                mandatory=True,
+            ):
+                v3.VBtn("|U| midplane", value="U", size="small")
+                v3.VBtn("pressure midplane", value="p", size="small")
+                v3.VBtn("axial Uz", value="uz", size="small")
+                v3.VBtn("streamlines", value="stream", size="small")
+            html.Div(
+                "{{ mf_airflow_caption }}",
+                classes="text-caption text-medium-emphasis mb-1",
+            )
+            html.Img(
+                src=("mf_airflow_img_uri",),
+                v_show="mf_airflow_img_uri",
+                style=(
+                    "width:100%;max-height:520px;object-fit:contain;"
+                    "display:block;background:#fafafa;border-radius:4px;"
+                ),
+            )
+
+
+def render_mixed_tab(ctx: CockpitCtx) -> None:
+    """Build Mixed-flow UI (call inside layout content)."""
+    mf_plotter = ensure_plotter(ctx, "mf_plotter")
+    mf_plotter = ensure_plotter(ctx, "mf_plotter")
+
     with html.Div(v_show="active_tab === 'mixed'"):
         with v3.VRow(no_gutters=True):
             with v3.VCol(cols=5, classes="pr-2"):
 
-                def _mf_design():
-                    with v3.VCard(classes="mb-2 pa-3"):
-                        html.Div("Core geometry (A12x25 envelope)", classes="text-subtitle-2 mb-1")
-                        html.Div(
-                            "Conical-hub mixed-flow rotor. Optimize uses a meanline proxy. "
-                            f"{EXPERIMENTAL_LABEL}",
-                            classes="text-caption mb-2",
-                            style="white-space: pre-line",
-                        )
-                        _slider("Blades", "mf_n_blades", 5, 13, 1)
-                        _slider("Eye hub R", "mf_r_eye", 12.0, 24.0, 0.5, unit="mm")
-                        _slider("Back hub R", "mf_r_back", 20.0, 35.0, 0.5, unit="mm")
-                        _slider("Tip R", "mf_r_tip", 48.0, 54.5, 0.5, unit="mm")
-                        _slider("Z span", "mf_z_span", 12.0, 22.0, 0.5, unit="mm")
-                        html.Div("Planform (root → tip)", classes="text-subtitle-2 mt-3 mb-1")
-                        _slider("Chord root", "mf_chord_root", 14.0, 28.0, 0.5, unit="mm")
-                        _slider("Chord mid", "mf_chord", 14.0, 28.0, 0.5, unit="mm")
-                        _slider("Chord tip", "mf_chord_tip", 14.0, 28.0, 0.5, unit="mm")
-                        _slider("Stagger root", "mf_stagger_root", 20.0, 50.0, 1.0, unit="deg")
-                        _slider("Stagger mid", "mf_stagger", 20.0, 50.0, 1.0, unit="deg")
-                        _slider("Stagger tip", "mf_stagger_tip", 20.0, 50.0, 1.0, unit="deg")
-                        html.Div("Section aero", classes="text-subtitle-2 mt-3 mb-1")
-                        _slider("Thickness", "mf_thickness", 0.04, 0.14, 0.005, unit="t/c")
-                        _slider("Camber", "mf_camber", 0.0, 0.08, 0.005, unit="c/c")
-                        _slider("Camber pos", "mf_camber_pos", 0.25, 0.55, 0.01, unit="x/c")
-                    with v3.VCard(classes="mb-2 pa-3"):
-                        v3.VSelect(
-                            label="Application",
-                            v_model=("mf_assess_preset",),
-                            items=("assess_preset_items",),
-                            density="compact",
-                            variant="outlined",
-                            hide_details=True,
-                            classes="mb-2",
-                        )
-                        v3.VSwitch(
-                            v_model=("mf_refine_op",),
-                            density="compact",
-                            hide_details=True,
-                            color="primary",
-                            inset=True,
-                            label="Third CFD at operating point",
-                            classes="mb-2",
-                        )
-                        render_action_row(
-                            v3,
-                            {
-                                "preview": {
-                                    "label": "Preview",
-                                    "color": "primary",
-                                    "size": "small",
-                                    "click": (ctx.mf_preview,),
-                                    "loading": ("mf_preview_busy",),
-                                    "disabled": (_mf_busy_expr,),
-                                },
-                                "score": {
-                                    "label": "Assess",
-                                    "color": "success",
-                                    "size": "small",
-                                    "click": (ctx.mf_assess,),
-                                    "loading": ("mf_assess_busy",),
-                                    "disabled": (f"{_mf_busy_expr} || !mf_geo_ready",),
-                                },
-                                "export": {
-                                    "label": "Export STL",
-                                    "size": "small",
-                                    "variant": "tonal",
-                                    "color": "primary",
-                                    "click": (ctx.mf_export,),
-                                    "loading": ("mf_export_busy",),
-                                    "disabled": (f"{_mf_busy_expr} || !mf_geo_ready",),
-                                },
-                                "optimize": {
-                                    "label": "Optimize",
-                                    "color": "success",
-                                    "size": "small",
-                                    "click": (ctx.optimize_mixed,),
-                                    "loading": ("mf_opt_busy",),
-                                    "disabled": (_mf_busy_expr,),
-                                },
-                            },
-                        )
-                        html.Div(
-                            "Press Preview first to build the 3-D mesh and unlock Assess / Export STL.",
-                            classes="text-caption text-medium-emphasis mt-1",
-                            v_show="!mf_geo_ready",
-                        )
-                        html.Div(
-                            "{{ mf_msg }}",
-                            classes="text-caption mt-2",
-                            style="white-space: pre-line",
-                        )
-                        ctx.busy_bar(
-                            "mf_preview_busy",
-                            "mf_export_busy",
-                            "mf_assess_busy",
-                            "mf_opt_busy",
-                            "mf_refine_busy",
-                            color="success",
-                        )
-                    with v3.VCard(classes="mb-2 pa-3"):
-                        html.Div(
-                            "Optimize (BEM screen, ~1 s) — axial adapter CFM",
-                            classes="text-subtitle-2 mb-1",
-                        )
-                        html.Div(
-                            "NSGA on free↔load CFM via the axial BEM stand-in. Not CFD. "
-                            "Assess runs MRF CFD (not validated against published data). Continue last "
-                            "appends into the newest cockpit_mf_opt_* study. "
-                            "Optional CFD refine scores the top-N BEM finalists "
-                            "(same hose as Assess; writes cfd_refine.json).",
-                            classes="text-caption mb-2",
-                            style="white-space: pre-line",
-                        )
-                        v3.VTextField(
-                            label="Trials",
-                            v_model=("mf_trials",),
-                            type="number",
-                            density="compact",
-                            variant="outlined",
-                            hide_details=True,
-                            classes="mb-2",
-                        )
-                        v3.VSwitch(
-                            v_model=("mf_resume",),
-                            density="compact",
-                            hide_details=True,
-                            color="primary",
-                            inset=True,
-                            label="Continue last",
-                            classes="mb-2",
-                        )
-                        with v3.VRow(no_gutters=True, classes="align-center"):
-                            with v3.VCol(cols=5, classes="pr-1"):
-                                v3.VTextField(
-                                    label="CFD refine top N",
-                                    v_model=("mf_cfd_top",),
-                                    type="number",
-                                    density="compact",
-                                    variant="outlined",
-                                    hide_details=True,
-                                )
-                            with v3.VCol(cols=7, classes="pl-1"):
-                                v3.VBtn(
-                                    "CFD refine",
-                                    color="warning",
-                                    variant="tonal",  # solid orange looked enabled at top N = 0 (UI-21)
-                                    size="small",
-                                    block=True,
-                                    click=(ctx.refine_mixed_cfd,),
-                                    loading=("mf_refine_busy",),
-                                    disabled=(
-                                        f"{_mf_busy_expr} || !mf_has_front || !(mf_cfd_top > 0)",
-                                    ),
-                                )
-
-                def _mf_results():
-                    with v3.VCard(classes="pa-2 mb-2"):
-                        v3.VSelect(
-                            label="Previous runs",
-                            v_model=("mf_sel_trial",),
-                            items=("mf_trial_items",),
-                            density="compact",
-                            variant="outlined",
-                            hide_details=True,
-                            update_modelValue=(ctx.load_mf_trial, "[$event]"),
-                        )
-                    with v3.VCard(style=f"height:{SCATTER_HEIGHT_PX}px;", classes="pa-1 mb-2"):
-                        mf_fig_widget = plotly_widgets.Figure(
-                            figure=mf_scatter_figure(mf_design_store),
-                            click=(
-                                ctx.load_mf_trial,
-                                "[$event?.points?.[0]?.customdata]",
-                            ),
-                            style="width:100%;",
-                        )
-                        ctrl.mf_fig_update = mf_fig_widget.update
-
-                def _mf_library():
-                    with v3.VCard(classes="pa-2 mb-2"):
-                        v3.VSelect(
-                            label="Previous runs",
-                            v_model=("mf_sel_trial",),
-                            items=("mf_trial_items",),
-                            density="compact",
-                            variant="outlined",
-                            hide_details=True,
-                            update_modelValue=(ctx.load_mf_trial, "[$event]"),
-                        )
-                    with v3.VCard(classes="pa-2"):
-                        html.Div(
-                            "Exported mixed-flow STL files under exports/.",
-                            classes="text-caption mb-2",
-                        )
-                        with v3.VList(density="compact", lines="one"):
-                            with v3.VListItem(v_for="it in mf_export_items", key="it.value"):
-                                v3.VListItemTitle("{{ it.title }}")
-                        html.Div(
-                            "No exports yet — use Export STL on Design.",
-                            classes="text-caption text-medium-emphasis",
-                            v_if="!mf_export_items.length",
-                        )
-
                 render_left_shell(
-                    v3,
-                    html,
-                    state_key="mf_subtab",
-                    design=_mf_design,
-                    results=_mf_results,
-                    library=_mf_library,
+                    v3, html, state_key="mf_subtab",
+                    design=lambda: _render_mf_design(ctx),
+                    results=lambda: _render_mf_results(ctx),
+                    library=lambda: _render_mf_library(ctx),
                 )
-            with v3.VCol(cols=7):
-                with v3.VCard(classes="mb-2 pa-3"):
-                    html.Div("{{ line }}", v_for="line in mf_readout", classes="text-body-2")
-                with v3.VCard(style=VTK_VIEW_STYLE, classes="mb-2"):
-                    html.Div(
-                        "3-D preview appears here after you press Preview.",
-                        classes="text-caption text-medium-emphasis px-3 pt-2",
-                        v_show="!mf_geo_ready",
-                    )
-                    mf_view = plotter_ui(mf_plotter)
-                    ctrl.mf_view_update = mf_view.update
-                with v3.VCard(classes="mb-2 pa-2", v_show="mf_subtab === 'results'"):
-                    html.Div("Duct airflow — slices & streamlines", classes="text-subtitle-2 mb-1")
-                    html.Div(
-                        f"From the last Assess. {EXPERIMENTAL_LABEL} "
-                        "|U|/pressure midplane; axial Uz (blue = delivery, red = reverse); "
-                        "streamlines colored by |U|.",
-                        classes="text-caption text-medium-emphasis mb-2",
-                    )
-                    with v3.VBtnToggle(
-                        v_model=("mf_airflow_field",),
-                        density="compact",
-                        color="primary",
-                        classes="mb-2",
-                        mandatory=True,
-                    ):
-                        v3.VBtn("|U| midplane", value="U", size="small")
-                        v3.VBtn("pressure midplane", value="p", size="small")
-                        v3.VBtn("axial Uz", value="uz", size="small")
-                        v3.VBtn("streamlines", value="stream", size="small")
-                    html.Div(
-                        "{{ mf_airflow_caption }}",
-                        classes="text-caption text-medium-emphasis mb-1",
-                    )
-                    html.Img(
-                        src=("mf_airflow_img_uri",),
-                        v_show="mf_airflow_img_uri",
-                        style=(
-                            "width:100%;max-height:520px;object-fit:contain;"
-                            "display:block;background:#fafafa;border-radius:4px;"
-                        ),
-                    )
+            _render_mf_right_col(ctx, mf_plotter)
